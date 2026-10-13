@@ -29,6 +29,14 @@ def _recent(value):
     return prediction
 
 
+def _qualified_outcome(value,target,*,sensor_epoch):
+    if not isinstance(value,dict):raise ValueError('complete native outcome receipt required')
+    try:
+        for name in ('receivedAt','storedAt','validUntil'):_instant(value[name])
+    except (KeyError,TypeError):raise ValueError('complete native outcome clocks required') from None
+    _validate_sensor_receipt(value,target,sensor_epoch=sensor_epoch)
+
+
 def validate_delivery(capture,receipts):
     if not isinstance(receipts,dict) or set(receipts)!={NUMERIC_ITEM,PUBLICATION_ITEM}:
         raise ValueError('both original native persisted receipts required')
@@ -54,7 +62,7 @@ def score(capture,receipts,outcome,*,runtime,expected_artifact_sha256,expected_c
         raise ValueError('supported native score horizon required')
     target=issue+timedelta(hours=horizon_hours)
     if assessed<target+timedelta(minutes=5):raise ValueError('mature native outcome required')
-    _validate_sensor_receipt(outcome,target,sensor_epoch=capture['candidate']['fit']['sensor_epochs']['air'])
+    _qualified_outcome(outcome,target,sensor_epoch=capture['candidate']['fit']['sensor_epochs']['air'])
     actual=float(outcome['temperatureF']);model=capture['output']['trajectory'][horizon_hours-1]
     if _instant(model['at'])!=target:raise ValueError('original native score target differs')
     recent_f=_recent(recent)
@@ -85,6 +93,7 @@ def validate_pair(pair,*,expected_pair_sha256):
     issue,target,assessed=map(_instant,(pair['issued_at'],pair['target_at'],pair['assessed_at']))
     if issue.microsecond or issue.second not in (0,15) or issue.minute%5:
         raise ValueError('aligned native scored origin required')
+    _qualified_outcome(pair['outcome'],target,sensor_epoch=pair['outcome'].get('sensorEpoch') if isinstance(pair['outcome'],dict) else None)
     if _recent(pair['recent_cycle'])!=pair['predictions']['recent_cycle']:
         raise ValueError('original native recent-cycle prediction differs')
     arithmetic.validate_pair(_statistical_view(pair))

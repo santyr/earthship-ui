@@ -90,3 +90,31 @@ def test_native_report_refuses_mixed_model_runtime_but_filters_explicit_revision
     with pytest.raises(ValueError):api().summarize([pair,other])
     selected=api().summarize([pair,other],artifact_sha256=pair['artifact_sha256'])
     assert selected['by_horizon']['1']['persistence']['count']==1
+
+
+@pytest.mark.parametrize('damage',['missing','future','expired','version','epoch'])
+def test_resealed_native_pair_and_report_refuse_unqualified_outcome_metadata(tmp_path,monkeypatch,originals,damage):
+    pair=scored(tmp_path,monkeypatch,originals);target=ISSUE+timedelta(hours=1)
+    if damage=='missing':pair['outcome']={'temperatureF':75}
+    if damage=='future':pair['outcome']['receivedAt']=(target+timedelta(seconds=1)).isoformat()
+    if damage=='expired':pair['outcome']['validUntil']=(target-timedelta(seconds=1)).isoformat()
+    if damage=='version':pair['outcome']['receiptVersion']=1
+    if damage=='epoch':pair['outcome']['sensorEpoch']='not-a-sensor-epoch'
+    pair['pair_sha256']=api().digest(pair,'pair_sha256')
+    with pytest.raises(ValueError):api().validate_pair(pair,expected_pair_sha256=pair['pair_sha256'])
+    with pytest.raises(ValueError):api().summarize([pair],artifact_sha256=pair['artifact_sha256'])
+
+
+@pytest.mark.parametrize('boundary',['score','pair'])
+@pytest.mark.parametrize('field',['receivedAt','storedAt','validUntil'])
+@pytest.mark.parametrize('suffix',['.0000009+00:00','-00:00:00.5'])
+def test_native_outcome_clock_precision_is_never_truncated(tmp_path,monkeypatch,originals,boundary,field,suffix):
+    c,r,k=issued(tmp_path,monkeypatch,originals);target=ISSUE+timedelta(hours=1);receipt=outcome(target)
+    receipt.update(receivedAt=target.isoformat(),storedAt=target.isoformat())
+    receipt[field]=receipt[field].split('+')[0]+suffix
+    args=dict(horizon_hours=1,assessed_at=target+timedelta(minutes=10),recent={'status':'unavailable','prediction_f':None},**k)
+    if boundary=='score':
+        with pytest.raises(ValueError):api().score(c,r,receipt,**args)
+    else:
+        pair=api().score(c,r,outcome(target),**args);pair['outcome']=receipt;pair['pair_sha256']=api().digest(pair,'pair_sha256')
+        with pytest.raises(ValueError):api().validate_pair(pair,expected_pair_sha256=pair['pair_sha256'])
