@@ -1,0 +1,25 @@
+# Regional values verified against chirpstack v4.19.2 official region_us915_1.toml.
+[[regions]]
+id="us915_1"
+description="US915 FSB2: channels 8-15 + 65"
+common_name="US915"
+[regions.gateway]
+force_gws_private=true
+[regions.gateway.backend]
+enabled="mqtt"
+[regions.gateway.backend.mqtt]
+topic_prefix="us915_1"
+server="$MQTT_SERVER"
+username="$MQTT_USERNAME"
+password="$MQTT_PASSWORD"
+qos=1
+[regions.network]
+installation_margin=10
+rx_window=0
+rx1_delay=1
+rx1_dr_offset=0
+rx2_dr=8
+rx2_frequency=923300000
+min_dr=0
+max_dr=3
+enabled_uplink_channels=[8,9,10,11,12,13,14,15,65]

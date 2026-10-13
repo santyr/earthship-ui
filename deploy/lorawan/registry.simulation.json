@@ -1,0 +1,710 @@
+{
+  "schema": "earthship-sensor-registry/v1",
+  "environment": "simulation",
+  "application_id": "11111111-1111-4111-8111-111111111111",
+  "devices": [
+    {
+      "device_id": "0000000000000001",
+      "sensor_id": "opening_01",
+      "name": "Commissioning opening 01",
+      "location": "Unassigned",
+      "zone": "unassigned",
+      "device_type": "window",
+      "transport": "lorawan",
+      "manufacturer": "Milesight",
+      "model": "WS301",
+      "decoder": "milesight_ws301/v1",
+      "capabilities": [
+        "contact_state",
+        "battery",
+        "radio_health",
+        "tamper"
+      ],
+      "observation_types": [
+        "contact_state",
+        "tamper"
+      ],
+      "units": {
+        "contact_state": "state",
+        "tamper": "boolean"
+      },
+      "enabled": true,
+      "hardware_epoch": "f8977c55-15f9-5bfc-ae4c-19658ccb49db",
+      "radio_verified": false,
+      "state_stale_seconds": 120,
+      "communication_stale_seconds": 120,
+      "offline_seconds": 300,
+      "battery_low_percent": 20,
+      "battery_low_volts": 2.7,
+      "security_policy": null
+    },
+    {
+      "device_id": "0000000000000002",
+      "sensor_id": "opening_02",
+      "name": "Commissioning opening 02",
+      "location": "Unassigned",
+      "zone": "unassigned",
+      "device_type": "skylight",
+      "transport": "lorawan",
+      "manufacturer": "Milesight",
+      "model": "WS301",
+      "decoder": "milesight_ws301/v1",
+      "capabilities": [
+        "contact_state",
+        "battery",
+        "radio_health",
+        "tamper"
+      ],
+      "observation_types": [
+        "contact_state",
+        "tamper"
+      ],
+      "units": {
+        "contact_state": "state",
+        "tamper": "boolean"
+      },
+      "enabled": true,
+      "hardware_epoch": "433d6bb2-d3f2-58a6-bed8-fd95a4089ebd",
+      "radio_verified": false,
+      "state_stale_seconds": 120,
+      "communication_stale_seconds": 120,
+      "offline_seconds": 300,
+      "battery_low_percent": 20,
+      "battery_low_volts": 2.7,
+      "security_policy": null
+    },
+    {
+      "device_id": "0000000000000003",
+      "sensor_id": "opening_03",
+      "name": "Commissioning opening 03",
+      "location": "Unassigned",
+      "zone": "unassigned",
+      "device_type": "door",
+      "transport": "lorawan",
+      "manufacturer": "Milesight",
+      "model": "WS301",
+      "decoder": "milesight_ws301/v1",
+      "capabilities": [
+        "contact_state",
+        "battery",
+        "radio_health",
+        "tamper"
+      ],
+      "observation_types": [
+        "contact_state",
+        "tamper"
+      ],
+      "units": {
+        "contact_state": "state",
+        "tamper": "boolean"
+      },
+      "enabled": true,
+      "hardware_epoch": "4c03430a-e8b3-582f-8180-268b504bb854",
+      "radio_verified": false,
+      "state_stale_seconds": 120,
+      "communication_stale_seconds": 120,
+      "offline_seconds": 300,
+      "battery_low_percent": 20,
+      "battery_low_volts": 2.7,
+      "security_policy": null
+    },
+    {
+      "device_id": "0000000000000004",
+      "sensor_id": "opening_04",
+      "name": "Commissioning opening 04",
+      "location": "Unassigned",
+      "zone": "unassigned",
+      "device_type": "window",
+      "transport": "lorawan",
+      "manufacturer": "Milesight",
+      "model": "WS301",
+      "decoder": "milesight_ws301/v1",
+      "capabilities": [
+        "contact_state",
+        "battery",
+        "radio_health",
+        "tamper"
+      ],
+      "observation_types": [
+        "contact_state",
+        "tamper"
+      ],
+      "units": {
+        "contact_state": "state",
+        "tamper": "boolean"
+      },
+      "enabled": true,
+      "hardware_epoch": "28c078d2-65ff-56a6-bed0-161d365abbf7",
+      "radio_verified": false,
+      "state_stale_seconds": 120,
+      "communication_stale_seconds": 120,
+      "offline_seconds": 300,
+      "battery_low_percent": 20,
+      "battery_low_volts": 2.7,
+      "security_policy": null
+    },
+    {
+      "device_id": "0000000000000005",
+      "sensor_id": "opening_05",
+      "name": "Commissioning opening 05",
+      "location": "Unassigned",
+      "zone": "unassigned",
+      "device_type": "skylight",
+      "transport": "lorawan",
+      "manufacturer": "Milesight",
+      "model": "WS301",
+      "decoder": "milesight_ws301/v1",
+      "capabilities": [
+        "contact_state",
+        "battery",
+        "radio_health",
+        "tamper"
+      ],
+      "observation_types": [
+        "contact_state",
+        "tamper"
+      ],
+      "units": {
+        "contact_state": "state",
+        "tamper": "boolean"
+      },
+      "enabled": true,
+      "hardware_epoch": "4413ce39-3da3-5bbd-8f86-c54308072362",
+      "radio_verified": false,
+      "state_stale_seconds": 120,
+      "communication_stale_seconds": 120,
+      "offline_seconds": 300,
+      "battery_low_percent": 20,
+      "battery_low_volts": 2.7,
+      "security_policy": null
+    },
+    {
+      "device_id": "0000000000000006",
+      "sensor_id": "opening_06",
+      "name": "Commissioning opening 06",
+      "location": "Unassigned",
+      "zone": "unassigned",
+      "device_type": "door",
+      "transport": "lorawan",
+      "manufacturer": "Milesight",
+      "model": "WS301",
+      "decoder": "milesight_ws301/v1",
+      "capabilities": [
+        "contact_state",
+        "battery",
+        "radio_health",
+        "tamper"
+      ],
+      "observation_types": [
+        "contact_state",
+        "tamper"
+      ],
+      "units": {
+        "contact_state": "state",
+        "tamper": "boolean"
+      },
+      "enabled": true,
+      "hardware_epoch": "c6e8c77e-5d0c-505b-9f6a-d8d1d02ba269",
+      "radio_verified": false,
+      "state_stale_seconds": 120,
+      "communication_stale_seconds": 120,
+      "offline_seconds": 300,
+      "battery_low_percent": 20,
+      "battery_low_volts": 2.7,
+      "security_policy": null
+    },
+    {
+      "device_id": "0000000000000007",
+      "sensor_id": "opening_07",
+      "name": "Commissioning opening 07",
+      "location": "Unassigned",
+      "zone": "unassigned",
+      "device_type": "window",
+      "transport": "lorawan",
+      "manufacturer": "Milesight",
+      "model": "WS301",
+      "decoder": "milesight_ws301/v1",
+      "capabilities": [
+        "contact_state",
+        "battery",
+        "radio_health",
+        "tamper"
+      ],
+      "observation_types": [
+        "contact_state",
+        "tamper"
+      ],
+      "units": {
+        "contact_state": "state",
+        "tamper": "boolean"
+      },
+      "enabled": true,
+      "hardware_epoch": "45b5c752-be5f-596c-9ed8-7ee094cc503f",
+      "radio_verified": false,
+      "state_stale_seconds": 120,
+      "communication_stale_seconds": 120,
+      "offline_seconds": 300,
+      "battery_low_percent": 20,
+      "battery_low_volts": 2.7,
+      "security_policy": null
+    },
+    {
+      "device_id": "0000000000000008",
+      "sensor_id": "opening_08",
+      "name": "Commissioning opening 08",
+      "location": "Unassigned",
+      "zone": "unassigned",
+      "device_type": "skylight",
+      "transport": "lorawan",
+      "manufacturer": "Milesight",
+      "model": "WS301",
+      "decoder": "milesight_ws301/v1",
+      "capabilities": [
+        "contact_state",
+        "battery",
+        "radio_health",
+        "tamper"
+      ],
+      "observation_types": [
+        "contact_state",
+        "tamper"
+      ],
+      "units": {
+        "contact_state": "state",
+        "tamper": "boolean"
+      },
+      "enabled": true,
+      "hardware_epoch": "edc16917-c2fd-598a-b5c2-e21d4a7c8d15",
+      "radio_verified": false,
+      "state_stale_seconds": 120,
+      "communication_stale_seconds": 120,
+      "offline_seconds": 300,
+      "battery_low_percent": 20,
+      "battery_low_volts": 2.7,
+      "security_policy": null
+    },
+    {
+      "device_id": "0000000000000009",
+      "sensor_id": "opening_09",
+      "name": "Commissioning opening 09",
+      "location": "Unassigned",
+      "zone": "unassigned",
+      "device_type": "door",
+      "transport": "lorawan",
+      "manufacturer": "Milesight",
+      "model": "WS301",
+      "decoder": "milesight_ws301/v1",
+      "capabilities": [
+        "contact_state",
+        "battery",
+        "radio_health",
+        "tamper"
+      ],
+      "observation_types": [
+        "contact_state",
+        "tamper"
+      ],
+      "units": {
+        "contact_state": "state",
+        "tamper": "boolean"
+      },
+      "enabled": true,
+      "hardware_epoch": "95001ce4-8edd-5905-9860-dc998ef8a863",
+      "radio_verified": false,
+      "state_stale_seconds": 120,
+      "communication_stale_seconds": 120,
+      "offline_seconds": 300,
+      "battery_low_percent": 20,
+      "battery_low_volts": 2.7,
+      "security_policy": null
+    },
+    {
+      "device_id": "000000000000000a",
+      "sensor_id": "opening_10",
+      "name": "Commissioning opening 10",
+      "location": "Unassigned",
+      "zone": "unassigned",
+      "device_type": "window",
+      "transport": "lorawan",
+      "manufacturer": "Milesight",
+      "model": "WS301",
+      "decoder": "milesight_ws301/v1",
+      "capabilities": [
+        "contact_state",
+        "battery",
+        "radio_health",
+        "tamper"
+      ],
+      "observation_types": [
+        "contact_state",
+        "tamper"
+      ],
+      "units": {
+        "contact_state": "state",
+        "tamper": "boolean"
+      },
+      "enabled": true,
+      "hardware_epoch": "667523a3-272d-51cf-a065-0fc130cd65eb",
+      "radio_verified": false,
+      "state_stale_seconds": 120,
+      "communication_stale_seconds": 120,
+      "offline_seconds": 300,
+      "battery_low_percent": 20,
+      "battery_low_volts": 2.7,
+      "security_policy": null
+    },
+    {
+      "device_id": "000000000000000b",
+      "sensor_id": "opening_11",
+      "name": "Commissioning opening 11",
+      "location": "Unassigned",
+      "zone": "unassigned",
+      "device_type": "skylight",
+      "transport": "lorawan",
+      "manufacturer": "Milesight",
+      "model": "WS301",
+      "decoder": "milesight_ws301/v1",
+      "capabilities": [
+        "contact_state",
+        "battery",
+        "radio_health",
+        "tamper"
+      ],
+      "observation_types": [
+        "contact_state",
+        "tamper"
+      ],
+      "units": {
+        "contact_state": "state",
+        "tamper": "boolean"
+      },
+      "enabled": true,
+      "hardware_epoch": "50ab0504-c97e-5df0-9262-e6729a78a969",
+      "radio_verified": false,
+      "state_stale_seconds": 120,
+      "communication_stale_seconds": 120,
+      "offline_seconds": 300,
+      "battery_low_percent": 20,
+      "battery_low_volts": 2.7,
+      "security_policy": null
+    },
+    {
+      "device_id": "000000000000000c",
+      "sensor_id": "opening_12",
+      "name": "Commissioning opening 12",
+      "location": "Unassigned",
+      "zone": "unassigned",
+      "device_type": "door",
+      "transport": "lorawan",
+      "manufacturer": "Milesight",
+      "model": "WS301",
+      "decoder": "milesight_ws301/v1",
+      "capabilities": [
+        "contact_state",
+        "battery",
+        "radio_health",
+        "tamper"
+      ],
+      "observation_types": [
+        "contact_state",
+        "tamper"
+      ],
+      "units": {
+        "contact_state": "state",
+        "tamper": "boolean"
+      },
+      "enabled": true,
+      "hardware_epoch": "09ae1731-c234-5c74-b673-81430438c2ff",
+      "radio_verified": false,
+      "state_stale_seconds": 120,
+      "communication_stale_seconds": 120,
+      "offline_seconds": 300,
+      "battery_low_percent": 20,
+      "battery_low_volts": 2.7,
+      "security_policy": null
+    },
+    {
+      "device_id": "000000000000000d",
+      "sensor_id": "opening_13",
+      "name": "Commissioning opening 13",
+      "location": "Unassigned",
+      "zone": "unassigned",
+      "device_type": "window",
+      "transport": "lorawan",
+      "manufacturer": "Milesight",
+      "model": "WS301",
+      "decoder": "milesight_ws301/v1",
+      "capabilities": [
+        "contact_state",
+        "battery",
+        "radio_health",
+        "tamper"
+      ],
+      "observation_types": [
+        "contact_state",
+        "tamper"
+      ],
+      "units": {
+        "contact_state": "state",
+        "tamper": "boolean"
+      },
+      "enabled": true,
+      "hardware_epoch": "c5218e84-08f9-5ab5-8432-320395659c26",
+      "radio_verified": false,
+      "state_stale_seconds": 120,
+      "communication_stale_seconds": 120,
+      "offline_seconds": 300,
+      "battery_low_percent": 20,
+      "battery_low_volts": 2.7,
+      "security_policy": null
+    },
+    {
+      "device_id": "000000000000000e",
+      "sensor_id": "opening_14",
+      "name": "Commissioning opening 14",
+      "location": "Unassigned",
+      "zone": "unassigned",
+      "device_type": "skylight",
+      "transport": "lorawan",
+      "manufacturer": "Milesight",
+      "model": "WS301",
+      "decoder": "milesight_ws301/v1",
+      "capabilities": [
+        "contact_state",
+        "battery",
+        "radio_health",
+        "tamper"
+      ],
+      "observation_types": [
+        "contact_state",
+        "tamper"
+      ],
+      "units": {
+        "contact_state": "state",
+        "tamper": "boolean"
+      },
+      "enabled": true,
+      "hardware_epoch": "cf53dcb2-7c54-58b3-b275-d53cd9419a96",
+      "radio_verified": false,
+      "state_stale_seconds": 120,
+      "communication_stale_seconds": 120,
+      "offline_seconds": 300,
+      "battery_low_percent": 20,
+      "battery_low_volts": 2.7,
+      "security_policy": null
+    },
+    {
+      "device_id": "000000000000000f",
+      "sensor_id": "opening_15",
+      "name": "Commissioning opening 15",
+      "location": "Unassigned",
+      "zone": "unassigned",
+      "device_type": "door",
+      "transport": "lorawan",
+      "manufacturer": "Milesight",
+      "model": "WS301",
+      "decoder": "milesight_ws301/v1",
+      "capabilities": [
+        "contact_state",
+        "battery",
+        "radio_health",
+        "tamper"
+      ],
+      "observation_types": [
+        "contact_state",
+        "tamper"
+      ],
+      "units": {
+        "contact_state": "state",
+        "tamper": "boolean"
+      },
+      "enabled": true,
+      "hardware_epoch": "51ebc004-7133-580d-80f7-f2d673c4a5da",
+      "radio_verified": false,
+      "state_stale_seconds": 120,
+      "communication_stale_seconds": 120,
+      "offline_seconds": 300,
+      "battery_low_percent": 20,
+      "battery_low_volts": 2.7,
+      "security_policy": null
+    },
+    {
+      "device_id": "0000000000000010",
+      "sensor_id": "outdoor_gate",
+      "name": "Simulated outdoor gate",
+      "location": "Unassigned",
+      "zone": "unassigned",
+      "device_type": "gate",
+      "transport": "lorawan",
+      "manufacturer": "Milesight",
+      "model": "WS301",
+      "decoder": "milesight_ws301/v1",
+      "capabilities": [
+        "contact_state",
+        "battery",
+        "radio_health",
+        "tamper"
+      ],
+      "observation_types": [
+        "contact_state",
+        "tamper"
+      ],
+      "units": {
+        "contact_state": "state",
+        "tamper": "boolean"
+      },
+      "enabled": true,
+      "hardware_epoch": "82663225-ec0f-5e82-b9a4-9621dc5be987",
+      "radio_verified": false,
+      "state_stale_seconds": 120,
+      "communication_stale_seconds": 120,
+      "offline_seconds": 300,
+      "battery_low_percent": 20,
+      "battery_low_volts": 2.7,
+      "security_policy": "observe_only"
+    },
+    {
+      "device_id": "synthetic:environment_01",
+      "sensor_id": "environment_01",
+      "name": "Simulated environment_01",
+      "location": "Unassigned",
+      "zone": "unassigned",
+      "device_type": "environmental",
+      "transport": "simulation",
+      "decoder": null,
+      "capabilities": [
+        "air_temperature",
+        "relative_humidity"
+      ],
+      "observation_types": [
+        "air_temperature",
+        "relative_humidity"
+      ],
+      "units": {
+        "air_temperature": "degC",
+        "relative_humidity": "percent"
+      },
+      "hardware_epoch": "37909e9a-b766-5a64-bcaf-7f0aae9ddc5b",
+      "radio_verified": false,
+      "state_stale_seconds": 300,
+      "communication_stale_seconds": 300,
+      "offline_seconds": 900,
+      "battery_low_percent": 20,
+      "battery_low_volts": 2.7
+    },
+    {
+      "device_id": "synthetic:cistern_01",
+      "sensor_id": "cistern_01",
+      "name": "Simulated cistern_01",
+      "location": "Unassigned",
+      "zone": "unassigned",
+      "device_type": "environmental",
+      "transport": "simulation",
+      "decoder": null,
+      "capabilities": [
+        "water_depth"
+      ],
+      "observation_types": [
+        "water_depth"
+      ],
+      "units": {
+        "water_depth": "m"
+      },
+      "hardware_epoch": "3eb72dbd-815d-5caa-bf02-0690c8912ed9",
+      "radio_verified": false,
+      "state_stale_seconds": 300,
+      "communication_stale_seconds": 300,
+      "offline_seconds": 900,
+      "battery_low_percent": 20,
+      "battery_low_volts": 2.7
+    },
+    {
+      "device_id": "synthetic:flow_01",
+      "sensor_id": "flow_01",
+      "name": "Simulated flow_01",
+      "location": "Unassigned",
+      "zone": "unassigned",
+      "device_type": "environmental",
+      "transport": "simulation",
+      "decoder": null,
+      "capabilities": [
+        "water_counter",
+        "water_flow"
+      ],
+      "observation_types": [
+        "water_counter",
+        "water_flow"
+      ],
+      "units": {
+        "water_counter": "L",
+        "water_flow": "L/min"
+      },
+      "hardware_epoch": "07f056bb-7ef5-5b4d-8908-a9eb3e5bbe35",
+      "radio_verified": false,
+      "state_stale_seconds": 300,
+      "communication_stale_seconds": 300,
+      "offline_seconds": 900,
+      "battery_low_percent": 20,
+      "battery_low_volts": 2.7
+    },
+    {
+      "device_id": "synthetic:planter_01",
+      "sensor_id": "planter_01",
+      "name": "Simulated planter_01",
+      "location": "Unassigned",
+      "zone": "unassigned",
+      "device_type": "environmental",
+      "transport": "simulation",
+      "decoder": null,
+      "capabilities": [
+        "soil_moisture_raw"
+      ],
+      "observation_types": [
+        "soil_moisture_raw"
+      ],
+      "units": {
+        "soil_moisture_raw": "raw"
+      },
+      "hardware_epoch": "4d7b90fc-ab36-5398-b2a1-a84ca378325b",
+      "radio_verified": false,
+      "state_stale_seconds": 300,
+      "communication_stale_seconds": 300,
+      "offline_seconds": 900,
+      "battery_low_percent": 20,
+      "battery_low_volts": 2.7
+    },
+    {
+      "device_id": "synthetic:leak_01",
+      "sensor_id": "leak_01",
+      "name": "Simulated leak_01",
+      "location": "Unassigned",
+      "zone": "unassigned",
+      "device_type": "environmental",
+      "transport": "simulation",
+      "decoder": null,
+      "capabilities": [
+        "leak"
+      ],
+      "observation_types": [
+        "leak"
+      ],
+      "units": {
+        "leak": "boolean"
+      },
+      "hardware_epoch": "2b86d38e-fbd7-52c9-bb10-c9b31c430d65",
+      "radio_verified": false,
+      "state_stale_seconds": 300,
+      "communication_stale_seconds": 300,
+      "offline_seconds": 900,
+      "battery_low_percent": 20,
+      "battery_low_volts": 2.7
+    }
+  ],
+  "gateways": [
+    {
+      "gateway_id": "aaaaaaaaaaaaaaaa",
+      "name": "Simulated gateway",
+      "offline_seconds": 120
+    }
+  ]
+}
