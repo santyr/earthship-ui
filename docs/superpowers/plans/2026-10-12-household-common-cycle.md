@@ -102,3 +102,19 @@ Actualnative installed-shade developmentrefit isverified:10endpoints/3originDate
 Paired conditional development prediction comparison iscomplete:10identical originalorigin/target pairs; fourexplicit contexts distinguisholdgeometry/currentfit, geometry-only, nativefit/commonoldactions andnativefit/nativeactions. Native predictedstates replay identically. AirMAE oldfit0.516435F versusnativefit0.544922F; geometry-only oldfit0.545880F. Fourorigin actioncontexts change, withnativefittedventgain yieldingidenticalnative predictionsacrossbothactioncontexts. Reusedtrainingendpoints/observedfutureweather areexplicit, noholdout/as-issued/productionimprovement claim. Comparison4fd2321/13.19s/61538304B/zero memorymaxOOM; originalpressureallowance preservedafteronehostswapin refusal. Nativecandidate/runtime/artifact compatibility andfuture/as-issued capture/publisher qualification arethenext requiredsteps; productionmodelunchanged.
 
 Native provisional artifact/runtime: schemaearthship-provisional-thermal-candidate/v2 isdistinctfromv1 andbound to retained originalsnapshot/dataset/geometry/runtime-bound fit evidence. Preserveoriginal72file/runtime/interpreter/dependencybinding asbase; separatelyseal9requirednative repositoryrelative Python/Java sourceidentities plusknown optionalnativeforecast/live/score modules. Candidate validation requires externalartifact/runtime pins, completeprivateoriginalfileSHA/closedJSON contracts, source/sensor/geometry/native rule correspondence anddata-fit-created chronology. Reuse original coefficient/statistical guards then independently rederive native endpoint support, loss, rank/condition andbothinitial/final physicalrollouts; do notrefit duringartifactvalidation. Three resealed statistic regressions failedbeforefix;164affectedcases pass17.91s. Numericaltest idleadmissionwait increased120->240s tospan reservedforecastwindow; CPU/memory/swap/pressureguards,85s numericalworkbudget andpublicationdeadlines unchanged. Actualfit mustcapturefullnative runtime before/after underexisting guardedsharedlock andsealedartifactmustreadback before nativeforecast implementation/promotion.
+
+
+Native candidate actual qualification: independently reviewed34937cb (0 Critical,
+0 Important, 0 Minor). Committed2d62e99 source ran a fresh guarded fit with full
+native runtime captured before/after; retained v2 fit evidence5c0c45d uses original
+snapshot2e2edd, datasetf2b7dcc, geometry29a850. Runtime d1ea3db retains the original
+72-source interpreter/dependency closure and nine native sources. Fit17.13s,
+111165440-byte peak, zero OOM; original10 endpoints/3 dates/support3/3/2/2,
+rank8 and53 iterations. Candidateee0e142 independently rebuilt support/loss/rank
+and physical rollouts, persisted/read back identically in18.46s/115576832 bytes.
+The sealed213-source stage2d62e99 replayed the same candidate/runtime with the
+production interpreter in10.39s/119582720 bytes, zero OOM. CPU20%, memory256MiB,
+swap0, tasks24, original pressure monitor and shared lock remained unchanged.
+No live unit/model/actuator changes. This qualifies the native artifact and sealed
+reader only; future as-issued native geometry/forecast/capture, coherent score
+migration/promotion, demonstrated accuracy, and full PR3 requirements remain open.
