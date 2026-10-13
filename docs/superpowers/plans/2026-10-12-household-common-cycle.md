@@ -559,3 +559,30 @@ or treat this as a successful workload. Preserve diagnostic state. Next safe
 work: current native geometry/source/capture/model/pipeline/CLI, actual bounded
 scoring/report latency and coherent selected producer/preparer/observer/scorer/
 UI handoff, wholebranch review and remaining13requirements/Astro audit evidence.
+
+2026-10-13 native preparer command
+---------------------------------
+Added outside-fitted household_native_geometry_prepare.py for explicit private
+native v2 config and closed six-role earthship-native-geometry-libraries/v1
+record. Original runtime/library identity is still verified by prepare_geometry;
+no calculation version, site or altitude is guessed. The real shared lock,
+original TrainingHeadroom1MiB/s swap-read allowance/quiet preflight, CPU20,
+Memory256MiB/swap0/Tasks24/nice15/idleIO checks remain. Admit at least120s before
+issue, limit preparation75s and finish beforeissue minus35s. Guard original
+config/library record/source bytes continuously; optional stage must verify and
+execute its sealed entry point. No fitting, telemetry/device publication,
+model selection or new actuator authority.
+
+Focused missing-module regression43536 failed as expected before implementation.
+After correcting the test fixture to supply the real existing owned lock,
+55865 completed19cases (16new preparer boundaries plus3existing native score
+routing) in3.40s. These are command-boundary tests with numerical preparation
+and live acquisition stubbed, run under the existing capped PublicationHeadroom
+policy with sharedlock/OOM/PSI/reserve/quietpreflight/deadline protection.
+Actual native preparation/acquisition/numerical qualification retain unchanged
+TrainingHeadroom. Actual current-source attempt93109 stopped after12.194s at
+candidate replay inside geometry when original intervalPSI guard fired; no
+geometry, capture, household pipeline or production delivery was qualified.
+All live units/model selection/physical action authority remain unchanged.
+Native config packaging and coherent preparer/issuer/observer/scorer/UI selection,
+actual scoring/report latency and all13/A01-A11 requirements remain active.

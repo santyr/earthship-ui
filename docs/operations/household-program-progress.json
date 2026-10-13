@@ -2789,6 +2789,18 @@
         "memory_peak_bytes": 139079680,
         "live_writes": false,
         "current_native_capture_projected": false
+      },
+      "current_source_capture_attempt": {
+        "status": "refused_original_interval_memory_pressure_guard",
+        "handle": 93109,
+        "unit": "run-u6347.scope",
+        "phase": "geometry",
+        "elapsed_seconds": 12.19404172396753,
+        "geometry_completed": false,
+        "current_native_capture_projected": false,
+        "guard_relaxed": false,
+        "live_writes": false,
+        "private_diagnosis": "native-current-capture-47c5b8d/private-diagnosis.json"
       }
     },
     "native_resource_admission": {
@@ -2979,6 +2991,40 @@
       "device_commands": false,
       "external_messages": false,
       "private_evidence": "operator-20261013-vent-closed/journal-qualification.json"
+    },
+    "native_preparer_command": {
+      "status": "implemented_command_boundary_tests_passed_actual_native_qualification_pending",
+      "base_commit": "47c5b8d",
+      "sources": [
+        "openhab/scripts/household_native_geometry_prepare.py"
+      ],
+      "tests": {
+        "RED_handle": 43536,
+        "RED_reason": "missing_native_preparer_module",
+        "GREEN_handle": 55865,
+        "passed": 19,
+        "seconds": 3.4,
+        "new_preparer_boundary_cases": 16,
+        "existing_native_score_coordinator_cases": 3,
+        "policy": "existing capped PublicationHeadroom for command boundaries only; numerical preparation and live reads stubbed"
+      },
+      "behavior": [
+        "Explicit owned closed native config and six-role private native library configuration.",
+        "Real existing shared lock; original TrainingHeadroom1MiB/s allowance and five-second quiet preflight.",
+        "Admission at least120s before issue; preparation75s; cutoffissue minus35s.",
+        "Continuous source/config/library-record drift checks; optional sealed stage execution verification.",
+        "Bounded CLI statuses without private exception details; no fitting, publication, model selection or new actuator authority."
+      ],
+      "qualification_limits": [
+        "Actual installed native command execution, current-input capture and complete household pipeline remain unqualified.",
+        "Current-source attempt93109 refused unchanged intervalPSI guard during geometry candidate replay.",
+        "Actual full-history queries and full native score/report latency remain unqualified.",
+        "Coherent native family packaging/selection and whole-program review remain incomplete."
+      ],
+      "live_units_changed": false,
+      "production_model_changed": false,
+      "live_writes": false,
+      "automatic_actuation": false
     }
   },
   "astro_efficiency_audit": {
@@ -3108,5 +3154,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T09:12:00-06:00"
+  "updated_at": "2026-10-13T15:42:31.267115+00:00"
 }
