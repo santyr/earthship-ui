@@ -2402,12 +2402,70 @@
       "aggregation_red_seconds": 7.71,
       "protected_original_sources": 72,
       "fitted_sources_changed": false,
-      "current_runtime_stage_qualification_pending": true,
+      "current_runtime_stage_qualification_pending": false,
       "actual_live_native_issuer_and_monitor_pending": true,
       "household_ui_native_coherence_pending": true,
       "production_model_changed": false,
       "automatic_actuation": false,
-      "full_program_complete": false
+      "full_program_complete": false,
+      "source_revision": "34b707df128bee7e11ee9ce4045d48ea81fdad8d",
+      "actual_runtime_qualification": {
+        "artifact": {
+          "artifact_path": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-12-household-common-cycle/native-completion-score-artifact-v2/ffe998ea1dc328bdf74fb1f92f7837ac31f0af31442aca5c001bb4d2f85a1bf7.native-provisional-candidate-v2.json",
+          "artifact_sha256": "ffe998ea1dc328bdf74fb1f92f7837ac31f0af31442aca5c001bb4d2f85a1bf7",
+          "code_revision": "34b707df128bee7e11ee9ce4045d48ea81fdad8d",
+          "confidence": "low",
+          "dataset_sha256": "f2b7dcc96f34ab9810ae2c69af64e47b95704867ae02b3abe3adc996efe893ee",
+          "endpoint_count": 10,
+          "fit_evidence_sha256": "5c0c45d012e87890b103f8c2aa99f676d2770addf0c29f854a7ccd801931434e",
+          "geometry_series_sha256": "29a85097f6376320c859a78c0ac2a73eeddfd99067ddc478a173f0b3309034cc",
+          "graduated": false,
+          "identical_readback": true,
+          "independent_origin_dates": 3,
+          "live_writes": false,
+          "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+          "memory_peak_bytes": 115453952,
+          "production_model_changed": false,
+          "protected_original_sources": 72,
+          "runtime_before_after_identical": true,
+          "runtime_sha256": "bb640b821be72d13f1df1b58c5e474a7f4d7ac50fd3ecbe2be34f8e41a5bc18f",
+          "seconds": 19.194068729004357,
+          "status": "actual_native_artifact_roundtrip_verified"
+        },
+        "stage": {
+          "artifact_sha256": "ffe998ea1dc328bdf74fb1f92f7837ac31f0af31442aca5c001bb4d2f85a1bf7",
+          "automatic_actuation": false,
+          "code_revision": "34b707df128bee7e11ee9ce4045d48ea81fdad8d",
+          "deployment_sha256": "f61d3fbe2657c3125a0b4c03b8dcd7f9999451109ebd67285d4f0051a7acf202",
+          "fit_executed": false,
+          "forecast_module_loaded": true,
+          "live_units_changed": false,
+          "live_writes": false,
+          "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+          "memory_peak_bytes": 119025664,
+          "native_sources": 11,
+          "original_candidate_readback_identical": true,
+          "production_interpreter": true,
+          "production_model_changed": false,
+          "protected_original_sources": 72,
+          "raw_score_replay_exports": [
+            "build_source_score",
+            "validate_source_score",
+            "persist_source_score",
+            "read_source_score",
+            "build_source_completion",
+            "validate_source_completion",
+            "persist_source_completion",
+            "read_source_completion",
+            "reconcile_source_report"
+          ],
+          "runtime_sha256": "bb640b821be72d13f1df1b58c5e474a7f4d7ac50fd3ecbe2be34f8e41a5bc18f",
+          "score_module_loaded": true,
+          "seconds": 10.393062654999085,
+          "source_count": 215,
+          "status": "sealed_staged_native_artifact_verified"
+        }
+      }
     }
   },
   "astro_efficiency_audit": {
@@ -2537,5 +2595,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-12T22:12:55-06:00"
+  "updated_at": "2026-10-12T22:17:47-06:00"
 }

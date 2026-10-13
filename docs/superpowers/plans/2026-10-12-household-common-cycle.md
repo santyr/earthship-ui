@@ -296,3 +296,26 @@ case appears in two cohorts;35 unique cases). Original72 hashes unchanged.
 All test scopes terminal; current source/runtime stage qualification remains
 required. No live selection/units/writes/actions or GitHub publication. Whole
 branch final review and full native/household/UI coherent producer remainpending.
+
+34b707d completion actualqualification: candidateffe998e/runtimebb640b8, fit5c0c45d
+core9/base72 retained. Actual build/read19.1941s/115453952B/identicalbeforeafter/
+zeroOOM. Sealed215-source deploymentf61d3fb production interpreter loads both
+forecast/scorer and all9 source/completion/report exports; identicalcandidate/
+runtime10.3931s/119025664B/zeroOOM. All numericalhandles terminal. No optimizer,
+live model/unit/writes/actions changes. Current source/module qualification done;
+actual native issuing/scoring discovery, UI and household coherence remainpending.
+
+Native UI decoder compatibility task (approved observational migration)
+- Accept exactly original provisional publication/v1 version8 and native
+  provisional publication/v2 version9. Native numeric forecast/v2 must carry
+  exact native installed-shade dynamics/v2 rule and a64hex geometry series root.
+  Preserve closed schemas, exact hourly targets, source identity agreement,
+  physical temperatures, expiry, low/unavailable confidence, withheld advice,
+  no graduation/calibration/stability or automatic actuation.
+- Route version9 through the provisional decoder and preserve UNAVAILABLE mode
+  on invalid/future/expired native publications. Render the existing PROVISIONAL
+  state; do not invent action recommendations or expose implementation metadata.
+- TDD ready native trajectory and legacy compatibility, explicit native
+  unavailable, missing/wrong geometry/rule/schema/version/source root, authority
+  escalation, exact expiry and future clocks. Run focused parser/render contracts
+  under one worker and256MiB/CPU20/swap0 caps. No live UI file mirror until verified.
