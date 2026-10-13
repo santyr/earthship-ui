@@ -4311,7 +4311,42 @@
       "exact_cold_production_driver_qualified": false,
       "live_units_changed": false,
       "live_writes": false,
-      "production_model_changed": false
+      "production_model_changed": false,
+      "actual_staged_preparer_attempt": {
+        "handle": 70520,
+        "scope": "run-u8738.scope",
+        "terminal_status": 1,
+        "code_revision": "fe3c211e1cfc82613c1bddb9fb9f4959fdfcef74",
+        "artifact_sha256": "cc2e8b10236905711d9c03d31a9be4ce70c2b328e1e1a6482b4cf27e67ee5f9c",
+        "runtime_sha256": "93c54c3c2f5526082a8574f635f44c261f054b596eb476ca8bcf24716ff21180",
+        "status": "exact_staged_preparer_refused_host_pressure_before_deadline",
+        "reason": "native inference host pressure or memory reserve unavailable: swap-out activity or OOM counter changed",
+        "cold_worker_seconds": 63.79107431205921,
+        "completed_geometry_batches": 1,
+        "diagnostic_distinguishes_swapout_from_oom": false,
+        "source_timing_qualified": false,
+        "production_driver_ran": false,
+        "live_timers_quiesced": false,
+        "timer_states_after": {
+          "thermal-provisional-forecast.timer": "active",
+          "thermal-provisional-score.timer": "active"
+        },
+        "live_writes": false,
+        "production_model_changed": false,
+        "automatic_actuation": false
+      }
+    },
+    "github_pr3_scope_readback": {
+      "verified_at": "2026-10-13T21:00:03.443809+00:00",
+      "number": 3,
+      "state": "MERGED",
+      "url": "https://github.com/santyr/earthship-ui/pull/3",
+      "title": "Plan canonical household intelligence and OpenHAB control architecture",
+      "scope": "Planning only; no runtime behavior changes in the PR.",
+      "sequencing": "Finish in-flight ML/thermal work first. Next coding goal: behavior-neutral shared evidence refs, HouseholdSnapshot v1, capability registry, read-only replay foundations. Live owner migrations and planner authority are later independently qualified work.",
+      "active_scope_clarification_requested": true,
+      "full_tracker_requirements_retained_pending_user_reply": true,
+      "goal_complete": false
     }
   },
   "astro_efficiency_audit": {
@@ -4441,5 +4476,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T20:57:38.088576+00:00"
+  "updated_at": "2026-10-13T21:03:06.189346+00:00"
 }
