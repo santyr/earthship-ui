@@ -4334,6 +4334,25 @@
         "live_writes": false,
         "production_model_changed": false,
         "automatic_actuation": false
+      },
+      "quiet_host_retry": {
+        "handle": 10525,
+        "scope": "run-u8825.scope",
+        "terminal_status": 1,
+        "reason": "native preparation lifetime elapsed",
+        "cold_worker_seconds": 82.81405035499483,
+        "completed_geometry_batches": 2,
+        "quiet_headroom_before_retry": true,
+        "preparation_deadline_seconds": 75,
+        "source_timing_qualified": false,
+        "production_driver_ran": false,
+        "live_timers_quiesced": false,
+        "timer_states_after": {
+          "thermal-provisional-forecast.timer": "active",
+          "thermal-provisional-score.timer": "active"
+        },
+        "live_writes": false,
+        "production_model_changed": false
       }
     },
     "github_pr3_scope_readback": {
@@ -4347,6 +4366,160 @@
       "active_scope_clarification_requested": true,
       "full_tracker_requirements_retained_pending_user_reply": true,
       "goal_complete": false
+    },
+    "astro_a01_natural_daily_acceptance": {
+      "actual_as_issued_consumer_receipt_verified": true,
+      "actual_historical_issue_consumer_readback_qualified": true,
+      "calculation_version": "openhab-astro-5.2.3",
+      "consumer_last_state_update": 1791895247439,
+      "current_optional_consumer_accepts": true,
+      "current_solar_context_matches_exact_as_issued_receipt": true,
+      "daily_context_receipt_last_update_consistent": true,
+      "daily_context_recorded_at_scheduled_cron_time": true,
+      "first_natural_daily_publication_qualified": true,
+      "forecast_issued_at": "2026-10-13T12:40:46.431340+00:00",
+      "installed_addon_version": "5.2.3",
+      "installed_producer_diff_is_comment_only": true,
+      "installed_producer_executable_text_matches_committed_source": true,
+      "installed_producer_matches_committed_source": false,
+      "installed_producer_source_sha256": "ddc0ce7a744e181fc88673e7533474f509efdef9ea9519e08f2091381e2445cc",
+      "item_last_state_update": 1791871800607,
+      "live_writes": false,
+      "native_actions_called_by_probe": false,
+      "observed_at": "2026-10-13T21:11:30.951386+00:00",
+      "ordered_day_count": 10,
+      "producer_source_sha256": "129ac3160f0cf8987b3d10fb93e333846151735021aa48e11ddeea41f14f5cf0",
+      "provider_or_actuator_commands": false,
+      "recorded_at": "2026-10-13T06:10:00.581091254Z",
+      "rule_status": {
+        "status": "IDLE",
+        "statusDetail": "NONE"
+      },
+      "source_sha256": "dbd7172ee60032535e3fbb69676d878ffc860e3b56cec0a0035af5110098680b",
+      "status": "current_native_astro_context_validated",
+      "thing_status": "ONLINE",
+      "valid_until": "2026-10-14T06:00:00Z",
+      "openhab_active_since": "2026-10-10T07:24:34-06:00",
+      "installed_producer_modified_at": "2026-10-12T11:40:53.495570732-06:00",
+      "daily_refresh_rule_cron": "0 10 0 * * ?",
+      "tests": {
+        "publisher_presentation_sse": {
+          "handle": 11438,
+          "scope": "run-u8872.scope",
+          "terminal_status": 0,
+          "files": 3,
+          "passed": 35,
+          "seconds": 4.79
+        },
+        "python_consumer": {
+          "handle": 18842,
+          "scope": "run-u8874.scope",
+          "terminal_status": 0,
+          "passed": 30,
+          "seconds": 0.59
+        },
+        "native_action_fixtures_and_forecast_fallback": {
+          "handle": 83419,
+          "scope": "run-u8875.scope",
+          "terminal_status": 0,
+          "passed": 15,
+          "seconds": 2.01
+        }
+      },
+      "offline_bootstrap_fixture": {
+        "status": "installed_publisher_offline_bootstrap_fixture_passed",
+        "source_sha256": "ddc0ce7a744e181fc88673e7533474f509efdef9ea9519e08f2091381e2445cc",
+        "rule_registered": true,
+        "bounded_offline_reason": true,
+        "item_updates": 0,
+        "native_actions_called": false,
+        "fixture_only": true,
+        "live_writes": false
+      },
+      "acceptance_matrix": {
+        "native_actions_units": "Installed5.2.3 publisher produced10 valid native day rows; action/unit fixtures passed.",
+        "supported_unsupported_versions": "Producer and Python consumer fixtures pass stable minimum5.2.3 and reject unsupported/malformed versions.",
+        "expiry_restore_site_timezone": "30 consumer cases cover expiry, restored valid input, wrong site/timezone and DST midnight23/25h.",
+        "civil_noon": "Publisher fixture asserts all30 elevation/azimuth/radiation requests use12:00; executable installed source matches.",
+        "missing_actions_withhold": "Producer fixtures verify bounded missing/offline/incomplete-action reasons and no partial update.",
+        "unavailable_at_startup": "Full installed script in isolated VM registers rule and withholds source_offline without actions or Item updates.",
+        "natural_daily_refresh": "Rule registered midnight00:10 cron; context recordedOct13 06:10UTC, installed source unchanged sinceOct12 and OpenHAB active sinceOct10.",
+        "as_issued_consumer": "Persisted today forecast12:40:46UTC references exact native contextSHA,recorded time and both daylight fields; received causal clocks revalidated.",
+        "forecast_weather_boundaries": "Actual main with/without optional solar context yields identical PV/trough/curtailment/demand/deficit/dusk estimates; solar diagnostics do not replace measured weather."
+      }
+    },
+    "astro_native_live_presentation_values": {
+      "actual_browser_render_qualified": false,
+      "browser_sse_state_assumed_for_pure_helper": true,
+      "deployed_helper_matches_committed_source": true,
+      "forecast_issued_at": "2026-10-13T12:40:46.431340+00:00",
+      "forecast_prediction_day": "2026-10-13",
+      "forecast_solar_context_origin": {
+        "daylightSeconds": 40388.407,
+        "nextDayDaylightSeconds": 40243.279,
+        "recordedAt": "2026-10-13T06:10:00.581091254Z",
+        "sha256": "dbd7172ee60032535e3fbb69676d878ffc860e3b56cec0a0035af5110098680b"
+      },
+      "helper_source_sha256": "d047f893c82f16b3910f6ae27d237cb222bda90d17efad7e743c8d183d9bf2fa",
+      "live_writes": false,
+      "moon_online": true,
+      "native_display_inputs": {
+        "MoonPhaseicon": {
+          "last_state_update": 1791925835773,
+          "state": "iconify:mdi:moon-waxing-crescent"
+        },
+        "Moon_MoonPhaseName": {
+          "last_state_update": 1791925835773,
+          "state": "WAXING_CRESCENT"
+        },
+        "Sun_Daylight_Duration": {
+          "last_state_update": 1791926111798,
+          "state": "40388.4070000000020 s"
+        },
+        "Sun_NextSeason": {
+          "last_state_update": 1791926111799,
+          "state": "WINTER"
+        },
+        "Sun_Rise_End": {
+          "last_state_update": 1791926111797,
+          "state": "2026-10-13T07:13:53.870-0600"
+        },
+        "Sun_Rise_Start": {
+          "last_state_update": 1791926111797,
+          "state": "2026-10-13T07:11:09.341-0600"
+        },
+        "Sun_Set_End": {
+          "last_state_update": 1791926111797,
+          "state": "2026-10-13T18:29:46.805-0600"
+        },
+        "Sun_Set_Start": {
+          "last_state_update": 1791926111797,
+          "state": "2026-10-13T18:27:02.277-0600"
+        },
+        "Sun_TimeLeft": {
+          "last_state_update": 1791926111799,
+          "state": "5875200 s"
+        }
+      },
+      "observed_at": "2026-10-13T21:15:24.386748+00:00",
+      "provider_or_actuator_commands": false,
+      "result": {
+        "currentMoonIcon": "mdi:moon-waxing-crescent",
+        "daylightText": "11h 13m",
+        "seasonLabel": "68 days until Winter \u2744\ufe0f"
+      },
+      "status": "live_native_values_evaluated_by_deployed_helper",
+      "sun_online": true,
+      "handle": 73719,
+      "terminal_status": 0
+    },
+    "native_serving_receipt_design": {
+      "status": "user_selected_approach_written_spec_awaiting_review",
+      "spec": "docs/superpowers/specs/2026-10-13-native-model-serving-receipt-design.md",
+      "implementation_started": false,
+      "limits_and_deadlines_preserved": true,
+      "existing_full_replay_apis_preserved": true,
+      "full_goal_scope_question_pending": true
     }
   },
   "astro_efficiency_audit": {
@@ -4356,10 +4529,11 @@
       {
         "id": "A01",
         "requirement": "Restore the shared future solar context",
-        "complete": false,
-        "status": "version_fix_deployed_acceptance_pending",
+        "complete": true,
+        "status": "native_5_2_3_daily_refresh_and_as_issued_consumer_verified",
         "task": "qualify 5.2.3 actions, then revise producer and validator together. Keep exact site/timezone, ordered dates, units, issue-time availability and provenance. Use an explicit compatibility policy or qualified version set with an actual calculation version in the receipt; do not accept arbitrary versions or disable freshness checks. Report withheld publication with a bounded reason so future upgrades cannot silently freeze it. Reuse this publisher rather than creating a second future-solar authority. Its three `noon*` fields currently mean local civil **12:00** (`astro-forecast-context.js:68,75\u201377`), not solar transit; preserve that meaning during this repair or version a deliberate change.",
-        "acceptance": "native action/unit fixtures, supported and unsupported versions, expired/restored input, wrong site/timezone, civil-noon field semantics, missing actions, source unavailable at startup, first natural daily publication, issue-time consumer readback, and no change in the existing forecast fallback or measured-weather authority. Ten dated rows still expire at the next local midnight; they are not ten days of permission to reuse an expired receipt."
+        "acceptance": "native action/unit fixtures, supported and unsupported versions, expired/restored input, wrong site/timezone, civil-noon field semantics, missing actions, source unavailable at startup, first natural daily publication, issue-time consumer readback, and no change in the existing forecast fallback or measured-weather authority. Ten dated rows still expire at the next local midnight; they are not ten days of permission to reuse an expired receipt.",
+        "evidence": "proofs.astro_a01_natural_daily_acceptance"
       },
       {
         "id": "A02",
@@ -4473,8 +4647,8 @@
       "live_browser_page_errors": 0,
       "live_browser_memory_bytes": 268435456,
       "live_browser_swap_bytes": 0,
-      "native_daily_refresh_acceptance_pending": true
+      "native_daily_refresh_acceptance_pending": false
     }
   },
-  "updated_at": "2026-10-13T21:03:06.189346+00:00"
+  "updated_at": "2026-10-13T21:39:15.151271+00:00"
 }
