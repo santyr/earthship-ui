@@ -1,0 +1,4 @@
+const NOW=Date.parse('2026-10-13T18:00:00Z');
+export function fixture() {
+ return {schema:'earthship-sensor-view/v1',environment:'simulation',generated_at:new Date(NOW).toISOString(),expires_at:new Date(NOW+45000).toISOString(),sensors:Array.from({length:15},(_,i)=>({sensor_id:`opening_${i+1}`,name:`Opening ${i+1}`,zone:'Unassigned',location:'Unassigned',device_type:['window','skylight','door'][i%3],health:'ONLINE',current_state:i%2?'CLOSED':'OPEN',contact_state:i%2?'CLOSED':'OPEN',valid:true,valid_until:new Date(NOW+120000).toISOString(),communication_valid_until:new Date(NOW+120000).toISOString(),offline_at:new Date(NOW+300000).toISOString(),last_observed_at:new Date(NOW).toISOString(),last_received_at:new Date(NOW).toISOString(),last_transition_at:new Date(NOW).toISOString(),battery:{percent:90,condition:'OK'},quality:'synthetic'})),recent_events:[],daily_durations:[],authority:'observation_only'};
+}

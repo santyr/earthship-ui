@@ -43,7 +43,7 @@ describe('navigate + currentRoute', () => {
   });
 
   it('exposes the household inspection route alongside existing routes', () => {
-    expect(ROUTES).toEqual(['home', 'energy', 'weather', 'earthship', 'shades', 'controls', 'household']);
+    expect(ROUTES).toEqual(['home', 'energy', 'weather', 'earthship', 'shades', 'controls', 'household', 'ventilation']);
   });
 
   it('navigates to the controls route', () => {
