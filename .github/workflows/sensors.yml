@@ -39,8 +39,8 @@ jobs:
           python -m venv --system-site-packages /tmp/earthship-sensor-test-venv
           /tmp/earthship-sensor-test-venv/bin/pip install pytest==8.3.5 -r services/lorawan/requirements.txt
           python -m services.lorawan.provision
-          curl -fL https://openhab.jfrog.io/artifactory/libs-release-local/org/openhab/distro/openhab-addons/5.2.1/openhab-addons-5.2.1.kar -o deploy/lorawan/private/addons/openhab-addons-5.2.1.kar
-          chmod 644 deploy/lorawan/private/addons/*.kar
+          curl -fL https://openhab.jfrog.io/artifactory/libs-release-local/org/openhab/distro/openhab-addons/5.2.1/openhab-addons-5.2.1.kar -o .superpowers/lorawan-private/addons/openhab-addons-5.2.1.kar
+          chmod 644 .superpowers/lorawan-private/addons/*.kar
           docker compose -f deploy/lorawan/compose.test.yaml --profile chirpstack up -d --build --wait
       - run: SENSOR_INTEGRATION=1 PYTHONPATH=.:openhab/scripts /tmp/earthship-sensor-test-venv/bin/python -m pytest services/lorawan/tests/test_integration.py
       - run: SENSOR_INTEGRATION=1 npx playwright test tests/e2e/sensors-layout.spec.js

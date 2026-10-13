@@ -40,7 +40,8 @@ CREATE EXTENSION IF NOT EXISTS hstore;
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--root',default='deploy/lorawan');args=parser.parse_args()
-    root=Path(args.root).resolve();private=root/'private'
+    root=Path(args.root).resolve();private=root.parent.parent/'.superpowers/lorawan-private'
+    private.parent.mkdir(exist_ok=True,mode=0o700)
     if private.exists():raise ValueError('private configuration already exists; refuse credential rotation over persistent volumes')
     private.mkdir(mode=0o700)
     credentials={name:secrets.token_hex(24) for name in ('ingest','simulator','openhab','chirpstack','gateway','observer','health','db','admin','csdb','redis')}

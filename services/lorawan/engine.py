@@ -117,8 +117,9 @@ class Engine:
                                 state['tamper']=point['tamper']
                             if contact is not None:
                                 if state['contact_state']!=contact:
-                                    state['last_transition_at']=observed.isoformat()
-                                    if state['contact_state'] is not None:event_type='opened' if contact=='OPEN' else 'closed'
+                                    if state['contact_state'] is not None:
+                                        state['last_transition_at']=observed.isoformat()
+                                        event_type='opened' if contact=='OPEN' else 'closed'
                                 state.update(contact_state=contact,contact_observed_at=observed.isoformat(),
                                     contact_received_at=received_at.isoformat(),valid_until=until.isoformat(),fault=None)
                         timestamp_basis='device_clock' if point['observed_at'] is not None else 'network_reception'

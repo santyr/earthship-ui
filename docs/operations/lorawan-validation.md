@@ -18,7 +18,7 @@ PR #29's household delivery changes remain independent.
 
 - **Frontend:**147 files,2238 tests passed (`npm test`). Existing frontend regression
   suite is included, with the route contract updated for the additive sensor page.
-- **Python:**77 passed,11 container tests skipped in the ordinary unit command. This
+- **Python:**78 passed,11 container tests skipped in the ordinary unit command. This
   includes new sensor contracts and existing household evidence/snapshot/replay tests.
   Existing household tests need `/home/sat/Solar_PV/analytics/src` on PYTHONPATH,
   as in the repository's existing CI dependency setup.
@@ -37,7 +37,8 @@ PR #29's household delivery changes remain independent.
   model behavior or production source/configuration was changed to address it.
 - **Deployment:**both Compose files parse. A separate clean disposable PostgreSQL
   volume successfully initialized the generated schema/environment and required
-  ChirpStack `pg_trgm`/`hstore` extensions, then was removed. All service images and
+  ChirpStack `pg_trgm`/`hstore` extensions, then was removed. Fresh protected-staging provisioning and0600 service-file
+  permissions were also verified. All service images and
   the Python base image are pinned by digest. The pinned Basic Station image is
   AMD64; its vendor CoreCell profile was extracted/rendered without starting a
   forwarder or attaching hardware. Inspection corrected its configuration schema
@@ -64,6 +65,9 @@ provider imports, sensor removal projection and snapshot-time communication expi
 Regression tests reproduce those failures. Final focused re-review passed42 tests
 before the additional tested vendor-profile renderer; no remaining important
 blockers were reported in that reviewed scope.
+
+Credentials were moved into the already Vite-denied `.superpowers` staging path,
+protecting the active checkout before this feature is deployed.
 
 Originals remain append-only under the runtime role. Synthetic and production
 journals have explicit environment bindings. The optional household adapter requires

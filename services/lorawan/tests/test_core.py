@@ -215,3 +215,10 @@ def test_missing_contact_frame_followed_by_status_withdraws_old_state(tmp_path):
     later=NOW+timedelta(seconds=100)
     engine.ingest(*packet(4,0,at=later),received_at=later)
     assert sum(row['open_seconds'] for row in engine.snapshot(later)['daily_durations'])==0
+
+
+def test_initial_report_does_not_invent_a_physical_transition_time(tmp_path):
+    engine,_=setup(tmp_path);engine.ingest(*packet(),received_at=NOW)
+    sensor=engine.snapshot(NOW)['sensors'][0]
+    assert sensor['last_transition_at'] is None
+    assert sensor['last_observed_at']==NOW.isoformat()

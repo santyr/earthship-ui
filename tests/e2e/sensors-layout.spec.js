@@ -14,7 +14,7 @@ for(const [width,height] of [[1340,800],[1280,720]]) {
  test(`sensor dashboard ${width}x${height}: real OpenHAB SSE, transitions and bounded layout`,async({page})=>{
   await page.setViewportSize({width,height});
   await page.route('**/config.json',route=>route.fulfill({json:{openhabUrl:'',apiToken:'',staleBannerSeconds:90}}));
-  const privateResponse=await page.request.get('http://127.0.0.1:5194/deploy/lorawan/private/ingest.json');
+  const privateResponse=await page.request.get('http://127.0.0.1:5194/.superpowers/lorawan-private/ingest.json');
   expect(privateResponse.status()).toBe(403);
   await page.goto('http://127.0.0.1:5194/#/ventilation');
   await expect(page.locator('[data-sensor]')).toHaveCount(15);

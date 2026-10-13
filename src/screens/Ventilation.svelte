@@ -60,7 +60,7 @@
        <div class="sensor-title"><h2 title={sensor.name}>{sensor.name}</h2><span class="health">{sensor.health.toLowerCase()}</span></div>
        <p>{sensor.zone} · {sensor.location}</p>
        <div class="state"><strong>{stateLabel(sensor.current_state)}</strong><span>{sensor.battery?.percent!=null?`${sensor.battery.percent}%`:sensor.battery?.volts!=null?`${sensor.battery.volts.toFixed(2)}V`:'Battery unknown'}{sensor.battery?.condition==='LOW'?' · low':''}</span></div>
-       <small>{sensor.current_state==='UNKNOWN'?`Last known ${sensor.contact_state?.toLowerCase()??'unknown'}`:`Changed ${since(sensor.last_transition_at,now)}`}</small>
+       <small>{sensor.current_state==='UNKNOWN'?`Last known ${sensor.contact_state?.toLowerCase()??'unknown'}`:sensor.last_transition_at?`Reported change ${since(sensor.last_transition_at,now)}`:'Transition not observed'}</small>
        <small>Observed {since(sensor.last_observed_at,now)}{sensor.tamper===true?' · Tamper reported':''}</small>
       </article>
      {:else}<div class="empty">No {section==='property'?'property':'opening'} sensors configured for this zone.</div>{/each}
@@ -87,7 +87,7 @@
    <header><h2>{selected.name}</h2><button onclick={()=>selectedId=null}>Close</button></header>
    <p>{selected.zone} · {selected.location}</p>
    <dl>
-    {#each [['Current state',stateLabel(selected.current_state)],['Last known contact',stateLabel(selected.contact_state)],['Communication',selected.health],['Last observation',since(selected.last_observed_at,now)],['Last received',since(selected.last_received_at,now)],['Last transition',since(selected.last_transition_at,now)],['Battery',selected.battery.condition],['Signal strength',selected.rssi==null?'Unknown':`${selected.rssi} dBm`],['Signal / noise',selected.snr==null?'Unknown':`${selected.snr} dB`],['Tamper',selected.tamper==null?'Unsupported / unknown':selected.tamper?'Reported':'Clear'],['Missing frame estimate',selected.missing_frame_estimate??0]] as detail}<dt>{detail[0]}</dt><dd>{detail[1]}</dd>{/each}
+    {#each [['Current state',stateLabel(selected.current_state)],['Last known contact',stateLabel(selected.contact_state)],['Communication',selected.health],['Last observation',since(selected.last_observed_at,now)],['Last received',since(selected.last_received_at,now)],['Last reported transition',since(selected.last_transition_at,now)],['Battery',selected.battery.condition],['Signal strength',selected.rssi==null?'Unknown':`${selected.rssi} dBm`],['Signal / noise',selected.snr==null?'Unknown':`${selected.snr} dB`],['Tamper',selected.tamper==null?'Unsupported / unknown':selected.tamper?'Reported':'Clear'],['Missing frame estimate',selected.missing_frame_estimate??0]] as detail}<dt>{detail[0]}</dt><dd>{detail[1]}</dd>{/each}
    </dl>
    <h3>Recent events</h3>
    {#each view.recent_events.filter(e=>e.sensor_id===selected.sensor_id).slice(0,5) as e}<p>{e.event_type.replaceAll('_',' ')} · {since(e.observed_at,now)}</p>{/each}

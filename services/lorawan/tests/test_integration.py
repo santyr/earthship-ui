@@ -104,7 +104,7 @@ def test_message_queued_during_ingestion_outage_recovers():
 
 def test_observer_cannot_publish_raw_uplinks():
     from services.lorawan.runtime import private_config,mqtt_client
-    config=private_config('deploy/lorawan/private/observer.json');config.update(mqtt_host='127.0.0.1',mqtt_port=18884)
+    config=private_config('.superpowers/lorawan-private/observer.json');config.update(mqtt_host='127.0.0.1',mqtt_port=18884)
     client=mqtt_client(config,'observer-acl-test');reasons=[]
     client.on_publish=lambda client,userdata,mid,reason,properties:reasons.append(reason.is_failure)
     client.connect('127.0.0.1',18884,30);client.loop_start()

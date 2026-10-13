@@ -29,7 +29,7 @@ def wait_for(predicate,seconds=20):
 
 
 def publisher():
-    config=private_config('deploy/lorawan/private/simulator.json')
+    config=private_config('.superpowers/lorawan-private/simulator.json')
     if config['environment']!='simulation':raise ValueError('integration probe refuses production')
     config.update(mqtt_host='127.0.0.1',mqtt_port=18884)
     client=mqtt_client(config,'probe-'+uuid4().hex[:8]);client.connect(config['mqtt_host'],config['mqtt_port'],30);client.loop_start()

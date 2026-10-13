@@ -117,7 +117,7 @@ python3 -m services.lorawan.provision
 ```
 
 Provisioning creates random development-only account/password files, hashed MQTT
-passwords, ACLs, SQL and generated OpenHAB files inside ignored `deploy/lorawan/private/`.
+passwords, ACLs, SQL and generated OpenHAB files inside ignored `.superpowers/lorawan-private/`.
 It refuses to overwrite existing credentials. Keep that parent directory0700;
 service JSON0600. PostgreSQL init SQL and Redis config are0644 inside the0700
 parent so their distinct container UIDs can read individual bind-mounted files.
@@ -127,8 +127,8 @@ Acquire version-matched OpenHAB5.2.1 offline addons before starting. For example
 
 ```bash
 curl -fL https://openhab.jfrog.io/artifactory/libs-release-local/org/openhab/distro/openhab-addons/5.2.1/openhab-addons-5.2.1.kar \
-  -o deploy/lorawan/private/addons/openhab-addons-5.2.1.kar
-chmod 644 deploy/lorawan/private/addons/openhab-addons-5.2.1.kar
+  -o .superpowers/lorawan-private/addons/openhab-addons-5.2.1.kar
+chmod 644 .superpowers/lorawan-private/addons/openhab-addons-5.2.1.kar
 docker compose -f deploy/lorawan/compose.test.yaml up -d --build
 docker compose -f deploy/lorawan/compose.test.yaml --profile chirpstack up -d redis chirpstack
 docker compose -f deploy/lorawan/compose.test.yaml --profile simulation run --rm simulator
@@ -158,7 +158,9 @@ Create ignored `public/config.json` with `{"openhabUrl":"","apiToken":"","staleB
 in this isolated checkout. Open `http://127.0.0.1:5194/#/ventilation`. Browser tests
 supply this configuration in memory. All screen data uses the existing OpenHAB
 Item snapshot and SSE. No browser MQTT/ChirpStack connection or token is required.
-Private staging and SQLite journals are explicitly denied by Vite's file server.
+Private staging uses the existing blocked `.superpowers` path, so credentials
+remain protected even before the new Vite configuration is installed. SQLite
+journals and legacy staging paths are also denied by the new file-server policy.
 
 ```bash
 PYTHONPATH=.:openhab/scripts python3 -m pytest services/lorawan/tests openhab/scripts/test_household_sensor_observations.py
@@ -284,7 +286,7 @@ promise Class B timing, geolocation or fine timestamp features without qualifica
 - Confirm the selected Station image supports the purchased USB board and its
   reset/clock configuration. `station-overrides.json` is an overlay, not a runnable profile.
   `python -m services.lorawan.prepare_station --gateway-eui <eui> --output
-  deploy/lorawan/private/production/station` extracts the full pinned vendor CoreCell
+  .superpowers/lorawan-private/production/station` extracts the full pinned vendor CoreCell
   profile without starting a forwarder, preserving radio calibration tables while
   selecting USB/no GPS. Compare that profile with the purchased board before TX.
   The Station directory must be writable: inspection confirmed its startup script
