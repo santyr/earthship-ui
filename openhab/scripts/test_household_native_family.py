@@ -82,3 +82,30 @@ def test_draft_refuses_source_drift_before_creating_output(tmp_path,monkeypatch)
         if len(calls)==2:libraries.write_text('{}')
     with pytest.raises(ValueError):m.prepare(args['stage'],libraries,out,guard=guard)
     assert not out.exists()
+
+
+def test_independent_family_verification_reads_original_stage_and_library_pins(tmp_path,monkeypatch):
+    m,args,settings,record,libraries,out=fixture(tmp_path,monkeypatch)
+    m.prepare(args['stage'],libraries,out,guard=lambda:None)
+    checked=m.verify(out,guard=lambda:None)
+    assert checked['artifact_sha256']==settings['artifact_sha256']
+    assert checked['runtime_sha256']==settings['runtime_sha256']
+    assert checked['live_units_changed'] is False and checked['automatic_actuation'] is False
+
+
+@pytest.mark.parametrize('damage',['memory','timer','model','extra_file','library_config'])
+def test_family_verifier_refuses_resealed_unsafe_or_unbound_drafts(tmp_path,monkeypatch,damage):
+    m,args,settings,record,libraries,out=fixture(tmp_path,monkeypatch)
+    m.prepare(args['stage'],libraries,out,guard=lambda:None)
+    from hashlib import sha256
+    meta=json.loads((out/'family.json').read_bytes())
+    if damage in ('memory','timer'):
+        name='thermal-native-geometry-prepare.service' if damage=='memory' else 'score-timer.conf'
+        path=out/name;text=path.read_text()
+        text=text.replace('MemoryMax=256M','MemoryMax=2G') if damage=='memory' else text.replace('*:02/5:00','*:03/5:10')
+        path.write_text(text);meta['file_sha256'][name]=sha256(path.read_bytes()).hexdigest()
+    elif damage=='model':meta['artifact_sha256']='f'*64
+    elif damage=='extra_file':write(out/'unexpected.conf',b'unbound')
+    else:libraries.write_text('{}')
+    write(out/'family.json',encode(meta))
+    with pytest.raises((ValueError,OSError)):m.verify(out,guard=lambda:None)

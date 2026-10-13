@@ -58,7 +58,11 @@ def run(config,*,stage=None,clock=lambda:datetime.now(timezone.utc),monotonic=ti
             raise ValueError('staged score coordinator execution required')
     deadline=monotonic()+50
     with SharedScoreLock(settings['shared_lock']) as lock:
-        pressure=TrainingHeadroom(max_swapin_bytes_per_second=1048576)
+        if settings.get('schema')=='earthship-provisional-thermal-live-config/v2':
+            from native_inference_pressure import NativeInferenceHeadroom
+            pressure=NativeInferenceHeadroom();pressure.preflight()
+        else:
+            pressure=TrainingHeadroom(max_swapin_bytes_per_second=1048576)
         def guard():
             lock.verify();pressure.check()
             if monotonic()>=deadline or clock()>=issue-timedelta(seconds=35):raise ValueError('score lifetime elapsed')

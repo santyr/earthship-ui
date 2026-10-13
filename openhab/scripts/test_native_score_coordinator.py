@@ -38,7 +38,7 @@ def test_native_private_runner_uses_native_loader_and_original_lock_deadline(tmp
     import native_thermal_live as native
     import thermal_model.provisional_live as legacy
     import thermal_model.capture_guard as locks
-    import thermal_model.training_pressure_guard as pressure
+    import native_inference_pressure as pressure
     import thermal_installed_intel as installed
     settings={'schema':native.LIVE_SCHEMA,'shared_lock':str(tmp_path/'lock'),'artifact_sha256':'a'*64,'runtime_sha256':'b'*64}
     path=tmp_path/'native-config.json';path.write_text(json.dumps(settings));path.chmod(0o600);calls=[]
@@ -51,9 +51,10 @@ def test_native_private_runner_uses_native_loader_and_original_lock_deadline(tmp
         def verify(self):calls.append('verified')
         def __exit__(self,*args):calls.append('unlocked')
     class Headroom:
-        def __init__(self,**kw):assert kw['max_swapin_bytes_per_second']==1048576
+        def __init__(self,**kw):assert not kw
+        def preflight(self):calls.append('preflight')
         def check(self):calls.append('headroom')
-    monkeypatch.setattr(locks,'SharedScoreLock',Lock);monkeypatch.setattr(pressure,'TrainingHeadroom',Headroom)
+    monkeypatch.setattr(locks,'SharedScoreLock',Lock);monkeypatch.setattr(pressure,'NativeInferenceHeadroom',Headroom)
     def score(value,*,guard,clock,queue):
         assert value==settings and queue is True;guard();return {'status':'waiting','scored':0,'automatic_actuation':False}
     monkeypatch.setattr(coordinator,'score_with_report',score)

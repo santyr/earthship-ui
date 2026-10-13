@@ -2801,6 +2801,22 @@
         "guard_relaxed": false,
         "live_writes": false,
         "private_diagnosis": "native-current-capture-47c5b8d/private-diagnosis.json"
+      },
+      "current_source_capture_retry": {
+        "handle": 41395,
+        "unit": "run-u6966.scope",
+        "status": "refused_original_per_callback_swap_read_allowance",
+        "source_commit": "5ab20b8",
+        "elapsed_seconds": 44.21382200601511,
+        "phase": "geometry_candidate_replay",
+        "swapped_pages": 1,
+        "swap_page_bytes": 4096,
+        "sample_seconds": 0.0007192709599621594,
+        "pressure_totals_changed": false,
+        "guard_changed": false,
+        "current_native_capture_projected": false,
+        "live_writes": false,
+        "private_diagnosis": "native-current-capture-5ab20b8/private-diagnosis.json"
       }
     },
     "native_resource_admission": {
@@ -3191,6 +3207,29 @@
         "status": "actual_installed_library_native_family_draft_verified",
         "handle": 21859
       }
+    },
+    "native_inference_one_second_window": {
+      "status": "approved_implemented_affected_tests_pass_actual_qualification_pending",
+      "approval": "User explicitly approved the one-second inference window on October 13.",
+      "policy": "Maximum 1048576 bytes host swap reads over trailing one second; retain sampled baseline at or before boundary; refusal latches.",
+      "fitting_guard_unchanged": true,
+      "protected_source_hashes_verified": 72,
+      "native_runtime_source_hashes_verified": 12,
+      "preserved": "Per-callback reserve, all PSI averages/intervals, swap-out/OOM, worker caps/events, shared lock, deadlines and five-second preflight.",
+      "tests": {
+        "passed": 80,
+        "seconds": 19.29,
+        "handle": 41206,
+        "scope": "pressure policy, family verification, native prep/score/package and legacy deployment"
+      },
+      "live_units_changed": false,
+      "production_model_changed": false,
+      "actual_qualification_pending": true,
+      "family_final_readback_tests": {
+        "passed": 10,
+        "seconds": 7.61,
+        "handle": 94835
+      }
     }
   },
   "astro_efficiency_audit": {
@@ -3320,5 +3359,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T16:34:11.868846+00:00"
+  "updated_at": "2026-10-13T16:53:28.656964+00:00"
 }

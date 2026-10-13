@@ -281,8 +281,8 @@ def verify_runtime(stage):
         if native:
             import time
             from native_thermal_artifact import current_native_runtime,read_native_candidate,digest
-            from thermal_model.training_pressure_guard import TrainingHeadroom
-            pressure=TrainingHeadroom(max_swapin_bytes_per_second=1048576);pressure.preflight();deadline=time.monotonic()+40
+            from native_inference_pressure import NativeInferenceHeadroom
+            pressure=NativeInferenceHeadroom();pressure.preflight();deadline=time.monotonic()+40
             def guard():
                 lock.verify();pressure.check()
                 if time.monotonic()>=deadline or datetime.now(timezone.utc)>=issue-timedelta(seconds=35):

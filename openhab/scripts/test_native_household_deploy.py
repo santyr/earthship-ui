@@ -107,7 +107,7 @@ def test_native_runtime_probe_uses_external_pins_and_original_pressure_guard(tmp
     import native_thermal_live as native
     import native_thermal_artifact as artifact
     import thermal_model.provisional_live as legacy
-    import thermal_model.training_pressure_guard as pressure
+    import native_inference_pressure as pressure
     import thermal_installed_intel as installed
     import household_cycle_sources as collection
     from datetime import timedelta
@@ -119,10 +119,10 @@ def test_native_runtime_probe_uses_external_pins_and_original_pressure_guard(tmp
     monkeypatch.setattr(legacy,'current_runtime',lambda *a,**kw:pytest.fail('native runtime probe used legacy runtime'))
     monkeypatch.setattr(native,'load_settings',lambda path:settings if Path(path)==args['forecast_config'] else pytest.fail('wrong native config'))
     class Headroom:
-        def __init__(self,**kw):assert kw=={'max_swapin_bytes_per_second':1048576}
+        def __init__(self,**kw):assert not kw
         def preflight(self):calls.append('preflight')
         def check(self):calls.append('pressure')
-    monkeypatch.setattr(pressure,'TrainingHeadroom',Headroom)
+    monkeypatch.setattr(pressure,'NativeInferenceHeadroom',Headroom)
     def runtime(*,guard):guard();calls.append('runtime');return candidate['runtime']
     def read(path,*,assessed_at,runtime,expected_artifact_sha256,guard):
         assert path==settings['candidate_path'] and runtime==candidate['runtime']

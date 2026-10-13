@@ -30,7 +30,7 @@ def run(config,libraries,*,stage=None,clock=lambda:datetime.now(timezone.utc),mo
     from native_thermal_live import load_settings,prepare_geometry,_resource_preflight
     from thermal_model.provisional_live import _next_issue
     from thermal_model.capture_guard import SharedScoreLock
-    from thermal_model.training_pressure_guard import TrainingHeadroom
+    from native_inference_pressure import NativeInferenceHeadroom
     from thermal_model.origin_capture import _source_bytes
     from household_observation import _private_file
     _resource_preflight()
@@ -48,7 +48,7 @@ def run(config,libraries,*,stage=None,clock=lambda:datetime.now(timezone.utc),mo
         if source!=stage/'sources/openhab/scripts/household_native_geometry_prepare.py':
             raise ValueError('staged native preparer execution required')
     with SharedScoreLock(settings['shared_lock']) as lock:
-        pressure=TrainingHeadroom(max_swapin_bytes_per_second=1048576);pressure.preflight()
+        pressure=NativeInferenceHeadroom();pressure.preflight()
         deadline=monotonic()+75
         def guard():
             lock.verify();pressure.check()

@@ -12,7 +12,7 @@ def fixture(tmp_path,monkeypatch):
     module=api()
     import native_thermal_live as native
     from astro_geometry_worker import ROLES
-    import thermal_model.training_pressure_guard as pressure
+    import native_inference_pressure as pressure
     now=[datetime(2026,10,13,14,2,15,tzinfo=timezone.utc)];ticks=[100.];calls=[]
     settings={'schema':native.LIVE_SCHEMA,'shared_lock':str(tmp_path/'lock'),'artifact_sha256':'a'*64,'runtime_sha256':'b'*64}
     lock=Path(settings['shared_lock']);lock.write_text('');lock.chmod(0o600)
@@ -22,10 +22,10 @@ def fixture(tmp_path,monkeypatch):
     monkeypatch.setattr(native,'load_settings',lambda path:settings)
     monkeypatch.setattr(native,'_resource_preflight',lambda:calls.append('caps'))
     class Headroom:
-        def __init__(self,**kw):assert kw=={'max_swapin_bytes_per_second':1048576}
+        def __init__(self,**kw):assert not kw
         def preflight(self):calls.append('quiet_preflight')
         def check(self):calls.append('pressure')
-    monkeypatch.setattr(pressure,'TrainingHeadroom',Headroom)
+    monkeypatch.setattr(pressure,'NativeInferenceHeadroom',Headroom)
     def prepare(actual,*,issue,library_paths,guard):
         guard();assert actual==settings and issue==now[0].replace(minute=5);assert library_paths=={k:Path(v) for k,v in paths.items()}
         assert Path(settings['shared_lock']).is_file()
@@ -85,11 +85,11 @@ def test_library_configuration_is_closed_owned_and_resolved(tmp_path,monkeypatch
 def test_pressure_refusal_cannot_enter_preparation(tmp_path,monkeypatch):
     m,c,l,s,now,ticks,calls=fixture(tmp_path,monkeypatch)
     import native_thermal_live as native
-    import thermal_model.training_pressure_guard as pressure
+    import native_inference_pressure as pressure
     class Headroom:
         def __init__(self,**kw):pass
         def preflight(self):raise ValueError('host pressure unavailable')
-    monkeypatch.setattr(pressure,'TrainingHeadroom',Headroom)
+    monkeypatch.setattr(pressure,'NativeInferenceHeadroom',Headroom)
     monkeypatch.setattr(native,'prepare_geometry',lambda *a,**k:pytest.fail('pressure refusal bypassed'))
     with pytest.raises(ValueError,match='host pressure unavailable'):m.run(c,l,clock=lambda:now[0],monotonic=lambda:ticks[0])
 
