@@ -124,7 +124,8 @@ SOURCE_SCORE_SUFFIX='.native-thermal-score-sources-v1.json'
 def _query_binding(packet,paths,*,issue,epoch,assessed,check_budget):
     from pathlib import Path
     from thermal_model.temperature_history import STREAMS,POLICY
-    from weather_temperature_sources import read_compressed_temperature_source,replay_temperature_source
+    from weather_temperature_sources import read_compressed_temperature_source,replay_temperature_source,MAX_CONTAINER_BYTES
+    from thermal_model.runtime_bundle import _owned_bytes
     if (not isinstance(paths,list) or not 1<=len(paths)<=64 or
             any(not isinstance(p,str) or not 1<=len(p)<=1024 for p in paths) or len(set(paths))!=len(paths)):
         raise ValueError('bounded unique original native score queries required')
@@ -146,7 +147,9 @@ def _query_binding(packet,paths,*,issue,epoch,assessed,check_budget):
     for name in paths:
         check_budget();path=Path(name)
         if not path.is_absolute() or path.resolve()!=path:raise ValueError('resolved native score query required')
+        original_bytes=_owned_bytes(path,MAX_CONTAINER_BYTES)
         source=read_compressed_temperature_source(path.parent,path);size+=len(_canonical(source))
+        if _owned_bytes(path,MAX_CONTAINER_BYTES)!=original_bytes:raise ValueError('native score query changed during selection')
         if size>64000000:raise ValueError('bounded aggregate native score source bytes required')
         if source['stream']!=stream or source['policy']!=dict(model=model,sensor_id=sensor,**POLICY) or source['sensor_epoch']!=epoch:
             raise ValueError('original native score role/policy/phase differs')
@@ -186,9 +189,12 @@ def _source_pair(packet,paths,*,runtime,expected_artifact_sha256,expected_captur
     from pathlib import Path
     from native_thermal_artifact import _read
     from native_thermal_forecast import MAX_CAPTURE_BYTES
+    from thermal_model.runtime_bundle import _owned_bytes
+    from weather_temperature_sources import MAX_CONTAINER_BYTES
     from thermal_model.recent_cycles import compare_v2
     if not isinstance(packet,dict) or set(packet)!=SOURCE_INPUT_FIELDS:raise ValueError('closed native source score inputs required')
     raw,capture=_read(Path(packet['origin_path']),MAX_CAPTURE_BYTES)
+    origin_queries={Path(name):_owned_bytes(Path(name),MAX_CONTAINER_BYTES) for name in capture['native_origin_binding'].get('query_sources',{}).values()}
     issue=_instant(capture['issued_at']);epoch=capture['candidate']['fit']['sensor_epochs']['air']
     binding=_query_binding(packet,paths,issue=issue,epoch=epoch,assessed=assessed,check_budget=check_budget)
     selected={_instant(at):None if receipt is None else {key:_instant(value) if key in ('receivedAt','storedAt','validUntil') else value for key,value in receipt.items()} for at,receipt in packet['recent_cycle_grid']}
@@ -201,7 +207,8 @@ def _source_pair(packet,paths,*,runtime,expected_artifact_sha256,expected_captur
                expected_capture_sha256=expected_capture_sha256,horizon_hours=packet['horizon_hours'],assessed_at=assessed,
                recent=recent,check_budget=check_budget)
     replay=_query_binding(packet,paths,issue=issue,epoch=epoch,assessed=assessed,check_budget=check_budget)
-    if _canonical(replay)!=_canonical(binding) or _read(Path(packet['origin_path']),MAX_CAPTURE_BYTES)[0]!=raw:
+    if (any(_owned_bytes(path,MAX_CONTAINER_BYTES)!=original for path,original in origin_queries.items()) or
+            _canonical(replay)!=_canonical(binding) or _read(Path(packet['origin_path']),MAX_CAPTURE_BYTES)[0]!=raw):
         raise ValueError('original native score sources changed during replay')
     return binding,pair
 
@@ -254,3 +261,96 @@ def read_source_score(path,*,runtime,expected_artifact_sha256,expected_capture_s
     _,record=_read(path,MAX_SOURCE_SCORE_BYTES)
     return validate_source_score(record,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
         expected_capture_sha256=expected_capture_sha256,expected_source_score_sha256=expected_source_score_sha256,check_budget=check_budget)
+
+
+COMPLETION_SCHEMA='earthship-native-thermal-completion/v1'
+COMPLETION_SUFFIX='.native-thermal-completion-v1.json'
+COMPLETION_FIELDS={'schema','job_id','artifact_sha256','runtime_sha256','capture_sha256','source_score_path',
+                   'source_score_sha256','pair_sha256','issued_at','target_at','horizon_hours','completed_at','release_authority','completion_sha256'}
+REPORT_ENTRY_FIELDS={'completion_path','completion_sha256','source_score_sha256','capture_sha256'}
+MAX_COMPLETION_BYTES=65536
+
+
+def build_source_completion(source_score_path,*,runtime,expected_artifact_sha256,expected_capture_sha256,
+                            expected_source_score_sha256,completed_at,check_budget=lambda:None):
+    from pathlib import Path
+    runtime=deepcopy(runtime);completed=_instant(completed_at);path=str(Path(source_score_path))
+    record=read_source_score(path,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
+        expected_capture_sha256=expected_capture_sha256,expected_source_score_sha256=expected_source_score_sha256,check_budget=check_budget)
+    if completed<_instant(record['assessed_at']):raise ValueError('native score completion precedes assessment')
+    pair=record['pair'];job=digest({'capture_sha256':pair['capture_sha256'],'horizon_hours':pair['horizon_hours']},None)
+    result=dict(schema=COMPLETION_SCHEMA,job_id=job,artifact_sha256=pair['artifact_sha256'],runtime_sha256=pair['runtime_sha256'],
+        capture_sha256=pair['capture_sha256'],source_score_path=path,source_score_sha256=record['source_score_sha256'],
+        pair_sha256=pair['pair_sha256'],issued_at=pair['issued_at'],target_at=pair['target_at'],horizon_hours=pair['horizon_hours'],
+        completed_at=completed.isoformat(),release_authority=False)
+    result['completion_sha256']=digest(result,'completion_sha256');check_budget()
+    return result
+
+
+def validate_source_completion(completion,*,runtime,expected_artifact_sha256,expected_capture_sha256,
+                               expected_source_score_sha256,expected_completion_sha256,check_budget=lambda:None):
+    completion,runtime=map(deepcopy,(completion,runtime))
+    if (not isinstance(completion,dict) or set(completion)!=COMPLETION_FIELDS or completion['schema']!=COMPLETION_SCHEMA or
+            completion['release_authority'] is not False or completion['completion_sha256']!=_sha(expected_completion_sha256) or
+            digest(completion,'completion_sha256')!=completion['completion_sha256']):
+        raise ValueError('closed externally pinned native completion required')
+    for key,expected in (('artifact_sha256',expected_artifact_sha256),('capture_sha256',expected_capture_sha256),
+                         ('source_score_sha256',expected_source_score_sha256)):
+        if completion[key]!=_sha(expected):raise ValueError('original native completion identity differs')
+    result=build_source_completion(completion['source_score_path'],runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
+        expected_capture_sha256=expected_capture_sha256,expected_source_score_sha256=expected_source_score_sha256,
+        completed_at=_instant(completion['completed_at']),check_budget=check_budget)
+    if _canonical(result)!=_canonical(completion):raise ValueError('original native completion differs on replay')
+    return completion
+
+
+def persist_source_completion(directory,completion):
+    from thermal_model.provisional_forecast import persist
+    if not isinstance(completion,dict) or digest(completion,'completion_sha256')!=completion.get('completion_sha256'):
+        raise ValueError('digest-bound native completion required')
+    return persist(directory,completion,field='completion_sha256',suffix=COMPLETION_SUFFIX,maximum=MAX_COMPLETION_BYTES)
+
+
+def read_source_completion(path,*,runtime,expected_artifact_sha256,expected_capture_sha256,
+                           expected_source_score_sha256,expected_completion_sha256,check_budget=lambda:None):
+    from pathlib import Path
+    from native_thermal_artifact import _read
+    path=Path(path)
+    if path.name!=_sha(expected_completion_sha256)+COMPLETION_SUFFIX:raise ValueError('named original native completion required')
+    _,completion=_read(path,MAX_COMPLETION_BYTES)
+    return validate_source_completion(completion,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
+        expected_capture_sha256=expected_capture_sha256,expected_source_score_sha256=expected_source_score_sha256,
+        expected_completion_sha256=expected_completion_sha256,check_budget=check_budget)
+
+
+def _reconcile_source_report(entries,*,runtime,artifact_sha256,assessed_at,check_budget):
+    from native_thermal_artifact import validate_native_runtime
+    if not isinstance(entries,list) or len(entries)>256:raise ValueError('bounded native completion report inventory required')
+    entries,runtime=map(deepcopy,(entries,runtime));runtime=validate_native_runtime(runtime)
+    if SOURCE not in runtime['native_source_manifest']:raise ValueError('native report implementation must be runtime-bound')
+    artifact=_sha(artifact_sha256);assessed=_instant(assessed_at);pairs=[];jobs=set();check_budget()
+    for entry in entries:
+        if not isinstance(entry,dict) or set(entry)!=REPORT_ENTRY_FIELDS:raise ValueError('externally pinned native report entry required')
+        completion=read_source_completion(entry['completion_path'],runtime=runtime,expected_artifact_sha256=artifact,
+            expected_capture_sha256=entry['capture_sha256'],expected_source_score_sha256=entry['source_score_sha256'],
+            expected_completion_sha256=entry['completion_sha256'],check_budget=check_budget)
+        if _instant(completion['completed_at'])>assessed:raise ValueError('native report completion is future')
+        if completion['job_id'] in jobs:raise ValueError('duplicate native completed score job')
+        jobs.add(completion['job_id'])
+        source=read_source_score(completion['source_score_path'],runtime=runtime,expected_artifact_sha256=artifact,
+            expected_capture_sha256=entry['capture_sha256'],expected_source_score_sha256=entry['source_score_sha256'],check_budget=check_budget)
+        if source['pair']['pair_sha256']!=completion['pair_sha256']:raise ValueError('native completed pair differs')
+        pairs.append(source['pair']);check_budget()
+    result=summarize(pairs,artifact_sha256=artifact);result['assessed_at']=assessed.isoformat();check_budget()
+    return result
+
+
+def reconcile_source_report(entries,*,runtime,artifact_sha256,assessed_at,check_budget=lambda:None):
+    from thermal_model.replay_budget import capture_source_reads
+    with capture_source_reads() as originals:
+        result=_reconcile_source_report(entries,runtime=runtime,artifact_sha256=artifact_sha256,
+            assessed_at=assessed_at,check_budget=check_budget)
+        check_budget()
+        if originals.file_count:originals.verify()
+        check_budget()
+        return result

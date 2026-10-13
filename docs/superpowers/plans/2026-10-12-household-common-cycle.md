@@ -284,3 +284,15 @@ statistics and explicit missing baseline, empty report, duplicate completion,
 future assessment, caller mutation, bounded list, and guarded deadline refusal.
 Run serial bounded tests, preserve72/core9, record actual results. Do not write
 product implementation before representative new tests are observed failing.
+
+Native completion/report APIs implemented: externally pinned source/capture/model/
+completion roots replay original pair and queries; mature completion clock,
+duplicate job, bounded256 entries and caller snapshots enforced. Report-wide
+original byte inventory verifies after aggregation; compressed/nativeorigin
+queries explicitly observed and rechecked. Representative2 RED7.71s ->GREEN
+11.69s; late-original change1 RED7.71s ->fixed. Corrected14 completion +21 raw
+source cases allpass in4/21.70s,17/48.29s,15/32.61s serial batches (one roundtrip
+case appears in two cohorts;35 unique cases). Original72 hashes unchanged.
+All test scopes terminal; current source/runtime stage qualification remains
+required. No live selection/units/writes/actions or GitHub publication. Whole
+branch final review and full native/household/UI coherent producer remainpending.

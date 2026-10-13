@@ -2366,6 +2366,48 @@
           "status": "sealed_staged_native_artifact_verified"
         }
       }
+    },
+    "native_completion_report_reconciliation": {
+      "status": "implemented_verified_runtime_and_live_integration_pending",
+      "completion_schema": "earthship-native-thermal-completion/v1",
+      "external_completion_source_capture_artifact_roots_required": true,
+      "native_capture_queries_and_pair_independently_replayed": true,
+      "source_bytes_tracked_and_rechecked_across_full_report": true,
+      "native_origin_and_score_queries_observed": true,
+      "cached_pair_or_completion_hash_alone_not_accepted": true,
+      "future_completions_and_duplicate_jobs_refused": true,
+      "caller_entries_frozen_before_callbacks": true,
+      "bounded_maximum_report_entries": 256,
+      "private_completion_roundtrip_verified": true,
+      "empty_report_and_deadline_refusal_verified": true,
+      "current_completion_cases_passed": 14,
+      "current_source_score_regression_cases_passed": 21,
+      "current_serial_batches": [
+        {
+          "cases": 4,
+          "seconds": 21.7
+        },
+        {
+          "cases": 17,
+          "seconds": 48.29
+        },
+        {
+          "cases": 15,
+          "seconds": 32.61
+        }
+      ],
+      "representative_missing_api_red_cases": 2,
+      "representative_red_seconds": 7.71,
+      "aggregation_original_change_red_cases": 1,
+      "aggregation_red_seconds": 7.71,
+      "protected_original_sources": 72,
+      "fitted_sources_changed": false,
+      "current_runtime_stage_qualification_pending": true,
+      "actual_live_native_issuer_and_monitor_pending": true,
+      "household_ui_native_coherence_pending": true,
+      "production_model_changed": false,
+      "automatic_actuation": false,
+      "full_program_complete": false
     }
   },
   "astro_efficiency_audit": {
@@ -2495,5 +2537,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-12T21:57:24-06:00"
+  "updated_at": "2026-10-12T22:12:55-06:00"
 }
