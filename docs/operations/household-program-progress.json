@@ -3548,6 +3548,32 @@
         "latency_qualified": false
       },
       "limits": "Two-second resource-only profiles include profiler overhead and changing host conditions; no full model/preparation/production speed claim. New sealed deployment stage still required."
+    },
+    "native_unit_file_transaction": {
+      "status": "internal_transaction_implemented_tests_pass_admission_activation_pending",
+      "source": "openhab/scripts/household_native_install.py",
+      "tests": {
+        "RED_handle": 57947,
+        "initial_GREEN_handle": 20082,
+        "initial_passed": 23,
+        "final_GREEN_handle": 72605,
+        "passed": 25,
+        "seconds": 28.6
+      },
+      "behavior": "Reconstruct exact handoff; guard source/stage/base-unit epochs; replace two owned overrides and atomically create three new fixed targets without clobbering; undo only identical own writes on failure and preserve concurrent edits.",
+      "scope": "Temporary unit-root fixture tests only; no actual installed definitions changed.",
+      "pending": [
+        "Source-bound readiness admission",
+        "Shared lock and timer quiescence lifecycle",
+        "Coordinated reload and effective-unit postconditions",
+        "Timer activation and natural-cycle qualification"
+      ],
+      "protected_runtime_source_hashes_verified_unchanged": 72,
+      "native_runtime_source_hashes_verified_unchanged": 12,
+      "live_units_changed": false,
+      "unit_manager_reloaded": false,
+      "production_model_changed": false,
+      "automatic_actuation": false
     }
   },
   "astro_efficiency_audit": {
@@ -3677,5 +3703,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T18:13:04.246636+00:00"
+  "updated_at": "2026-10-13T18:29:06.974998+00:00"
 }

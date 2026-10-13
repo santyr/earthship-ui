@@ -704,3 +704,20 @@ Reprofile the same real two-second workload; successful guard profiling does not
 qualify geometry, full production timing or model deployment. Keep all72 fitted
 and12 native-runtime source bytes unchanged; new source-pinned stage required
 before activating this outside-runtime helper optimization.
+
+Native file transaction layer (2026-10-13)
+-----------------------------------------
+Implement the internal file-mutation step behind coordinated readiness admission.
+Reconstruct the existing private handoff first. The future caller must already
+own the shared lock, quiesce the relevant timers, qualify readiness, and supply
+an epoch/inactivity/deadline guard. Replace only the two exact owned overrides;
+create the other three fixed targets without replacement. Bind parent directory
+identity while creating new files and retain exact original family/stage/units.
+On any failure, undo only our still-identical writes, preserving concurrent edits.
+This layer performs no reload, timer activation, service restart or qualification
+claim. Readiness admission and coordinated activation/postconditions remain the
+next installer steps; no live invocation until those steps are complete.
+RED/GREEN tests use temporary unit roots and cover all five outputs, refusal,
+concurrent changes and collisions. This is installation integrity work, not the
+deferred backup/recovery program. Preserve all numerical sources and resource
+safeguards, and the full PR3 objective.
