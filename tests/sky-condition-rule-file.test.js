@@ -112,6 +112,46 @@ describe('staged file-backed sky-condition rule', () => {
     expect(runRule({ WeatherData_HealthStatus: 'DEGRADED' }).states.SkyCondition).toBe('PARTLY_CLOUDY');
   });
 
+  it.each(['0 W/m²', '1 W/m²', '20 W/m²'])(
+    'keeps low calculated radiation %s as twilight without dividing by it', theoretical => {
+      const { states } = runRule({ Sun_TotalRadiation: theoretical });
+      expect(states.SkyCondition).toBe('TWILIGHT');
+      expect(states.SkyCondition_Diagnostic).toContain('reason=low_theoretical');
+      expect(states.SkyCondition_Diagnostic).toContain('ratio=n/a');
+    });
+
+  it.each(['NULL', 'UNDEF', '', 'missing'])(
+    'withholds a daytime ratio for missing station radiation %s', actual => {
+      const { states } = runRule({ AmbientWeatherWS2902A_SolarRadiation: actual },
+        actual === 'missing' ? ['AmbientWeatherWS2902A_SolarRadiation'] : []);
+      expect(states.SkyCondition).toBe('STALE');
+      expect(states.SkyCondition_Diagnostic).toContain('reason=actual_invalid');
+    });
+
+  it.each(['NULL', 'UNDEF', 'missing'])(
+    'withholds a ratio for missing station age %s', age => {
+      const { states } = runRule({ WeatherData_WH65B_AgeSeconds: age },
+        age === 'missing' ? ['WeatherData_WH65B_AgeSeconds'] : []);
+      expect(states.SkyCondition).toBe('STALE');
+      expect(states.SkyCondition_Diagnostic).toContain('reason=weather_stale');
+    });
+
+  it('classifies cloud transients independently from the calculated reference', () => {
+    const inputs = [100, 20, 50, 0, 100, 1600];
+    const results = inputs.map(actual => runRule({
+      Sun_TotalRadiation: '100 W/m²', AmbientWeatherWS2902A_SolarRadiation: `${actual} W/m²`,
+    }));
+    expect(results.map(r => r.states.SkyCondition)).toEqual([
+      'CLEAR', 'OVERCAST', 'PARTLY_CLOUDY', 'OVERCAST', 'CLEAR', 'CLEAR',
+    ]);
+    for (const result of results) {
+      expect(result.states.SkyCondition_Diagnostic).toContain('theoretical=100');
+      expect(result.updates.every(([name]) => [
+        'SkyCondition', 'SkyConditionIcon', 'SkyCondition_LastEval', 'SkyCondition_Diagnostic',
+      ].includes(name))).toBe(true);
+    }
+  });
+
   it('does not repost unchanged outputs or diagnostic values within 60 seconds', () => {
     const { updates } = runRule({
       SkyCondition: 'PARTLY_CLOUDY',

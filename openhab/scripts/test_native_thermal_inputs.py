@@ -114,6 +114,30 @@ def test_native_clear_sky_fraction_uses_only_pinned_geometry_and_preserves_bound
     with pytest.raises(ValueError):api().native_clear_sky_fraction(float('nan'),START,geometry=g)
 
 
+
+@pytest.mark.parametrize('degrees', [0, 0.01, 1, 3])
+def test_low_sun_retains_thermal_normalization_without_native_radiation_substitution(degrees):
+    g = geometry(snapshot(), degrees=degrees)
+    value = api().native_clear_sky_fraction(10, START, geometry=g)
+    if degrees == 0:
+        assert value == 0
+    else:
+        expected = min(1.3, 10 / (1050 * math.sin(math.radians(degrees))**1.15))
+        assert value == pytest.approx(expected)
+        assert value > 0  # Astro's calculated radiation reference is zero through 3 degrees.
+    assert 0 <= value <= 1.3
+
+
+def test_cloud_transients_follow_original_station_measurements_at_fixed_geometry():
+    g = geometry(snapshot(), degrees=30)
+    fractions = [api().native_clear_sky_fraction(r, START, geometry=g)
+                 for r in [200, 20, 0, 200, 1600]]
+    assert fractions[0] == fractions[3]
+    assert fractions[1] == pytest.approx(fractions[0] / 10)
+    assert fractions[2] == 0 and fractions[4] == 1.3
+    assert api().solar_feature_contract()['measured_radiation_source'] == 'original_station_radiation'
+
+
 def test_native_data_are_immutable_and_corrupt_replay_cannot_reseal_measurements():
     record=snapshot();g=geometry(record);data=build(record);value=data.to_dict()
     value['samples'][0]['air_f']=90

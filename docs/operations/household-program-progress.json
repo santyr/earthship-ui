@@ -4660,6 +4660,65 @@
           ]
         }
       }
+    },
+    "astro_a08_irradiance_contract_acceptance": {
+      "status": "offline_source_contracts_and_edge_cases_verified_live_native_serving_pending",
+      "recorded_at": "2026-10-13T22:11:48.914704+00:00",
+      "source_sha256s": {
+        "openhab/scripts/native_thermal_inputs.py": "f44600ab649b5867df2f8fc700a8426285a42de690d5622bc996a23e274ad716",
+        "openhab/scripts/native_thermal_model.py": "f92fa799d0a5fc83679e3fbf2f4f6f3eb1cddeb8b631cdc4bee547b9ba465777",
+        "openhab/scripts/forecast_intel.py": "c52016bfe65ba23198a6e290cd7c3793e3031f5283428d6ecf1a7442c7718328",
+        "openhab/file-config/automation/js/sky-condition-calculator.js": "6921170816d665062ff934c7a3e1b371b6ed565d35c081ec89ff4338859b4320"
+      },
+      "native_dataset_adapter_matches_original_replay": true,
+      "checks": {
+        "sky_rule": {
+          "cases": 106,
+          "seconds": 2.92,
+          "unit": "run-u8887.scope",
+          "terminal_exit": 0
+        },
+        "native_thermal_inputs_and_model": {
+          "cases": 37,
+          "seconds": 7.29,
+          "unit": "run-u8888.scope",
+          "terminal_exit": 0,
+          "actual_shared_ml_lock": true,
+          "original_training_pressure_guard": true
+        }
+      },
+      "private_log_sha256s": {
+        "astro-a08-sky-qualification.log": "5c602acfcf881e6a2d247e1cbeeaa405f97fbb87c4bf9c636a73bab1f4024605",
+        "astro-a08-thermal-qualification.log": "e67a22305534ba73833a258ed0e6a05726fb64317bf3cce61591f21af979d5e1"
+      },
+      "acceptance": {
+        "low_sun": "Thermal positive elevations through3degrees preserve1050*sin(elevation)^1.15;0degree denominator returns0. Sky reference<=20W/m2 staysTWILIGHT without division. Audit records the distinct Astro3degree cutoff.",
+        "missing_station": "Daylight missing/invalid/interpolated radiation refuses qualified thermal endpoints; missing sky radiation and station age remainSTALE. Missing thermal radiation is inferred only at pinned native night with explicit provenance.",
+        "stale_station": "Sky station age181seconds refuses the ratio; freshDEGRADED health remains accepted using independentWH65B age.",
+        "bounded_fraction": "Thermal fractions remain0..1.3; sky ratio is a separate classifier and may exceed1 without changing thermal normalization.",
+        "cloud_transients": "At unchangedgeometry/reference,200->20->0->200 measuredW/m2 changes thermal fraction and recovers exactly; sky measurements independently yieldCLEAR/OVERCAST/PARTLY_CLOUDY classifications.",
+        "refit": "Existing proofs.native_installed_shade_model_fit retains actual native development fit and paired fixed-cohort predictions. No new fit was run. Training-cohort comparisons do not establish production accuracy improvement.",
+        "lineage": "Exact unchanged native dataset adapter matches original replay source. Station measurement/provenance, calculated geometry, forecast shortwave and qualified nativePV day evidence/coverage retain separate contracts."
+      },
+      "retained_proofs": [
+        "proofs.native_installed_shade_dataset",
+        "proofs.native_installed_shade_model_fit"
+      ],
+      "limits": {
+        "cpu_percent": 20,
+        "memory_bytes": 268435456,
+        "swap_bytes": 0,
+        "tasks": 24,
+        "numerical_threads": 1,
+        "nice": 15,
+        "io_weight": 10
+      },
+      "product_sources_changed": false,
+      "production_model_changed": false,
+      "live_writes": false,
+      "live_native_serving_qualification_complete": false,
+      "production_accuracy_improvement_proven": false,
+      "full_program_complete": false
     }
   },
   "astro_efficiency_audit": {
@@ -4737,9 +4796,10 @@
         "id": "A08",
         "requirement": "Keep irradiance and sky inference as separate models",
         "complete": false,
-        "status": "pending",
+        "status": "offline_source_contracts_and_edge_cases_verified_live_native_serving_pending",
         "task": "reuse Astro position first. Treat adoption of native radiation as a separate model experiment with comparison/refitting. Keep actual station radiation, forecast shortwave radiation, PV observations and evidence coverage as independent source contracts.",
-        "acceptance": "low sun, missing/stale station data, zero denominator, bounded fractions, cloud transients, model refit and measured-versus-calculated lineage."
+        "acceptance": "low sun, missing/stale station data, zero denominator, bounded fractions, cloud transients, model refit and measured-versus-calculated lineage.",
+        "evidence": "proofs.astro_a08_irradiance_contract_acceptance"
       },
       {
         "id": "A09",
