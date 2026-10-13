@@ -2624,12 +2624,50 @@
       "protected_original_sources": 72,
       "native_fitted_and_observer_sources": 11,
       "all_72_and_11_source_hashes_unchanged": true,
-      "actual_staged_household_native_adapter_qualification_pending": true,
+      "actual_staged_household_native_adapter_qualification_pending": false,
       "native_live_cycle_delivery_compatibility_pending": true,
       "native_issuer_monitor_and_coherent_selection_pending": true,
       "production_model_changed": false,
       "automatic_actuation": false,
-      "full_program_complete": false
+      "full_program_complete": false,
+      "source_revision": "a62a9eeef528437dc71a64337a11513169c1c026",
+      "actual_sealed_stage_qualification": {
+        "artifact_build_revision": "34b707df128bee7e11ee9ce4045d48ea81fdad8d",
+        "artifact_sha256": "ffe998ea1dc328bdf74fb1f92f7837ac31f0af31442aca5c001bb4d2f85a1bf7",
+        "automatic_actuation": false,
+        "code_revision": "a62a9eeef528437dc71a64337a11513169c1c026",
+        "current_native_capture_projected": false,
+        "deployment_sha256": "8438a586f0cf4529e3bc1f35cc37b1ec7f3090a55f214173343d98171c270e1e",
+        "fit_executed": false,
+        "forecast_module_loaded": true,
+        "live_units_changed": false,
+        "live_writes": false,
+        "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "memory_peak_bytes": 121016320,
+        "native_household_adapter_exports_loaded": true,
+        "native_household_execution_bound_to_sealed_sources": true,
+        "native_sources": 11,
+        "original_candidate_readback_identical": true,
+        "production_interpreter": true,
+        "production_model_changed": false,
+        "protected_original_sources": 72,
+        "raw_score_replay_exports": [
+          "build_source_score",
+          "validate_source_score",
+          "persist_source_score",
+          "read_source_score",
+          "build_source_completion",
+          "validate_source_completion",
+          "persist_source_completion",
+          "read_source_completion",
+          "reconcile_source_report"
+        ],
+        "runtime_sha256": "bb640b821be72d13f1df1b58c5e474a7f4d7ac50fd3ecbe2be34f8e41a5bc18f",
+        "score_module_loaded": true,
+        "seconds": 11.009167633019388,
+        "source_count": 215,
+        "status": "sealed_staged_native_artifact_verified"
+      }
     }
   },
   "astro_efficiency_audit": {
@@ -2759,5 +2797,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-12T23:56:06-06:00"
+  "updated_at": "2026-10-13T00:02:42-06:00"
 }
