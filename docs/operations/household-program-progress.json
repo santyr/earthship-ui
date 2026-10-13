@@ -32,7 +32,7 @@
     {
       "phase": "3",
       "requirement": "Pure domain models with numerical parity",
-      "current_evidence": "Pure energy preserves72 production goldens; original24h thermal and weather forcing rederive exactly on one source/model snapshot clock. Weather integration has687 passing affected tests after the single review fix pass. A naturally delivered22:20:15UTC original and current committed-source capture pass pure/privateCLI replay. Energy is a new shadow projection from earlier retained parameters plus original current SoC, with input qualification not_assessed. Original bank/load/weather qualification and rolling energy trajectories remain incomplete; PR24 exact head passed all four hosted checks and merged ec4f9c2. Prepared energy/v2 now binds unchanged numerical capacity to retained original nominal configuration on v5; overall input qualification stays not_assessed. Pipeline/plan/v4 pure and fixture operational CLI replay pass within734 affected tests. Actual source and final review remain pending. Single final bank/load review found four Important gaps; one correction pass enforces original observation topology, optional inverter age, independent malformed configuration and common CLI deadline. All761 affected tests pass. Corrected committed c94124d source binds to the naturally delivered00:15:15UTC original with exact thermal/weather and pure/privateCLI replay. AC expired before model time and remains unavailable; nominal capacity is20.48kWh, calibrated usable energy remains unavailable. PR25 exact head passed all four hosted checks and merged f76e2cd. Original measured-weather point context now has31 pure tests with141 passing source/parser checks; snapshot/model/candidate/outcome integration and actual source acquisition remain pending. Measured-weather snapshot/v6 and model/shadow receipts/v5 now preserve original received lux, radiation proxy and cumulative rain-counter context. Thirteen integration cases prove distinct v5/v6 candidates, enclosing outcomes, private CLI and corrupt/type/expiry refusal;805 household/forecast cases pass in bounded serial groups, with110 unchanged weather-validator cases also verified. Actual source acquisition and final review remain pending; calibration/rain-rate/action qualification remains false. Native provisional candidate/v2 now independently rederives original dataset/geometry/support/loss/physical rollouts and reads identically from213 sealed sources with the production interpreter. Real runtime-bound fit5c0c45d and candidateee0e142 retain all72 protected originals and9 native sources; current production selection remains v1. Native as-issued forecast/capture/scoring integration and broader phase3 qualification remain incomplete.",
+      "current_evidence": "Pure energy preserves72 production goldens; original24h thermal and weather forcing rederive exactly on one source/model snapshot clock. Weather integration has687 passing affected tests after the single review fix pass. A naturally delivered22:20:15UTC original and current committed-source capture pass pure/privateCLI replay. Energy is a new shadow projection from earlier retained parameters plus original current SoC, with input qualification not_assessed. Original bank/load/weather qualification and rolling energy trajectories remain incomplete; PR24 exact head passed all four hosted checks and merged ec4f9c2. Prepared energy/v2 now binds unchanged numerical capacity to retained original nominal configuration on v5; overall input qualification stays not_assessed. Pipeline/plan/v4 pure and fixture operational CLI replay pass within734 affected tests. Actual source and final review remain pending. Single final bank/load review found four Important gaps; one correction pass enforces original observation topology, optional inverter age, independent malformed configuration and common CLI deadline. All761 affected tests pass. Corrected committed c94124d source binds to the naturally delivered00:15:15UTC original with exact thermal/weather and pure/privateCLI replay. AC expired before model time and remains unavailable; nominal capacity is20.48kWh, calibrated usable energy remains unavailable. PR25 exact head passed all four hosted checks and merged f76e2cd. Original measured-weather point context now has31 pure tests with141 passing source/parser checks; snapshot/model/candidate/outcome integration and actual source acquisition remain pending. Measured-weather snapshot/v6 and model/shadow receipts/v5 now preserve original received lux, radiation proxy and cumulative rain-counter context. Thirteen integration cases prove distinct v5/v6 candidates, enclosing outcomes, private CLI and corrupt/type/expiry refusal;805 household/forecast cases pass in bounded serial groups, with110 unchanged weather-validator cases also verified. Actual source acquisition and final review remain pending; calibration/rain-rate/action qualification remains false. Native provisional candidate/v2 now independently rederives original dataset/geometry/support/loss/physical rollouts and reads identically from213 sealed sources with the production interpreter. Real runtime-bound fit5c0c45d and candidateee0e142 retain all72 protected originals and9 native sources; current production selection remains v1. Native as-issued forecast/capture/scoring integration and broader phase3 qualification remain incomplete. Native as-issued origin/forecast/publication v2 pure adapter now retains exact future geometry and original compressed temperature queries, independently rederives native hourly predictions, and preserves November vent defaults. One independent review found two Important issues;13 RED regressions verified lossless clocks and caller snapshot freezing. Corrected09c485c passes202 affected cases in two capped serial batches. Actual source/latency, current wider runtime, scorer/UI/household/producer integration and coherent selection remain pending.",
       "complete": false
     },
     {
@@ -2034,6 +2034,59 @@
       "native_live_producer_pending": true,
       "native_outcome_scoring_pending": true,
       "production_accuracy_improvement_proven": false
+    },
+    "native_as_issued_forecast_capture": {
+      "status": "pure_capture_replay_implemented_review_corrections_verified_actual_qualification_pending",
+      "source_revision": "09c485c826093c6f7dfe14ff441801891077de67",
+      "origin_schema": "earthship-provisional-thermal-origin/v2",
+      "numeric_schema": "earthship-provisional-thermal-forecast/v2",
+      "publication_schema": "earthship-provisional-thermal-publication/v2",
+      "publication_version": 9,
+      "original_temperature_queries_independently_replayed": true,
+      "independent_first_hour_scalar_recurrence_verified": true,
+      "original_native_fitted_calculation_contract_required": true,
+      "complete_future_geometry_and_preissue_availability_required": true,
+      "explicit_external_candidate_runtime_geometry_and_capture_pins": true,
+      "lossless_issue_available_published_clocks": true,
+      "caller_snapshot_frozen_before_callbacks": true,
+      "original_november_no_vent_default_and_operator_override_preserved": true,
+      "affected_cases_passed": 202,
+      "serial_batches": [
+        {
+          "cases": 46,
+          "seconds": 53.3
+        },
+        {
+          "cases": 156,
+          "seconds": 18.61
+        }
+      ],
+      "review": {
+        "critical": 0,
+        "important": 2,
+        "minor": 0,
+        "reviewed_revision": "91a21d2f7109d3527f3998cef442e9720aec1dfe",
+        "correction_passes": 1,
+        "unresolved_important": 0,
+        "regressions_failed_before_fix": 13,
+        "regressions_passed_after_fix": 13,
+        "regression_seconds": 16.9,
+        "findings": [
+          "unsupported timestamp precision silently truncated",
+          "caller mutation after capture identity check could escape replay"
+        ]
+      },
+      "host_pressure_refusals_retained": true,
+      "pressure_guards_relaxed": false,
+      "protected_original_sources": 72,
+      "original_fitted_sources_changed": false,
+      "actual_source_and_latency_qualification_pending": true,
+      "current_native_runtime_and_stage_qualification_pending": true,
+      "native_score_ui_household_producer_integration_pending": true,
+      "production_model_changed": false,
+      "production_accuracy_improvement_proven": false,
+      "automatic_actuation": false,
+      "full_program_complete": false
     }
   },
   "astro_efficiency_audit": {

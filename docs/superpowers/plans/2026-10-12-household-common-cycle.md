@@ -146,3 +146,14 @@ Native as-issued forecast task (inline execution within approved A07 migration)
 - Native outcome-score migration, UI schema handling, producer scheduling,
   household capture compatibility and coherent model selection remain subsequent
   required integration tasks. No native producer is selected by this pure task.
+
+Native capture implementation91a21d2 independent review:0 Critical,2 Important,
+0 Minor. One correction pass09c485c:13 actual RED cases (21.69s) then13 GREEN
+(16.90s) enforce lossless issue/availability/publication clocks and caller-independent
+capture/runtime snapshots before any callbacks. Full corrected affected suite
+202 cases passed in two serial groups46/53.30s and156/18.61s. Original72 source
+hashes remain unchanged; interval host-pressure refusals were respected, not
+relaxed. Preliminary runtime15cea696 for uncorrected91 source is retained only
+as private diagnostic state and must not qualify corrected source. Real source,
+latency/current wider runtime/stage readback, native scorer/UI/household/producer
+integration and coherent selection remain required; no live model/unit changes.
