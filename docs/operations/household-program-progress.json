@@ -3402,6 +3402,55 @@
       "guard_limits_changed": false,
       "live_writes": false,
       "next_action": "Profile guarded candidate/geometry preparation under unchanged caps and deadlines before optimizing."
+    },
+    "native_geometry_profile_attempt": {
+      "handle": 84481,
+      "status": "strict_preflight_refused_before_profile_started",
+      "reason": "native inference host pressure or memory reserve unavailable: interval memory pressure exceeded",
+      "elapsed_seconds": 2.1981012070318684,
+      "pressure_at_refusal": {
+        "at": 522903.991563595,
+        "averages": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "counters": {
+          "oom_kill": 4,
+          "pswpin": 1066307,
+          "pswpout": 3510493
+        },
+        "delta": 8771,
+        "key": "some",
+        "limit": 0.5,
+        "now": 522904.993292056,
+        "old_pressure": {
+          "full": 24193061,
+          "some": 25571111
+        },
+        "pressure": {
+          "full": 24201788,
+          "some": 25579882
+        },
+        "swapped_in": 2911
+      },
+      "private_evidence": "native-geometry-profile-6c7e20c-20261013T174550Z",
+      "numerical_geometry_profile_collected": false,
+      "guard_relaxed": false,
+      "live_writes": false
+    },
+    "wifi_ui_binding_20261013": {
+      "status": "verified_existing_all_interface_listener_covers_wifi",
+      "address": "192.168.1.217",
+      "interface": "wlo1",
+      "port": 5190,
+      "listener": "0.0.0.0:5190",
+      "ui_http_status": 200,
+      "household_endpoint_http_status": 200,
+      "openhab_daylight_proxy_http_status": 200,
+      "service_active": true,
+      "service_restarted": false,
+      "configuration_changed": false
     }
   },
   "astro_efficiency_audit": {
@@ -3531,5 +3580,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T17:43:55.807329+00:00"
+  "updated_at": "2026-10-13T17:54:58.953718+00:00"
 }
