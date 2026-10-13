@@ -2540,6 +2540,96 @@
         "production_model_changed": false,
         "automatic_actuation": false
       }
+    },
+    "native_household_model_weather_pipeline": {
+      "status": "native_prepared_model_weather_pipeline_and_fixture_cli_implemented_verified_operational_pending",
+      "prepared_thermal_schema": "earthship-household-prepared-thermal/v2",
+      "prepared_weather_schema": "earthship-household-prepared-weather/v2",
+      "thermal_projection_schema": "earthship-household-thermal-projection/v2",
+      "weather_projection_schema": "earthship-household-weather-projection/v2",
+      "external_native_artifact_capture_and_runtime_pins_required": true,
+      "complete_original_hourly_native_forecast_rederived_exactly": true,
+      "native_geometry_rule_and_source_root_preserved": true,
+      "native_household_execution_manifest_closed": true,
+      "native_weather_matches_original_runtime_coefficients_forcing_geometry_and_sensors": true,
+      "same_issue_source_model_weather_pipeline_replays": true,
+      "native_private_cli_fixture_replay_and_current_runtime_drift_refusal": true,
+      "native_fixture_runtime_discovery_replaced_with_declared_test_runtime": true,
+      "genuine_current_native_household_source_qualification_pending": true,
+      "frozen_restore_and_projection_file_and_sql_io_forbidden_verified": true,
+      "original_v1_paths_preserved": true,
+      "caller_inputs_frozen_before_callbacks": true,
+      "native_cases_passed": 21,
+      "legacy_cases_passed": 237,
+      "total_affected_cases_passed": 258,
+      "native_seconds": 66.79,
+      "legacy_groups": [
+        {
+          "cases": 80,
+          "seconds": 13.71
+        },
+        {
+          "cases": 7,
+          "seconds": 12.91
+        },
+        {
+          "cases": 2,
+          "seconds": 6.69
+        },
+        {
+          "cases": 6,
+          "seconds": 14.99
+        },
+        {
+          "cases": 5,
+          "seconds": 13.9
+        },
+        {
+          "cases": 4,
+          "seconds": 10.19
+        },
+        {
+          "cases": 3,
+          "seconds": 8.9
+        },
+        {
+          "cases": 115,
+          "seconds": 37.01
+        },
+        {
+          "cases": 5,
+          "seconds": 22.99
+        },
+        {
+          "cases": 6,
+          "seconds": 34.11
+        },
+        {
+          "cases": 1,
+          "seconds": 21.89
+        },
+        {
+          "cases": 3,
+          "seconds": 14.7
+        }
+      ],
+      "representative_missing_projection_api_red_cases": 2,
+      "representative_missing_weather_api_red_cases": 2,
+      "private_cli_runtime_dispatch_red_cases": 1,
+      "closed_source_manifest_red_cases": 2,
+      "traced_shorter_legacy_fixture_cohorts_used": true,
+      "pressure_and_swap_refusals_respected": true,
+      "aborted_jobs_counted_as_passes": false,
+      "pressure_guards_relaxed": false,
+      "protected_original_sources": 72,
+      "native_fitted_and_observer_sources": 11,
+      "all_72_and_11_source_hashes_unchanged": true,
+      "actual_staged_household_native_adapter_qualification_pending": true,
+      "native_live_cycle_delivery_compatibility_pending": true,
+      "native_issuer_monitor_and_coherent_selection_pending": true,
+      "production_model_changed": false,
+      "automatic_actuation": false,
+      "full_program_complete": false
     }
   },
   "astro_efficiency_audit": {
@@ -2669,5 +2759,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-12T22:30:04-06:00"
+  "updated_at": "2026-10-12T23:56:06-06:00"
 }

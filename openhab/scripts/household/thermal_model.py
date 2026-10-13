@@ -5,6 +5,7 @@ original files. Projection never rereads files, SQL or mutable OpenHAB state.
 The preserved provisional forecast grants no action-effect or release authority.
 """
 from dataclasses import dataclass,asdict
+from copy import deepcopy
 from datetime import datetime
 from hashlib import sha256
 from .codec import canonical,loads,identity
@@ -14,6 +15,8 @@ from thermal_model.installed_shade_dynamics import InstalledShadeDynamics,Instal
 
 FIELDS={'schema','original_capture_sha256','artifact_sha256','runtime_sha256','issue','initial','actions',
         'forcings','horizon_hours','coefficients','snapshot','executing_runtime','prepared_sha256'}
+NATIVE_FIELDS=FIELDS|{'geometry','geometry_series_sha256','model_rule'}
+EXECUTION_SOURCES=('household/__init__.py','household/thermal_model.py','household/codec.py','household/evidence.py','household/snapshot.py')
 ROLES={'air':'air_temperature','mass':'mass_temperature','outdoor':'outdoor_temperature'}
 
 
@@ -27,7 +30,12 @@ class PreparedProjection:
     def __post_init__(self):
         if not isinstance(self.content,bytes) or len(self.content)>262144:raise ValueError('bounded frozen thermal inputs required')
         value=loads(self.content)
-        if set(value)!=FIELDS or value['schema']!='earthship-household-prepared-thermal/v1':raise ValueError('closed prepared thermal context required')
+        if not isinstance(value,dict):raise ValueError('closed prepared thermal object required')
+        native=value.get('schema')=='earthship-household-prepared-thermal/v2'
+        if (set(value)!=(NATIVE_FIELDS if native else FIELDS) or
+                value['schema'] not in ('earthship-household-prepared-thermal/v1','earthship-household-prepared-thermal/v2')):
+            raise ValueError('closed prepared thermal context required')
+        if native:_native_prepared(value)
         if identity({key:item for key,item in value.items() if key!='prepared_sha256'})!=value['prepared_sha256']:
             raise ValueError('prepared thermal context changed')
         for key in ('original_capture_sha256','artifact_sha256','runtime_sha256'):digest(value[key])
@@ -38,7 +46,7 @@ class PreparedProjection:
 def _execution_runtime(root):
     from thermal_model.provisional_live import RUNTIME_PATHS
     from thermal_model.origin_capture import build_runtime_binding,_source_bytes
-    paths=('household/__init__.py','household/thermal_model.py','household/codec.py','household/evidence.py','household/snapshot.py')
+    paths=EXECUTION_SOURCES
     manifest={name:sha256(_source_bytes(root/name,maximum=262144)).hexdigest() for name in paths}
     thermal=build_runtime_binding(root,sorted(RUNTIME_PATHS))
     for name,expected in manifest.items():
@@ -83,7 +91,9 @@ def prepare_projection(capture,*,code_revision):
 def project(prepared):
     """Pure deterministic math; original qualification happened before freezing."""
     if not isinstance(prepared,PreparedProjection):raise ValueError('frozen original thermal context required')
-    value=prepared.to_dict();initial=value['initial']
+    value=prepared.to_dict()
+    if value['schema']=='earthship-household-prepared-thermal/v2':return _project_native(value)
+    initial=value['initial']
     forcings=tuple(InstalledShadeForcing(**{**row,'at':_at(row['at'])}) for row in value['forcings'])
     model=InstalledShadeDynamics(tuple(value['coefficients']))
     rolled=model.rollout(origin_at=_at(value['issue']),air_f=initial['air'],mass_f=initial['mass'],forcings=forcings)
@@ -97,3 +107,97 @@ def project(prepared):
         output=output,executing_runtime_sha256=identity(value['executing_runtime']),action_effects_qualified=False,automatic_actuation=False)
     result['projection_sha256']=identity(result)
     return result
+
+
+def _geometry(value):
+    from astro_geometry_series import replay_series
+    from astro_geometry import _instant
+    packet=value['geometry']
+    geometry=replay_series(canonical(packet),request=packet['request'],expected_series_sha256=value['geometry_series_sha256'],expected_native_runtime=packet['native_runtime'])
+    if geometry.descriptor()['available_at'] and _instant(geometry.descriptor()['available_at'])>_instant(value['issue']):
+        raise ValueError('native prepared geometry unavailable at issue')
+    if packet['request']['instants']!=[row['at'] for row in value['forcings']]:
+        raise ValueError('native prepared geometry differs from forcing grid')
+    return geometry
+
+
+def _native_prepared(value):
+    from native_thermal_model import RULE
+    from native_thermal_artifact import validate_native_runtime,digest as native_digest
+    if value['model_rule']!=RULE:raise ValueError('native prepared model rule required')
+    runtime=value['executing_runtime']
+    if (not isinstance(runtime,dict) or set(runtime)!={'schema','thermal_runtime','household_source_manifest'} or
+            runtime['schema']!='earthship-household-model-runtime/v2'):
+        raise ValueError('native prepared execution runtime required')
+    sources=runtime['household_source_manifest']
+    if not isinstance(sources,dict) or set(sources)!=set(EXECUTION_SOURCES):raise ValueError('complete native household source closure required')
+    for sha in sources.values():digest(sha)
+    validated=validate_native_runtime(runtime['thermal_runtime'])
+    if native_digest(validated)!=value['runtime_sha256']:raise ValueError('native prepared runtime identity differs')
+    _geometry(value)
+
+
+def _native_execution_runtime(root,runtime,guard):
+    from native_thermal_artifact import current_native_runtime,validate_native_runtime
+    from thermal_model.origin_capture import _source_bytes
+    expected=validate_native_runtime(runtime);guard()
+    if canonical(current_native_runtime(guard=guard))!=canonical(expected):raise ValueError('native executing runtime differs from selected model')
+    paths=EXECUTION_SOURCES
+    manifest={name:sha256(_source_bytes(root/name,maximum=262144)).hexdigest() for name in paths}
+    for name,sha in manifest.items():
+        guard()
+        if sha256(_source_bytes(root/name,maximum=262144)).hexdigest()!=sha:raise ValueError('native household source changed during preparation')
+    if canonical(current_native_runtime(guard=guard))!=canonical(expected):raise ValueError('native executing runtime changed during preparation')
+    return dict(schema='earthship-household-model-runtime/v2',thermal_runtime=expected,household_source_manifest=manifest)
+
+
+def prepare_native_projection(capture,*,code_revision,runtime,expected_artifact_sha256,expected_capture_sha256,check_budget=lambda:None):
+    from pathlib import Path
+    from astro_geometry import _instant
+    from native_thermal_forecast import validate_capture
+    from thermal_model.installed_shade_origin import _origin_actions,_forecast_forcing
+    from thermal_model.origin_capture import _temperatures
+    capture,runtime=map(deepcopy,(capture,runtime));root=Path(__file__).resolve().parents[1]
+    execution=_native_execution_runtime(root,runtime,check_budget)
+    original=validate_capture(capture,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
+        expected_capture_sha256=expected_capture_sha256,check_budget=check_budget)
+    issue,published,available=map(_instant,(original['issued_at'],original['published_at'],original['inputs_available_at']))
+    inputs=original['inputs'];candidate=original['candidate']
+    _,initial=_temperatures(inputs['origin_temperatures'],inputs['current'],issued_at=issue,published_at=published,version=2)
+    actions=_origin_actions(inputs['action_snapshot'],issue);forcings=_forecast_forcing(inputs['forecast'],issue,available,actions)
+    observations=[]
+    for role,name in ROLES.items():
+        source=inputs['origin_temperatures']['roles'][role];receipt=source['grid'][-1][1]
+        ref=EvidenceRef(name,'Weather_Temperature_Evidence_JSON:'+source['identity']['stream'],receipt['snapshotSha256'],
+            receipt['streamEpoch'],receipt['sensorEpoch'],None,_instant(receipt['receivedAt']),_instant(receipt['storedAt']),
+            _instant(receipt['validUntil']),issue,'qualified',None,(original['capture_sha256'],))
+        observations.append(Observation(ref,receipt['temperatureF'],'degF'))
+    policy=dict(requirements={'thermal_current':list(ROLES.values())},max_age_seconds={role:120 for role in ROLES.values()},max_skew_seconds=120)
+    snapshot=build_snapshot(observations,as_of=issue,created_at=published,code_revision=code_revision,config_revision=identity(policy),**policy)
+    value=dict(schema='earthship-household-prepared-thermal/v2',original_capture_sha256=original['capture_sha256'],
+        artifact_sha256=candidate['artifact_sha256'],runtime_sha256=candidate['runtime_sha256'],issue=issue.isoformat(),initial=initial,
+        actions=actions,forcings=[asdict(row) for row in forcings],horizon_hours=inputs['forecast']['horizon_hours'],
+        coefficients=list(candidate['fit']['coefficients']),snapshot=snapshot.to_dict(),executing_runtime=execution,
+        geometry=original['geometry'],geometry_series_sha256=original['geometry_series_sha256'],model_rule=original['output']['model_rule'])
+    value['prepared_sha256']=identity(value);prepared=PreparedProjection(canonical(value))
+    if canonical(project(prepared)['output'])!=canonical(original['output']):raise ValueError('native frozen projection differs from original forecast')
+    if canonical(_native_execution_runtime(root,runtime,check_budget))!=canonical(execution):raise ValueError('native executing source closure changed')
+    check_budget();return prepared
+
+
+def _project_native(value):
+    from native_thermal_model import NativeInstalledShadeDynamics
+    from astro_geometry import _instant
+    geometry=_geometry(value);initial=value['initial']
+    forcings=tuple(InstalledShadeForcing(**{**row,'at':_instant(row['at'])}) for row in value['forcings'])
+    model=NativeInstalledShadeDynamics(tuple(value['coefficients']),geometry=geometry,expected_series_sha256=value['geometry_series_sha256'])
+    rolled=model.rollout(origin_at=_instant(value['issue']),air_f=initial['air'],mass_f=initial['mass'],forcings=forcings)
+    trajectory=[dict(at=row.at.isoformat(),air_f=state[0],mass_f=state[1]) for i,(row,state) in enumerate(zip(forcings,rolled.states),1) if i%12==0]
+    output=dict(schema='earthship-provisional-thermal-forecast/v2',status='provisional',generated_at=value['issue'],
+        artifact_sha256=value['artifact_sha256'],runtime_sha256=value['runtime_sha256'],model_rule=value['model_rule'],geometry_series_sha256=value['geometry_series_sha256'],
+        horizon_hours=value['horizon_hours'],initial=dict(air_f=initial['air'],mass_f=initial['mass'],outdoor_f=initial['outdoor']),origin_actions=value['actions'],
+        trajectory=trajectory,confidence='low',prediction_intervals=None,advice=[],graduated=False,automatic_actuation=False)
+    result=dict(schema='earthship-household-thermal-projection/v2',snapshot=value['snapshot'],prepared_sha256=value['prepared_sha256'],
+        original_capture_sha256=value['original_capture_sha256'],initial_mass_semantics='existing_latent_observer_state',output=output,
+        executing_runtime_sha256=identity(value['executing_runtime']),action_effects_qualified=False,automatic_actuation=False)
+    result['projection_sha256']=identity(result);return result

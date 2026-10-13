@@ -341,3 +341,57 @@ PROVISIONAL/low/withheld/1point; this is not proof of real nativeforecast issuan
 All numerical/UIbrowserhandles terminal; selectedML v1 andunits unchanged. Actual
 native as-issued futuregeometry/producer/monitor andhousehold source/model/cycle
 compatibility remainrequired. Publicationapproval remains pending; no GitHubwrite.
+
+Native household thermal projection task
+- Add prepare_native_projection(capture, *, code_revision, runtime,
+  expected_artifact_sha256, expected_capture_sha256, check_budget) to existing
+  household/thermal_model.py. Snapshot caller inputs before callbacks, qualify
+  current native execution runtime and replay the externally pinned native capture.
+- PreparedProjection accepts closed prepared-thermal/v2 only with native model
+  rule, complete immutable geometry packet/root and native execution runtime/v2.
+  Preserve v1 factory/type/output. Snapshot temperature evidence and operator/
+  forcing context use original policies and identical source observations.
+- project dispatches native prepared v2 to NativeInstalledShadeDynamics and pure
+  geometry packet replay; result projection/v2 preserves original forecast/v2
+  output exactly, unknown action effects, low confidence/no action authority.
+- Tests first: complete24h output parity/typed descriptor; exact snapshot clocks;
+  pure project/restore with all filesystem/SQL reads forbidden; wrong native
+  artifact/capture/runtime/geometry and resealed original output; caller mutation;
+  v1 cannot consume native context; closed fields and immutable returned values.
+- Native weather/source/model/pipeline/cycle support follows this required step;
+  no model selection or physical authority is changed by projection preparation.
+
+Native household weather/context integration task
+- PreparedWeatherContext accepts closed prepared-weather/v2 only paired with
+  prepared-thermal/v2 and original native origin/v2. Pure restore independently
+  matches captured candidate/runtime/coefficients, source observations, actions,
+  forcing, native geometry packet/root/model rule and exact numerical output.
+- Add prepare_native_weather_context with separate native capture validation and
+  explicit external runtime/artifact/capture roots; prepare_native_cycle_contexts
+  freezes caller capture and prepares both contexts through one native model
+  validation boundary. Preserve original v1 APIs and closed schemas.
+- project_weather emits projection/v2 with native geometry/root lineage. Current
+  measured weather qualification remains not_assessed; computed forecast geometry
+  does not become a measured radiation/humidity/wind observation or action evidence.
+- TDD native source/model/shared-snapshot/pipeline/private CLI parity; pure restore
+  prohibits file/SQL access, resealed original geometry/runtime/model/forcing/source
+  tamper and mixed v1/v2 refusal. Run original/native context/pipeline regressions
+  in bounded serial cohorts after all code is final; protect72/core9 unchanged.
+
+Native household prepared thermal/weather/projection v2 andnative CLI execution
+runtime dispatch implemented. Originalnative capture24h output reproduced exactly;
+geometry/rule/root, extern artifact/capture/runtime pins,5sourcehousehold manifest,
+source sensors/actions/forcing/model retained. Frozenrestore/model/pipeline forbids
+file/SQL reads. NativeprivateCLI mathematically declared runtime fixture replay
+passes andcurrentruntime driftrefuses; genuinecurrent-source qualificationpending.
+Finalnative21GREEN98891/66.79s. Alllegacy237passed: models80/13.71,snapshot7/12.91,
+weather20in2/6.69+6/14.99+5/13.90+4/10.19+3/8.90,pipelines115/37.01,weatherwrapper
+15in5/22.99+6/34.11+1/21.89+3/14.70. Total258uniqueaffectedcasespass. TDD RED
+projection2/5.80,weather2/6.21,CLI1/10.92,sourceclosure2/7.80 beforeimplementation.
+Original72/native11 sourcehashes unchanged. Legacypressure/swap refusals respected,
+no resultsfromabortedscopes claimed. Traced2/6/5groups peak133615616/167673856/
+160600064 bytes, helpinglimit fixturefootprint; smallergroupsstilloccasionally
+withheld byglobaltransientpressure. Allprocesshandlesnowterminal. Actualsealed
+stage/currentnative source andproducer/delivery/monitor/householdcoherence still
+required. No live model/unit/actuator changes or GitHubwrites; wholePR3 remains
+active andall13canonicalrequirements remainincomplete. Wholebranchreviewpending.
