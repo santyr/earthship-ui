@@ -624,3 +624,33 @@ qualification claim. Combined scope peak108589056B, all memorymax/OOM counters0.
 Actual package integrity is established; current native capture/model/pipeline,
 full scoring latency and coherent selected family remain unqualified. Original
 production units/selected model/actuator authority are unchanged.
+
+2026-10-13 coherent private native family drafts
+-----------------------------------------------
+Added household_native_family.prepare for explicit deployment/v2 stage plus
+closed private six-role library configuration. Verify installed library identity
+against retained fitted geometry, keep one external model/runtime/config/stage
+selection across preparer, forecast/observer and scorer, and write hash-bound
+owned private files with identical readback. This drafts files only; no unit
+installation, fitting, publication or model/device selection.
+
+Scheduling ruling: retain original forecast warm04/5:45UTC and issue00/5:15UTC.
+Draft preparer03/5:05UTC under original90s service bound. Move scorer draft to
+01/5:00UTC and02/5:00UTC under original60s cap, giving5s between the latest
+score hard bound and prep start, then10s between prep hard bound and forecast
+warm. With1s timer accuracy, the minimum margins remain4s/9s. The original four
+score slots include a reserved00slot and a03slot overlapping native prep;
+retaining them would force expected busy refusals rather than a coherent family.
+This future native scheduling adjustment is outside the unchanged fitted72 and
+native12 source closures; live timers remain unchanged. If wrong, native prep
+or outcome monitoring can lose a slot; actual full latency/runtime qualification
+is still mandatory before handoff.
+
+11247 observed missing-family-module RED before implementation;39174 passed17
+cases(4family+13native package) in9.70s. Library identity is injected in tests,
+so this is not actual installed-library qualification. Quiet native runtime retry
+12476 passed preflight then stopped atcandidate replay on original swap-read
+allowance:58pages/232KiB over0.10488s, about2.16MiB/s. Original guard unchanged;
+no OOM/memorymax events and103456768B peak. Numerical runtime remains unqualified.
+Actual library/draft files/unit syntax, current input/capture/full pipeline,
+scoring latency and coherent live selection/all13/A01-A11 proofs remain required.

@@ -3106,7 +3106,63 @@
         "handle": 83215,
         "reason": "unchanged TrainingHeadroom PSI average preflight refused before numerical replay",
         "private_diagnosis": "native-package-c9f54d2/private-runtime-diagnosis.json"
+      },
+      "quiet_runtime_retry": {
+        "artifact_sha256": "512a5d9105deaee8e90a669e4469f515efd20e299b4af7649877d3115d3c5d84",
+        "automatic_actuation": false,
+        "current_native_capture_projected": false,
+        "fit_executed": false,
+        "live_writes": false,
+        "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "memory_peak_bytes": 103456768,
+        "numerical_runtime_qualified": false,
+        "private_evidence_directory": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-12-household-common-cycle/native-runtime-probe-20261013T161221Z",
+        "production_model_changed": false,
+        "runtime_sha256": "cc182b83be6ab7e62431d542d1e0abfb4391ba0c3493136acc88036971ec0f81",
+        "seconds": 9.05226331698941,
+        "source_count": 217,
+        "stage": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-12-household-common-cycle/stage-c9f54d2-native",
+        "status": "actual_native_runtime_refused",
+        "worker_result": {
+          "exception_type": "ValueError",
+          "private_diagnostic_state_retained": true,
+          "status": "native_runtime_refused"
+        },
+        "worker_status": 1,
+        "handle": 12476,
+        "reason": "unchanged1MiB/s host swap-read allowance refused232KiB over0.10488s after quietpreflight",
+        "private_diagnosis": "native-runtime-probe-20261013T161221Z/private-diagnosis.json"
       }
+    },
+    "native_service_family_draft": {
+      "status": "implemented_private_family_draft_tests_passed_actual_library_draft_pending",
+      "base_commit": "464ef56",
+      "sources": [
+        "openhab/scripts/household_native_family.py"
+      ],
+      "tests": {
+        "RED_handle": 11247,
+        "GREEN_handle": 39174,
+        "passed": 17,
+        "seconds": 9.7,
+        "family_cases": 4,
+        "existing_native_packaging_cases": 13,
+        "scope": "local synthetic package plus injected library identity; no live units or model qualification"
+      },
+      "behavior": [
+        "One unchanged native stage/config/model/runtime selection across preparer, issuer/observer and scorer draft files.",
+        "Verify explicit installed six-role library identity against retained fitted geometry before drafting.",
+        "Preserve forecast warm slot04/5:45UTC and issue00/5:15UTC; prepare03/5:05UTC with90s service cap.",
+        "Draft score timer slots01/5:00UTC and02/5:00UTC under original60s service cap; avoid prep/scoring/publication overlap.",
+        "Owned private file hashes/readback and source/config drift checks; no installation, fitting, publication or physical commands."
+      ],
+      "qualification_limits": [
+        "Actual installed library identity and draft unit syntax still require verification.",
+        "Native numerical runtime/current-input/pipeline/scoring qualification and coherent owned live handoff remain incomplete."
+      ],
+      "live_units_changed": false,
+      "production_model_changed": false,
+      "automatic_actuation": false
     }
   },
   "astro_efficiency_audit": {
@@ -3236,5 +3292,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T16:09:51.272758+00:00"
+  "updated_at": "2026-10-13T16:26:42.234367+00:00"
 }
