@@ -203,3 +203,30 @@ forecast/data/geometry cases remain verified from the prior feature runs. Origin
 review pass. Source-bound raw outcome acquisition/completion/report reconciliation,
 11-source runtime/artifact/stage, monitor/UI/household/producer coherence and live
 selection remain required. No optimizer/live unit/model/actuator changes.
+
+Corrected scorer11 runtime qualification at8c70a73: actual candidate549a9db,
+runtime95e7a12, retained fit5c0c45d/core9/base72; original references and full
+before/after runtime identical. Build/read18.2908s/115286016B/zeroOOM. Sealed
+215-source deploymente05ec73 loads both native forecast and score modules under
+production interpreter; identical candidate/runtime readback10.5588s/119263232B,
+zeroOOM. No fit, live unit/model selection/writes/actions. Raw source-bound
+outcome replay, completion/report, producer/UI/household coherence remain required.
+
+Native raw-score replay task (inline, approved source-bound outcome migration)
+- Add cohesive build_source_score / validate_source_score / persist_source_score /
+  read_source_score APIs to native_thermal_score.py. Retain a private v1 source
+  record containing the native capture path, exact original delivery receipts,
+  cached query grid, original compressed query binding and rederived v2 pair.
+- Require external artifact/capture/source-record roots and runtime; re-read native
+  capture and original raw queries, validate all lossless clocks before legacy
+  selection, derive compare_v2 from captured historical targets. Missing query
+  coverage refuses; legitimate null selection remains missing history. Preserve
+  seven cycles, 31-day search, DST exclusions and original assessment clocks.
+- Replay full native score; refuse resealed pair/baseline/cached receipt changes,
+  missing/replaced originals, wrong pins and future assessment. Freeze input
+  before callbacks. Read back private bounded digest-bound records.
+- TDD genuine compressed temperature source packets, available/insufficient
+  comparator, missing coverage, forged cached temperature and resealed pair,
+  deleted originals, identity mismatch, caller mutation, precision and roundtrip.
+- Subsequent native completion/report reconciliation consumes this replay API;
+  this task does not select or deploy a native producer or grant action authority.

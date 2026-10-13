@@ -63,3 +63,22 @@ not treated as application failures; the real browser recorded no failed request
 These host-local LAN checks still do not establish accessibility from the
 reported household device. Its exact URL and browser symptom remain pending.
 No root cause for the reported offline appearance has been established.
+
+A repeat investigation at 21:31-21:32 America/Denver confirmed the UI service
+active/running with NRestarts=0 and a listener on 0.0.0.0:5190. Loopback,
+192.168.1.161 and ogsatoth returned HTTP 200 for the page; configuration and
+OpenHAB item snapshot also returned 200. An event-stream observation received
+actual ThingStatusInfoEvent updates and the upstream alive event. The last
+30 minutes of the UI service journal contained no entries. Host memory
+pressure averages were zero, with about 6.6 GiB available memory.
+
+The existing browser probe ran in run-u4128.scope with CPUQuota=20%,
+MemoryMax=256 MiB, MemorySwapMax=0, TasksMax=96 and a 55-second outer timeout.
+It exited successfully and rendered Home at the LAN address, reporting
+"openHAB connection: live", no Vite overlay, zero page exceptions and zero
+failed requests. Its second route sample still matched Home; that sample
+is not evidence of Earthship route rendering. The scope is now inactive.
+
+No service restart or product change was made. The reported offline symptom
+remains unreplicated from this host; the household device, exact URL and
+browser symptom were requested for further diagnosis.

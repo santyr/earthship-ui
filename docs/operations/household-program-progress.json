@@ -2211,12 +2211,58 @@
       "protected_original_sources": 72,
       "original_fitted_sources_changed": false,
       "actual_raw_outcome_provenance_and_completion_reconciliation_pending": true,
-      "eleven_source_runtime_artifact_stage_qualification_pending": true,
+      "eleven_source_runtime_artifact_stage_qualification_pending": false,
       "native_monitor_ui_household_producer_and_coherent_selection_pending": true,
       "production_model_changed": false,
       "production_accuracy_improvement_proven": false,
       "automatic_actuation": false,
-      "full_program_complete": false
+      "full_program_complete": false,
+      "actual_runtime_qualification": {
+        "artifact": {
+          "artifact_path": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-12-household-common-cycle/native-score-artifact-v2-corrected/549a9db4cbd45d19f9c4fde43326b594a35e9d943305b82224ff1249a3780f17.native-provisional-candidate-v2.json",
+          "artifact_sha256": "549a9db4cbd45d19f9c4fde43326b594a35e9d943305b82224ff1249a3780f17",
+          "code_revision": "8c70a734c96c48698fed0140de26f5735225365d",
+          "confidence": "low",
+          "dataset_sha256": "f2b7dcc96f34ab9810ae2c69af64e47b95704867ae02b3abe3adc996efe893ee",
+          "endpoint_count": 10,
+          "fit_evidence_sha256": "5c0c45d012e87890b103f8c2aa99f676d2770addf0c29f854a7ccd801931434e",
+          "geometry_series_sha256": "29a85097f6376320c859a78c0ac2a73eeddfd99067ddc478a173f0b3309034cc",
+          "graduated": false,
+          "identical_readback": true,
+          "independent_origin_dates": 3,
+          "live_writes": false,
+          "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+          "memory_peak_bytes": 115286016,
+          "production_model_changed": false,
+          "protected_original_sources": 72,
+          "runtime_before_after_identical": true,
+          "runtime_sha256": "95e7a12189d4b444f975a46db3989ef146193cdf8ec102763e3f56ebe26d8eb7",
+          "seconds": 18.290841193986125,
+          "status": "actual_native_artifact_roundtrip_verified"
+        },
+        "stage": {
+          "artifact_sha256": "549a9db4cbd45d19f9c4fde43326b594a35e9d943305b82224ff1249a3780f17",
+          "automatic_actuation": false,
+          "code_revision": "8c70a734c96c48698fed0140de26f5735225365d",
+          "deployment_sha256": "e05ec73428da066876a8402b79ff56c0bc1472593cdc05e6a04d15389e19ba4b",
+          "fit_executed": false,
+          "forecast_module_loaded": true,
+          "live_units_changed": false,
+          "live_writes": false,
+          "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+          "memory_peak_bytes": 119263232,
+          "native_sources": 11,
+          "original_candidate_readback_identical": true,
+          "production_interpreter": true,
+          "production_model_changed": false,
+          "protected_original_sources": 72,
+          "runtime_sha256": "95e7a12189d4b444f975a46db3989ef146193cdf8ec102763e3f56ebe26d8eb7",
+          "score_module_loaded": true,
+          "seconds": 10.558759074017871,
+          "source_count": 215,
+          "status": "sealed_staged_native_artifact_verified"
+        }
+      }
     }
   },
   "astro_efficiency_audit": {
@@ -2346,5 +2392,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-12T23:28:39.178942+00:00"
+  "updated_at": "2026-10-12T21:35:00-06:00"
 }
