@@ -83,6 +83,7 @@ user gateway
 user health
  topic read earthship/sensors/v1/service
 '''
+    acl=acl.replace('11111111-1111-4111-8111-111111111111',Registry.read(root/'registry.simulation.json').config['application_id'])
     private_write(private/'mqtt.acl',acl)
     private_write(private/'mosquitto_sub','-h 127.0.0.1\n-p 1883\n-u health\n-P '+credentials['health']+'\n')
     private_write(private/'mosquitto.conf','listener 1883\nallow_anonymous false\npassword_file /mosquitto/config/passwords\nacl_file /mosquitto/config/acl\npersistence true\npersistence_location /mosquitto/data/\nautosave_interval 5\nlog_dest stdout\nlog_type error\nlog_type warning\nmax_packet_size 1048576\n')

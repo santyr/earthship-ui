@@ -222,3 +222,15 @@ def test_initial_report_does_not_invent_a_physical_transition_time(tmp_path):
     sensor=engine.snapshot(NOW)['sensors'][0]
     assert sensor['last_transition_at'] is None
     assert sensor['last_observed_at']==NOW.isoformat()
+
+
+def test_configured_simulator_uses_selected_identities_application_and_profiles():
+    from services.lorawan.simulate import registry,events
+    cfg=registry();cfg['application_id']='44444444-4444-4444-8444-444444444444';cfg['devices']=cfg['devices'][:3]
+    for device,profile in zip(cfg['devices'],['dragino_lds02/v1','dragino_ds03a_lb/v1','milesight_ws301/v1']):
+        device['decoder']=profile
+    reg=Registry(cfg);engine=Engine(reg,Store.sqlite())
+    for event in events(NOW,registered=reg):engine.ingest(event['raw'],event['topic'],received_at=event['received_at'])
+    view=engine.snapshot(NOW+timedelta(seconds=2))
+    assert len(view['sensors'])==3
+    assert [s['current_state'] for s in view['sensors']]==['OPEN','CLOSED','OPEN']

@@ -144,6 +144,12 @@ quiet periods, packet gaps, late datalog, replacement and expiry. Container test
 supply genuine broker, ingestion and database outages. These are software tests,
 **not physical LoRaWAN or gateway qualification**.
 
+The Compose simulator reads `registry.simulation.json`; `--registry` also selects
+a validated simulation registry for the standalone CLI. Device identities, the
+application ID and documented LDS02, DS03A-LB or WS301 contact profiles come from
+that registry. Change the registry before private provisioning so MQTT ACLs and
+OpenHAB definitions agree. The simulator refuses a production registry.
+
 Test endpoints: MQTT127.0.0.1:18884; OpenHAB127.0.0.1:18084;
 ChirpStack127.0.0.1:18085. ChirpStack's default `admin/admin` exists only in this
 isolated instance. Production management password must be changed before exposure.

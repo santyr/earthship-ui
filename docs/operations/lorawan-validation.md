@@ -18,7 +18,7 @@ PR #29's household delivery changes remain independent.
 
 - **Frontend:**147 files,2238 tests passed (`npm test`). Existing frontend regression
   suite is included, with the route contract updated for the additive sensor page.
-- **Python:**79 passed,11 container tests skipped in the ordinary unit command. This
+- **Python:**80 passed,11 container tests skipped in the ordinary unit command. This
   includes new sensor contracts and existing household evidence/snapshot/replay tests.
   Existing household tests need `/home/sat/Solar_PV/analytics/src` on PYTHONPATH,
   as in the repository's existing CI dependency setup.

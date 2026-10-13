@@ -69,7 +69,8 @@ services:
     profiles: [simulation]
     volumes:
       - ../../.superpowers/lorawan-private/simulator.json:/run/private/simulator.json:ro
-    command: [python, -m, services.lorawan.simulate, --config, /run/private/simulator.json, --faults]
+      - ./registry.simulation.json:/run/registry.json:ro
+    command: [python, -m, services.lorawan.simulate, --config, /run/private/simulator.json, --registry, /run/registry.json, --faults]
     read_only: true
     tmpfs: [/tmp]
     cap_drop: [ALL]
