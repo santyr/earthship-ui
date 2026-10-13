@@ -33,3 +33,7 @@ verified delivery receipts (`household_cycle.complete_cycle` and
 be verified after shadow deployment. They remain full-program requirements;
 private calculations cannot stand in for production receipts. Source-backed
 admission and timely current geometry remain unfinished before activation.
+
+The subsequent bounded profile (handle17532) expired during candidate validation, before Java batching. It recorded4,684 preparation guard calls,61.337 seconds cumulative guard time in74.950 profiled seconds, including28.462 seconds in native inference checks and32.543 seconds in the additional resource preflight. Profiler overhead is included. The resource helper now reuses only parsed path objects, freshly checks every cgroup component, and reads each kernel value through an equivalent bounded ASCII reader.97 affected regressions passed. A controlled two-second preparer-guard comparison completed173 checks in2.079 seconds before and255 in2.001 after, approximately12.02→7.85 milliseconds per check. This comparison does not qualify whole-model or geometry latency.
+
+The helper revision updates native_live's explicit source pin. All72 fitted sources and nine REQUIRED native fitting sources remain unchanged; _fit_environment permits this OPTIONAL serving-source change against the retained original fit. A new independently validated serving artifact and source stage are required before selection. Existing artifacts and production selection remain unchanged.

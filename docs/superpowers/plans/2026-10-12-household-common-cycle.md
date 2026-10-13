@@ -783,3 +783,25 @@ keep the original schedules quiescent for reconciliation. A clean enablement
 failure restores old files / reload / schedules. No public CLI or live activation
 until source-backed readiness and shared-lock admission are integrated. Tests
 exercise real temporary file transactions with mocked timer manager boundaries.
+
+Native preparer resource-reader efficiency (2026-10-13)
+------------------------------------------------------
+The bounded geometry profile retained 4,684 preparation guard calls, consuming
+61.337 of 74.950 profiled seconds during candidate validation. Native inference
+checks contributed 28.462 seconds; the additional resource preflight contributed
+32.543 seconds. No Java batch completed in this profiled attempt. Profiler cost
+is included, so use the profile to locate work rather than claim live latency.
+Apply the approved parsed-path-only pattern to the resource helper's default
+cgroup discovery as well: read membership each call, reuse normalized Path
+objects only, and freshly lstat every component. Root aliases retain fresh
+resolution. Cache only cap-file path objects, never file contents or metadata.
+Use an equivalent bounded ASCII reader without rebuilding Path wrappers.
+Retain every current cap, scheduling, IO, thread, RAM and PSI check and all native
+swap/OOM checks and deadlines. RED/GREEN must cover repeated parsing, membership
+moves, root/leaf symlink replacement, root aliases, fresh changed cap values and
+bounded/non-ASCII reads. Changing this helper requires updating native_live's
+literal source pin and independently rebuilding its candidate serving binding.
+The fitted base and all nine REQUIRED native sources remain byte-identical:
+_fit_environment explicitly permits this OPTIONAL native_live revision to bind
+the retained original fit without fitting again. Verify this boundary and actual
+runtime before any selection. Then test real geometry latency under the same caps.

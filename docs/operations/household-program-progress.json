@@ -3750,6 +3750,56 @@
       "live_writes": false,
       "production_model_changed": false,
       "automatic_actuation": false
+    },
+    "native_preparer_resource_reader_optimization": {
+      "status": "implemented_regressions_and_controlled_guard_profile_pass_new_serving_binding_pending",
+      "source": "openhab/scripts/household_cycle_resources.py",
+      "tests": {
+        "RED_handle": 32833,
+        "failed": 2,
+        "already_passed": 1,
+        "GREEN_handle": 18033,
+        "passed": 97,
+        "seconds": 4.8
+      },
+      "geometry_profile": {
+        "handle": 17532,
+        "terminal_status": 1,
+        "seconds": 74.950157609,
+        "guard_calls": 4684,
+        "guard_cumulative_seconds": 61.336865106,
+        "candidate_read_cumulative_seconds": 73.099452572,
+        "completed_java_batches": 0,
+        "profiler_overhead_included": true
+      },
+      "controlled_guard_comparison": {
+        "before_handle": 92961,
+        "before_checks": 173,
+        "before_seconds": 2.0790360879618675,
+        "after_handle": 75846,
+        "after_checks": 255,
+        "after_seconds": 2.0005678460001945,
+        "before_ms_per_check": 12.017549641398078,
+        "after_ms_per_check": 7.845364101961548,
+        "same_cpu_memory_swap_task_io_limits": true,
+        "profiler_overhead_included": true,
+        "model_latency_qualified": false
+      },
+      "resource_source_sha256": "46c8b6704592d12fb3637dfc59d0c77978f286954c34101a485e51dc82a3a9ad",
+      "protected_fitted_sources_unchanged": 72,
+      "required_native_fitting_sources_unchanged": 9,
+      "changed_native_source": "OPTIONAL native_thermal_live.py resource helper literal pin",
+      "fitting_required": false,
+      "pending": [
+        "Independent original-fit candidate serving rebinding/readback",
+        "Fresh sealed stage/runtime qualification",
+        "Actual timely geometry and current native capture",
+        "Source-backed activation admission"
+      ],
+      "live_units_changed": false,
+      "live_writes": false,
+      "production_model_changed": false,
+      "automatic_actuation": false
     }
   },
   "astro_efficiency_audit": {

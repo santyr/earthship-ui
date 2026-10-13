@@ -3,7 +3,7 @@
 The idle-IO fallback reads this process's priority directly. It neither changes
 priority nor launches a child for each original-source access.
 """
-import ctypes,math,os
+import ctypes,math,os,stat
 from pathlib import Path,PurePosixPath
 from thermal_model.capture_guard import _small_text
 
@@ -21,28 +21,56 @@ def current_ioprio():
     return int(value)
 
 
+_parsed_leaf=None
+_cap_paths=None
+
+
 def _leaf():
+    global _parsed_leaf
     row=_small_text('/proc/self/cgroup')
-    if len(row.splitlines())!=1 or not row.startswith('0::/'):
-        raise ValueError('unified publication cgroup required')
-    path=PurePosixPath(row[3:]);root=Path('/sys/fs/cgroup').resolve()
-    if path.root!='/' or '..' in path.parts or str(path)!=row[3:]:
-        raise ValueError('normalized publication cgroup required')
-    leaf=root.joinpath(*path.parts[1:])
-    if leaf.resolve()!=leaf or not leaf.is_relative_to(root):raise ValueError('contained publication cgroup required')
+    parsed=_parsed_leaf
+    if parsed is None or parsed[0]!=row:
+        if len(row.splitlines())!=1 or not row.startswith('0::/'):
+            raise ValueError('unified publication cgroup required')
+        path=PurePosixPath(row[3:]);original_root=Path('/sys/fs/cgroup');root=original_root.resolve()
+        if path.root!='/' or '..' in path.parts or str(path)!=row[3:]:
+            raise ValueError('normalized publication cgroup required')
+        leaf=root.joinpath(*path.parts[1:])
+        if leaf.resolve()!=leaf or not leaf.is_relative_to(root):raise ValueError('contained publication cgroup required')
+        parsed=(row,leaf,tuple(reversed(leaf.parents))+(leaf,))
+        _parsed_leaf=parsed if original_root==root else None
+    _,leaf,components=parsed
+    for component in components:
+        if not stat.S_ISDIR(component.lstat().st_mode):
+            raise ValueError('publication cgroup path is no longer a real directory')
     return leaf
+
+
+def _resource_text(path):
+    # Read fresh bytes with the same bound/encoding as the fitted helper.
+    with open(path,'rb') as stream:data=stream.read(4097)
+    if len(data)>4096:raise ValueError('bounded resource metadata required')
+    return data.decode('ascii').strip()
+
+
+def _paths(leaf):
+    global _cap_paths
+    if _cap_paths is None or _cap_paths[0]!=leaf:
+        _cap_paths=(leaf,{name:leaf/name for name in ('cpu.max','memory.max','memory.swap.max','pids.max','io.weight')})
+    return _cap_paths[1]
 
 
 def publication_resource_preflight(*,leaf=None,meminfo=Path('/proc/meminfo'),pressure=Path('/proc/pressure/memory'),
         get_nice=lambda:os.getpriority(os.PRIO_PROCESS,0),get_ioprio=current_ioprio,environ=None):
     try:
         leaf=_leaf() if leaf is None else Path(leaf)
-        quota,period=map(int,_small_text(leaf/'cpu.max').split())
-        memory=int(_small_text(leaf/'memory.max'));swap=int(_small_text(leaf/'memory.swap.max'))
-        tasks=int(_small_text(leaf/'pids.max'))
+        paths=_paths(leaf)
+        quota,period=map(int,_resource_text(paths['cpu.max']).split())
+        memory=int(_resource_text(paths['memory.max']));swap=int(_resource_text(paths['memory.swap.max']))
+        tasks=int(_resource_text(paths['pids.max']))
         if not (0<quota and 0<period and quota*5<=period and 0<memory<=268435456 and swap==0 and 0<tasks<=24):
             raise ValueError('publication caps exceed approved limits')
-        try:weight=_small_text(leaf/'io.weight').splitlines()
+        try:weight=_resource_text(paths['io.weight']).splitlines()
         except FileNotFoundError:
             priority=get_ioprio()
             if type(priority) is not int or not 0<=priority<=65535 or priority>>13!=3:
@@ -53,7 +81,7 @@ def publication_resource_preflight(*,leaf=None,meminfo=Path('/proc/meminfo'),pre
         nice=get_nice()
         if type(nice) is not int or nice<15:raise ValueError('lowered publication scheduling priority required')
         available=[]
-        for line in _small_text(meminfo).splitlines():
+        for line in _resource_text(meminfo).splitlines():
             cells=line.split()
             if cells and cells[0]=='MemAvailable:':
                 if len(cells)!=3 or not cells[1].isascii() or not cells[1].isdecimal() or cells[2]!='kB':
@@ -61,7 +89,7 @@ def publication_resource_preflight(*,leaf=None,meminfo=Path('/proc/meminfo'),pre
                 available.append(int(cells[1]))
         if len(available)!=1 or available[0]<1572864:raise ValueError('publication memory headroom unavailable')
         seen=set()
-        for line in _small_text(pressure).splitlines():
+        for line in _resource_text(pressure).splitlines():
             cells=line.split()
             if not cells or cells[0] not in {'some','full'} or cells[0] in seen:raise ValueError('publication PSI metadata unavailable')
             seen.add(cells[0]);values={}

@@ -75,7 +75,7 @@ from thermal_model.origin_capture import _temperatures
 LIVE_SCHEMA='earthship-provisional-thermal-live-config/v2'
 SOURCE='openhab/scripts/native_thermal_live.py'
 
-RESOURCE_SOURCE_SHA256='7d400813515db43fb6debf222ccaf02d6b057131b7137f4d4fb4d4495fe10d30'
+RESOURCE_SOURCE_SHA256='46c8b6704592d12fb3637dfc59d0c77978f286954c34101a485e51dc82a3a9ad'
 
 
 def _resource_preflight():
