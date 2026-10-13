@@ -3453,7 +3453,7 @@
       "configuration_changed": false
     },
     "resource_guard_parsing_efficiency": {
-      "status": "implemented_tests_pass_actual_comparison_pending",
+      "status": "tests_and_actual_guard_cost_comparison_pass_current_geometry_host_swap_refusal",
       "baseline": {
         "automatic_actuation": false,
         "completed_checks": 208,
@@ -3476,7 +3476,10 @@
         "RED_handle": 55888,
         "GREEN_handle": 81750,
         "passed": 69,
-        "seconds": 1.7
+        "seconds": 1.7,
+        "final_passed": 70,
+        "final_seconds": 2.0,
+        "final_handle": 53283
       },
       "behavior": "Reuse normalized path syntax only; read current membership, every directory component, leaf identity, all caps and host/worker counters each before/after check. Root aliases retain fresh resolution.",
       "metadata_values_cached": false,
@@ -3485,7 +3488,66 @@
       "native_runtime_sources_unchanged": 12,
       "live_units_changed": false,
       "production_model_changed": false,
-      "latency_qualified": false
+      "latency_qualified": false,
+      "code_revision": "e80063c",
+      "actual_after": {
+        "automatic_actuation": false,
+        "completed_checks": 297,
+        "elapsed_seconds": 2.0000652570161037,
+        "fit_executed": false,
+        "guard_relaxed": false,
+        "live_writes": false,
+        "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "memory_peak_bytes": 42639360,
+        "ml_executed": false,
+        "phase": "resource_checks",
+        "private_evidence_directory": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-12-household-common-cycle/native-headroom-profile-20261013T180426Z",
+        "production_model_changed": false,
+        "reason": null,
+        "status": "resource_profile_completed",
+        "handle": 6633
+      },
+      "measured_checks_before": 208,
+      "measured_checks_after": 297,
+      "measured_milliseconds_per_check_before": 9.64992901936057,
+      "measured_milliseconds_per_check_after": 6.734226454599676,
+      "current_geometry_attempt": {
+        "handle": 97211,
+        "code_revision": "e80063c",
+        "status": "refused_in_Java_preparation_preserved_swap_bound",
+        "reason": "native inference host pressure or memory reserve unavailable: host swap-read activity exceeded trailing one-second allowance",
+        "elapsed_seconds": 93.90590586699545,
+        "pressure_at_refusal": {
+          "at": 524231.423869098,
+          "averages": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "counters": {
+            "oom_kill": 4,
+            "pswpin": 1105682,
+            "pswpout": 3510493
+          },
+          "delta": 0,
+          "key": "full",
+          "limit": 0.1,
+          "now": 524231.6215364,
+          "old_pressure": {
+            "full": 24207309,
+            "some": 25585417
+          },
+          "pressure": {
+            "full": 24207309,
+            "some": 25585417
+          },
+          "swapped_in": 831
+        },
+        "private_diagnosis": "native-current-capture-e80063c/private-diagnosis.json",
+        "live_writes": false,
+        "latency_qualified": false
+      },
+      "limits": "Two-second resource-only profiles include profiler overhead and changing host conditions; no full model/preparation/production speed claim. New sealed deployment stage still required."
     }
   },
   "astro_efficiency_audit": {
@@ -3615,5 +3677,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T18:04:25.327977+00:00"
+  "updated_at": "2026-10-13T18:13:04.246636+00:00"
 }

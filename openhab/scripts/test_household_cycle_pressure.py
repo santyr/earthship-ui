@@ -114,3 +114,20 @@ def test_parsed_path_reuse_still_reads_fresh_worker_counters(tmp_path,monkeypatc
     monitor,root,_=default_fixture(tmp_path,monkeypatch);monitor.check()
     (root/'a/memory.events').write_text('max 1\noom 0\noom_kill 0\n')
     with pytest.raises(ValueError):monitor.check()
+
+
+def test_initial_root_alias_retains_fresh_resolution(tmp_path,monkeypatch):
+    monitor,root,_=default_fixture(tmp_path,monkeypatch)
+    from pathlib import Path
+    api=importlib.import_module('household_cycle_pressure')
+    alias=tmp_path/'cgroup-alias';alias.symlink_to(root,target_is_directory=True)
+    monkeypatch.setattr(api,'Path',lambda value:alias if str(value)=='/sys/fs/cgroup' else Path(value))
+    monitor.check()
+    calls=[];resolve=Path.resolve
+    def tracked(path,*args,**kw):calls.append(str(path));return resolve(path,*args,**kw)
+    monkeypatch.setattr(Path,'resolve',tracked);monitor.check()
+    assert str(alias) in calls
+    replacement=tmp_path/'replacement';replacement.mkdir();(replacement/'a').mkdir()
+    (replacement/'a/memory.events').write_text('max 0\noom 0\noom_kill 0\n')
+    alias.unlink();alias.symlink_to(replacement,target_is_directory=True)
+    with pytest.raises(ValueError):monitor.check()
