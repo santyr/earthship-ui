@@ -757,3 +757,16 @@ resuming against unknown effective configuration contradicts coherent handoff.
 Concurrent edits remain preserved. Cost if wrong: forecasting/monitoring stays
 stopped until explicit reconciliation, instead of risking mixed definitions.
 A dedicated RED test must prove this exception before the correction.
+
+Owned preparer enablement (2026-10-13)
+------------------------------------
+After effective family verification, create exactly one no-clobber enablement
+symlink under the owned user timers.target.wants directory. Refuse an existing
+link or timer already active/enabled, wrong fragment/drop-ins/calendar/target,
+accuracy, delay or persistence. Bind link inode and exact timer-definition bytes,
+reload, recheck and start only the new preparer timer. Retain a private lease for
+failure cleanup. Stop/remove only while the exact owned link, definition and
+loaded fragment remain unchanged; preserve concurrent replacements and report
+cleanup refusal. No service is started or restarted by this layer. Test against
+a temporary user root and mocked manager. Live admission/activation composition
+remain unfinished until source-backed readiness is available and verified.

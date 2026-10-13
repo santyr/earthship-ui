@@ -3634,6 +3634,29 @@
       "protected_sources_unchanged": 72,
       "native_runtime_sources_unchanged": 12,
       "automatic_actuation": false
+    },
+    "native_preparer_enablement": {
+      "status": "internal_enablement_implemented_live_admission_pending",
+      "source": "openhab/scripts/household_native_install.py",
+      "tests": {
+        "cleanup_RED_handle": 28570,
+        "cleanup_failed": 3,
+        "cleanup_other_passed": 10,
+        "GREEN_handle": 60624,
+        "passed": 44,
+        "seconds": 46.6
+      },
+      "behavior": "Create one owned no-clobber timers.target.wants link; reload and verify exact inactive/enabled definition before starting only preparer timer. Cleanup binds link identity and timer bytes, confirms inactivity, and preserves concurrent changes. Publication and initial reload failures remove only own link.",
+      "scope": "Temporary roots and mocked manager; no live unit changes.",
+      "pending": [
+        "Source-backed readiness admission and shared-lock activation composition",
+        "New sealed stage and actual native natural-cycle qualification"
+      ],
+      "live_units_changed": false,
+      "production_model_changed": false,
+      "protected_sources_unchanged": 72,
+      "native_runtime_sources_unchanged": 12,
+      "automatic_actuation": false
     }
   },
   "astro_efficiency_audit": {

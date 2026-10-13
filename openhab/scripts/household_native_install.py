@@ -107,7 +107,7 @@ TIMERS=('thermal-provisional-forecast.timer','thermal-provisional-score.timer')
 
 def _effective_state(unit):
     keys=('LoadState','ActiveState','MainPID','ExecStart','TimeoutStartUSec','FragmentPath','DropInPaths',
-        'TimersCalendar','AccuracyUSec','RandomizedDelayUSec','Persistent','Unit',*deploy.EFFECTIVE_LIMITS)
+        'TimersCalendar','AccuracyUSec','RandomizedDelayUSec','Persistent','Unit','UnitFileState',*deploy.EFFECTIVE_LIMITS)
     raw=deploy._systemctl('show',unit,*['--property='+key for key in keys])
     result={};calendars=[]
     for row in raw.splitlines():
@@ -226,3 +226,98 @@ def _reload_handoff(output,*,guard):
     return dict(status='native_definitions_verified',handoff_sha256=result['handoff_sha256'],
         effective_definition_status=effective['status'],unit_manager_reloaded=True,
         new_preparer_timer_enabled=False,service_restarted=False,automatic_actuation=False)
+
+PREPARER_TIMER='thermal-native-geometry-prepare.timer'
+
+
+def _preparer_definition(root,state,*,active,enabled):
+    if (state.get('LoadState')!='loaded' or state.get('ActiveState')!=active or
+        state.get('FragmentPath')!=str(root/PREPARER_TIMER) or state.get('DropInPaths','') or
+        state.get('TimersCalendar')!=['*-*-* *:03/5:05 UTC'] or state.get('AccuracyUSec')!='1s' or
+        state.get('RandomizedDelayUSec')!='0' or state.get('Persistent')!='no' or
+        state.get('Unit')!='thermal-native-geometry-prepare.service' or state.get('UnitFileState')!=enabled):
+        raise ValueError('owned preparer timer definition or state differs')
+
+
+def _enable_link_identity(path):
+    info=path.lstat()
+    if not stat.S_ISLNK(info.st_mode) or info.st_uid!=os.getuid():raise ValueError('owned timer enablement link required')
+    return (info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_mtime_ns,info.st_ctime_ns,str(path.readlink()))
+
+
+def _publish_enable_link(root):
+    parent=deploy._path(root/'timers.target.wants');parent.mkdir(mode=0o700,exist_ok=True)
+    before=parent.lstat()
+    if not stat.S_ISDIR(before.st_mode) or before.st_uid!=os.getuid() or before.st_mode&0o002:
+        raise ValueError('owned user timer target directory required')
+    identity=lambda row:(row.st_dev,row.st_ino,row.st_mode,row.st_uid)
+    fd=os.open(parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+    link=parent/PREPARER_TIMER;created_identity=None
+    def fd_identity():
+        row=os.stat(PREPARER_TIMER,dir_fd=fd,follow_symlinks=False)
+        return (row.st_dev,row.st_ino,row.st_mode,row.st_uid,row.st_mtime_ns,row.st_ctime_ns,
+            os.readlink(PREPARER_TIMER,dir_fd=fd))
+    try:
+        if identity(os.fstat(fd))!=identity(before):raise ValueError('timer target directory changed')
+        os.symlink(str(root/PREPARER_TIMER),PREPARER_TIMER,dir_fd=fd)
+        created_identity=fd_identity()
+        if identity(deploy._path(parent).lstat())!=identity(before):raise ValueError('timer target directory changed')
+        os.fsync(fd)
+        if _enable_link_identity(link)!=created_identity:raise ValueError('timer enablement link changed')
+        return link,created_identity
+    except Exception as error:
+        if created_identity is not None:
+            try:
+                if fd_identity()!=created_identity:raise ValueError('concurrent timer enablement preserved')
+                os.unlink(PREPARER_TIMER,dir_fd=fd)
+            except Exception as cleanup_error:
+                error.add_note('Enablement link publication cleanup requires reconciliation: '+type(cleanup_error).__name__)
+        raise
+    finally:os.close(fd)
+
+
+def _undo_preparer_enable(lease):
+    root=deploy._path(lease['root']);link=root/'timers.target.wants'/PREPARER_TIMER
+    if (_enable_link_identity(link)!=lease['link_identity'] or
+        sha256(deploy._bytes(root/PREPARER_TIMER,private=True)).hexdigest()!=lease['definition_sha256']):
+        raise ValueError('concurrent preparer definition or enablement change preserved')
+    state=_timer_state(PREPARER_TIMER)
+    if state.get('ActiveState') not in ('active','inactive'):raise ValueError('preparer timer transition requires reconciliation')
+    enabled=state.get('UnitFileState')
+    if enabled not in ('enabled','disabled'):raise ValueError('preparer enablement state requires reconciliation')
+    _preparer_definition(root,state,active=state['ActiveState'],enabled=enabled)
+    if state['ActiveState']=='active':deploy._systemctl('stop',PREPARER_TIMER)
+    stopped=_timer_state(PREPARER_TIMER)
+    if stopped.get('ActiveState')!='inactive':raise ValueError('preparer timer is not inactive after stop')
+    _preparer_definition(root,stopped,active='inactive',enabled=enabled)
+    if (_enable_link_identity(link)!=lease['link_identity'] or
+        sha256(deploy._bytes(root/PREPARER_TIMER,private=True)).hexdigest()!=lease['definition_sha256']):
+        raise ValueError('concurrent preparer enablement change preserved after stop')
+    link.unlink();deploy._systemctl('daemon-reload')
+
+
+def _enable_preparer(root,*,guard):
+    """Enable/start only the verified new schedule; return an exact private lease."""
+    root=deploy._path(root);guard()
+    definition=deploy._bytes(root/PREPARER_TIMER,private=True)
+    _preparer_definition(root,_timer_state(PREPARER_TIMER),active='inactive',enabled='disabled')
+    link=root/'timers.target.wants'/PREPARER_TIMER
+    if link.exists() or link.is_symlink():raise ValueError('preparer timer enablement already exists')
+    lease=None
+    try:
+        guard();link,identity=_publish_enable_link(root)
+        lease=dict(root=str(root),timer=PREPARER_TIMER,link_identity=identity,definition_sha256=sha256(definition).hexdigest())
+        deploy._systemctl('daemon-reload');guard()
+        if _enable_link_identity(link)!=identity or deploy._bytes(root/PREPARER_TIMER,private=True)!=definition:
+            raise ValueError('preparer enablement changed')
+        _preparer_definition(root,_timer_state(PREPARER_TIMER),active='inactive',enabled='enabled')
+        deploy._systemctl('start',PREPARER_TIMER);guard()
+        _preparer_definition(root,_timer_state(PREPARER_TIMER),active='active',enabled='enabled')
+        if _enable_link_identity(link)!=identity or deploy._bytes(root/PREPARER_TIMER,private=True)!=definition:
+            raise ValueError('started preparer enablement changed')
+        return lease
+    except Exception as error:
+        if lease is not None:
+            try:_undo_preparer_enable(lease)
+            except Exception as cleanup_error:error.add_note('Preparer enablement cleanup requires reconciliation: '+type(cleanup_error).__name__)
+        raise
