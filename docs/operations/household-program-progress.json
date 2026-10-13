@@ -4520,6 +4520,146 @@
       "limits_and_deadlines_preserved": true,
       "existing_full_replay_apis_preserved": true,
       "full_goal_scope_question_pending": true
+    },
+    "astro_ui_a02_a06_acceptance": {
+      "status": "astro_ui_acceptance_verified",
+      "observed_at": "2026-10-13T21:49:37.349229+00:00",
+      "live_browser": {
+        "handle": 49057,
+        "scope": "run-u8881.scope",
+        "terminal_status": 0,
+        "observed_at": "2026-10-13T21:49:37.349229+00:00",
+        "results": [
+          {
+            "timezone": "UTC",
+            "width": 1280,
+            "labels": "\u21917:11a \u21936:29p\nWaxing Crescent\ndaylight 11h 13m\n68 days until Winter \u2744\ufe0f",
+            "homeAndWeatherRendered": true
+          },
+          {
+            "timezone": "America/Denver",
+            "width": 1340,
+            "labels": "\u21917:11a \u21936:29p\nWaxing Crescent\ndaylight 11h 13m\n68 days until Winter \u2744\ufe0f",
+            "homeAndWeatherRendered": true
+          }
+        ],
+        "pageErrors": [],
+        "blockedMutationMethods": [],
+        "sourceStatesFromLiveReceipts": true
+      },
+      "initial_browser_attempt": {
+        "handle": 31254,
+        "scope": "run-u8877.scope",
+        "terminal_status": 1,
+        "reason": "five-second debugger observation timeout during Weather navigation",
+        "heap_or_oom_marker_in_private_log": false,
+        "scope_terminal_verified": true,
+        "app_service_active": true,
+        "app_service_nrestarts": 0
+      },
+      "pure_tests": {
+        "handle": 57436,
+        "scope": "run-u8884.scope",
+        "terminal_status": 0,
+        "files": 6,
+        "passed": 235,
+        "seconds": 9.0,
+        "new_acceptance_cases": 14
+      },
+      "component_tests": {
+        "handle": 52024,
+        "scope": "run-u8886.scope",
+        "terminal_status": 0,
+        "passed": 2,
+        "seconds": 14.8
+      },
+      "map_daylight": {
+        "installed_map_matches_repository": true,
+        "live_writes": false,
+        "mapped_phases": {
+          "FIRST_QUARTER": "mdi:moon-first-quarter",
+          "FULL": "mdi:moon-full",
+          "NEW": "mdi:moon-new",
+          "THIRD_QUARTER": "mdi:moon-last-quarter",
+          "WANING_CRESCENT": "mdi:moon-waning-crescent",
+          "WANING_GIBBOUS": "mdi:moon-waning-gibbous",
+          "WAXING_CRESCENT": "mdi:moon-waxing-crescent",
+          "WAXING_GIBBOUS": "mdi:moon-waxing-gibbous"
+        },
+        "native_item_seconds": 40388.407,
+        "native_rise_end_to_set_start_seconds": 40388.407,
+        "outer_rise_start_to_set_end_seconds": 40717.464,
+        "status": "installed_map_parity_and_native_daylight_definition_verified"
+      },
+      "root_helper_source_hashes": {
+        "src/lib/ui/SeasonCountdown.svelte": "f692371bdbef691020a8836c5d5fb8383b0555be603dbc6d2371bd256265b70c",
+        "src/lib/weather/astroPresentation.js": "d047f893c82f16b3910f6ae27d237cb222bda90d17efad7e743c8d183d9bf2fa",
+        "src/lib/weather/celestial.js": "84f4d087f78056dd4d4db7a2263288809eaa68af9455d9ef0015d56ddd8253c8",
+        "src/lib/openhab/sse.js": "db4287eee1ac0cf50c27dea149d8651bff91289dd7947df5768862b325a063ee",
+        "src/lib/openhab/store.js": "6af2fcc4adbafb3ebeb6181a7b0bc9d2b3fe13b5e06ec3022565be7616cf9af4"
+      },
+      "root_helper_sources_match_committed_tree": true,
+      "root_home_weather_other_overlays_preserved": true,
+      "live_source_or_control_changes": false,
+      "limits": {
+        "cpu_percent": 20,
+        "memory_bytes": 268435456,
+        "swap_bytes": 0,
+        "pure_tasks": 24,
+        "browser_tasks": 96,
+        "browser_cpu_affinity": 0,
+        "nice": 15,
+        "idle_io": true
+      },
+      "full_program_complete": false,
+      "acceptance_matrix": {
+        "A02": {
+          "status": "native_season_acceptance_verified",
+          "checks": [
+            "CoherentNULL/UNDEF/NaN/negative/out-of-bound durations withhold; expired/disconnected/offline/mixed-generation evidence withholds.",
+            "Whole-day seconds/days and zero/singular wording; next-year rollover delegates native hemisphere policy without an inferred event instant.",
+            "Polynomial caller removed; existing countdown Item/writer/history untouched.",
+            "Store reconnect and fresh-SSE component regression passed; component expires at Denver midnight.",
+            "Actual UTC/Denver browsers both render68days untilWinter at same native issue."
+          ]
+        },
+        "A03": {
+          "status": "native_current_moon_acceptance_verified",
+          "checks": [
+            "All8nativephasealiases match installedastro.map, includingTHIRD_QUARTER\u2192last-quarter; unavailable/stale/offline sources withhold.",
+            "Clear-night uses suppliednativephase; cloud/rain/snow/fog/storm conditions remain their own icons.",
+            "Current-day sunrise/sunset and inclusive-rise/exclusive-set policy; stale native bounds cannot retain a current phase.",
+            "Both deployedHome/Weather use shared nativeCurrentSkyContext and rendered live without exceptions.",
+            "No separate ephemeris fetch/current lunar calculation added; original MAP profile remains."
+          ]
+        },
+        "A04": {
+          "status": "dated_forecast_moon_acceptance_verified",
+          "checks": [
+            "SunCalc remains limited to datedfuturephase helper; forecast HourlyStrip passes its individual row context, not currentMoonIcon.",
+            "Sep2 same-local-day phase boundary: currentnative waning-gibbous does not overwrite latehour last-quarter.",
+            "All8datedphases; equivalentoffsetinstants; springDST and bothautumn01:30 offsets; invalidclock genericnight; providerisDay precedence.",
+            "DailyForecast still calls context-freeWMO summary presentation; whole-day sunny fallback is unchanged."
+          ]
+        },
+        "A05": {
+          "status": "native_daylight_acceptance_verified",
+          "checks": [
+            "Actualnative duration40388.407s equals riseEND\u2192setSTART; outer riseSTART\u2192setEND40717.464s remains distinct.",
+            "Typed seconds/minutes/hours conversion and rounding carry pass; coherentzero/negative/24h/NULL/UNDEF/wrongunit/NaN reject.",
+            "Current-day native event/evidence qualification retained; both browserzones render11h13m.",
+            "No replacement of thermalnight or calibrated battery/overnight windows by nativeNIGHT."
+          ]
+        },
+        "A06": {
+          "status": "household_timezone_acceptance_verified",
+          "checks": [
+            "OneHOUSEHOLD_TIMEZONE source used by celestial formatting and day qualification.",
+            "Actual UTC/Denver browsers render identical7:11a/6:29p labels; offset-equivalent instants and bothDST transitions tested.",
+            "Denvermidnight and invalid/naive/invalidcalendar timestamps tested; locale remains separate and source offsets retained."
+          ]
+        }
+      }
     }
   },
   "astro_efficiency_audit": {
@@ -4538,42 +4678,47 @@
       {
         "id": "A02",
         "requirement": "Replace the browser season ephemeris",
-        "complete": false,
-        "status": "implemented_affected_tests_pass_live_qualification_pending",
+        "complete": true,
+        "status": "native_season_acceptance_verified",
         "task": "either consume the existing season display Item, or retain UI wording using native season values. Decide day-count semantics first. In 5.2.3, [Season.getTimeLeft](https://github.com/openhab/openhab-addons/blob/5.2.3/bundles/org.openhab.binding.astro/src/main/java/org/openhab/binding/astro/internal/model/Season.java) returns a whole-day-truncated duration, while the UI counts browser-local calendar dates and retains \u201ctoday\u201d for the event's calendar day. Native zero days is not proof that the event is today. Current native season timestamp Items show the current year's dates; native nextName/timeLeft cross the year boundary, but an exact next-year event timestamp needs qualification. Never derive an exact season instant by adding the truncated timeLeft to now.",
-        "acceptance": "NULL/UNDEF/stale states, seconds/days unit variants, wording and singular/zero-day cases, season-instant versus calendar-day rollover, December-to-next-year coverage, nextName/timeLeft update ordering, browser UTC versus household Denver, DST and hemisphere policy. Remove the polynomial only after the replacement covers those cases. Preserve existing Item identities and history."
+        "acceptance": "NULL/UNDEF/stale states, seconds/days unit variants, wording and singular/zero-day cases, season-instant versus calendar-day rollover, December-to-next-year coverage, nextName/timeLeft update ordering, browser UTC versus household Denver, DST and hemisphere policy. Remove the polynomial only after the replacement covers those cases. Preserve existing Item identities and history.",
+        "evidence": "proofs.astro_ui_a02_a06_acceptance"
       },
       {
         "id": "A03",
         "requirement": "Reuse the current native moon phase",
-        "complete": false,
-        "status": "implemented_affected_tests_pass_live_qualification_pending",
+        "complete": true,
+        "status": "native_current_moon_acceptance_verified",
         "task": "supply native current phase/icon to the shared current-condition presentation path. Reuse the existing store/SSE hydration and `astro.map`; do not add a separate browser ephemeris fetch. Preserve icon normalization and condition distinctions: clear night uses a moon, partly cloudy uses its night icon, and rain, snow, fog and storms keep their weather symbols.",
-        "acceptance": "all eight native phases, `THIRD_QUARTER` mapping to `moon-last-quarter`, unavailable phase, valid versus stale daily sun context, twilight/boundary policy, and both Home and Weather consumers."
+        "acceptance": "all eight native phases, `THIRD_QUARTER` mapping to `moon-last-quarter`, unavailable phase, valid versus stale daily sun context, twilight/boundary policy, and both Home and Weather consumers.",
+        "evidence": "proofs.astro_ui_a02_a06_acceptance"
       },
       {
         "id": "A04",
         "requirement": "Preserve future forecast lunar context",
-        "complete": false,
-        "status": "implemented_affected_tests_pass_live_qualification_pending",
+        "complete": true,
+        "status": "dated_forecast_moon_acceptance_verified",
         "task": "after A03, retain SunCalc for forecast-hour timestamps unless a bounded, date-specific lunar context supplier is introduced or generic forecast-night icons are explicitly chosen. The installed public Astro action interface does not provide future moon illumination. Do not apply today's `MoonPhaseicon` to all ten forecast days or remove the dependency prematurely. SunCalc `2.0.2` has one current source import, in `celestial.js`.",
-        "acceptance": "differing phases across the forecast horizon, a phase boundary between current conditions and a later forecast hour on the same household day, equivalent instants across UTC offsets, cross-midnight/DST hours, unavailable context, provider `isDay` precedence, and unchanged whole-day forecast summaries."
+        "acceptance": "differing phases across the forecast horizon, a phase boundary between current conditions and a later forecast hour on the same household day, equivalent instants across UTC offsets, cross-midnight/DST hours, unavailable context, provider `isDay` precedence, and unchanged whole-day forecast summaries.",
+        "evidence": "proofs.astro_ui_a02_a06_acceptance"
       },
       {
         "id": "A05",
         "requirement": "Choose the daylight interval explicitly",
-        "complete": false,
-        "status": "implemented_affected_tests_pass_live_qualification_pending",
+        "complete": true,
+        "status": "native_daylight_acceptance_verified",
         "task": "use `Sun_Daylight_Duration` if the product adopts native daylight semantics; otherwise retain the explicitly defined outer-edge interval as presentation. Reuse `splitRoundedMinutes` for display. `num()` strips units; it does not convert seconds, minutes and hours.",
-        "acceptance": "the two snapshot intervals, supported quantity units, invalid/zero/negative duration, rounding carry, and current-day event validation. Do not substitute `Sun_Night_Duration` for sunset-to-next-sunrise: native NIGHT runs from Astro dusk END to next Astro dawn START. Neither equals the thermal horizon threshold or the battery's calibrated overnight scoring window."
+        "acceptance": "the two snapshot intervals, supported quantity units, invalid/zero/negative duration, rounding carry, and current-day event validation. Do not substitute `Sun_Night_Duration` for sunset-to-next-sunrise: native NIGHT runs from Astro dusk END to next Astro dawn START. Neither equals the thermal horizon threshold or the battery's calibrated overnight scoring window.",
+        "evidence": "proofs.astro_ui_a02_a06_acceptance"
       },
       {
         "id": "A06",
         "requirement": "Share household time formatting",
-        "complete": false,
-        "status": "implemented_affected_tests_pass_live_qualification_pending",
+        "complete": true,
+        "status": "household_timezone_acceptance_verified",
         "task": "reuse the household timezone policy for celestial labels and calendar selection; keep user locale separate from site timezone. Preserve offset-bearing instants and DST-aware boundaries. This is shared formatting, not new astronomy.",
-        "acceptance": "identical site labels on Denver/UTC browsers, both DST changes, local midnight, equivalent offset representations and invalid timestamps."
+        "acceptance": "identical site labels on Denver/UTC browsers, both DST changes, local midnight, equivalent offset representations and invalid timestamps.",
+        "evidence": "proofs.astro_ui_a02_a06_acceptance"
       },
       {
         "id": "A07",
@@ -4647,8 +4792,20 @@
       "live_browser_page_errors": 0,
       "live_browser_memory_bytes": 268435456,
       "live_browser_swap_bytes": 0,
-      "native_daily_refresh_acceptance_pending": false
+      "native_daily_refresh_acceptance_pending": false,
+      "current_native_ui_acceptance_completed": [
+        "A02",
+        "A03",
+        "A04",
+        "A05",
+        "A06"
+      ],
+      "current_native_ui_observed_at": "2026-10-13T21:49:37.349229+00:00",
+      "current_acceptance_test_cases": 237,
+      "current_live_timezone_labels_identical": true,
+      "current_live_browser_page_errors": 0,
+      "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-13T21:39:15.151271+00:00"
+  "updated_at": "2026-10-13T22:02:48.026636+00:00"
 }

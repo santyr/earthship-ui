@@ -58,3 +58,17 @@ describe('native current astronomy presentation', () => {
     expect(nativeCurrentMoon({ ...context,states:{ ...base,Moon_MoonPhaseName:'UNKNOWN' } })).toBe('mdi:weather-night');
   });
 });
+
+
+describe('coherent unavailable native durations', () => {
+  it.each(['NULL','UNDEF','NaN s','-1 d','367 d'])('withholds invalid season duration %s even when receipt state matches', raw => {
+    const states={...base,Sun_TimeLeft:raw};
+    const e={...evidence,Sun_TimeLeft:{...evidence.Sun_TimeLeft,state:raw}};
+    expect(nativeSeasonLabel({...context,states,evidence:e})).toBe('Season unavailable');
+  });
+  it.each(['0 s','-1 s','86400 s','NULL','UNDEF','2 kg','NaN s'])('withholds invalid daylight %s even when receipt state matches', raw => {
+    const states={...base,Sun_Daylight_Duration:raw};
+    const e={...evidence,Sun_Daylight_Duration:{...evidence.Sun_Daylight_Duration,state:raw}};
+    expect(nativeDaylightText({...context,states,evidence:e})).toBe('—');
+  });
+});

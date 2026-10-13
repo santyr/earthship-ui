@@ -45,3 +45,25 @@ describe('shared astronomical weather icons', () => {
     expect(wmoIcon(0)).toBe('mdi:weather-sunny'); // Whole-day summary, not an instant.
   });
 });
+
+
+describe('dated forecast lunar acceptance', () => {
+  it('keeps a later same-day forecast phase independent of the current native moon', () => {
+    const current = { at:'2026-09-02T00:30:00-06:00',isDay:false,currentMoonIcon:'mdi:moon-waning-gibbous' };
+    expect(contextualSkyIcon('mdi:weather-sunny',current)).toBe('mdi:moon-waning-gibbous');
+    const later = { at:'2026-09-02T23:30:00-06:00',isDay:false };
+    expect(wmoIcon(0,later)).toBe('mdi:moon-last-quarter');
+    expect(wmoIcon(0,later)).not.toBe(contextualSkyIcon('mdi:weather-sunny',current));
+  });
+  it('preserves equivalent forecast instants across DST offsets and unavailable clocks', () => {
+    for (const [offset,utc] of [
+      ['2026-03-08T01:30:00-07:00','2026-03-08T08:30:00Z'],
+      ['2026-03-08T03:30:00-06:00','2026-03-08T09:30:00Z'],
+      ['2026-11-01T01:30:00-06:00','2026-11-01T07:30:00Z'],
+      ['2026-11-01T01:30:00-07:00','2026-11-01T08:30:00Z'],
+    ]) expect(wmoIcon(0,{at:offset,isDay:false})).toBe(wmoIcon(0,{at:utc,isDay:false}));
+    expect(wmoIcon(0,{at:'invalid',isDay:false})).toBe('mdi:weather-night');
+    expect(wmoIcon(0,{at:'2026-09-02T23:30:00-06:00',isDay:true})).toBe('mdi:weather-sunny');
+    expect(wmoIcon(0)).toBe('mdi:weather-sunny');
+  });
+});
