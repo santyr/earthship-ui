@@ -147,3 +147,68 @@ def test_pre_dusk_requires_one_night_identity_per_drop_sample():
             evidence(),
             morning(overnight_drop_sample_days=['2026-09-28', '2026-09-27']),
         )
+
+
+@pytest.mark.parametrize('delay,reason', [
+    (timedelta(seconds=101), 'fresh atomic SoC'),
+    (timedelta(minutes=16), 'outside pre-dusk issue window'),
+])
+def test_live_issue_clock_rejects_inputs_that_expire_during_io(tmp_path, monkeypatch, delay, reason):
+    import forecast_pre_dusk as module
+    state = tmp_path / 'state.json'
+    state.write_text(json.dumps({'predictions': {'2026-09-29': morning()}}))
+    clock = {'at': NOW}
+    class Clock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return clock['at'].astimezone(tz) if tz else clock['at'].replace(tzinfo=None)
+    monkeypatch.setattr(module, 'datetime', Clock)
+    # The production clock supplies datetime instances; retain that type check.
+    clock['at'] = Clock.fromisoformat(NOW.isoformat())
+    items = {'Sun_Set_Start': SUNSET, RECEIPT_ITEM: 'NULL',
+             'BMS_SOC_Evidence_JSON': evidence()}
+    writes = []
+    def get(path):
+        name = path.removeprefix('/items/')
+        if name == 'BMS_SOC_Evidence_JSON':
+            clock['at'] += delay
+        return {'state': items[name]}
+    with pytest.raises(Withheld, match=reason):
+        module.run(get=get, put=lambda *args: writes.append(args), state_path=state)
+    assert writes == []
+
+
+def test_stale_soc_attempt_can_retry_with_fresh_evidence_in_the_same_window(tmp_path):
+    state = tmp_path / 'state.json'
+    original = {'predictions': {'2026-09-29': morning()}}
+    state.write_text(json.dumps(original))
+    items = {'Sun_Set_Start': SUNSET, RECEIPT_ITEM: 'NULL',
+             'BMS_SOC_Evidence_JSON': evidence(NOW - timedelta(minutes=3))}
+    writes = []
+    def get(path):
+        return {'state': items[path.removeprefix('/items/')]}
+    def put(name, value):
+        writes.append((name, value))
+        items[name] = str(value)
+    with pytest.raises(Withheld, match='fresh atomic SoC'):
+        run(NOW, get=get, put=put, state_path=state)
+    assert writes == []
+    retry_at = NOW + timedelta(minutes=10)
+    items['BMS_SOC_Evidence_JSON'] = evidence(retry_at - timedelta(seconds=20))
+    assert run(retry_at, get=get, put=put, state_path=state) == 'issued'
+    assert run(retry_at, get=get, put=put, state_path=state) == 'already_issued'
+    receipt = json.loads(items[RECEIPT_ITEM])
+    assert receipt['issuedAt'] == retry_at.isoformat()
+    assert receipt['sunsetAt'] == '2026-09-30T00:48:23+00:00'
+    assert len(writes) == 2 and json.loads(state.read_text()) == original
+
+
+@pytest.mark.parametrize('lead,accepted', [(90, False), (89.999, True), (60, True), (59.999, False)])
+def test_exact_sunset_lead_boundaries_preserve_unshifted_receipt(lead, accepted):
+    at = datetime.fromisoformat(SUNSET) - timedelta(minutes=lead)
+    if accepted:
+        receipt = estimate(at, SUNSET, evidence(at - timedelta(seconds=20)), morning())
+        assert receipt['sunsetAt'] == '2026-09-30T00:48:23+00:00'
+    else:
+        with pytest.raises(Withheld, match='outside pre-dusk issue window'):
+            estimate(at, SUNSET, evidence(at - timedelta(seconds=20)), morning())

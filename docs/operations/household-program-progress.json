@@ -4719,6 +4719,92 @@
       "live_native_serving_qualification_complete": false,
       "production_accuracy_improvement_proven": false,
       "full_program_complete": false
+    },
+    "astro_a10_predusk_baseline_acceptance": {
+      "status": "existing_predusk_source_and_timing_qualified_isolated_event_design_pending",
+      "recorded_at": "2026-10-13T22:18:07.382827+00:00",
+      "source_audit": {
+        "script": {
+          "source_sha256": "1198c93a8893f9892f2d01070b165fe29210285d156768cf7eedf94118325b17",
+          "deployed_sha256": "6e7919e98c0b39fc073cf577525433f924da161c8db5ab3463d8e6aaa5b66365",
+          "byte_identical": false
+        },
+        "timer": {
+          "source_sha256": "1d7e371f9710f153299012e7d071aebf23e092710ad1be18973badccf9c84574",
+          "deployed_sha256": "1d7e371f9710f153299012e7d071aebf23e092710ad1be18973badccf9c84574",
+          "byte_identical": true
+        },
+        "windows": {
+          "source_sha256": "d496469e87d27e78cb6169de8aa416c7f6a30805c9d8f8444ac059ec4eeab6d7",
+          "deployed_sha256": "d496469e87d27e78cb6169de8aa416c7f6a30805c9d8f8444ac059ec4eeab6d7",
+          "byte_identical": true
+        }
+      },
+      "effective_service": {
+        "unit": "forecast-pre-dusk.service",
+        "properties": {
+          "TimeoutStartUSec": "45s",
+          "CPUQuotaPerSecUSec": "200ms",
+          "MemoryMax": "268435456",
+          "MemorySwapMax": "0",
+          "TasksMax": "24",
+          "FragmentPath": "/home/sat/.config/systemd/user/forecast-pre-dusk.service",
+          "DropInPaths": "/home/sat/.config/systemd/user/forecast-pre-dusk.service.d/zzz-bounded-native-inputs.conf"
+        },
+        "selected_forecast_script_paths": [
+          {
+            "path": "/home/sat/openhab/scripts/forecast_pre_dusk.py",
+            "resolved_path": "/home/sat/openhab/scripts/forecast_pre_dusk.py",
+            "sha256": "6e7919e98c0b39fc073cf577525433f924da161c8db5ab3463d8e6aaa5b66365"
+          }
+        ]
+      },
+      "timer": {
+        "active": true,
+        "calendar": "*-*-* 14..20:02/10:45 America/Denver",
+        "last_trigger_observed": "2026-10-13T16:12:45-06:00",
+        "next_trigger_observed": "2026-10-13T16:22:45-06:00",
+        "byte_identical_to_worktree": true,
+        "observational_snapshot_only": true
+      },
+      "checks": {
+        "worktree_predusk_and_trough_windows": {
+          "cases": 44,
+          "seconds": 1.0,
+          "unit": "run-u8940.scope",
+          "terminal_exit": 0
+        },
+        "selected_script_boundary_replay": {
+          "cases": 19,
+          "deselected": 6,
+          "seconds": 0.61,
+          "unit": "run-u8994.scope",
+          "terminal_exit": 0,
+          "all_item_io_injected": true,
+          "dependencies": "worktree import context; this validates selected script boundaries, not complete deployed runtime",
+          "deselection_reason": "Six sample-day validation regressions cover a worktree-only change absent from selected production source."
+        }
+      },
+      "private_log_sha256s": {
+        "astro-a10-predusk-qualification.log": "c86c1610954d03303aaab2b59ea1b309c8eb8649be79e6d26b0c5449ea02ea8f",
+        "astro-a10-selected-predusk-qualification.log": "95bd4ec0823a1d40ec8895cecabba22792098328ca25b16721f4683a8e03797b"
+      },
+      "acceptance": {
+        "issue_window": "60minutes inclusive,90exclusive, referenced to unchanged originalSun_Set_Start; both exact edges qualified.",
+        "io_expiry": "Actual-clock path refuses expiredatomicSoC and an issuewindow that closes during mockedI/O, with zero attemptedwrites.",
+        "retries": "A staleSoC attempt writesnothing; a freshsame-window retry issuesone receipt; duplicate opportunity writesnothingextra. Actual timer remains recurrent andpersistent.",
+        "trough": "20:00Denver through nextday11:00 retained, including spring/fallDST cases.",
+        "source_difference": "Worktree validates distinct descending recent overnight-drop sampledays; selected production script lacks those checks. Selected bytes held stable across qualification.",
+        "unqualified": "NoisolatedAstrotrigger/negativeoffset/channelconfiguration, actualnewtriggercontention/restart/catchup/missedtrigger, nor naturalnewreceipt qualified."
+      },
+      "resource_limits_preserved": true,
+      "actual_shared_ml_lock": true,
+      "original_training_pressure_guard": true,
+      "source_difference_resolved": false,
+      "new_scheduling_installed": false,
+      "product_sources_changed": false,
+      "live_writes": false,
+      "full_program_complete": false
     }
   },
   "astro_efficiency_audit": {
@@ -4813,9 +4899,10 @@
         "id": "A10",
         "requirement": "Simplify pre dusk scheduling while retaining retry semantics",
         "complete": false,
-        "status": "pending",
+        "status": "existing_predusk_source_and_timing_qualified_isolated_event_design_pending",
         "task": "consider an isolated sunset event with a negative offset to begin the issue attempt, followed by bounded retries/catch-up. Preserve the script's same-day idempotency, issue window, atomic SoC, freshness and original sunset receipt. Do not add an offset to the shared `set#start` channel: other readers need its unshifted astronomical sunset. Check exact trigger-channel configuration scope before introducing an isolated event or scheduling from a native timestamp.",
-        "acceptance": "contention, restart/catch-up, sunset changes, missed trigger, window expiration, duplicate opportunities and stable unshifted sunset inputs. Keep the canonical 20:00-to-next-day-11:00 trough (`advisory_windows.py:49\u201355`) and other calibrated load intervals unchanged."
+        "acceptance": "contention, restart/catch-up, sunset changes, missed trigger, window expiration, duplicate opportunities and stable unshifted sunset inputs. Keep the canonical 20:00-to-next-day-11:00 trough (`advisory_windows.py:49\u201355`) and other calibrated load intervals unchanged.",
+        "evidence": "proofs.astro_a10_predusk_baseline_acceptance"
       },
       {
         "id": "A11",
