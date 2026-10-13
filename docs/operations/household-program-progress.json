@@ -4215,6 +4215,103 @@
       "production_model_changed": false,
       "live_writes": false,
       "automatic_actuation": false
+    },
+    "native_batched_paths_serving_stage": {
+      "artifact": {
+        "artifact_sha256": "cc2e8b10236905711d9c03d31a9be4ce70c2b328e1e1a6482b4cf27e67ee5f9c",
+        "automatic_actuation": false,
+        "code_revision": "fe3c211e1cfc82613c1bddb9fb9f4959fdfcef74",
+        "fit_executed": false,
+        "identical_readback": true,
+        "live_writes": false,
+        "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "memory_peak_bytes": 73314304,
+        "native_source_count": 12,
+        "production_model_changed": false,
+        "runtime_sha256": "93c54c3c2f5526082a8574f635f44c261f054b596eb476ca8bcf24716ff21180",
+        "seconds": 58.953424951061606,
+        "status": "actual_native_monitor_artifact_verified",
+        "handle": 57125,
+        "terminal_status": 0,
+        "original_fit_and_four_references_unchanged": true,
+        "protected_fitted_sources_unchanged": 72,
+        "required_native_fitting_sources_unchanged": 9
+      },
+      "package": {
+        "artifact_sha256": "cc2e8b10236905711d9c03d31a9be4ce70c2b328e1e1a6482b4cf27e67ee5f9c",
+        "automatic_actuation": false,
+        "code_revision": "fe3c211e1cfc82613c1bddb9fb9f4959fdfcef74",
+        "current_native_capture_projected": false,
+        "deployment_sha256": "2aac60a5855c7e6e166dd40e554890cd507bd2d716863119fd971c6610d0d648",
+        "identical_readback": true,
+        "live_units_changed": false,
+        "live_writes": false,
+        "native_source_count": 12,
+        "numerical_runtime_qualified": false,
+        "production_model_changed": false,
+        "protected_source_count": 72,
+        "retained_original_count": 4,
+        "runtime_sha256": "93c54c3c2f5526082a8574f635f44c261f054b596eb476ca8bcf24716ff21180",
+        "seconds": 1.1886715720174834,
+        "source_count": 221,
+        "stage": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-12-household-common-cycle/stage-fe3c211-native",
+        "status": "actual_private_native_package_verified"
+      },
+      "runtime": {
+        "handle": 37676,
+        "terminal_status": 0,
+        "artifact_sha256": "cc2e8b10236905711d9c03d31a9be4ce70c2b328e1e1a6482b4cf27e67ee5f9c",
+        "automatic_actuation": false,
+        "code_revision": "fe3c211e1cfc82613c1bddb9fb9f4959fdfcef74",
+        "live_units_changed": false,
+        "live_writes": false,
+        "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "memory_peak_bytes": 111054848,
+        "numerical_runtime_qualified": true,
+        "production_interpreter": true,
+        "production_model_changed": false,
+        "runtime_seconds": 30.39643259102013,
+        "runtime_sha256": "93c54c3c2f5526082a8574f635f44c261f054b596eb476ca8bcf24716ff21180",
+        "status": "actual_native_runtime_verified",
+        "worker_result": {
+          "automatic_actuation": false,
+          "deployment_sha256": "2aac60a5855c7e6e166dd40e554890cd507bd2d716863119fd971c6610d0d648",
+          "status": "runtime_verified"
+        },
+        "worker_status": 0
+      },
+      "initial_runtime_attempt": {
+        "handle": 74690,
+        "terminal_status": 1,
+        "refusal": "SharedScoreLock busy after production scorer started",
+        "artifact_sha256": "cc2e8b10236905711d9c03d31a9be4ce70c2b328e1e1a6482b4cf27e67ee5f9c",
+        "automatic_actuation": false,
+        "code_revision": "fe3c211e1cfc82613c1bddb9fb9f4959fdfcef74",
+        "current_native_capture_projected": false,
+        "deployment_sha256": "2aac60a5855c7e6e166dd40e554890cd507bd2d716863119fd971c6610d0d648",
+        "live_units_changed": false,
+        "live_writes": false,
+        "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "memory_peak_bytes": 96022528,
+        "numerical_runtime_qualified": false,
+        "production_interpreter": true,
+        "production_model_changed": false,
+        "runtime_seconds": 3.6973219469655305,
+        "runtime_sha256": "93c54c3c2f5526082a8574f635f44c261f054b596eb476ca8bcf24716ff21180",
+        "source_count": 221,
+        "status": "actual_native_runtime_refused",
+        "worker_result": {
+          "exception_type": "BlockingIOError",
+          "private_diagnostic_state_retained": true,
+          "status": "native_runtime_qualification_refused"
+        },
+        "worker_status": 1
+      },
+      "actual_staged_preparer_qualified": false,
+      "exact_cold_production_driver_qualified": false,
+      "live_units_changed": false,
+      "live_writes": false,
+      "production_model_changed": false
     }
   },
   "astro_efficiency_audit": {
@@ -4344,5 +4441,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T20:48:41.900107+00:00"
+  "updated_at": "2026-10-13T20:57:38.088576+00:00"
 }
