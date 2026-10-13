@@ -72,7 +72,18 @@ def derive_cycle(*,originals,capture,receipts,thermal,weather,parameter_record,r
     from household.energy_model import freeze_energy_inputs,bind_energy_inputs
     from household.capabilities import CapabilityRegistry
     from household.pipeline import seal_pipeline,replay_pipeline
-    from thermal_model.provisional_score import validate_delivery
+    if capture.get('schema')=='earthship-provisional-thermal-origin/v2':
+        from native_thermal_score import validate_delivery
+        from astro_geometry import _instant
+        instant=_instant
+        if (not isinstance(thermal,PreparedProjection) or not isinstance(weather,PreparedWeatherContext) or
+            thermal.to_dict()['schema']!='earthship-household-prepared-thermal/v2' or
+            weather.to_dict()['schema']!='earthship-household-prepared-weather/v2'):
+            raise ValueError('native issue requires separately prepared native models')
+    elif capture.get('schema')=='earthship-provisional-thermal-origin/v1':
+        from thermal_model.provisional_score import validate_delivery
+    else:
+        raise ValueError('explicit original cycle capture version required')
     validate_delivery(capture,receipts)
     fields={'schema','issue','captured_at','power_receipt','energy_configuration','measured_weather','owner_bindings','automatic_actuation'}
     if not isinstance(originals,dict) or set(originals)!=fields or originals['schema']!='earthship-household-cycle-sources/v1' or originals['automatic_actuation'] is not False:
@@ -138,21 +149,71 @@ def _retain_original(directory,value,suffix,maximum):
     return target
 
 
+def load_cycle_delivery(publication,*,issue,guard,runtime=None,expected_artifact_sha256=None,expected_capture_sha256=None):
+    """Replay versioned private archives under separately supplied native pins."""
+    from pathlib import Path
+    from copy import deepcopy
+    from household_observation import _private_file
+    from thermal_model.provisional_forecast import digest
+    from household.control_contracts import instant
+    publication,runtime=deepcopy(publication),deepcopy(runtime)
+    guard()
+    if publication.get('status')!='published' or publication.get('delivery_verified') is not True:
+        raise ValueError('verified original publication required')
+    origin_path=Path(publication['origin_path']).absolute();delivery_path=Path(publication['delivery_path']).absolute()
+    delivery=_private_file(delivery_path,65536);delivered=loads(delivery[0])
+    fields={'schema','issued_at','capture_path','capture_sha256','artifact_sha256','receipts','delivery_sha256'}
+    native=isinstance(delivered,dict) and delivered.get('schema')=='earthship-provisional-thermal-delivery/v2'
+    if native:
+        from native_thermal_forecast import MAX_CAPTURE_BYTES,validate_capture
+        from native_thermal_score import validate_delivery
+        from astro_geometry import _instant
+        maximum=MAX_CAPTURE_BYTES;fields=fields|{'runtime_sha256','geometry_series_sha256'}
+        origin_suffix='.native-provisional-origin-v2.json';delivery_suffix='.native-provisional-delivery-v2.json'
+        instant=_instant
+        if runtime is None or expected_artifact_sha256 is None or expected_capture_sha256 is None:
+            raise ValueError('separate native runtime, artifact and capture pins required')
+    else:
+        from thermal_model.provisional_score import validate_delivery
+        maximum=2*1024*1024;origin_suffix='.provisional-origin-v1.json';delivery_suffix='.provisional-delivery-v1.json'
+    if not isinstance(delivered,dict) or set(delivered)!=fields or delivered['schema']!=('earthship-provisional-thermal-delivery/v2' if native else 'earthship-provisional-thermal-delivery/v1'):
+        raise ValueError('closed original delivery required')
+    origin=_private_file(origin_path,maximum);capture=loads(origin[0])
+    if (digest(delivered,'delivery_sha256')!=delivered['delivery_sha256'] or
+        delivered['capture_path']!=str(origin_path) or delivered['capture_sha256']!=capture['capture_sha256'] or
+        delivered['artifact_sha256']!=capture['candidate']['artifact_sha256'] or
+        instant(delivered['issued_at'])!=instant(capture['issued_at']) or instant(issue)!=instant(capture['issued_at']) or
+        origin_path.parent!=delivery_path.parent or
+        origin_path.name!=capture['capture_sha256']+origin_suffix or
+        delivery_path.name!=delivered['delivery_sha256']+delivery_suffix):
+        raise ValueError('original delivery binding differs')
+    if native:
+        capture=validate_capture(capture,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
+            expected_capture_sha256=expected_capture_sha256,check_budget=guard)
+        if (delivered['runtime_sha256']!=capture['candidate']['runtime_sha256'] or
+            delivered['geometry_series_sha256']!=capture['geometry_series_sha256']):
+            raise ValueError('original native delivery runtime or geometry differs')
+    validate_delivery(capture,delivered['receipts'])
+    def unchanged():
+        guard()
+        if _private_file(origin_path,maximum)!=origin or _private_file(delivery_path,65536)!=delivery:
+            raise ValueError('original cycle archive changed')
+    unchanged()
+    return dict(capture=capture,receipts=deepcopy(delivered['receipts']),native=native,verify_unchanged=unchanged)
+
+
 def complete_cycle(*,publication,collection,parameter_record,runtime_manifest,code_revision,
-                   evidence_directory,observation_cache,guard,clock=lambda:datetime.now(timezone.utc)):
+                   evidence_directory,observation_cache,guard,clock=lambda:datetime.now(timezone.utc),
+                   runtime=None,expected_artifact_sha256=None,expected_capture_sha256=None):
     """Use verified original archives before any model or cache publication.
 
     The caller owns the forecast lock and the configuration/runtime guard.
     Observer refusal propagates to that caller, never to forecast withdrawal.
     """
-    from pathlib import Path
-    from household_observation import _private_file,materialize
+    from household_observation import materialize
     from household.weather_context import prepare_cycle_contexts
     from household_pipeline import verify_source_closure
     from household.pipeline import MAX_BYTES as PIPELINE_BYTES
-    from thermal_model.provisional_forecast import digest
-    from thermal_model.provisional_score import validate_delivery
-    from household.control_contracts import instant
     guard()
     if publication.get('status')!='published' or publication.get('delivery_verified') is not True:
         raise ValueError('verified original publication required')
@@ -161,31 +222,20 @@ def complete_cycle(*,publication,collection,parameter_record,runtime_manifest,co
         reason=collection.get('reason')
         if not isinstance(reason,str) or reason not in known:reason='unclassified_collection_failure'
         return dict(status='observation_unavailable',reason='source_collection_unavailable',collection_reason=reason,automatic_actuation=False)
-    origin_path=Path(publication['origin_path']).absolute();delivery_path=Path(publication['delivery_path']).absolute()
-    origin=_private_file(origin_path,2*1024*1024);delivery=_private_file(delivery_path,65536)
-    capture=loads(origin[0]);delivered=loads(delivery[0])
-    fields={'schema','issued_at','capture_path','capture_sha256','artifact_sha256','receipts','delivery_sha256'}
-    if not isinstance(delivered,dict) or set(delivered)!=fields or delivered['schema']!='earthship-provisional-thermal-delivery/v1':
-        raise ValueError('closed original delivery required')
-    if (digest(delivered,'delivery_sha256')!=delivered['delivery_sha256'] or
-        delivered['capture_path']!=str(origin_path) or delivered['capture_sha256']!=capture['capture_sha256'] or
-        delivered['artifact_sha256']!=capture['candidate']['artifact_sha256'] or
-        instant(delivered['issued_at'])!=instant(capture['issued_at']) or
-        instant(collection['issue'])!=instant(capture['issued_at']) or
-        origin_path.parent!=delivery_path.parent or
-        origin_path.name!=capture['capture_sha256']+'.provisional-origin-v1.json' or
-        delivery_path.name!=delivered['delivery_sha256']+'.provisional-delivery-v1.json'):
-        raise ValueError('original delivery binding differs')
-    validate_delivery(capture,delivered['receipts']);guard()
-    thermal,weather=prepare_cycle_contexts(capture,code_revision=code_revision)
-    record=derive_cycle(originals=collection['originals'],capture=capture,receipts=delivered['receipts'],
+    archived=load_cycle_delivery(publication,issue=collection['issue'],guard=guard,runtime=runtime,
+        expected_artifact_sha256=expected_artifact_sha256,expected_capture_sha256=expected_capture_sha256)
+    capture=archived['capture'];receipts=archived['receipts']
+    if archived['native']:
+        from household.weather_context import prepare_native_cycle_contexts
+        thermal,weather=prepare_native_cycle_contexts(capture,code_revision=code_revision,runtime=runtime,
+            expected_artifact_sha256=expected_artifact_sha256,expected_capture_sha256=expected_capture_sha256,check_budget=guard)
+    else:
+        thermal,weather=prepare_cycle_contexts(capture,code_revision=code_revision)
+    record=derive_cycle(originals=collection['originals'],capture=capture,receipts=receipts,
         thermal=thermal,weather=weather,parameter_record=parameter_record,runtime_manifest=runtime_manifest,
         code_revision=code_revision,now=clock())
     verify_source_closure(record,runtime_manifest);guard()
-    def unchanged():
-        guard()
-        if _private_file(origin_path,2*1024*1024)!=origin or _private_file(delivery_path,65536)!=delivery:
-            raise ValueError('original cycle archive changed')
+    unchanged=archived['verify_unchanged']
     unchanged()
     _retain_original(evidence_directory,collection['originals'],'.household-sources-v1.json',MAX_SOURCE_BYTES)
     receipt=_retain_original(evidence_directory,record,'.household-model-plan-v5.json',PIPELINE_BYTES)
@@ -234,6 +284,10 @@ def run_cycle(config_path,*,code_revision,forecast_config=None):
     config_path=Path(config_path).absolute()
     if forecast_config is None:forecast_config=load_cycle_settings(config_path)['forecast_config']
     forecast_path=Path(forecast_config).absolute();forecast_original=_private_file(forecast_path,8192)
+    original_settings=loads(forecast_original[0])
+    native_profile=isinstance(original_settings,dict) and original_settings.get('schema')=='earthship-provisional-thermal-live-config/v2'
+    if native_profile:
+        from native_thermal_live import load_settings,publish_cycle,withdraw,current_runtime
     settings=load_settings(forecast_path)
     with SharedScoreLock(settings['shared_lock']) as lock:
         monitor=PublicationHeadroom();monitor.preflight()
@@ -284,9 +338,11 @@ def run_cycle(config_path,*,code_revision,forecast_config=None):
             result['observation']=dict(status='observation_unavailable',reason='source_preparation_unavailable',automatic_actuation=False)
             return result
         try:
+            native_pins={} if not native_profile else dict(runtime=current_runtime(guard=forecast_guard),
+                expected_artifact_sha256=settings['artifact_sha256'],expected_capture_sha256=published['capture_sha256'])
             result['observation']=complete_cycle(publication=published,collection=backend.collection,parameter_record=parameters,
                 runtime_manifest=collector.runtime,code_revision=code_revision,evidence_directory=configuration['evidence_directory'],
-                observation_cache=configuration['observation_cache'],guard=guard)
+                observation_cache=configuration['observation_cache'],guard=guard,**native_pins)
         except Exception:
             result['observation']=dict(status='observation_refused',reason='original_cycle_verification_failed',automatic_actuation=False)
         return result

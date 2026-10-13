@@ -445,3 +445,25 @@ sourcee458d51/28641rawbytes. No livewrites/modelchange/actions. This qualifies a
 recentpair only, notfull31cycle productionlatency; fullhistoricalwindow/publisher/
 monitor/runtime12 andcoherentnativefamilyhandoff remainrequired. Allhandles now
 terminal; localcode109a214 plusactualevidence, no GitHubpublishing approval yet.
+
+2026-10-13 native issuer and household-cycle delivery adapter implemented
+----------------------------------------------------------------------
+Private v2 config requires external artifact/runtime pins and keeps the original
+fixed local telemetry endpoint policy. Native geometry preparation is separate
+from issuance: three bounded batches cover 288 future five-minute instants,
+complete before collection, and retain immutable per-issue private originals.
+The native issuer replays the candidate/original inputs and sends only the two
+existing telemetry Items, retains versioned origins/deliveries and both persisted
+receipts, and withdraws native unavailable states without reading a model.
+The household cycle dispatches v1/v2 separately, requires external native capture
+pins, replays original archives, prepares native model/weather contexts, and
+preserves forecast-first observer isolation and original source stability checks.
+
+87 unique cases pass across bounded cohorts: native archive/cycle13, native
+geometry/publication/driver22, original cycle20, original coordinator/driver plus
+paired-reader32. The combined suite exceeded the unchanged85s deadline and is
+not counted. Java/transport seams in this task are synthetic; actual current
+geometry/capture/latency, runtime12 artifact/stage, native monitor and coherent
+production selection remain required. No required9 or protected72 source was
+changed, no refit/live write/model selection/action/GitHub publish occurred.
+All13 full-program requirements and Astro audit still require their own evidence.

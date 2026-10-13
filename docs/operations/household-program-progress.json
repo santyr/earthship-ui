@@ -2726,6 +2726,59 @@
         ]
       },
       "full_historical_comparator_production_latency_qualification_pending": true
+    },
+    "native_operational_issuer_cycle": {
+      "status": "implemented_private_tests_passed_live_qualification_pending",
+      "base_commit": "69645de",
+      "sources": [
+        "openhab/scripts/native_thermal_live.py",
+        "openhab/scripts/household_cycle.py"
+      ],
+      "tests": {
+        "unique_passed": 87,
+        "native_archive_and_cycle": 13,
+        "native_geometry_publication_driver": 22,
+        "legacy_cycle": 20,
+        "legacy_coordinator_driver_and_native_reader": 32,
+        "bounded_cohorts": [
+          {
+            "handle": 37610,
+            "passed": 13,
+            "seconds": 38.11,
+            "also_two_expected_issuer_RED": true
+          },
+          {
+            "handle": 69060,
+            "passed": 22,
+            "seconds": 35.0
+          },
+          {
+            "handle": 33760,
+            "passed": 20,
+            "seconds": 52.61
+          },
+          {
+            "handle": 27195,
+            "passed": 32,
+            "seconds": 24.11
+          }
+        ],
+        "discarded_combined_timeout": 7686
+      },
+      "behavior": [
+        "Closed owned private v2 settings with external artifact/runtime pins and resolved original source paths.",
+        "Three earlier installed native geometry batches cover the complete 288-point 24-hour grid; immutable per-issue records must be available before collection.",
+        "Original fixed telemetry transport retains exact native v2 captures and both actual-shaped persisted receipts, with explicit native unavailable withdrawal.",
+        "Native cycle archives require separate model/runtime/capture pins, full original source replay, versioned suffixes, lossless clocks, and unchanged originals.",
+        "Native config selects native issuer/withdrawal and context preparation; observer failures preserve valid forecast delivery."
+      ],
+      "qualification_limits": [
+        "Transport and Java worker in these tests are synthetic; this is not actual native production issuance or delivery.",
+        "Current-source geometry/capture/model/pipeline latency, updated runtime12 artifact/stage, native monitor and coherent production handoff remain required."
+      ],
+      "production_model_changed": false,
+      "live_writes": false,
+      "automatic_actuation": false
     }
   },
   "astro_efficiency_audit": {
@@ -2855,5 +2908,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T00:42:14-06:00"
+  "updated_at": "2026-10-13T07:29:00-06:00"
 }
