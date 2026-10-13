@@ -47,3 +47,17 @@ The implementation belongs to a separate native inference policy module;
 TrainingHeadroom and all fitted source bytes remain unchanged. This approval
 covers the bounded inference adjustment and qualification, while model selection
 and production readiness still require their existing evidence.
+
+## Verification
+
+Commit434f861 passed80 affected tests (19.29s) and a final10-case family
+verification run (7.61s). All72 fitted and12 native-runtime source hashes remain
+unchanged. Fresh stage434f861-native contains219 sealed sources and retains the
+original512a5d91 model andcc182b83 runtime pins.
+
+The first actual production-interpreter replay refused the preserved interval
+PSI check after25.99s, with128253952-byte peak and no memory-limit/OOM events.
+The bounded quiet retry passed original candidate numerical replay and runtime
+verification in40.37s, with113811456-byte peak and all memory-limit/OOM counters
+zero. No fitting, live-unit change, publication or model selection occurred.
+Current-input capture and full pipeline qualification remain pending.

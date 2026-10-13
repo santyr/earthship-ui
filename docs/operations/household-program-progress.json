@@ -3209,7 +3209,7 @@
       }
     },
     "native_inference_one_second_window": {
-      "status": "approved_implemented_affected_tests_pass_actual_qualification_pending",
+      "status": "approved_implemented_tests_and_actual_native_runtime_pass_current_capture_pending",
       "approval": "User explicitly approved the one-second inference window on October 13.",
       "policy": "Maximum 1048576 bytes host swap reads over trailing one second; retain sampled baseline at or before boundary; refusal latches.",
       "fitting_guard_unchanged": true,
@@ -3224,12 +3224,83 @@
       },
       "live_units_changed": false,
       "production_model_changed": false,
-      "actual_qualification_pending": true,
+      "actual_qualification_pending": false,
       "family_final_readback_tests": {
         "passed": 10,
         "seconds": 7.61,
         "handle": 94835
-      }
+      },
+      "code_revision": "434f86179bc23f0c3efd20870a3b530d4c382eb9",
+      "actual_package": {
+        "artifact_sha256": "512a5d9105deaee8e90a669e4469f515efd20e299b4af7649877d3115d3c5d84",
+        "automatic_actuation": false,
+        "code_revision": "434f86179bc23f0c3efd20870a3b530d4c382eb9",
+        "current_native_capture_projected": false,
+        "deployment_sha256": "29fc52ace88f8e24eca4f2872772b3eccc3c65f73b8a3a959c92ac867592af6e",
+        "identical_readback": true,
+        "live_units_changed": false,
+        "live_writes": false,
+        "native_source_count": 12,
+        "numerical_runtime_qualified": false,
+        "production_model_changed": false,
+        "protected_source_count": 72,
+        "retained_original_count": 4,
+        "runtime_sha256": "cc182b83be6ab7e62431d542d1e0abfb4391ba0c3493136acc88036971ec0f81",
+        "seconds": 1.2457165319938213,
+        "source_count": 219,
+        "stage": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-12-household-common-cycle/stage-434f861-native",
+        "status": "actual_private_native_package_verified"
+      },
+      "actual_runtime": {
+        "artifact_sha256": "512a5d9105deaee8e90a669e4469f515efd20e299b4af7649877d3115d3c5d84",
+        "automatic_actuation": false,
+        "code_revision": "434f86179bc23f0c3efd20870a3b530d4c382eb9",
+        "current_native_capture_projected": false,
+        "deployment_sha256": "29fc52ace88f8e24eca4f2872772b3eccc3c65f73b8a3a959c92ac867592af6e",
+        "live_units_changed": false,
+        "live_writes": false,
+        "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "memory_peak_bytes": 128253952,
+        "numerical_runtime_qualified": false,
+        "production_interpreter": true,
+        "production_model_changed": false,
+        "runtime_seconds": 25.988001251011156,
+        "runtime_sha256": "cc182b83be6ab7e62431d542d1e0abfb4391ba0c3493136acc88036971ec0f81",
+        "source_count": 219,
+        "status": "actual_native_runtime_refused",
+        "worker_result": {
+          "exception_type": "ValueError",
+          "private_diagnostic_state_retained": true,
+          "status": "native_runtime_qualification_refused"
+        },
+        "worker_status": 1
+      },
+      "runtime_refusal_reason": "Preserved interval memory pressure check refused during candidate numerical replay.",
+      "actual_runtime_retry": {
+        "artifact_sha256": "512a5d9105deaee8e90a669e4469f515efd20e299b4af7649877d3115d3c5d84",
+        "automatic_actuation": false,
+        "current_native_capture_projected": false,
+        "fit_executed": false,
+        "live_writes": false,
+        "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+        "memory_peak_bytes": 113811456,
+        "numerical_runtime_qualified": true,
+        "private_evidence_directory": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-12-household-common-cycle/native-runtime-probe-20261013T165818Z",
+        "production_model_changed": false,
+        "runtime_sha256": "cc182b83be6ab7e62431d542d1e0abfb4391ba0c3493136acc88036971ec0f81",
+        "seconds": 40.37149010394933,
+        "source_count": 219,
+        "stage": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-12-household-common-cycle/stage-434f861-native",
+        "status": "actual_native_runtime_verified",
+        "worker_result": {
+          "automatic_actuation": false,
+          "deployment_sha256": "29fc52ace88f8e24eca4f2872772b3eccc3c65f73b8a3a959c92ac867592af6e",
+          "status": "runtime_verified"
+        },
+        "worker_status": 0,
+        "handle": 68900
+      },
+      "current_native_capture_qualification_pending": true
     }
   },
   "astro_efficiency_audit": {
@@ -3359,5 +3430,5 @@
       "native_daily_refresh_acceptance_pending": true
     }
   },
-  "updated_at": "2026-10-13T16:53:28.656964+00:00"
+  "updated_at": "2026-10-13T17:03:05.521865+00:00"
 }
