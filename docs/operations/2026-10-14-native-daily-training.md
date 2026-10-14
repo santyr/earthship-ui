@@ -70,3 +70,8 @@ The production checkout also inherited group-writable files from the shell
 umask; installation removed group/other write permission from its tracked files.
 Use umask 0022 or stricter when updating this checkout. Both setup issues were
 corrected before enabling the timer.
+
+Resource-policy clarification: the 20% CPU values above describe the initial
+installation, not a permanent development or production requirement. The user
+permits larger allocations when their combined demand leaves host headroom.
+The daily worker's current profile is unchanged by the forecast-only CPU update.

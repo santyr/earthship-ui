@@ -77,7 +77,7 @@ LIVE_SCHEMA='earthship-provisional-thermal-live-config/v2'
 SERVING_SCHEMA='earthship-provisional-thermal-live-config/v3'
 SOURCE='openhab/scripts/native_thermal_live.py'
 
-RESOURCE_SOURCE_SHA256='46c8b6704592d12fb3637dfc59d0c77978f286954c34101a485e51dc82a3a9ad'
+RESOURCE_SOURCE_SHA256='092dab2595bb8f8478fd0519118e1e277ab8aa61d887d5ff2fc38d4ea7717f70'
 
 
 def _resource_preflight():

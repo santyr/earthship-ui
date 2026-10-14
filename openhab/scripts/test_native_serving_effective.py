@@ -42,3 +42,11 @@ def test_effective_receipt_family_refuses_changed_selection_or_limits(tmp_path,m
     elif damage=='memory':states['thermal-provisional-score.service']['MemoryMax']='536870912'
     else:states['thermal-provisional-score.timer']['ActiveState']='active'
     with pytest.raises(ValueError):install._verify_effective_family(family,guard=lambda:None)
+
+
+@pytest.mark.parametrize('unit', ['thermal-provisional-score.service', 'thermal-native-geometry-prepare.service'])
+def test_other_roles_do_not_inherit_forecast_cpu_budget(tmp_path, monkeypatch, unit):
+    install, family, pin, states = fixture(tmp_path, monkeypatch)
+    states[unit]['CPUQuotaPerSecUSec'] = '1s'
+    with pytest.raises(ValueError, match='role CPU budget'):
+        install._verify_effective_family(family, guard=lambda: None)

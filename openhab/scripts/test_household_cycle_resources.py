@@ -25,7 +25,7 @@ def test_explicit_io_controller_retains_weight_check_without_idle_fallback(tmp_p
     publication_resource_preflight(**args);assert calls==[]
 
 
-@pytest.mark.parametrize('name,value',[('cpu.max','25000 100000'),('cpu.max','max 100000'),('cpu.max','0 100000'),('memory.max','268435457'),('memory.max','max'),('memory.swap.max','1'),('pids.max','25'),('pids.max','0'),('io.weight','default 11'),('io.weight','default 0'),('io.weight','default 10\n8:0 10')])
+@pytest.mark.parametrize('name,value',[('cpu.max','100001 100000'),('cpu.max','max 100000'),('cpu.max','0 100000'),('memory.max','268435457'),('memory.max','max'),('memory.swap.max','1'),('pids.max','25'),('pids.max','0'),('io.weight','default 11'),('io.weight','default 0'),('io.weight','default 10\n8:0 10')])
 def test_relaxed_or_unknown_kernel_caps_refuse(name,value,tmp_path):
     args,_=fixture(tmp_path);(args['leaf']/name).write_text(value)
     with pytest.raises(ValueError):publication_resource_preflight(**args)
@@ -118,7 +118,7 @@ def test_resource_root_alias_is_resolved_again(tmp_path,monkeypatch):
     assert api._leaf()==other/'a'
 
 
-@pytest.mark.parametrize('name,value',[('cpu.max','25000 100000'),('memory.max','268435457'),('memory.swap.max','1'),('pids.max','25'),('io.weight','default 11')])
+@pytest.mark.parametrize('name,value',[('cpu.max','100001 100000'),('memory.max','268435457'),('memory.swap.max','1'),('pids.max','25'),('io.weight','default 11')])
 def test_resource_paths_reused_without_caching_current_caps(tmp_path,name,value):
     args,_=fixture(tmp_path);publication_resource_preflight(**args)
     (args['leaf']/name).write_text(value)

@@ -30,3 +30,27 @@ model and four original evidence files, verifies unchanged protected and require
 native fitting sources, and creates a new candidate/receipt for the serving
 runtime. No fresh fit or cold preparer qualification probe is required. Actual
 household publication remains to be verified after activation.
+
+## Production CPU correction
+
+The observer-window family activated successfully without refitting. Its natural
+18:23 UTC geometry preparation completed, but the 18:24:45 UTC forecast hit the
+90-second service timeout at the old 20%-of-one-core quota. Household observation
+was still stale. Activation alone therefore did not establish the repair.
+
+The native forecast now receives one CPU (`CPUQuota=100%`). It uses the existing
+publication RAM/pressure admission instead of the original 20% profile. Memory
+remains 256 MiB, worker swap remains zero, and scheduling priority, thread count,
+deadlines and source validation remain unchanged. The staged driver identifies
+this profile so historical sealed families retain their exact original bytes.
+The installer verifies the precise quota for each service; scoring and Java
+geometry retain their current quotas pending separate measured changes.
+
+The user permits increased development and production resources, with combined
+host load as the constraint. The one-core regression run passed 80 cases in
+11.11 seconds. It covers production admission, family compatibility, handoff,
+role-specific effective limits and receipt serving. A misplaced timer CPU check
+was caught and corrected before packaging. This change does not yet implement
+the proposed shared cgroup budget or dynamic admission coordinator.
+
+Live completion evidence must follow the next scheduled serving cycle.

@@ -10,6 +10,8 @@ from household.codec import canonical,loads
 from household.evidence import utc
 from household_cycle_deadline import observation_deadline,ObservationDeadline,MAX_OBSERVATION_SECONDS
 
+FORECAST_CPU_QUOTA = '100%'
+
 MAX_SOURCE_BYTES=1048576
 MAX_COLLECTION_SECONDS=MAX_OBSERVATION_SECONDS
 ISSUE_MARGIN=timedelta(seconds=3)
@@ -298,7 +300,6 @@ def run_cycle(config_path,*,code_revision,forecast_config=None,stage=None,deploy
     from thermal_model.provisional_live import load_settings,publish_cycle,withdraw
     from thermal_model.capture_guard import SharedScoreLock
     from household_cycle_pressure import PublicationHeadroom
-    _resource_preflight()
     os.environ['EARTHSHIP_QUALIFICATION_FIT']='0';os.environ['EARTHSHIP_REMOTE_QUALIFICATION_FIT']='0'
     config_path=Path(config_path).absolute()
     if forecast_config is None:forecast_config=load_cycle_settings(config_path)['forecast_config']
@@ -307,7 +308,10 @@ def run_cycle(config_path,*,code_revision,forecast_config=None,stage=None,deploy
     receipt_profile=isinstance(original_settings,dict) and original_settings.get('schema')=='earthship-provisional-thermal-live-config/v3'
     native_profile=isinstance(original_settings,dict) and original_settings.get('schema') in ('earthship-provisional-thermal-live-config/v2','earthship-provisional-thermal-live-config/v3')
     if native_profile:
+        from household_cycle_resources import publication_resource_preflight
+        publication_resource_preflight()
         from native_thermal_live import load_settings,publish_cycle,withdraw,current_runtime
+    else:_resource_preflight()
     settings=load_settings(forecast_path)
     if receipt_profile:
         from thermal_model.graduation_policy import _sha

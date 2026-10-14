@@ -68,7 +68,7 @@ def publication_resource_preflight(*,leaf=None,meminfo=Path('/proc/meminfo'),pre
         quota,period=map(int,_resource_text(paths['cpu.max']).split())
         memory=int(_resource_text(paths['memory.max']));swap=int(_resource_text(paths['memory.swap.max']))
         tasks=int(_resource_text(paths['pids.max']))
-        if not (0<quota and 0<period and quota*5<=period and 0<memory<=268435456 and swap==0 and 0<tasks<=24):
+        if not (0<quota and 0<period and quota<=period and 0<memory<=268435456 and swap==0 and 0<tasks<=24):
             raise ValueError('publication caps exceed approved limits')
         try:weight=_resource_text(paths['io.weight']).splitlines()
         except FileNotFoundError:

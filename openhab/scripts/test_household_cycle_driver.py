@@ -23,6 +23,8 @@ def setup(tmp_path,monkeypatch):
     forecast_settings={'shared_lock':str(tmp_path/'lock'),'token_file':str(tmp_path/'token'),'openhab_base':'http://127.0.0.1:8080/rest'}
     monkeypatch.setattr(forecast,'load_settings',lambda path:forecast_settings)
     monkeypatch.setattr(installed,'_resource_preflight',lambda:calls.append('resources'))
+    import household_cycle_resources
+    monkeypatch.setattr(household_cycle_resources,'publication_resource_preflight',lambda:calls.append('resources'))
     class Lock:
         def __init__(self,path):assert path==forecast_settings['shared_lock']
         def __enter__(self):calls.append('locked');return self

@@ -298,7 +298,9 @@ def _service_state(service):
 
 def _inactive_capped(state):
     if state.get('ActiveState') not in ('inactive','failed') or state.get('MainPID')!='0':raise ValueError('original publisher still active')
-    if any(state.get(key)!=value for key,value in EFFECTIVE_LIMITS.items()):raise ValueError('effective original limits differ')
+    if (state.get('CPUQuotaPerSecUSec') not in ('200ms','1s') or
+        any(state.get(key)!=value for key,value in EFFECTIVE_LIMITS.items() if key!='CPUQuotaPerSecUSec')):
+        raise ValueError('effective original limits differ')
 
 
 def _qualify(stage,*,deployment_sha256=None):
