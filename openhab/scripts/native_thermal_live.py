@@ -171,11 +171,7 @@ def publish_cycle(settings,*,guard,geometry=None,backend=None,serving_model=None
         if available>issue:raise ValueError('original native sources arrived after issue')
         while _clock()<issue:
             within_deadline();sleep(min(.1,max(0,(issue-_clock()).total_seconds())))
-        report=None;report_path=Path(settings['evidence_directory'])/'latest-native-provisional-performance.json'
-        if report_path.exists():
-            try:
-                possible=_read_private(report_path);original._validate_report(possible,expected_artifact,available);report=possible
-            except (OSError,ValueError,TypeError,KeyError):pass
+        report=_read_monitoring_report(Path(settings['evidence_directory']),expected_artifact,available)
         if receipt_profile:
             capture=forecasts.build_serving_capture(serving_model,inputs,geometry=geometry,
                 expected_geometry_sha256=geometry.sha256,issue=issue,available=available,published=_clock(),
@@ -398,17 +394,39 @@ def _native_completion_index(root,now,guard):
     return index
 
 
+def _native_report_path(root,artifact):
+    from thermal_model.graduation_policy import _sha
+    return Path(root)/('native-provisional-performance-'+_sha(artifact)+'.json')
+
+
+def _read_monitoring_report(root,artifact,available):
+    from thermal_model.policy_registration import _read_private
+    from thermal_model.provisional_forecast import _validate_report
+    path=_native_report_path(root,artifact)
+    if not path.exists() and not path.is_symlink():
+        path=Path(root)/'latest-native-provisional-performance.json'
+    if path.exists() or path.is_symlink():
+        try:
+            report=_read_private(path);_validate_report(report,artifact,available)
+            return report
+        except (OSError,ValueError,TypeError,KeyError):pass
+    return None
+
+
 def _write_native_report(root,report,guard):
     import os,secrets
     from thermal_model.forcing_capture import _private_directory
     from thermal_model.runtime_bundle import _write_private,_sync_directory
-    root=_private_directory(root);path=root/'latest-native-provisional-performance.json'
-    if path.exists():_owned_bytes(path,131072)
-    temporary=root/('.native-performance-'+secrets.token_hex(16))
-    try:
-        _write_private(temporary,_canonical(report));guard();os.replace(temporary,path);_sync_directory(root)
-    finally:
-        if temporary.exists():temporary.unlink()
+    root=_private_directory(root)
+    paths=(_native_report_path(root,report['artifact_sha256']),root/'latest-native-provisional-performance.json')
+    for path in paths:
+        if path.exists() or path.is_symlink():_owned_bytes(path,131072)
+    for path in paths:
+        temporary=root/('.native-performance-'+secrets.token_hex(16))
+        try:
+            _write_private(temporary,_canonical(report));guard();os.replace(temporary,path);_sync_directory(root)
+        finally:
+            if temporary.exists():temporary.unlink()
 
 
 def refresh_report(settings,*,runtime,artifact_sha256,now,guard,serving_model=None):
@@ -457,10 +475,10 @@ def score_jobs(settings,*,guard,reader=None,max_jobs=1,serving_model=None,histor
         _serving_settings(serving_model,settings,assessed_at=now,guard=remaining)
     elif serving_model is not None or historical_selections:raise ValueError('receipt context requires explicit serving profile')
     root=_private_directory(Path(settings['evidence_directory']))
-    report_path=root/'latest-native-provisional-performance.json'
-    if report_path.exists():
-        from thermal_model.runtime_bundle import _sync_directory
-        _owned_bytes(report_path,131072);remaining();report_path.unlink();_sync_directory(root)
+    for report_path in (_native_report_path(root,settings['artifact_sha256']),root/'latest-native-provisional-performance.json'):
+        if report_path.exists() or report_path.is_symlink():
+            from thermal_model.runtime_bundle import _sync_directory
+            _owned_bytes(report_path,131072);remaining();report_path.unlink();_sync_directory(root)
     with shared_replay_budget(remaining),capture_source_reads() as originals:
         runtime=serving_model.runtime if receipt_profile else current_runtime(guard=remaining)
         if runtime_digest(runtime)!=settings['runtime_sha256'] or SOURCE not in runtime['native_source_manifest']:

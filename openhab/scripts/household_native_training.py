@@ -86,6 +86,20 @@ def effective_selection():
     return dict(stage=stage, deployment_sha256=pin)
 
 
+def build_deployment_candidate(*, originals, runtime, previous, created_at, guard):
+    """Keep verified model identity when only its deployment changes."""
+    from native_thermal_artifact import build_native_candidate, _references
+    guard()
+    same_model = (previous['runtime'] == runtime and
+                  previous['originals'] == _references(originals))
+    model_time = datetime.fromisoformat(previous['created_at']) if same_model else created_at
+    candidate = build_native_candidate(originals=originals, runtime=runtime,
+        created_at=model_time, guard=guard)
+    if same_model and candidate != previous:
+        raise ValueError('previous model differs from rederived original evidence')
+    return candidate
+
+
 class NativeTraining:
     def __init__(self, config):
         self.config = config
@@ -250,21 +264,24 @@ class NativeTraining:
         return self.package(run, originals, runtime, previous, libraries, commit)
 
     def package(self, run, originals, runtime, previous, libraries, commit):
-        from native_thermal_artifact import build_native_candidate, write_native_candidate
+        from native_thermal_artifact import write_native_candidate
         from native_model_serving_receipt import admit_model
         import household_cycle_deploy as deploy
         from household_native_family import prepare_score_dispatch, prepare
         from household_forecast_score import read_score_dispatch
-        candidate = build_native_candidate(originals=originals, runtime=runtime,
-            created_at=datetime.now(timezone.utc), guard=self.guard)
+        cycle = read(Path(previous['stage']) / 'cycle.json')
+        settings = read(cycle['forecast_config'], 8192)
+        previous_candidate = read(settings['candidate_path'])
+        if previous_candidate['artifact_sha256'] != settings['artifact_sha256']:
+            raise ValueError('previous model selection differs')
+        candidate = build_deployment_candidate(originals=originals, runtime=runtime,
+            previous=previous_candidate, created_at=datetime.now(timezone.utc), guard=self.guard)
         path = write_native_candidate(directory(run / 'candidate'), candidate,
             assessed_at=datetime.now(timezone.utc), runtime=runtime,
             expected_artifact_sha256=candidate['artifact_sha256'], guard=self.guard)
         receipt = admit_model(path, runtime=runtime, expected_artifact_sha256=candidate['artifact_sha256'],
             directory=directory(run / 'receipts'), clock=lambda: datetime.now(timezone.utc), guard=self.guard)
         receipt_pin = sha256(receipt.read_bytes()).hexdigest()
-        cycle = read(Path(previous['stage']) / 'cycle.json')
-        settings = read(cycle['forecast_config'], 8192)
         settings.update(candidate_path=str(path), artifact_sha256=candidate['artifact_sha256'],
             runtime_sha256=candidate['runtime_sha256'], model_receipt_path=str(receipt),
             model_receipt_sha256=receipt_pin, geometry_directory=str(directory(run / 'geometry-live')))

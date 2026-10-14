@@ -242,9 +242,10 @@ def native_score_selection(dispatch,at):
     if score_role(at)!='current':raise ValueError('explicit native scoring opportunity required')
     historical=dispatch['historical']
     if not historical:return 'current'
-    # One native opportunity every ten minutes rotates all owned selections.
-    targets=['current',*historical]
-    return targets[(int(at.timestamp())//600)%len(targets)]
+    # Keep current-model feedback every twenty minutes regardless of backlog
+    # size; alternate slots continue rotating all explicitly owned history.
+    slot=int(at.timestamp())//600
+    return 'current' if slot%2==0 else historical[(slot//2)%len(historical)]
 
 
 def execute_retained_native_score(selection):

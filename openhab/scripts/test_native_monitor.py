@@ -179,3 +179,15 @@ def test_native_gap_cache_accepts_more_than_eight_hours_within_recent_queue_wind
         live._retain_native_gap(folder,job,d,delivery_path,capture,horizon=1,target=target,now=assessed,paths=[str(packet)],guard=lambda:None)
     now=base+timedelta(minutes=15*47+1)
     assert live._native_gap_pending(root,now,job,d,delivery_path,capture,lambda:None) is True
+
+
+def test_source_loss_invalidates_model_specific_report_too(tmp_path,monkeypatch,originals):
+    live,s,reader,clock,capture,d=setup(tmp_path,monkeypatch,originals)
+    live.score_jobs(s,guard=lambda:None,reader=reader)
+    root=Path(s['evidence_directory'])
+    scoped=live._native_report_path(root,s['artifact_sha256'])
+    assert scoped.exists()
+    next(root.glob('scores-*/*.native-thermal-score-sources-v1.json')).unlink()
+    with pytest.raises((ValueError,OSError)):
+        live.score_jobs(s,guard=lambda:None,reader=reader)
+    assert not scoped.exists()

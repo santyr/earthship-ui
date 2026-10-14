@@ -57,3 +57,17 @@ def test_receipt_drift_between_two_writes_never_qualifies_delivery(tmp_path,orig
     with pytest.raises(ValueError):live.publish_cycle(settings,guard=lambda:None,geometry=geometry,backend=backend,serving_model=model)
     assert backend.puts==[NUMERIC_ITEM]
     assert not list(Path(settings['evidence_directory']).glob('origins-*/*.native-provisional-delivery-v2.json'))
+
+
+def test_publication_retains_selected_report_after_historical_refresh(tmp_path,originals,monkeypatch):
+    from native_thermal_score import summarize
+    live,settings,model,backend,geometry,stage=fixture(tmp_path,originals,monkeypatch)
+    report=summarize([],artifact_sha256=settings['artifact_sha256'])
+    report['assessed_at']=(ISSUE-timedelta(seconds=30)).isoformat()
+    historical=summarize([],artifact_sha256='f'*64);historical['assessed_at']=report['assessed_at']
+    root=Path(settings['evidence_directory'])
+    live._write_native_report(root,report,lambda:None)
+    live._write_native_report(root,historical,lambda:None)
+    result=live.publish_cycle(settings,guard=lambda:None,geometry=geometry,backend=backend,serving_model=model)
+    capture=json.loads(Path(result['origin_path']).read_bytes())
+    assert result['delivery_verified'] is True and capture['monitoring_report']==report
