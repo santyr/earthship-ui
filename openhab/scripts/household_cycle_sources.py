@@ -34,6 +34,9 @@ from household.evidence import utc
 from household_capture import _connection
 from household_cycle_deadline import MAX_OBSERVATION_SECONDS
 
+DAILY_STATE_PATH=Path('/home/sat/.local/state/forecast-intel/state.json')
+DAILY_RECEIPT_ITEM='Forecast_Prediction_Receipt_JSON'
+
 PRIVATE_PATHS={
     'energy_db':Path('/home/sat/.config/hex/energy-power-reader.jdbc'),
     'native_db':Path('/home/sat/.config/hex/weather-temperature-db.json'),
@@ -103,7 +106,7 @@ class CycleSourceCollector:
     def _owner_transport(self,item,*,remaining):
         from household.capture import RECEIPT_ITEMS
         from household.power_snapshot import SOURCES
-        if item not in {*RECEIPT_ITEMS.values(),*[row[0] for row in SOURCES.values()]}:
+        if item not in {DAILY_RECEIPT_ITEM,*RECEIPT_ITEMS.values(),*[row[0] for row in SOURCES.values()]}:
             raise ValueError('fixed owner item required')
         budget=remaining()
         if threading.current_thread() is not threading.main_thread() or signal.getitimer(signal.ITIMER_REAL)!=(0.,0.):
@@ -147,6 +150,19 @@ class CycleSourceCollector:
             if utc(self.clock())>=issue:raise ValueError('original sources arrived after issue')
             return value
         check();before={};after={}
+        # Daily state is an existing mutable input, not an immutable credential
+        # or release artifact. Retain only its exact energy record and match it
+        # to the independently read published receipt before using it.
+        from household.daily_energy_source import capture_daily_source
+        daily_source=None
+        try:
+            daily_raw=_read(DAILY_STATE_PATH,2097152)
+            daily_receipt=self.owner_reader(DAILY_RECEIPT_ITEM,remaining=check)
+            daily_source=capture_daily_source(daily_raw,daily_receipt,collected_at=utc(self.clock()))
+            if _read(DAILY_STATE_PATH,2097152)!=daily_raw:daily_source=None
+        except (OSError,ValueError,KeyError,TypeError):
+            daily_source=None
+        check()
         parsers={RECEIPT_ITEMS['battery_soc']:parse_evidence,RECEIPT_ITEMS['pv_day_wh']:parse_pv_receipt,
                  **{item:parser for item,parser in SOURCES.values()}}
         def owners(target):
@@ -183,8 +199,8 @@ class CycleSourceCollector:
         if replay_power_snapshot(receipt,runtime_manifest=self.runtime)!=receipt:raise ValueError('original source replay differs')
         self.verify_unchanged(check);finished=utc(self.clock())
         if not started<=finished<issue:raise ValueError('source collection clock changed')
-        result=dict(schema='earthship-household-cycle-sources/v1',issue=issue.isoformat(),captured_at=finished.isoformat(),
-            power_receipt=receipt,energy_configuration=configuration.to_dict(),measured_weather=measured.to_dict(),
+        result=dict(schema='earthship-household-cycle-sources/v2',issue=issue.isoformat(),captured_at=finished.isoformat(),
+            power_receipt=receipt,energy_configuration=configuration.to_dict(),measured_weather=measured.to_dict(),daily_energy_source=daily_source,
             owner_bindings=dict(before=before,after=after),automatic_actuation=False)
         if len(canonical(result))>1048576:raise ValueError('bounded cycle source originals required')
         check();return result

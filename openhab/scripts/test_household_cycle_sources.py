@@ -44,6 +44,7 @@ def collector_fixture(tmp_path,monkeypatch):
     from test_household_measured_weather import sources
     from household import measured_weather_capture
     module=api()
+    monkeypatch.setattr(module,'DAILY_STATE_PATH',tmp_path/'absent-daily-state.json',raising=False)
     paths={name:tmp_path/(name+'.json') for name in ('energy_db','native_db','native_policy')}
     policy={'version':2,'streams':{stream:{'model':model,'sensor_id':sensor,**POLICY,'sensor_epoch':str(UUID(int=30+index))} for index,(name,(stream,model,sensor)) in enumerate(STREAMS.items())}}
     for name,path in paths.items():

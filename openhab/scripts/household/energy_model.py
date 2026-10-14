@@ -90,15 +90,22 @@ class PreparedEnergyInputs:
     content:bytes
 
     def __post_init__(self):
-        if not isinstance(self.content,bytes) or len(self.content)>8192:raise ValueError('bounded prepared energy context required')
+        if not isinstance(self.content,bytes) or len(self.content)>73728:raise ValueError('bounded prepared energy context required')
         value=loads(self.content)
-        version=value.get('schema');configured=version=='earthship-household-prepared-energy/v2'
-        if not isinstance(value,dict) or set(value)!=(PREPARED_ENERGY_FIELDS|{'configuration_binding'} if configured else PREPARED_ENERGY_FIELDS) or version not in ('earthship-household-prepared-energy/v1','earthship-household-prepared-energy/v2'):
+        version=value.get('schema');daily=version=='earthship-household-prepared-energy/v3'
+        configured=version in ('earthship-household-prepared-energy/v2','earthship-household-prepared-energy/v3')
+        if not isinstance(value,dict) or set(value)!=(PREPARED_ENERGY_FIELDS|({'configuration_binding'} if configured else set())|({'daily_source'} if daily else set())) or version not in ('earthship-household-prepared-energy/v1','earthship-household-prepared-energy/v2','earthship-household-prepared-energy/v3'):
             raise ValueError('closed prepared energy context required')
         digest(value['snapshot_id'])
         if value['battery_evidence_sha256'] is not None:digest(value['battery_evidence_sha256'])
         if instant(value['available_at'])<instant(value['as_of']):raise ValueError('energy availability precedes collection')
         FrozenEnergyInputs(canonical(value['numerical_inputs']))
+        if daily:
+            from .daily_energy_source import daily_inputs
+            original=daily_inputs(value['daily_source'],as_of=instant(value['as_of']))
+            actual=value['numerical_inputs']['inputs']
+            if canonical({k:v for k,v in actual.items() if k!='soc_pct'})!=canonical({k:v for k,v in original.items() if k!='soc_pct'}):
+                raise ValueError('current energy inputs differ from retained daily arguments')
         if configured:
             binding=value['configuration_binding']
             if not isinstance(binding,dict) or set(binding)!=CONFIGURATION_BINDING_FIELDS or binding['basis']!='original_declared_nominal_bank_configuration':
@@ -122,7 +129,7 @@ class PreparedEnergyInputs:
     def numerical(self):return FrozenEnergyInputs(canonical(self.to_dict()['numerical_inputs']))
 
 
-def bind_energy_inputs(inputs,*,snapshot):
+def bind_energy_inputs(inputs,*,snapshot,daily_source=None):
     if not isinstance(inputs,FrozenEnergyInputs) or not isinstance(snapshot,HouseholdSnapshot):raise ValueError('frozen energy and original snapshot required')
     snap=snapshot.to_dict();row=snap['domains']['energy']['battery_soc'];ref=row['evidence']
     value=dict(schema='earthship-household-prepared-energy/v1',numerical_inputs=inputs.to_dict(),snapshot_id=snapshot.snapshot_id,
@@ -137,4 +144,7 @@ def bind_energy_inputs(inputs,*,snapshot):
             bank_epoch_id=bank['epoch_id'] if bound else None,nominal_bank_kwh=capacity if bound else None,
             basis='original_declared_nominal_bank_configuration',status='bound' if bound else 'unavailable',
             reason=None if bound else bank['reason'] or 'nominal_capacity_unavailable'))
+    if daily_source is not None:
+        if 'configuration_binding' not in value:raise ValueError('daily source requires original configured snapshot')
+        value.update(schema='earthship-household-prepared-energy/v3',daily_source=daily_source)
     return PreparedEnergyInputs(canonical(value))

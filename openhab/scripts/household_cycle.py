@@ -107,7 +107,9 @@ def derive_cycle(*,originals,capture,receipts,thermal,weather,parameter_record,r
         raise ValueError('explicit original cycle capture version required')
     validate_delivery(capture,receipts)
     fields={'schema','issue','captured_at','power_receipt','energy_configuration','measured_weather','owner_bindings','automatic_actuation'}
-    if not isinstance(originals,dict) or set(originals)!=fields or originals['schema']!='earthship-household-cycle-sources/v1' or originals['automatic_actuation'] is not False:
+    daily_source_version=isinstance(originals,dict) and originals.get('schema')=='earthship-household-cycle-sources/v2'
+    if daily_source_version:fields.add('daily_energy_source')
+    if not isinstance(originals,dict) or set(originals)!=fields or originals['schema'] not in ('earthship-household-cycle-sources/v1','earthship-household-cycle-sources/v2') or originals['automatic_actuation'] is not False:
         raise ValueError('closed original cycle sources required')
     issue=instant(capture['issued_at']);now=utc(now)
     if instant(originals['issue'])!=issue or instant(originals['captured_at'])>issue or now<instant(capture['published_at']):
@@ -119,15 +121,25 @@ def derive_cycle(*,originals,capture,receipts,thermal,weather,parameter_record,r
         raise ValueError('independently prepared original models required')
     if thermal.to_dict()['original_capture_sha256']!=capture['capture_sha256'] or canonical(weather.original_capture)!=canonical(capture):
         raise ValueError('original model capture differs')
-    if not isinstance(parameter_record,dict) or instant(parameter_record['collected_at'])>issue:
+    if not daily_source_version and (not isinstance(parameter_record,dict) or instant(parameter_record['collected_at'])>issue):
         raise ValueError('original earlier parameters required')
     configuration=PreparedEnergyConfiguration(canonical(originals['energy_configuration']))
     measured=PreparedMeasuredWeather(canonical(originals['measured_weather']))
     snapshot=bind_measured_weather_snapshot(source_receipt=source,source_runtime_manifest=source['runtime_manifest'],
         weather_context=weather,energy_configuration=configuration,measured_weather=measured,code_revision=code_revision)
     body=snapshot.to_dict();soc=body['domains']['energy']['battery_soc']['value']
-    numerical={**parameter_record['record']['household_energy_inputs'],'soc_pct':soc}
-    energy=bind_energy_inputs(freeze_energy_inputs(**numerical),snapshot=snapshot)
+    energy=None
+    if daily_source_version:
+        from household.daily_energy_source import daily_inputs
+        daily_source=originals['daily_energy_source']
+        if daily_source is not None:
+            if instant(daily_source['collected_at'])>instant(originals['captured_at']):
+                raise ValueError('daily energy source arrived after collection was frozen')
+            numerical={**daily_inputs(daily_source,as_of=issue),'soc_pct':soc}
+            energy=bind_energy_inputs(freeze_energy_inputs(**numerical),snapshot=snapshot,daily_source=daily_source)
+    else:
+        numerical={**parameter_record['record']['household_energy_inputs'],'soc_pct':soc}
+        energy=bind_energy_inputs(freeze_energy_inputs(**numerical),snapshot=snapshot)
     registry=CapabilityRegistry(canonical({key:value for key,value in source['registry'].items() if key!='registry_id'}))
     if registry.to_dict()!=source['registry']:raise ValueError('original registry differs')
     preferences=dict(horizon_hours=24,reserve_soc=10.,low_trough_threshold_soc_pct=90.,surplus_weight=1.,reserve_weight=1.,comfort_min_f=65.,comfort_max_f=80.)

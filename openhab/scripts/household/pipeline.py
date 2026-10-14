@@ -49,8 +49,8 @@ def _projections(snapshot,energy_inputs,thermal_inputs,thermal_runtime,now,horiz
             origin['battery_evidence_sha256']!=(None if ref is None else ref['digest'])):
             raise ValueError('energy origin differs from shared snapshot')
         configured=snap.get('schema') in ('earthship-household-snapshot/v5','earthship-household-snapshot/v6')
-        if configured or origin['schema']=='earthship-household-prepared-energy/v2':
-            if canonical(bind_energy_inputs(energy_inputs.numerical,snapshot=snapshot).to_dict())!=canonical(origin):raise ValueError('original energy configuration binding differs')
+        if configured or origin['schema'] in ('earthship-household-prepared-energy/v2','earthship-household-prepared-energy/v3'):
+            if canonical(bind_energy_inputs(energy_inputs.numerical,snapshot=snapshot,daily_source=origin.get('daily_source')).to_dict())!=canonical(origin):raise ValueError('original energy configuration binding differs')
         reference=energy_inputs.numerical.to_dict()['inputs']['soc_pct']
         if reference is not None and reference!=snap['domains']['energy']['battery_soc']['value']:
             raise ValueError('energy SoC reference differs from shared snapshot')
@@ -58,6 +58,10 @@ def _projections(snapshot,energy_inputs,thermal_inputs,thermal_runtime,now,horiz
         energy.pop('projection_sha256')
         energy['collection_binding']={key:origin[key] for key in ('snapshot_id','as_of','available_at','battery_evidence_sha256')}
         if configured:energy['collection_binding']['configuration_binding']=origin['configuration_binding']
+        if 'daily_source' in origin:
+            energy['collection_binding']['daily_source_sha256']=identity(origin['daily_source'])
+            energy['collection_binding']['daily_prediction_day']=origin['daily_source']['prediction_day']
+            energy['collection_binding']['daily_source_basis']='post_issue_retained_inputs_matched_to_published_receipt'
         energy['projection_sha256']=identity(energy)
     if thermal_inputs is not None:
         if not isinstance(thermal_inputs,PreparedProjection):raise ValueError('prepared original thermal context required')

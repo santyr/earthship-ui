@@ -7506,6 +7506,42 @@
       "next_work": "Bind household energy projection to freshly retained daily inputs and their original forecast receipts; retain exact replay and explicit provenance. Add qualified read-only owner-state sources separately; no new request or actuator authority.",
       "automatic_actuation": false,
       "full_architecture_complete": false
+    },
+    "household_daily_energy_source_refresh": {
+      "implemented": true,
+      "deployed": false,
+      "tests_passed": 350,
+      "suite_seconds": 60.71,
+      "source_schema": "earthship-household-cycle-sources/v2",
+      "prepared_energy_schema": "earthship-household-prepared-energy/v3",
+      "actual_daily_input_validation": {
+        "automatic_actuation": false,
+        "collected_at": "2026-10-14T23:29:18.945130+00:00",
+        "exact_inputs": {
+          "bank_kwh": 20.48,
+          "direct_demand_kwh": 5.403262720000002,
+          "eta_rt": 0.95,
+          "overnight_drops_pct": [
+            16.0,
+            16.0,
+            14.0
+          ],
+          "resource_kwh": 2.011388888888889,
+          "soc_pct": 83.0,
+          "tomorrow_cloud_pct": 42
+        },
+        "input_qualification": "not_assessed",
+        "issued_at": "2026-10-14T12:40:49.420253+00:00",
+        "live_writes": false,
+        "prediction_day": "2026-10-14",
+        "receipt_sha256": "8411e0c34698981eda772133b843cace8dc7bfb76cce96fa1a692478df0ca8a2",
+        "source_basis": "post_issue_retained_inputs_matched_to_published_receipt",
+        "state_sha256": "ef4aca0a8ec3b094bc0005bad3c2c90ed2f4fbe191fa78172f500b5a99ccbf11",
+        "status": "actual_current_daily_inputs_matched"
+      },
+      "actual_new_pipeline_replay": "pending new current-runtime original snapshot after deployment; old source-runtime pin correctly refused reinterpretation",
+      "review": "pending",
+      "automatic_actuation": false
     }
   },
   "astro_efficiency_audit": {
@@ -7660,5 +7696,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T23:23:28.605521+00:00"
+  "updated_at": "2026-10-14T23:32:39.970348+00:00"
 }
