@@ -32,11 +32,11 @@ class EndpointWindowScoreReader(native.NativeScoreReader):
         def remaining():
             self._acquisition_check();return remaining_budget(self.budget.remaining())
         if path is None:
-            try:packet=fetch_endpoint_source(lambda:self._connect(config),targets=targets,assessed_at=assessed,
+            try:packet=self._fetch_packet(config,targets=targets,assessed_at=assessed,
                 stream='indoor',policy=policies['indoor'],sensor_epoch=sensor_epoch,remaining_timeout=remaining)
             except psycopg2.Error:raise ValueError('bounded original paired native source unavailable') from None
             size=len(_canonical(packet))
-            if self._query_bytes+size>native.MAX_QUERY_BYTES:raise ValueError('aggregate native pair source bytes exceed bound')
+            if self._query_bytes+size+getattr(self,'_pending_query_bytes',0)>native.MAX_QUERY_BYTES:raise ValueError('aggregate native pair source bytes exceed bound')
             path=write_compressed_temperature_source(self.settings['output_directory'],packet,before_publish=self._acquisition_check)
         else:size=self._paired_sizes[key]
         retained=read_compressed_temperature_source(path.parent,path)
@@ -52,11 +52,53 @@ class EndpointWindowScoreReader(native.NativeScoreReader):
         return selected
 
 
-def fetch_endpoint_source(connection_factory,*,targets,assessed_at,stream,policy,sensor_epoch,remaining_timeout):
+    def _fetch_packet(self,config,**request):
+        return fetch_endpoint_source(lambda:self._connect(config),**request)
+
+
+class RecentCycleWindowReader(EndpointWindowScoreReader):
+    """Acquire one baseline batch; retain only packets the comparator requests."""
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+        self._pending_packets={};self._pending_query_bytes=0;self._pending_context=None
+
+    def _fetch_packet(self,config,**request):
+        targets=request['targets'];assessed=request['assessed_at'];epoch=request['sensor_epoch']
+        key=(tuple(targets),assessed,epoch)
+        if key not in self._pending_packets and len(targets)==2:
+            from thermal_model.recent_cycles import POLICY,shifted_clock
+            span=targets[-1]-targets[0];context=(assessed,epoch,span)
+            pairs=[]
+            for lag in range(1,POLICY['lookback_days']+1):
+                origin=shifted_clock(assessed,lag);end=shifted_clock(assessed+span,lag)
+                if origin is not None and end is not None and origin<end<assessed and end-origin==span:
+                    pairs.append([origin,end])
+            if targets in pairs and context!=self._pending_context:
+                self._pending_packets={};self._pending_query_bytes=0
+                requests=[dict(request,targets=pair) for pair in pairs]
+                packets=_fetch_endpoint_packets(lambda:self._connect(config),requests,remaining_timeout=request['remaining_timeout'])
+                size=sum(len(_canonical(packet)) for packet in packets)
+                if self._query_bytes+size>native.MAX_QUERY_BYTES:raise ValueError('aggregate native pair source bytes exceed bound')
+                self._pending_packets={(tuple(pair),assessed,epoch):packet for pair,packet in zip(pairs,packets)}
+                self._pending_query_bytes=size;self._pending_context=context
+        if key in self._pending_packets:
+            packet=self._pending_packets.pop(key);self._pending_query_bytes-=len(_canonical(packet))
+            return packet
+        return super()._fetch_packet(config,**request)
+
+
+def fetch_endpoint_source(connection_factory,*,remaining_timeout,**request):
+    return _fetch_endpoint_packets(connection_factory,[request],remaining_timeout=remaining_timeout)[0]
+
+
+def _fetch_endpoint_packets(connection_factory,requests,*,remaining_timeout):
     from weather_temperature_sources import build_temperature_source
     from weather_temperature_reader import _utc
-    request=dict(targets=targets,assessed_at=assessed_at,stream=stream,policy=policy,sensor_epoch=sensor_epoch)
-    build_temperature_source(rows=[],**request)  # Validate before any connection.
+    if not isinstance(requests,list) or not 1<=len(requests)<=31:raise ValueError('bounded original endpoint requests required')
+    requests=[{key:value for key,value in request.items() if key!='remaining_timeout'} for request in requests]
+    for request in requests:
+        if not 1<=len(request['targets'])<=2:raise ValueError('bounded original endpoint pair required')
+        build_temperature_source(rows=[],**request)
     def remaining():
         import math
         seconds=remaining_timeout()
@@ -68,7 +110,7 @@ def fetch_endpoint_source(connection_factory,*,targets,assessed_at,stream,policy
         remaining();connection=connection_factory();remaining()
         if connection.get_transaction_status()!=0:raise ValueError('dedicated idle connection required')
         connection.set_session(readonly=True,autocommit=False,isolation_level='REPEATABLE READ')
-        observations=[]
+        packets=[];total_rows=0;total_bytes=0
         with connection.cursor() as cursor:
             def execute(query,params=None):
                 milliseconds=min(2000,int(remaining()*1000))
@@ -87,28 +129,29 @@ def fetch_endpoint_source(connection_factory,*,targets,assessed_at,stream,policy
                 raise ValueError('unique evidence Item mapping required')
             table=f'public.item{matches[0][0]:04d}'
             value='CASE WHEN octet_length(value::text) <= 8192 THEN value::text ELSE NULL END'
-            # A receipt fresh at an endpoint must have receivedAt later
-            # than endpoint-validity. Earlier barriers cannot survive that
-            # fresh receipt; retain the carry and every barrier in the window.
-            for target in targets:
-                start=target-timedelta(seconds=policy.validity_seconds)
-                execute(f'SELECT time, {value} FROM {table} WHERE time < %s ORDER BY time DESC LIMIT 1',(start,))
-                carry=cursor.fetchone()
-                execute(f'SELECT time, {value} FROM {table} WHERE time >= %s AND time <= %s ORDER BY time LIMIT 10001',(start,target))
-                rows=cursor.fetchall()
-                if carry is not None and _utc(carry[0])>=start:raise ValueError('invalid carry boundary')
-                if any(not start<=_utc(at)<=target for at,_ in rows):raise ValueError('history outside window')
-                observations.extend(([] if carry is None else [carry])+rows)
-                if len(observations)>10000:raise ValueError('history row bound exceeded')
-        remaining()
-        # Overlapping windows may return the same original row twice. Keep
-        # conflicts so the unchanged replay validator refuses them.
-        observations.sort(key=lambda row:_utc(row[0]))
-        unique=[]
-        for at,raw in observations:
-            row=(_utc(at),raw)
-            if not unique or row!=unique[-1]:unique.append(row)
-        return build_temperature_source(rows=unique,**request)
+            for request in requests:
+                observations=[]
+                for target in request['targets']:
+                    start=target-timedelta(seconds=request['policy'].validity_seconds)
+                    execute(f'SELECT time, {value} FROM {table} WHERE time < %s ORDER BY time DESC LIMIT 1',(start,))
+                    carry=cursor.fetchone()
+                    execute(f'SELECT time, {value} FROM {table} WHERE time >= %s AND time <= %s ORDER BY time LIMIT 10001',(start,target))
+                    rows=cursor.fetchall()
+                    if carry is not None and _utc(carry[0])>=start:raise ValueError('invalid carry boundary')
+                    if any(not start<=_utc(at)<=target for at,_ in rows):raise ValueError('history outside window')
+                    added=([] if carry is None else [carry])+rows;total_rows+=len(added)
+                    if total_rows>10000:raise ValueError('history row bound exceeded')
+                    observations.extend(added)
+                # Endpoint freshness makes earlier barriers irrelevant; preserve
+                # complete validity windows and carries, including nulls.
+                observations.sort(key=lambda row:_utc(row[0]));unique=[]
+                for at,raw in observations:
+                    row=(_utc(at),raw)
+                    if not unique or row!=unique[-1]:unique.append(row)
+                packet=build_temperature_source(rows=unique,**request);total_bytes+=len(_canonical(packet))
+                if total_bytes>native.MAX_QUERY_BYTES:raise ValueError('aggregate native pair source bytes exceed bound')
+                packets.append(packet);remaining()
+        remaining();return packets
     finally:
         if connection is not None:
             try:connection.close()  # Always rollback; never commit.

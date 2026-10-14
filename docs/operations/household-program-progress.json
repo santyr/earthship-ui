@@ -6368,7 +6368,7 @@
       "active_guard_changed": false
     },
     "native_endpoint_window_score_acquisition": {
-      "status": "implemented_qualified_locally_not_deployed",
+      "status": "bounded_batch_implemented_qualified_locally_not_deployed",
       "query": "one read-only repeatable-read transaction with carry plus complete validity window for each endpoint",
       "unchanged": [
         "original selector and score math",
@@ -6377,9 +6377,23 @@
         "64MB aggregate source bound",
         "72 fitted and 12 native runtime source bytes"
       ],
-      "qualification": ".superpowers/sdd/2026-10-13-native-model-serving-receipt/monitoring-integration-qualification.json",
+      "qualification": ".superpowers/sdd/2026-10-13-native-model-serving-receipt/score-batch-qualification.json",
       "affected_cases_passed": 81,
-      "live_native_mature_accuracy_qualified": false
+      "live_native_mature_accuracy_qualified": false,
+      "batch_regressions_passed": 33,
+      "physical_transactions_for_full_missing_baseline_and_outcome": 2,
+      "previous_physical_transactions": 32,
+      "preserved": [
+        "original per-pair raw source schemas and original selector/score math",
+        "40 physical request ceiling and one-second minimum between transactions",
+        "only requested baseline packets retained",
+        "aggregate 10000-row and 64MB bounds",
+        "50-second score deadline and all resource/pressure checks"
+      ],
+      "real_endpoint_only_attempt": {
+        "seconds": 50.38857841701247,
+        "status": "deadline_refused"
+      }
     },
     "native_owned_family_upgrade": {
       "status": "implemented_qualified_locally_not_deployed",
@@ -6542,5 +6556,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T12:56:27.917692+00:00"
+  "updated_at": "2026-10-14T13:33:47.595311+00:00"
 }
