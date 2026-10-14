@@ -1,0 +1,11 @@
+[Unit]
+Description=Train the native thermal model each morning
+
+[Timer]
+OnCalendar=*-*-* 06:50:00 America/Denver
+AccuracySec=1min
+Persistent=true
+Unit=thermal-native-daily.service
+
+[Install]
+WantedBy=timers.target
