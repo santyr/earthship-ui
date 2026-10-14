@@ -109,6 +109,8 @@ export function createRuleHarness({
   const events = [];
   const timers = [];
   const shared = new Map();
+  const itemUpdates = new Map();
+  const thingStatuses = new Map();
   const itemStates = new Map(Object.entries({
     GoatFeeder_ManualRequest: 'NULL',
     GoatFeeder_ManualResult: 'NULL',
@@ -125,6 +127,10 @@ export function createRuleHarness({
     if (!itemStates.has(name)) itemStates.set(name, 'NULL');
     return {
       name,
+      get lastStateUpdateInstant() {
+        const value = itemUpdates.get(name);
+        return value === undefined || value === null ? null : instant(value);
+      },
       get state() {
         return stringState(itemStates.get(name));
       },
@@ -188,6 +194,7 @@ export function createRuleHarness({
   }
 
   const openhab = {
+    things: { getThing(uid) { return { status: thingStatuses.get(uid) ?? 'UNKNOWN' }; } },
     items: {
       getItem: item,
     },
@@ -311,6 +318,8 @@ export function createRuleHarness({
     events,
     execute,
     nowMs: () => nowMs,
+    setLastUpdate: (name, value) => itemUpdates.set(name, value),
+    setThingStatus: (uid, value) => thingStatuses.set(uid, value),
     runNextTimer,
     runTimersUntilIdle,
     pendingTimers: () => timers.length,

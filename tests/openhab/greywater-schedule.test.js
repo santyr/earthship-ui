@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { createRuleHarness } from './rule-harness.js';
-import { withGreywaterSocEvidence } from './greywater-evidence.js';
+import { withGreywaterEvidence } from './greywater-evidence.js';
 
 const source = readFileSync(new URL('../../openhab/rules/southoutlet-cycle-current.js', import.meta.url), 'utf8');
 const noon = Date.parse('2026-09-20T18:24:00Z');
@@ -18,7 +18,7 @@ const fields = h => Object.fromEntries(h.state('SouthOutlet_AutoStatus').split('
   const i = s.indexOf('='); return [s.slice(0, i), s.slice(i + 1)];
 }));
 const harness = ({ source: script = source, now = noon, overrides = {} } = {}) =>
-  withGreywaterSocEvidence(createRuleHarness({ source: script, now, states: { ...states, ...overrides } }), overrides);
+  withGreywaterEvidence(createRuleHarness({ source: script, now, states: { ...states, ...overrides } }), overrides);
 
 describe('owner-authored next greywater eligibility', () => {
   it.each([[0, 'east'], [3600000, 'south']])('publishes the next local-hour candidate at %s', (offset, pump) => {

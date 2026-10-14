@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { createRuleHarness } from './rule-harness.js';
-import { withGreywaterSocEvidence } from './greywater-evidence.js';
+import { withGreywaterEvidence } from './greywater-evidence.js';
 
 const source = readFileSync(new URL('../../openhab/rules/southoutlet-cycle-current.js', import.meta.url), 'utf8');
 const now = Date.parse('2026-10-03T18:00:00Z');
@@ -11,7 +11,7 @@ const interrupted = JSON.stringify({ version: 'greywater-request-ledger/v1', ent
 }] });
 
 function harness(overrides = {}) {
-  return withGreywaterSocEvidence(createRuleHarness({ source, now, states: {
+  return withGreywaterEvidence(createRuleHarness({ source, now, states: {
     DCData_Voltage: '53.6', BMS_SOC: '99', BMS_Comms_Status: 'OK',
     SouthOutlet_LowSocCutoff: '45', SouthOutlet_Outlet2_Switch: 'OFF',
     East_Bed_Socket_Outlet_2_Power: 'OFF', SkyCondition: 'CLEAR', Sun_Position_Elevation: '37',

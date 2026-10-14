@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { buildGreywaterDaylightRule, DAYLIGHT_TRIGGERS } from '../../scripts/greywater-daylight.mjs';
 import { buildSubsetRuleDto } from '../../scripts/openhab-config.mjs';
 import { createRuleHarness } from './rule-harness.js';
-import { withGreywaterSocEvidence } from './greywater-evidence.js';
+import { withGreywaterEvidence } from './greywater-evidence.js';
 
 const source = readFileSync(new URL('../../openhab/rules/southoutlet-cycle-current.js', import.meta.url), 'utf8');
 const manifest = JSON.parse(readFileSync(new URL('../../openhab/managed-resources.json', import.meta.url), 'utf8'));
@@ -26,7 +26,7 @@ const states = {
   SouthOutlet_ManualRequest: 'NULL', SouthOutlet_ManualResult: 'NULL', SouthOutlet_LastCycle: 'NULL',
 };
 const ons = h => h.events.filter(e => e.type === 'command' && e.value === 'ON');
-const harness = (clock, overrides = {}) => withGreywaterSocEvidence(createRuleHarness({
+const harness = (clock, overrides = {}) => withGreywaterEvidence(createRuleHarness({
   source, now: clock, states: { ...states, ...overrides },
 }), overrides);
 
