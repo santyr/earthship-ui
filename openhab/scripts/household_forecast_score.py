@@ -10,6 +10,7 @@ from contextlib import contextmanager
 
 SCORE_LIFETIME_SECONDS = 120
 SCORE_CPU_QUOTA = '100%'
+SCORE_CURRENT_PERIOD_MINUTES = 10
 PUBLICATION_POLICY_SHA256 = '092dab2595bb8f8478fd0519118e1e277ab8aa61d887d5ff2fc38d4ea7717f70'
 _production_policy = None
 
@@ -285,7 +286,10 @@ def main(argv=None):
 def score_role(at):
     from astro_geometry import _instant
     at=_instant(at)
-    return 'current' if at.minute%10==1 else 'legacy' if at.minute%10==6 else 'reserved'
+    if at.minute%10==1:return 'current'
+    if at.minute%20==6:return 'legacy'
+    if at.minute%20==16:return 'historical'
+    return 'reserved'
 
 
 def read_score_dispatch(stage,*,deployment_sha256,guard):
@@ -368,13 +372,15 @@ def execute_legacy_score(selection):
 def native_score_selection(dispatch,at):
     from astro_geometry import _instant
     at=_instant(at)
-    if score_role(at)!='current':raise ValueError('explicit native scoring opportunity required')
+    role=score_role(at)
+    if role not in ('current','historical'):raise ValueError('explicit native scoring opportunity required')
     historical=dispatch['historical']
-    if not historical:return 'current'
-    # Keep current-model feedback every twenty minutes regardless of backlog
-    # size; alternate slots continue rotating all explicitly owned history.
-    slot=int(at.timestamp())//600
-    return 'current' if slot%2==0 else historical[(slot//2)%len(historical)]
+    if role=='current' or not historical:return 'current'
+    # Current feedback every ten minutes stays inside the 15-minute report TTL;
+    # the alternate background slots rotate explicit history every twenty.
+    slot=int(at.timestamp())//1200
+    return historical[slot%len(historical)]
+
 
 
 def execute_retained_native_score(selection):

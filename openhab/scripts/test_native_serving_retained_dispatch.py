@@ -11,7 +11,7 @@ def test_native_opportunities_preserve_current_and_rotate_explicit_retained_stag
     assert callable(choose),'retained native scheduling is missing'
     historical=[{'stage':'/private/old-a','deployment_sha256':'a'*64},{'stage':'/private/old-b','deployment_sha256':'b'*64}]
     dispatch={'current':'current','historical':historical}
-    targets=[choose(dispatch,datetime(2026,10,13,18,minute,10,tzinfo=timezone.utc)) for minute in (1,11,21,31)]
+    targets=[choose(dispatch,datetime(2026,10,13,18,minute,10,tzinfo=timezone.utc)) for minute in (1,16,21,36)]
     assert 'current' in targets
     assert {t['stage'] for t in targets if t!='current'}=={h['stage'] for h in historical}
     assert choose({'current':'current','historical':[]},datetime(2026,10,13,18,1,0,tzinfo=timezone.utc))=='current'
@@ -42,12 +42,12 @@ def test_retained_native_exec_uses_its_own_external_pin_and_source_closure(tmp_p
     with pytest.raises(ValueError):execute(selection)
 
 
-def test_current_model_keeps_half_the_slots_as_history_grows():
+def test_current_model_keeps_ten_minute_slots_as_history_grows():
     from datetime import timedelta
     import household_forecast_score as coordinator
     history=[{'stage':'/old/'+str(i),'deployment_sha256':format(i,'064x')} for i in range(31)]
     start=datetime(2026,10,14,18,1,tzinfo=timezone.utc)
-    selected=[coordinator.native_score_selection({'historical':history}, start+timedelta(minutes=10*i)) for i in range(64)]
-    assert selected.count('current') == 32
+    selected=[coordinator.native_score_selection({'historical':history}, start+timedelta(minutes=20*i+offset)) for i in range(64) for offset in (0,10,15)]
+    assert selected.count('current') == 128
     assert {v['stage'] for v in selected if v!='current'} == {v['stage'] for v in history}
-    assert all('current' in selected[i:i+2] for i in range(63))
+    assert all('current' in selected[i:i+2] for i in range(len(selected)-1))

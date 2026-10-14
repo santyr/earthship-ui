@@ -63,6 +63,12 @@ def _score_cpu_quota(stage):
     return '100%' if b"\nSCORE_CPU_QUOTA = '100%'\n" in b'\n'+deploy._bytes(source) else '20%'
 
 
+def _frequent_current_scores(stage):
+    import household_cycle_deploy as deploy
+    source=stage/'sources/openhab/scripts/household_forecast_score.py'
+    return b'\nSCORE_CURRENT_PERIOD_MINUTES = 10\n' in b'\n'+deploy._bytes(source)
+
+
 def _render(stage,config,libraries,*,deployment_sha256=None):
     import household_cycle_deploy as deploy
     scripts=stage/'sources/openhab/scripts'
@@ -124,6 +130,9 @@ def _metadata(stage,libraries,original,actual,record,files):
             result['score_slot_roles']=dict(current=[1],legacy=[6],period_minutes=10)
             result['schedule'].update(score_offsets_seconds=[60],score_work_timeout_seconds=120,
                 score_cycle_period_seconds=300,score_role_period_seconds=600,score_stop_offset_seconds=180)
+            if _frequent_current_scores(stage):
+                result['score_slot_roles']=dict(current=[1,11],historical=[16],legacy=[6],period_minutes=20)
+                result['schedule']['score_role_period_seconds']=1200
     return result
 
 

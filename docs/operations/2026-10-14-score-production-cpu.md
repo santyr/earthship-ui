@@ -54,3 +54,15 @@ The first normal legacy run at 20:36 UTC succeeded, refreshing 256 existing
 horizon samples with no new mature legacy outcome, using 2.958 CPU seconds.
 The first normal current-model slot after activation is 20:41 UTC; its live
 completion and performance report remain pending.
+
+A second scheduling defect made current-model monitoring stale by design:
+`_validate_report` accepts a report for 15 minutes, while the previous current
+model cadence was 20 minutes. The staged scheduler now reserves minute 1 and 11
+of each 20-minute period for the current model, minute 6 for legacy scoring, and
+minute 16 for rotating native history. This retains one job every five minutes
+and unchanged preparation/forecast slots, limits and deadlines. Current reports
+can refresh every ten minutes without relaxing report freshness. Archived family
+metadata retains its old slot definitions. A full-day scheduling regression
+proves the counts, ten-minute current gap and complete history rotation; all 91
+affected routing, deadline, admission and handoff tests pass in 16.15 seconds.
+This cadence adjustment is staged, not yet active.
