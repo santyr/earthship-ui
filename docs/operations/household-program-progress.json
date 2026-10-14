@@ -4805,7 +4805,8 @@
       "new_scheduling_installed": false,
       "product_sources_changed": false,
       "live_writes": false,
-      "full_program_complete": false
+      "full_program_complete": false,
+      "superseded_by": "proofs.astro_a10_scheduling_acceptance"
     },
     "production_score_20261013_natural_monitoring": {
       "recorded_at": "2026-10-13T22:25:36.092653+00:00",
@@ -6869,6 +6870,65 @@
       "test_execution_note": "56 control/UI cases passed in final integration run; its added owner fixture had a file-reader typo. Corrected owner file then passed57 cases independently. Earlier fork startups hit TasksMax48; TasksMax96 resolved them with unchanged CPU100percent/512MiB/swap0.",
       "live_writes": false,
       "full_program_complete": false
+    },
+    "astro_a10_scheduling_acceptance": {
+      "status": "retained_retry_schedule_qualified_and_sample_provenance_fix_deployed",
+      "recorded_at": "2026-10-14T19:43:40.147788+00:00",
+      "document": "docs/operations/2026-10-14-pre-dusk-scheduling-acceptance.md",
+      "schedule_decision": "Retain the existing persistent ten-minute polling timer. No isolated Astro event or shared-channel offset change is needed.",
+      "schedule": "*-*-* 14..20:02/10:45 America/Denver",
+      "source_difference_resolved": true,
+      "source_sha256": "1198c93a8893f9892f2d01070b165fe29210285d156768cf7eedf94118325b17",
+      "original_fix_commit": "fd9f522",
+      "deployment": {
+        "assessed_at": "2026-10-14T19:41:48.319912+00:00",
+        "target": "/home/sat/openhab/scripts/forecast_pre_dusk.py",
+        "before_sha256": "6e7919e98c0b39fc073cf577525433f924da161c8db5ab3463d8e6aaa5b66365",
+        "after_sha256": "1198c93a8893f9892f2d01070b165fe29210285d156768cf7eedf94118325b17",
+        "shared_lock_held": true,
+        "atomic_replace": true,
+        "timer_changed": false,
+        "openhab_restarted": false,
+        "item_writes": false
+      },
+      "live_readback": ".superpowers/sdd/2026-10-13-native-model-serving-receipt/a10-live-readback.json",
+      "live_readback_sha256": "acd76b980c2544f7bdf4757eeaa708e1fc31a0efc4971533f5bb26d505484e67",
+      "deployed_source_tests": 49,
+      "deployed_source_tests_seconds": 0.21,
+      "prior_deployed_source_provenance_failures": 6,
+      "new_acceptance_cases": 5,
+      "test_log_sha256s": {
+        "a10-selected-before-tests.log": "6146c90921c54ece568fc0922c79711d6f2b7c40cafaa9680709afe8e43312cd",
+        "a10-selected-after-tests.log": "7723ab251c1d3728dde39031dfdbe3f846184366e467c65ad285ac634ac46b00"
+      },
+      "real_private_flock_contention_verified": true,
+      "real_systemd_calendar_summer_winter_verified": true,
+      "three_opportunities_per_window": true,
+      "restarted_module_duplicate_refused": true,
+      "changed_sunset_reread": true,
+      "expiry_and_stale_soc_refused": true,
+      "original_trough_window_unchanged": true,
+      "shared_sunset_offset": 0,
+      "timer_active": true,
+      "service_exit": 0,
+      "service_status": "outside_window",
+      "service_cpu_seconds": 0.136533,
+      "new_in_window_publication_observed": false,
+      "previous_natural_receipt": {
+        "version": 1,
+        "basis": "atomic_soc_pre_dusk_v1",
+        "predictionDay": "2026-10-13",
+        "issuedAt": "2026-10-13T23:02:45.994795+00:00",
+        "sunsetAt": "2026-10-14T00:27:02.277000+00:00",
+        "overnightTroughSocPct": 82
+      },
+      "current_morning_sample_days": [
+        "2026-10-13",
+        "2026-10-12",
+        "2026-10-11"
+      ],
+      "automatic_actuation": false,
+      "full_program_complete": false
     }
   },
   "astro_efficiency_audit": {
@@ -6965,11 +7025,11 @@
       {
         "id": "A10",
         "requirement": "Simplify pre dusk scheduling while retaining retry semantics",
-        "complete": false,
-        "status": "existing_predusk_source_and_timing_qualified_isolated_event_design_pending",
+        "complete": true,
+        "status": "retained_retry_schedule_qualified_and_sample_provenance_fix_deployed",
         "task": "consider an isolated sunset event with a negative offset to begin the issue attempt, followed by bounded retries/catch-up. Preserve the script's same-day idempotency, issue window, atomic SoC, freshness and original sunset receipt. Do not add an offset to the shared `set#start` channel: other readers need its unshifted astronomical sunset. Check exact trigger-channel configuration scope before introducing an isolated event or scheduling from a native timestamp.",
         "acceptance": "contention, restart/catch-up, sunset changes, missed trigger, window expiration, duplicate opportunities and stable unshifted sunset inputs. Keep the canonical 20:00-to-next-day-11:00 trough (`advisory_windows.py:49\u201355`) and other calibrated load intervals unchanged.",
-        "evidence": "proofs.astro_a10_predusk_baseline_acceptance"
+        "evidence": "proofs.astro_a10_scheduling_acceptance"
       },
       {
         "id": "A11",
@@ -7022,5 +7082,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T19:37:43.445810+00:00"
+  "updated_at": "2026-10-14T19:43:40.147788+00:00"
 }
