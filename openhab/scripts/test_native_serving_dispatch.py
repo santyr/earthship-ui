@@ -4,6 +4,7 @@ from pathlib import Path
 from hashlib import sha256
 import json
 import pytest
+from test_installed_shade_score_inputs import settings
 
 
 def test_legacy_backlog_keeps_explicit_scheduled_opportunities():
@@ -16,12 +17,15 @@ def test_legacy_backlog_keeps_explicit_scheduled_opportunities():
     assert roles[4]==roles[9]=='reserved' and roles[:5]==roles[5:]
 
 
-def test_receipt_score_refusal_cannot_route_to_legacy_monitor(monkeypatch):
+def test_receipt_score_refusal_cannot_route_to_legacy_monitor(monkeypatch,settings,tmp_path):
     import inspect,household_forecast_score as coordinator,native_thermal_live as native
     assert 'serving_model' in inspect.signature(coordinator.score_with_report).parameters,'receipt scoring propagation is missing'
     from thermal_model import provisional_monitor as legacy
-    context=object();settings={'schema':'earthship-provisional-thermal-live-config/v3'}
-    def refusal(value,*,guard,serving_model,historical_selections):
+    context=object();settings={**settings[1],'schema':'earthship-provisional-thermal-live-config/v3','evidence_directory':str(tmp_path/'evidence')}
+    (tmp_path/'evidence').mkdir(mode=0o700)
+    def refusal(value,*,guard,reader,serving_model,historical_selections):
+        from household_native_score_queries import EndpointWindowScoreReader
+        assert isinstance(reader,EndpointWindowScoreReader)
         assert value==settings and serving_model is context and historical_selections==()
         raise ValueError('receipt refused')
     monkeypatch.setattr(native,'score_jobs',refusal)

@@ -10,6 +10,8 @@ import household_cycle_deploy as deploy
 import household_native_family as family_api
 
 SCHEMA='earthship-native-thermal-handoff/v1'
+FILES={'forecast':'forecast.conf','score':'score.conf','score_timer':'score-timer.conf',
+       'preparer_service':'thermal-native-geometry-prepare.service','preparer_timer':'thermal-native-geometry-prepare.timer'}
 
 
 def _unit_definition(path):
@@ -33,18 +35,33 @@ def _rows(raw,key):
     return [row.split('=',1)[1] for row in raw.decode('utf-8').splitlines() if row.startswith(key+'=')]
 
 
-def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard):
+def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard,previous_family=None,previous_deployment_sha256=None):
     family,forecast,score=map(deploy._directory,(family,previous_forecast_stage,previous_score_stage))
     guard();selected=family_api.verify(family,guard=guard);stage=deploy._directory(selected['stage'])
     serving=selected['schema']=='earthship-native-thermal-service-family/v2'
+    upgrade=previous_family is not None
+    if upgrade!=(previous_deployment_sha256 is not None):raise ValueError('paired previous family and external pin required')
+    old_family=None;old_selected=None
+    if upgrade:
+        old_family=deploy._directory(previous_family);old_selected=family_api.verify(old_family,guard=guard)
+        if (not serving or old_selected['schema']!='earthship-native-thermal-service-family/v2' or
+                old_selected['deployment_sha256']!=previous_deployment_sha256 or
+                forecast!=score or str(forecast)!=old_selected['stage'] or forecast==stage):
+            raise ValueError('explicit previous owned receipt family pin required')
     def stage_record(path):
+        if upgrade and path==forecast:return deploy.verify_stage(path,expected_deployment_sha256=previous_deployment_sha256)
         if path==stage and serving:return deploy.verify_stage(path,expected_deployment_sha256=selected['deployment_sha256'])
         return deploy.verify_stage(path)
     records=[stage_record(path) for path in (stage,forecast,score)]
     if serving:
         from household_forecast_score import read_score_dispatch
         dispatch=read_score_dispatch(stage,deployment_sha256=selected['deployment_sha256'],guard=guard)
-        if (dispatch['legacy']['stage']!=str(score) or
+        if upgrade:
+            previous_dispatch=read_score_dispatch(forecast,deployment_sha256=previous_deployment_sha256,guard=guard)
+            required=[dict(stage=str(forecast),deployment_sha256=previous_deployment_sha256),*previous_dispatch['historical']]
+            if dispatch['legacy']!=previous_dispatch['legacy'] or any(row not in dispatch['historical'] for row in required):
+                raise ValueError('upgrade must retain original legacy and all native score backlogs')
+        elif (dispatch['legacy']['stage']!=str(score) or
             dispatch['legacy']['deployment_sha256']!=sha256(deploy._bytes(score/'deployment.json',private=True)).hexdigest()):
             raise ValueError('handoff must retain its explicitly selected legacy scorer')
     cycles=[json.loads(deploy._bytes(path/'cycle.json',private=True)) for path in (stage,forecast,score)]
@@ -78,11 +95,20 @@ def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard):
         ('forecast_timer',forecast_timer,False),('score_timer',score_timer,False),
         ('forecast_override',targets['forecast'],True),('score_override',targets['score'],True)):
         originals[role],raws[role]=_reference(path,private=private)
-    previous_raws=[deploy._bytes(forecast/'service.conf',private=True),_score_override(score,configs[2])]
+    previous_raws=([deploy._bytes(old_family/FILES[role],private=True) for role in ('forecast','score')]
+        if upgrade else [deploy._bytes(forecast/'service.conf',private=True),_score_override(score,configs[2])])
+    if upgrade:
+        for role in ('score_timer','preparer_service','preparer_timer'):
+            originals[role+'_override'],raws[role+'_override']=_reference(targets[role],private=True)
+            if raws[role+'_override']!=deploy._bytes(old_family/FILES[role],private=True):
+                raise ValueError('exact previous owned native family files required')
     if raws['forecast_override']!=previous_raws[0] or raws['score_override']!=previous_raws[1]:
         raise ValueError('exact previous owned forecast and score overrides required')
     for path,expected_dropins,expected_raw in ((service,[str(targets['forecast'])],previous_raws[0]),
-            (score_service,[str(targets['score'])],previous_raws[1]),(forecast_timer,[],None),(score_timer,[],None)):
+            (score_service,[str(targets['score'])],previous_raws[1]),(forecast_timer,[],None),
+            (score_timer,[str(targets['score_timer'])] if upgrade else [],None),
+            *(((targets['preparer_service'],[],raws['preparer_service_override']),
+               (targets['preparer_timer'],[],None)) if upgrade else ())):
         definition=_unit_definition(path)
         if definition.get('FragmentPath')!=str(path) or definition.get('DropInPaths','').split()!=expected_dropins:
             raise ValueError('owned unit fragment or drop-in inventory differs')
@@ -102,7 +128,7 @@ def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard):
     changes={}
     for role,target in targets.items():
         target=deploy._path(target)
-        previous=originals.get(role+'_override') if role in ('forecast','score') else None
+        previous=originals.get(role+'_override')
         if previous is None and (target.exists() or target.is_symlink()):raise ValueError('new handoff target already exists')
         desired,_=_reference(family/files[role],private=True)
         changes[role]=dict(target=str(target),previous=previous,desired=desired)
@@ -117,6 +143,10 @@ def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard):
         live_units_changed=False,automatic_actuation=False)
     guard()
     if serving:record.update(schema='earthship-native-thermal-handoff/v2',model_verification=selected['model_verification'],score_dispatch=selected['score_dispatch'])
+    if upgrade:
+        previous_ref,_=_reference(old_family/'family.json',private=True)
+        if family_api.verify(old_family,guard=guard)!=old_selected:raise ValueError('previous native family changed')
+        record.update(schema='earthship-native-thermal-handoff/v3',previous_family=previous_ref)
     if any(stage_record(path)!=old for path,old in zip((stage,forecast,score),records)):
         raise ValueError('handoff stage originals changed')
     if family_api.verify(family,guard=guard)!=selected or any(_reference(row['path'],private=role.endswith('override'))[0]!=row for role,row in originals.items()):
@@ -125,9 +155,9 @@ def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard):
     return record
 
 
-def prepare(family,*,previous_forecast_stage,previous_score_stage,output,guard):
+def prepare(family,*,previous_forecast_stage,previous_score_stage,output,guard,previous_family=None,previous_deployment_sha256=None):
     output=deploy._path(output)
-    record=_assemble(family,previous_forecast_stage,previous_score_stage,guard=guard)
+    record=_assemble(family,previous_forecast_stage,previous_score_stage,guard=guard,previous_family=previous_family,previous_deployment_sha256=previous_deployment_sha256)
     if output.exists() or output.is_symlink():raise ValueError('distinct private handoff output required')
     deploy._directory(output.parent);output.mkdir(mode=0o700)
     deploy._write(output/'handoff.json',deploy._encode(record))
@@ -141,7 +171,13 @@ def verify(output,*,guard):
     raw=deploy._bytes(output/'handoff.json',private=True)
     from household.codec import loads
     record=loads(raw)
-    expected=_assemble(record['family'],record['previous_forecast_stage'],record['previous_score_stage'],guard=guard)
+    upgrade=record.get('schema')=='earthship-native-thermal-handoff/v3'
+    kwargs={}
+    if upgrade:
+        ref=record['previous_family'];path=deploy._path(ref['path'])
+        if path.name!='family.json' or _reference(path,private=True)[0]!=ref:raise ValueError('previous family reference differs')
+        kwargs=dict(previous_family=path.parent,previous_deployment_sha256=record['previous_deployment_sha256']['forecast'])
+    expected=_assemble(record['family'],record['previous_forecast_stage'],record['previous_score_stage'],guard=guard,**kwargs)
     if deploy._encode(record)!=deploy._encode(expected) or deploy._bytes(output/'handoff.json',private=True)!=raw:
         raise ValueError('native handoff differs from original bindings')
     return record

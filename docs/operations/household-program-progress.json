@@ -6366,6 +6366,33 @@
       "document": "docs/operations/2026-10-13-native-inference-psi-window-proposal.md",
       "tests": 10,
       "active_guard_changed": false
+    },
+    "native_endpoint_window_score_acquisition": {
+      "status": "implemented_qualified_locally_not_deployed",
+      "query": "one read-only repeatable-read transaction with carry plus complete validity window for each endpoint",
+      "unchanged": [
+        "original selector and score math",
+        "40 request and one-second pacing bounds",
+        "50-second score budget",
+        "64MB aggregate source bound",
+        "72 fitted and 12 native runtime source bytes"
+      ],
+      "qualification": ".superpowers/sdd/2026-10-13-native-model-serving-receipt/monitoring-integration-qualification.json",
+      "affected_cases_passed": 81,
+      "live_native_mature_accuracy_qualified": false
+    },
+    "native_owned_family_upgrade": {
+      "status": "implemented_qualified_locally_not_deployed",
+      "requirements": [
+        "explicit previous family and effective deployment pin",
+        "five exact owned previous files",
+        "original legacy and all native score backlogs retained",
+        "three owned timers quiesced and original active states restored",
+        "existing preparer enablement link preserved",
+        "clean failure restores all previous definitions"
+      ],
+      "qualification": ".superpowers/sdd/2026-10-13-native-model-serving-receipt/monitoring-integration-qualification.json",
+      "unchanged_admission_dependencies": ".superpowers/sdd/2026-10-13-native-model-serving-receipt/actual-monitoring-fixes-20261014/dependency-readback.json"
     }
   },
   "astro_efficiency_audit": {
@@ -6515,5 +6542,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T06:19:48.415526+00:00"
+  "updated_at": "2026-10-14T12:56:27.917692+00:00"
 }

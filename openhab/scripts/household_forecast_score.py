@@ -12,7 +12,16 @@ def score_with_report(settings,*,guard,clock=lambda:datetime.now(timezone.utc),q
     if settings.get('schema')=='earthship-provisional-thermal-live-config/v3':
         from native_thermal_live import score_jobs
         if serving_model is None:raise ValueError('owned serving score context required')
-        guard();return score_jobs(settings,guard=guard,serving_model=serving_model,historical_selections=historical_selections)
+        from household_native_score_queries import EndpointWindowScoreReader
+        from thermal_model.installed_shade_score_inputs import COMPRESSED_SOURCE_SCHEMA
+        from thermal_model.provisional_live import _phase_directory
+        from thermal_model.forcing_capture import _private_directory
+        guard()
+        folder=_phase_directory(_private_directory(Path(settings['evidence_directory'])),'scores',clock())
+        config={key:settings[key] for key in ('token_file','native_db_config','native_policy','openhab_base')}
+        config.update(schema=COMPRESSED_SOURCE_SCHEMA,output_directory=str(folder))
+        reader=EndpointWindowScoreReader(config,shared_lock_guard=guard)
+        guard();return score_jobs(settings,guard=guard,reader=reader,serving_model=serving_model,historical_selections=historical_selections)
     if serving_model is not None or historical_selections:raise ValueError('receipt context requires explicit serving profile')
     if settings.get('schema')=='earthship-provisional-thermal-live-config/v2':
         from native_thermal_live import score_jobs

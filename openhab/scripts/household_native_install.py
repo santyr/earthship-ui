@@ -63,6 +63,8 @@ def _install_files(output,*,guard,_undo_log=None):
     stages=[stage,deploy._directory(record['previous_forecast_stage']),deploy._directory(record['previous_score_stage'])]
     serving=selected['schema']=='earthship-native-thermal-service-family/v2'
     def stage_record(path):
+        if record['schema']=='earthship-native-thermal-handoff/v3' and path==stages[1]:
+            return deploy.verify_stage(path,expected_deployment_sha256=record['previous_deployment_sha256']['forecast'])
         if path==stage and serving:return deploy.verify_stage(path,expected_deployment_sha256=selected['deployment_sha256'])
         return deploy.verify_stage(path)
     stage_records=[stage_record(path) for path in stages]
@@ -75,7 +77,7 @@ def _install_files(output,*,guard,_undo_log=None):
         if any(stage_record(path)!=saved for path,saved in zip(stages,stage_records)):
             raise ValueError('installation original stage changed')
         for role,ref in record['originals'].items():
-            if role.endswith('override'):continue # These are the two intentional replacements.
+            if role.endswith('override'):continue # These are intentional owned replacements.
             if sha256(deploy._bytes(ref['path'])).hexdigest()!=ref['sha256']:
                 raise ValueError('installation base unit or timer changed')
     try:
@@ -137,19 +139,23 @@ def _services_inactive(root):
 
 
 @contextmanager
-def _quiesce_timers(root,*,guard):
+def _quiesce_timers(root,*,guard,include_preparer=False):
     """Restore owned schedules on exit unless cleanup leaves definitions unsafe."""
-    guard();_services_inactive(root)
-    original={unit:_timer_state(unit).get('ActiveState') for unit in TIMERS}
+    timers=(*TIMERS,'thermal-native-geometry-prepare.timer') if include_preparer else TIMERS
+    def inactive():
+        _services_inactive(root)
+        if include_preparer:deploy._inactive_capped(deploy._service_state(root/'thermal-native-geometry-prepare.service'))
+    guard();inactive()
+    original={unit:_timer_state(unit).get('ActiveState') for unit in timers}
     if any(state not in ('active','inactive') for state in original.values()):
         raise ValueError('explicit stable original timer states required')
     stopped=[];restoration={'safe':True}
     try:
-        for unit in TIMERS:
+        for unit in timers:
             if original[unit]=='active':
                 stopped.append(unit);deploy._systemctl('stop',unit)
-        guard();_services_inactive(root)
-        if any(_timer_state(unit).get('ActiveState')!='inactive' for unit in TIMERS):
+        guard();inactive()
+        if any(_timer_state(unit).get('ActiveState')!='inactive' for unit in timers):
             raise ValueError('owned timer quiescence changed')
         yield restoration
     finally:
@@ -210,16 +216,25 @@ def _reload_handoff(output,*,guard,_activate_preparer=False):
     root=deploy._path(record['originals']['forecast_service']['path']).parent
     family=deploy._directory(record['family']);own=deploy._bytes(Path(__file__))
     changes=[];installed=False;preparer_lease=None
+    upgrade=record['schema']=='earthship-native-thermal-handoff/v3'
+    enable_link=root/'timers.target.wants'/'thermal-native-geometry-prepare.timer'
+    enabled_identity=_enable_link_identity(enable_link) if upgrade else None
+    if upgrade and enabled_identity[-1]!=str(root/'thermal-native-geometry-prepare.timer'):
+        raise ValueError('exact previous preparer timer enablement required')
     def checked():
         guard()
         if deploy._bytes(Path(__file__))!=own:raise ValueError('installer source changed')
-    with _quiesce_timers(root,guard=checked) as restoration:
+        if upgrade:
+            try:unchanged=_enable_link_identity(enable_link)==enabled_identity
+            except (OSError,ValueError):unchanged=False
+            if not unchanged:raise PreparerReconciliationRequired('existing preparer enablement changed')
+    with _quiesce_timers(root,guard=checked,include_preparer=upgrade) as restoration:
         try:
             result=_install_files(output,guard=checked,_undo_log=changes);installed=True
             checked();deploy._systemctl('daemon-reload');checked()
             effective=_verify_effective_family(family,guard=checked)
             checked()
-            if _activate_preparer:
+            if _activate_preparer and not upgrade:
                 preparer_lease=_enable_preparer(root,guard=checked)
                 checked()
         except Exception as error:
@@ -244,7 +259,8 @@ def _reload_handoff(output,*,guard,_activate_preparer=False):
             raise
     return dict(status='native_family_activated' if _activate_preparer else 'native_definitions_verified',handoff_sha256=result['handoff_sha256'],
         effective_definition_status=effective['status'],unit_manager_reloaded=True,
-        new_preparer_timer_enabled=_activate_preparer,service_restarted=False,automatic_actuation=False)
+        new_preparer_timer_enabled=_activate_preparer and not upgrade,existing_preparer_timer_preserved=upgrade,
+        service_restarted=False,automatic_actuation=False)
 
 
 def _activate_handoff(output,*,guard):
