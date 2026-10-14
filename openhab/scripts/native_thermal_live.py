@@ -409,7 +409,7 @@ def _write_native_report(root,report,guard):
         if temporary.exists():temporary.unlink()
 
 
-def refresh_report(settings,*,runtime,artifact_sha256,now,guard):
+def refresh_report(settings,*,runtime,artifact_sha256,now,guard,serving_model=None):
     """Reconcile retained raw-source completions before replacing native stats."""
     from native_thermal_score import reconcile_source_report
     from thermal_model.forcing_capture import _private_directory
@@ -419,11 +419,19 @@ def refresh_report(settings,*,runtime,artifact_sha256,now,guard):
         key=lambda entry:_instant(entry[1]['completed_at']),reverse=True)[:256]
     entries=[dict(completion_path=str(path),completion_sha256=value['completion_sha256'],
         source_score_sha256=value['source_score_sha256'],capture_sha256=value['capture_sha256']) for path,value in selected]
-    report=reconcile_source_report(entries,runtime=runtime,artifact_sha256=artifact_sha256,assessed_at=now,check_budget=guard)
+    if serving_model is not None:
+        from native_thermal_score import reconcile_serving_source_report
+        _serving_settings(serving_model,settings,assessed_at=now,guard=guard)
+        report=reconcile_serving_source_report(entries,selections=(serving_model._selection,),artifact_sha256=artifact_sha256,
+            assessed_at=now,check_budget=guard)
+        serving_model.verify_bindings(assessed_at=now,guard=guard)
+    else:
+        if settings.get('schema')==SERVING_SCHEMA:raise ValueError('owned serving report context required')
+        report=reconcile_source_report(entries,runtime=runtime,artifact_sha256=artifact_sha256,assessed_at=now,check_budget=guard)
     guard();_write_native_report(root,report,guard);return report
 
 
-def score_jobs(settings,*,guard,reader=None,max_jobs=1):
+def score_jobs(settings,*,guard,reader=None,max_jobs=1,serving_model=None,historical_selections=()):
     """One native outcome with raw query replay and source-backed reporting."""
     import json
     import native_thermal_score as scores
@@ -440,17 +448,23 @@ def score_jobs(settings,*,guard,reader=None,max_jobs=1):
         guard();seconds=deadline-monotonic()
         if seconds<=0:raise ValueError('native scoring deadline exceeded')
         return seconds
-    if settings.get('schema')!=LIVE_SCHEMA:raise ValueError('explicit native scoring selection required')
+    receipt_profile=settings.get('schema')==SERVING_SCHEMA
+    if settings.get('schema') not in (LIVE_SCHEMA,SERVING_SCHEMA):raise ValueError('explicit native scoring selection required')
+    if receipt_profile:
+        if type(historical_selections) is not tuple or len(historical_selections)>31:raise ValueError('bounded owned historical score selections required')
+        _serving_settings(serving_model,settings,assessed_at=now,guard=remaining)
+    elif serving_model is not None or historical_selections:raise ValueError('receipt context requires explicit serving profile')
     root=_private_directory(Path(settings['evidence_directory']))
     report_path=root/'latest-native-provisional-performance.json'
     if report_path.exists():
         from thermal_model.runtime_bundle import _sync_directory
         _owned_bytes(report_path,131072);remaining();report_path.unlink();_sync_directory(root)
     with shared_replay_budget(remaining),capture_source_reads() as originals:
-        runtime=current_runtime(guard=remaining)
+        runtime=serving_model.runtime if receipt_profile else current_runtime(guard=remaining)
         if runtime_digest(runtime)!=settings['runtime_sha256'] or SOURCE not in runtime['native_source_manifest']:
             raise ValueError('externally pinned native scoring runtime differs')
-        candidate=read_native_candidate(Path(settings['candidate_path']),assessed_at=now,runtime=runtime,
+        if receipt_profile:candidate=serving_model.candidate
+        else:candidate=read_native_candidate(Path(settings['candidate_path']),assessed_at=now,runtime=runtime,
             expected_artifact_sha256=settings['artifact_sha256'],guard=remaining)
         folder=_phase_directory(root,'scores',now)
         if reader is None:
@@ -472,7 +486,7 @@ def score_jobs(settings,*,guard,reader=None,max_jobs=1):
                 raise ValueError('native origin outside original delivery archive')
             deliveries.append((path,delivery))
         deliveries.sort(key=lambda entry:(entry[1]['artifact_sha256']!=candidate['artifact_sha256'],_instant(entry[1]['issued_at'])))
-        completed=_native_completion_index(root,now,remaining);scored=0;missing=False
+        completed=_native_completion_index(root,now,remaining);scored=0;missing=False;historical_unavailable=False
         for path,delivery in deliveries:
             remaining();issue=_instant(delivery['issued_at'])
             for horizon in (1,6,12,24):
@@ -484,8 +498,17 @@ def score_jobs(settings,*,guard,reader=None,max_jobs=1):
                     if any(marker[key]!=delivery[key] for key in ('artifact_sha256','capture_sha256','runtime_sha256')) or marker['horizon_hours']!=horizon:
                         raise ValueError('native completed job binding differs')
                     continue
-                archive=load_cycle_delivery(dict(status='published',delivery_verified=True,origin_path=delivery['capture_path'],delivery_path=str(path)),
-                    issue=issue,guard=remaining,runtime=runtime,expected_artifact_sha256=delivery['artifact_sha256'],expected_capture_sha256=delivery['capture_sha256'])
+                selected_model=None
+                if receipt_profile:
+                    selected_model=serving_delivery_model(path,delivery,current_model=serving_model,
+                        historical_selections=historical_selections,assessed_at=now,guard=remaining)
+                    if selected_model is None:
+                        historical_unavailable=True;break
+                archive_pins=dict(runtime=runtime if selected_model is None else selected_model.runtime,
+                    expected_artifact_sha256=delivery['artifact_sha256'],expected_capture_sha256=delivery['capture_sha256'])
+                if receipt_profile:archive_pins['serving_model']=selected_model
+                archive=load_cycle_delivery(dict(status='published' ,delivery_verified=True,origin_path=delivery['capture_path'],delivery_path=str(path)),
+                    issue=issue,guard=remaining,**archive_pins)
                 capture=archive['capture']
                 if _native_gap_pending(root,now,job,delivery,path,capture,remaining):continue
                 for receipt in archive['receipts'].values():
@@ -508,21 +531,29 @@ def score_jobs(settings,*,guard,reader=None,max_jobs=1):
                         grid[key]=encoded
                     return rows
                 compare_v2(issue=issue,target=target,current_f=capture['output']['initial']['air_f'],grid_reader=historical,sensor_epoch=phase)
-                source=scores.build_source_score(capture_path=delivery['capture_path'],receipts=archive['receipts'],outcome=outcome[0][1],
-                    recent_cycle_grid=[[at,value] for at,value in sorted(grid.items())],source_paths=list(reader.native_source_paths),horizon_hours=horizon,assessed_at=now,
-                    runtime=runtime,expected_artifact_sha256=delivery['artifact_sha256'],expected_capture_sha256=delivery['capture_sha256'],check_budget=remaining)
+                source_args=dict(capture_path=delivery['capture_path'],receipts=archive['receipts'],outcome=outcome[0][1],
+                    recent_cycle_grid=[[at,value] for at,value in sorted(grid.items())],source_paths=list(reader.native_source_paths),
+                    horizon_hours=horizon,assessed_at=now,expected_capture_sha256=delivery['capture_sha256'],check_budget=remaining)
+                if receipt_profile:source=scores.build_serving_source_score(model=selected_model,**source_args)
+                else:source=scores.build_source_score(runtime=runtime,expected_artifact_sha256=delivery['artifact_sha256'],**source_args)
                 reader.verify_unchanged();archive['verify_unchanged']();originals.verify();remaining()
+                if receipt_profile:selected_model.verify_bindings(assessed_at=_clock(),guard=remaining)
                 source_path=scores.persist_source_score(folder,source)
-                completion=scores.build_source_completion(source_path,runtime=runtime,expected_artifact_sha256=delivery['artifact_sha256'],
-                    expected_capture_sha256=delivery['capture_sha256'],expected_source_score_sha256=source['source_score_sha256'],completed_at=_clock(),check_budget=remaining)
+                completion_args=dict(expected_capture_sha256=delivery['capture_sha256'],expected_source_score_sha256=source['source_score_sha256'],
+                    completed_at=_clock(),check_budget=remaining)
+                if receipt_profile:completion=scores.build_serving_source_completion(source_path,model=selected_model,**completion_args)
+                else:completion=scores.build_source_completion(source_path,runtime=runtime,expected_artifact_sha256=delivery['artifact_sha256'],**completion_args)
                 reader.verify_unchanged();archive['verify_unchanged']();originals.verify();remaining()
+                if receipt_profile:selected_model.verify_bindings(assessed_at=_clock(),guard=remaining)
                 scores.persist_source_completion(folder,completion);scored=1;break
             if scored or missing:break
-        report=refresh_report(settings,runtime=runtime,artifact_sha256=candidate['artifact_sha256'],now=_clock(),guard=remaining)
+        report_args={} if not receipt_profile else dict(serving_model=serving_model)
+        report=refresh_report(settings,runtime=runtime,artifact_sha256=candidate['artifact_sha256'],now=_clock(),guard=remaining,**report_args)
         reader.verify_unchanged();originals.verify();remaining()
         result=dict(status='scored' if scored else 'monitoring_refreshed' if missing else 'waiting',scored=scored,
             current_revision_scored=sum(row['model']['count'] for row in report['by_horizon'].values()),automatic_actuation=False)
         if missing:result['pending_reason']='mature_outcome_unavailable'
+        elif historical_unavailable:result['pending_reason']='historical_model_selection_unavailable'
         return result
 
 
@@ -588,3 +619,43 @@ def _retain_native_gap(folder,job,delivery,delivery_path,capture,*,horizon,targe
 
 
 SERVING_RECEIPT_SOURCE_SHA256='94d85e37afc79e08cf9de93ba937b2ba845acc7111c0a23e483b186d8ff9a57e'
+
+
+def serving_delivery_model(delivery_path,delivery,*,current_model,historical_selections,assessed_at,guard):
+    """Resolve a capture audit through explicit owned selections, never its own pin."""
+    from native_model_serving_receipt import _require_model,OwnedServingSelection,read_serving_model
+    from native_thermal_artifact import _read
+    from thermal_model.graduation_policy import _sha
+    _require_model(current_model)
+    if type(historical_selections) is not tuple or len(historical_selections)>31:
+        raise ValueError('bounded retained historical selections required')
+    path=Path(delivery_path).parent/(_sha(delivery['capture_sha256'])+'.native-serving-model-binding-v1.json')
+    if not path.exists() and not path.is_symlink():return None
+    guard();raw,binding=_read(path,8192)
+    fields={'schema','capture_sha256','artifact_sha256','runtime_sha256','issued_at','stage','deployment_sha256',
+        'model_receipt_path','model_receipt_sha256','automatic_actuation','binding_sha256'}
+    if (not isinstance(binding,dict) or set(binding)!=fields or binding['schema']!='earthship-native-serving-model-binding/v1' or
+        binding['automatic_actuation'] is not False or runtime_digest(binding,'binding_sha256')!=_sha(binding['binding_sha256']) or
+        any(binding[name]!=delivery[name] for name in ('capture_sha256','artifact_sha256','runtime_sha256','issued_at'))):
+        raise ValueError('original serving capture association differs')
+    selected_model=None;key=(binding['stage'],_sha(binding['deployment_sha256']))
+    current=json.loads(current_model._selection._encoded)
+    if key==(current['stage'],current['deployment_sha256']):selected_model=current_model
+    else:
+        for selection in historical_selections:
+            if type(selection) is not OwnedServingSelection:raise ValueError('owned historical model selection required')
+            selected=json.loads(selection._encoded)
+            if key==(selected['stage'],selected['deployment_sha256']):
+                # Different executing source/runtime must use its explicitly
+                # scheduled retained worker, never current process numerics.
+                if selected['runtime_sha256']!=current['runtime_sha256']:return None
+                if selected_model is not None:raise ValueError('unique historical capture selection required')
+                selected_model=read_serving_model(selection,assessed_at=assessed_at,guard=guard)
+    if selected_model is None:return None
+    chosen=json.loads(selected_model._selection._encoded)
+    if (binding['model_receipt_path']!=chosen['receipt']['path'] or binding['model_receipt_sha256']!=chosen['receipt']['sha256'] or
+        binding['artifact_sha256']!=selected_model.candidate['artifact_sha256'] or binding['runtime_sha256']!=selected_model.candidate['runtime_sha256']):
+        raise ValueError('historical receipt cannot qualify another capture model')
+    selected_model.verify_bindings(assessed_at=assessed_at,guard=guard)
+    if _read(path,8192)[0]!=raw:raise ValueError('serving capture association changed during selection')
+    guard();return selected_model

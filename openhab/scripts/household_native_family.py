@@ -103,3 +103,54 @@ def verify(output,*,guard):
         any(deploy._bytes(output/name,private=True)!=content for name,content in files.items())):
         raise ValueError('native family originals changed during verification')
     return family
+
+
+def prepare_score_dispatch(*,legacy_stage,legacy_deployment_sha256,historical_selections,output,guard):
+    """Bind retained selections without embedding a final stage's own digest."""
+    import household_cycle_deploy as deploy
+    from household.codec import loads
+    from thermal_model.graduation_policy import _sha
+    from copy import deepcopy
+    legacy_stage=deploy._directory(legacy_stage);output=deploy._path(output)
+    deploy._directory(output.parent)
+    if output.exists() or output.is_symlink():raise ValueError('distinct owned score dispatch output required')
+    if type(historical_selections) is not tuple or len(historical_selections)>31:
+        raise ValueError('bounded explicit historical score selection tuple required')
+    references=[]
+    def retained(stage,pin,schema):
+        guard();stage=deploy._directory(stage);pin=_sha(pin)
+        raw=deploy._bytes(stage/'deployment.json',private=True,maximum=131072)
+        if sha256(raw).hexdigest()!=pin:raise ValueError('retained scoring stage pin differs')
+        record=deploy.verify_stage(stage,expected_deployment_sha256=pin)
+        if record['schema']!=schema:raise ValueError('explicit retained scoring stage profile required')
+        references.append((stage/'deployment.json',raw))
+        return record
+    retained(legacy_stage,legacy_deployment_sha256,'earthship-household-cycle-deployment/v1')
+    cycle_raw=deploy._bytes(legacy_stage/'cycle.json',private=True,maximum=8192)
+    config=deploy._path(loads(cycle_raw)['forecast_config']);config_raw=deploy._bytes(config,private=True,maximum=8192)
+    if loads(config_raw).get('schema')!='earthship-provisional-thermal-live-config/v1':
+        raise ValueError('retained legacy configuration profile required')
+    references.extend(((legacy_stage/'cycle.json',cycle_raw),(config,config_raw)))
+    historical=[];seen={str(legacy_stage)}
+    for reference in deepcopy(historical_selections):
+        if not isinstance(reference,dict) or set(reference)!={'stage','deployment_sha256'}:
+            raise ValueError('closed explicit historical deployment pin required')
+        stage=deploy._directory(reference['stage'])
+        if str(stage) in seen:raise ValueError('unique retained scoring stages required')
+        seen.add(str(stage));retained(stage,reference['deployment_sha256'],'earthship-household-cycle-deployment/v3')
+        historical.append(dict(stage=str(stage),deployment_sha256=reference['deployment_sha256']))
+    record=dict(schema='earthship-native-score-dispatch/v1',current='current',
+        legacy=dict(stage=str(legacy_stage),deployment_sha256=legacy_deployment_sha256,config=str(config),
+            config_sha256=sha256(config_raw).hexdigest()),historical=historical)
+    raw=deploy._encode(record)
+    if len(raw)>131072:raise ValueError('bounded owned score dispatch record required')
+    def unchanged():
+        guard()
+        if any(deploy._bytes(path,private=True,maximum=131072)!=original for path,original in references):
+            raise ValueError('retained score selection changed during package preparation')
+        retained(legacy_stage,legacy_deployment_sha256,'earthship-household-cycle-deployment/v1')
+        for selection in historical:retained(selection['stage'],selection['deployment_sha256'],'earthship-household-cycle-deployment/v3')
+    unchanged();deploy._write(output,raw);unchanged()
+    if deploy._bytes(output,private=True,maximum=131072)!=raw:raise ValueError('score dispatch readback differs')
+    return dict(status='native_score_dispatch_staged',path=str(output),sha256=sha256(raw).hexdigest(),
+        live_units_changed=False,automatic_actuation=False)

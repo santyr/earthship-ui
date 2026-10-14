@@ -50,10 +50,10 @@ def validate_delivery(capture,receipts):
     if clocks[1]<clocks[0]:raise ValueError('native main receipt precedes numeric receipt')
 
 
-def score(capture,receipts,outcome,*,runtime,expected_artifact_sha256,expected_capture_sha256,horizon_hours,assessed_at,recent,check_budget=lambda:None):
+def _score(capture,receipts,outcome,*,runtime,expected_artifact_sha256,expected_capture_sha256,horizon_hours,assessed_at,recent,check_budget,capture_validator):
     capture,receipts,outcome,runtime,recent=map(deepcopy,(capture,receipts,outcome,runtime,recent))
     assessed=_instant(assessed_at)
-    capture=validate_capture(capture,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
+    capture=capture_validator(capture,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
         expected_capture_sha256=expected_capture_sha256,check_budget=check_budget)
     if SOURCE not in runtime['native_source_manifest']:
         raise ValueError('native score implementation must be runtime-bound')
@@ -185,7 +185,7 @@ def _query_binding(packet,paths,*,issue,epoch,assessed,check_budget):
                 assessed_at=assessed.isoformat(),query_sources=list(paths),release_authority=False)
 
 
-def _source_pair(packet,paths,*,runtime,expected_artifact_sha256,expected_capture_sha256,assessed,check_budget):
+def _source_pair(packet,paths,*,runtime,expected_artifact_sha256,expected_capture_sha256,assessed,check_budget,pair_builder):
     from pathlib import Path
     from native_thermal_artifact import _read
     from native_thermal_forecast import MAX_CAPTURE_BYTES
@@ -203,7 +203,7 @@ def _source_pair(packet,paths,*,runtime,expected_artifact_sha256,expected_captur
         return [(t,selected[t]) for t in targets]
     recent=compare_v2(issue=issue,target=issue+timedelta(hours=packet['horizon_hours']),current_f=capture['output']['initial']['air_f'],
                       grid_reader=reader,sensor_epoch=epoch)
-    pair=score(capture,packet['receipts'],packet['outcome'],runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
+    pair=pair_builder(capture,packet['receipts'],packet['outcome'],runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
                expected_capture_sha256=expected_capture_sha256,horizon_hours=packet['horizon_hours'],assessed_at=assessed,
                recent=recent,check_budget=check_budget)
     replay=_query_binding(packet,paths,issue=issue,epoch=epoch,assessed=assessed,check_budget=check_budget)
@@ -213,12 +213,12 @@ def _source_pair(packet,paths,*,runtime,expected_artifact_sha256,expected_captur
     return binding,pair
 
 
-def build_source_score(*,capture_path,receipts,outcome,recent_cycle_grid,source_paths,horizon_hours,assessed_at,
-                       runtime,expected_artifact_sha256,expected_capture_sha256,check_budget=lambda:None):
+def _build_source_score(*,capture_path,receipts,outcome,recent_cycle_grid,source_paths,horizon_hours,assessed_at,
+                       runtime,expected_artifact_sha256,expected_capture_sha256,check_budget,pair_builder):
     packet=deepcopy(dict(origin_path=capture_path,receipts=receipts,horizon_hours=horizon_hours,outcome=outcome,recent_cycle_grid=recent_cycle_grid))
     runtime,paths=map(deepcopy,(runtime,source_paths));assessed=_instant(assessed_at)
     binding,pair=_source_pair(packet,paths,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
-        expected_capture_sha256=expected_capture_sha256,assessed=assessed,check_budget=check_budget)
+        expected_capture_sha256=expected_capture_sha256,assessed=assessed,check_budget=check_budget,pair_builder=pair_builder)
     record=dict(schema=SOURCE_SCORE_SCHEMA,artifact_sha256=pair['artifact_sha256'],capture_sha256=pair['capture_sha256'],
         runtime_sha256=pair['runtime_sha256'],assessed_at=assessed.isoformat(),score_sources=packet,query_binding=binding,pair=pair,release_authority=False)
     record['source_score_sha256']=digest(record,'source_score_sha256')
@@ -226,7 +226,7 @@ def build_source_score(*,capture_path,receipts,outcome,recent_cycle_grid,source_
     return record
 
 
-def validate_source_score(record,*,runtime,expected_artifact_sha256,expected_capture_sha256,expected_source_score_sha256,check_budget=lambda:None):
+def _validate_source_score(record,*,runtime,expected_artifact_sha256,expected_capture_sha256,expected_source_score_sha256,check_budget,source_builder):
     record,runtime=map(deepcopy,(record,runtime))
     if (not isinstance(record,dict) or set(record)!=SOURCE_SCORE_FIELDS or record['schema']!=SOURCE_SCORE_SCHEMA or
             record['release_authority'] is not False or record['source_score_sha256']!=_sha(expected_source_score_sha256) or
@@ -238,7 +238,7 @@ def validate_source_score(record,*,runtime,expected_artifact_sha256,expected_cap
         raise ValueError('closed original native score inputs required')
     binding=record['query_binding']
     if not isinstance(binding,dict):raise ValueError('original native query binding required')
-    rebuilt=build_source_score(capture_path=record['score_sources']['origin_path'],receipts=record['score_sources']['receipts'],
+    rebuilt=source_builder(capture_path=record['score_sources']['origin_path'],receipts=record['score_sources']['receipts'],
         outcome=record['score_sources']['outcome'],recent_cycle_grid=record['score_sources']['recent_cycle_grid'],
         source_paths=binding.get('query_sources'),horizon_hours=record['score_sources']['horizon_hours'],assessed_at=_instant(record['assessed_at']),
         runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,expected_capture_sha256=expected_capture_sha256,check_budget=check_budget)
@@ -271,11 +271,11 @@ REPORT_ENTRY_FIELDS={'completion_path','completion_sha256','source_score_sha256'
 MAX_COMPLETION_BYTES=65536
 
 
-def build_source_completion(source_score_path,*,runtime,expected_artifact_sha256,expected_capture_sha256,
-                            expected_source_score_sha256,completed_at,check_budget=lambda:None):
+def _build_source_completion(source_score_path,*,runtime,expected_artifact_sha256,expected_capture_sha256,
+                            expected_source_score_sha256,completed_at,check_budget,source_reader):
     from pathlib import Path
     runtime=deepcopy(runtime);completed=_instant(completed_at);path=str(Path(source_score_path))
-    record=read_source_score(path,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
+    record=source_reader(path,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
         expected_capture_sha256=expected_capture_sha256,expected_source_score_sha256=expected_source_score_sha256,check_budget=check_budget)
     if completed<_instant(record['assessed_at']):raise ValueError('native score completion precedes assessment')
     pair=record['pair'];job=digest({'capture_sha256':pair['capture_sha256'],'horizon_hours':pair['horizon_hours']},None)
@@ -287,8 +287,8 @@ def build_source_completion(source_score_path,*,runtime,expected_artifact_sha256
     return result
 
 
-def validate_source_completion(completion,*,runtime,expected_artifact_sha256,expected_capture_sha256,
-                               expected_source_score_sha256,expected_completion_sha256,check_budget=lambda:None):
+def _validate_source_completion(completion,*,runtime,expected_artifact_sha256,expected_capture_sha256,
+                               expected_source_score_sha256,expected_completion_sha256,check_budget,completion_builder):
     completion,runtime=map(deepcopy,(completion,runtime))
     if (not isinstance(completion,dict) or set(completion)!=COMPLETION_FIELDS or completion['schema']!=COMPLETION_SCHEMA or
             completion['release_authority'] is not False or completion['completion_sha256']!=_sha(expected_completion_sha256) or
@@ -297,7 +297,7 @@ def validate_source_completion(completion,*,runtime,expected_artifact_sha256,exp
     for key,expected in (('artifact_sha256',expected_artifact_sha256),('capture_sha256',expected_capture_sha256),
                          ('source_score_sha256',expected_source_score_sha256)):
         if completion[key]!=_sha(expected):raise ValueError('original native completion identity differs')
-    result=build_source_completion(completion['source_score_path'],runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
+    result=completion_builder(completion['source_score_path'],runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
         expected_capture_sha256=expected_capture_sha256,expected_source_score_sha256=expected_source_score_sha256,
         completed_at=_instant(completion['completed_at']),check_budget=check_budget)
     if _canonical(result)!=_canonical(completion):raise ValueError('original native completion differs on replay')
@@ -323,21 +323,23 @@ def read_source_completion(path,*,runtime,expected_artifact_sha256,expected_capt
         expected_completion_sha256=expected_completion_sha256,check_budget=check_budget)
 
 
-def _reconcile_source_report(entries,*,runtime,artifact_sha256,assessed_at,check_budget):
+def _reconcile_source_report(entries,*,runtime,artifact_sha256,assessed_at,check_budget,completion_reader=None,source_reader=None):
     from native_thermal_artifact import validate_native_runtime
+    if completion_reader is None:completion_reader=read_source_completion
+    if source_reader is None:source_reader=read_source_score
     if not isinstance(entries,list) or len(entries)>256:raise ValueError('bounded native completion report inventory required')
     entries,runtime=map(deepcopy,(entries,runtime));runtime=validate_native_runtime(runtime)
     if SOURCE not in runtime['native_source_manifest']:raise ValueError('native report implementation must be runtime-bound')
     artifact=_sha(artifact_sha256);assessed=_instant(assessed_at);pairs=[];jobs=set();check_budget()
     for entry in entries:
         if not isinstance(entry,dict) or set(entry)!=REPORT_ENTRY_FIELDS:raise ValueError('externally pinned native report entry required')
-        completion=read_source_completion(entry['completion_path'],runtime=runtime,expected_artifact_sha256=artifact,
+        completion=completion_reader(entry['completion_path'],runtime=runtime,expected_artifact_sha256=artifact,
             expected_capture_sha256=entry['capture_sha256'],expected_source_score_sha256=entry['source_score_sha256'],
             expected_completion_sha256=entry['completion_sha256'],check_budget=check_budget)
         if _instant(completion['completed_at'])>assessed:raise ValueError('native report completion is future')
         if completion['job_id'] in jobs:raise ValueError('duplicate native completed score job')
         jobs.add(completion['job_id'])
-        source=read_source_score(completion['source_score_path'],runtime=runtime,expected_artifact_sha256=artifact,
+        source=source_reader(completion['source_score_path'],runtime=runtime,expected_artifact_sha256=artifact,
             expected_capture_sha256=entry['capture_sha256'],expected_source_score_sha256=entry['source_score_sha256'],check_budget=check_budget)
         if source['pair']['pair_sha256']!=completion['pair_sha256']:raise ValueError('native completed pair differs')
         pairs.append(source['pair']);check_budget()
@@ -357,3 +359,154 @@ def reconcile_source_report(entries,*,runtime,artifact_sha256,assessed_at,check_
 
 
 SERVING_RECEIPT_SOURCE_SHA256='94d85e37afc79e08cf9de93ba937b2ba845acc7111c0a23e483b186d8ff9a57e'
+
+
+
+def score(capture,receipts,outcome,*,runtime,expected_artifact_sha256,expected_capture_sha256,horizon_hours,assessed_at,recent,check_budget=lambda:None):
+    return _score(capture,receipts,outcome,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
+        expected_capture_sha256=expected_capture_sha256,horizon_hours=horizon_hours,assessed_at=assessed_at,
+        recent=recent,check_budget=check_budget,capture_validator=validate_capture)
+
+
+def build_source_score(*,capture_path,receipts,outcome,recent_cycle_grid,source_paths,horizon_hours,assessed_at,
+                       runtime,expected_artifact_sha256,expected_capture_sha256,check_budget=lambda:None):
+    return _build_source_score(capture_path=capture_path,receipts=receipts,outcome=outcome,recent_cycle_grid=recent_cycle_grid,
+        source_paths=source_paths,horizon_hours=horizon_hours,assessed_at=assessed_at,runtime=runtime,
+        expected_artifact_sha256=expected_artifact_sha256,expected_capture_sha256=expected_capture_sha256,
+        check_budget=check_budget,pair_builder=score)
+
+
+def validate_source_score(record,*,runtime,expected_artifact_sha256,expected_capture_sha256,expected_source_score_sha256,check_budget=lambda:None):
+    return _validate_source_score(record,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
+        expected_capture_sha256=expected_capture_sha256,expected_source_score_sha256=expected_source_score_sha256,
+        check_budget=check_budget,source_builder=build_source_score)
+
+
+def build_source_completion(source_score_path,*,runtime,expected_artifact_sha256,expected_capture_sha256,
+                            expected_source_score_sha256,completed_at,check_budget=lambda:None):
+    return _build_source_completion(source_score_path,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
+        expected_capture_sha256=expected_capture_sha256,expected_source_score_sha256=expected_source_score_sha256,
+        completed_at=completed_at,check_budget=check_budget,source_reader=read_source_score)
+
+
+def validate_source_completion(completion,*,runtime,expected_artifact_sha256,expected_capture_sha256,
+                               expected_source_score_sha256,expected_completion_sha256,check_budget=lambda:None):
+    return _validate_source_completion(completion,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
+        expected_capture_sha256=expected_capture_sha256,expected_source_score_sha256=expected_source_score_sha256,
+        expected_completion_sha256=expected_completion_sha256,check_budget=check_budget,completion_builder=build_source_completion)
+
+
+def _model_pins(model,*,assessed_at,check_budget):
+    from native_model_serving_receipt import _require_model
+    _require_model(model);model.verify_bindings(assessed_at=_instant(assessed_at),guard=check_budget)
+    return dict(runtime=model.runtime,expected_artifact_sha256=model.candidate['artifact_sha256'])
+
+
+def _serving_callback(model,function):
+    def selected(*args,runtime,expected_artifact_sha256,**kwargs):
+        from native_model_serving_receipt import _require_model
+        _require_model(model)
+        if _canonical(runtime)!=_canonical(model.runtime) or expected_artifact_sha256!=model.candidate['artifact_sha256']:
+            raise ValueError('historical serving score selection differs')
+        return function(*args,model=model,**kwargs)
+    return selected
+
+
+def score_serving(capture,model,receipts,outcome,*,expected_capture_sha256,horizon_hours,assessed_at,recent,check_budget=lambda:None):
+    from native_thermal_forecast import validate_serving_capture
+    capture,receipts,outcome,recent=map(deepcopy,(capture,receipts,outcome,recent))
+    pins=_model_pins(model,assessed_at=assessed_at,check_budget=check_budget)
+    def validator(value,*,runtime,expected_artifact_sha256,**kwargs):
+        return validate_serving_capture(value,model,**kwargs)
+    result=_score(capture,receipts,outcome,**pins,expected_capture_sha256=expected_capture_sha256,
+        horizon_hours=horizon_hours,assessed_at=assessed_at,recent=recent,check_budget=check_budget,capture_validator=validator)
+    model.verify_bindings(assessed_at=_instant(assessed_at),guard=check_budget)
+    return result
+
+
+def build_serving_source_score(*,model,capture_path,receipts,outcome,recent_cycle_grid,source_paths,horizon_hours,assessed_at,
+                               expected_capture_sha256,check_budget=lambda:None):
+    receipts,outcome,recent_cycle_grid,source_paths=map(deepcopy,(receipts,outcome,recent_cycle_grid,source_paths))
+    pins=_model_pins(model,assessed_at=assessed_at,check_budget=check_budget)
+    # Adapt the public positional model interface to the shared source core.
+    def pair(capture,receipts,outcome,*,runtime,expected_artifact_sha256,**kwargs):
+        return score_serving(capture,model,receipts,outcome,**kwargs)
+    result=_build_source_score(capture_path=capture_path,receipts=receipts,outcome=outcome,recent_cycle_grid=recent_cycle_grid,
+        source_paths=source_paths,horizon_hours=horizon_hours,assessed_at=assessed_at,**pins,
+        expected_capture_sha256=expected_capture_sha256,check_budget=check_budget,pair_builder=pair)
+    model.verify_bindings(assessed_at=_instant(assessed_at),guard=check_budget)
+    return result
+
+
+def validate_serving_source_score(record,*,model,expected_capture_sha256,expected_source_score_sha256,check_budget=lambda:None):
+    record=deepcopy(record)
+    if not isinstance(record,dict):raise ValueError('original native source score required')
+    pins=_model_pins(model,assessed_at=record.get('assessed_at'),check_budget=check_budget)
+    return _validate_source_score(record,**pins,expected_capture_sha256=expected_capture_sha256,
+        expected_source_score_sha256=expected_source_score_sha256,check_budget=check_budget,
+        source_builder=_serving_callback(model,build_serving_source_score))
+
+
+def read_serving_source_score(path,*,model,expected_capture_sha256,expected_source_score_sha256,check_budget=lambda:None):
+    from pathlib import Path
+    from native_thermal_artifact import _read
+    path=Path(path)
+    if path.name!=_sha(expected_source_score_sha256)+SOURCE_SCORE_SUFFIX:raise ValueError('named original native source score required')
+    raw,record=_read(path,MAX_SOURCE_SCORE_BYTES)
+    result=validate_serving_source_score(record,model=model,expected_capture_sha256=expected_capture_sha256,
+        expected_source_score_sha256=expected_source_score_sha256,check_budget=check_budget)
+    if _read(path,MAX_SOURCE_SCORE_BYTES)[0]!=raw:raise ValueError('original native source score changed during readback')
+    return result
+
+
+def build_serving_source_completion(source_score_path,*,model,expected_capture_sha256,expected_source_score_sha256,completed_at,check_budget=lambda:None):
+    pins=_model_pins(model,assessed_at=completed_at,check_budget=check_budget)
+    result=_build_source_completion(source_score_path,**pins,expected_capture_sha256=expected_capture_sha256,
+        expected_source_score_sha256=expected_source_score_sha256,completed_at=completed_at,check_budget=check_budget,
+        source_reader=_serving_callback(model,read_serving_source_score))
+    model.verify_bindings(assessed_at=_instant(completed_at),guard=check_budget)
+    return result
+
+
+def validate_serving_source_completion(completion,*,model,expected_capture_sha256,expected_completion_sha256,check_budget=lambda:None):
+    completion=deepcopy(completion)
+    if not isinstance(completion,dict):raise ValueError('original native completion required')
+    pins=_model_pins(model,assessed_at=completion.get('completed_at'),check_budget=check_budget)
+    return _validate_source_completion(completion,**pins,expected_capture_sha256=expected_capture_sha256,
+        expected_source_score_sha256=completion.get('source_score_sha256'),expected_completion_sha256=expected_completion_sha256,
+        check_budget=check_budget,completion_builder=_serving_callback(model,build_serving_source_completion))
+
+
+def read_serving_source_completion(path,*,model,expected_capture_sha256,expected_source_score_sha256,expected_completion_sha256,check_budget=lambda:None):
+    from pathlib import Path
+    from native_thermal_artifact import _read
+    path=Path(path)
+    if path.name!=_sha(expected_completion_sha256)+COMPLETION_SUFFIX:raise ValueError('named original native completion required')
+    raw,value=_read(path,MAX_COMPLETION_BYTES)
+    if not isinstance(value,dict) or value.get('source_score_sha256')!=_sha(expected_source_score_sha256):
+        raise ValueError('original native completed score differs')
+    result=validate_serving_source_completion(value,model=model,expected_capture_sha256=expected_capture_sha256,
+        expected_completion_sha256=expected_completion_sha256,check_budget=check_budget)
+    if _read(path,MAX_COMPLETION_BYTES)[0]!=raw:raise ValueError('original native completion changed during readback')
+    return result
+
+
+def reconcile_serving_source_report(entries,*,selections,artifact_sha256,assessed_at,check_budget=lambda:None):
+    from native_model_serving_receipt import read_serving_model
+    from thermal_model.replay_budget import capture_source_reads
+    entries=deepcopy(entries);assessed=_instant(assessed_at);artifact=_sha(artifact_sha256)
+    if type(selections) is not tuple or not 1<=len(selections)<=32:raise ValueError('explicit retained serving selections required')
+    with capture_source_reads() as originals:
+        models=[read_serving_model(selection,assessed_at=assessed,guard=check_budget) for selection in selections]
+        identities=[(m.candidate['artifact_sha256'],m.candidate['runtime_sha256']) for m in models]
+        if len(set(identities))!=len(identities):raise ValueError('unique retained serving model selections required')
+        selected=[m for m in models if m.candidate['artifact_sha256']==artifact]
+        if len(selected)!=1:raise ValueError('retained report model selection unavailable')
+        model=selected[0]
+        result=_reconcile_source_report(entries,runtime=model.runtime,artifact_sha256=artifact,assessed_at=assessed,
+            check_budget=check_budget,completion_reader=_serving_callback(model,read_serving_source_completion),
+            source_reader=_serving_callback(model,read_serving_source_score))
+        for value in models:value.verify_bindings(assessed_at=assessed,guard=check_budget)
+        check_budget()
+        if originals.file_count:originals.verify()
+        check_budget();return result

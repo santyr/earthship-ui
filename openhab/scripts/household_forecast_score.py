@@ -8,7 +8,12 @@ from pathlib import Path
 import time
 
 
-def score_with_report(settings,*,guard,clock=lambda:datetime.now(timezone.utc),queue=False):
+def score_with_report(settings,*,guard,clock=lambda:datetime.now(timezone.utc),queue=False,serving_model=None,historical_selections=()):
+    if settings.get('schema')=='earthship-provisional-thermal-live-config/v3':
+        from native_thermal_live import score_jobs
+        if serving_model is None:raise ValueError('owned serving score context required')
+        guard();return score_jobs(settings,guard=guard,serving_model=serving_model,historical_selections=historical_selections)
+    if serving_model is not None or historical_selections:raise ValueError('receipt context requires explicit serving profile')
     if settings.get('schema')=='earthship-provisional-thermal-live-config/v2':
         from native_thermal_live import score_jobs
         guard()
@@ -32,7 +37,7 @@ def score_with_report(settings,*,guard,clock=lambda:datetime.now(timezone.utc),q
         pending_reason='mature_outcome_unavailable',automatic_actuation=False)
 
 
-def run(config,*,stage=None,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic):
+def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic):
     import os
     from thermal_installed_intel import _resource_preflight
     from thermal_model.provisional_live import load_settings,_next_issue
@@ -45,20 +50,45 @@ def run(config,*,stage=None,clock=lambda:datetime.now(timezone.utc),monotonic=ti
     config=Path(config).absolute();original=_private_file(config,8192)
     from household.codec import loads
     declared=loads(original[0])
-    if isinstance(declared,dict) and declared.get('schema')=='earthship-provisional-thermal-live-config/v2':
+    if isinstance(declared,dict) and declared.get('schema') in ('earthship-provisional-thermal-live-config/v2','earthship-provisional-thermal-live-config/v3'):
         from native_thermal_live import load_settings
     settings=load_settings(config)
+    receipt_profile=settings.get('schema')=='earthship-provisional-thermal-live-config/v3'
+    if retained_native and not receipt_profile:raise ValueError('retained native execution requires explicit serving profile')
+    if receipt_profile and (stage is None or deployment_sha256 is None):raise ValueError('external serving score stage pin required')
     own=Path(__file__).read_bytes();now=clock();issue=_next_issue(now)
     if issue-now<timedelta(seconds=90):raise BlockingIOError('forecast preparation window reserved')
     verifier=None;binding=None
     if stage is not None:
         from household_cycle_deploy import verify_stage
-        stage=Path(stage).absolute();binding=verify_stage(stage);verifier=verify_stage
+        stage=Path(stage).absolute()
+        if receipt_profile:
+            def verifier(actual):return verify_stage(actual,expected_deployment_sha256=deployment_sha256)
+        else:verifier=verify_stage
+        binding=verifier(stage)
         if Path(__file__).resolve()!=stage/'sources/openhab/scripts/household_forecast_score.py':
             raise ValueError('staged score coordinator execution required')
     deadline=monotonic()+50
+    dispatch=None
+    if receipt_profile:
+        def selection_guard():
+            _resource_preflight()
+            if monotonic()>=deadline or _private_file(config,8192)!=original or Path(__file__).read_bytes()!=own:
+                raise ValueError('score source or selection changed before dispatch')
+        dispatch=read_score_dispatch(stage,deployment_sha256=deployment_sha256,guard=selection_guard)
+        role='current' if retained_native else score_role(now)
+        if role=='reserved':return dict(status='waiting',scored=0,pending_reason='forecast_slot_reserved',automatic_actuation=False)
+        if role=='legacy':
+            selection_guard()
+            if verifier(stage)!=binding:raise ValueError('staged score selection changed before dispatch')
+            return execute_legacy_score(dispatch['legacy'])
+        target='current' if retained_native else native_score_selection(dispatch,now)
+        if target!='current':
+            selection_guard()
+            if verifier(stage)!=binding:raise ValueError('staged historical score selection changed before dispatch')
+            return execute_retained_native_score(target)
     with SharedScoreLock(settings['shared_lock']) as lock:
-        if settings.get('schema')=='earthship-provisional-thermal-live-config/v2':
+        if settings.get('schema') in ('earthship-provisional-thermal-live-config/v2','earthship-provisional-thermal-live-config/v3'):
             from native_inference_pressure import NativeInferenceHeadroom
             pressure=NativeInferenceHeadroom();pressure.preflight()
         else:
@@ -68,7 +98,14 @@ def run(config,*,stage=None,clock=lambda:datetime.now(timezone.utc),monotonic=ti
             if monotonic()>=deadline or clock()>=issue-timedelta(seconds=35):raise ValueError('score lifetime elapsed')
             if _private_file(config,8192)!=original or _read_private(config)!=settings or Path(__file__).read_bytes()!=own:
                 raise ValueError('score source or configuration changed')
-        result=score_with_report(settings,guard=guard,clock=clock,queue=True)
+        if receipt_profile:
+            from native_model_serving_receipt import load_serving_selection,read_serving_model
+            selected=load_serving_selection(stage,expected_deployment_sha256=deployment_sha256,assessed_at=clock(),guard=guard)
+            model=read_serving_model(selected,assessed_at=clock(),guard=guard)
+            historical=tuple(load_serving_selection(Path(ref['stage']),expected_deployment_sha256=ref['deployment_sha256'],
+                assessed_at=clock(),guard=guard) for ref in ([] if retained_native else dispatch['historical']))
+            result=score_with_report(settings,guard=guard,clock=clock,queue=True,serving_model=model,historical_selections=historical)
+        else:result=score_with_report(settings,guard=guard,clock=clock,queue=True)
         guard()
         if verifier is not None and verifier(stage)!=binding:raise ValueError('staged score runtime changed')
         return result
@@ -77,12 +114,131 @@ def run(config,*,stage=None,clock=lambda:datetime.now(timezone.utc),monotonic=ti
 def main(argv=None):
     import argparse,json
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--config',required=True,type=Path);parser.add_argument('--stage',type=Path)
+    parser.add_argument('--config',required=True,type=Path);parser.add_argument('--stage',type=Path);parser.add_argument('--deployment-sha256');parser.add_argument('--retained-native',action='store_true')
     args=parser.parse_args(argv)
-    try:result=run(args.config,stage=args.stage)
+    try:
+        selected={} if args.deployment_sha256 is None else dict(deployment_sha256=args.deployment_sha256)
+        if args.retained_native:selected['retained_native']=True
+        result=run(args.config,stage=args.stage,**selected)
     except BlockingIOError:print(json.dumps(dict(status='busy',fit_executed=False,automatic_actuation=False)));return 75
     except Exception:print(json.dumps(dict(status='score_withheld',fit_executed=False,automatic_actuation=False)));return 1
     print(json.dumps(result));return 0 if result.get('status') in ('scored','waiting','monitoring_refreshed') else 1
 
+
+
+
+def score_role(at):
+    from astro_geometry import _instant
+    at=_instant(at)
+    return 'current' if at.minute%5 in (0,2) else 'legacy' if at.minute%5 in (1,3) else 'reserved'
+
+
+def read_score_dispatch(stage,*,deployment_sha256,guard):
+    import household_cycle_deploy as deploy
+    from hashlib import sha256
+    from household.codec import loads
+    from thermal_model.graduation_policy import _sha
+    stage=deploy._path(stage);pin=_sha(deployment_sha256);guard()
+    record=deploy.verify_stage(stage,expected_deployment_sha256=pin)
+    if record['schema']!='earthship-household-cycle-deployment/v3':raise ValueError('receipt-serving score dispatch required')
+    ref=record['score_dispatch'];path=deploy._path(ref['path'])
+    raw=deploy._bytes(path,private=True,maximum=131072)
+    if sha256(raw).hexdigest()!=_sha(ref['sha256']):raise ValueError('owned score dispatch bytes differ')
+    value=loads(raw)
+    if (not isinstance(value,dict) or set(value)!={'schema','current','legacy','historical'} or
+        value['schema']!='earthship-native-score-dispatch/v1' or value['current']!='current'):
+        raise ValueError('closed explicit score dispatch required')
+    legacy=value['legacy']
+    if not isinstance(legacy,dict) or set(legacy)!={'stage','deployment_sha256','config','config_sha256'}:
+        raise ValueError('explicit retained legacy score selection required')
+    retained=deploy._path(legacy['stage']);config=deploy._path(legacy['config'])
+    if retained==stage:raise ValueError('legacy score stage must be retained separately')
+    def pinned_stage(selected,identity):
+        manifest=deploy._bytes(selected/'deployment.json',private=True,maximum=131072)
+        if sha256(manifest).hexdigest()!=_sha(identity):raise ValueError('retained score deployment changed')
+        result=deploy.verify_stage(selected,expected_deployment_sha256=identity)
+        if deploy._bytes(selected/'deployment.json',private=True,maximum=131072)!=manifest:
+            raise ValueError('retained score deployment changed during readback')
+        return result
+    original=pinned_stage(retained,legacy['deployment_sha256'])
+    if original['schema']!='earthship-household-cycle-deployment/v1':raise ValueError('legacy score profile required')
+    original_config=deploy._bytes(config,private=True,maximum=8192)
+    if sha256(original_config).hexdigest()!=_sha(legacy['config_sha256']):raise ValueError('retained legacy configuration changed')
+    cycle=loads(deploy._bytes(retained/'cycle.json',private=True,maximum=8192))
+    if cycle.get('forecast_config')!=str(config) or loads(original_config).get('schema')!='earthship-provisional-thermal-live-config/v1':
+        raise ValueError('retained legacy cycle configuration differs')
+    historical=value['historical']
+    if not isinstance(historical,list) or len(historical)>31:raise ValueError('bounded explicit historical score selections required')
+    seen={str(stage)}
+    for selection in historical:
+        guard()
+        if not isinstance(selection,dict) or set(selection)!={'stage','deployment_sha256'}:raise ValueError('closed historical serving stage pin required')
+        selected=deploy._path(selection['stage'])
+        if str(selected) in seen:raise ValueError('unique historical serving stages required')
+        seen.add(str(selected))
+        if pinned_stage(selected,selection['deployment_sha256'])['schema']!='earthship-household-cycle-deployment/v3':
+            raise ValueError('retained historical serving profile required')
+    guard()
+    if (deploy._bytes(path,private=True,maximum=131072)!=raw or deploy._bytes(config,private=True,maximum=8192)!=original_config or
+        deploy.verify_stage(stage,expected_deployment_sha256=pin)!=record):
+        raise ValueError('owned score selection changed during dispatch read')
+    return value
+
+
+
+
+def execute_legacy_score(selection):
+    """Replace this invocation with its exact retained worker under the same unit."""
+    import os
+    from hashlib import sha256
+    import household_cycle_deploy as deploy
+    stage=deploy._path(selection['stage']);config=deploy._path(selection['config'])
+    original=deploy._bytes(stage/'deployment.json',private=True,maximum=131072)
+    if sha256(original).hexdigest()!=selection['deployment_sha256']:raise ValueError('retained score deployment changed before execution')
+    record=deploy.verify_stage(stage,expected_deployment_sha256=selection['deployment_sha256'])
+    source='openhab/scripts/household_forecast_score.py';script=stage/'sources'/source
+    if record['schema']!='earthship-household-cycle-deployment/v1' or source not in record['source_manifest']:
+        raise ValueError('retained legacy score source closure required')
+    if (sha256(deploy._bytes(config,private=True,maximum=8192)).hexdigest()!=selection['config_sha256'] or
+        deploy._bytes(stage/'deployment.json',private=True,maximum=131072)!=original or
+        sha256(deploy._bytes(script)).hexdigest()!=record['source_manifest'][source]):
+        raise ValueError('retained score source or config changed before execution')
+    command=['/usr/bin/python3',str(script),'--config',str(config),'--stage',str(stage)]
+    environment=dict(os.environ,PYTHONPATH=str(stage/'sources/openhab/scripts')+':/home/sat/Solar_PV/analytics/src')
+    os.execve(command[0],command,environment)
+
+
+
+def native_score_selection(dispatch,at):
+    from astro_geometry import _instant
+    at=_instant(at)
+    if score_role(at)!='current':raise ValueError('explicit native scoring opportunity required')
+    historical=dispatch['historical']
+    if at.minute%5==0 or not historical:return 'current'
+    # One current opportunity remains every five minutes; the other rotates
+    # retained archives explicitly. This is scheduling, never refusal fallback.
+    return historical[(int(at.timestamp())//300)%len(historical)]
+
+
+def execute_retained_native_score(selection):
+    import os
+    from hashlib import sha256
+    from household.codec import loads
+    import household_cycle_deploy as deploy
+    stage=deploy._path(selection['stage']);pin=selection['deployment_sha256']
+    manifest=deploy._bytes(stage/'deployment.json',private=True,maximum=131072)
+    if sha256(manifest).hexdigest()!=pin:raise ValueError('retained native stage changed before execution')
+    record=deploy.verify_stage(stage,expected_deployment_sha256=pin)
+    if record['schema']!='earthship-household-cycle-deployment/v3':raise ValueError('explicit retained receipt-serving profile required')
+    cycle_raw=deploy._bytes(stage/'cycle.json',private=True,maximum=8192)
+    config=deploy._path(loads(cycle_raw)['forecast_config']);source='openhab/scripts/household_forecast_score.py'
+    script=stage/'sources'/source
+    if (source not in record['source_manifest'] or sha256(deploy._bytes(script)).hexdigest()!=record['source_manifest'][source] or
+        deploy._bytes(stage/'deployment.json',private=True,maximum=131072)!=manifest or
+        deploy._bytes(stage/'cycle.json',private=True,maximum=8192)!=cycle_raw):
+        raise ValueError('retained native executing source changed')
+    command=['/usr/bin/python3',str(script),'--config',str(config),'--stage',str(stage),'--deployment-sha256',pin,'--retained-native']
+    environment=dict(os.environ,PYTHONPATH=str(stage/'sources/openhab/scripts')+':/home/sat/Solar_PV/analytics/src')
+    os.execve(command[0],command,environment)
 
 if __name__=='__main__':raise SystemExit(main())

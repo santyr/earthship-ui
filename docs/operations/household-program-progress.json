@@ -5134,7 +5134,7 @@
       "no_native_activation_or_hardware_requests": true
     },
     "native_model_serving_receipt_plan": {
-      "status": "task2_verified_task3_in_progress",
+      "status": "task3_verified_task4_packaging_in_progress",
       "recorded_at": "2026-10-14T00:09:26.086096+00:00",
       "user_reply": "plan approved",
       "presented_artifact_approved": "docs/superpowers/specs/2026-10-13-native-model-serving-receipt-design.md",
@@ -5153,7 +5153,8 @@
       "implementation_plan_approval_reply": "implementation plan approved.",
       "task1_complete": true,
       "task2_complete": true,
-      "task3_complete": false
+      "task3_complete": true,
+      "task4_complete": false
     },
     "native_model_serving_receipt_task1": {
       "status": "task1_unit_contracts_verified",
@@ -5537,6 +5538,296 @@
       },
       "production_timing_qualified": false,
       "live_model_selection_changed": false,
+      "whole_plan_complete": false
+    },
+    "native_model_serving_receipt_task3_partial": {
+      "status": "task3_serving_score_history_and_dispatch_verified_regressions_pending",
+      "pure_passing_batches": [
+        {
+          "label": "20261014T022258975735Z",
+          "cases": 43
+        },
+        {
+          "label": "20261014T020815345141Z",
+          "cases": 3
+        },
+        {
+          "label": "20261014T023301686992Z",
+          "cases": 3
+        }
+      ],
+      "additional_verified_cases_in_intentional_red_batches": [
+        {
+          "label": "20261014T020335914222Z",
+          "cases": 3,
+          "other_failures": "missing outer scoring pin"
+        },
+        {
+          "label": "20261014T021926594654Z",
+          "cases": 1,
+          "other_failures": "missing retained native dispatcher"
+        },
+        {
+          "label": "20261014T022448573313Z",
+          "cases": 34,
+          "other_failures": "missing family dispatch writer"
+        }
+      ],
+      "original_source_completion_legacy_queue_regressions_pending": true,
+      "production_score_deadline_qualified": false,
+      "native_activation_qualified": false,
+      "whole_plan_complete": false,
+      "source_sha256s": {
+        "openhab/scripts/native_thermal_score.py": "2e4abc7c8f655bcc5f7ff839b9750816f56f08b02bd516e10c8b8c2c6aaa6dab",
+        "openhab/scripts/native_thermal_live.py": "3080714a5c2be8fa249f9c012e8dcc0b64536f4dd3340fff910f4b6e406b5e31",
+        "openhab/scripts/household_forecast_score.py": "3931af5f7246b7fcd83eab28aa63b5ea33ce35e05d33901f6a01a9cf4d3f9a33",
+        "openhab/scripts/household_native_family.py": "a5c994699e8d789a7a75c43a443a76bef8fb2f375a9d04b62df33a2a061f3cae"
+      }
+    },
+    "native_model_serving_receipt_task3": {
+      "status": "task3_serving_scores_history_dispatch_and_regressions_verified",
+      "executed_passing_cases": 144,
+      "runs": [
+        {
+          "label": "20261014T022258975735Z",
+          "passed_cases": 43,
+          "selectors": [
+            "openhab/scripts/test_native_serving_retained_dispatch.py",
+            "openhab/scripts/test_native_serving_dispatch.py",
+            "openhab/scripts/test_native_serving_score_driver.py",
+            "openhab/scripts/test_native_serving_legacy_exec.py",
+            "openhab/scripts/test_native_score_coordinator.py",
+            "openhab/scripts/test_household_forecast_score.py",
+            "openhab/scripts/test_native_paired_score_reader.py"
+          ],
+          "terminal_exit": 0,
+          "expected_red_interfaces": [],
+          "log_sha256": "20375613a705e75500c3dd316c88d859b67ad78659f0a3eb8f4a1d50eb31c82a",
+          "memory_peak_bytes": 132358144,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          }
+        },
+        {
+          "label": "20261014T020815345141Z",
+          "passed_cases": 3,
+          "selectors": [
+            "openhab/scripts/test_native_serving_score.py::test_serving_completion_and_report_equal_independent_full_replay",
+            "openhab/scripts/test_native_serving_score.py::test_old_capture_cannot_use_active_receipt",
+            "openhab/scripts/test_native_serving_score.py::test_missing_historical_receipt_qualifies_no_outcome"
+          ],
+          "terminal_exit": 0,
+          "expected_red_interfaces": [],
+          "log_sha256": "d756917dda0bd43e01b591f47bd81694a8d29d76b4b24d6bd0310415741fb100",
+          "memory_peak_bytes": 137519104,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          }
+        },
+        {
+          "label": "20261014T023301686992Z",
+          "passed_cases": 3,
+          "selectors": [
+            "openhab/scripts/test_native_serving_dispatch_package.py",
+            "openhab/scripts/test_native_serving_historical_model.py"
+          ],
+          "terminal_exit": 0,
+          "expected_red_interfaces": [],
+          "log_sha256": "c34e229a1b8a699096d69006a695f162ae84991776fd63cd85930385f528e87c",
+          "memory_peak_bytes": 134852608,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          }
+        },
+        {
+          "label": "20261014T023640017710Z",
+          "passed_cases": 21,
+          "selectors": [
+            "openhab/scripts/test_native_thermal_score_sources.py"
+          ],
+          "terminal_exit": 0,
+          "expected_red_interfaces": [],
+          "log_sha256": "c213c769bf040a1ce1b45808917ef35aab98967a68be41132bcf5b5a3ed58ce9",
+          "memory_peak_bytes": 132030464,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          }
+        },
+        {
+          "label": "20261014T023825030772Z",
+          "passed_cases": 14,
+          "selectors": [
+            "openhab/scripts/test_native_thermal_completion.py"
+          ],
+          "terminal_exit": 0,
+          "expected_red_interfaces": [],
+          "log_sha256": "e61b3a2207494eb990c3c8d1badfb930722be868fe3ed980ec314e8a44e34b50",
+          "memory_peak_bytes": 128106496,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          }
+        },
+        {
+          "label": "20261014T024150156002Z",
+          "passed_cases": 21,
+          "selectors": [
+            "openhab/scripts/test_household_score_queue.py"
+          ],
+          "terminal_exit": 0,
+          "expected_red_interfaces": [],
+          "log_sha256": "0942be3aed300466f23ee86535c90052a4f4a4173b2bb927b28423779ac31b3d",
+          "memory_peak_bytes": 138219520,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          }
+        },
+        {
+          "label": "20261014T024347264601Z",
+          "passed_cases": 1,
+          "selectors": [
+            "openhab/scripts/test_native_serving_queue_completed.py"
+          ],
+          "terminal_exit": 0,
+          "expected_red_interfaces": [],
+          "log_sha256": "107c3df01f9f9509c87d581e15ee0f0e16874173236244144c9f703717ec2cb4",
+          "memory_peak_bytes": 134930432,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          }
+        },
+        {
+          "label": "20261014T020335914222Z",
+          "passed_cases": 3,
+          "selectors": [
+            "openhab/scripts/test_native_serving_score_driver.py",
+            "openhab/scripts/test_native_serving_history.py",
+            "openhab/scripts/test_native_serving_score.py::test_serving_score_and_raw_source_equal_independent_full_replay"
+          ],
+          "terminal_exit": 1,
+          "expected_red_interfaces": [
+            "openhab/scripts/test_native_serving_score_driver.py::test_current_score_slot_reads_one_context_under_existing_lock",
+            "openhab/scripts/test_native_serving_score_driver.py::test_legacy_slot_executes_only_explicit_retained_worker",
+            "openhab/scripts/test_native_serving_score_driver.py::test_missing_external_pin_refuses_both_score_workers"
+          ],
+          "log_sha256": "89cbb9ba9fa282c810a251e6440d9b42af26c62f2fa7c30adcf4ae95910064e5",
+          "memory_peak_bytes": 138498048,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          }
+        },
+        {
+          "label": "20261014T021926594654Z",
+          "passed_cases": 1,
+          "selectors": [
+            "openhab/scripts/test_native_serving_retained_dispatch.py",
+            "openhab/scripts/test_native_serving_queue.py"
+          ],
+          "terminal_exit": 1,
+          "expected_red_interfaces": [
+            "openhab/scripts/test_native_serving_retained_dispatch.py::test_native_opportunities_preserve_current_and_rotate_explicit_retained_stages",
+            "openhab/scripts/test_native_serving_retained_dispatch.py::test_retained_native_exec_uses_its_own_external_pin_and_source_closure"
+          ],
+          "log_sha256": "a9ee7880e48f4a0dea289e23b08348f3f25581dd21d7562470d547b5093f731d",
+          "memory_peak_bytes": 137859072,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          }
+        },
+        {
+          "label": "20261014T022448573313Z",
+          "passed_cases": 34,
+          "selectors": [
+            "openhab/scripts/test_native_serving_dispatch_package.py",
+            "openhab/scripts/test_native_thermal_score.py"
+          ],
+          "terminal_exit": 1,
+          "expected_red_interfaces": [
+            "openhab/scripts/test_native_serving_dispatch_package.py::test_family_dispatch_retains_legacy_config_without_self_deployment_digest",
+            "openhab/scripts/test_native_serving_dispatch_package.py::test_family_dispatch_refuses_changed_legacy_before_any_output"
+          ],
+          "log_sha256": "a9ad5f2eeab59540bec3e5b19b9e312bbb743580960e3bc97914f3e644380a0b",
+          "memory_peak_bytes": 123289600,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          }
+        }
+      ],
+      "source_sha256s": {
+        "openhab/scripts/native_thermal_score.py": "2e4abc7c8f655bcc5f7ff839b9750816f56f08b02bd516e10c8b8c2c6aaa6dab",
+        "openhab/scripts/native_thermal_live.py": "3080714a5c2be8fa249f9c012e8dcc0b64536f4dd3340fff910f4b6e406b5e31",
+        "openhab/scripts/household_forecast_score.py": "3931af5f7246b7fcd83eab28aa63b5ea33ce35e05d33901f6a01a9cf4d3f9a33",
+        "openhab/scripts/household_native_family.py": "a5c994699e8d789a7a75c43a443a76bef8fb2f375a9d04b62df33a2a061f3cae",
+        "openhab/scripts/test_native_serving_dispatch.py": "7ff03c461af2a04d13d115096eb8a71926c2768de91053908661acbfd833e96d",
+        "openhab/scripts/test_native_serving_dispatch_package.py": "95c8891528c6306f868648bfce88c5f3fa6d25f6f2ddc3c8a3713ced71dd71fa",
+        "openhab/scripts/test_native_serving_historical_model.py": "eaf15ab060a25f94d57573eb222d3012bebf47428a75483102ee6ac9fc48f76a",
+        "openhab/scripts/test_native_serving_history.py": "d57b52d25b4ef45181c156bb69060d835ef4e081289b27ff58f180f5a6efbfc4",
+        "openhab/scripts/test_native_serving_legacy_exec.py": "9fa61adc05a6ee5414eb32c3105ce3a1623faf96360c35bd047d27493ab09e5e",
+        "openhab/scripts/test_native_serving_queue.py": "0cab28068621a6f746f5f916736bab2cdea96bfc4d516dc9bd2e19d5413d5451",
+        "openhab/scripts/test_native_serving_queue_completed.py": "03a29d05d6d863b2d1aaa0be7b38858524164847678ac845bb5ad2193b94b210",
+        "openhab/scripts/test_native_serving_retained_dispatch.py": "b75639a2e44758be2286ec73a7e3f4e349770bc9668ebbb26a7d0894fde8c364",
+        "openhab/scripts/test_native_serving_score.py": "9ec907c44b42629ddf10d32d4a791fd6ce3e6b539c40767d5fab5181cf0e015c",
+        "openhab/scripts/test_native_serving_score_driver.py": "f7ab267782eeef1c6aa2560295073da2ffcb7daf5d1bf0baf0a08140569bc29f"
+      },
+      "protected_sources": {
+        "protected_production_sources": 72,
+        "protected_sources_match_selected_original_candidate": true,
+        "native_fitted_sources": 9,
+        "native_sources_match_approved_baseline": true,
+        "base_artifact_sha256": "b463d6238ebfd53764a5fc04819adeae9d36b2e2e720f35b733f6ea62809d7e2",
+        "live_model_selection_changed": false
+      },
+      "production_score_deadline_qualified": false,
+      "native_activation_qualified": false,
       "whole_plan_complete": false
     }
   },
