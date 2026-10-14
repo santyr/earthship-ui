@@ -6594,6 +6594,31 @@
       "legacy_guard_max_host_swap_used_mib": 128,
       "legacy_trainer_updates_active_native_model": false,
       "fresh_fit_executed": false
+    },
+    "native_fresh_training_20261014": {
+      "status": "fresh_fit_complete_publication_and_daily_automation_pending",
+      "capture_sha256": "5f62f362abca0d57d455e0a29ebb8aef760dba294dc303e8b2dc1cb94cf587e3",
+      "assembled_snapshot_sha256": "0f1cf1286e5599628915a238db74c1d6ba6a35b9f76fa1ebc5daae11459898f2",
+      "geometry_series_sha256": "86772aa52b52208fe537e01289137435be60c9ad47f6ef1ed022ff9f94005b2f",
+      "geometry_points": 1354,
+      "dataset_sha256": "bd3c3b9b8f10109aa45501885c466bdf5abd3f6d4a9932a441dc92d2f765eb5e",
+      "fit_evidence_sha256": "624d63d867140e73f53e2eef1014373e54ad3bab0d990391fa70443e32739194",
+      "trained_through": "2026-10-14T06:00:00+00:00",
+      "endpoint_count": 19,
+      "fit_seconds": 19.605679549043998,
+      "fit_peak_bytes": 75247616,
+      "fit_executed": true,
+      "production_model_changed": false,
+      "automatic_training_complete": false
+    },
+    "native_available_ram_admission": {
+      "status": "implemented_targeted_tests_passed_not_activated",
+      "tests_passed": 73,
+      "test_seconds": 1.8,
+      "host_swap_occupancy_or_traffic_blocks_admission": false,
+      "worker_swap_disabled": true,
+      "ram_reserve_and_oom_checks_preserved": true,
+      "production_limits_changed": false
     }
   },
   "astro_efficiency_audit": {
@@ -6743,5 +6768,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T17:21:39.996270+00:00"
+  "updated_at": "2026-10-14T17:38:28.673956+00:00"
 }
