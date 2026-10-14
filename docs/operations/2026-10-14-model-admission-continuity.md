@@ -45,3 +45,10 @@ superiority or graduation; longer horizons remain unscored.
 The 20:55 UTC live OpenHAB publication and deployed UI parser already displayed
 the preceding two-outcome report as ready/provisional. The daily production
 checkout is clean at `cbec265`; the next natural daily fit remains unverified.
+
+
+At 21:05 UTC the normal forecast publication included all three outcomes, and
+the deployed UI parser returned ready/provisional with 0.11 F model MAE and
+0.30 F persistence MAE. The subsequent callback-only release `2fbad86` retains
+the same model and original admission; its effective deployment is recorded
+in the scoring CPU document.

@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "Earthship observations remain below existing content; standalone household navigation removed. Deployment 715078d7 from cbec265 retains model 52dd5d12 and its original 19:08:13 UTC admission. Natural 21:01 UTC current-model scoring exited 0 after 65 seconds, with 97.2 MiB peak and zero swap. Three mature one-hour outcomes give model MAE 0.110915 F versus persistence 0.30 F; longer horizons remain empty and no accuracy graduation is claimed. Current-model scoring now runs every ten minutes within the fifteen-minute report TTL. Live publication and the deployed UI parser displayed the earlier two-outcome report at 20:55 UTC. First natural morning fit and broader household observability qualification remain incomplete. No actuator authority. See proofs.native_current_model_production_scoring.",
+      "current_evidence": "Earthship observations remain below existing content; standalone household navigation removed. Deployment 715078d7 from cbec265 retains model 52dd5d12 and its original 19:08:13 UTC admission. Natural 21:01 UTC current-model scoring exited 0 after 65 seconds, with 97.2 MiB peak and zero swap. Three mature one-hour outcomes give model MAE 0.110915 F versus persistence 0.30 F; longer horizons remain empty and no accuracy graduation is claimed. Current-model scoring now runs every ten minutes within the fifteen-minute report TTL. Live publication and the deployed UI parser displayed all three outcomes at 21:05 UTC. The subsequent callback-only deployment a6b37ac4 from 2fbad86 passed effective readback and a normal legacy scoring run; its historical slot remains pending. First natural morning fit and broader household observability qualification remain incomplete. No actuator authority. See proofs.native_current_model_production_scoring.",
       "complete": false
     },
     {
@@ -6664,8 +6664,8 @@
       },
       "automatic_actuation": false,
       "source_document": "docs/operations/2026-10-14-native-daily-training.md",
-      "production_source_commit": "cbec265c2e5e088e795dbab3bff21dfc676e7b8d",
-      "production_checkout_verified_at": "2026-10-14T21:03:32.966875+00:00"
+      "production_source_commit": "2fbad863b65ed7167b294b00826deb60dd53baa7",
+      "production_checkout_verified_at": "2026-10-14T21:06:30.933200+00:00"
     },
     "native_forecast_cpu_deployment": {
       "assessed_at": "2026-10-14T18:41:43.124789+00:00",
@@ -7111,7 +7111,38 @@
       "report_max_age_minutes": 15,
       "fit_executed": false,
       "automatic_actuation": false,
-      "accuracy_graduated": false
+      "accuracy_graduated": false,
+      "live_ui_publication": {
+        "issued_at": "2026-10-14T21:05:15+00:00",
+        "raw_sha256": "f6a285d3686db5045de2dff701f66f9b9512e59cc52c387587d378edbaf38491",
+        "parser_result": {
+          "state": "ready",
+          "mode": "provisional",
+          "trainingDataAgeHours": 15.0875,
+          "reasons": [
+            "Monitoring verified at 2026-10-14T21:01:27.486818+00:00.",
+            "1h model: 0.11 F MAE (n=3); persistence: 0.30 F MAE (n=3); recent cycle: awaiting observations; model bias -0.10 F."
+          ]
+        }
+      }
+    },
+    "native_score_callback_deployment": {
+      "source_commit": "2fbad863b65ed7167b294b00826deb60dd53baa7",
+      "deployment_sha256": "a6b37ac4f87fce23ec71af9d386f5713191367d1cbb628e0cd058655a0ea7acf",
+      "artifact_sha256": "52dd5d122485f0bdafa0aed4fa7412c0823ce9829ed3d9bdc920e44d88526506",
+      "effective_readback_at": "2026-10-14T21:06:30.933200+00:00",
+      "status": "native_family_activated",
+      "tests_passed": 94,
+      "actual_archives_checked": 14,
+      "actual_archived_pressure_checks": true,
+      "activation_memory_peak_bytes": 58396672,
+      "activation_memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n",
+      "fit_executed": false,
+      "automatic_actuation": false,
+      "daily_checkout_clean": true,
+      "first_legacy_run": "2026-10-14T21:06:02Z to 21:06:07Z; Result=success; ExecMainStatus=0; invocation 574965b60f924e5c912e7efe17b4f784",
+      "first_retained_native_run": "pending the next natural 21:16 UTC historical slot",
+      "documentation": "docs/operations/2026-10-14-score-production-cpu.md"
     }
   },
   "astro_efficiency_audit": {

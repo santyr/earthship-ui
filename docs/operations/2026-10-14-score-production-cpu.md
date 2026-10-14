@@ -81,4 +81,8 @@ Both regressions failed with the original TypeError before the two-line fix.
 All 94 affected scoring, dispatch and admission cases pass. A network-denied
 serial check also exercised actual pressure monitors in all 13 retained native
 archives plus the legacy admission context. No scoring, fitting or live writes
-were performed by that check. The callback correction is awaiting deployment.
+were performed by that check. The callback correction is deployed as `a6b37ac4` from source `2fbad86`.
+Effective unit/file/timer readback passed; UI and both thermal publications
+returned HTTP 200. The clean daily-training checkout is at the same source.
+The natural 21:06 UTC legacy invocation exited 0 in five seconds. The next
+retained-native slot is 21:16 UTC and has not yet been observed.
