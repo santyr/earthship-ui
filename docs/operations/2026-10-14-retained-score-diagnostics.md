@@ -47,3 +47,23 @@ The wrapper now calls the common helper signature and separately enforces the
 The initial handoff also left the new geometry directory empty until its next
 scheduled preparation; the 20:05 forecast was withheld. Subsequent corrective
 handoffs should finish before a normal preparation opportunity.
+
+
+Corrected source `129fe2b` is active through deployment
+`f66064c6d87932152c4a1f39ff12b19471180c3a05cb8f9b3f4e2177b81107fb`.
+The original archive's own verifier passed a bounded read-only check without
+executing scoring. Normal 20:08 preparation and 20:10 forecast publication
+recovered the initial empty-geometry gap; the forecast also wrote its household
+observation. The corrected handoff waited for that cycle and finished before
+the next scheduled preparation. At 20:11:10 UTC all owned files, effective pins,
+caps and active timers verified; both thermal publications were provisional.
+The daily checkout now contains the correction. The model artifact is unchanged.
+
+
+The corrected 20:11 historical scoring invocation finished at 20:12:34 UTC with
+`validation_refused`. It used 18.317 CPU seconds, peaked at 84.8 MiB and used no
+swap. A live cgroup sample recorded 897 throttled periods out of 904, with
+71.692760 seconds throttled, while memory PSI and max/OOM event counters were
+zero. This directly demonstrates CPU throttling during real production scoring;
+it does not establish that the throttle caused the validation refusal. The exact
+validation failure and legacy-run outcome remain outstanding.

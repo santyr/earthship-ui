@@ -6962,18 +6962,20 @@
       "full_program_complete": false
     },
     "native_score_diagnostics_deployment": {
-      "source_commit": "d702d47abaf71e6b6c138b9114bc54209218b645",
-      "deployment_sha256": "fd2aed248b91f97ec2770ac6adf42d0eb1676a8e00d4348f86e6f14e0c96a4e7",
+      "source_commit": "129fe2b65ff78aebcb0e72987cda554916ad4b34",
+      "deployment_sha256": "f66064c6d87932152c4a1f39ff12b19471180c3a05cb8f9b3f4e2177b81107fb",
       "artifact_sha256": "52dd5d122485f0bdafa0aed4fa7412c0823ce9829ed3d9bdc920e44d88526506",
       "trained_through": "2026-10-14T06:00:00+00:00",
       "status": "native_family_activated",
       "fit_executed": false,
       "automatic_actuation": false,
-      "tests": "39 focused tests passed",
-      "effective_readback": "2026-10-14T20:04:36.933544+00:00: five files, three service pins and caps, active timers; UI/publications HTTP 200",
-      "natural_failure_reason": "pending next scheduled scoring failure",
-      "daily_checkout": "d702d47abaf71e6b6c138b9114bc54209218b645",
-      "documentation": "docs/operations/2026-10-14-retained-score-diagnostics.md"
+      "tests": "40 focused tests passed; exact legacy helper TypeError reproduced before correction",
+      "effective_readback": "2026-10-14T20:11:10.873223+00:00: five files, three service pins and caps, active timers; UI and provisional publications HTTP 200",
+      "natural_failure_reason": "20:11 historical scoring completed 20:12:34 UTC with validation_refused, 18.317 CPU seconds, 84.8 MiB peak and zero swap; exact validation cause remains unresolved",
+      "daily_checkout": "129fe2b65ff78aebcb0e72987cda554916ad4b34",
+      "documentation": "docs/operations/2026-10-14-retained-score-diagnostics.md",
+      "initial_handoff_gap": "20:05 forecast withheld with empty new geometry directory; normal preparation and 20:10 publication recovered",
+      "cpu_throttling": "During that run: 897/904 periods throttled, 71.692760 seconds throttled; memory PSI and max/OOM events zero. This proves throttling, not the cause of validation refusal."
     }
   },
   "astro_efficiency_audit": {
