@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "Earthship observations remain below existing content; standalone household navigation removed. Native model52dd5d12 remains provisional. The22:51UTC natural current-model score succeeded with14 one-hour outcomes: modelMAE0.308618F versus persistence0.192857F, model bias+0.238504F; longer horizons remain empty. Current scoring runs every10minutes;119seconds approaches its120-second lifetime. Shared deployment8fd9bcc3 passed live readback and the public UI remains available. Completed-trough caller/adapter mismatch fixed by deploying the existing evidence_sink-compatible adapter after101 tests; natural daily verification remains pending October15 at06:40MDT. Qualified physical/action outcomes and complete program observability remain incomplete.",
+      "current_evidence": "Earthship observations remain below existing content; standalone household navigation removed. Model 52dd5d12 remains provisional. Natural historical and current scoring completed in 100 and 104 seconds after deployment 40178cdf from 0e7d773. Current report has 19 one-hour outcomes: model MAE 0.318363 F versus persistence 0.170526 F, bias +0.266700 F; longer horizons remain empty. Forecast, preparation, five effective definitions, timers and public HTTP endpoints verified. Completed-trough compatible adapter deployed; natural daily verification remains pending October 15 at 06:40 MDT and training at 06:50 MDT. Qualified physical/action outcomes and the full architecture remain incomplete.",
       "complete": false
     },
     {
@@ -7383,30 +7383,75 @@
       },
       "review": "final integration review Important retained-policy binding fixed RED to GREEN; full230-test suite passes",
       "operations": "docs/operations/2026-10-14-shared-job-resources.md",
-      "implementation_commit": "c00470b32b37fc59f853ccf5ce4e9327cfeb347e",
-      "deployment_sha256": "8fd9bcc3db8ce2b09247d4ed0880b79f8541760dfa96db60274cc169ccea6c21",
+      "implementation_commit": "0e7d773aea5d9a4977a0e592dc698c1f6a812669",
+      "deployment_sha256": "40178cdfa9dd6af353dfda40521c20f81bf8ca8aa7dc48e2866775770e43ef6c",
       "integration_tests": 230,
-      "natural_forecast": "22:55:15UTC publication; service exit0 at22:55:29UTC; current original forecast/model HTTP200",
+      "natural_forecast": "23:15:15UTC published with household observation; service exit0 at23:15:29UTC; 13.119CPU seconds",
       "natural_legacy_score": "22:26UTC monitoring_refreshed;256 retained legacy outcomes;zero new mature outcomes",
-      "natural_current_native_score": "22:51:00UTC to22:52:59UTC; scored1 new mature outcome;14 current-revision outcomes;115.382CPU seconds; exit0",
-      "natural_preparer": "22:53:05UTC to22:53:09UTC; exit0",
+      "natural_current_native_score": "23:21:00 UTC to 23:22:44 UTC; scored 1 new mature outcome; 19 current-revision outcomes; 100.493 CPU seconds; exit 0; 94.7 MiB peak RAM; zero swap.",
+      "natural_preparer": "23:18:05UTC to23:18:09UTC; exit0",
       "natural_daily_fit": "pending2026-10-15T06:50MDT",
       "fit_executed_during_rollout": false,
       "current_score_correction_tests": 68,
-      "daily_checkout": "c00470b; clean and idle during update",
+      "daily_checkout": "0e7d773; clean and idle during update",
       "inventory_correction_tests": 83,
-      "effective_readback_at": "2026-10-14T22:56:28.545849+00:00",
-      "current_score_runtime_risk": "119seconds against120-second lifetime; reduce repeated original outcome replay before cohort growth exhausts the slot",
+      "effective_readback_at": "2026-10-14T23:23:02.472347+00:00",
+      "current_score_runtime_risk": "Current role completed in 104 seconds and historical role in 100 seconds against the 120-second lifetime. Both observed paths now pass; report cost still grows with cohort size.",
       "current_model_one_hour_performance": {
-        "count": 14,
-        "model_mae_f": 0.3086184332467466,
-        "persistence_mae_f": 0.1928571428571441,
-        "model_bias_f": 0.23850421369033675,
+        "count": 19,
+        "model_mae_f": 0.318363417497883,
+        "persistence_mae_f": 0.17052631578947341,
+        "model_bias_f": 0.2667003083510547,
         "graduated": false,
         "longer_horizon_outcomes": 0
       },
-      "natural_historical_score": "22:56:00UTC to22:58:00UTC refused deadline after116.524CPU seconds; current slot22:51 succeeded; duplicate source-score replay during report reconciliation identified for next correction",
-      "next_performance_change": "Reuse only the immediately repeated fully validated serving source score within one original report reconciliation, preserving fresh score-file/model checks and the original final full source inventory verification. No cross-cycle cache, source mutation, model refit or deadline increase."
+      "natural_historical_score": "23:16:00UTC to23:17:40UTC succeeded:1 new/18 current-model outcomes;96.107CPU seconds;93.7MiB peak RAM;zero swap. Previous22:56 slot timed out at120seconds.",
+      "next_performance_change": "No further patch required for the observed timeout. Monitor cohort growth; prioritize current original energy inputs and read-only coordination evidence for PR #3.",
+      "report_reuse_tests": 91,
+      "report_reuse_review": "Independent review of8bb1785..0e7d773 found no Critical or Important findings",
+      "report_reuse_deployed_at": "2026-10-14T23:14:37.153523+00:00",
+      "report_reuse_natural_score": {
+        "scope": "earthship-job-d3aea6f19965406bbfa0a6909396dc4b.scope",
+        "service": {
+          "MainPID": "0",
+          "ExecMainStartTimestamp": "Wed 2026-10-14 17:16:00 MDT",
+          "ExecMainExitTimestamp": "Wed 2026-10-14 17:17:40 MDT",
+          "ExecMainStatus": "0",
+          "InvocationID": "75592121074b42a688dfbbcccfabf52b"
+        },
+        "result": {
+          "status": "scored",
+          "scored": 1,
+          "current_revision_scored": 18,
+          "automatic_actuation": false
+        },
+        "cpu_seconds": 96.107,
+        "elapsed_seconds": 100,
+        "reported_memory_peak_mib": 93.7,
+        "reported_swap_peak_bytes": 0,
+        "assessed_at": "2026-10-14T23:18:15.349151+00:00"
+      },
+      "report_reuse_natural_current_score": {
+        "scope": "earthship-job-9b7458d2825644ae91abc6a240cc6c44.scope",
+        "service": {
+          "MainPID": "0",
+          "ExecMainStartTimestamp": "Wed 2026-10-14 17:21:00 MDT",
+          "ExecMainExitTimestamp": "Wed 2026-10-14 17:22:44 MDT",
+          "ExecMainStatus": "0",
+          "InvocationID": "7293bdcd5c314ccdb97dc3a80188ff37"
+        },
+        "result": {
+          "status": "scored",
+          "scored": 1,
+          "current_revision_scored": 19,
+          "automatic_actuation": false
+        },
+        "cpu_seconds": 100.493,
+        "elapsed_seconds": 104,
+        "reported_memory_peak_mib": 94.7,
+        "reported_swap_peak_bytes": 0,
+        "assessed_at": "2026-10-14T23:23:02.513544+00:00"
+      }
     },
     "actual_daily_energy_outcome_20261013": {
       "status": "original_daily_energy_math_and_night_replayed",
@@ -7445,6 +7490,22 @@
       "diagnosis": "Installed adapter lacked evidence_sink keyword passed by deployed caller; TypeError preceded assessment on October12,13,14. Repository adapter supports that keyword.",
       "next_natural_daily": "2026-10-15T06:40:00-06:00",
       "live_assessment_or_publication_executed": false
+    },
+    "household_current_input_gap_20261014": {
+      "assessed_at": "2026-10-14T23:21:13.948573+00:00",
+      "original_household_receipt_sha256": "3f8f1c1668c00a4c8adead71ffa75ed3ad8f9c57614d8dde64f2550ef4eea8bd",
+      "receipt_file_sha256": "7485fcc22af36966fbc9d9dc9bbd1c2ffeecb2e9d6a55a12a14a16a82c5ad276",
+      "snapshot_as_of": "2026-10-14T23:15:15+00:00",
+      "retained_energy_parameters_collected_at": "2026-10-11T19:34:06.657397+00:00",
+      "current_soc_rebound": true,
+      "other_energy_parameters_refreshed_each_cycle": false,
+      "coordination_facts": {},
+      "baseline_soc_floor": null,
+      "plan_status": "input_incomplete",
+      "planner_mode": "shadow",
+      "next_work": "Bind household energy projection to freshly retained daily inputs and their original forecast receipts; retain exact replay and explicit provenance. Add qualified read-only owner-state sources separately; no new request or actuator authority.",
+      "automatic_actuation": false,
+      "full_architecture_complete": false
     }
   },
   "astro_efficiency_audit": {
@@ -7599,5 +7660,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T22:57:23.310883+00:00"
+  "updated_at": "2026-10-14T23:23:28.605521+00:00"
 }
