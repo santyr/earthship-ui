@@ -6817,6 +6817,58 @@
       "live_native_serving_qualification_complete": true,
       "automatic_actuation": false,
       "full_program_complete": false
+    },
+    "astro_a09_circadian_acceptance": {
+      "status": "selected_native_temperature_only_policy_integrated_and_verified",
+      "recorded_at": "2026-10-14T19:37:43.445810+00:00",
+      "source_commits": [
+        "61a9625ceab2d28cd7605ba53968d93db2bd14d9",
+        "02e3fcb"
+      ],
+      "integration_commits": [
+        "5a8bcd1",
+        "6a4b52d"
+      ],
+      "document": "docs/operations/2026-10-14-circadian-audit-acceptance.md",
+      "policy": "native Astro 2500-5500 K; manual brightness; existing managed owner",
+      "selection_evidence": "docs/operations/2026-10-12-native-astro-circadian-temperature.md",
+      "rule_source_sha256": "443da6c416ed6f456d9b81b90c95fdb365177a0140765e0ecb62f48e75becd67",
+      "live_readback": ".superpowers/sdd/2026-10-13-native-model-serving-receipt/a09-live-readback.json",
+      "live_readback_sha256": "2857c8d5e3f36d74f11a2787d8afd9983e5b1b635df87a5758a5a345ea3db077",
+      "rule_fields_match": {
+        "uid": true,
+        "name": true,
+        "description": true,
+        "triggers": true,
+        "conditions": true,
+        "actions": true
+      },
+      "rule_status": {
+        "status": "IDLE",
+        "statusDetail": "NONE"
+      },
+      "astro_status": "ONLINE",
+      "typed_kelvin": "5459 K",
+      "sole_file_owned_target_link": true,
+      "native_brightness_unlinked": true,
+      "bulbs_offline_at_readback": true,
+      "physical_bulb_readback_verified_this_turn": false,
+      "seasonal_fixture": "tests/fixtures/native-circadian-5.2.3.json",
+      "seasonal_fixture_sha256": "6e9e7c01dbcd1281fb9f18ec4f486b45e5298eebaf228efc794e2838941919c5",
+      "actual_native_comparison_points": 20,
+      "exact_sunrise_discontinuity_observed": true,
+      "exact_sunrise_discontinuity_fixed": false,
+      "owner_regression_cases": 57,
+      "control_state_cases": 38,
+      "ui_cases": 18,
+      "total_distinct_cases": 113,
+      "test_log_sha256s": {
+        "a09-final-tests.log": "e85ccbbecdbba1c20d7114dfb784ca4df598bc7eaddc7386c6c8feaebd42dbf3",
+        "a09-seasonal-owner-tests.log": "49e466bd0331e94ac9a1a6c462be6c432104843d86d559294ce32aeb73876107"
+      },
+      "test_execution_note": "56 control/UI cases passed in final integration run; its added owner fixture had a file-reader typo. Corrected owner file then passed57 cases independently. Earlier fork startups hit TasksMax48; TasksMax96 resolved them with unchanged CPU100percent/512MiB/swap0.",
+      "live_writes": false,
+      "full_program_complete": false
     }
   },
   "astro_efficiency_audit": {
@@ -6903,10 +6955,12 @@
       {
         "id": "A09",
         "requirement": "Evaluate native circadian targets without removing the owner",
-        "complete": false,
-        "status": "pending",
+        "complete": true,
+        "status": "selected_native_temperature_only_policy_integrated_and_verified",
         "task": "if adopting native suggestions is desired, add separately owned observational target Items, explicit Kelvin metadata/conversion, and a selected policy mode. Continue routing decisions through `hex_living_room_circadian`. Native brightness can reach zero and would introduce dimming/OFF behavior; it is not an automatic efficiency cleanup.",
-        "acceptance": "explicit choice of target curve and brightness policy, typed Kelvin, missing source, midnight/sunrise/transit/sunset, winter/summer comparisons, manual OFF and enablement races, and all existing lighting regressions."
+        "acceptance": "explicit choice of target curve and brightness policy, typed Kelvin, missing source, midnight/sunrise/transit/sunset, winter/summer comparisons, manual OFF and enablement races, and all existing lighting regressions.",
+        "evidence": "proofs.astro_a09_circadian_acceptance",
+        "known_upstream_limitation": "Astro5.2.3 exact sunrise instant yields5500K versus2500K at +/-1second; native policy preserved, brightness remains unlinked."
       },
       {
         "id": "A10",
@@ -6928,7 +6982,8 @@
     ],
     "approved_choices": {
       "season": "Native whole days; zero displays less than 1 day",
-      "daylight": "Native rise-end to set-start duration"
+      "daylight": "Native rise-end to set-start duration",
+      "circadian": "Previously selected native2500-5500K; existing owner; manual brightness (02e3fcb and original cutover record)"
     },
     "full_program_scope_preserved": true,
     "verification": {
@@ -6967,5 +7022,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T19:25:47.376817+00:00"
+  "updated_at": "2026-10-14T19:37:43.445810+00:00"
 }

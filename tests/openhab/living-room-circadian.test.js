@@ -46,6 +46,23 @@ function harness(options = {}) {
   return {states,online,bulbs,calls,posts,cache,setBehavior(fn){behavior=fn;},advance(ms){now+=ms;solarTime=now;},stale(){solarTime=now-120001;},run(event){ctx.event=event;vm.runInContext(`(function(){${source}\n})()`,ctx);},writes(){return calls.filter(c=>c.method==='transition_light_state'||c.method==='temperature');}};
 }
 describe('living room circadian owner', () => {
+  // Retained outputs from the installed Astro JAR at actual site/date instants.
+  // Include its exact-sunrise discontinuity; the owner must not invent a curve
+  // or relay native brightness (including 0/100%) to the bulb.
+  const seasonal = JSON.parse(readFileSync(new URL('../fixtures/native-circadian-5.2.3.json', import.meta.url), 'utf8'));
+  it.each(seasonal.rows)('preserves temperature-only policy at $day $phase', row => {
+    const h = harness({states:{Sun_Circadian_Temperature: `${row.native_kelvin} K`, Sun_Position_Elevation: 'NULL'}});
+    h.run();
+    expect(h.states.LivingRoomCircadian_TargetK).toBe(String(row.native_kelvin));
+    expect(h.writes()).toHaveLength(3);
+    for (const command of h.writes()) {
+      expect(command.payload.color_temp).toBe(row.native_kelvin);
+      expect(command.payload).not.toHaveProperty('on_off');
+      expect(command.payload).not.toHaveProperty('brightness');
+    }
+    expect(h.states.LivingRoomCircadian_LastResult).toMatch(/^healthy/);
+  });
+
   it('uses native Astro temperature and confirms actual bulb state without power or brightness writes',()=>{
     const h=harness();h.run();expect(h.states.LivingRoomCircadian_TargetK).toBe('4500');
     expect(h.writes()).toHaveLength(3);

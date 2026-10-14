@@ -1,0 +1,199 @@
+{
+  "schema": "earthship-native-circadian-comparison/v1",
+  "assessed_at": "2026-10-14T19:36:25.362290+00:00",
+  "binding_version": "5.2.3",
+  "native_library_sha256s": {
+    "astro_binding": "b6bc002782072e6888f890b9d6dd923537674a67b78258d7d739b66dadedb14a",
+    "indriya": "c3734f7af3eec20b799e9681dbb8eb4db51392aaafa6be64b03e8999c0e0c109",
+    "openhab_core": "a30d81934a04868a13e1e0b802d5c52344fc2e59ef9e3841cc51e579041bb731",
+    "osgi_core": "41c24d187f67aaaf4745fab78fd1da66de7f37dd82581dbbbc9ba89645ba0166",
+    "pax_logging_api": "1e73700a991376e855ca8324f16d2e9e86462ac712a07f5ec117fdf015ace550",
+    "unit_api": "667487e1ee57298cdc767885f00b86c899b2fe7e72dc00b6560a6aa64f2bc9c4"
+  },
+  "script_sha256": "fc88e97128d89a00b47fe9acc8e235c9fbf33d5c80c71a154848f4e381aa0da4",
+  "rows": [
+    {
+      "day": "2026-06-21",
+      "phase": "midnight",
+      "at": "2026-06-21T06:00:00Z",
+      "native_kelvin": 2500,
+      "native_brightness": 0,
+      "previous_curve_kelvin": 2500,
+      "elevation_degrees": -26.32314639661133
+    },
+    {
+      "day": "2026-06-21",
+      "phase": "before_sunrise",
+      "at": "2026-06-21T11:40:50.676Z",
+      "native_kelvin": 2500,
+      "native_brightness": 0,
+      "previous_curve_kelvin": 2500,
+      "elevation_degrees": -0.6544647474387626
+    },
+    {
+      "day": "2026-06-21",
+      "phase": "sunrise",
+      "at": "2026-06-21T11:40:51.676Z",
+      "native_kelvin": 5500,
+      "native_brightness": 100,
+      "previous_curve_kelvin": 2500,
+      "elevation_degrees": -0.6516683559737629
+    },
+    {
+      "day": "2026-06-21",
+      "phase": "after_sunrise",
+      "at": "2026-06-21T11:40:52.676Z",
+      "native_kelvin": 2500,
+      "native_brightness": 0,
+      "previous_curve_kelvin": 2500,
+      "elevation_degrees": -0.6488718875012469
+    },
+    {
+      "day": "2026-06-21",
+      "phase": "morning_midpoint",
+      "at": "2026-06-21T15:23:30.443Z",
+      "native_kelvin": 4750,
+      "native_brightness": 75,
+      "previous_curve_kelvin": 5776,
+      "elevation_degrees": 40.950914790904065
+    },
+    {
+      "day": "2026-06-21",
+      "phase": "transit",
+      "at": "2026-06-21T19:06:09.210Z",
+      "native_kelvin": 5500,
+      "native_brightness": 100,
+      "previous_curve_kelvin": 6500,
+      "elevation_degrees": 75.07448946796448
+    },
+    {
+      "day": "2026-06-21",
+      "phase": "before_sunset",
+      "at": "2026-06-22T02:28:16.403Z",
+      "native_kelvin": 2500,
+      "native_brightness": 0,
+      "previous_curve_kelvin": 2500,
+      "elevation_degrees": -0.45402986667473144
+    },
+    {
+      "day": "2026-06-21",
+      "phase": "sunset",
+      "at": "2026-06-22T02:28:17.403Z",
+      "native_kelvin": 2500,
+      "native_brightness": 0,
+      "previous_curve_kelvin": 2500,
+      "elevation_degrees": -0.4568316488738816
+    },
+    {
+      "day": "2026-06-21",
+      "phase": "after_sunset",
+      "at": "2026-06-22T02:28:18.403Z",
+      "native_kelvin": 2500,
+      "native_brightness": 0,
+      "previous_curve_kelvin": 2500,
+      "elevation_degrees": -0.45963335547812206
+    },
+    {
+      "day": "2026-06-21",
+      "phase": "solar_midnight",
+      "at": "2026-06-22T07:06:09.210Z",
+      "native_kelvin": 2500,
+      "native_brightness": 0,
+      "previous_curve_kelvin": 2500,
+      "elevation_degrees": -28.176434337018506
+    },
+    {
+      "day": "2026-12-21",
+      "phase": "midnight",
+      "at": "2026-12-21T07:00:00Z",
+      "native_kelvin": 2500,
+      "native_brightness": 0,
+      "previous_curve_kelvin": 2500,
+      "elevation_degrees": -75.06965156892257
+    },
+    {
+      "day": "2026-12-21",
+      "phase": "before_sunrise",
+      "at": "2026-12-21T14:17:55.645Z",
+      "native_kelvin": 2500,
+      "native_brightness": 0,
+      "previous_curve_kelvin": 2500,
+      "elevation_degrees": -0.6393955474844298
+    },
+    {
+      "day": "2026-12-21",
+      "phase": "sunrise",
+      "at": "2026-12-21T14:17:56.645Z",
+      "native_kelvin": 5500,
+      "native_brightness": 100,
+      "previous_curve_kelvin": 2500,
+      "elevation_degrees": -0.6365653516005007
+    },
+    {
+      "day": "2026-12-21",
+      "phase": "after_sunrise",
+      "at": "2026-12-21T14:17:57.645Z",
+      "native_kelvin": 2500,
+      "native_brightness": 0,
+      "previous_curve_kelvin": 2500,
+      "elevation_degrees": -0.6337352284265453
+    },
+    {
+      "day": "2026-12-21",
+      "phase": "morning_midpoint",
+      "at": "2026-12-21T16:40:12.935Z",
+      "native_kelvin": 4750,
+      "native_brightness": 75,
+      "previous_curve_kelvin": 4090,
+      "elevation_degrees": 19.876226227718927
+    },
+    {
+      "day": "2026-12-21",
+      "phase": "transit",
+      "at": "2026-12-21T19:02:29.225Z",
+      "native_kelvin": 5500,
+      "native_brightness": 100,
+      "previous_curve_kelvin": 4754,
+      "elevation_degrees": 28.176622317714312
+    },
+    {
+      "day": "2026-12-21",
+      "phase": "before_sunset",
+      "at": "2026-12-21T23:43:53.479Z",
+      "native_kelvin": 2500,
+      "native_brightness": 0,
+      "previous_curve_kelvin": 2500,
+      "elevation_degrees": -0.45663736199066884
+    },
+    {
+      "day": "2026-12-21",
+      "phase": "sunset",
+      "at": "2026-12-21T23:43:54.479Z",
+      "native_kelvin": 2500,
+      "native_brightness": 0,
+      "previous_curve_kelvin": 2500,
+      "elevation_degrees": -0.4594628991496411
+    },
+    {
+      "day": "2026-12-21",
+      "phase": "after_sunset",
+      "at": "2026-12-21T23:43:55.479Z",
+      "native_kelvin": 2500,
+      "native_brightness": 0,
+      "previous_curve_kelvin": 2500,
+      "elevation_degrees": -0.46228862320738806
+    },
+    {
+      "day": "2026-12-21",
+      "phase": "solar_midnight",
+      "at": "2026-12-22T07:02:29.225Z",
+      "native_kelvin": 2500,
+      "native_brightness": 0,
+      "previous_curve_kelvin": 2500,
+      "elevation_degrees": -75.07506232668513
+    }
+  ],
+  "exact_sunrise_discontinuity": true,
+  "live_writes": false,
+  "provider_calls": 0
+}
