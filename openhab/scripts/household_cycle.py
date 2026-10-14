@@ -317,7 +317,11 @@ def run_cycle(config_path,*,code_revision,forecast_config=None,stage=None,deploy
         if Path(__file__).resolve()!=stage/'sources/openhab/scripts/household_cycle.py':
             raise ValueError('staged serving driver execution required')
     with SharedScoreLock(settings['shared_lock']) as lock:
-        monitor=PublicationHeadroom();monitor.preflight()
+        monitor=PublicationHeadroom()
+        # Native serving needs the warm slot for acquisition. Kernel isolation
+        # is already active; check RAM/pressure now and throughout the cycle.
+        if native_profile:monitor.check()
+        else:monitor.preflight()
         def forecast_guard():
             lock.verify();monitor.check()
             if _private_file(forecast_path,8192)!=forecast_original:

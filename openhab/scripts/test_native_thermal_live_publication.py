@@ -19,7 +19,7 @@ def earlier_geometry(issue):
     for chunk in split_series_request(request):
         source=build_source(chunk,observed_at=issue-timedelta(seconds=39),native_runtime=RUNTIME,source_status='ONLINE',latitude=38.3739919,longitude=-105.7744609,timezone_name='America/Denver',altitude_m=None)
         raw=''.join(at+'\t30\t180\n' for at in chunk['instants']).encode()
-        caches.append(build_cache(chunk,source,native_output=raw,computed_at=issue-timedelta(seconds=25)))
+        caches.append(build_cache(chunk,source,native_output=raw,computed_at=issue-timedelta(seconds=35)))
     return build_series(request,caches,expected_native_runtime=RUNTIME)
 
 
@@ -98,3 +98,15 @@ def test_native_issuer_loads_prepared_geometry_for_its_exact_issue(tmp_path,monk
     monkeypatch.setattr(live,'read_geometry',read)
     result=live.publish_cycle(s,guard=lambda:None,backend=b)
     assert result['delivery_verified'] is True and calls==['geometry']
+
+
+def test_native_collection_starts_with_thirty_seconds_for_parent_and_observer(tmp_path,monkeypatch,originals):
+    live,settings,backend,clock,_,geometry,_=fixture(tmp_path,monkeypatch,originals)
+    seen=[]
+    class Collected(Exception):pass
+    def collect(*,issue,known_at):
+        seen.append((issue-known_at).total_seconds())
+        raise Collected()
+    backend.collect=collect
+    with pytest.raises(Collected):live.publish_cycle(settings,geometry=geometry,guard=lambda:None,backend=backend)
+    assert seen==[30.0]

@@ -152,8 +152,10 @@ def publish_cycle(settings,*,guard,geometry=None,backend=None,serving_model=None
             candidate=read_native_candidate(candidate_path,assessed_at=now,runtime=runtime,
                 expected_artifact_sha256=expected_artifact,guard=within_deadline)
         if geometry is None:geometry=read_geometry(settings,issue=issue,guard=within_deadline)
-        while _clock()<issue-timedelta(seconds=20):
-            within_deadline();sleep(min(.1,max(0,(issue-timedelta(seconds=20)-_clock()).total_seconds())))
+        # Allow the measured parent acquisition plus the household collector to
+        # finish before issue. Original source freshness checks still apply.
+        while _clock()<issue-timedelta(seconds=30):
+            within_deadline();sleep(min(.1,max(0,(issue-timedelta(seconds=30)-_clock()).total_seconds())))
         known=_clock()
         if not timedelta(0)<issue-known<=timedelta(seconds=60):
             raise ValueError('actual bounded native pre-issue clock required')

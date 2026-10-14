@@ -54,3 +54,11 @@ def test_native_producer_failure_uses_native_unavailable_withdrawal(tmp_path,mon
     result=cycle.run_cycle(config,code_revision='e'*40)
     assert result['status']=='withheld_and_withdrawn' and result['delivery_verified'] is True
     assert 'native_withdrawn' in calls and 'withdrawn' not in calls
+
+
+def test_native_admission_checks_resources_without_five_second_quiet_wait(tmp_path,monkeypatch):
+    cycle,native,config,calls=native_setup(tmp_path,monkeypatch)
+    result=cycle.run_cycle(config,code_revision='e'*40)
+    assert result['status']=='published'
+    assert 'checked' in calls
+    assert 'headroom' not in calls
