@@ -1,5 +1,6 @@
 """Native thermal operational adapters; read-only acquisition grants no authority."""
 from copy import deepcopy
+import json
 from datetime import datetime,timedelta,timezone
 from pathlib import Path
 from astro_geometry import _instant
@@ -73,6 +74,7 @@ from thermal_model.installed_shade_published_origin import NUMERIC_ITEM,PUBLICAT
 from thermal_model.origin_capture import _temperatures
 
 LIVE_SCHEMA='earthship-provisional-thermal-live-config/v2'
+SERVING_SCHEMA='earthship-provisional-thermal-live-config/v3'
 SOURCE='openhab/scripts/native_thermal_live.py'
 
 RESOURCE_SOURCE_SHA256='46c8b6704592d12fb3637dfc59d0c77978f286954c34101a485e51dc82a3a9ad'
@@ -92,10 +94,24 @@ def _resource_preflight():
 
 
 
+
+def _serving_settings(model,settings,*,assessed_at,guard):
+    from native_model_serving_receipt import _require_model
+    from native_thermal_artifact import _read
+    _require_model(model)
+    model.verify_bindings(assessed_at=assessed_at,guard=guard)
+    selected=json.loads(model._selection._encoded)
+    stage=Path(selected['stage'])
+    _,cycle=_read(stage/'cycle.json',8192)
+    _,original=_read(cycle['forecast_config'],8192)
+    if _canonical(settings)!=_canonical(original):
+        raise ValueError('owned serving configuration differs')
+
+
 def _clock():return datetime.now(timezone.utc)
 
 
-def publish_cycle(settings,*,guard,geometry=None,backend=None):
+def publish_cycle(settings,*,guard,geometry=None,backend=None,serving_model=None):
     """Issue a native forecast only with earlier, separately prepared geometry.
 
     The caller owns the shared lock and publication pressure guard. Geometry
@@ -109,7 +125,10 @@ def publish_cycle(settings,*,guard,geometry=None,backend=None):
     from thermal_model.policy_registration import _read_private
     from astro_geometry_series import NativeGeometrySeries
     settings=deepcopy(settings)
-    if settings.get('schema')!=LIVE_SCHEMA or (geometry is not None and type(geometry) is not NativeGeometrySeries):
+    receipt_profile=settings.get('schema')==SERVING_SCHEMA
+    if (settings.get('schema') not in (LIVE_SCHEMA,SERVING_SCHEMA) or
+        receipt_profile!=(serving_model is not None) or
+        (geometry is not None and type(geometry) is not NativeGeometrySeries)):
         raise ValueError('explicit native settings and prepared geometry required')
     expected_artifact=_sha(settings['artifact_sha256']);expected_runtime=_sha(settings['runtime_sha256'])
     guard();_resource_preflight();now=_clock();issue=_next_issue(now)
@@ -126,8 +145,12 @@ def publish_cycle(settings,*,guard,geometry=None,backend=None):
             raise ValueError('externally pinned native publication runtime differs')
         candidate_path=Path(settings['candidate_path'])
         candidate_raw=_owned_bytes(candidate_path,16384)
-        candidate=read_native_candidate(candidate_path,assessed_at=now,runtime=runtime,
-            expected_artifact_sha256=expected_artifact,guard=within_deadline)
+        if receipt_profile:
+            _serving_settings(serving_model,settings,assessed_at=now,guard=within_deadline)
+            candidate=serving_model.candidate
+        else:
+            candidate=read_native_candidate(candidate_path,assessed_at=now,runtime=runtime,
+                expected_artifact_sha256=expected_artifact,guard=within_deadline)
         if geometry is None:geometry=read_geometry(settings,issue=issue,guard=within_deadline)
         while _clock()<issue-timedelta(seconds=20):
             within_deadline();sleep(min(.1,max(0,(issue-timedelta(seconds=20)-_clock()).total_seconds())))
@@ -151,12 +174,18 @@ def publish_cycle(settings,*,guard,geometry=None,backend=None):
             try:
                 possible=_read_private(report_path);original._validate_report(possible,expected_artifact,available);report=possible
             except (OSError,ValueError,TypeError,KeyError):pass
-        capture=forecasts.build_capture(candidate,inputs,geometry=geometry,runtime=runtime,
-            expected_artifact_sha256=expected_artifact,expected_geometry_sha256=geometry.sha256,
-            issue=issue,available=available,published=_clock(),check_budget=within_deadline,monitoring_report=report)
+        if receipt_profile:
+            capture=forecasts.build_serving_capture(serving_model,inputs,geometry=geometry,
+                expected_geometry_sha256=geometry.sha256,issue=issue,available=available,published=_clock(),
+                check_budget=within_deadline,monitoring_report=report)
+        else:
+            capture=forecasts.build_capture(candidate,inputs,geometry=geometry,runtime=runtime,
+                expected_artifact_sha256=expected_artifact,expected_geometry_sha256=geometry.sha256,
+                issue=issue,available=available,published=_clock(),check_budget=within_deadline,monitoring_report=report)
         origin_path=forecasts.persist(archive,capture)
         def send_guard():
             within_deadline();_resource_preflight();backend.verify_unchanged()
+            if receipt_profile:_serving_settings(serving_model,settings,assessed_at=_clock(),guard=within_deadline)
             if (_owned_bytes(candidate_path,16384)!=candidate_raw or
                 _canonical(current_runtime(guard=within_deadline))!=_canonical(runtime)):
                 raise ValueError('frozen native candidate or runtime changed')
@@ -216,17 +245,19 @@ def load_settings(path,*,withdraw=False):
     path=Path(path);_private_directory(path.parent)
     if len(_owned_bytes(path,8192))>8192:raise ValueError('bounded native configuration required')
     value=_read_private(path)
-    if (not isinstance(value,dict) or set(value)!=FIELDS|{'artifact_sha256','runtime_sha256','geometry_directory'} or
-        value['schema']!=LIVE_SCHEMA or value['openhab_base'] not in BASES):
+    serving=isinstance(value,dict) and value.get('schema')==SERVING_SCHEMA
+    if (not isinstance(value,dict) or set(value)!=FIELDS|{'artifact_sha256','runtime_sha256','geometry_directory'}|({'model_receipt_path','model_receipt_sha256'} if serving else set()) or
+        value['schema'] not in (LIVE_SCHEMA,SERVING_SCHEMA) or value['openhab_base'] not in BASES):
         raise ValueError('closed native production configuration required')
     _sha(value['artifact_sha256']);_sha(value['runtime_sha256']);_instant(value['native_cutover'])
-    for key in SOURCE_FIELDS|{'evidence_directory','shared_lock','geometry_directory'}:
+    if serving:_sha(value['model_receipt_sha256'])
+    for key in SOURCE_FIELDS|{'evidence_directory','shared_lock','geometry_directory'}|({'model_receipt_path'} if serving else set()):
         target=Path(value[key])
         if not target.is_absolute() or target.resolve()!=target:raise ValueError('resolved native source required')
         _private_directory(target.parent)
         if key in ('evidence_directory','geometry_directory'):
             if not withdraw:_private_directory(target)
-        elif not withdraw or key in ('token_file','shared_lock'):_owned_bytes(target,16384)
+        elif not withdraw or key in ('token_file','shared_lock'):_owned_bytes(target,131072 if key=='model_receipt_path' else 16384)
     return deepcopy(value)
 
 
@@ -262,7 +293,7 @@ def read_geometry(settings,*,issue,guard):
     return geometry
 
 
-def prepare_geometry(settings,*,issue,library_paths,guard):
+def prepare_geometry(settings,*,issue,library_paths,guard,serving_model=None):
     """Bounded installed SunCalc batches, completed before input collection."""
     import secrets
     from hashlib import sha256
@@ -275,7 +306,9 @@ def prepare_geometry(settings,*,issue,library_paths,guard):
     from thermal_model.rollback import _rename_new
     from thermal_model.replay_budget import capture_source_reads
     settings=deepcopy(settings);issue=_instant(issue);path=geometry_path(settings,issue);started=_clock()
-    if settings.get('schema')!=LIVE_SCHEMA or not timedelta(seconds=20)<issue-started<=timedelta(minutes=5):
+    receipt_profile=settings.get('schema')==SERVING_SCHEMA
+    if (settings.get('schema') not in (LIVE_SCHEMA,SERVING_SCHEMA) or receipt_profile!=(serving_model is not None) or
+            not timedelta(seconds=20)<issue-started<=timedelta(minutes=5)):
         raise ValueError('bounded earlier native preparation window required')
     deadline=monotonic()+75
     def check():
@@ -283,6 +316,7 @@ def prepare_geometry(settings,*,issue,library_paths,guard):
         if monotonic()>=deadline or _clock()>=issue-timedelta(seconds=20):
             raise ValueError('native geometry preparation deadline elapsed')
     check()
+    if receipt_profile:_serving_settings(serving_model,settings,assessed_at=started,guard=check)
     if path.exists():
         read_geometry(settings,issue=issue,guard=check)
         return dict(status='prepared',path=str(path),automatic_actuation=False)
@@ -290,8 +324,11 @@ def prepare_geometry(settings,*,issue,library_paths,guard):
         runtime=current_runtime(guard=check)
         if runtime_digest(runtime)!=settings['runtime_sha256'] or SOURCE not in runtime['native_source_manifest']:
             raise ValueError('externally pinned native preparation runtime differs')
-        candidate=read_native_candidate(Path(settings['candidate_path']),assessed_at=started,runtime=runtime,
-            expected_artifact_sha256=settings['artifact_sha256'],guard=check)
+        if receipt_profile:
+            candidate=serving_model.candidate
+        else:
+            candidate=read_native_candidate(Path(settings['candidate_path']),assessed_at=started,runtime=runtime,
+                expected_artifact_sha256=settings['artifact_sha256'],guard=check)
         ref=candidate['originals']['geometry'];raw,training=_read(ref['path'],LIMITS['geometry'])
         if sha256(raw).hexdigest()!=ref['sha256']:raise ValueError('original fitted native geometry changed')
         native_runtime=training['native_runtime'];source=training['caches'][0]['source'];site=source['site'];zone=training['request']['timezone']
@@ -312,10 +349,12 @@ def prepare_geometry(settings,*,issue,library_paths,guard):
         temporary=path.parent/('.native-geometry-'+secrets.token_hex(16));created=False
         try:
             _write_private(temporary,raw);created=True;check();sources.verify()
+            if receipt_profile:_serving_settings(serving_model,settings,assessed_at=_clock(),guard=check)
             _rename_new(temporary,path);created=False;_sync_directory(path.parent)
         finally:
             if created:temporary.unlink()
         check();read_geometry(settings,issue=issue,guard=check);sources.verify()
+        if receipt_profile:_serving_settings(serving_model,settings,assessed_at=_clock(),guard=check)
     return dict(status='prepared',path=str(path),geometry_series_sha256=geometry.sha256,automatic_actuation=False)
 
 

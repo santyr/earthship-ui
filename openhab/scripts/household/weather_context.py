@@ -179,3 +179,15 @@ def prepare_native_cycle_contexts(capture,*,code_revision,runtime,expected_artif
         expected_capture_sha256=expected_capture_sha256,check_budget=check_budget)
     value=dict(schema='earthship-household-prepared-weather/v2',original_capture=_encode_original(original),prepared_thermal=thermal.to_dict())
     value['weather_sha256']=identity(value);weather=PreparedWeatherContext(canonical(value));check_budget();return thermal,weather
+
+
+def prepare_serving_native_cycle_contexts(capture,model,*,code_revision,expected_capture_sha256,check_budget=lambda:None):
+    from native_model_serving_receipt import _require_model
+    from .thermal_model import prepare_serving_native_projection
+    _require_model(model)
+    original=deepcopy(capture)
+    thermal=prepare_serving_native_projection(original,model,code_revision=code_revision,
+        expected_capture_sha256=expected_capture_sha256,check_budget=check_budget)
+    value=dict(schema='earthship-household-prepared-weather/v2',original_capture=_encode_original(original),prepared_thermal=thermal.to_dict())
+    value['weather_sha256']=identity(value);weather=PreparedWeatherContext(canonical(value));check_budget()
+    return thermal,weather

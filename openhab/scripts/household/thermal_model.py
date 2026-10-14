@@ -151,7 +151,7 @@ def _native_execution_runtime(root,runtime,guard):
     return dict(schema='earthship-household-model-runtime/v2',thermal_runtime=expected,household_source_manifest=manifest)
 
 
-def prepare_native_projection(capture,*,code_revision,runtime,expected_artifact_sha256,expected_capture_sha256,check_budget=lambda:None):
+def _prepare_native_projection(capture,*,code_revision,runtime,expected_artifact_sha256,expected_capture_sha256,check_budget,capture_validator):
     from pathlib import Path
     from astro_geometry import _instant
     from native_thermal_forecast import validate_capture
@@ -159,7 +159,7 @@ def prepare_native_projection(capture,*,code_revision,runtime,expected_artifact_
     from thermal_model.origin_capture import _temperatures
     capture,runtime=map(deepcopy,(capture,runtime));root=Path(__file__).resolve().parents[1]
     execution=_native_execution_runtime(root,runtime,check_budget)
-    original=validate_capture(capture,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
+    original=capture_validator(capture,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
         expected_capture_sha256=expected_capture_sha256,check_budget=check_budget)
     issue,published,available=map(_instant,(original['issued_at'],original['published_at'],original['inputs_available_at']))
     inputs=original['inputs'];candidate=original['candidate']
@@ -183,6 +183,29 @@ def prepare_native_projection(capture,*,code_revision,runtime,expected_artifact_
     if canonical(project(prepared)['output'])!=canonical(original['output']):raise ValueError('native frozen projection differs from original forecast')
     if canonical(_native_execution_runtime(root,runtime,check_budget))!=canonical(execution):raise ValueError('native executing source closure changed')
     check_budget();return prepared
+
+
+
+def prepare_native_projection(capture,*,code_revision,runtime,expected_artifact_sha256,expected_capture_sha256,check_budget=lambda:None):
+    from native_thermal_forecast import validate_capture
+    return _prepare_native_projection(capture,code_revision=code_revision,runtime=runtime,
+        expected_artifact_sha256=expected_artifact_sha256,expected_capture_sha256=expected_capture_sha256,
+        check_budget=check_budget,capture_validator=validate_capture)
+
+
+def prepare_serving_native_projection(capture,model,*,code_revision,expected_capture_sha256,check_budget=lambda:None):
+    from native_model_serving_receipt import _require_model
+    from native_thermal_forecast import validate_serving_capture
+    _require_model(model)
+    capture=deepcopy(capture)
+    candidate=model.candidate
+    def verified(value,*,runtime,expected_artifact_sha256,expected_capture_sha256,check_budget):
+        if canonical(runtime)!=canonical(model.runtime) or expected_artifact_sha256!=candidate['artifact_sha256']:
+            raise ValueError('verified household serving model differs')
+        return validate_serving_capture(value,model,expected_capture_sha256=expected_capture_sha256,check_budget=check_budget)
+    return _prepare_native_projection(capture,code_revision=code_revision,runtime=model.runtime,
+        expected_artifact_sha256=candidate['artifact_sha256'],expected_capture_sha256=expected_capture_sha256,
+        check_budget=check_budget,capture_validator=verified)
 
 
 def _project_native(value):

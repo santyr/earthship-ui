@@ -69,9 +69,9 @@ def _numeric(candidate,inputs,geometry,*,issue,available,published,check_budget)
         origin_actions=actions,trajectory=trajectory,confidence='low',prediction_intervals=None,advice=[],graduated=False,automatic_actuation=False)
 
 
-def build_capture(candidate,inputs,*,geometry,runtime,expected_artifact_sha256,expected_geometry_sha256,issue,available,published,check_budget=lambda:None,monitoring_report=None):
+def _build_capture(candidate,inputs,*,geometry,runtime,expected_artifact_sha256,expected_geometry_sha256,issue,available,published,check_budget,monitoring_report,candidate_validator):
     issue,available,published=map(_instant,(issue,available,published));check_budget()
-    candidate=_candidate(candidate,runtime,expected_artifact_sha256,issue,check_budget)
+    candidate=candidate_validator(candidate,runtime,expected_artifact_sha256,issue,check_budget)
     if type(geometry) is not NativeGeometrySeries or geometry.sha256!=_sha(expected_geometry_sha256):
         raise ValueError('external native forecast geometry identity required')
     inputs=json.loads(_canonical(inputs))
@@ -87,7 +87,7 @@ def build_capture(candidate,inputs,*,geometry,runtime,expected_artifact_sha256,e
     return value
 
 
-def validate_capture(value,*,runtime,expected_artifact_sha256,expected_capture_sha256,check_budget=lambda:None):
+def _validate_capture(value,*,runtime,expected_artifact_sha256,expected_capture_sha256,check_budget,candidate_validator):
     # Callbacks and concurrent callers must never alter the validated snapshot.
     value=deepcopy(value);runtime=deepcopy(runtime)
     check_budget()
@@ -96,7 +96,7 @@ def validate_capture(value,*,runtime,expected_artifact_sha256,expected_capture_s
             len(_canonical(value))>MAX_CAPTURE_BYTES):
         raise ValueError('closed original native forecast identity required')
     issue,available,published=map(_instant,(value['issued_at'],value['inputs_available_at'],value['published_at']))
-    candidate=_candidate(value['candidate'],runtime,expected_artifact_sha256,issue,check_budget)
+    candidate=candidate_validator(value['candidate'],runtime,expected_artifact_sha256,issue,check_budget)
     replay_binding(value['native_origin_binding'],value['inputs']['origin_temperatures'],issue_at=issue,check_budget=check_budget)
     packet=value['geometry']
     geometry=replay_series(_canonical(packet),request=packet['request'],expected_series_sha256=value['geometry_series_sha256'],expected_native_runtime=packet['native_runtime'])
@@ -104,6 +104,62 @@ def validate_capture(value,*,runtime,expected_artifact_sha256,expected_capture_s
     if _canonical(output)!=_canonical(value['output']):raise ValueError('original native forecast trajectory differs')
     legacy._validate_report(value['monitoring_report'],candidate['artifact_sha256'],available)
     check_budget();return deepcopy(value)
+
+
+
+def build_capture(candidate,inputs,*,geometry,runtime,expected_artifact_sha256,expected_geometry_sha256,issue,available,published,check_budget=lambda:None,monitoring_report=None):
+    return _build_capture(candidate,inputs,geometry=geometry,runtime=runtime,
+        expected_artifact_sha256=expected_artifact_sha256,expected_geometry_sha256=expected_geometry_sha256,
+        issue=issue,available=available,published=published,check_budget=check_budget,
+        monitoring_report=monitoring_report,candidate_validator=_candidate)
+
+
+def validate_capture(value,*,runtime,expected_artifact_sha256,expected_capture_sha256,check_budget=lambda:None):
+    return _validate_capture(value,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
+        expected_capture_sha256=expected_capture_sha256,check_budget=check_budget,candidate_validator=_candidate)
+
+
+def _serving_candidate(value,runtime,identity,issue,check,model):
+    from native_model_serving_receipt import _require_model
+    _require_model(model)
+    model.verify_bindings(assessed_at=issue,guard=check)
+    checked=model.candidate
+    if (_canonical(value)!=_canonical(checked) or _canonical(runtime)!=_canonical(model.runtime) or
+            identity!=checked['artifact_sha256'] or SOURCE not in checked['runtime']['native_source_manifest']):
+        raise ValueError('original verified serving candidate differs')
+    return checked
+
+
+def build_serving_capture(model,inputs,*,geometry,expected_geometry_sha256,issue,available,published,check_budget=lambda:None,monitoring_report=None):
+    from native_model_serving_receipt import _require_model
+    _require_model(model)
+    inputs=deepcopy(inputs)
+    candidate=model.candidate
+    def verified(value,runtime,identity,at,check):
+        return _serving_candidate(value,runtime,identity,at,check,model)
+    return _build_capture(candidate,inputs,geometry=geometry,runtime=model.runtime,
+        expected_artifact_sha256=candidate['artifact_sha256'],expected_geometry_sha256=expected_geometry_sha256,
+        issue=issue,available=available,published=published,check_budget=check_budget,
+        monitoring_report=deepcopy(monitoring_report),candidate_validator=verified)
+
+
+def validate_serving_capture(value,model,*,expected_capture_sha256,check_budget=lambda:None):
+    from native_model_serving_receipt import _require_model
+    _require_model(model)
+    candidate=model.candidate
+    def verified(value,runtime,identity,at,check):
+        return _serving_candidate(value,runtime,identity,at,check,model)
+    return _validate_capture(value,runtime=model.runtime,expected_artifact_sha256=candidate['artifact_sha256'],
+        expected_capture_sha256=expected_capture_sha256,check_budget=check_budget,candidate_validator=verified)
+
+
+def read_serving_capture(path,model,*,expected_capture_sha256,check_budget=lambda:None):
+    from native_model_serving_receipt import _require_model
+    _require_model(model)
+    def nonfinite(_):raise ValueError('nonfinite native forecast JSON')
+    try:value=json.loads(_owned_bytes(Path(path),MAX_CAPTURE_BYTES),object_pairs_hook=_object,parse_constant=nonfinite)
+    except (UnicodeError,json.JSONDecodeError):raise ValueError('original native forecast JSON required') from None
+    return validate_serving_capture(value,model,expected_capture_sha256=expected_capture_sha256,check_budget=check_budget)
 
 
 def publication(capture):
