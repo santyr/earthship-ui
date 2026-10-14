@@ -108,6 +108,6 @@ def test_native_cycle_derivation_preserves_original_forecast_and_measured_source
     record=cycle.derive_cycle(originals=retained,capture=c,receipts=r,thermal=thermal,weather=weather,
         parameter_record=params,runtime_manifest=RUNTIME,code_revision=CODE,now=instant(c['published_at']))
     assert record['output']['projections']['thermal']['output']==c['output']
-    assert record['output']['projections']['weather']['schema']=='earthship-household-weather-projection/v2'
+    assert record['output']['projections']['weather']['schema']=='earthship-household-weather-projection/v3'
     assert record['output']['automatic_actuation'] is False
     assert replay_pipeline(record,runtime_manifest=RUNTIME,thermal_runtime=thermal.to_dict()['executing_runtime'])==record

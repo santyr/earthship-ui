@@ -7143,6 +7143,17 @@
       "first_legacy_run": "2026-10-14T21:06:02Z to 21:06:07Z; Result=success; ExecMainStatus=0; invocation 574965b60f924e5c912e7efe17b4f784",
       "first_retained_native_run": "pending the next natural 21:16 UTC historical slot",
       "documentation": "docs/operations/2026-10-14-score-production-cpu.md"
+    },
+    "native_household_solar_geometry": {
+      "status": "implemented_pending_actual_replay_and_deployment",
+      "weather_context_schema": "earthship-household-prepared-weather/v3",
+      "tests_passed": 240,
+      "legacy_v1_v2_shapes_preserved": true,
+      "new_live_reads": false,
+      "new_astronomy_calculations": false,
+      "geometry_quality": "retained_native_calculation",
+      "automatic_actuation": false,
+      "documentation": "docs/operations/household-weather-context.md"
     }
   },
   "astro_efficiency_audit": {

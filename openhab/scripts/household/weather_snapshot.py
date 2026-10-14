@@ -22,6 +22,15 @@ def _row(role,value,unit,context,*,operator=False):
         reason=None,parent_digests=[capture['capture_sha256'],body['weather_sha256']]))
 
 
+def _geometry_row(value,*,capture,weather_sha256):
+    return dict(value=value,unit='solar_position_trajectory',reason=None,evidence=dict(
+        source_role='solar_geometry',source_identity=value['source_identity'],digest=value['series_sha256'],
+        source_epoch=None,hardware_epoch=None,observed_at=None,received_at=value['available_at'],
+        available_at=value['available_at'],valid_until=value['positions'][-1]['at'],
+        assessed_at=capture['issued_at'],quality='retained_native_calculation',reason=None,
+        parent_digests=[capture['capture_sha256'],weather_sha256,*value['cache_sha256s']]))
+
+
 def _render(source,weather,revision):
     from .model_snapshot import _render as render_model,describe_thermal
     # The original model renderer validates source replay and descriptor.
@@ -37,6 +46,8 @@ def _render(source,weather,revision):
         'forecast_wind_trajectory':([dict(at=row['at'],wind_mph=row['windMph']) for row in projection['hourly_forecast']],'mph_trajectory'),
         'forecast_weather_codes':([dict(at=row['at'],weather_code=row['weatherCode']) for row in projection['hourly_forecast']],'code_trajectory')}
     for role,(value,unit) in fields.items():domain[role]=_row(role,value,unit,weather)
+    if 'solar_geometry' in projection:
+        domain['solar_geometry']=_geometry_row(projection['solar_geometry'],capture=capture,weather_sha256=projection['weather_context_sha256'])
     doc['domains']['thermal']['shade_state']=_row('shade_state',dict(indoor_closed=actions['indoor_shade_closed'],outdoor_present=actions['outdoor_shade_present'],actuator_position=None),'state',weather,operator=True)
     doc['domains']['thermal']['ventilation_state']=_row('ventilation_state',dict(legacy_coarse_open=actions['vent_open'],provenance=actions['vent_provenance'],window=None,skylight=None),'state',weather,operator=True)
     if actions['mode']!='unknown':domain['season_mode']=_row('season_mode',actions['mode'],'state',weather,operator=True)

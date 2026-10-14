@@ -17,9 +17,9 @@ def made(tmp_path,monkeypatch,originals):
 
 def test_native_weather_and_thermal_share_original_geometry_and_issue(tmp_path,monkeypatch,originals):
     c,k,p,w=made(tmp_path,monkeypatch,originals);out=api().project_weather(w)
-    assert w.to_dict()['schema']=='earthship-household-prepared-weather/v2'
+    assert w.to_dict()['schema']=='earthship-household-prepared-weather/v3'
     assert w.original_capture==c and w.prepared.to_dict()==p.to_dict()
-    assert out['schema']=='earthship-household-weather-projection/v2'
+    assert out['schema']=='earthship-household-weather-projection/v3'
     assert out['geometry_series_sha256']==c['geometry_series_sha256']
     assert out['model_rule']==c['output']['model_rule']
     assert out['origin']==c['issued_at'] and out['forcings']==p.to_dict()['forcings']
@@ -91,3 +91,74 @@ def test_native_private_pipeline_cli_replays_full_source_closure(tmp_path,monkey
     monkeypatch.setattr(artifacts,'current_native_runtime',lambda **kw:wrong)
     assert cli.main(['--receipt',str(path)])==1
     assert 'replay refused' in capsys.readouterr().err
+
+
+
+def test_native_geometry_projection_retains_exact_positions_and_provenance(tmp_path,monkeypatch,originals):
+    c,k,p,w=made(tmp_path,monkeypatch,originals)
+    out=api().project_weather(w);geometry=out['solar_geometry']
+    packet=c['geometry'];caches=packet['caches']
+    assert w.to_dict()['schema']=='earthship-household-prepared-weather/v3'
+    assert out['schema']=='earthship-household-weather-projection/v3'
+    assert geometry['positions']==[row for cache in caches for row in cache['positions']]
+    assert geometry['series_sha256']==c['geometry_series_sha256']
+    assert geometry['request_sha256']==packet['request']['request_sha256']
+    assert geometry['site']==caches[0]['source']['site']
+    assert geometry['timezone']==packet['request']['timezone']
+    assert geometry['native_runtime']==packet['native_runtime']
+    assert geometry['available_at']==max(cache['computed_at'] for cache in caches)
+    assert geometry['cache_sha256s']==[cache['cache_sha256'] for cache in caches]
+    assert geometry['source_identity']=='astro:sun:local'
+    assert geometry['quality']=='retained_native_calculation'
+    assert 'daylight_geometry' not in out['unknown_observations']
+    assert 'solar_radiation_wm2' in out['unknown_observations']
+    assert geometry['daylight_events_available'] is False
+    geometry['positions'][0]['elevation_degrees']=999
+    assert api().project_weather(w)['solar_geometry']['positions'][0]['elevation_degrees']!=999
+
+
+def test_geometry_snapshot_replays_without_io_and_refuses_derived_tampering(tmp_path,monkeypatch,originals):
+    c,k,p,w=made(tmp_path,monkeypatch,originals)
+    from household.weather_snapshot import bind_weather_snapshot,restore_weather_snapshot
+    from household.control_contracts import instant
+    from test_household_model_snapshot import source_at
+    source=source_at(instant(c['issued_at']))
+    snap=bind_weather_snapshot(source_receipt=source,source_runtime_manifest=source['runtime_manifest'],weather_context=w,code_revision=CODE)
+    doc=snap.to_dict();row=doc['domains']['weather']['solar_geometry']
+    assert row['value']==api().project_weather(w)['solar_geometry']
+    assert row['unit']=='solar_position_trajectory' and row['reason'] is None
+    ref=row['evidence']
+    assert ref['digest']==c['geometry_series_sha256']
+    assert ref['quality']=='retained_native_calculation' and ref['observed_at'] is None
+    assert ref['available_at']==row['value']['available_at']
+    assert instant(ref['available_at'])<=instant(doc['as_of'])
+    assert ref['valid_until']==c['geometry']['request']['instants'][-1]
+    assert c['capture_sha256'] in ref['parent_digests']
+    assert doc['planner_authority']=='none'
+    import builtins,os,psycopg2
+    def forbidden(*args,**kwargs):pytest.fail('I/O while replaying native geometry snapshot')
+    for target,name in ((builtins,'open'),(os,'open'),(Path,'read_bytes'),(psycopg2,'connect')):monkeypatch.setattr(target,name,forbidden)
+    assert restore_weather_snapshot(doc,snap.source_context).to_dict()==doc
+    doc['domains']['weather']['solar_geometry']['value']['positions'][0]['elevation_degrees']+=1
+    doc['snapshot_id']=identity({k:v for k,v in doc.items() if k!='snapshot_id'})
+    with pytest.raises(ValueError):restore_weather_snapshot(doc,snap.source_context)
+
+
+def test_retained_v2_weather_and_pipeline_keep_their_original_shape(tmp_path,monkeypatch,originals):
+    c,k,p,w=made(tmp_path,monkeypatch,originals)
+    from household.weather_snapshot import bind_weather_snapshot
+    from household.control_contracts import instant
+    from test_household_model_snapshot import source_at
+    from test_household_model_pipeline import run,RUNTIME
+    from household.pipeline import replay_pipeline
+    body=w.to_dict();body['schema']='earthship-household-prepared-weather/v2'
+    body['weather_sha256']=identity({k:v for k,v in body.items() if k!='weather_sha256'})
+    old=api().PreparedWeatherContext(canonical(body));out=api().project_weather(old)
+    assert out['schema']=='earthship-household-weather-projection/v2'
+    assert 'solar_geometry' not in out
+    assert out['unknown_observations']==['solar_radiation_wm2','relative_humidity','precipitation','wind_speed','daylight_geometry']
+    source=source_at(instant(c['issued_at']))
+    snap=bind_weather_snapshot(source_receipt=source,source_runtime_manifest=source['runtime_manifest'],weather_context=old,code_revision=CODE)
+    assert 'solar_geometry' not in snap.to_dict()['domains']['weather']
+    record=run(snap,p)
+    assert replay_pipeline(record,runtime_manifest=RUNTIME,thermal_runtime=p.to_dict()['executing_runtime'])==record

@@ -19,3 +19,30 @@ Nine roles qualified at collection, but inverter AC expired before the common mo
 The first collector attempt refused the normal publisher's existing shared lock before any source data was retained. A one-shot capped timer then collected before the following scheduled issue; no publisher start/restart or lock bypass occurred. The successful natural issue does not resolve the publisher's separately observed intermittent delivery failures. Private source/config/data files remain outside Git; only this sanitized evidence account is published.
 
 PR [#24](https://github.com/santyr/earthship-ui/pull/24) merged at `ec4f9c2c68b4d39338fb6958937564a5ea651fae` after exact head `eb4b492b841393189336574184a0453fc7a815a5` passed CI, encrypted-delivery, authentication and GitGuardian. CI run `38180181944` includes the full OpenHAB Python suite, disposable PostgreSQL and operational-tooling regressions. Final documentation-head private CLI replay equals the original sealed household receipt. This closes the weather-context integration gates while the full PR #3 program remains active.
+
+
+## Native solar geometry in the shared snapshot — 2026-10-14
+
+New native weather preparation emits prepared-weather/v3 and weather-projection/v3.
+It exposes the original native solar-position series already verified with the
+thermal capture: exact timestamps, elevation and azimuth, site/timezone, binding
+runtime, availability and cache/series identities. The common weather domain retains
+that same value under `solar_geometry`, so energy, thermal and planner replay use
+one snapshot identity. No additional astronomy calculation or live read is added.
+
+The row is `retained_native_calculation`, with no observed-at timestamp. It cannot
+serve as qualified physical evidence or authorize an action. Measured radiation,
+humidity and wind remain unknown without their own sources; solar event times and
+daylight duration are explicitly unavailable in this position-only series. Its
+validity ends at the final retained position; no interpolation or extrapolation is
+introduced. Existing v1/v2 weather contexts retain their exact prior projection
+and snapshot shapes; only v3 opts into the new field.
+
+Two regressions reproduced the missing projection/snapshot field. The 61 native
+and legacy weather/common-cycle cases and 179 downstream planner, measured-weather,
+energy, outcome, resource and serving-context cases pass. These include exact
+original thermal parity, old native receipt replay, no-I/O restoration, immutable
+returned positions and refusal of resealed derived-position changes. Original
+captures and candidates keep their existing verification; configured 256 KiB
+snapshot and 2 MiB pipeline limits are unchanged. Actual retained-source replay,
+independent review and production adoption are pending.
