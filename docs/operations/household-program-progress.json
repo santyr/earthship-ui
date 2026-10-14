@@ -7404,7 +7404,9 @@
         "model_bias_f": 0.23850421369033675,
         "graduated": false,
         "longer_horizon_outcomes": 0
-      }
+      },
+      "natural_historical_score": "22:56:00UTC to22:58:00UTC refused deadline after116.524CPU seconds; current slot22:51 succeeded; duplicate source-score replay during report reconciliation identified for next correction",
+      "next_performance_change": "Reuse only the immediately repeated fully validated serving source score within one original report reconciliation, preserving fresh score-file/model checks and the original final full source inventory verification. No cross-cycle cache, source mutation, model refit or deadline increase."
     },
     "actual_daily_energy_outcome_20261013": {
       "status": "original_daily_energy_math_and_night_replayed",
