@@ -5134,7 +5134,7 @@
       "no_native_activation_or_hardware_requests": true
     },
     "native_model_serving_receipt_plan": {
-      "status": "final_review_fixes_verified_refreshing_stage_before_cold_timing",
+      "status": "native_forecasts_live_household_diagnosis_and_mature_scoring_pending",
       "recorded_at": "2026-10-14T00:09:26.086096+00:00",
       "user_reply": "plan approved",
       "presented_artifact_approved": "docs/superpowers/specs/2026-10-13-native-model-serving-receipt-design.md",
@@ -5147,7 +5147,7 @@
       "plan_review_pending": false,
       "implementation_started": true,
       "host_limits_unchanged": true,
-      "native_model_selected": false,
+      "native_model_selected": true,
       "goal_scope_unchanged": true,
       "github_publication_approval_pending": true,
       "implementation_plan_approval_reply": "implementation plan approved.",
@@ -6099,6 +6099,206 @@
       "live_writes": false,
       "restaging_required": true,
       "whole_plan_complete": false
+    },
+    "native_model_serving_receipt_stage_after_review": {
+      "status": "corrected_production_stage_and_refreshed_admission_verified",
+      "source_commit": "7e79fbecddd965e32a3c3aca440007322435cc0f",
+      "artifact_sha256": "87896dd2db749f9f3ba0245c97367bccb2e33f32448c7a0c22e8b3f24248db3a",
+      "runtime_sha256": "95293950b20d1abb17a49e49209e5ed31b008534d78069188bf4516256cc47ce",
+      "deployment_sha256": "bbc998aea1f95ae1e2f68665508f3f1e7570c65e2ff99e6d069842f2d1819f65",
+      "model_receipt_sha256": "1f6871e9d9521298a9c2c9d91f641d6308cd6fe10c58cab9588d4b7fae398d9b",
+      "family_sha256": "6bbb72bb24fc81ff02b9f49d890ab31e6aca11510a3b085302b9700c805db5c7",
+      "actual_operations": [
+        {
+          "mode": "bootstrap",
+          "label": "20261014T034817610959Z-bootstrap",
+          "operation_wall_seconds": 2.4174627450993285,
+          "memory_peak_bytes": 102461440,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          },
+          "log_sha256": "a3ca5602d8f2bdd24bc67d8fcc09da5a1a7a9173bba4ebf05b421fee26c9909a"
+        },
+        {
+          "mode": "admit",
+          "label": "20261014T035101449588Z-admit",
+          "operation_wall_seconds": 23.941133900079876,
+          "memory_peak_bytes": 113926144,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          },
+          "log_sha256": "a269ec62ecd8cb176ac6d8dd0cf4a454a03a990376bc02d0ea60828dee1ef90c"
+        },
+        {
+          "mode": "final",
+          "label": "20261014T035146815281Z-final",
+          "operation_wall_seconds": 7.246841398999095,
+          "memory_peak_bytes": 99971072,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          },
+          "log_sha256": "e7c0470f37fc541cf6d20d649d10a96870fa120ea6a0efd77012fa33fad595e4"
+        },
+        {
+          "mode": "runtime",
+          "label": "20261014T035222167473Z-runtime",
+          "operation_wall_seconds": 13.138536893064156,
+          "memory_peak_bytes": 101666816,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          },
+          "log_sha256": "9352a7feab585d7633f8e5a0151ee6b50867422df12c266ada7d1e4f717f0850"
+        }
+      ],
+      "original_candidate_retained_by_exact_file_hash": true,
+      "protected_sources": 72,
+      "native_fitted_sources": 9,
+      "live_units_changed": false,
+      "live_writes": false,
+      "whole_plan_complete": false
+    },
+    "native_model_serving_receipt_cold_preparer": {
+      "exit": 0,
+      "source_commit": "7e79fbecddd965e32a3c3aca440007322435cc0f",
+      "artifact_sha256": "87896dd2db749f9f3ba0245c97367bccb2e33f32448c7a0c22e8b3f24248db3a",
+      "runtime_sha256": "95293950b20d1abb17a49e49209e5ed31b008534d78069188bf4516256cc47ce",
+      "deployment_sha256": "bbc998aea1f95ae1e2f68665508f3f1e7570c65e2ff99e6d069842f2d1819f65",
+      "model_receipt_sha256": "1f6871e9d9521298a9c2c9d91f641d6308cd6fe10c58cab9588d4b7fae398d9b",
+      "operation_wall_seconds": 47.54590823396575,
+      "geometry_points": 288,
+      "completed_native_batches": [
+        128,
+        128,
+        32
+      ],
+      "prepared_at": "2026-10-14T03:56:27.057681+00:00",
+      "issue": "2026-10-14T04:00:15+00:00",
+      "geometry_target_absent_at_start": true,
+      "memory_peak_bytes": 203464704,
+      "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n",
+      "live_units_changed": false,
+      "live_writes": false
+    },
+    "native_model_serving_receipt_driver_probe": {
+      "status": "host_guard_refused_no_qualification",
+      "exit": 1,
+      "label": "20261014T035719418662Z-cold-driver",
+      "reason": "swap-out activity or OOM counter changed",
+      "scope_memory_limit_or_oom_events": 0,
+      "live_writes": false,
+      "live_units_changed": false,
+      "diagnosis_pending": true
+    },
+    "native_model_serving_receipt_activation": {
+      "mode": "apply",
+      "source_commit": "7e79fbecddd965e32a3c3aca440007322435cc0f",
+      "deployment_sha256": "bbc998aea1f95ae1e2f68665508f3f1e7570c65e2ff99e6d069842f2d1819f65",
+      "model_receipt_sha256": "1f6871e9d9521298a9c2c9d91f641d6308cd6fe10c58cab9588d4b7fae398d9b",
+      "live_writes": false,
+      "live_units_changed": true,
+      "unit_mutation_attempted": true,
+      "automatic_actuation": false,
+      "status": "native_family_activated",
+      "handoff_sha256": "97dc8482ea7925ad31a7a38040630cd14d864bd010ce42e0283b74b3b0deb5d3",
+      "effective_definition_status": "native_effective_family_verified",
+      "unit_manager_reloaded": true,
+      "new_preparer_timer_enabled": true,
+      "service_restarted": false,
+      "exit": 0,
+      "cold_seconds": 57.8009758440312,
+      "memory_peak_bytes": 60321792,
+      "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n"
+    },
+    "native_model_serving_receipt_cold_driver": {
+      "source_commit": "7e79fbecddd965e32a3c3aca440007322435cc0f",
+      "artifact_sha256": "87896dd2db749f9f3ba0245c97367bccb2e33f32448c7a0c22e8b3f24248db3a",
+      "runtime_sha256": "95293950b20d1abb17a49e49209e5ed31b008534d78069188bf4516256cc47ce",
+      "deployment_sha256": "bbc998aea1f95ae1e2f68665508f3f1e7570c65e2ff99e6d069842f2d1819f65",
+      "model_receipt_sha256": "1f6871e9d9521298a9c2c9d91f641d6308cd6fe10c58cab9588d4b7fae398d9b",
+      "operation_wall_seconds": 42.076920174993575,
+      "memory_peak_bytes": 127418368,
+      "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n",
+      "issue": "2026-10-14T04:15:15+00:00",
+      "timers_restored": true,
+      "status": "actual_cold_driver_source_clocks_and_write_barrier_verified",
+      "capture_sha256": "1afff50f3d6adb57358a0d0080836628460bb7f1fb6cb19dbd453431ad6d1a0e",
+      "capture_file_sha256": "7854cd7db17a58eb318f4f20b9072ca2df3d90e05be3edeb605d4227d68c02d2",
+      "inputs_available_at": "2026-10-14T04:15:10.960922+00:00",
+      "published_at": "2026-10-14T04:15:15.000125+00:00",
+      "first_write_at": "2026-10-14T04:15:26.762366+00:00",
+      "cold_to_first_write_seconds": 41.60835717001464,
+      "temporary_timer_lease": true,
+      "live_unit_definitions_changed": false,
+      "live_writes": false,
+      "natural_delivery_qualified": false,
+      "whole_plan_complete": false
+    },
+    "native_model_serving_receipt_live_ui": {
+      "status": "live_signed_off_ui_native_and_household_expiry_verified",
+      "thermal_version": 9,
+      "thermal_state": "ready",
+      "thermal_mode": "provisional",
+      "expired_thermal_mode": "unavailable",
+      "household_current_mode": "unavailable",
+      "household_expired_mode": "unavailable",
+      "thermal_sha256": "680b866d219c00c8779bc5c76f88d4b52070dc48234434b6d06bc9704ae43683",
+      "household_sha256": "5a71d3065dc63784e1a423644ec57400318cd7ec2f9eae8e192c26616b12034c",
+      "checked_at": "2026-10-14T04:43:43.035Z",
+      "root_overlay_modified": false,
+      "household_native_cache_qualified": false
+    },
+    "native_model_serving_receipt_natural_forecast_replay": {
+      "source_commit": "7e79fbecddd965e32a3c3aca440007322435cc0f",
+      "deployment_sha256": "bbc998aea1f95ae1e2f68665508f3f1e7570c65e2ff99e6d069842f2d1819f65",
+      "artifact_sha256": "87896dd2db749f9f3ba0245c97367bccb2e33f32448c7a0c22e8b3f24248db3a",
+      "runtime_sha256": "95293950b20d1abb17a49e49209e5ed31b008534d78069188bf4516256cc47ce",
+      "cold_seconds": 51.28957459400408,
+      "memory_peak_bytes": 99270656,
+      "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n",
+      "status": "serving_context_and_independent_full_forecast_steps_completed_before_missing_household_receipt_refusal",
+      "overall_terminal_exit": 1,
+      "overall_reason": "unique original household receipt required",
+      "receipt_label": "20261014T044546-natural",
+      "verifier_sha256": "f9c8f436515ffe8f79dc836c81107756a19c8de3bde907d960cbe186ce682d2f",
+      "household_qualified": false,
+      "whole_plan_complete": false
+    },
+    "native_model_serving_receipt_natural_publications": {
+      "status": "native_publications_persisting_household_incomplete",
+      "first_native_issue": "2026-10-14T04:40:15+00:00",
+      "observed_issues": [
+        "2026-10-14T04:40:15+00:00",
+        "2026-10-14T04:45:15+00:00",
+        "2026-10-14T04:50:15+00:00"
+      ],
+      "first_driver_wall_seconds": 82,
+      "first_driver_cpu_seconds": 14.138,
+      "first_driver_memory_peak_mib": 81.8,
+      "first_driver_swap_bytes": 0,
+      "source_collection_unavailable_on_later_cycles": true,
+      "household_error": "original_cycle_verification_failed_then_source_collection_failed",
+      "native_mature_score_qualified": false,
+      "whole_plan_complete": false
     }
   },
   "astro_efficiency_audit": {
@@ -6248,5 +6448,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T03:47:50.757427+00:00"
+  "updated_at": "2026-10-14T04:54:07.177057+00:00"
 }
