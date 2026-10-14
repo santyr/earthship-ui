@@ -44,5 +44,27 @@ energy, outcome, resource and serving-context cases pass. These include exact
 original thermal parity, old native receipt replay, no-I/O restoration, immutable
 returned positions and refusal of resealed derived-position changes. Original
 captures and candidates keep their existing verification; configured 256 KiB
-snapshot and 2 MiB pipeline limits are unchanged. Actual retained-source replay,
-independent review and production adoption are pending.
+snapshot and 2 MiB pipeline limits are unchanged. The independent static review found no Critical, Important or Minor issues.
+Actual retained-source replay passed; production activation is recorded below.
+
+
+Committed source `5df4b35` replayed the original 21:10:15 UTC household receipt
+`a0625927...f37134` identically, then rebuilt it with the v3 geometry context.
+All 288 native positions from series `c813fcb0...7e0a4` match the new shared
+snapshot and weather projection. Geometry was available at 21:08:48 UTC, before
+the original issue. Both energy and thermal outputs remain exactly equal. Pure
+and private operational CLI replay match the derived receipt
+`1eeea0aa...cd0d1`. The snapshot is 111,526 bytes and receipt 1,152,494 bytes,
+within the unchanged limits. Verification took 2.215 seconds with no network,
+fitting or production writes. This is a new offline derivation from retained
+evidence, not a claim that the old live issue contained the new field.
+
+
+Source `5df4b35` is deployed as `124cff62` through the existing owned-family
+handoff after the normal 21:20 forecast. Effective files, service pins, limits
+and active timers match; UI and thermal publication endpoints return HTTP 200.
+The original model `52dd5d12...526506` and its 19:08 admission remain selected.
+Activation peaked at 56,352,768 bytes with no memory-limit/OOM events; no fit,
+qualification probe, actuator request or forced forecast ran. The clean daily
+training checkout is at the same source. The first normal enriched household
+issue is expected at 21:25:15 UTC and is not yet verified.

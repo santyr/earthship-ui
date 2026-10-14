@@ -20,7 +20,7 @@
     {
       "phase": "2",
       "requirement": "Immutable HouseholdSnapshot and live evidence capture",
-      "current_evidence": "Source snapshot/v6 retains original bank/topology, power, forecast/operator and measured-weather contexts. PR26 merged after950 affected cases, one final review correction pass and actual naturally delivered03:00:15UTC source/model/privateCLI proof. All three weather points and eight other source roles qualified at the common clock. Nominal bank20.48kWh is configuration; calibrated usable energy, common-clock AC freshness, daylight/humidity/wind, authority and owner inputs remain incomplete.",
+      "current_evidence": "Source snapshot/v6 retains original bank/topology, power, forecast/operator and measured-weather contexts. Common-clock native temperature, power and measured-weather capture/replay are deployed. Native weather context/v3 now exposes all 288 retained original solar positions with calculation-only provenance; 240 affected tests, independent review and actual 21:10 source replay pass. Source 5df4b35 is deployed with effective readback; the first normal enriched household cycle remains pending. Nominal bank20.48kWh is configuration; calibrated usable energy, humidity, wind measurement, authority and owner inputs remain incomplete.",
       "complete": false
     },
     {
@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "Earthship observations remain below existing content; standalone household navigation removed. Deployment 715078d7 from cbec265 retains model 52dd5d12 and its original 19:08:13 UTC admission. Natural 21:01 UTC current-model scoring exited 0 after 65 seconds, with 97.2 MiB peak and zero swap. Three mature one-hour outcomes give model MAE 0.110915 F versus persistence 0.30 F; longer horizons remain empty and no accuracy graduation is claimed. Current-model scoring now runs every ten minutes within the fifteen-minute report TTL. Live publication and the deployed UI parser displayed all three outcomes at 21:05 UTC. The subsequent callback-only deployment a6b37ac4 from 2fbad86 passed effective readback and a normal legacy scoring run; its historical slot remains pending. First natural morning fit and broader household observability qualification remain incomplete. No actuator authority. See proofs.native_current_model_production_scoring.",
+      "current_evidence": "Earthship observations remain below existing content; standalone household navigation removed. Deployment 715078d7 from cbec265 retains model 52dd5d12 and its original 19:08:13 UTC admission. Natural 21:01 UTC current-model scoring exited 0 after 65 seconds, with 97.2 MiB peak and zero swap. Three mature one-hour outcomes give model MAE 0.110915 F versus persistence 0.30 F; longer horizons remain empty and no accuracy graduation is claimed. Current-model scoring now runs every ten minutes within the fifteen-minute report TTL. Live publication and the deployed UI parser displayed all three outcomes at 21:05 UTC. The subsequent callback-only deployment a6b37ac4 from 2fbad86 passed effective readback and a normal legacy scoring run; its normal 21:16 historical slot succeeded in 48 seconds with zero swap. First natural morning fit and broader household observability qualification remain incomplete. No actuator authority. See proofs.native_current_model_production_scoring.",
       "complete": false
     },
     {
@@ -6664,8 +6664,8 @@
       },
       "automatic_actuation": false,
       "source_document": "docs/operations/2026-10-14-native-daily-training.md",
-      "production_source_commit": "2fbad863b65ed7167b294b00826deb60dd53baa7",
-      "production_checkout_verified_at": "2026-10-14T21:06:30.933200+00:00"
+      "production_source_commit": "5df4b35692ad1a16cc5f2e92ad2615464c3a84df",
+      "production_checkout_verified_at": "2026-10-14T21:22:17.839981+00:00"
     },
     "native_forecast_cpu_deployment": {
       "assessed_at": "2026-10-14T18:41:43.124789+00:00",
@@ -7141,11 +7141,11 @@
       "automatic_actuation": false,
       "daily_checkout_clean": true,
       "first_legacy_run": "2026-10-14T21:06:02Z to 21:06:07Z; Result=success; ExecMainStatus=0; invocation 574965b60f924e5c912e7efe17b4f784",
-      "first_retained_native_run": "pending the next natural 21:16 UTC historical slot",
+      "first_retained_native_run": "2026-10-14T21:16:00Z to 21:16:48Z; scored=1; current_revision_scored=1; Result=success; ExecMainStatus=0; 44.710 CPU seconds; 84.8 MiB peak; zero swap; invocation c506e2be6d284383b933f59aa152f123",
       "documentation": "docs/operations/2026-10-14-score-production-cpu.md"
     },
     "native_household_solar_geometry": {
-      "status": "implemented_pending_actual_replay_and_deployment",
+      "status": "deployed_pending_normal_household_cycle",
       "weather_context_schema": "earthship-household-prepared-weather/v3",
       "tests_passed": 240,
       "legacy_v1_v2_shapes_preserved": true,
@@ -7153,7 +7153,41 @@
       "new_astronomy_calculations": false,
       "geometry_quality": "retained_native_calculation",
       "automatic_actuation": false,
-      "documentation": "docs/operations/household-weather-context.md"
+      "documentation": "docs/operations/household-weather-context.md",
+      "source_commit": "5df4b35692ad1a16cc5f2e92ad2615464c3a84df",
+      "actual_source": {
+        "status": "actual_retained_household_geometry_replayed",
+        "assessed_at": "2026-10-14T21:15:30.517934+00:00",
+        "source_commit": "5df4b35692ad1a16cc5f2e92ad2615464c3a84df",
+        "original_receipt_path": ".superpowers/sdd/2026-10-13-native-model-serving-receipt/actual-score-policy-leaf-20261014/final/evidence/a0625927686532bdb1e69553da7f6a6def24e73b900c3caabdd4d40704f37134.household-model-plan-v5.json",
+        "original_receipt_sha256": "a0625927686532bdb1e69553da7f6a6def24e73b900c3caabdd4d40704f37134",
+        "original_snapshot_as_of": "2026-10-14T21:10:15+00:00",
+        "original_v2_replay_identical": true,
+        "derived_receipt_path": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-13-native-model-serving-receipt/household-native-geometry-pipeline.json",
+        "derived_receipt_sha256": "1eeea0aaeee3dc4a208ef2c58e015b469027907fe27e5aa1acee5cb4ab7cd0d1",
+        "snapshot_bytes": 111526,
+        "receipt_bytes": 1152494,
+        "native_series_sha256": "c813fcb0065dfb552b0ed62f01440132e50732bcee279e2dc75e2b05ec07e0a4",
+        "positions": 288,
+        "geometry_quality": "retained_native_calculation",
+        "geometry_available_at": "2026-10-14T21:08:48.466654+00:00",
+        "exact_energy_and_thermal_outputs": true,
+        "pure_and_private_cli_replay_identical": true,
+        "seconds": 2.214776703971438,
+        "live_reads": false,
+        "live_writes": false,
+        "fit_executed": false,
+        "automatic_actuation": false
+      },
+      "review": "Independent read-only review: no Critical, Important or Minor findings; numerical forecasts/control and independent measured-weather qualification remain outside this delta.",
+      "deployment_sha256": "124cff6200ed3f2370e56bbbde5b7d7ec12c92dc9894133bfec23d71e79e3c28",
+      "effective_readback_at": "2026-10-14T21:22:17.839981+00:00",
+      "original_model_artifact_sha256": "52dd5d122485f0bdafa0aed4fa7412c0823ce9829ed3d9bdc920e44d88526506",
+      "activation_memory_peak_bytes": 56352768,
+      "activation_memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n",
+      "daily_checkout_clean": true,
+      "next_normal_household_issue": "2026-10-14T21:25:15+00:00",
+      "fit_executed": false
     }
   },
   "astro_efficiency_audit": {
