@@ -25,7 +25,7 @@
 ## Review focus
 
 - Two launchers must not reserve the same free RAM: serialize discovery through confirmed unit creation.
-- A job growing from present usage to its hard limit must already be reserved.
+- A job growing from present usage to its hard limit must already be reserved. Host admission subtracts full sibling limits without crediting separately sampled usage; this intentionally trades some concurrent capacity for race-free admission accounting.
 - Memory charged to the parent outside observed child units must count against the pool.
 - Failed launch, vanished unit and launcher interruption must not silently release a still-running unit's reservation: kernel unit state is authoritative.
 - An unavailable/uncapped/foreign cgroup must refuse new admission, not imply zero usage.
@@ -44,7 +44,7 @@ Files: `openhab/scripts/household_job_budget.py`, `openhab/scripts/test_househol
 Files: `openhab/scripts/household_job_pool.py`, `openhab/scripts/household_job_launch.py`, `scripts/run-household-job.py`, `openhab/systemd/user/earthship-work.slice`, corresponding focused tests.
 
 - [x] Read actual pool and immediate child unit cgroups; bound directory traversal and reject uncapped/unrecognized children. Read host counters freshly. A disappearing child may be retried conservatively.
-- [x] Hold a private flock across snapshot, admission and confirmed scoped-unit creation. Reservations derive from actual active unit limits, not caller claims or stale JSON leases.
+- [x] Hold a private flock across snapshot, admission and confirmed scoped-unit creation. Reservations derive from actual active unit limits, not caller claims or stale JSON leases. A private socket handshake prevents the scoped command from executing before verification; revoke permission before failed-start cleanup while holding the lock.
 - [x] Launch a unique scope with a finite chosen MemoryMax, zero swap, explicit task/thread limits, declared CPUWeight and shared Slice. Preserve command arguments without a shell. Forward output and return the command status.
 - [x] On cancellation clean up only the owned scope; never stop another worker. Confirm that an exited launcher with a still-active unit remains counted by the next admission.
 - [x] Test concurrent launch requests, command failure, missing cgroup, uncapped sibling, startup failure and cleanup using controlled unit/cgroup fixtures. Perform one tiny real scoped command, not a stress test.

@@ -5,6 +5,10 @@ import os
 from pathlib import Path
 import stat
 import subprocess
+import socket
+import struct
+import sys
+import tempfile
 import time
 from uuid import uuid4
 
@@ -45,15 +49,64 @@ def admission_gate(path, *, seconds=15):
         os.close(fd)
 
 
+class StartupPermission:
+    """A scoped shim must receive permission before executing the workload."""
+    def __init__(self, directory=None):
+        self.directory = tempfile.TemporaryDirectory(prefix='es-job-', dir=directory)
+        self.path = Path(self.directory.name)/'start'
+        self.listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        try:
+            self.listener.settimeout(15)
+            self.listener.bind(str(self.path))
+            self.listener.listen(1)
+        except BaseException:
+            self.close()
+            raise
+
+    def authorize(self, expected_pid=None):
+        connection, _ = self.listener.accept()
+        with connection:
+            connection.settimeout(5)
+            pid, uid, _ = struct.unpack('3i', connection.getsockopt(
+                socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize('3i')))
+            if uid != os.getuid() or (expected_pid is not None and pid != expected_pid):
+                raise ValueError('unexpected scoped startup peer')
+            connection.sendall(b'1')
+        self.close()
+
+    def close(self):
+        self.listener.close()
+        self.directory.cleanup()
+
+    def __enter__(self):return self
+    def __exit__(self, *args):self.close()
+
+
+class ScopedProcess:
+    def __init__(self, process, permission):
+        self.process, self.permission = process, permission
+    def poll(self):return self.process.poll()
+    def wait(self):return self.process.wait(timeout=20)
+    def authorize(self):self.permission.authorize(self.process.pid)
+    def cancel(self):self.permission.close()
+
+
 def start_scope(command, *, unit, memory_bytes, production, tasks, seconds):
     environment = dict(os.environ, OPENBLAS_NUM_THREADS='1', OMP_NUM_THREADS='1', MKL_NUM_THREADS='1')
+    permission = StartupPermission(Path('/run/user')/str(os.getuid()))
+    shim = [sys.executable, str(Path(__file__).with_name('household_job_start.py')),
+        '--socket', str(permission.path), '--', *command]
     argv = ['systemd-run', '--user', '--scope', '--quiet', '--collect',
         '--slice='+POOL_NAME, '--unit='+unit, '--description=Earthship managed job',
         '-p', 'MemoryMax='+str(memory_bytes), '-p', 'MemorySwapMax=0',
         '-p', 'CPUWeight='+('100' if production else '25'), '-p', 'TasksMax='+str(tasks),
         '-p', 'RuntimeMaxSec='+str(seconds), '-p', 'IOWeight='+('100' if production else '10'),
-        'nice', '-n', '15', 'ionice', '-c', '3', *command]
-    return subprocess.Popen(argv, env=environment)
+        'nice', '-n', '15', 'ionice', '-c', '3', *shim]
+    try:
+        return ScopedProcess(subprocess.Popen(argv, env=environment), permission)
+    except BaseException:
+        permission.close()
+        raise
 
 
 def stop_scope(unit):
@@ -72,8 +125,8 @@ def launch_job(command, *, pool_path, lock_path, minimum_bytes, preferred_bytes,
         raise ValueError('bounded task count and runtime required')
     unit = 'earthship-job-'+uuid4().hex+'.scope'
     process = None
-    try:
-        with admission_gate(lock_path) as verify:
+    with admission_gate(lock_path) as verify:
+        try:
             health()
             snapshot = read_pool(pool_path)
             memory = admit_memory(available_bytes=available(), **snapshot,
@@ -83,10 +136,9 @@ def launch_job(command, *, pool_path, lock_path, minimum_bytes, preferred_bytes,
                 production=production, tasks=tasks, seconds=seconds)
             deadline = time.monotonic() + 15
             while True:
-                # An already completed command needs no retained reservation.
-                # Any surviving descendants remain visible in their cgroup.
                 status = process.poll()
                 if status is not None:
+                    process.cancel()
                     return status
                 leaf = Path(pool_path)/unit
                 if leaf.exists():
@@ -95,16 +147,26 @@ def launch_job(command, *, pool_path, lock_path, minimum_bytes, preferred_bytes,
                             _counter(leaf/'memory.swap.max') != 0):
                         raise ValueError('started scope differs from admitted budget')
                     verify()
+                    process.authorize()
                     break
                 if time.monotonic() >= deadline:
                     raise TimeoutError('scope admission was not confirmed')
                 time.sleep(.05)
+        except BaseException:
+            if process is not None:
+                # Revoke permission before cancellation, still under the lock.
+                # A delayed shim cannot execute even if systemd stop fails.
+                process.cancel()
+                stop(unit)
+                process.wait()
+            raise
+    try:
         while process.poll() is None:
             health()
             time.sleep(1)
         return process.wait()
     except BaseException:
-        if process is not None:
-            stop(unit)
-            process.wait()
+        process.cancel()
+        stop(unit)
+        process.wait()
         raise

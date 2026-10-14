@@ -93,7 +93,7 @@
     "No live owner migration without separate qualification",
     "No fabricated water state",
     "No new recovery work",
-    "Keep combined development and production demand within host headroom; more resources are authorized. Resource profiles are operational settings, not a permanent CPU20percent requirement. Shared dynamic coordination is proposed, not deployed."
+    "Keep combined development and production demand within host headroom; more resources are authorized. Resource profiles are operational settings, not a permanent CPU20percent requirement. Shared dynamic coordination is implemented and its slice installed for development; production migration remains pending."
   ],
   "proofs": {
     "foundation": {
@@ -7363,6 +7363,24 @@
       "production_migrated": false,
       "plan": "docs/superpowers/plans/2026-10-14-shared-job-resources.md",
       "documentation": "docs/operations/2026-10-14-shared-job-resources.md"
+    },
+    "shared_job_resources": {
+      "development_launcher_implemented": true,
+      "production_migrated": false,
+      "aggregate_memory_max_bytes": 6442450944,
+      "aggregate_cpu_equivalents": 8,
+      "host_admission_reserve_bytes": 3221225472,
+      "worker_swap_bytes": 0,
+      "focused_tests": 40,
+      "startup_handshake": true,
+      "host_accounting": "full sibling commitments without separately sampled usage credit",
+      "actual_tiny_scope": {
+        "memory_max": 134217728,
+        "cpu_max": "max 100000",
+        "memory_swap_max": 0
+      },
+      "review": "two Important findings fixed; final review pending",
+      "operations": "docs/operations/2026-10-14-shared-job-resources.md"
     }
   },
   "astro_efficiency_audit": {

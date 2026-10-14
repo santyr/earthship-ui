@@ -12,6 +12,8 @@ def test_second_launcher_counts_first_scope_before_allocating(tmp_path):
     child.rmdir();(root/'memory.current').write_text('0')
     spawned=threading.Event();finish=threading.Event();failures=[]
     class Process:
+        def cancel(self):pass
+        def authorize(self):pass
         def poll(self):return 0 if finish.is_set() else None
         def wait(self):return 0
     def spawn(command,*,unit,memory_bytes,production,tasks,seconds):
@@ -39,6 +41,8 @@ def test_finished_command_status_is_returned_without_waiting_for_vanished_scope(
     from household_job_launch import launch_job
     root,_=pool(tmp_path)
     class Process:
+        def cancel(self):pass
+        def authorize(self):pass
         def poll(self):return 7
         def wait(self):return 7
     assert launch_job(['/usr/bin/false'],pool_path=root,lock_path=tmp_path/'gate.lock',
@@ -64,6 +68,8 @@ def test_pressure_refusal_stops_only_the_scope_created_by_this_launcher(tmp_path
     from household_job_launch import launch_job
     root,other=pool(tmp_path);owned=[];stopped=[];checks=[]
     class Process:
+        def cancel(self):pass
+        def authorize(self):pass
         def poll(self):return None
         def wait(self):return 0
     def spawn(command,*,unit,memory_bytes,**kw):
@@ -90,6 +96,8 @@ def test_unconfirmed_scope_is_stopped_before_gate_can_be_reused(tmp_path,monkeyp
         @staticmethod
         def sleep(seconds):pass
     class Process:
+        def cancel(self):pass
+        def authorize(self):pass
         def poll(self):return None
         def wait(self):return 0
     monkeypatch.setattr(launch,'time',Clock)
@@ -100,3 +108,78 @@ def test_unconfirmed_scope_is_stopped_before_gate_can_be_reused(tmp_path,monkeyp
             available=lambda:8*GiB,spawn=lambda *a,**kw:Process(),health=lambda:None,stop=stopped.append)
     assert len(stopped)==1 and stopped[0].startswith('earthship-job-')
     with launch.admission_gate(gate):pass
+
+
+def test_admission_remains_locked_during_failed_start_cleanup(tmp_path,monkeypatch):
+    import pytest
+    import household_job_launch as launch
+    root,_=pool(tmp_path);gate=tmp_path/'gate.lock';events=[]
+    class Process:
+        def cancel(self):pass
+        def authorize(self):pass
+        def poll(self):return None
+        def wait(self):return 0
+        def cancel(self):events.append('cancel')
+        def authorize(self):events.append('authorize')
+    def spawn(command,*,unit,**kw):
+        leaf=root/unit;leaf.mkdir()
+        # Wrong cap forces an unconfirmed start failure.
+        (leaf/'memory.max').write_text('1')
+        return Process()
+    def stop(unit):
+        events.append('stop')
+        with pytest.raises(AdmissionDeferred):
+            with launch.admission_gate(gate,seconds=.05):pass
+    with pytest.raises(ValueError,match='differs'):
+        launch.launch_job(['/usr/bin/true'],pool_path=root,lock_path=gate,
+            minimum_bytes=256*MiB,preferred_bytes=512*MiB,
+            available=lambda:8*GiB,spawn=spawn,health=lambda:None,stop=stop)
+    assert events==['cancel','stop']
+
+
+def test_pending_command_requires_explicit_start_permission(tmp_path, tmp_path_factory):
+    import subprocess,sys
+    from household_job_launch import StartupPermission
+    shim=Path(__file__).with_name('household_job_start.py')
+    marker=tmp_path/'executed'
+    command=[sys.executable,str(shim),'--socket',None,'--',sys.executable,
+        '-c','from pathlib import Path; Path('+repr(str(marker))+').touch()']
+    with StartupPermission(tmp_path_factory.mktemp('permit')) as permit:
+        command[3]=str(permit.path)
+        child=subprocess.Popen(command)
+        connection,_=permit.listener.accept()
+        assert not marker.exists()
+        connection.close() # Parent disappears without granting admission.
+        assert child.wait(timeout=3)!=0
+    assert not marker.exists()
+    with StartupPermission(tmp_path_factory.mktemp('permit')) as permit:
+        command[3]=str(permit.path)
+        child=subprocess.Popen(command)
+        permit.authorize()
+        assert child.wait(timeout=3)==0
+    assert marker.exists()
+
+
+def test_delayed_shim_after_cancellation_never_executes(tmp_path, tmp_path_factory):
+    import subprocess,sys
+    from household_job_launch import StartupPermission
+    marker=tmp_path/'late-command'
+    with StartupPermission(tmp_path_factory.mktemp('late')) as permit:
+        address=str(permit.path)
+    result=subprocess.run([sys.executable,str(Path(__file__).with_name('household_job_start.py')),
+        '--socket',address,'--',sys.executable,'-c',
+        'from pathlib import Path; Path('+repr(str(marker))+').touch()'],timeout=3)
+    assert result.returncode==75 and not marker.exists()
+
+
+def test_permitted_shim_preserves_arguments_and_exit_status(tmp_path_factory):
+    import subprocess,sys
+    from household_job_launch import StartupPermission
+    argument='spaces ; $HOME `literal`'
+    with StartupPermission(tmp_path_factory.mktemp('argv')) as permit:
+        child=subprocess.Popen([sys.executable,str(Path(__file__).with_name('household_job_start.py')),
+            '--socket',str(permit.path),'--',sys.executable,'-c',
+            'import sys; print(sys.argv[1]); sys.exit(7)',argument],stdout=subprocess.PIPE,text=True)
+        permit.authorize()
+        output,_=child.communicate(timeout=3)
+    assert child.returncode==7 and output.strip()==argument

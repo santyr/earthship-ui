@@ -56,3 +56,12 @@ def test_minimum_is_not_silently_reduced_to_make_a_job_start():
 ])
 def test_unknown_or_contradictory_resource_metadata_refuses(changes):
     with pytest.raises(ValueError):admission(**changes)
+
+
+def test_separately_sampled_sibling_usage_does_not_credit_host_admission():
+    # The sibling used 2 GiB at the cgroup read, then freed it before the
+    # MemAvailable read. It can regrow: all 2 GiB must still be reserved.
+    from household_job_budget import AdmissionDeferred
+    with pytest.raises(AdmissionDeferred):
+        admission(available_bytes=5*GiB,pool_used_bytes=0,
+            jobs={'training':{'used_bytes':2*GiB,'limit_bytes':2*GiB}})

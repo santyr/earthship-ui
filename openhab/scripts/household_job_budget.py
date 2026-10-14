@@ -21,8 +21,8 @@ def admit_memory(*, available_bytes, pool_limit_bytes, pool_used_bytes, jobs,
                  minimum_bytes, preferred_bytes, reserve_bytes):
     """Return a whole-MiB job limit, reserving every sibling's future growth.
 
-    MemAvailable already excludes running jobs' current use. Subtract only
-    their remaining promised growth there. At the pool boundary subtract full
+    Host and cgroup counters are not atomic. Subtract full sibling limits
+    from MemAvailable rather than crediting separately sampled usage. At the pool boundary subtract full
     commitments plus any memory charged outside those observed child units.
     A requested minimum is never silently reduced.
     """
@@ -48,11 +48,10 @@ def admit_memory(*, available_bytes, pool_limit_bytes, pool_used_bytes, jobs,
             raise ValueError('job usage exceeds verified memory limit')
         used += current
         committed += limit
-    remaining_growth = committed - used
     parent_charges = max(0, pool_used_bytes - used)
     available = min(preferred_bytes,
         pool_limit_bytes - committed - parent_charges,
-        available_bytes - reserve_bytes - remaining_growth)
+        available_bytes - reserve_bytes - committed)
     allocated = available // MiB * MiB
     if allocated < minimum_bytes:
         raise AdmissionDeferred('insufficient shared RAM headroom')
