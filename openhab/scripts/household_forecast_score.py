@@ -234,7 +234,8 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
                     assessed_at=clock(),guard=guard))
             historical=tuple(historical)
             pressure.check(force=True)
-            result=score_with_report(settings,guard=guard,clock=clock,queue=True,serving_model=model,historical_selections=historical)
+            with production_score_policy():
+                result=score_with_report(settings,guard=guard,clock=clock,queue=True,serving_model=model,historical_selections=historical)
         else:
             if isinstance(pressure,SampledScorePressure):pressure.check(force=True)
             result=score_with_report(settings,guard=guard,clock=clock,queue=True)

@@ -68,3 +68,22 @@ def test_missing_external_pin_refuses_both_score_workers(tmp_path,monkeypatch):
     monkeypatch.setattr(coordinator,'score_with_report',lambda *a,**k:pytest.fail('missing pin served score'))
     with pytest.raises(ValueError):coordinator.run(config,stage=stage,clock=lambda:now,monotonic=lambda:100)
     assert 'read_model' not in calls and 'locked' not in calls
+
+
+@pytest.mark.parametrize('fails',[False,True])
+def test_current_slot_selects_current_native_admission_and_restores_it(tmp_path,monkeypatch,fails):
+    coordinator,config,stage,calls,model,now,dispatch=fixture(tmp_path,monkeypatch,1)
+    import native_thermal_live as native
+    original=native._resource_preflight
+    def score(*args,**kwargs):
+        # This is the first check performed by the original native score_jobs.
+        native._resource_preflight()
+        if fails:raise RuntimeError('scoring failed')
+        return {'status':'waiting','scored':0,'automatic_actuation':False}
+    monkeypatch.setattr(coordinator,'score_with_report',score)
+    if fails:
+        with pytest.raises(RuntimeError,match='scoring failed'):
+            coordinator.run(config,stage=stage,deployment_sha256='a'*64,clock=lambda:now,monotonic=lambda:100)
+    else:
+        assert coordinator.run(config,stage=stage,deployment_sha256='a'*64,clock=lambda:now,monotonic=lambda:100)['status']=='waiting'
+    assert native._resource_preflight is original
