@@ -36,7 +36,7 @@ def test_retained_native_exec_uses_its_own_external_pin_and_source_closure(tmp_p
     monkeypatch.setattr(os,'execve',lambda executable,args,environment:seen.append((executable,args,environment)))
     execute(selection)
     executable,args,environment=seen[0]
-    assert args==[executable,str(script),'--config',str(config),'--stage',str(stage),'--deployment-sha256',selection['deployment_sha256'],'--retained-native']
+    assert args==[executable,'-P',str(Path(coordinator.__file__).resolve()),'--worker-script',str(script),'--worker-deployment-sha256',selection['deployment_sha256'],'--config',str(config),'--stage',str(stage),'--retained-native']
     assert environment['PYTHONPATH'].startswith(str(stage/'sources/openhab/scripts')+':')
     manifest.write_bytes(b'{ }')
     with pytest.raises(ValueError):execute(selection)

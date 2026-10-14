@@ -138,17 +138,72 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
         return result
 
 
+def failure_reason(error):
+    """Only fixed categories reach logs; exception messages may contain secrets."""
+    if isinstance(error,TimeoutError):return 'deadline'
+    if isinstance(error,OSError):return 'io_unavailable'
+    if not isinstance(error,ValueError):return 'unexpected_failure'
+    message=str(error).removeprefix('training host pressure or memory reserve unavailable: ')
+    reasons={
+        'interval memory pressure exceeded':'memory_pressure',
+        'memory pressure exceeded':'memory_pressure',
+        'publication memory pressure unavailable':'memory_pressure',
+        'host swap-read activity exceeded bounded allowance':'host_swap_read',
+        'swap-out activity or OOM counter changed':'swap_out_or_oom',
+        'publication host OOM or worker memory-limit counters changed':'oom_or_worker_limit',
+        'memory reserve unavailable':'memory_headroom',
+        'publication memory headroom unavailable':'memory_headroom',
+        'verified publication resources required':'resource_admission',
+        'strict serial installed publication resource limits required':'resource_limits',
+        'score lifetime elapsed':'deadline',
+        'native scoring deadline exceeded':'deadline',
+    }
+    return reasons.get(message,'validation_refused')
+
+
+def run_retained_worker(script,config,*,stage,deployment_sha256,retained_native):
+    """Use archived code/dependencies, with this release's error reporting only."""
+    import runpy
+    from hashlib import sha256
+    import household_cycle_deploy as deploy
+    stage=deploy._path(stage);script=deploy._path(script)
+    source='openhab/scripts/household_forecast_score.py'
+    if script!=stage/'sources'/source:raise ValueError('owned retained score path required')
+    manifest=deploy._bytes(stage/'deployment.json',private=True,maximum=131072)
+    if sha256(manifest).hexdigest()!=deployment_sha256:raise ValueError('retained worker deployment changed')
+    if Path(deploy.__file__).resolve()!=stage/'sources/openhab/scripts/household_cycle_deploy.py':
+        raise ValueError('retained worker dependency context differs')
+    record=deploy.verify_stage(stage,**({'expected_deployment_sha256':deployment_sha256} if retained_native else {}))
+    original=deploy._bytes(script)
+    if sha256(original).hexdigest()!=record['source_manifest'].get(source):
+        raise ValueError('retained worker source changed')
+    namespace=runpy.run_path(str(script),run_name='retained_score_worker')
+    if deploy._bytes(script)!=original or deploy._bytes(stage/'deployment.json',private=True,maximum=131072)!=manifest:
+        raise ValueError('retained worker changed before execution')
+    options=dict(stage=stage)
+    if retained_native:options.update(deployment_sha256=deployment_sha256,retained_native=True)
+    result=namespace['run'](config,**options)
+    if deploy._bytes(script)!=original or deploy._bytes(stage/'deployment.json',private=True,maximum=131072)!=manifest:
+        raise ValueError('retained worker changed during execution')
+    return result
+
+
 def main(argv=None):
     import argparse,json
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config',required=True,type=Path);parser.add_argument('--stage',type=Path);parser.add_argument('--deployment-sha256');parser.add_argument('--retained-native',action='store_true')
+    parser.add_argument('--worker-script',type=Path);parser.add_argument('--worker-deployment-sha256')
     args=parser.parse_args(argv)
     try:
         selected={} if args.deployment_sha256 is None else dict(deployment_sha256=args.deployment_sha256)
         if args.retained_native:selected['retained_native']=True
-        result=run(args.config,stage=args.stage,**selected)
+        if args.worker_script is not None:
+            result=run_retained_worker(args.worker_script,args.config,stage=args.stage,
+                deployment_sha256=args.worker_deployment_sha256,retained_native=args.retained_native)
+        else:
+            result=run(args.config,stage=args.stage,**selected)
     except BlockingIOError:print(json.dumps(dict(status='busy',fit_executed=False,automatic_actuation=False)));return 75
-    except Exception:print(json.dumps(dict(status='score_withheld',fit_executed=False,automatic_actuation=False)));return 1
+    except Exception as error:print(json.dumps(dict(status='score_withheld',reason=failure_reason(error),fit_executed=False,automatic_actuation=False)));return 1
     print(json.dumps(result));return 0 if result.get('status') in ('scored','waiting','monitoring_refreshed') else 1
 
 
@@ -230,7 +285,8 @@ def execute_legacy_score(selection):
         deploy._bytes(stage/'deployment.json',private=True,maximum=131072)!=original or
         sha256(deploy._bytes(script)).hexdigest()!=record['source_manifest'][source]):
         raise ValueError('retained score source or config changed before execution')
-    command=['/usr/bin/python3',str(script),'--config',str(config),'--stage',str(stage)]
+    command=['/usr/bin/python3','-P',str(Path(__file__).resolve()),'--worker-script',str(script),
+        '--worker-deployment-sha256',selection['deployment_sha256'],'--config',str(config),'--stage',str(stage)]
     environment=dict(os.environ,PYTHONPATH=str(stage/'sources/openhab/scripts')+':/home/sat/Solar_PV/analytics/src')
     os.execve(command[0],command,environment)
 
@@ -265,7 +321,8 @@ def execute_retained_native_score(selection):
         deploy._bytes(stage/'deployment.json',private=True,maximum=131072)!=manifest or
         deploy._bytes(stage/'cycle.json',private=True,maximum=8192)!=cycle_raw):
         raise ValueError('retained native executing source changed')
-    command=['/usr/bin/python3',str(script),'--config',str(config),'--stage',str(stage),'--deployment-sha256',pin,'--retained-native']
+    command=['/usr/bin/python3','-P',str(Path(__file__).resolve()),'--worker-script',str(script),
+        '--worker-deployment-sha256',pin,'--config',str(config),'--stage',str(stage),'--retained-native']
     environment=dict(os.environ,PYTHONPATH=str(stage/'sources/openhab/scripts')+':/home/sat/Solar_PV/analytics/src')
     os.execve(command[0],command,environment)
 

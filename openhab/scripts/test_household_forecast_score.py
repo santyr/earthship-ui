@@ -83,7 +83,7 @@ def test_score_coordinator_refuses_near_forecast_preparation(tmp_path,monkeypatc
 def test_score_coordinator_total_deadline_does_not_renew(tmp_path,monkeypatch):
     config,now=runtime_setup(tmp_path,monkeypatch);ticks=[0.]
     def overrun(settings,*,guard,**kw):
-        guard();ticks[0]=51;guard();pytest.fail('score overrun accepted')
+        guard();ticks[0]=api().SCORE_LIFETIME_SECONDS+1;guard();pytest.fail('score overrun accepted')
     monkeypatch.setattr(api(),'score_with_report',overrun)
     with pytest.raises(ValueError,match='score lifetime elapsed'):
         api().run(config,clock=lambda:now,monotonic=lambda:ticks[0])
