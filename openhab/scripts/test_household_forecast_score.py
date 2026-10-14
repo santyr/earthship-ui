@@ -61,7 +61,7 @@ def runtime_setup(tmp_path,monkeypatch):
     lock=tmp_path/'score.lock';lock.write_text('');lock.chmod(0o600)
     config=tmp_path/'score.json';config.write_text(json.dumps(settings));config.chmod(0o600)
     monkeypatch.setattr(provisional_live,'load_settings',lambda path:settings)
-    monkeypatch.setattr(thermal_installed_intel,'_resource_preflight',lambda:None)
+    monkeypatch.setattr(api(),'production_resource_preflight',lambda:None)
     class Pressure:
         def __init__(self,**kw):pass
         def check(self):pass

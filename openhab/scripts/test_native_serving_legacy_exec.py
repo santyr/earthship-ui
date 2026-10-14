@@ -28,7 +28,7 @@ def test_legacy_exec_uses_original_stage_and_preserves_existing_unit_environment
     monkeypatch.setattr(os,'execve',lambda executable,argv,environment:seen.append((executable,argv,environment)))
     coordinator.execute_legacy_score(selection)
     executable,argv,environment=seen[0]
-    assert executable=='/usr/bin/python3' and argv==[executable,str(script),'--config',str(config),'--stage',str(stage)]
+    assert executable=='/usr/bin/python3' and argv==[executable,'-P',str(Path(coordinator.__file__).resolve()),'--worker-script',str(script),'--worker-deployment-sha256',selection['deployment_sha256'],'--config',str(config),'--stage',str(stage)]
     assert environment['OPENBLAS_NUM_THREADS']=='1' and environment['PYTHONPATH'].startswith(str(stage/'sources/openhab/scripts')+':')
 
 

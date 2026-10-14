@@ -27,6 +27,7 @@ def test_cli_failure_reasons_never_include_original_error_text(error,reason,tmp_
 
 def archive(tmp_path,monkeypatch,body):
     import household_cycle_deploy as deploy
+    monkeypatch.setattr(score,'production_resource_preflight',lambda:None)
     tmp_path.chmod(0o700);stage=tmp_path/'old';stage.mkdir(mode=0o700)
     script=stage/'sources/openhab/scripts/household_forecast_score.py';script.parent.mkdir(parents=True)
     script.write_text(body);manifest=stage/'deployment.json';manifest.write_text('{}');manifest.chmod(0o600)

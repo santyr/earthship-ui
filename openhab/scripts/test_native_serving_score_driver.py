@@ -16,7 +16,7 @@ def fixture(tmp_path,monkeypatch,minute):
     settings={'schema':native.SERVING_SCHEMA,'shared_lock':str(tmp_path/'lock')}
     config=stage/'forecast.json';config.write_text(json.dumps(settings));config.chmod(0o600)
     monkeypatch.setattr(native,'load_settings',lambda path:settings)
-    monkeypatch.setattr(installed,'_resource_preflight',lambda:None)
+    monkeypatch.setattr(coordinator,'production_resource_preflight',lambda:None)
     calls=[];model=object();selection=object()
     class Lock:
         def __init__(self,path):assert path==settings['shared_lock']

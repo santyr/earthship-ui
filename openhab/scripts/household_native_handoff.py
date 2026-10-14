@@ -115,7 +115,7 @@ def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard,previo
         if expected_raw is not None:
             state=deploy._service_state(path)
             limits=dict(deploy.EFFECTIVE_LIMITS)
-            if path==service and b'CPUQuota=100%\n' in expected_raw:
+            if b'CPUQuota=100%\n' in expected_raw:
                 limits['CPUQuotaPerSecUSec']='1s'
             if any(state.get(k)!=v for k,v in limits.items()) or not deploy._entry_matches(state,expected_raw):
                 raise ValueError('effective owned command or resource limits differ')

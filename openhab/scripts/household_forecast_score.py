@@ -6,8 +6,49 @@ semantics. It never invents measurements, changes model parameters or acts.
 from datetime import datetime,timezone,timedelta
 from pathlib import Path
 import time
+from contextlib import contextmanager
 
 SCORE_LIFETIME_SECONDS = 120
+SCORE_CPU_QUOTA = '100%'
+PUBLICATION_POLICY_SHA256 = '092dab2595bb8f8478fd0519118e1e277ab8aa61d887d5ff2fc38d4ea7717f70'
+_production_policy = None
+
+
+def production_resource_preflight():
+    """Load the pinned one-core publication policy from this coordinator's stage."""
+    global _production_policy
+    import importlib.util
+    from hashlib import sha256
+    from thermal_model.origin_capture import _source_bytes
+    path=Path(__file__).resolve().with_name('household_cycle_resources.py')
+    if sha256(_source_bytes(path,maximum=262144)).hexdigest()!=PUBLICATION_POLICY_SHA256:
+        raise ValueError('score publication policy source differs')
+    if _production_policy is None or Path(_production_policy.__file__).resolve()!=path:
+        spec=importlib.util.spec_from_file_location('_earthship_score_publication_policy',path)
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        _production_policy=module
+    _production_policy.publication_resource_preflight()
+
+
+@contextmanager
+def production_score_policy():
+    """Explicitly use current admission for an archived scoring invocation only."""
+    import thermal_installed_intel as installed
+    import household_cycle_resources as resources
+    production_resource_preflight()
+    hooks=[(installed,'_resource_preflight'),(resources,'publication_resource_preflight')]
+    # Native archives also bind this policy at import time. Override admission
+    # only; their numerical functions and source/receipt validation stay original.
+    if Path(installed.__file__).with_name('native_thermal_live.py').is_file():
+        import native_thermal_live as native
+        if hasattr(native,'_resource_preflight'):
+            hooks.append((native,'_resource_preflight'))
+    originals=[(module,name,getattr(module,name)) for module,name in hooks]
+    try:
+        for module,name,_ in originals:setattr(module,name,production_resource_preflight)
+        yield
+    finally:
+        for module,name,original in reversed(originals):setattr(module,name,original)
 
 
 def score_with_report(settings,*,guard,clock=lambda:datetime.now(timezone.utc),queue=False,serving_model=None,historical_selections=()):
@@ -50,7 +91,7 @@ def score_with_report(settings,*,guard,clock=lambda:datetime.now(timezone.utc),q
 
 def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic):
     import os
-    from thermal_installed_intel import _resource_preflight
+    _resource_preflight=production_resource_preflight
     from thermal_model.provisional_live import load_settings,_next_issue
     from thermal_model.capture_guard import SharedScoreLock
     from thermal_model.training_pressure_guard import TrainingHeadroom
@@ -209,7 +250,8 @@ def run_retained_worker(script,config,*,stage,deployment_sha256,retained_native)
         raise ValueError('retained worker changed before execution')
     options=dict(stage=stage)
     if retained_native:options.update(deployment_sha256=deployment_sha256,retained_native=True)
-    result=namespace['run'](config,**options)
+    with production_score_policy():
+        result=namespace['run'](config,**options)
     if deploy._bytes(script)!=original or read_manifest()!=manifest:
         raise ValueError('retained worker changed during execution')
     return result

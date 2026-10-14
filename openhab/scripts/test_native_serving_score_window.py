@@ -34,6 +34,7 @@ def test_verified_family_preserves_old_policy_and_spaces_new_work(tmp_path):
     script = stage/'sources/openhab/scripts/household_forecast_score.py'
     script.parent.mkdir(parents=True)
     script.write_text('# retained original coordinator\n')
+    script.with_name('household_cycle.py').write_text('# retained original driver\n')
     assert f._extended_score_window(stage) is False
     script.write_text('SCORE_LIFETIME_SECONDS = 120\n')
     assert f._extended_score_window(stage) is True

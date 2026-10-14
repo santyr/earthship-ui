@@ -57,6 +57,12 @@ def _forecast_cpu_quota(stage):
     return '100%' if b"\nFORECAST_CPU_QUOTA = '100%'\n" in b'\n'+deploy._bytes(source) else '20%'
 
 
+def _score_cpu_quota(stage):
+    import household_cycle_deploy as deploy
+    source=stage/'sources/openhab/scripts/household_forecast_score.py'
+    return '100%' if b"\nSCORE_CPU_QUOTA = '100%'\n" in b'\n'+deploy._bytes(source) else '20%'
+
+
 def _render(stage,config,libraries,*,deployment_sha256=None):
     import household_cycle_deploy as deploy
     scripts=stage/'sources/openhab/scripts'
@@ -90,6 +96,8 @@ def _render(stage,config,libraries,*,deployment_sha256=None):
         score_timer='[Timer]\nOnCalendar=\nOnCalendar=*-*-* *:01/5:00 UTC\n'
     if deployment_sha256 is not None and _forecast_cpu_quota(stage)=='100%':
         forecast+=b'CPUQuota=100%\n'
+    if deployment_sha256 is not None and _score_cpu_quota(stage)=='100%':
+        score+='CPUQuota=100%\n'
     files={'forecast.conf':forecast,
         'score.conf':score.encode(),'score-timer.conf':score_timer.encode(),
         'thermal-native-geometry-prepare.service':service.encode(),'thermal-native-geometry-prepare.timer':timer.encode()}

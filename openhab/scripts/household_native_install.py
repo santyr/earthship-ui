@@ -182,7 +182,7 @@ def _verify_effective_family(family,*,guard):
         ('thermal-native-geometry-prepare.service','thermal-native-geometry-prepare.service','1min 30s',[]))
     for name,source,timeout,dropins in services:
         guard();state=_effective_state(name);deploy._inactive_capped(state)
-        expected_cpu='1s' if source=='forecast.conf' and b'CPUQuota=100%\n' in deploy._bytes(family/source,private=True) else '200ms'
+        expected_cpu='1s' if source in ('forecast.conf','score.conf') and b'CPUQuota=100%\n' in deploy._bytes(family/source,private=True) else '200ms'
         if state.get('CPUQuotaPerSecUSec')!=expected_cpu:raise ValueError('effective role CPU budget differs')
         expected_paths=[str(root/(name+'.d')/file) for file in dropins]
         if (state.get('LoadState')!='loaded' or state.get('FragmentPath')!=str(root/name) or
