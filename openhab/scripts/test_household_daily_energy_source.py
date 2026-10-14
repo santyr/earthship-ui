@@ -145,3 +145,22 @@ def test_sealed_daily_arguments_cannot_be_changed_independently(tmp_path,monkeyp
     value=household_cycle.derive_cycle(**args)['inputs']['energy_inputs']
     value['numerical_inputs']['inputs']['tomorrow_cloud_pct']=99
     with pytest.raises(ValueError):PreparedEnergyInputs(canonical(value))
+
+
+@pytest.mark.parametrize('tampered',[False,True])
+def test_previous_local_day_source_keeps_thermal_but_not_corrupt_provenance(tampered,tmp_path,monkeypatch):
+    from test_household_cycle import derived_fixture
+    from household.control_contracts import instant
+    import household_cycle
+    args,capture=derived_fixture(tmp_path,monkeypatch)
+    issue=instant(capture['issued_at'])
+    daily=source(issue-timedelta(days=1))
+    if tampered:daily['receipt_sha256']='d'*64
+    args['originals'].update(schema='earthship-household-cycle-sources/v2',daily_energy_source=daily)
+    if tampered:
+        with pytest.raises(ValueError):household_cycle.derive_cycle(**args)
+    else:
+        result=household_cycle.derive_cycle(**args)
+        assert result['inputs']['energy_inputs'] is None
+        assert result['output']['projections']['energy'] is None
+        assert result['output']['projections']['thermal']['output']==capture['output']

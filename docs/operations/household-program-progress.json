@@ -7510,8 +7510,8 @@
     "household_daily_energy_source_refresh": {
       "implemented": true,
       "deployed": false,
-      "tests_passed": 350,
-      "suite_seconds": 60.71,
+      "tests_passed": 352,
+      "suite_seconds": 62.12,
       "source_schema": "earthship-household-cycle-sources/v2",
       "prepared_energy_schema": "earthship-household-prepared-energy/v3",
       "actual_daily_input_validation": {
@@ -7540,8 +7540,9 @@
         "status": "actual_current_daily_inputs_matched"
       },
       "actual_new_pipeline_replay": "pending new current-runtime original snapshot after deployment; old source-runtime pin correctly refused reinterpretation",
-      "review": "pending",
-      "automatic_actuation": false
+      "review": "One independent review found a local-day rollover Important issue; reproduced with genuine cycle regression and corrected. Full352-test suite passed after the single fix pass. No rereview.",
+      "automatic_actuation": false,
+      "reviewed_commit": "83c6f33265ff504d5b4c0b5757ab2dc089812291"
     }
   },
   "astro_efficiency_audit": {
@@ -7696,5 +7697,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T23:32:39.970348+00:00"
+  "updated_at": "2026-10-14T23:36:53.360919+00:00"
 }

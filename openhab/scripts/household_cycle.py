@@ -130,13 +130,18 @@ def derive_cycle(*,originals,capture,receipts,thermal,weather,parameter_record,r
     body=snapshot.to_dict();soc=body['domains']['energy']['battery_soc']['value']
     energy=None
     if daily_source_version:
-        from household.daily_energy_source import daily_inputs
+        from household.daily_energy_source import daily_inputs,ZONE
         daily_source=originals['daily_energy_source']
         if daily_source is not None:
             if instant(daily_source['collected_at'])>instant(originals['captured_at']):
                 raise ValueError('daily energy source arrived after collection was frozen')
-            numerical={**daily_inputs(daily_source,as_of=issue),'soc_pct':soc}
-            energy=bind_energy_inputs(freeze_energy_inputs(**numerical),snapshot=snapshot,daily_source=daily_source)
+            # A valid daily source can expire across local midnight between
+            # collection and issue. Validate its original provenance first;
+            # expiry removes only energy, while corruption still refuses.
+            daily=daily_inputs(daily_source,as_of=instant(daily_source['collected_at']))
+            if daily_source['prediction_day']==issue.astimezone(ZONE).date().isoformat():
+                numerical={**daily,'soc_pct':soc}
+                energy=bind_energy_inputs(freeze_energy_inputs(**numerical),snapshot=snapshot,daily_source=daily_source)
     else:
         numerical={**parameter_record['record']['household_energy_inputs'],'soc_pct':soc}
         energy=bind_energy_inputs(freeze_energy_inputs(**numerical),snapshot=snapshot)
