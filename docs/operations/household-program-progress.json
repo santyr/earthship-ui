@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "Earthship observations remain below existing content; standalone household navigation removed. Deployment 715078d7 from cbec265 retains model 52dd5d12 and its original 19:08:13 UTC admission. Natural 21:01 UTC current-model scoring exited 0 after 65 seconds, with 97.2 MiB peak and zero swap. Three mature one-hour outcomes give model MAE 0.110915 F versus persistence 0.30 F; longer horizons remain empty and no accuracy graduation is claimed. Current-model scoring now runs every ten minutes within the fifteen-minute report TTL. Live publication and the deployed UI parser displayed all three outcomes at 21:05 UTC. The subsequent callback-only deployment a6b37ac4 from 2fbad86 passed effective readback and a normal legacy scoring run; its normal 21:16 historical slot succeeded in 48 seconds with zero swap. First natural morning fit and broader household observability qualification remain incomplete. No actuator authority. See proofs.native_current_model_production_scoring. At21:31UTC current-model scoring completed six one-hour outcomes in100seconds (96.867CPU seconds), modelMAE0.085103F versus persistence0.240F. The measured pressure-polling correction8245591 passes89 affected tests and independent review; same-five-outcome offline replay is35.449seconds versus59.732seconds with identical statistics. Deployment c3d2dbe5 is effective with all five owned files, caps and timers verified at21:36:20UTC; UI/publication HTTP200. The normal21:41UTC run succeeded in68seconds with seven original one-hour outcomes,64.810CPU seconds,93.0MiB peak and zero swap. Historical21:36 scoring exposed a retained obsolete pressure policy; correction8a112eb passes92tests and current admission in19actual source environments; deployment2beeb884 is effective with unchanged model, verified caps and active timers at21:43:10UTC. The normal21:56UTC historical slot succeeded in82seconds, scoring one outcome and reconciling nine for its selected revision, with92.3MiB peak and zero swap.",
+      "current_evidence": "Earthship observations remain below existing content; standalone household navigation removed. Native model52dd5d12 remains provisional. The22:51UTC natural current-model score succeeded with14 one-hour outcomes: modelMAE0.308618F versus persistence0.192857F, model bias+0.238504F; longer horizons remain empty. Current scoring runs every10minutes;119seconds approaches its120-second lifetime. Shared deployment8fd9bcc3 passed live readback and the public UI remains available. Completed-trough caller/adapter mismatch fixed by deploying the existing evidence_sink-compatible adapter after101 tests; natural daily verification remains pending October15 at06:40MDT. Qualified physical/action outcomes and complete program observability remain incomplete.",
       "complete": false
     },
     {
@@ -285,7 +285,7 @@
       "focused_deployment_tests": 11,
       "no_new_daily_invocation": true,
       "resource_caps_preserved": true,
-      "natural_issue_qualified": false,
+      "natural_issue_qualified": true,
       "next_natural_issue": "2026-10-12T06:40:00-06:00",
       "readback_receipt_sha256": "5c8d7b111e37c7fd6a5d54720a4f0af80bf5b1714b82d1f41bdd5024009b6eb9",
       "review": "Two Important findings fixed with RED-to-GREEN regressions: exact effective source-consumer commands and optimized execution refusal. One Minor partial-install diagnostics limitation deferred.",
@@ -306,7 +306,9 @@
         "next_eligible_pre_dusk_attempt": "2026-10-11T17:02:45-06:00",
         "household_model_score_qualified": false,
         "natural_issue_qualified": false
-      }
+      },
+      "natural_issue_verified": "2026-10-13T12:40:46.431340+00:00",
+      "natural_issue_basis": "Retained exact daily state arguments reproduce original persisted PV, curtailment and trough values; original SoC metadata matches. State observed after issue; complete original household plan remains unavailable."
     },
     "resource_drift": {
       "focused_tests": 28,
@@ -7384,16 +7386,63 @@
       "implementation_commit": "c00470b32b37fc59f853ccf5ce4e9327cfeb347e",
       "deployment_sha256": "8fd9bcc3db8ce2b09247d4ed0880b79f8541760dfa96db60274cc169ccea6c21",
       "integration_tests": 230,
-      "natural_forecast": "22:25:15UTC published and observation_written; scope13.108CPU seconds,78.3MiB peak,zero swap",
+      "natural_forecast": "22:55:15UTC publication; service exit0 at22:55:29UTC; current original forecast/model HTTP200",
       "natural_legacy_score": "22:26UTC monitoring_refreshed;256 retained legacy outcomes;zero new mature outcomes",
-      "natural_current_native_score": "22:41UTC inventory mutation reproduced and fixed in6e5a036; final correction activated22:46:05UTC with83 affected tests; next current-model slot22:51UTC pending",
-      "natural_preparer": "22:28:05UTC to22:28:09UTC; exit0; retained prepared geometry result",
+      "natural_current_native_score": "22:51:00UTC to22:52:59UTC; scored1 new mature outcome;14 current-revision outcomes;115.382CPU seconds; exit0",
+      "natural_preparer": "22:53:05UTC to22:53:09UTC; exit0",
       "natural_daily_fit": "pending2026-10-15T06:50MDT",
       "fit_executed_during_rollout": false,
       "current_score_correction_tests": 68,
       "daily_checkout": "c00470b; clean and idle during update",
       "inventory_correction_tests": 83,
-      "effective_readback_at": "2026-10-14T22:46:19.572450+00:00"
+      "effective_readback_at": "2026-10-14T22:56:28.545849+00:00",
+      "current_score_runtime_risk": "119seconds against120-second lifetime; reduce repeated original outcome replay before cohort growth exhausts the slot",
+      "current_model_one_hour_performance": {
+        "count": 14,
+        "model_mae_f": 0.3086184332467466,
+        "persistence_mae_f": 0.1928571428571441,
+        "model_bias_f": 0.23850421369033675,
+        "graduated": false,
+        "longer_horizon_outcomes": 0
+      }
+    },
+    "actual_daily_energy_outcome_20261013": {
+      "status": "original_daily_energy_math_and_night_replayed",
+      "prediction_day": "2026-10-13",
+      "issued_at": "2026-10-13T12:40:46.431340+00:00",
+      "persisted_at": "2026-10-13T12:40:47.439000+00:00",
+      "original_prediction_receipt_sha256": "fea9adec379b9209072a578833fa400427d98da4750516a5b2453f4f783ac5eb",
+      "original_night_sha256": "5b75cd96fd14b89f79ed62ee5a6874e63d47438a2fa824b3dd74d488e171a595",
+      "original_rows": 881,
+      "coverage": 0.9998764997407408,
+      "predicted_min_soc_pct": 72,
+      "actual_min_soc_pct": 78.0,
+      "error_percentage_points": -6.0,
+      "installed_daily_math_ast_identical": true,
+      "input_retention": "natural daily state observed after issue; forecast values and SoC origin matched to original persisted receipt",
+      "actual_household_plan_score_qualified": false,
+      "original_bank_provenance_qualified": false,
+      "causal_benefit_qualified": false,
+      "automatic_actuation": false
+    },
+    "completed_trough_adapter_deployment": {
+      "status": "installed_adapter_caller_contract_verified",
+      "assessed_at": "2026-10-14T22:55:45.062976+00:00",
+      "source_commit": "81acea6fd40139a79bd5cfad93bf7ecd4a1d2171",
+      "target": "/home/sat/openhab/scripts/completed_trough_score.py",
+      "old_sha256": "d9a925a68afab2823255f90bb1204649647b8a61fe365e97db0465b867888252",
+      "new_sha256": "3e35fe2c9175142ecc6af0eeb28badd34ae989ae9ac92ccecacac0184d2c9f0c",
+      "caller_unchanged_sha256": "c52016bfe65ba23198a6e290cd7c3793e3031f5283428d6ecf1a7442c7718328",
+      "shared_lock_held": true,
+      "consumer_started": false,
+      "assessor_invoked": false,
+      "publisher_invoked": false,
+      "natural_daily_verification": "pending",
+      "automatic_actuation": false,
+      "affected_tests": 101,
+      "diagnosis": "Installed adapter lacked evidence_sink keyword passed by deployed caller; TypeError preceded assessment on October12,13,14. Repository adapter supports that keyword.",
+      "next_natural_daily": "2026-10-15T06:40:00-06:00",
+      "live_assessment_or_publication_executed": false
     }
   },
   "astro_efficiency_audit": {
@@ -7548,5 +7597,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T21:58:55.654796+00:00"
+  "updated_at": "2026-10-14T22:57:23.310883+00:00"
 }
