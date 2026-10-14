@@ -114,3 +114,16 @@ def test_raw_part_fingerprint_drift_is_rejected_without_recapture(tmp_path):
     backend.state=tmp_path;backend.capture_config={};backend.guard=lambda:None
     with pytest.raises(ValueError,match='bytes changed'):
         backend.raw_parts(datetime(2026,10,15,6,tzinfo=timezone.utc))
+
+
+def test_first_run_creates_owned_lock_and_concurrent_run_refuses(tmp_path):
+    import household_native_training as training
+    tmp_path.chmod(0o700)
+    lock=tmp_path/'daily.lock'
+    assert hasattr(training,'daily_lock'), 'first-run daily lock initialization is missing'
+    with training.daily_lock(lock):
+        inode=lock.stat().st_ino
+        with pytest.raises(BlockingIOError):
+            with training.daily_lock(lock):pass
+    with training.daily_lock(lock):assert lock.stat().st_ino==inode
+    assert lock.stat().st_mode & 0o777 == 0o600

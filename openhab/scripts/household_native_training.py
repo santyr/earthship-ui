@@ -43,6 +43,23 @@ def directory(path):
     return _private_directory(path)
 
 
+@contextlib.contextmanager
+def daily_lock(path):
+    """Create only this worker's private lock; retain its inode across runs."""
+    from thermal_model.capture_guard import SharedScoreLock
+    from thermal_model.forcing_capture import _private_directory
+    path = Path(path)
+    _private_directory(path.parent)
+    try:
+        fd = os.open(path, os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    except FileExistsError:
+        pass
+    else:
+        os.close(fd)
+    with SharedScoreLock(path) as lock:
+        yield lock
+
+
 class RamGuard:
     def __init__(self, seconds=1800):
         self.pressure = PublicationHeadroom()

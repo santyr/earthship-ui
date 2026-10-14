@@ -55,9 +55,8 @@ def main(argv=None):
     import os
     import time
     from pathlib import Path
-    from thermal_model.capture_guard import SharedScoreLock
     from thermal_model.runtime_bundle import _owned_bytes
-    from household_native_training import NativeTraining, activate, save
+    from household_native_training import NativeTraining, activate, save, daily_lock
     parser = argparse.ArgumentParser(description=__doc__)
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--config', type=Path)
@@ -73,7 +72,7 @@ def main(argv=None):
         else:
             config = json.loads(_owned_bytes(args.config, 32768))
             backend = NativeTraining(config)
-            with SharedScoreLock(backend.state / 'daily.lock'):
+            with daily_lock(backend.state / 'daily.lock'):
                 result = run_daily(backend, now=datetime.now(timezone.utc),
                                    timezone_name=config['timezone'])
     except Exception as error:
