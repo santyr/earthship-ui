@@ -111,7 +111,7 @@ def _verify_native_originals(info):
             raise ValueError('retained native original differs')
 
 
-def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha256,observation_cache,service_file,code_revision,service_forecast_config=None):
+def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha256,observation_cache,service_file,code_revision,service_forecast_config=None,model_receipt_path=None,model_receipt_sha256=None,score_dispatch_path=None,score_dispatch_sha256=None):
     repo,stage,config,parameters,cache,service=map(_path,(repo_root,stage,forecast_config,parameters,observation_cache,service_file))
     if re.fullmatch('[a-f0-9]{40}',code_revision or '') is None or re.fullmatch('[a-f0-9]{64}',parameters_sha256 or '') is None:
         raise ValueError('original code and parameter identities required')
@@ -119,8 +119,21 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
         raise ValueError('clean exact committed source required')
     _directory(cache.parent)
     config_raw=_bytes(config,private=True);settings=json.loads(config_raw)
+    serving=settings.get('schema')==SERVING_CONFIG_SCHEMA
+    serving_refs={}
+    if serving:
+        for role,path,pin in (('receipt',model_receipt_path,model_receipt_sha256),('dispatch',score_dispatch_path,score_dispatch_sha256)):
+            if path is None or not isinstance(pin,str) or re.fullmatch('[a-f0-9]{64}',pin) is None:
+                raise ValueError('explicit externally pinned model receipt and score dispatch required')
+            path=_path(path);_directory(path.parent);raw=_bytes(path,private=True,maximum=131072)
+            if sha256(raw).hexdigest()!=pin:raise ValueError('receipt-serving input pin differs')
+            serving_refs[role]=dict(path=str(path),sha256=pin)
+        if settings.get('model_receipt_path')!=str(model_receipt_path) or settings.get('model_receipt_sha256')!=model_receipt_sha256:
+            raise ValueError('serving config cannot select another model receipt')
+    elif any(value is not None for value in (model_receipt_path,model_receipt_sha256,score_dispatch_path,score_dispatch_sha256)):
+        raise ValueError('receipt inputs require explicit serving configuration')
     candidate=_path(settings['candidate_path']);candidate_raw=_bytes(candidate,private=True)
-    declared=json.loads(candidate_raw);native=settings.get('schema')==NATIVE_CONFIG_SCHEMA or declared.get('schema')=='earthship-provisional-thermal-candidate/v2'
+    declared=json.loads(candidate_raw);native=settings.get('schema') in (NATIVE_CONFIG_SCHEMA,SERVING_CONFIG_SCHEMA) or declared.get('schema')=='earthship-provisional-thermal-candidate/v2'
     protected,native_info=_native_header(declared,settings) if native else (declared['runtime']['source_manifest'],None)
     baseline_candidate=None;baseline_candidate_raw=None
     parameter_raw=_bytes(parameters,private=True);service_raw=_bytes(service)
@@ -129,19 +142,19 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
     baseline_raw=config_raw if baseline==config else _bytes(baseline,private=True)
     if baseline!=config:
         previous=json.loads(baseline_raw)
-        allowed={'candidate_path'} if not native else {'schema','candidate_path','artifact_sha256','runtime_sha256','geometry_directory','evidence_directory'}
+        allowed={'candidate_path'} if not native else {'schema','candidate_path','artifact_sha256','runtime_sha256','geometry_directory','evidence_directory'}|({'model_receipt_path','model_receipt_sha256'} if serving else set())
         if (not isinstance(settings,dict) or not isinstance(previous,dict) or
             {k:v for k,v in settings.items() if k not in allowed}!={k:v for k,v in previous.items() if k not in allowed} or
             settings.get('candidate_path')==previous.get('candidate_path')):
             raise ValueError('only explicit model selection may change from the original service configuration')
         if native:
             from thermal_model.provisional_live import FIELDS as CONFIG_FIELDS,SCHEMA as LEGACY_SCHEMA
-            previous_fields=CONFIG_FIELDS if previous.get('schema')==LEGACY_SCHEMA else CONFIG_FIELDS|{'artifact_sha256','runtime_sha256','geometry_directory'}
-            if previous.get('schema') not in (LEGACY_SCHEMA,NATIVE_CONFIG_SCHEMA) or set(previous)!=previous_fields:
+            previous_fields=CONFIG_FIELDS if previous.get('schema')==LEGACY_SCHEMA else CONFIG_FIELDS|{'artifact_sha256','runtime_sha256','geometry_directory'}|({'model_receipt_path','model_receipt_sha256'} if previous.get('schema')==SERVING_CONFIG_SCHEMA else set())
+            if previous.get('schema') not in (LEGACY_SCHEMA,NATIVE_CONFIG_SCHEMA,SERVING_CONFIG_SCHEMA) or set(previous)!=previous_fields:
                 raise ValueError('closed original baseline configuration required')
             baseline_candidate=_path(previous['candidate_path']);baseline_candidate_raw=_bytes(baseline_candidate,private=True)
             previous_model=json.loads(baseline_candidate_raw);base=previous_model['runtime']
-            if previous.get('schema')==NATIVE_CONFIG_SCHEMA:base=base['base_runtime']
+            if previous.get('schema') in (NATIVE_CONFIG_SCHEMA,SERVING_CONFIG_SCHEMA):base=base['base_runtime']
             if _encode(base)!=_encode(declared['runtime']['base_runtime']):
                 raise ValueError('native selection must preserve original fitted base runtime')
     _service_contract(service_raw,baseline)
@@ -169,13 +182,24 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
         for name,digest in native_info['native_runtime_sources'].items():
             if name not in sources or sha256(sources[name]).hexdigest()!=digest:
                 raise ValueError('native runtime source differs from committed archive')
+    if serving:
+        helper='openhab/scripts/native_model_serving_receipt.py'
+        if helper not in sources:raise ValueError('complete model serving helper source required')
+        helper_sha=sha256(sources[helper]).hexdigest()
+        for name in ('native_thermal_forecast.py','native_thermal_live.py','native_thermal_score.py'):
+            raw=sources.get('openhab/scripts/'+name,b'')
+            if ("SERVING_RECEIPT_SOURCE_SHA256='"+helper_sha+"'").encode() not in raw:
+                raise ValueError('runtime adapter serving helper source pin differs')
     bindings={str(path):sha256(raw).hexdigest() for path,raw in ((config,config_raw),(candidate,candidate_raw),(parameters,parameter_raw),(service,service_raw))}
+    for ref in serving_refs.values():bindings[ref['path']]=ref['sha256']
     bindings[str(baseline)]=sha256(baseline_raw).hexdigest()
     if baseline_candidate is not None:bindings[str(baseline_candidate)]=sha256(baseline_candidate_raw).hexdigest()
     # Recheck before creating anything; malformed inputs leave no staged output.
     if any(_bytes(repo/name)!=raw for name,raw in sources.items()) or _git(repo,'rev-parse','HEAD').decode().strip()!=code_revision:
         raise ValueError('source changed during package preparation')
     if native_info is not None:_verify_native_originals(native_info)
+    if any(sha256(_bytes(ref['path'],private=True,maximum=131072)).hexdigest()!=ref['sha256'] for ref in serving_refs.values()):
+        raise ValueError('receipt-serving originals changed during staging')
     stage.mkdir(mode=0o700)
     root=stage/'sources';root.mkdir(mode=0o700)
     for name,raw in sources.items():
@@ -187,14 +211,20 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
     _write(stage/'cycle.json',_encode(cycle))
     scripts=root/'openhab/scripts'
     dropin=('[Service]\nEnvironment="PYTHONPATH='+str(scripts)+':/home/sat/Solar_PV/analytics/src"\n'
-        'ExecStart=\nExecStart=/usr/bin/python3 '+str(scripts/'household_cycle.py')+' --config '+str(stage/'cycle.json')+' --forecast-config '+str(config)+' --code-revision '+code_revision+'\n')
+        'ExecStart=\nExecStart=/usr/bin/python3 '+str(scripts/'household_cycle.py')+' --config '+str(stage/'cycle.json')+' --forecast-config '+str(config)+' --code-revision '+code_revision+(' --stage '+str(stage) if serving else '')+'\n')
     _write(stage/'service.conf',dropin.encode())
     record=dict(schema='earthship-household-cycle-deployment/v1',code_revision=code_revision,stage=str(stage),service_file=str(service),
         original_bindings=bindings,source_manifest={name:sha256(raw).hexdigest() for name,raw in sources.items()},
         protected_runtime_sources=protected,cycle_sha256=sha256(_bytes(stage/'cycle.json',private=True)).hexdigest(),
         dropin_sha256=sha256(dropin.encode()).hexdigest(),automatic_actuation=False)
     if native_info is not None:record.update(schema='earthship-household-cycle-deployment/v2',**native_info)
-    _write(stage/'deployment.json',_encode(record));verify_stage(stage)
+    if serving:
+        record.update(schema='earthship-household-cycle-deployment/v3',
+            model_verification=dict(receipt=serving_refs['receipt'],helper=dict(path=str(root/helper),sha256=helper_sha)),
+            score_dispatch=serving_refs['dispatch'])
+    _write(stage/'deployment.json',_encode(record))
+    if serving:verify_stage(stage,expected_deployment_sha256=sha256(_bytes(stage/'deployment.json',private=True)).hexdigest())
+    else:verify_stage(stage)
     return dict(status='deployment_staged',code_revision=code_revision,source_count=len(sources),automatic_actuation=False)
 
 
@@ -271,12 +301,15 @@ def _inactive_capped(state):
     if any(state.get(key)!=value for key,value in EFFECTIVE_LIMITS.items()):raise ValueError('effective original limits differ')
 
 
-def _qualify(stage):
+def _qualify(stage,*,deployment_sha256=None):
+    if deployment_sha256 is None:verify_stage(stage)
+    else:verify_stage(stage,expected_deployment_sha256=deployment_sha256)
     command=['systemd-run','--user','--scope','-p','CPUQuota=20%','-p','MemoryMax=256M','-p','MemorySwapMax=0',
         '-p','TasksMax=24','-p','IOWeight=10','nice','-n','15','ionice','-c','3','timeout','45s','env',
         'OPENBLAS_NUM_THREADS=1','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','PYTHONDONTWRITEBYTECODE=1',
         'PYTHONPATH='+str(stage/'sources/openhab/scripts')+':/home/sat/Solar_PV/analytics/src','/usr/bin/python3',
         str(stage/'sources/openhab/scripts/household_cycle_deploy.py'),'--stage',str(stage),'--verify-runtime']
+    if deployment_sha256 is not None:command+=['--deployment-sha256',deployment_sha256]
     raw=subprocess.check_output(command,timeout=55)
     result=json.loads(raw)
     expected=sha256(_bytes(stage/'deployment.json',private=True)).hexdigest()
@@ -285,18 +318,21 @@ def _qualify(stage):
         raise ValueError('exact capped runtime qualification required')
 
 
-def verify_runtime(stage):
+def verify_runtime(stage,*,deployment_sha256=None):
     from datetime import datetime,timedelta,timezone
     from thermal_installed_intel import _resource_preflight
     _resource_preflight()
-    record=verify_stage(stage);stage=_directory(stage)
+    def selected_record():
+        return verify_stage(stage) if deployment_sha256 is None else verify_stage(stage,expected_deployment_sha256=deployment_sha256)
+    record=selected_record();stage=_directory(stage)
     scripts=stage/'sources/openhab/scripts'
     if Path(__file__).resolve()!=scripts/'household_cycle_deploy.py':raise ValueError('staged verifier execution required')
     from household_cycle_sources import load_cycle_settings,CycleSourceCollector
     from thermal_model.provisional_live import load_settings,current_runtime,_next_issue
     from thermal_model.provisional_artifact import read_candidate
     from thermal_model.capture_guard import SharedScoreLock
-    cycle=load_cycle_settings(stage/'cycle.json');native=record['schema']=='earthship-household-cycle-deployment/v2'
+    cycle=load_cycle_settings(stage/'cycle.json');native=record['schema'] in ('earthship-household-cycle-deployment/v2','earthship-household-cycle-deployment/v3')
+    serving=record['schema']=='earthship-household-cycle-deployment/v3'
     if native:
         from native_thermal_live import load_settings
     settings=load_settings(cycle['forecast_config'])
@@ -315,7 +351,12 @@ def verify_runtime(stage):
             runtime=current_native_runtime(guard=guard)
             if digest(runtime)!=settings['runtime_sha256'] or digest(runtime)!=record['runtime_sha256']:
                 raise ValueError('native staged executing runtime differs from external pins')
-            read_native_candidate(settings['candidate_path'],assessed_at=now,runtime=runtime,
+            if serving:
+                from native_model_serving_receipt import load_serving_selection,read_serving_model
+                selection=load_serving_selection(stage,expected_deployment_sha256=deployment_sha256,assessed_at=now,guard=guard)
+                model=read_serving_model(selection,assessed_at=now,guard=guard)
+                if model.runtime!=runtime:raise ValueError('serving model executing runtime differs')
+            else:read_native_candidate(settings['candidate_path'],assessed_at=now,runtime=runtime,
                 expected_artifact_sha256=settings['artifact_sha256'],guard=guard)
         else:
             runtime=current_runtime();read_candidate(settings['candidate_path'],assessed_at=now,runtime=runtime)
@@ -323,7 +364,8 @@ def verify_runtime(stage):
         collector=CycleSourceCollector(token_file=settings['token_file'],openhab_base=settings['openhab_base'],code_revision=record['code_revision'])
         collector.verify_unchanged();guard()
         executing=current_native_runtime(guard=guard) if native else current_runtime()
-        if verify_stage(stage)!=record or executing!=runtime:raise ValueError('staged runtime changed during qualification')
+        if serving:model.verify_bindings(assessed_at=datetime.now(timezone.utc),guard=guard)
+        if selected_record()!=record or executing!=runtime:raise ValueError('staged runtime changed during qualification')
         guard()
     return dict(status='runtime_verified',deployment_sha256=sha256(_bytes(stage/'deployment.json',private=True)).hexdigest(),automatic_actuation=False)
 
@@ -466,18 +508,24 @@ def upgrade_stage(stage,*,previous_stage):
 def main(argv=None):
     import argparse,sys
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--stage',required=True,type=Path)
+    parser.add_argument('--stage',required=True,type=Path);parser.add_argument('--deployment-sha256')
     modes=parser.add_mutually_exclusive_group();modes.add_argument('--verify-runtime',action='store_true');modes.add_argument('--apply',action='store_true');modes.add_argument('--upgrade-from',type=Path)
     parser.add_argument('--repo-root',type=Path);parser.add_argument('--forecast-config',type=Path);parser.add_argument('--parameters',type=Path)
     parser.add_argument('--parameters-sha256');parser.add_argument('--observation-cache',type=Path);parser.add_argument('--service-file',type=Path);parser.add_argument('--code-revision')
+    parser.add_argument('--model-receipt-path',type=Path);parser.add_argument('--model-receipt-sha256')
+    parser.add_argument('--score-dispatch-path',type=Path);parser.add_argument('--score-dispatch-sha256')
+    parser.add_argument('--service-forecast-config',type=Path)
     args=parser.parse_args(argv)
     try:
-        if args.verify_runtime:result=verify_runtime(args.stage)
+        if args.verify_runtime:
+            selected={} if args.deployment_sha256 is None else dict(deployment_sha256=args.deployment_sha256)
+            result=verify_runtime(args.stage,**selected)
         elif args.apply:result=apply_stage(args.stage)
         elif args.upgrade_from:result=upgrade_stage(args.stage,previous_stage=args.upgrade_from)
         else:
+            refs={name:getattr(args,name) for name in ('model_receipt_path','model_receipt_sha256','score_dispatch_path','score_dispatch_sha256','service_forecast_config') if getattr(args,name) is not None}
             result=stage_deployment(repo_root=args.repo_root,stage=args.stage,forecast_config=args.forecast_config,parameters=args.parameters,
-                parameters_sha256=args.parameters_sha256,observation_cache=args.observation_cache,service_file=args.service_file,code_revision=args.code_revision)
+                parameters_sha256=args.parameters_sha256,observation_cache=args.observation_cache,service_file=args.service_file,code_revision=args.code_revision,**refs)
     except BlockingIOError:
         print(json.dumps(dict(status='busy',automatic_actuation=False)));return 75
     except Exception:

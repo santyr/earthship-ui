@@ -61,14 +61,18 @@ def _install_files(output,*,guard,_undo_log=None):
     family=deploy._directory(record['family']);selected=family_api.verify(family,guard=guard)
     stage=deploy._directory(selected['stage'])
     stages=[stage,deploy._directory(record['previous_forecast_stage']),deploy._directory(record['previous_score_stage'])]
-    stage_records=[deploy.verify_stage(path) for path in stages]
+    serving=selected['schema']=='earthship-native-thermal-service-family/v2'
+    def stage_record(path):
+        if path==stage and serving:return deploy.verify_stage(path,expected_deployment_sha256=selected['deployment_sha256'])
+        return deploy.verify_stage(path)
+    stage_records=[stage_record(path) for path in stages]
     root=deploy._path(record['originals']['forecast_service']['path']).parent
     own=deploy._bytes(Path(__file__));changes=[]
     def unchanged():
         guard()
         if deploy._bytes(Path(__file__))!=own or family_api.verify(family,guard=guard)!=selected:
             raise ValueError('installation source or family changed')
-        if any(deploy.verify_stage(path)!=saved for path,saved in zip(stages,stage_records)):
+        if any(stage_record(path)!=saved for path,saved in zip(stages,stage_records)):
             raise ValueError('installation original stage changed')
         for role,ref in record['originals'].items():
             if role.endswith('override'):continue # These are the two intentional replacements.
@@ -162,7 +166,9 @@ def _quiesce_timers(root,*,guard):
 def _verify_effective_family(family,*,guard):
     """Read-only postconditions after the caller's coordinated manager reload."""
     family=deploy._directory(family);selected=family_api.verify(family,guard=guard)
-    stage=deploy._directory(selected['stage']);record=deploy.verify_stage(stage)
+    stage=deploy._directory(selected['stage'])
+    serving=selected['schema']=='earthship-native-thermal-service-family/v2'
+    record=deploy.verify_stage(stage,expected_deployment_sha256=selected['deployment_sha256']) if serving else deploy.verify_stage(stage)
     root=deploy._path(record['service_file']).parent
     services=(('thermal-provisional-forecast.service','forecast.conf','1min 30s',['zzzz-household-cycle.conf']),
         ('thermal-provisional-score.service','score.conf','1min',['zzzz-household-score.conf']),
@@ -174,8 +180,9 @@ def _verify_effective_family(family,*,guard):
             state.get('DropInPaths','').split()!=expected_paths or state.get('TimeoutStartUSec')!=timeout or
             not deploy._entry_matches(state,deploy._bytes(family/source,private=True))):
             raise ValueError('effective native service definition differs')
+    score_calendars=['*-*-* *:'+minute+'/5:10 UTC' for minute in ('00','01','02','03')] if serving else ['*-*-* *:01/5:00 UTC','*-*-* *:02/5:00 UTC']
     timers=(('thermal-provisional-forecast.timer',[selected['original_forecast_warm_clock']],[]),
-        ('thermal-provisional-score.timer',['*-*-* *:01/5:00 UTC','*-*-* *:02/5:00 UTC'],['zzzz-household-native-timer.conf']),
+        ('thermal-provisional-score.timer',score_calendars,['zzzz-household-native-timer.conf']),
         ('thermal-native-geometry-prepare.timer',['*-*-* *:03/5:05 UTC'],[]))
     for name,calendars,dropins in timers:
         guard();state=_effective_state(name)

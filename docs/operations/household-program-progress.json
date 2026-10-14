@@ -5134,7 +5134,7 @@
       "no_native_activation_or_hardware_requests": true
     },
     "native_model_serving_receipt_plan": {
-      "status": "task3_verified_task4_packaging_in_progress",
+      "status": "task4_unit_contracts_verified_actual_private_staging_pending",
       "recorded_at": "2026-10-14T00:09:26.086096+00:00",
       "user_reply": "plan approved",
       "presented_artifact_approved": "docs/superpowers/specs/2026-10-13-native-model-serving-receipt-design.md",
@@ -5828,6 +5828,106 @@
       },
       "production_score_deadline_qualified": false,
       "native_activation_qualified": false,
+      "whole_plan_complete": false
+    },
+    "native_model_serving_receipt_task4_units": {
+      "status": "task4_unit_packaging_runtime_handoff_contracts_verified",
+      "executed_cases": 144,
+      "runs": [
+        {
+          "label": "20261014T025412330686Z",
+          "cases": 14,
+          "selectors": [
+            "openhab/scripts/test_native_serving_selection.py",
+            "openhab/scripts/test_household_native_family.py"
+          ],
+          "log_sha256": "a34b9e6b92df948e4b710e0bce81ddbe08f5d2f93751c18fb576f8e33716d677",
+          "memory_peak_bytes": 128032768,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          }
+        },
+        {
+          "label": "20261014T025833003369Z",
+          "cases": 27,
+          "selectors": [
+            "openhab/scripts/test_native_serving_runtime.py",
+            "openhab/scripts/test_native_serving_handoff.py",
+            "openhab/scripts/test_household_native_handoff.py",
+            "openhab/scripts/test_native_household_deploy.py"
+          ],
+          "log_sha256": "af3bbd2e5ba58f0d57332067ef32b7bc352ce5ca48948de7d735f526512f232a",
+          "memory_peak_bytes": 146993152,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          }
+        },
+        {
+          "label": "20261014T030230334605Z",
+          "cases": 50,
+          "selectors": [
+            "openhab/scripts/test_native_serving_effective.py",
+            "openhab/scripts/test_household_native_install_lifecycle.py",
+            "openhab/scripts/test_household_cycle_deploy.py"
+          ],
+          "log_sha256": "11552d2d963aac50fdfdf29364ff10ae7556a43affd874773b6e869e447bf717",
+          "memory_peak_bytes": 156327936,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          }
+        },
+        {
+          "label": "20261014T030357865200Z",
+          "cases": 53,
+          "selectors": [
+            "openhab/scripts/test_household_native_install_files.py",
+            "openhab/scripts/test_household_native_install_composition.py",
+            "openhab/scripts/test_household_native_geometry_prepare.py",
+            "openhab/scripts/test_native_serving_preparer.py",
+            "openhab/scripts/test_native_serving_driver.py",
+            "openhab/scripts/test_native_serving_score_driver.py",
+            "openhab/scripts/test_native_score_coordinator.py"
+          ],
+          "log_sha256": "63809741eac26fa0b5ce5e355c4b77489540fe3ccb61a777fd99de2ad45dc286",
+          "memory_peak_bytes": 134414336,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          }
+        }
+      ],
+      "source_sha256s": {
+        "openhab/scripts/household_cycle_deploy.py": "68ec0907c5bbdc979860d2883e3cddc3f957ee9724ec4cecd4e9cd5f152f5619",
+        "openhab/scripts/household_native_family.py": "fd66919b0782b16cab6cb0fa5b546c3c327f9024769e6b74fd2ced601a747d98",
+        "openhab/scripts/household_native_handoff.py": "bb34e579e5f83e7c6281907bc03a99a5436949721aa025de2bedaf1215231c78",
+        "openhab/scripts/household_native_install.py": "a6b9bcacf07adb505ff5ca6f8f415acd31e45c3891f3ee496ec9886d1316e82c",
+        "openhab/scripts/test_native_serving_selection.py": "20dd3e6c9a5498f041b3b762a85f471093149a4b70bb980f3cdc8f802d63ed28",
+        "openhab/scripts/test_native_serving_runtime.py": "2b2b793590138245611661696e966db78d2f62f0e113e9012616e4ee3efae94a",
+        "openhab/scripts/test_native_serving_handoff.py": "bc8f0027763a05a945b5a6620918e6a31f2ada2bf408c9dafbb54a4e1628623d",
+        "openhab/scripts/test_native_serving_effective.py": "e899e9270887ecbd2f1595f648a6028426878440607250e7320c89b3606880fb"
+      },
+      "production_interpreter_admission_qualified": false,
+      "actual_final_stage_qualified": false,
+      "live_units_changed": false,
       "whole_plan_complete": false
     }
   },

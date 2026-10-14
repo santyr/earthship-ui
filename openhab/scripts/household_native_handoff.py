@@ -36,7 +36,17 @@ def _rows(raw,key):
 def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard):
     family,forecast,score=map(deploy._directory,(family,previous_forecast_stage,previous_score_stage))
     guard();selected=family_api.verify(family,guard=guard);stage=deploy._directory(selected['stage'])
-    records=[deploy.verify_stage(path) for path in (stage,forecast,score)]
+    serving=selected['schema']=='earthship-native-thermal-service-family/v2'
+    def stage_record(path):
+        if path==stage and serving:return deploy.verify_stage(path,expected_deployment_sha256=selected['deployment_sha256'])
+        return deploy.verify_stage(path)
+    records=[stage_record(path) for path in (stage,forecast,score)]
+    if serving:
+        from household_forecast_score import read_score_dispatch
+        dispatch=read_score_dispatch(stage,deployment_sha256=selected['deployment_sha256'],guard=guard)
+        if (dispatch['legacy']['stage']!=str(score) or
+            dispatch['legacy']['deployment_sha256']!=sha256(deploy._bytes(score/'deployment.json',private=True)).hexdigest()):
+            raise ValueError('handoff must retain its explicitly selected legacy scorer')
     cycles=[json.loads(deploy._bytes(path/'cycle.json',private=True)) for path in (stage,forecast,score)]
     current,old_forecast,old_score=records
     stripped=lambda cycle:{k:v for k,v in cycle.items() if k not in ('evidence_directory','forecast_config')}
@@ -45,7 +55,7 @@ def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard):
         raise ValueError('same owned forecast inputs, cache and fitted sources required')
     configs=[deploy._path(cycle['forecast_config']) for cycle in cycles]
     settings=[json.loads(deploy._bytes(path,private=True,maximum=8192)) for path in configs]
-    selection={'schema','candidate_path','evidence_directory','geometry_directory','artifact_sha256','runtime_sha256'}
+    selection={'schema','candidate_path','evidence_directory','geometry_directory','artifact_sha256','runtime_sha256'}|({'model_receipt_path','model_receipt_sha256'} if serving else set())
     if {k:v for k,v in settings[0].items() if k not in selection}!={k:v for k,v in settings[1].items() if k not in selection}:
         raise ValueError('native selection cannot change source endpoints, credentials or shared lock')
     new_model=json.loads(deploy._bytes(settings[0]['candidate_path'],private=True))
@@ -106,7 +116,8 @@ def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard):
         creator_source_sha256=sha256(deploy._bytes(Path(__file__))).hexdigest(),
         live_units_changed=False,automatic_actuation=False)
     guard()
-    if any(deploy.verify_stage(path)!=old for path,old in zip((stage,forecast,score),records)):
+    if serving:record.update(schema='earthship-native-thermal-handoff/v2',model_verification=selected['model_verification'],score_dispatch=selected['score_dispatch'])
+    if any(stage_record(path)!=old for path,old in zip((stage,forecast,score),records)):
         raise ValueError('handoff stage originals changed')
     if family_api.verify(family,guard=guard)!=selected or any(_reference(row['path'],private=role.endswith('override'))[0]!=row for role,row in originals.items()):
         raise ValueError('handoff unit or family originals changed')
