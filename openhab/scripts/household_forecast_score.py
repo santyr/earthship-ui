@@ -49,14 +49,26 @@ class SampledScorePressure:
         self.check(force=True)
 
 
+def _policy_source_bytes(path):
+    """Hash operational policy without extending a numerical replay inventory.
+
+    A pressure callback may run while the caller streams its original evidence
+    inventory. Keep this independently pinned read in its own observer scope.
+    The original stable-byte reader and per-call policy hash checks still apply.
+    """
+    from thermal_model.origin_capture import _source_bytes
+    from thermal_model.replay_budget import capture_source_reads
+    with capture_source_reads():
+        return _source_bytes(path,maximum=262144)
+
+
 def production_pressure_monitor():
     """Use this release's pressure policy with an archived numerical runtime."""
     global _production_monitor
     import importlib.util
     from hashlib import sha256
-    from thermal_model.origin_capture import _source_bytes
     path=Path(__file__).resolve().with_name('household_cycle_pressure.py')
-    if sha256(_source_bytes(path,maximum=262144)).hexdigest()!=PUBLICATION_MONITOR_SHA256:
+    if sha256(_policy_source_bytes(path)).hexdigest()!=PUBLICATION_MONITOR_SHA256:
         raise ValueError('score publication monitor source differs')
     if _production_monitor is None or Path(_production_monitor.__file__).resolve()!=path:
         spec=importlib.util.spec_from_file_location('_earthship_score_publication_monitor',path)
@@ -70,9 +82,8 @@ def production_resource_preflight(*,leaf=None):
     global _production_policy
     import importlib.util
     from hashlib import sha256
-    from thermal_model.origin_capture import _source_bytes
     path=Path(__file__).resolve().with_name('household_cycle_resources.py')
-    if sha256(_source_bytes(path,maximum=262144)).hexdigest()!=PUBLICATION_POLICY_SHA256:
+    if sha256(_policy_source_bytes(path)).hexdigest()!=PUBLICATION_POLICY_SHA256:
         raise ValueError('score publication policy source differs')
     if _production_policy is None or Path(_production_policy.__file__).resolve()!=path:
         spec=importlib.util.spec_from_file_location('_earthship_score_publication_policy',path)

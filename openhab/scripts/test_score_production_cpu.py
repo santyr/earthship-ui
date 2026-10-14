@@ -123,3 +123,32 @@ def test_current_monitor_source_drift_refuses_before_loading(tmp_path,monkeypatc
     monkeypatch.setattr(score,'__file__',str(coordinator))
     with pytest.raises(ValueError,match='monitor source'):
         score.production_pressure_monitor()
+
+
+@pytest.mark.parametrize('operation',['production_resource_preflight','production_pressure_monitor'])
+def test_policy_sample_during_original_verification_does_not_mutate_inventory(tmp_path,monkeypatch,operation):
+    import household_forecast_score as score
+    from thermal_model.origin_capture import _source_bytes
+    from thermal_model.replay_budget import capture_source_reads,shared_replay_budget
+    from pathlib import Path
+    for name in ('household_forecast_score.py','household_cycle_resources.py','household_cycle_pressure.py'):
+        target=tmp_path/name;target.write_bytes(Path(score.__file__).with_name(name).read_bytes());target.chmod(0o644)
+    monkeypatch.setattr(score,'__file__',str(tmp_path/'household_forecast_score.py'))
+    original=tmp_path/'original';original.write_bytes(b'original evidence');original.chmod(0o600)
+    later=tmp_path/'later';later.write_bytes(b'later evidence');later.chmod(0o600)
+    calls=[]
+    def remaining():
+        calls.append(True)
+        # First sample happens after iteration of the original inventory starts.
+        if len(calls)==3:getattr(score,operation)()
+        return 30.
+    with shared_replay_budget(remaining),capture_source_reads() as inventory:
+        _source_bytes(original,maximum=32)
+        inventory.verify()
+        assert set(inventory.records)=={original}
+        _source_bytes(later,maximum=32)
+        assert set(inventory.records)=={original,later}
+        inventory.verify()
+        later.write_bytes(b'changed bytes')
+        with pytest.raises(ValueError,match='source metadata changed|source bytes changed'):
+            inventory.verify()
