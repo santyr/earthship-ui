@@ -157,3 +157,17 @@ def test_rule_reader_uses_only_bounded_summary_get(tmp_path,monkeypatch):
     collector.opener=Opener()
     assert collector._rules_http(remaining=lambda:2.)==raw.decode()
     assert calls==[1]
+
+
+@pytest.mark.parametrize('failure',['nested_json','truncated_http'])
+def test_malformed_optional_rule_transport_never_discards_other_domains(failure,tmp_path,monkeypatch):
+    from http.client import IncompleteRead
+    from test_household_cycle_sources import collector_fixture
+    collector,_,_,_,now=collector_fixture(tmp_path,monkeypatch)
+    def read(**kw):
+        if failure=='truncated_http':raise IncompleteRead(b'[',10)
+        return '['*16000+']'*16000
+    collector.rule_reader=read
+    result=collector(issue=now+timedelta(seconds=8),remaining=lambda:6.,guard=lambda:None)
+    assert result['owner_source'] is None
+    assert result['power_receipt']['snapshot']['domains']['energy']['inverter_output_w']['value']==1000

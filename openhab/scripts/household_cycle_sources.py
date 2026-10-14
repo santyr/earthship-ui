@@ -1,5 +1,6 @@
 """Private configuration and restricted originals for the household cycle."""
 from pathlib import Path
+from http.client import HTTPException
 import re
 from household.codec import loads
 from household_observation import _private_file
@@ -220,7 +221,7 @@ class CycleSourceCollector:
                 sha256=sha256(raw.encode()).hexdigest(),requested_at=requested.isoformat(),received_at=received.isoformat())
             registry=CapabilityRegistry(canonical({key:value for key,value in receipt['registry'].items() if key!='registry_id'}))
             coordination_from_rules(owner_source,snapshot_id=receipt['snapshot']['snapshot_id'],registry=registry,horizon_hours=24,as_of=received)
-        except (OSError,ValueError,KeyError,TypeError,UnicodeError):
+        except (OSError,ValueError,KeyError,TypeError,UnicodeError,RecursionError,HTTPException):
             owner_source=None
         check()
         self.verify_unchanged(check);finished=utc(self.clock())
