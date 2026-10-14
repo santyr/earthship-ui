@@ -88,7 +88,7 @@ def test_explicit_missing_cgroup_is_not_replaced_with_current_worker(tmp_path):
 def test_retained_native_uses_current_monitor_instead_of_retired_swap_guard(tmp_path,monkeypatch):
     import household_forecast_score as score,native_inference_pressure as native
     from pathlib import Path
-    for name in ('household_forecast_score.py','household_cycle_resources.py','household_cycle_pressure.py'):
+    for name in ('household_forecast_score.py','household_cycle_resources.py','household_cycle_pressure.py','household_score_report_reuse.py'):
         target=tmp_path/name;target.write_bytes(Path(score.__file__).with_name(name).read_bytes());target.chmod(0o644)
     monkeypatch.setattr(score,'__file__',str(tmp_path/'household_forecast_score.py'))
     class RetiredMonitor:
@@ -131,7 +131,7 @@ def test_policy_sample_during_original_verification_does_not_mutate_inventory(tm
     from thermal_model.origin_capture import _source_bytes
     from thermal_model.replay_budget import capture_source_reads,shared_replay_budget
     from pathlib import Path
-    for name in ('household_forecast_score.py','household_cycle_resources.py','household_cycle_pressure.py'):
+    for name in ('household_forecast_score.py','household_cycle_resources.py','household_cycle_pressure.py','household_score_report_reuse.py'):
         target=tmp_path/name;target.write_bytes(Path(score.__file__).with_name(name).read_bytes());target.chmod(0o644)
     monkeypatch.setattr(score,'__file__',str(tmp_path/'household_forecast_score.py'))
     original=tmp_path/'original';original.write_bytes(b'original evidence');original.chmod(0o600)

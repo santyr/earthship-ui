@@ -12,6 +12,7 @@ def fixture(tmp_path,monkeypatch,minute):
     import thermal_model.capture_guard as locks,native_model_serving_receipt as admission
     tmp_path.chmod(0o700);stage=tmp_path/'stage';stage.mkdir(mode=0o700)
     source=stage/'sources/openhab/scripts/household_forecast_score.py';source.parent.mkdir(parents=True);source.write_bytes(Path(coordinator.__file__).read_bytes())
+    helper=source.with_name('household_score_report_reuse.py');helper.write_bytes(Path(coordinator.__file__).with_name(helper.name).read_bytes());helper.chmod(0o644)
     monkeypatch.setattr(coordinator,'__file__',str(source))
     settings={'schema':native.SERVING_SCHEMA,'shared_lock':str(tmp_path/'lock')}
     config=stage/'forecast.json';config.write_text(json.dumps(settings));config.chmod(0o600)

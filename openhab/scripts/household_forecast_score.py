@@ -15,6 +15,8 @@ PUBLICATION_POLICY_SHA256 = 'e7a330a82886605ef80f418f818bf2da90a2e419aa3264d7d98
 _production_policy = None
 PUBLICATION_MONITOR_SHA256 = '43cef34e31bc9b82a9d416f97bf9e15f255ebe95b873409089478e41e40fd9f9'
 _production_monitor = None
+REPORT_REPLAY_HELPER_SHA256 = '90bf11c59caf3bdd9c98800f9ae8a97b02c473533d96b8d7a926ef534373fe1f'
+_production_report_reuse = None
 
 
 
@@ -92,6 +94,21 @@ def production_resource_preflight(*,leaf=None):
     _production_policy.publication_resource_preflight(leaf=leaf)
 
 
+def production_report_replay(scores):
+    """Use this release's bounded report optimization with an archived scorer."""
+    global _production_report_reuse
+    import importlib.util
+    from hashlib import sha256
+    path=Path(__file__).resolve().with_name('household_score_report_reuse.py')
+    if sha256(_policy_source_bytes(path)).hexdigest()!=REPORT_REPLAY_HELPER_SHA256:
+        raise ValueError('score report replay helper source differs')
+    if _production_report_reuse is None or Path(_production_report_reuse.__file__).resolve()!=path:
+        spec=importlib.util.spec_from_file_location('_earthship_score_report_reuse',path)
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        _production_report_reuse=module
+    return _production_report_reuse.wrap_report(scores)
+
+
 @contextmanager
 def production_score_policy():
     """Explicitly use current admission for an archived scoring invocation only."""
@@ -105,14 +122,17 @@ def production_score_policy():
         return pressure
     hooks=[(installed,'_resource_preflight',production_resource_preflight),
         (resources,'publication_resource_preflight',production_resource_preflight)]
-    # Native archives also bind this policy at import time. Override admission
-    # only; their numerical functions and source/receipt validation stay original.
+    # Native archives bind policy at import time. Keep their numerical sources
+    # intact; report-local reuse retains their original final inventory check.
     if Path(installed.__file__).with_name('native_thermal_live.py').is_file():
         import native_thermal_live as native
         if hasattr(native,'_resource_preflight'):
             hooks.append((native,'_resource_preflight',production_resource_preflight))
         import native_inference_pressure as inference
         hooks.append((inference,'NativeInferenceHeadroom',current_headroom))
+        import native_thermal_score as scores
+        if hasattr(scores,'reconcile_serving_source_report'):
+            hooks.append((scores,'reconcile_serving_source_report',production_report_replay(scores)))
     originals=[(module,name,getattr(module,name)) for module,name,_ in hooks]
     try:
         for module,name,replacement in hooks:setattr(module,name,replacement)
