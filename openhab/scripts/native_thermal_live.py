@@ -183,6 +183,21 @@ def publish_cycle(settings,*,guard,geometry=None,backend=None,serving_model=None
                 expected_artifact_sha256=expected_artifact,expected_geometry_sha256=geometry.sha256,
                 issue=issue,available=available,published=_clock(),check_budget=within_deadline,monitoring_report=report)
         origin_path=forecasts.persist(archive,capture)
+        if receipt_profile:
+            _serving_settings(serving_model,settings,assessed_at=_clock(),guard=within_deadline)
+            selected=json.loads(serving_model._selection._encoded)
+            association=dict(schema='earthship-native-serving-model-binding/v1',
+                capture_sha256=capture['capture_sha256'],artifact_sha256=expected_artifact,
+                runtime_sha256=expected_runtime,issued_at=issue.isoformat(),stage=selected['stage'],
+                deployment_sha256=selected['deployment_sha256'],
+                model_receipt_path=settings['model_receipt_path'],model_receipt_sha256=settings['model_receipt_sha256'],
+                automatic_actuation=False)
+            association['binding_sha256']=forecasts.digest(association,'binding_sha256')
+            binding_path=original.persist(archive,association,field='capture_sha256',
+                suffix='.native-serving-model-binding-v1.json',maximum=8192)
+            if _owned_bytes(binding_path,8192)!=_canonical(association):
+                raise ValueError('serving capture association readback differs')
+            within_deadline()
         def send_guard():
             within_deadline();_resource_preflight();backend.verify_unchanged()
             if receipt_profile:_serving_settings(serving_model,settings,assessed_at=_clock(),guard=within_deadline)

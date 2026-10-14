@@ -149,7 +149,7 @@ def _retain_original(directory,value,suffix,maximum):
     return target
 
 
-def load_cycle_delivery(publication,*,issue,guard,runtime=None,expected_artifact_sha256=None,expected_capture_sha256=None):
+def load_cycle_delivery(publication,*,issue,guard,runtime=None,expected_artifact_sha256=None,expected_capture_sha256=None,serving_model=None):
     """Replay versioned private archives under separately supplied native pins."""
     from pathlib import Path
     from copy import deepcopy
@@ -157,6 +157,14 @@ def load_cycle_delivery(publication,*,issue,guard,runtime=None,expected_artifact
     from thermal_model.provisional_forecast import digest
     from household.control_contracts import instant
     publication,runtime=deepcopy(publication),deepcopy(runtime)
+    if serving_model is not None:
+        from native_model_serving_receipt import _require_model
+        _require_model(serving_model)
+        selected_runtime=serving_model.runtime;selected_artifact=serving_model.candidate['artifact_sha256']
+        if (runtime is not None and canonical(runtime)!=canonical(selected_runtime) or
+                expected_artifact_sha256 is not None and expected_artifact_sha256!=selected_artifact):
+            raise ValueError('serving cycle external model pins differ')
+        runtime=selected_runtime;expected_artifact_sha256=selected_artifact
     guard()
     if publication.get('status')!='published' or publication.get('delivery_verified') is not True:
         raise ValueError('verified original publication required')
@@ -174,6 +182,7 @@ def load_cycle_delivery(publication,*,issue,guard,runtime=None,expected_artifact
         if runtime is None or expected_artifact_sha256 is None or expected_capture_sha256 is None:
             raise ValueError('separate native runtime, artifact and capture pins required')
     else:
+        if serving_model is not None:raise ValueError('receipt serving requires native original delivery')
         from thermal_model.provisional_score import validate_delivery
         maximum=2*1024*1024;origin_suffix='.provisional-origin-v1.json';delivery_suffix='.provisional-delivery-v1.json'
     if not isinstance(delivered,dict) or set(delivered)!=fields or delivered['schema']!=('earthship-provisional-thermal-delivery/v2' if native else 'earthship-provisional-thermal-delivery/v1'):
@@ -188,14 +197,19 @@ def load_cycle_delivery(publication,*,issue,guard,runtime=None,expected_artifact
         delivery_path.name!=delivered['delivery_sha256']+delivery_suffix):
         raise ValueError('original delivery binding differs')
     if native:
-        capture=validate_capture(capture,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
-            expected_capture_sha256=expected_capture_sha256,check_budget=guard)
+        if serving_model is None:
+            capture=validate_capture(capture,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
+                expected_capture_sha256=expected_capture_sha256,check_budget=guard)
+        else:
+            from native_thermal_forecast import validate_serving_capture
+            capture=validate_serving_capture(capture,serving_model,expected_capture_sha256=expected_capture_sha256,check_budget=guard)
         if (delivered['runtime_sha256']!=capture['candidate']['runtime_sha256'] or
             delivered['geometry_series_sha256']!=capture['geometry_series_sha256']):
             raise ValueError('original native delivery runtime or geometry differs')
     validate_delivery(capture,delivered['receipts'])
     def unchanged():
         guard()
+        if serving_model is not None:serving_model.verify_bindings(assessed_at=instant(issue),guard=guard)
         if _private_file(origin_path,maximum)!=origin or _private_file(delivery_path,65536)!=delivery:
             raise ValueError('original cycle archive changed')
     unchanged()
@@ -204,7 +218,7 @@ def load_cycle_delivery(publication,*,issue,guard,runtime=None,expected_artifact
 
 def complete_cycle(*,publication,collection,parameter_record,runtime_manifest,code_revision,
                    evidence_directory,observation_cache,guard,clock=lambda:datetime.now(timezone.utc),
-                   runtime=None,expected_artifact_sha256=None,expected_capture_sha256=None):
+                   runtime=None,expected_artifact_sha256=None,expected_capture_sha256=None,serving_model=None):
     """Use verified original archives before any model or cache publication.
 
     The caller owns the forecast lock and the configuration/runtime guard.
@@ -223,12 +237,17 @@ def complete_cycle(*,publication,collection,parameter_record,runtime_manifest,co
         if not isinstance(reason,str) or reason not in known:reason='unclassified_collection_failure'
         return dict(status='observation_unavailable',reason='source_collection_unavailable',collection_reason=reason,automatic_actuation=False)
     archived=load_cycle_delivery(publication,issue=collection['issue'],guard=guard,runtime=runtime,
-        expected_artifact_sha256=expected_artifact_sha256,expected_capture_sha256=expected_capture_sha256)
+        expected_artifact_sha256=expected_artifact_sha256,expected_capture_sha256=expected_capture_sha256,serving_model=serving_model)
     capture=archived['capture'];receipts=archived['receipts']
     if archived['native']:
-        from household.weather_context import prepare_native_cycle_contexts
-        thermal,weather=prepare_native_cycle_contexts(capture,code_revision=code_revision,runtime=runtime,
-            expected_artifact_sha256=expected_artifact_sha256,expected_capture_sha256=expected_capture_sha256,check_budget=guard)
+        if serving_model is not None:
+            from household.weather_context import prepare_serving_native_cycle_contexts
+            thermal,weather=prepare_serving_native_cycle_contexts(capture,serving_model,code_revision=code_revision,
+                expected_capture_sha256=expected_capture_sha256,check_budget=guard)
+        else:
+            from household.weather_context import prepare_native_cycle_contexts
+            thermal,weather=prepare_native_cycle_contexts(capture,code_revision=code_revision,runtime=runtime,
+                expected_artifact_sha256=expected_artifact_sha256,expected_capture_sha256=expected_capture_sha256,check_budget=guard)
     else:
         thermal,weather=prepare_cycle_contexts(capture,code_revision=code_revision)
     record=derive_cycle(originals=collection['originals'],capture=capture,receipts=receipts,
@@ -262,7 +281,7 @@ class LazyForecastBackend:
         return self.parent.collect(issue=issue,known_at=known_at)
 
 
-def run_cycle(config_path,*,code_revision,forecast_config=None):
+def run_cycle(config_path,*,code_revision,forecast_config=None,stage=None,deployment_sha256=None):
     """Own the original lock; household preparation cannot suppress forecasts.
 
     Production passes the original forecast configuration independently of the
@@ -285,10 +304,18 @@ def run_cycle(config_path,*,code_revision,forecast_config=None):
     if forecast_config is None:forecast_config=load_cycle_settings(config_path)['forecast_config']
     forecast_path=Path(forecast_config).absolute();forecast_original=_private_file(forecast_path,8192)
     original_settings=loads(forecast_original[0])
-    native_profile=isinstance(original_settings,dict) and original_settings.get('schema')=='earthship-provisional-thermal-live-config/v2'
+    receipt_profile=isinstance(original_settings,dict) and original_settings.get('schema')=='earthship-provisional-thermal-live-config/v3'
+    native_profile=isinstance(original_settings,dict) and original_settings.get('schema') in ('earthship-provisional-thermal-live-config/v2','earthship-provisional-thermal-live-config/v3')
     if native_profile:
         from native_thermal_live import load_settings,publish_cycle,withdraw,current_runtime
     settings=load_settings(forecast_path)
+    if receipt_profile:
+        from thermal_model.graduation_policy import _sha
+        if stage is None or deployment_sha256 is None:
+            raise ValueError('external serving stage selection required')
+        stage=Path(stage).absolute();_sha(deployment_sha256)
+        if Path(__file__).resolve()!=stage/'sources/openhab/scripts/household_cycle.py':
+            raise ValueError('staged serving driver execution required')
     with SharedScoreLock(settings['shared_lock']) as lock:
         monitor=PublicationHeadroom();monitor.preflight()
         def forecast_guard():
@@ -326,7 +353,17 @@ def run_cycle(config_path,*,code_revision,forecast_config=None):
             return collector(**request)
         observer_guard=guard if ready else forecast_guard
         backend=ObservingBackend(LazyForecastBackend(settings,guard=forecast_guard),collector=collect,guard=observer_guard)
-        try:published=publish_cycle(settings,guard=forecast_guard,backend=backend)
+        serving_model=None
+        try:
+            if receipt_profile:
+                from datetime import datetime,timezone
+                from native_model_serving_receipt import load_serving_selection,read_serving_model
+                selected=load_serving_selection(stage,expected_deployment_sha256=deployment_sha256,
+                    assessed_at=datetime.now(timezone.utc),guard=forecast_guard)
+                serving_model=read_serving_model(selected,assessed_at=datetime.now(timezone.utc),guard=forecast_guard)
+                published=publish_cycle(settings,guard=forecast_guard,backend=backend,serving_model=serving_model)
+            else:
+                published=publish_cycle(settings,guard=forecast_guard,backend=backend)
         except Exception:
             try:
                 result=withdraw(settings,guard=forecast_guard)
@@ -340,6 +377,7 @@ def run_cycle(config_path,*,code_revision,forecast_config=None):
         try:
             native_pins={} if not native_profile else dict(runtime=current_runtime(guard=forecast_guard),
                 expected_artifact_sha256=settings['artifact_sha256'],expected_capture_sha256=published['capture_sha256'])
+            if receipt_profile:native_pins['serving_model']=serving_model
             result['observation']=complete_cycle(publication=published,collection=backend.collection,parameter_record=parameters,
                 runtime_manifest=collector.runtime,code_revision=code_revision,evidence_directory=configuration['evidence_directory'],
                 observation_cache=configuration['observation_cache'],guard=guard,**native_pins)
@@ -354,8 +392,11 @@ def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config',required=True,type=Path);parser.add_argument('--code-revision',required=True)
     parser.add_argument('--forecast-config',required=True,type=Path)
+    parser.add_argument('--stage',type=Path);parser.add_argument('--deployment-sha256')
     args=parser.parse_args(argv)
-    try:result=run_cycle(args.config,code_revision=args.code_revision,forecast_config=args.forecast_config)
+    try:
+        selected={} if args.stage is None and args.deployment_sha256 is None else dict(stage=args.stage,deployment_sha256=args.deployment_sha256)
+        result=run_cycle(args.config,code_revision=args.code_revision,forecast_config=args.forecast_config,**selected)
     except BlockingIOError:
         print(json.dumps(dict(status='busy',delivery_verified=False,automatic_actuation=False)));return 75
     except Exception:

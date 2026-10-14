@@ -89,7 +89,7 @@ class _SourceGuard:
             raise ValueError('native preparation source directories changed during read')
 
 
-def run(config,libraries,*,stage=None,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic):
+def run(config,libraries,*,stage=None,deployment_sha256=None,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic):
     from native_thermal_live import load_settings,prepare_geometry,_resource_preflight
     from thermal_model.provisional_live import _next_issue
     from thermal_model.capture_guard import SharedScoreLock
@@ -100,13 +100,22 @@ def run(config,libraries,*,stage=None,clock=lambda:datetime.now(timezone.utc),mo
     config,libraries=map(lambda path:Path(path).absolute(),(config,libraries))
     source=Path(__file__).resolve();originals=_SourceGuard(config,libraries,source)
     settings=load_settings(config);paths=_library_paths(originals.original_libraries[0])
+    receipt_profile=settings.get('schema')=='earthship-provisional-thermal-live-config/v3'
+    if receipt_profile and (stage is None or deployment_sha256 is None):
+        raise ValueError('external receipt-serving preparation selection required')
     now=clock();issue=_next_issue(now)
     if issue-now<timedelta(seconds=120):
         raise BlockingIOError('original forecast preparation window reserved')
     verifier=None;binding=None
     if stage is not None:
         from household_cycle_deploy import verify_stage
-        stage=Path(stage).absolute();binding=verify_stage(stage);verifier=verify_stage
+        stage=Path(stage).absolute()
+        if receipt_profile:
+            from thermal_model.graduation_policy import _sha
+            _sha(deployment_sha256)
+            def verifier(actual):return verify_stage(actual,expected_deployment_sha256=deployment_sha256)
+        else:verifier=verify_stage
+        binding=verifier(stage)
         if source!=stage/'sources/openhab/scripts/household_native_geometry_prepare.py':
             raise ValueError('staged native preparer execution required')
     with SharedScoreLock(settings['shared_lock']) as lock:
@@ -118,7 +127,13 @@ def run(config,libraries,*,stage=None,clock=lambda:datetime.now(timezone.utc),mo
                 raise ValueError('native preparation lifetime elapsed')
             originals.check()
         guard()
-        result=prepare_geometry(settings,issue=issue,library_paths=paths,guard=guard)
+        if receipt_profile:
+            from native_model_serving_receipt import load_serving_selection,read_serving_model
+            selected=load_serving_selection(stage,expected_deployment_sha256=deployment_sha256,assessed_at=clock(),guard=guard)
+            model=read_serving_model(selected,assessed_at=clock(),guard=guard)
+            result=prepare_geometry(settings,issue=issue,library_paths=paths,guard=guard,serving_model=model)
+        else:
+            result=prepare_geometry(settings,issue=issue,library_paths=paths,guard=guard)
         guard()
         if verifier is not None and verifier(stage)!=binding:
             raise ValueError('staged native preparation runtime changed')
@@ -130,9 +145,11 @@ def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config',required=True,type=Path)
     parser.add_argument('--libraries',required=True,type=Path)
-    parser.add_argument('--stage',type=Path)
+    parser.add_argument('--stage',type=Path);parser.add_argument('--deployment-sha256')
     args=parser.parse_args(argv)
-    try:result=run(args.config,args.libraries,stage=args.stage)
+    try:
+        selection={} if args.deployment_sha256 is None else dict(deployment_sha256=args.deployment_sha256)
+        result=run(args.config,args.libraries,stage=args.stage,**selection)
     except BlockingIOError:
         print(json.dumps(dict(status='busy',fit_executed=False,automatic_actuation=False)));return 75
     except Exception:
