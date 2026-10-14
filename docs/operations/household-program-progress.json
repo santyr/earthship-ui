@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "Earthship observations remain below existing content; standalone household navigation removed. Source6128230/deployment160df15f/model8cee08fa activated October14 with one CPU for forecasting,256MiB memory and zero worker swap. Natural18:40:15UTC forecast delivery succeeded; service exited0 in43seconds with80.9MiB peak and no swap. First fresh household snapshot since04:35UTC was written and matched the HTTP200 API. Its inverter/load evidence expired at18:40:16.878UTC before materialization, so planner_mode remains unavailable; this is not a complete observability repair. Morning native training is enabled for06:50MDT; first natural fit and mature native accuracy remain unverified. See proofs.native_forecast_cpu_deployment. No actuator authority.",
+      "current_evidence": "Earthship observations remain below existing content; standalone household navigation removed. Source255d7df/deployment945107f8/modeld0b0d9c8 activated October14 with one CPU for forecasting,256MiB memory and zero worker swap. Natural18:55:15UTC forecast and household snapshot delivered successfully; service exited0 in43seconds with82.1MiB peak and no swap. Household result was shadow with no expired qualified inputs when verified18:55:26.912UTC; HTTP200 API exactly matched cache at18:55:30.753UTC. Shortest source validity ended18:55:33.044UTC, so this establishes fresh-at-publication observational recovery, not continuous freshness between five-minute cycles or physical qualification. Daily native training is enabled for06:50MDT; first natural fit and mature native accuracy remain unverified. See proofs.native_household_freshness_deployment. No actuator authority.",
       "complete": false
     },
     {
@@ -6662,8 +6662,8 @@
       },
       "automatic_actuation": false,
       "source_document": "docs/operations/2026-10-14-native-daily-training.md",
-      "production_source_commit": "6128230478c4df28488b3dadced032a3633c8432",
-      "production_checkout_verified_at": "2026-10-14T18:41:43.124789+00:00"
+      "production_source_commit": "255d7dfec2d59e5bb35f82ea895719df18c01707",
+      "production_checkout_verified_at": "2026-10-14T18:55:30.752856+00:00"
     },
     "native_forecast_cpu_deployment": {
       "assessed_at": "2026-10-14T18:41:43.124789+00:00",
@@ -6700,6 +6700,38 @@
       "fit_executed": false,
       "source_document": "docs/operations/2026-10-14-household-observation-window.md",
       "remaining": "Household output is now written, but short-lived inverter/load evidence expired before materialization; native mature accuracy and other PR3 requirements remain incomplete."
+    },
+    "native_household_freshness_deployment": {
+      "assessed_at": "2026-10-14T18:55:30.752856+00:00",
+      "source_commit": "255d7dfec2d59e5bb35f82ea895719df18c01707",
+      "deployment_sha256": "945107f8ddb4e5a1f6222058bdbfc5402be57ca114bb5b682feb674646ac407f",
+      "artifact_sha256": "d0b0d9c8d601962c4ea0185d519b0843514634cd494462580d5701b6d2164033",
+      "service": {
+        "MainPID": "0",
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "MemoryPeak": "86167552",
+        "MemorySwapPeak": "0",
+        "CPUUsageNSec": "12605321000",
+        "ActiveState": "inactive"
+      },
+      "http_status": 200,
+      "api_matches_cache": true,
+      "observation_sha256": "9550517267d06740c953219370d1c739a3719f9fa109796bb91b433588d7edab",
+      "snapshot_as_of": "2026-10-14T18:55:15+00:00",
+      "verified_at": "2026-10-14T18:55:26.911855+00:00",
+      "valid_until": "2026-10-14T18:55:33.044000+00:00",
+      "fresh_when_checked": true,
+      "planner_mode": "shadow",
+      "expired_roles": [],
+      "model_matches": true,
+      "automatic_actuation": false,
+      "tests_passed": 96,
+      "collection_tests": 54,
+      "upgrade_tests": 42,
+      "fit_executed": false,
+      "source_document": "docs/operations/2026-10-14-household-observation-window.md",
+      "remaining": "Live snapshot expiry remains shorter than the five-minute forecast cadence. Mature native accuracy and other architectural requirements remain incomplete."
     }
   },
   "astro_efficiency_audit": {

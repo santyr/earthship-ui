@@ -109,3 +109,25 @@ checks the quota declared by the already verified previous family. Four upgrade
 regressions cover a one-core prior forecast and incorrect forecast/score/preparer
 quotas. All 42 affected upgrade, handoff, effective-definition and installation
 lifecycle tests passed in 16.37 seconds. Existing timers remained active.
+
+## Verified freshness deployment
+
+Source `255d7df`, deployment `945107f8`, model `d0b0d9c8` activated successfully.
+Readback verified all five owned files, effective pins and limits, and all three
+active timers. The daily training checkout is clean at this source. The activation
+waited for the earlier forecast to finish; no scheduled forecast was interrupted.
+
+The normal 18:53 geometry preparation succeeded. The 18:54:45 forecast completed
+at 18:55:28 with verified delivery, exit 0, 12.605 CPU seconds, 82.1 MiB peak RAM
+and zero swap. Its 18:55:15 household snapshot was verified at 18:55:26.912 with
+`planner_mode=shadow` and no expired qualified source. At 18:55:30.753, the
+HTTP200 household endpoint exactly matched the cache and selected model while
+the snapshot was still valid. This proves the early-acquisition defect is fixed
+for the observed live cycle. Private evidence is retained under the serving QA
+folder `actual-household-freshness-v2-20261014`.
+
+The earliest source expired at 18:55:33.044, leaving only a short fresh window.
+Live measurements still expire between five-minute forecast issues; the UI must
+continue to distinguish historical shadow output from current source freshness.
+This change does not qualify previously missing owner/effect/calibration inputs,
+prove mature native accuracy, or grant actuator authority. PR3 remains active.
