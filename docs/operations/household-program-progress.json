@@ -6362,10 +6362,11 @@
       "whole_plan_complete": false
     },
     "native_model_serving_receipt_psi_proposal": {
-      "status": "inactive_tested_user_decision_pending",
+      "status": "user_approved_exact_patch_deployed",
       "document": "docs/operations/2026-10-13-native-inference-psi-window-proposal.md",
-      "tests": 10,
-      "active_guard_changed": false
+      "tests": "47 passed and 4 subtests; active regression RED then GREEN; unchanged fitting tests included",
+      "active_guard_changed": true,
+      "deployment_sha256": "dccdc7a2d0b8e0e72147c1789250fe5a47834b67847a46313819577c67555ca0"
     },
     "native_endpoint_window_score_acquisition": {
       "status": "bounded_batch_implemented_qualified_locally_not_deployed",
@@ -6396,7 +6397,7 @@
       }
     },
     "native_owned_family_upgrade": {
-      "status": "implemented_qualified_locally_not_deployed",
+      "status": "native_to_native_upgrade_activated_and_independently_read_back",
       "requirements": [
         "explicit previous family and effective deployment pin",
         "five exact owned previous files",
@@ -6406,10 +6407,11 @@
         "clean failure restores all previous definitions"
       ],
       "qualification": ".superpowers/sdd/2026-10-13-native-model-serving-receipt/monitoring-integration-qualification.json",
-      "unchanged_admission_dependencies": ".superpowers/sdd/2026-10-13-native-model-serving-receipt/actual-monitoring-fixes-20261014/dependency-readback.json"
+      "unchanged_admission_dependencies": ".superpowers/sdd/2026-10-13-native-model-serving-receipt/actual-monitoring-fixes-20261014/dependency-readback.json",
+      "deployment_sha256": "dccdc7a2d0b8e0e72147c1789250fe5a47834b67847a46313819577c67555ca0"
     },
     "native_scoring_runtime_diagnosis": {
-      "status": "deadline_and_interval_psi_refusals_measured_not_resolved",
+      "status": "psi_patch_deployed_scoring_deadline_and_recurring_preparation_overlap_remain",
       "staged_source": "5e36e37acbc2b1724d3c5d41920ee8c652aa9d28",
       "staged_deployment_sha256": "72afc72e73cd1765ab5942fa71c8cc88896586ca3fc804029df6929a06e6f6e0",
       "query_plans": "both carry and endpoint window use existing time primary index; EXPLAIN only, no database changes",
@@ -6427,18 +6429,61 @@
         "full_model_binding_seconds": 18.790529344929382,
         "timers_restored": true
       },
-      "active_pressure_policy_changed": false,
-      "one_second_psi_proposal": "awaiting_explicit_user_decision",
+      "active_pressure_policy_changed": true,
+      "one_second_psi_proposal": "user_approved_and_deployed",
       "source_files_unchanged": true,
       "latest_live_publication": {
+        "http_status": 200,
         "version": 9,
-        "status": "unavailable",
-        "generatedAt": "2026-10-14T14:09:56.936619+00:00",
-        "validUntil": "2026-10-14T14:24:56.936619+00:00",
-        "reasons": [
-          "Provisional forecast unavailable; inputs or runtime failed validation."
-        ]
+        "schema": "earthship-provisional-thermal-publication/v2",
+        "status": "provisional",
+        "validUntil": "2026-10-14T15:20:15+00:00"
+      },
+      "current_generation_score_attempt": {
+        "started_at": "2026-10-14T15:02:10+00:00",
+        "finished_at": "2026-10-14T15:03:04+00:00",
+        "status": "score_withheld",
+        "native_accuracy_qualified": false
       }
+    },
+    "native_psi_window_deployment": {
+      "mode": "apply",
+      "source_commit": "acb2b3885dbdc5916211b453b24bf25a38585a01",
+      "deployment_sha256": "dccdc7a2d0b8e0e72147c1789250fe5a47834b67847a46313819577c67555ca0",
+      "model_receipt_sha256": "1f6871e9d9521298a9c2c9d91f641d6308cd6fe10c58cab9588d4b7fae398d9b",
+      "live_writes": false,
+      "live_units_changed": true,
+      "unit_mutation_attempted": true,
+      "automatic_actuation": false,
+      "private_metadata_deadline_seconds": 150,
+      "early_owned_timers_quiesced": true,
+      "status": "native_family_activated",
+      "handoff_sha256": "e592ada45bbbe2177e3617c704497ca45e3d41ee9d6574c6c61827898b43bc51",
+      "effective_definition_status": "native_effective_family_verified",
+      "unit_manager_reloaded": true,
+      "new_preparer_timer_enabled": false,
+      "existing_preparer_timer_preserved": true,
+      "service_restarted": false,
+      "early_timer_lease_restoration_safe": true,
+      "exit": 0,
+      "cold_seconds": 82.4067502230173,
+      "memory_peak_bytes": 60743680,
+      "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n",
+      "qualification": ".superpowers/sdd/2026-10-13-native-model-serving-receipt/psi-window-qualification.json",
+      "independent_readback": ".superpowers/sdd/2026-10-13-native-model-serving-receipt/20261014T145729-psi-activation-readback.json",
+      "recurring_forecasts_qualified": false,
+      "native_outcome_accuracy_qualified": false,
+      "latest_independent_readback": ".superpowers/sdd/2026-10-13-native-model-serving-receipt/20261014T150553-psi-activation-readback.json",
+      "scheduled_publication_verified": true,
+      "publication": {
+        "http_status": 200,
+        "version": 9,
+        "schema": "earthship-provisional-thermal-publication/v2",
+        "status": "provisional",
+        "validUntil": "2026-10-14T15:20:15+00:00"
+      },
+      "recurring_cold_preparation_qualified": false,
+      "household_evidence_collection_qualified": false
     }
   },
   "astro_efficiency_audit": {
@@ -6588,5 +6633,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T14:13:38.031510+00:00"
+  "updated_at": "2026-10-14T15:06:39.163431+00:00"
 }
