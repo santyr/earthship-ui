@@ -7381,18 +7381,19 @@
       },
       "review": "final integration review Important retained-policy binding fixed RED to GREEN; full230-test suite passes",
       "operations": "docs/operations/2026-10-14-shared-job-resources.md",
-      "implementation_commit": "82adbb79c6409adca056441e3a222c0fff20ef79",
-      "deployment_sha256": "01f83547adbb3246107919a5262b4862c21b39632fb705e2e2e24ca4f304f263",
+      "implementation_commit": "c00470b32b37fc59f853ccf5ce4e9327cfeb347e",
+      "deployment_sha256": "8fd9bcc3db8ce2b09247d4ed0880b79f8541760dfa96db60274cc169ccea6c21",
       "integration_tests": 230,
       "natural_forecast": "22:25:15UTC published and observation_written; scope13.108CPU seconds,78.3MiB peak,zero swap",
       "natural_legacy_score": "22:26UTC monitoring_refreshed;256 retained legacy outcomes;zero new mature outcomes",
-      "natural_current_native_score": "22:41UTC passed admission, then inventory mutation RuntimeError; reproduced and fixed in6e5a036 with83 affected tests; corrected deployment pending",
+      "natural_current_native_score": "22:41UTC inventory mutation reproduced and fixed in6e5a036; final correction activated22:46:05UTC with83 affected tests; next current-model slot22:51UTC pending",
       "natural_preparer": "22:28:05UTC to22:28:09UTC; exit0; retained prepared geometry result",
       "natural_daily_fit": "pending2026-10-15T06:50MDT",
       "fit_executed_during_rollout": false,
       "current_score_correction_tests": 68,
-      "daily_checkout": "82adbb7; clean and idle during update",
-      "inventory_correction_tests": 83
+      "daily_checkout": "c00470b; clean and idle during update",
+      "inventory_correction_tests": 83,
+      "effective_readback_at": "2026-10-14T22:46:19.572450+00:00"
     }
   },
   "astro_efficiency_audit": {

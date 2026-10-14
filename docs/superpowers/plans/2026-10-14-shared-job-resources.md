@@ -57,4 +57,4 @@ Files: `household_cycle_resources.py`, `household_native_family.py`, `household_
 - [x] Update owned-family rendering and effective readback together so expected Slice, CPU and RAM policy match. Avoid changing fitted sources or pretending old archived numerical code has changed.
 - [x] Route development work through the launcher first. Then migrate forecast/scoring/preparer and daily orchestration coherently, handling strict acquisition children with compatible leaf limits.
 - [ ] Verify first natural forecast and score, effective group accounting and original model continuity. Leave the natural daily fit explicitly pending until it actually runs.
-- [ ] One final independent review of the complete resource allocation delta. Update the existing progress tracker with actual evidence and remaining work.
+- [x] One final independent review of the complete resource allocation delta. Update the existing progress tracker with actual evidence and remaining work.
