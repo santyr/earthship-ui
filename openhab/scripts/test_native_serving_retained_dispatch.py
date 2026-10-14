@@ -11,12 +11,11 @@ def test_native_opportunities_preserve_current_and_rotate_explicit_retained_stag
     assert callable(choose),'retained native scheduling is missing'
     historical=[{'stage':'/private/old-a','deployment_sha256':'a'*64},{'stage':'/private/old-b','deployment_sha256':'b'*64}]
     dispatch={'current':'current','historical':historical}
-    assert choose(dispatch,datetime(2026,10,13,18,0,10,tzinfo=timezone.utc))=='current'
-    targets=[choose(dispatch,datetime(2026,10,13,18,minute,10,tzinfo=timezone.utc)) for minute in (2,7,12)]
+    targets=[choose(dispatch,datetime(2026,10,13,18,minute,10,tzinfo=timezone.utc)) for minute in (1,11,21)]
     assert 'current' in targets
     assert {t['stage'] for t in targets if t!='current'}=={h['stage'] for h in historical}
-    assert choose({'current':'current','historical':[]},datetime(2026,10,13,18,2,10,tzinfo=timezone.utc))=='current'
-    with pytest.raises(ValueError):choose(dispatch,datetime(2026,10,13,18,1,10,tzinfo=timezone.utc))
+    assert choose({'current':'current','historical':[]},datetime(2026,10,13,18,1,0,tzinfo=timezone.utc))=='current'
+    with pytest.raises(ValueError):choose(dispatch,datetime(2026,10,13,18,6,10,tzinfo=timezone.utc))
 
 
 def test_retained_native_exec_uses_its_own_external_pin_and_source_closure(tmp_path,monkeypatch):

@@ -45,7 +45,7 @@ def fixture(tmp_path,monkeypatch,minute):
 
 
 def test_current_score_slot_reads_one_context_under_existing_lock(tmp_path,monkeypatch):
-    coordinator,config,stage,calls,model,now,dispatch=fixture(tmp_path,monkeypatch,2)
+    coordinator,config,stage,calls,model,now,dispatch=fixture(tmp_path,monkeypatch,1)
     def score(settings,*,guard,clock,queue,serving_model,historical_selections):
         assert serving_model is model and historical_selections==() and queue is True;guard();calls.append('scored');return {'status':'waiting','scored':0,'automatic_actuation':False}
     monkeypatch.setattr(coordinator,'score_with_report',score)
@@ -54,7 +54,7 @@ def test_current_score_slot_reads_one_context_under_existing_lock(tmp_path,monke
 
 
 def test_legacy_slot_executes_only_explicit_retained_worker(tmp_path,monkeypatch):
-    coordinator,config,stage,calls,model,now,dispatch=fixture(tmp_path,monkeypatch,1)
+    coordinator,config,stage,calls,model,now,dispatch=fixture(tmp_path,monkeypatch,6)
     monkeypatch.setattr(coordinator,'score_with_report',lambda *a,**k:pytest.fail('legacy slot ran active native worker'))
     def execute(selection):
         assert selection==dispatch['legacy'];calls.append('legacy_exec');return {'status':'waiting','scored':0,'automatic_actuation':False}
@@ -64,7 +64,7 @@ def test_legacy_slot_executes_only_explicit_retained_worker(tmp_path,monkeypatch
 
 
 def test_missing_external_pin_refuses_both_score_workers(tmp_path,monkeypatch):
-    coordinator,config,stage,calls,model,now,dispatch=fixture(tmp_path,monkeypatch,2)
+    coordinator,config,stage,calls,model,now,dispatch=fixture(tmp_path,monkeypatch,1)
     monkeypatch.setattr(coordinator,'score_with_report',lambda *a,**k:pytest.fail('missing pin served score'))
     with pytest.raises(ValueError):coordinator.run(config,stage=stage,clock=lambda:now,monotonic=lambda:100)
     assert 'read_model' not in calls and 'locked' not in calls

@@ -7,6 +7,8 @@ from datetime import datetime,timezone,timedelta
 from pathlib import Path
 import time
 
+SCORE_LIFETIME_SECONDS = 120
+
 
 def score_with_report(settings,*,guard,clock=lambda:datetime.now(timezone.utc),queue=False,serving_model=None,historical_selections=()):
     if settings.get('schema')=='earthship-provisional-thermal-live-config/v3':
@@ -54,7 +56,7 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
     from thermal_model.training_pressure_guard import TrainingHeadroom
     from thermal_model.policy_registration import _read_private
     from household_observation import _private_file
-    deadline=monotonic()+50
+    deadline=monotonic()+SCORE_LIFETIME_SECONDS
     _resource_preflight()
     os.environ['EARTHSHIP_QUALIFICATION_FIT']='0';os.environ['EARTHSHIP_REMOTE_QUALIFICATION_FIT']='0'
     config=Path(config).absolute();original=_private_file(config,8192)
@@ -112,7 +114,7 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
             pressure=TrainingHeadroom(max_swapin_bytes_per_second=1048576)
         def guard():
             lock.verify();pressure.check()
-            if monotonic()>=deadline or clock()>=issue-timedelta(seconds=35):raise ValueError('score lifetime elapsed')
+            if monotonic()>=deadline or clock()>=issue-timedelta(seconds=135):raise ValueError('score lifetime elapsed')
             if _private_file(config,8192)!=original or _read_private(config)!=settings or Path(__file__).read_bytes()!=own:
                 raise ValueError('score source or configuration changed')
         if receipt_profile:
@@ -155,7 +157,7 @@ def main(argv=None):
 def score_role(at):
     from astro_geometry import _instant
     at=_instant(at)
-    return 'current' if at.minute%5 in (0,2) else 'legacy' if at.minute%5 in (1,3) else 'reserved'
+    return 'current' if at.minute%10==1 else 'legacy' if at.minute%10==6 else 'reserved'
 
 
 def read_score_dispatch(stage,*,deployment_sha256,guard):
@@ -239,11 +241,10 @@ def native_score_selection(dispatch,at):
     at=_instant(at)
     if score_role(at)!='current':raise ValueError('explicit native scoring opportunity required')
     historical=dispatch['historical']
-    if at.minute%5==0 or not historical:return 'current'
-    # Slot zero can be refused by the original pre-issue margin. Rotate the
-    # reliably admissible slot two across current and all retained workers.
+    if not historical:return 'current'
+    # One native opportunity every ten minutes rotates all owned selections.
     targets=['current',*historical]
-    return targets[(int(at.timestamp())//300)%len(targets)]
+    return targets[(int(at.timestamp())//600)%len(targets)]
 
 
 def execute_retained_native_score(selection):

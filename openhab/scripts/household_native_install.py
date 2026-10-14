@@ -177,7 +177,8 @@ def _verify_effective_family(family,*,guard):
     record=deploy.verify_stage(stage,expected_deployment_sha256=selected['deployment_sha256']) if serving else deploy.verify_stage(stage)
     root=deploy._path(record['service_file']).parent
     services=(('thermal-provisional-forecast.service','forecast.conf','1min 30s',['zzzz-household-cycle.conf']),
-        ('thermal-provisional-score.service','score.conf','1min',['zzzz-household-score.conf']),
+        ('thermal-provisional-score.service','score.conf',
+            '2min 10s' if selected['score_service_timeout_seconds']==130 else '1min',['zzzz-household-score.conf']),
         ('thermal-native-geometry-prepare.service','thermal-native-geometry-prepare.service','1min 30s',[]))
     for name,source,timeout,dropins in services:
         guard();state=_effective_state(name);deploy._inactive_capped(state)
@@ -187,6 +188,7 @@ def _verify_effective_family(family,*,guard):
             not deploy._entry_matches(state,deploy._bytes(family/source,private=True))):
             raise ValueError('effective native service definition differs')
     score_calendars=['*-*-* *:'+minute+'/5:10 UTC' for minute in ('00','01','02','03')] if serving else ['*-*-* *:01/5:00 UTC','*-*-* *:02/5:00 UTC']
+    if serving and selected['score_service_timeout_seconds']==130:score_calendars=['*-*-* *:01/5:00 UTC']
     timers=(('thermal-provisional-forecast.timer',[selected['original_forecast_warm_clock']],[]),
         ('thermal-provisional-score.timer',score_calendars,['zzzz-household-native-timer.conf']),
         ('thermal-native-geometry-prepare.timer',['*-*-* *:03/5:05 UTC'],[]))

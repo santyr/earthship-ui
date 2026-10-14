@@ -41,6 +41,14 @@ def prepare(stage,libraries,output,*,guard,deployment_sha256=None):
         live_units_changed=False,automatic_actuation=False)
 
 
+def _extended_score_window(stage):
+    # The caller verifies the complete immutable stage first. Old sealed stages
+    # retain their exact original family bytes during an owned upgrade.
+    import household_cycle_deploy as deploy
+    source=stage/'sources/openhab/scripts/household_forecast_score.py'
+    return b'\nSCORE_LIFETIME_SECONDS = 120\n' in b'\n'+deploy._bytes(source)
+
+
 def _render(stage,config,libraries,*,deployment_sha256=None):
     import household_cycle_deploy as deploy
     scripts=stage/'sources/openhab/scripts'
@@ -69,6 +77,9 @@ def _render(stage,config,libraries,*,deployment_sha256=None):
         if ' --stage '+str(stage) not in rows[commands[0]]:raise ValueError('serving stage template binding required')
         rows[commands[0]]+=pin;forecast=('\n'.join(rows)+'\n').encode()
         score_timer=('[Timer]\nOnCalendar=\n'+''.join('OnCalendar=*-*-* *:'+minute+'/5:10 UTC\n' for minute in ('00','01','02','03')))
+    if deployment_sha256 is not None and _extended_score_window(stage):
+        score+='TimeoutStartSec=130\n'
+        score_timer='[Timer]\nOnCalendar=\nOnCalendar=*-*-* *:01/5:00 UTC\n'
     files={'forecast.conf':forecast,
         'score.conf':score.encode(),'score-timer.conf':score_timer.encode(),
         'thermal-native-geometry-prepare.service':service.encode(),'thermal-native-geometry-prepare.timer':timer.encode()}
@@ -90,6 +101,11 @@ def _metadata(stage,libraries,original,actual,record,files):
         result.update(schema='earthship-native-thermal-service-family/v2',model_verification=record['model_verification'],
             score_dispatch=record['score_dispatch'],score_slot_roles=dict(current=[0,2],legacy=[1,3]))
         result['schedule']['score_offsets_seconds']=[10,70,130,190]
+        if _extended_score_window(stage):
+            result['score_service_timeout_seconds']=130
+            result['score_slot_roles']=dict(current=[1],legacy=[6],period_minutes=10)
+            result['schedule'].update(score_offsets_seconds=[60],score_work_timeout_seconds=120,
+                score_cycle_period_seconds=300,score_role_period_seconds=600,score_stop_offset_seconds=180)
     return result
 
 

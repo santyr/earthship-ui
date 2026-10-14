@@ -443,7 +443,7 @@ def score_jobs(settings,*,guard,reader=None,max_jobs=1,serving_model=None,histor
     from thermal_model.recent_cycles import compare_v2
     from thermal_model.replay_budget import shared_replay_budget,capture_source_reads
     if type(max_jobs) is not int or max_jobs!=1:raise ValueError('one serial native score job required')
-    settings=deepcopy(settings);guard();_resource_preflight();now=_clock();deadline=monotonic()+50
+    settings=deepcopy(settings);guard();_resource_preflight();now=_clock();deadline=monotonic()+120
     def remaining():
         guard();seconds=deadline-monotonic()
         if seconds<=0:raise ValueError('native scoring deadline exceeded')

@@ -6,7 +6,7 @@ from test_native_serving_score_driver import fixture
 
 def compatible_fixture(tmp_path,monkeypatch,helper='a'*64):
     import household_cycle_deploy as deploy,native_model_serving_receipt as admission
-    coordinator,config,stage,calls,model,now,dispatch=fixture(tmp_path,monkeypatch,2)
+    coordinator,config,stage,calls,model,now,dispatch=fixture(tmp_path,monkeypatch,1)
     history={'stage':str(tmp_path/'historical'),'deployment_sha256':'b'*64};dispatch['historical']=[history]
     monkeypatch.setattr(coordinator,'native_score_selection',lambda *_:history)
     original=deploy.verify_stage
@@ -41,12 +41,12 @@ def test_changed_helper_keeps_exact_retained_worker(tmp_path,monkeypatch):
     assert seen==[history] and 'locked' not in calls
 
 
-def test_stage_verification_counts_toward_existing_fifty_second_lifetime(tmp_path,monkeypatch):
+def test_stage_verification_counts_toward_bounded_worker_lifetime(tmp_path,monkeypatch):
     import household_cycle_deploy as deploy
-    c,config,stage,calls,model,now,dispatch=fixture(tmp_path,monkeypatch,2)
+    c,config,stage,calls,model,now,dispatch=fixture(tmp_path,monkeypatch,1)
     ticks=[100.];verify=deploy.verify_stage
     def expensive(*args,**kwargs):
-        result=verify(*args,**kwargs);ticks[0]+=51.;return result
+        result=verify(*args,**kwargs);ticks[0]+=121.;return result
     monkeypatch.setattr(deploy,'verify_stage',expensive)
     monkeypatch.setattr(c,'score_with_report',lambda *_a,**_k:{'status':'waiting'})
     with pytest.raises(ValueError,match='score'):

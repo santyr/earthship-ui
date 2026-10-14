@@ -6542,6 +6542,33 @@
       "live_timer_changed": false,
       "private_telemetry_writes": false,
       "live_household_completion_qualified": false
+    },
+    "native_practical_scoring_budget": {
+      "status": "implemented_and_targeted_tests_passed_activation_pending",
+      "source_document": "docs/operations/2026-10-14-practical-native-scoring-budget.md",
+      "original_worker_seconds": 50,
+      "new_worker_seconds": 120,
+      "new_service_seconds": 130,
+      "hard_resource_limits_changed": false,
+      "fitting_executed": false,
+      "fit_coefficients_changed": false,
+      "live_units_changed": false,
+      "schedule": "minute 1 every five minutes; native minute 1 mod 10, legacy minute 6 mod 10",
+      "retained_original_source_score_seconds": 76.29628376290202,
+      "retained_original_source_score_peak_bytes": 84160512,
+      "offline_score_is_production_evidence": false,
+      "tests": [
+        {
+          "run": "20261014T165104224521Z-leased-tests",
+          "passed": 48,
+          "seconds": 82.5
+        },
+        {
+          "run": "20261014T165612736962Z-leased-tests",
+          "passed": 12,
+          "seconds": 27.49
+        }
+      ]
     }
   },
   "astro_efficiency_audit": {
@@ -6691,5 +6718,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T16:02:23.963048+00:00"
+  "updated_at": "2026-10-14T16:57:37.306450+00:00"
 }

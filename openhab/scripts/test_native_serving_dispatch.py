@@ -12,9 +12,9 @@ def test_legacy_backlog_keeps_explicit_scheduled_opportunities():
     selector=getattr(coordinator,'score_role',None)
     assert callable(selector),'explicit score slot selector is missing'
     roles=[selector(datetime(2026,10,13,18,minute,10,tzinfo=timezone.utc)) for minute in range(10)]
-    assert tuple(i for i in range(5) if roles[i]=='legacy')==(1,3)
-    assert tuple(i for i in range(5) if roles[i]=='current')==(0,2)
-    assert roles[4]==roles[9]=='reserved' and roles[:5]==roles[5:]
+    assert tuple(i for i in range(10) if roles[i]=='legacy')==(6,)
+    assert tuple(i for i in range(10) if roles[i]=='current')==(1,)
+    assert roles.count('reserved')==8
 
 
 def test_receipt_score_refusal_cannot_route_to_legacy_monitor(monkeypatch,settings,tmp_path):
