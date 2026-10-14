@@ -100,6 +100,35 @@ def build_deployment_candidate(*, originals, runtime, previous, created_at, guar
     return candidate
 
 
+def retained_model_admission(candidate, *, selections, guard):
+    """Reuse the earliest externally pinned admission of this exact model."""
+    from household_cycle_deploy import verify_stage
+    from native_model_serving_receipt import load_serving_selection, read_serving_model
+    if not isinstance(selections,(list,tuple)) or not 1<=len(selections)<=32:
+        raise ValueError('bounded retained admission selections required')
+    best=None;seen=set()
+    for reference in selections:
+        guard();stage=Path(reference['stage']);pin=reference['deployment_sha256']
+        if str(stage) in seen:raise ValueError('unique retained admission stages required')
+        seen.add(str(stage));record=verify_stage(stage,expected_deployment_sha256=pin)
+        if record.get('artifact_sha256')!=candidate['artifact_sha256']:continue
+        if record.get('runtime_sha256')!=candidate['runtime_sha256']:
+            raise ValueError('retained admission runtime differs')
+        now=datetime.now(timezone.utc)
+        selection=load_serving_selection(stage,expected_deployment_sha256=pin,assessed_at=now,guard=guard)
+        model=read_serving_model(selection,assessed_at=now,guard=guard)
+        if model.candidate!=candidate:raise ValueError('retained admission candidate differs')
+        receipt=json.loads(model._encoded)['receipt'];owned=json.loads(selection._encoded)
+        key=(datetime.fromisoformat(receipt['verified_at']),str(stage))
+        if best is None or key<best[0]:best=(key,model,owned,receipt)
+    if best is None:return None
+    _,model,owned,receipt=best
+    model.verify_bindings(assessed_at=datetime.now(timezone.utc),guard=guard);guard()
+    return dict(candidate_path=owned['candidate_path'],receipt_path=owned['receipt']['path'],
+        receipt_sha256=owned['receipt']['sha256'],verified_at=receipt['verified_at'],
+        source_stage=owned['stage'],source_deployment_sha256=owned['deployment_sha256'])
+
+
 class NativeTraining:
     def __init__(self, config):
         self.config = config
@@ -276,20 +305,27 @@ class NativeTraining:
             raise ValueError('previous model selection differs')
         candidate = build_deployment_candidate(originals=originals, runtime=runtime,
             previous=previous_candidate, created_at=datetime.now(timezone.utc), guard=self.guard)
-        path = write_native_candidate(directory(run / 'candidate'), candidate,
-            assessed_at=datetime.now(timezone.utc), runtime=runtime,
-            expected_artifact_sha256=candidate['artifact_sha256'], guard=self.guard)
-        receipt = admit_model(path, runtime=runtime, expected_artifact_sha256=candidate['artifact_sha256'],
-            directory=directory(run / 'receipts'), clock=lambda: datetime.now(timezone.utc), guard=self.guard)
-        receipt_pin = sha256(receipt.read_bytes()).hexdigest()
+        old = read_score_dispatch(Path(previous['stage']),
+            deployment_sha256=previous['deployment_sha256'], guard=self.guard)
+        admission = retained_model_admission(candidate,
+            selections=[{k:previous[k] for k in ('stage','deployment_sha256')},*old['historical']],guard=self.guard)
+        if admission is None:
+            path = write_native_candidate(directory(run / 'candidate'), candidate,
+                assessed_at=datetime.now(timezone.utc), runtime=runtime,
+                expected_artifact_sha256=candidate['artifact_sha256'], guard=self.guard)
+            receipt = admit_model(path, runtime=runtime, expected_artifact_sha256=candidate['artifact_sha256'],
+                directory=directory(run / 'receipts'), clock=lambda: datetime.now(timezone.utc), guard=self.guard)
+            receipt_pin = sha256(receipt.read_bytes()).hexdigest()
+        else:
+            path=Path(admission['candidate_path']);receipt=Path(admission['receipt_path'])
+            receipt_pin=admission['receipt_sha256']
+        save(run / 'model-admission.json',dict(reused=admission is not None,original=admission))
         settings.update(candidate_path=str(path), artifact_sha256=candidate['artifact_sha256'],
             runtime_sha256=candidate['runtime_sha256'], model_receipt_path=str(receipt),
             model_receipt_sha256=receipt_pin, geometry_directory=str(directory(run / 'geometry-live')))
         config = run / 'final-config.json'
         save(config, settings)
         save(run / 'geometry-libraries.json', libraries)
-        old = read_score_dispatch(Path(previous['stage']),
-            deployment_sha256=previous['deployment_sha256'], guard=self.guard)
         historical = tuple([*old['historical'], {k: previous[k] for k in ('stage', 'deployment_sha256')}])
         dispatch = prepare_score_dispatch(legacy_stage=Path(old['legacy']['stage']),
             legacy_deployment_sha256=old['legacy']['deployment_sha256'], historical_selections=historical,
