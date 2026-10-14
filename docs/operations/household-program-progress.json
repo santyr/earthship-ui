@@ -6411,7 +6411,7 @@
       "deployment_sha256": "dccdc7a2d0b8e0e72147c1789250fe5a47834b67847a46313819577c67555ca0"
     },
     "native_scoring_runtime_diagnosis": {
-      "status": "psi_patch_deployed_scoring_deadline_and_recurring_preparation_overlap_remain",
+      "status": "dispatch_lifetime_fixed_actual_outcome_scoring_still_unqualified",
       "staged_source": "5e36e37acbc2b1724d3c5d41920ee8c652aa9d28",
       "staged_deployment_sha256": "72afc72e73cd1765ab5942fa71c8cc88896586ca3fc804029df6929a06e6f6e0",
       "query_plans": "both carry and endpoint window use existing time primary index; EXPLAIN only, no database changes",
@@ -6444,7 +6444,13 @@
         "finished_at": "2026-10-14T15:03:04+00:00",
         "status": "score_withheld",
         "native_accuracy_qualified": false
-      }
+      },
+      "active_source_commit": "5ab8f1d3b359c77d8fdb99b8187235c2d0e7e6a2",
+      "active_deployment_sha256": "42f95acd98350c7209e7052c650e9f6b3000397263e7d8d063464c0cf560e67a",
+      "private_io_probe": "stopped_by_original_one_second_PSI_guard_twice_no_completion_or_production_report",
+      "private_pressure_increment_microseconds": 1725,
+      "guard_allowance_full_microseconds": 1000,
+      "active_resource_policy_changed": false
     },
     "native_psi_window_deployment": {
       "mode": "apply",
@@ -6484,6 +6490,58 @@
       },
       "recurring_cold_preparation_qualified": false,
       "household_evidence_collection_qualified": false
+    },
+    "native_scoring_lifetime_and_compatible_history": {
+      "status": "deployed_effective_files_caps_and_timers_verified",
+      "source_commit": "5ab8f1d3b359c77d8fdb99b8187235c2d0e7e6a2",
+      "deployment_sha256": "42f95acd98350c7209e7052c650e9f6b3000397263e7d8d063464c0cf560e67a",
+      "tests_passed": 20,
+      "qualification": ".superpowers/sdd/2026-10-13-native-model-serving-receipt/20261014T151748471683Z-leased-tests.json",
+      "activation": {
+        "mode": "apply",
+        "source_commit": "5ab8f1d3b359c77d8fdb99b8187235c2d0e7e6a2",
+        "deployment_sha256": "42f95acd98350c7209e7052c650e9f6b3000397263e7d8d063464c0cf560e67a",
+        "model_receipt_sha256": "1f6871e9d9521298a9c2c9d91f641d6308cd6fe10c58cab9588d4b7fae398d9b",
+        "live_writes": false,
+        "live_units_changed": true,
+        "unit_mutation_attempted": true,
+        "automatic_actuation": false,
+        "private_metadata_deadline_seconds": 150,
+        "early_owned_timers_quiesced": true,
+        "status": "native_family_activated",
+        "handoff_sha256": "1729707ceeee0f63506fe6e976e7f0f0563be756abeab5f19355fdaaa51d7aa9",
+        "effective_definition_status": "native_effective_family_verified",
+        "unit_manager_reloaded": true,
+        "new_preparer_timer_enabled": false,
+        "existing_preparer_timer_preserved": true,
+        "service_restarted": false,
+        "early_timer_lease_restoration_safe": true,
+        "exit": 0,
+        "cold_seconds": 89.52149593899958,
+        "memory_peak_bytes": 62087168,
+        "memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n"
+      },
+      "independent_readback": ".superpowers/sdd/2026-10-13-native-model-serving-receipt/20261014T154011-psi-activation-readback.json",
+      "natural_score_finished_at": "2026-10-14T15:43:03+00:00",
+      "natural_preparer_started_at": "2026-10-14T15:43:05+00:00",
+      "natural_preparer_finished_at": "2026-10-14T15:43:55+00:00",
+      "native_outcome_accuracy_qualified": false
+    },
+    "native_household_collection_window": {
+      "status": "root_cause_measured_earlier_warm_design_awaiting_user_decision",
+      "document": "docs/operations/2026-10-14-native-scoring-and-collection-window-diagnosis.md",
+      "original_warm_lead_seconds": 30,
+      "original_initial_collection_budget_seconds": 0.803125,
+      "tested_private_warm_lead_seconds": 45,
+      "private_initial_collection_budget_seconds": 3.31568,
+      "private_collection_seconds": 1.7999400029657409,
+      "private_numeric_write_boundary_seconds": 59.77983387501445,
+      "private_whole_probe_seconds": 60.35432635108009,
+      "private_memory_peak_bytes": 127578112,
+      "private_collection_status": "collected",
+      "live_timer_changed": false,
+      "private_telemetry_writes": false,
+      "live_household_completion_qualified": false
     }
   },
   "astro_efficiency_audit": {
@@ -6633,5 +6691,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T15:06:39.163431+00:00"
+  "updated_at": "2026-10-14T16:02:23.963048+00:00"
 }
