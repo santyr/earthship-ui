@@ -6568,7 +6568,10 @@
           "passed": 12,
           "seconds": 27.49
         }
-      ]
+      ],
+      "candidate_sha256": "fd601cc6f7f607cc777a2e9825d8ce8cdd9c6f00b7fc6e58b10ffa16bd0261db",
+      "runtime_sha256": "18026e9b655d632ea0144e0f93702f7fd20b97dcf562645ec2f0620cdd2b0fbc",
+      "retained_fit_equal": true
     }
   },
   "astro_efficiency_audit": {
@@ -6718,5 +6721,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T16:57:37.306450+00:00"
+  "updated_at": "2026-10-14T17:03:56.891302+00:00"
 }

@@ -1,5 +1,7 @@
 # Native model verification receipt for bounded serving
 
+2026-10-14 clarification: the user directed that limits should prevent a host crash while allowing useful ML execution. The scoring coordinator and inner scorer now have a 120-second work budget, a 130-second service timeout, and one alternating native/legacy slot at minute 1 of each five-minute cycle, ending work before preparation. This supersedes the former scoring lifetime and schedule only; forecast/preparer deadlines, host resource caps, fitting safeguards and actuator boundaries remain as specified. See `docs/operations/2026-10-14-practical-native-scoring-budget.md` for measurement and validation.
+
 Status: written design approved on October 13 by the user reply "plan approved" to the receipt-spec review request. The implementation plan is the next review artifact; prior inline execution and shadow-deployment authorization remain in force.
 
 ## Outcome and retained boundaries
