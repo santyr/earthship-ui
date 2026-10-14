@@ -7383,8 +7383,8 @@
       },
       "review": "final integration review Important retained-policy binding fixed RED to GREEN; full230-test suite passes",
       "operations": "docs/operations/2026-10-14-shared-job-resources.md",
-      "implementation_commit": "0e7d773aea5d9a4977a0e592dc698c1f6a812669",
-      "deployment_sha256": "40178cdfa9dd6af353dfda40521c20f81bf8ca8aa7dc48e2866775770e43ef6c",
+      "implementation_commit": "b26ab0173b31d49a52f46faf314c80f65b3845ff",
+      "deployment_sha256": "6a6748c05373701d581679ba194d43f0237f8a761765d9c9ea7306875e37d1f6",
       "integration_tests": 230,
       "natural_forecast": "23:15:15UTC published with household observation; service exit0 at23:15:29UTC; 13.119CPU seconds",
       "natural_legacy_score": "22:26UTC monitoring_refreshed;256 retained legacy outcomes;zero new mature outcomes",
@@ -7393,9 +7393,18 @@
       "natural_daily_fit": "pending2026-10-15T06:50MDT",
       "fit_executed_during_rollout": false,
       "current_score_correction_tests": 68,
-      "daily_checkout": "0e7d773; clean and idle during update",
+      "daily_checkout": {
+        "status": "daily_source_synchronized",
+        "source_commit": "b26ab0173b31d49a52f46faf314c80f65b3845ff",
+        "previous_source_commit": "0e7d773aea5d9a4977a0e592dc698c1f6a812669",
+        "clean": true,
+        "idle_before_checkout": true,
+        "unit_unchanged": true,
+        "unit_sha256": "eacc1ad9aa28564629258e53f82c80017b640820b4ba739b592dc7dba970da16",
+        "assessed_at": "2026-10-14T23:42:22.711400+00:00"
+      },
       "inventory_correction_tests": 83,
-      "effective_readback_at": "2026-10-14T23:23:02.472347+00:00",
+      "effective_readback_at": "2026-10-14T23:41:27.252071+00:00",
       "current_score_runtime_risk": "Current role completed in 104 seconds and historical role in 100 seconds against the 120-second lifetime. Both observed paths now pass; report cost still grows with cohort size.",
       "current_model_one_hour_performance": {
         "count": 19,
@@ -7505,11 +7514,16 @@
       "planner_mode": "shadow",
       "next_work": "Bind household energy projection to freshly retained daily inputs and their original forecast receipts; retain exact replay and explicit provenance. Add qualified read-only owner-state sources separately; no new request or actuator authority.",
       "automatic_actuation": false,
-      "full_architecture_complete": false
+      "full_architecture_complete": false,
+      "resolution": {
+        "daily_input_refresh_verified_at": "2026-10-14T23:41:44.040860+00:00",
+        "current_receipt_sha256": "9985b56edec6059329ff0443161ec5197f61072a4fb0e7f87e760b74fe8f8249",
+        "remaining": "Qualified owner coordination facts and baseline SoC floor remain incomplete; no new actuator authority."
+      }
     },
     "household_daily_energy_source_refresh": {
       "implemented": true,
-      "deployed": false,
+      "deployed": true,
       "tests_passed": 352,
       "suite_seconds": 62.12,
       "source_schema": "earthship-household-cycle-sources/v2",
@@ -7539,10 +7553,31 @@
         "state_sha256": "ef4aca0a8ec3b094bc0005bad3c2c90ed2f4fbe191fa78172f500b5a99ccbf11",
         "status": "actual_current_daily_inputs_matched"
       },
-      "actual_new_pipeline_replay": "pending new current-runtime original snapshot after deployment; old source-runtime pin correctly refused reinterpretation",
+      "actual_new_pipeline_replay": {
+        "assessed_at": "2026-10-14T23:41:44.040860+00:00",
+        "automatic_actuation": false,
+        "current_soc_pct": 90.0,
+        "daily_issued_at": "2026-10-14T12:40:49.420253+00:00",
+        "daily_prediction_day": "2026-10-14",
+        "daily_receipt_sha256": "8411e0c34698981eda772133b843cace8dc7bfb76cce96fa1a692478df0ca8a2",
+        "daily_resource_kwh": 2.011388888888889,
+        "input_qualification": "not_assessed",
+        "live_writes": false,
+        "private_cli_replay_identical": true,
+        "pure_replay_identical": true,
+        "receipt_path": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-14-shared-job-resources/production-b26ab01/final/evidence/4e4b5123ac811385b3e4f5052f36e90882152317aa7e386242a9f8983bfb621f.household-model-plan-v5.json",
+        "receipt_sha256": "9985b56edec6059329ff0443161ec5197f61072a4fb0e7f87e760b74fe8f8249",
+        "snapshot_as_of": "2026-10-14T23:40:15+00:00",
+        "source_collected_at": "2026-10-14T23:40:08.019595+00:00",
+        "source_commit": "b26ab0173b31d49a52f46faf314c80f65b3845ff",
+        "status": "natural_current_daily_household_pipeline_verified",
+        "tomorrow_cloud_pct": 42
+      },
       "review": "One independent review found a local-day rollover Important issue; reproduced with genuine cycle regression and corrected. Full352-test suite passed after the single fix pass. No rereview.",
       "automatic_actuation": false,
-      "reviewed_commit": "83c6f33265ff504d5b4c0b5757ab2dc089812291"
+      "reviewed_commit": "83c6f33265ff504d5b4c0b5757ab2dc089812291",
+      "source_commit": "b26ab0173b31d49a52f46faf314c80f65b3845ff",
+      "deployment_sha256": "6a6748c05373701d581679ba194d43f0237f8a761765d9c9ea7306875e37d1f6"
     }
   },
   "astro_efficiency_audit": {
