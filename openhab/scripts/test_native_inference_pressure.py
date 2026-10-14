@@ -56,8 +56,8 @@ def test_window_expires_only_at_observed_sample(rig):
 
 
 @pytest.mark.parametrize('changes,match',[
-    ({'out':1},'swap-out'),({'oom':1},'OOM'),({'reserve':1572863},'reserve'),
-    ({'some':5001},'trailing one-second memory pressure'),({'full':1001},'trailing one-second memory pressure'),
+    ({'out':4097},'swap-out'),({'oom':1},'OOM'),({'reserve':1572863},'reserve'),
+    ({'some':50001},'trailing one-second memory pressure'),({'full':10001},'trailing one-second memory pressure'),
     ({'avg':'0.51'},'memory pressure'),({'pages':-1},'resource counters'),
 ])
 def test_original_pressure_reserve_and_counter_checks_remain(rig,changes,match):

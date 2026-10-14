@@ -13,22 +13,22 @@ class Window(unittest.TestCase):
   self.clock[0]=at;self.paths['meminfo'].write_text(f'MemAvailable: {reserve} kB\nSwapTotal: 2048 kB\nSwapFree: 1024 kB\n');self.paths['vmstat'].write_text(f'pswpin {pages}\npswpout {out}\noom_kill {oom}\n');self.paths['pressure'].write_text(f'some avg10={avg} avg60=0.00 avg300=0.00 total={some}\nfull avg10=0.00 avg60=0.00 avg300=0.00 total={full}\n')
  def test_measured_124_microsecond_stall_fits_one_second_budget(self):
   self.sample(10.1,some=125,full=124);self.guard.check()
- def test_full_one_millisecond_cap_and_refusal_latch(self):
-  self.sample(10.1,full=1000);self.guard.check();self.sample(10.2,full=1001)
+ def test_full_ten_millisecond_cap_and_refusal_latch(self):
+  self.sample(10.1,full=10000);self.guard.check();self.sample(10.2,full=10001)
   with self.assertRaisesRegex(ValueError,'trailing one-second memory pressure'):self.guard.check()
-  self.sample(12,full=1001)
+  self.sample(12,full=10001)
   with self.assertRaisesRegex(ValueError,'previously refused'):self.guard.check()
- def test_some_five_millisecond_cap(self):
-  self.sample(10.1,some=5000);self.guard.check();self.sample(10.2,some=5001)
+ def test_some_fifty_millisecond_cap(self):
+  self.sample(10.1,some=50000);self.guard.check();self.sample(10.2,some=50001)
   with self.assertRaisesRegex(ValueError,'trailing one-second memory pressure'):self.guard.check()
  def test_partial_interval_retained_without_interpolation(self):
-  self.sample(10.5,full=500);self.guard.check();self.sample(11.2,full=1000);self.guard.check()
+  self.sample(10.5,full=5000);self.guard.check();self.sample(11.2,full=10000);self.guard.check()
   self.assertEqual(self.guard.pressure_samples[0][0],10.)
-  self.sample(11.3,full=1001)
+  self.sample(11.3,full=10001)
   with self.assertRaises(ValueError):self.guard.check()
  def test_expiry_requires_observed_sample(self):
-  self.sample(10.5,full=1000);self.guard.check();self.sample(11.5,full=1000);self.guard.check();self.sample(11.6,full=2000);self.guard.check()
-  self.sample(11.7,full=2001)
+  self.sample(10.5,full=10000);self.guard.check();self.sample(11.5,full=10000);self.guard.check();self.sample(11.6,full=20000);self.guard.check()
+  self.sample(11.7,full=20001)
   with self.assertRaises(ValueError):self.guard.check()
  def test_pressure_counter_regression_refuses(self):
   self.sample(10.1,full=100);self.guard.check();self.sample(10.2,full=99)
@@ -37,7 +37,7 @@ class Window(unittest.TestCase):
   self.sample(10.000719,pages=1);self.guard.check();self.sample(10.2,pages=257)
   with self.assertRaisesRegex(ValueError,'swap-read'):self.guard.check()
  def test_all_existing_host_and_worker_barriers(self):
-  for change in ({'out':1},{'oom':1},{'reserve':1572863},{'avg':'0.51'}):
+  for change in ({'out':4097},{'oom':1},{'reserve':1572863},{'avg':'0.51'}):
    with self.subTest(change=change):
     self.guard=policy.NativeInferenceHeadroom(**self.paths,worker_check=lambda:None);self.sample(10.);self.guard.check();self.sample(10.1,**change)
     with self.assertRaises(ValueError):self.guard.check()

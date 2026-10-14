@@ -1,4 +1,4 @@
-"""Approved native inference policy; original fitting guard remains unchanged."""
+"""Bounded native inference headroom; original fitting guard remains unchanged."""
 from collections import deque
 import math
 import os
@@ -8,7 +8,7 @@ from thermal_model.training_pressure_guard import TrainingHeadroom, _counters, _
 
 
 class NativeInferenceHeadroom(TrainingHeadroom):
-    """Keep strict per-callback checks; bound swap reads over a trailing second.
+    """Bound brief host paging and stalls while preserving worker caps.
 
     The retained baseline can precede the boundary, making the bound conservative
     when samples are sparse. Failed checks latch; a caller cannot renew a budget
@@ -21,7 +21,7 @@ class NativeInferenceHeadroom(TrainingHeadroom):
             from household_cycle_pressure import PublicationHeadroom
             worker_check=PublicationHeadroom().check
         if not callable(worker_check):raise ValueError('worker resource checker required')
-        self.worker_check=worker_check;self.samples=deque();self.pressure_samples=deque();self.refused=False
+        self.worker_check=worker_check;self.samples=deque();self.swapout_samples=deque();self.pressure_samples=deque();self.refused=False
 
     def check(self):
         if self.refused:raise ValueError('native inference headroom previously refused')
@@ -47,8 +47,9 @@ class NativeInferenceHeadroom(TrainingHeadroom):
             now=monotonic()
             if self.previous is not None:
                 at,old,old_pressure=self.previous
-                if now<=at or any(counters[k]!=old[k] for k in ('pswpout','oom_kill')):
-                    raise ValueError('swap-out activity or OOM counter changed')
+                if now<=at or counters['oom_kill']!=old['oom_kill']:
+                    raise ValueError('nonincreasing inference clock or OOM counter changed')
+                if counters['pswpout']<old['pswpout']:raise ValueError('host swap-out counter regressed')
                 swapped_in=counters['pswpin']-old['pswpin']
                 if swapped_in<0:raise ValueError('host swap-read counter regressed')
                 for key,limit in (('some',.5),('full',.1)):
@@ -58,9 +59,15 @@ class NativeInferenceHeadroom(TrainingHeadroom):
             while len(self.pressure_samples)>1 and self.pressure_samples[1][0]<=now-1:
                 self.pressure_samples.popleft()
             if len(self.pressure_samples)>65536:raise ValueError('bounded inference pressure samples exceeded')
-            for key,limit in (('some',.5),('full',.1)):
+            for key,limit in (('some',5.),('full',1.)):
                 if pressure[key]-self.pressure_samples[0][1][key]>1000000*limit/100:
                     raise ValueError('trailing one-second memory pressure exceeded')
+            self.swapout_samples.append((now,counters['pswpout']))
+            while len(self.swapout_samples)>1 and self.swapout_samples[1][0]<=now-1:
+                self.swapout_samples.popleft()
+            if len(self.swapout_samples)>65536:raise ValueError('bounded inference swap-out samples exceeded')
+            if (counters['pswpout']-self.swapout_samples[0][1])*os.sysconf('SC_PAGE_SIZE')>16777216:
+                raise ValueError('host swap-out activity exceeded trailing one-second allowance')
             self.samples.append((now,counters['pswpin']))
             # Retain the sample before the boundary: do not discard an
             # unmeasured partial interval or interpolate cumulative counters.

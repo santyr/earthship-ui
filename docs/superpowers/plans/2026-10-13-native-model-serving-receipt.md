@@ -2,6 +2,8 @@
 
 2026-10-14 clarification: the user directed that limits should prevent a host crash while allowing useful ML execution. The scoring coordinator and inner scorer now have a 120-second work budget, a 130-second service timeout, and one alternating native/legacy slot at minute 1 of each five-minute cycle, ending work before preparation. This supersedes the former scoring lifetime and schedule only; forecast/preparer deadlines, host resource caps, fitting safeguards and actuator boundaries remain as specified. See `docs/operations/2026-10-14-practical-native-scoring-budget.md` for measurement and validation.
 
+The same practical-limit clarification also replaces inference zero-tolerance host swap-out with a trailing 16 MiB/s allowance and short PSI allowances of 5% some / 1% full. Sustained PSI thresholds, 1 MiB/s swap reads, hard worker caps, OOM/event checks and available RAM reserve remain. Original fitting policy remains unchanged; see the operation record for the measured refusal and regression tests.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. The user already chose inline execution; do not dispatch an implementer or reviewer for each task.
 
 **Goal:** Deploy the provisional native ML model for monitoring within the existing local limits by admitting its numerical validation once and freshly checking its exact dependencies on each serving cycle.

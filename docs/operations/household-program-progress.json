@@ -6544,7 +6544,7 @@
       "live_household_completion_qualified": false
     },
     "native_practical_scoring_budget": {
-      "status": "implemented_and_targeted_tests_passed_activation_pending",
+      "status": "candidate_receipt_validated_cold_probe_refused_global_swapout_policy_adjusted",
       "source_document": "docs/operations/2026-10-14-practical-native-scoring-budget.md",
       "original_worker_seconds": 50,
       "new_worker_seconds": 120,
@@ -6571,7 +6571,24 @@
       ],
       "candidate_sha256": "fd601cc6f7f607cc777a2e9825d8ce8cdd9c6f00b7fc6e58b10ffa16bd0261db",
       "runtime_sha256": "18026e9b655d632ea0144e0f93702f7fd20b97dcf562645ec2f0620cdd2b0fbc",
-      "retained_fit_equal": true
+      "retained_fit_equal": true,
+      "source_generation": "actual-practical-headroom-20261014",
+      "inference_swapout_mib_per_second": 16,
+      "inference_short_psi_some_pct": 5,
+      "inference_short_psi_full_pct": 1,
+      "host_swap_configuration_changed": false
+    },
+    "native_daily_training_freshness_diagnosis": {
+      "status": "daily_native_refresh_not_restored",
+      "assessed_at": "2026-10-14T17:16:15.552556+00:00",
+      "trained_through": "2026-10-12T06:00:00+00:00",
+      "training_age_hours": 59.270986821111116,
+      "legacy_timer_active": false,
+      "legacy_timer_last_trigger": "2026-10-09T06:50:13-06:00",
+      "legacy_guard_test_exit": 1,
+      "legacy_guard_max_host_swap_used_mib": 128,
+      "legacy_trainer_updates_active_native_model": false,
+      "fresh_fit_executed": false
     }
   },
   "astro_efficiency_audit": {
@@ -6721,5 +6738,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T17:03:56.891302+00:00"
+  "updated_at": "2026-10-14T17:17:58.232754+00:00"
 }

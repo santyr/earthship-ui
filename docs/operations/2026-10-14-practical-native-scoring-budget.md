@@ -13,3 +13,20 @@ Validation and live activation results will be appended after checks complete. T
 Initial validation: 48 schedule, lifetime, family, handoff, upgrade, and effective readback tests passed in 82.50 seconds in run-u26514. The private test monitor now uses the existing publication headroom policy for capped offline fixtures; the original fitting guard is unchanged. A separate regression then demonstrated the inner native deadline also needed adjustment.
 
 Final targeted validation: 12 tests passed in 27.49 seconds in run-u26624, including the inner 120-second deadline regression, old-model refusal, owned upgrade, effective timeout readback, and coordinator routing. The independent source-score and completion/report numerical parity checks passed earlier in run-u26604; that combined batch was subsequently stopped at its private 90-second budget, so it is not recorded as a passing whole batch. All timer definitions were unchanged and all three timers restored after each completed test run. Production activation remains pending.
+
+
+## Additional measured inference admission issue
+
+The cold preparer for stage `9e9096fe30f9d126d48f56105cc376cb828234f4afb9028fb6dcc213414af0d3` stopped on 5 MiB of global swap-out traffic, despite zero new host OOMs, zero worker memory events, worker peak 140,304,384 bytes, and zero PSI averages. This was a policy refusal, not an OOM or elapsed preparation deadline. Its record is `20261014T170818522832Z-cold-preparer.json` under the private receipt QA folder.
+
+Following the user's clarification to prevent host crashes without prohibiting useful work, inference now allows at most 16 MiB of host swap-out per trailing observed second, rather than refusing any global page. Counter regressions and OOM changes still refuse. The existing swap-read allowance stays 1 MiB per second. Brief PSI allowances become 5% some / 1% full over the trailing second; sustained avg10/avg60/avg300 limits remain 0.5% some / 0.1% full. The 1.5 GiB available-RAM reserve, leaf caps, zero worker swap, event checks, five-second admission, deadlines, lock and failure latch remain. The original fitting guard is unchanged. No host swap, swappiness or service outside this inference family was changed.
+
+All 28 inference pressure tests passed in 1.60 seconds (run-u27393). After correcting exact one-microsecond boundary fixtures, all 10 PSI tests plus 4 subtests passed in 0.61 seconds (run-u27412). The final admission stage must be rebuilt to include this outside-fitted helper; the new candidate and numerical receipt remain reusable because their complete 72 protected and 12 native runtime sources are unchanged by this helper adjustment.
+
+## Why training is 59 hours old
+
+Live readback at 2026-10-14 17:16 UTC reports the active model trained through 2026-10-12 06:00 UTC, or midnight Mountain time, 59.27 hours earlier. The model's newer creation/receipt timestamps do not represent fresh training data. The UI uses the correct `model.trainedThrough` field.
+
+The old daily 06:50 `thermal-model-train.timer` is enabled on disk but inactive, with no next trigger; its last trigger was October 9. October 8 and 9 logs show `exec-condition` skips before the trainer started. Its installed AWK guard requires host swap used <=128 MiB and available RAM >=3 GiB. A read-only evaluation today returns exit 1, with around 7.7 GiB available but 3.4 GiB of inactive pages in swap. No fitting or OOM occurs on this refusal. Its existing service is the legacy `/home/sat/openhab/scripts/thermal_intel.py train`, not a producer for the selected native fitted artifact.
+
+The current native publication uses explicitly retained fitted evidence; there is no replacement daily native training timer in the user service inventory. Restoring a bounded native daily capture/fit/validation/publication workflow remains required. Neither changing inference time limits, renewing a receipt, enabling the unrelated legacy trainer, nor disabling host swap supplies that missing workflow. No fresh-training or daily-scheduling completion is claimed here.
