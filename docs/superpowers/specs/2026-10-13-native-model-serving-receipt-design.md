@@ -1,6 +1,6 @@
 # Native model verification receipt for bounded serving
 
-Status: proposed design, awaiting written-spec approval. The user selected this approach on October 13; that selection authorizes this design, not implementation or model activation.
+Status: written design approved on October 13 by the user reply "plan approved" to the receipt-spec review request. The implementation plan is the next review artifact; prior inline execution and shadow-deployment authorization remain in force.
 
 ## Outcome and retained boundaries
 
