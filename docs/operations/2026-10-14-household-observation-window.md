@@ -54,3 +54,31 @@ was caught and corrected before packaging. This change does not yet implement
 the proposed shared cgroup budget or dynamic admission coordinator.
 
 Live completion evidence must follow the next scheduled serving cycle.
+
+## Live evidence at 18:41 UTC
+
+Source `6128230`, deployment `160df15f`, model `8cee08fa` activated in
+14.60 seconds with 54.9 MiB peak memory and no memory-limit events. Independent
+readback verified all five owned files, three effective deployment pins, exact
+per-role limits and active timers. The daily production checkout is clean at
+the same source commit; its next trigger remains October 15 at 06:50 MDT.
+
+The normal geometry run succeeded. The 18:39:45 forecast invocation completed
+at 18:40:28 with exit 0, verified delivery, 12.697 CPU seconds, 80.9 MiB peak
+memory and zero swap. It wrote the 18:40:15 household snapshot; the HTTP200
+household endpoint exactly matched the cache and selected thermal model.
+This resolves the service timeout and stopped cache-writing path.
+
+It does not yet resolve the unavailable household view. Inverter/load evidence
+received at 18:39:46.879 expired at 18:40:16.878; household verification completed
+at 18:40:26.845. Its earliest-source expiry therefore correctly leaves the view
+unavailable. Acquisition timing for short-lived evidence is the next concrete
+issue; extending evidence expiry or claiming source qualification would hide it.
+No mature native accuracy or full PR3 completion is claimed.
+
+Private evidence is retained in the serving-receipt QA directory under
+`actual-forecast-cpu-20261014`: activation result, natural-cycle journal,
+public household observation and natural-cycle readback. The first activation
+attempt refused generated Python bytecode files before any unit changes.
+Those generated caches were removed and the successful command explicitly used
+`PYTHONDONTWRITEBYTECODE=1`; sealed source bytes were unchanged.

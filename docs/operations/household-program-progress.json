@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "Earthship observations remain below the signed-off root content; standalone household navigation is removed. Current effective native family is source7e79fbe/deploymentbbc998ae/model87896dd2/runtime95293950/receipt1f6871e9 with all three owned timers active, original CPU20percent/memory256MiB/swap0/tasks24 caps and no device authority. HTTP200/version9 publications were read back October14; the latest14:09:56UTC publication is unavailable, so earlier provisional observations are not claimed current. Fresh native household receipt and mature native accuracy remain unqualified: the 2MiB envelope fix plus pinned owned upgrades are committed ce881d8; batched endpoint acquisition is committed5e36e37 with33regressions passing but its actual full scoring command still reaches50seconds. The proposed activation refused intervalPSI; five original unit bytes and three effective previous pins/timer states were verified intact. Broader observability and qualification remain incomplete.",
+      "current_evidence": "Earthship observations remain below existing content; standalone household navigation removed. Source6128230/deployment160df15f/model8cee08fa activated October14 with one CPU for forecasting,256MiB memory and zero worker swap. Natural18:40:15UTC forecast delivery succeeded; service exited0 in43seconds with80.9MiB peak and no swap. First fresh household snapshot since04:35UTC was written and matched the HTTP200 API. Its inverter/load evidence expired at18:40:16.878UTC before materialization, so planner_mode remains unavailable; this is not a complete observability repair. Morning native training is enabled for06:50MDT; first natural fit and mature native accuracy remain unverified. See proofs.native_forecast_cpu_deployment. No actuator authority.",
       "complete": false
     },
     {
@@ -6661,7 +6661,45 @@
         "thermal-native-daily.timer": "feac24482c129a1afa57d0a56fa3213c6e8d62779b2f95e6f1d239a32816e089"
       },
       "automatic_actuation": false,
-      "source_document": "docs/operations/2026-10-14-native-daily-training.md"
+      "source_document": "docs/operations/2026-10-14-native-daily-training.md",
+      "production_source_commit": "6128230478c4df28488b3dadced032a3633c8432",
+      "production_checkout_verified_at": "2026-10-14T18:41:43.124789+00:00"
+    },
+    "native_forecast_cpu_deployment": {
+      "assessed_at": "2026-10-14T18:41:43.124789+00:00",
+      "source_commit": "6128230478c4df28488b3dadced032a3633c8432",
+      "deployment_sha256": "160df15f095d91d96258ded001436715246a53b22aed4576bdd8377033ec480a",
+      "artifact_sha256": "8cee08fa694c9de2cabda0254ff6ddbd062245c12dc9c8043e8508c851b28a0c",
+      "service": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "MemoryPeak": "84897792",
+        "MemorySwapPeak": "0",
+        "CPUUsageNSec": "12697300000"
+      },
+      "household_http_status": 200,
+      "household_api_matches_cache": true,
+      "observation_sha256": "5917fc073d196c80f16f532db13a026ef9884f6e6fdd417b9c3196ecb9ca601e",
+      "snapshot_as_of": "2026-10-14T18:40:15+00:00",
+      "verified_at": "2026-10-14T18:40:26.844730+00:00",
+      "valid_until": "2026-10-14T18:40:16.878000+00:00",
+      "planner_mode": "unavailable",
+      "expired_roles": [
+        "estimated_load_w",
+        "inverter_output_w"
+      ],
+      "thermal_status": "provisional",
+      "thermal_model_matches": true,
+      "household_model_matches": true,
+      "automatic_actuation": false,
+      "tests_passed": 80,
+      "test_seconds": 11.11,
+      "forecast_cpu_quota": "100%",
+      "worker_memory_max_bytes": 268435456,
+      "worker_swap_max_bytes": 0,
+      "fit_executed": false,
+      "source_document": "docs/operations/2026-10-14-household-observation-window.md",
+      "remaining": "Household output is now written, but short-lived inverter/load evidence expired before materialization; native mature accuracy and other PR3 requirements remain incomplete."
     }
   },
   "astro_efficiency_audit": {
