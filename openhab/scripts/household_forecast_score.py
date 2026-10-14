@@ -157,8 +157,30 @@ def failure_reason(error):
         'strict serial installed publication resource limits required':'resource_limits',
         'score lifetime elapsed':'deadline',
         'native scoring deadline exceeded':'deadline',
+        'capture read deadline exceeded':'deadline',
+        'capture request pacing exceeds deadline':'deadline',
+        'native query deadline elapsed or too short':'deadline',
+        'bounded native connection deadline unavailable':'deadline',
     }
     return reasons.get(message,'validation_refused')
+
+
+def failure_site(error):
+    """Return only the innermost repository source name and line, never locals."""
+    import re
+    from pathlib import PurePosixPath
+    trace=error.__traceback__
+    if trace is None:return None
+    while trace.tb_next is not None:trace=trace.tb_next
+    filename=trace.tb_frame.f_code.co_filename
+    marker='/openhab/scripts/'
+    if marker not in filename:return None
+    relative=filename.rsplit(marker,1)[1]
+    path=PurePosixPath(relative)
+    if (len(relative)>200 or re.fullmatch(r'[A-Za-z0-9_./-]+\.py',relative) is None or
+            path.is_absolute() or '..' in path.parts or str(path)!=relative or
+            not 1<=trace.tb_lineno<=100000):return None
+    return dict(source=relative,line=trace.tb_lineno)
 
 
 def run_retained_worker(script,config,*,stage,deployment_sha256,retained_native):
@@ -208,7 +230,11 @@ def main(argv=None):
         else:
             result=run(args.config,stage=args.stage,**selected)
     except BlockingIOError:print(json.dumps(dict(status='busy',fit_executed=False,automatic_actuation=False)));return 75
-    except Exception as error:print(json.dumps(dict(status='score_withheld',reason=failure_reason(error),fit_executed=False,automatic_actuation=False)));return 1
+    except Exception as error:
+        result=dict(status='score_withheld',reason=failure_reason(error),fit_executed=False,automatic_actuation=False)
+        site=failure_site(error)
+        if site is not None:result['site']=site
+        print(json.dumps(result));return 1
     print(json.dumps(result));return 0 if result.get('status') in ('scored','waiting','monitoring_refreshed') else 1
 
 

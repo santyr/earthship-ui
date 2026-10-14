@@ -21,6 +21,7 @@ def test_cli_failure_reasons_never_include_original_error_text(error,reason,tmp_
     monkeypatch.setattr(score,'run',fail)
     assert score.main(['--config',str(tmp_path/'config.json')])==1
     result=json.loads(capsys.readouterr().out)
+    site=result.pop('site');assert site['source']=='test_household_score_diagnostics.py' and site['line']>0
     assert result==dict(status='score_withheld',reason=reason,fit_executed=False,automatic_actuation=False)
 
 
@@ -58,7 +59,7 @@ def test_archived_exception_reaches_current_secret_free_cli(tmp_path,monkeypatch
     stage,script,pin=archive(tmp_path,monkeypatch,"def run(*args, **kwargs):\n raise OSError('private connection details')\n")
     result=score.main(['--config',str(tmp_path/'config'),'--stage',str(stage),'--worker-script',str(script),'--worker-deployment-sha256',pin])
     assert result==1
-    assert json.loads(capsys.readouterr().out)==dict(status='score_withheld',reason='io_unavailable',fit_executed=False,automatic_actuation=False)
+    assert json.loads(capsys.readouterr().out)==dict(status='score_withheld',reason='io_unavailable',site=dict(source='household_forecast_score.py',line=2),fit_executed=False,automatic_actuation=False)
 
 
 def test_retained_worker_rejects_mixed_dependency_context(tmp_path,monkeypatch):
@@ -108,3 +109,27 @@ def test_legacy_worker_supports_original_bytes_helper_signature(tmp_path,monkeyp
     def legacy_bytes(path,*,private=False):return original(path,private=private)
     monkeypatch.setattr(deploy,'_bytes',legacy_bytes)
     assert score.run_retained_worker(script,tmp_path/'config',stage=stage,deployment_sha256=pin,retained_native=False)==dict(status='waiting')
+
+
+@pytest.mark.parametrize('message',[
+    'capture read deadline exceeded','capture request pacing exceeds deadline',
+    'native query deadline elapsed or too short','bounded native connection deadline unavailable',
+])
+def test_reader_deadlines_are_not_misreported_as_validation_failures(message):
+    assert score.failure_reason(ValueError(message))=='deadline'
+
+
+def test_failure_site_contains_only_owned_source_and_line(tmp_path):
+    source=tmp_path/'sources/openhab/scripts/thermal_model/sample.py'
+    source.parent.mkdir(parents=True)
+    source.write_text("raise ValueError('private token-bearing input')\n")
+    import runpy
+    try:runpy.run_path(str(source))
+    except ValueError as error:
+        assert score.failure_site(error)==dict(source='thermal_model/sample.py',line=1)
+
+
+def test_failure_site_omits_external_code_and_invalid_source_paths():
+    for filename in ['/private/credentials.py','/archive/openhab/scripts/../private.py','/archive/openhab/scripts/private value.py']:
+        try:exec(compile("raise ValueError('private input')",filename,'exec'),{})
+        except ValueError as error:assert score.failure_site(error) is None

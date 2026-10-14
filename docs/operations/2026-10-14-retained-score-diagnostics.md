@@ -67,3 +67,13 @@ swap. A live cgroup sample recorded 897 throttled periods out of 904, with
 zero. This directly demonstrates CPU throttling during real production scoring;
 it does not establish that the throttle caused the validation refusal. The exact
 validation failure and legacy-run outcome remain outstanding.
+
+
+The 20:16 legacy invocation succeeded and refreshed its original report with
+256 existing horizon samples, while its next outcome remained unavailable.
+The historical generic refusal still needs its precise origin. Diagnostics now
+classify reader/pacing/connection deadlines as deadlines and include only the
+innermost repository-relative source file and line for exceptions raised within
+`openhab/scripts`. Absolute paths, locals, exception text and full tracebacks
+remain excluded. Six regressions failed before the change; all 46 focused
+scoring/dispatch cases pass afterward in 1.91 seconds.
