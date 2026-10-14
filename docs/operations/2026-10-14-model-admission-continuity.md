@@ -17,7 +17,7 @@ validation, model identity, or actuator authority is relaxed.
 
 Forty-four admission, candidate-identity, receipt, scheduling and upgrade tests
 passed in 17.27 seconds. The three new regressions failed before implementation.
-Actual package/report reconstruction and activation remain pending.
+The original production report was reconciled offline in 5.449 seconds, then the unchanged model was activated as recorded below.
 
 Deployment `0c2d2549` from source `fe597bb` reused the original 19:08:13 UTC
 admission, retained the same model, and passed effective service/timer readback.
@@ -32,4 +32,16 @@ and after acquisition checks. Post-acquisition verification still hashes all
 original private configuration and runs the existing full-job guard, without
 reusing the read timer. The 120-second job and 130-second service limits remain.
 Two regressions failed before this correction; 58 reader/query/batching/scoring,
-deadline and scheduling tests pass in 5.32 seconds. Activation is pending.
+deadline and scheduling tests passed in 5.32 seconds. Deployment `715078d7`
+from `cbec265` passed effective readback and retains the original admission.
+
+The natural 21:01 UTC invocation `1aeb5e9dcdff4545b8410d958be49c1f`
+finished at 21:02:05 with exit 0: one newly scored forecast and three current-model
+outcomes in total. It used 62.244 CPU seconds, 97.2 MiB peak RAM and no swap.
+The report assessed at 21:01:27 UTC has one-hour MAE 0.110915 F versus
+0.30 F persistence. These three overlapping observations do not establish model
+superiority or graduation; longer horizons remain unscored.
+
+The 20:55 UTC live OpenHAB publication and deployed UI parser already displayed
+the preceding two-outcome report as ready/provisional. The daily production
+checkout is clean at `cbec265`; the next natural daily fit remains unverified.

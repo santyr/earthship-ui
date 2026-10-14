@@ -64,3 +64,22 @@ def test_one_core_score_effective_readback_matches_only_opted_in_family(tmp_path
     states['thermal-provisional-score.service']['CPUQuotaPerSecUSec']='200ms'
     with pytest.raises(ValueError,match='role CPU budget'):
         install._verify_effective_family(selected,guard=lambda:None)
+
+
+def test_retained_pressure_monitor_checks_actual_worker_cgroup():
+    # Run under the same one-core, 256-MiB, zero-swap scope as production.
+    # Dropping the leaf keyword from the adapter breaks this real caller.
+    import household_forecast_score as score
+    from native_inference_pressure import NativeInferenceHeadroom
+    with score.production_score_policy():
+        pressure=NativeInferenceHeadroom()
+        pressure.check()
+        assert pressure.cgroup_binding is not None
+        pressure.check()
+        assert pressure.refused is False
+
+
+def test_explicit_missing_cgroup_is_not_replaced_with_current_worker(tmp_path):
+    import household_forecast_score as score
+    with pytest.raises(ValueError,match='verified publication resources required'):
+        score.production_resource_preflight(leaf=tmp_path/'missing-cgroup')

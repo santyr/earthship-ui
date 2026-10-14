@@ -15,7 +15,7 @@ PUBLICATION_POLICY_SHA256 = '092dab2595bb8f8478fd0519118e1e277ab8aa61d887d5ff2fc
 _production_policy = None
 
 
-def production_resource_preflight():
+def production_resource_preflight(*,leaf=None):
     """Load the pinned one-core publication policy from this coordinator's stage."""
     global _production_policy
     import importlib.util
@@ -28,7 +28,7 @@ def production_resource_preflight():
         spec=importlib.util.spec_from_file_location('_earthship_score_publication_policy',path)
         module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         _production_policy=module
-    _production_policy.publication_resource_preflight()
+    _production_policy.publication_resource_preflight(leaf=leaf)
 
 
 @contextmanager

@@ -65,4 +65,20 @@ can refresh every ten minutes without relaxing report freshness. Archived family
 metadata retains its old slot definitions. A full-day scheduling regression
 proves the counts, ten-minute current gap and complete history rotation; all 91
 affected routing, deadline, admission and handoff tests pass in 16.15 seconds.
-This cadence adjustment is staged, not yet active.
+This cadence is active in deployment `715078d7`; the successful 21:01 UTC
+current-model invocation confirms the new slot. See the admission-continuity
+record for the intervening chronology and reader fixes.
+
+
+The 20:56 historical invocation failed before scoring at
+`household_cycle_pressure.py:31`. The retained pressure monitor supplies the
+actual cgroup leaf, but the new production-policy adapter accepted no keyword
+arguments. The adapter now forwards that explicit leaf to the same pinned policy;
+limits and pressure checks are unchanged. A missing explicit leaf still refuses
+admission instead of silently checking a different cgroup.
+
+Both regressions failed with the original TypeError before the two-line fix.
+All 94 affected scoring, dispatch and admission cases pass. A network-denied
+serial check also exercised actual pressure monitors in all 13 retained native
+archives plus the legacy admission context. No scoring, fitting or live writes
+were performed by that check. The callback correction is awaiting deployment.

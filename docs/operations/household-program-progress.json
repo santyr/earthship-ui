@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "Earthship observations remain below existing content; standalone household navigation removed. Current sourceb6a5e87/deployment2b8aab1b/model52dd5d12 passed effective activation readback and natural19:15:15UTC forecast delivery. Service exited0 in43seconds with81.9MiB peak and zero swap. Household snapshot was shadow with no expired qualified inputs at verification; HTTP200 API matched its cache while fresh. Short-lived evidence still expires between five-minute cycles. Deployment-only updates now preserve unchanged model identity; model-specific report files prevent historical displacement, and current native scoring receives a twenty-minute opportunity independent of retained history length. Natural19:21UTC scoring exited0 and wrote the current artifact-specific report with zero mature outcomes. Report production is verified; mature scoring and accuracy remain pending. First morning fit remains unverified. No actuator authority. See proofs.native_monitoring_continuity_deployment. One-core score deployment 0db0237d from source870293e is effective with unchanged model52dd5d12 and 256MiB/zero-swap limits. The20:36 legacy run succeeded. Current-model first one-hour outcome rebuilt offline with0.257554F error versus0.18F persistence; production completion pending the20:41 slot. No graduation claim.",
+      "current_evidence": "Earthship observations remain below existing content; standalone household navigation removed. Deployment 715078d7 from cbec265 retains model 52dd5d12 and its original 19:08:13 UTC admission. Natural 21:01 UTC current-model scoring exited 0 after 65 seconds, with 97.2 MiB peak and zero swap. Three mature one-hour outcomes give model MAE 0.110915 F versus persistence 0.30 F; longer horizons remain empty and no accuracy graduation is claimed. Current-model scoring now runs every ten minutes within the fifteen-minute report TTL. Live publication and the deployed UI parser displayed the earlier two-outcome report at 20:55 UTC. First natural morning fit and broader household observability qualification remain incomplete. No actuator authority. See proofs.native_current_model_production_scoring.",
       "complete": false
     },
     {
@@ -6664,8 +6664,8 @@
       },
       "automatic_actuation": false,
       "source_document": "docs/operations/2026-10-14-native-daily-training.md",
-      "production_source_commit": "b6a5e87c3e66c445f5bf4b529c0efccdc1890e7b",
-      "production_checkout_verified_at": "2026-10-14T19:15:30.311118+00:00"
+      "production_source_commit": "cbec265c2e5e088e795dbab3bff21dfc676e7b8d",
+      "production_checkout_verified_at": "2026-10-14T21:03:32.966875+00:00"
     },
     "native_forecast_cpu_deployment": {
       "assessed_at": "2026-10-14T18:41:43.124789+00:00",
@@ -7010,8 +7010,108 @@
       "automatic_actuation": false,
       "daily_checkout": "870293ef30a58b38f539bf67a27ccd6613677c2c",
       "first_legacy_run": "20:36 UTC: monitoring_refreshed, 256 existing horizon samples, no new mature legacy outcome; 2.958 CPU seconds",
-      "first_current_native_run": "pending scheduled 20:41 UTC opportunity",
+      "first_current_native_run": "20:41 UTC persisted one original score but report reconciliation refused a later model admission receipt. Fixed by fe597bb; terminal reader-deadline fix cbec265 verified in the successful 21:01 run. See native_current_model_production_scoring.",
       "documentation": "docs/operations/2026-10-14-score-production-cpu.md"
+    },
+    "native_current_model_production_scoring": {
+      "assessed_at": "2026-10-14T21:03:32.966875+00:00",
+      "source_commit": "cbec265c2e5e088e795dbab3bff21dfc676e7b8d",
+      "deployment_sha256": "715078d75d81d10b73823fe9768d3c8434ce183f6d970bfb956b7cf3c179a4e2",
+      "artifact_sha256": "52dd5d122485f0bdafa0aed4fa7412c0823ce9829ed3d9bdc920e44d88526506",
+      "service": {
+        "MainPID": "0",
+        "Result": "success",
+        "ExecMainStartTimestamp": "Wed 2026-10-14 15:01:00 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-14 15:02:05 MDT",
+        "ExecMainStatus": "0",
+        "MemoryPeak": "102014976",
+        "MemorySwapPeak": "0",
+        "CPUUsageNSec": "62244290000",
+        "InvocationID": "1aeb5e9dcdff4545b8410d958be49c1f"
+      },
+      "report": {
+        "artifact_sha256": "52dd5d122485f0bdafa0aed4fa7412c0823ce9829ed3d9bdc920e44d88526506",
+        "assessed_at": "2026-10-14T21:01:27.486818+00:00",
+        "by_horizon": {
+          "1": {
+            "model": {
+              "bias_f": -0.09770255031966239,
+              "count": 3,
+              "mae_f": 0.11091519339503957
+            },
+            "persistence": {
+              "bias_f": 0.29999999999999716,
+              "count": 3,
+              "mae_f": 0.29999999999999716
+            },
+            "recent_cycle": {
+              "bias_f": null,
+              "count": 0,
+              "mae_f": null
+            }
+          },
+          "12": {
+            "model": {
+              "bias_f": null,
+              "count": 0,
+              "mae_f": null
+            },
+            "persistence": {
+              "bias_f": null,
+              "count": 0,
+              "mae_f": null
+            },
+            "recent_cycle": {
+              "bias_f": null,
+              "count": 0,
+              "mae_f": null
+            }
+          },
+          "24": {
+            "model": {
+              "bias_f": null,
+              "count": 0,
+              "mae_f": null
+            },
+            "persistence": {
+              "bias_f": null,
+              "count": 0,
+              "mae_f": null
+            },
+            "recent_cycle": {
+              "bias_f": null,
+              "count": 0,
+              "mae_f": null
+            }
+          },
+          "6": {
+            "model": {
+              "bias_f": null,
+              "count": 0,
+              "mae_f": null
+            },
+            "persistence": {
+              "bias_f": null,
+              "count": 0,
+              "mae_f": null
+            },
+            "recent_cycle": {
+              "bias_f": null,
+              "count": 0,
+              "mae_f": null
+            }
+          }
+        },
+        "graduated": false,
+        "schema": "earthship-provisional-thermal-performance/v1"
+      },
+      "report_sha256": "b2d0d2f7020a0e61b2946209ba76117d86be2416b4ba260b5a276c3d551463b5",
+      "report_path": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-13-native-model-serving-receipt/actual-review-fixes-20261014/native-evidence/native-provisional-performance-52dd5d122485f0bdafa0aed4fa7412c0823ce9829ed3d9bdc920e44d88526506.json",
+      "current_score_interval_minutes": 10,
+      "report_max_age_minutes": 15,
+      "fit_executed": false,
+      "automatic_actuation": false,
+      "accuracy_graduated": false
     }
   },
   "astro_efficiency_audit": {
