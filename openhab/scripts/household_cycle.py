@@ -18,9 +18,10 @@ ISSUE_MARGIN=timedelta(seconds=3)
 
 
 class ObservingBackend:
-    def __init__(self,parent,*,collector,guard,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic):
+    def __init__(self,parent,*,collector,guard,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic,
+                 sleep=time.sleep,near_issue=False):
         self.parent=parent;self.collector=collector;self.guard=guard
-        self.clock=clock;self.monotonic=monotonic
+        self.clock=clock;self.monotonic=monotonic;self.sleep=sleep;self.near_issue=near_issue
         self.collection=dict(status='unavailable',reason='not_collected')
 
     def __getattr__(self,name):
@@ -31,6 +32,24 @@ class ObservingBackend:
         # failures. Do not catch or replace its exact original input object.
         inputs=self.parent.collect(issue=issue,known_at=known_at)
         issue=utc(issue);now=utc(self.clock())
+        if self.near_issue:
+            # Native acquisition is fast under the production CPU profile.
+            # Read short-lived household power late enough to survive the
+            # measured post-issue derivation; never renew the source's TTL.
+            target=issue-timedelta(seconds=7)
+            waiting=(target-now).total_seconds()
+            deadline=self.monotonic()+max(0,waiting)+1
+            try:
+                if waiting>60:raise ValueError('bounded pre-issue wait required')
+                while now<target:
+                    self.guard()
+                    self.sleep(min(.5,(target-now).total_seconds()))
+                    previous=now;now=utc(self.clock())
+                    if now<previous or self.monotonic()>deadline:
+                        raise ValueError('household waiting clock changed')
+            except Exception:
+                self.collection=dict(status='unavailable',reason='source_collection_failed')
+                return inputs
         budget=min(MAX_COLLECTION_SECONDS,(issue-ISSUE_MARGIN-now).total_seconds())
         if not math.isfinite(budget) or budget<=0:
             self.collection=dict(status='unavailable',reason='insufficient_preissue_budget')
@@ -360,7 +379,7 @@ def run_cycle(config_path,*,code_revision,forecast_config=None,stage=None,deploy
             if not ready:raise ValueError('household source preparation unavailable')
             return collector(**request)
         observer_guard=guard if ready else forecast_guard
-        backend=ObservingBackend(LazyForecastBackend(settings,guard=forecast_guard),collector=collect,guard=observer_guard)
+        backend=ObservingBackend(LazyForecastBackend(settings,guard=forecast_guard),collector=collect,guard=observer_guard,near_issue=native_profile)
         serving_model=None
         try:
             if receipt_profile:

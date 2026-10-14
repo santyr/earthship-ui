@@ -82,3 +82,23 @@ public household observation and natural-cycle readback. The first activation
 attempt refused generated Python bytecode files before any unit changes.
 Those generated caches were removed and the successful command explicitly used
 `PYTHONDONTWRITEBYTECODE=1`; sealed source bytes were unchanged.
+
+## Short-lived household source acquisition
+
+The first successful CPU-adjusted run froze household evidence about 24 seconds
+before issue; original inverter/load expiry was therefore reached during the
+roughly twelve seconds of post-issue derivation. Native observation now waits
+until issue minus seven seconds before starting its household collector. The
+original thermal backend still collects first with the unchanged `known_at` and
+returns the identical input object. Only household acquisition moves later.
+
+The existing issue-minus-three-second cutoff leaves four seconds for household
+acquisition under the one-core forecast profile. Slow or failed observation
+still preserves the original forecast. The wait checks its guard and bounds
+both wall-clock changes and monotonic elapsed time. Legacy collection timing,
+source timestamps, thirty-second inverter TTL and stale-evidence handling are
+unchanged. No source is reclassified as fresh by this change.
+
+Three regression tests failed before the implementation. With the correction,
+54 native/legacy collection, orchestration, receipt and deadline tests passed
+in 16.86 seconds. Live source freshness remains to be checked after activation.
