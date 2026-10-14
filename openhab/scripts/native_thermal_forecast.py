@@ -122,3 +122,6 @@ def read_capture(path,*,runtime,expected_artifact_sha256,expected_capture_sha256
     try:value=json.loads(_owned_bytes(Path(path),MAX_CAPTURE_BYTES),object_pairs_hook=_object,parse_constant=nonfinite)
     except (UnicodeError,json.JSONDecodeError):raise ValueError('original native forecast JSON required') from None
     return validate_capture(value,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,expected_capture_sha256=expected_capture_sha256,check_budget=check_budget)
+
+
+SERVING_RECEIPT_SOURCE_SHA256='94d85e37afc79e08cf9de93ba937b2ba845acc7111c0a23e483b186d8ff9a57e'

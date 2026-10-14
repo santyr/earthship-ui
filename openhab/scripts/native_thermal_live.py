@@ -531,3 +531,6 @@ def _retain_native_gap(folder,job,delivery,delivery_path,capture,*,horizon,targe
     from thermal_model.rollback import _rename_new
     _rename_new(stored,target_path);guard()
     return value
+
+
+SERVING_RECEIPT_SOURCE_SHA256='94d85e37afc79e08cf9de93ba937b2ba845acc7111c0a23e483b186d8ff9a57e'

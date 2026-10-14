@@ -354,3 +354,6 @@ def reconcile_source_report(entries,*,runtime,artifact_sha256,assessed_at,check_
         if originals.file_count:originals.verify()
         check_budget()
         return result
+
+
+SERVING_RECEIPT_SOURCE_SHA256='94d85e37afc79e08cf9de93ba937b2ba845acc7111c0a23e483b186d8ff9a57e'

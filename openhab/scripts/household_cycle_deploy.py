@@ -73,6 +73,7 @@ def _service_contract(raw,config):
 
 
 NATIVE_CONFIG_SCHEMA='earthship-provisional-thermal-live-config/v2'
+SERVING_CONFIG_SCHEMA='earthship-provisional-thermal-live-config/v3'
 NATIVE_DEPLOYMENT_FIELDS={'native_runtime_sources','native_originals','artifact_sha256','runtime_sha256'}
 
 
@@ -80,8 +81,8 @@ def _native_header(candidate,settings):
     from native_thermal_artifact import SCHEMA,FIELDS,validate_native_runtime,digest,LIMITS
     from thermal_model.provisional_live import FIELDS as CONFIG_FIELDS
     if (not isinstance(candidate,dict) or set(candidate)!=FIELDS or candidate['schema']!=SCHEMA or
-        set(settings)!=CONFIG_FIELDS|{'artifact_sha256','runtime_sha256','geometry_directory'} or
-        settings['schema']!=NATIVE_CONFIG_SCHEMA):
+        set(settings)!=CONFIG_FIELDS|{'artifact_sha256','runtime_sha256','geometry_directory'}|({'model_receipt_path','model_receipt_sha256'} if settings.get('schema')==SERVING_CONFIG_SCHEMA else set()) or
+        settings['schema'] not in (NATIVE_CONFIG_SCHEMA,SERVING_CONFIG_SCHEMA)):
         raise ValueError('explicit closed native candidate and configuration required')
     runtime=validate_native_runtime(candidate['runtime'])
     if (candidate['artifact_sha256']!=settings['artifact_sha256'] or
@@ -197,12 +198,20 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
     return dict(status='deployment_staged',code_revision=code_revision,source_count=len(sources),automatic_actuation=False)
 
 
-def verify_stage(stage):
-    stage=_directory(stage);record=json.loads(_bytes(stage/'deployment.json',private=True))
+def verify_stage(stage,*,expected_deployment_sha256=None):
+    stage=_directory(stage);raw=_bytes(stage/'deployment.json',private=True);record=json.loads(raw)
+    serving=record.get('schema')=='earthship-household-cycle-deployment/v3'
+    if serving:
+        from thermal_model.origin_capture import _object,_source_bytes
+        def nonfinite(_):raise ValueError('finite serving stage JSON required')
+        record=json.loads(raw,object_pairs_hook=_object,parse_constant=nonfinite)
+        if not isinstance(expected_deployment_sha256,str) or re.fullmatch('[a-f0-9]{64}',expected_deployment_sha256) is None or sha256(raw).hexdigest()!=expected_deployment_sha256:
+            raise ValueError('external serving deployment pin differs')
     fields={'schema','code_revision','stage','service_file','original_bindings','source_manifest','protected_runtime_sources','cycle_sha256','dropin_sha256','automatic_actuation'}
-    native=record.get('schema')=='earthship-household-cycle-deployment/v2'
+    native=record.get('schema') in ('earthship-household-cycle-deployment/v2','earthship-household-cycle-deployment/v3')
     if native:fields|=NATIVE_DEPLOYMENT_FIELDS
-    if set(record)!=fields or record['schema'] not in ('earthship-household-cycle-deployment/v1','earthship-household-cycle-deployment/v2') or record['stage']!=str(stage) or record['automatic_actuation'] is not False:
+    if serving:fields|={'model_verification','score_dispatch'}
+    if set(record)!=fields or record['schema'] not in ('earthship-household-cycle-deployment/v1','earthship-household-cycle-deployment/v2','earthship-household-cycle-deployment/v3') or record['stage']!=str(stage) or record['automatic_actuation'] is not False:
         raise ValueError('closed original deployment record required')
     sources=record['source_manifest'];root=_directory(stage/'sources')
     if NATIVE_WORKER in sources and JAVA_SOURCE not in sources:
@@ -210,6 +219,7 @@ def verify_stage(stage):
     actual={str(path.relative_to(root)) for path in root.rglob('*') if not path.is_dir()}
     if actual!=set(sources):raise ValueError('closed staged source set differs')
     if any(sha256(_bytes(root/name)).hexdigest()!=digest for name,digest in sources.items()):raise ValueError('staged source changed')
+    if serving and any(sha256(_source_bytes(root/name,maximum=MAX_BYTES)).hexdigest()!=digest for name,digest in sources.items()):raise ValueError('serving source permissions or bytes changed')
     for name,digest in record['protected_runtime_sources'].items():
         if sources.get('openhab/scripts/'+name)!=digest:raise ValueError('original protected source binding differs')
     if native:
@@ -226,6 +236,21 @@ def verify_stage(stage):
     if (sha256(_bytes(stage/'cycle.json',private=True)).hexdigest()!=record['cycle_sha256'] or
         sha256(_bytes(stage/'service.conf',private=True)).hexdigest()!=record['dropin_sha256']):
         raise ValueError('staged configuration changed')
+    if serving:
+        if (not isinstance(record['model_verification'],dict) or set(record['model_verification'])!={'receipt','helper'}):
+            raise ValueError('closed model verification references required')
+        for reference in (*record['model_verification'].values(),record['score_dispatch']):
+            if (not isinstance(reference,dict) or set(reference)!={'path','sha256'} or
+                not isinstance(reference['sha256'],str) or re.fullmatch('[a-f0-9]{64}',reference['sha256']) is None):
+                raise ValueError('closed serving stage reference required')
+            path=_path(reference['path'])
+            if sha256(_bytes(path,private=reference is not record['model_verification']['helper'],maximum=131072)).hexdigest()!=reference['sha256']:
+                raise ValueError('serving stage reference changed')
+        helper=record['model_verification']['helper']
+        if helper['path']!=str(root/'openhab/scripts/native_model_serving_receipt.py') or sources.get('openhab/scripts/native_model_serving_receipt.py')!=helper['sha256']:
+            raise ValueError('complete serving helper source closure required')
+        if settings['schema']!=SERVING_CONFIG_SCHEMA or settings['model_receipt_path']!=record['model_verification']['receipt']['path'] or settings['model_receipt_sha256']!=record['model_verification']['receipt']['sha256']:
+            raise ValueError('explicit serving profile receipt differs')
     return record
 
 

@@ -49,13 +49,13 @@ Use the existing branch `feat/household-common-cycle-20261012`, starting at `ce9
 
 Fixture setup for Tasks1–3 reuses `test_native_thermal_artifact.originals`, its `fixture`/`candidate` builders and `test_native_thermal_forecast.context`; serving fixtures add a fully sealed owned fixture stage and admitted receipt. Assertion snippets below belong to their named test steps. Existing independent validation remains the fixture oracle, not a mocked replacement.
 
-### Task1: Numerical admission and immutable serving selection
+### Task 1: Numerical admission and immutable serving selection
 
 **Files:** Create `openhab/scripts/native_model_serving_receipt.py` and `openhab/scripts/test_native_model_serving_receipt.py`; modify literal helper pins in the three OPTIONAL adapters and receipt-profile reading in `household_cycle_deploy.verify_stage`. Task4 adds package construction and effective-command rendering. Do not edit the fitted artifact validator.
 
 **Interfaces:** `admit_model(candidate_path: Path, *, runtime: dict, expected_artifact_sha256: str, directory: Path, clock: Callable[[], datetime], guard: Callable) -> Path`; `load_serving_selection(stage: Path, *, expected_deployment_sha256: str, assessed_at: datetime, guard: Callable) -> OwnedServingSelection`; `read_serving_model(selection: OwnedServingSelection, *, assessed_at: datetime, guard: Callable) -> ServingModel`. Context exposes copied `candidate`/`runtime` properties and `verify_bindings(*, assessed_at, guard) -> None`. Public constructors refuse; neither caller dictionaries nor serialized receipt fields create these types.
 
-- [ ] Write `test_receipt_admission_requires_full_replay_and_stable_originals`, `test_unchanged_receipt_reads_all_dependencies_without_numerical_replay` and parametrized refusal cases. Assert full `read_native_candidate` is called during admission; serving omits numerical replay but reads the candidate, all four originals, interpreter/dependencies and source/helper bindings freshly. Mutating an original during admission produces no receipt.
+- [x] Write `test_receipt_admission_requires_full_replay_and_stable_originals`, `test_unchanged_receipt_reads_all_dependencies_without_numerical_replay` and parametrized refusal cases. Assert full `read_native_candidate` is called during admission; serving omits numerical replay but reads the candidate, all four originals, interpreter/dependencies and source/helper bindings freshly. Mutating an original during admission produces no receipt.
 ```python
 assert model.candidate == independently_validated_candidate
 assert full_validator_calls_after_serving == full_validator_calls_after_admission
@@ -63,13 +63,13 @@ assert set(fresh_original_roles) == {"snapshot", "dataset", "geometry", "fit_evi
 with pytest.raises(TypeError):
     ServingModel()
 ```
-- [ ] Run `python3 QA/run_receipt_tests.py openhab/scripts/test_native_model_serving_receipt.py`; require genuine missing-interface/assertion RED, not resource admission refusal.
-- [ ] Add receipt-profile stage reading for the selection factory: preserve existing v1/v2 stage fields, and define v3 as v2 plus closed `model_verification` (receipt path/SHA, helper path/SHA) and `score_dispatch` (owned record path/SHA). The external deployment SHA pins the entire closed stage; validate the current source manifest, originals/config/candidate and those new references. Task1 tests create complete owned fixture stages directly; Task4 constructs them operationally. Require the complete staged source closure to match freshly read bytes before minting a selection.
-- [ ] Implement the interfaces. Receipt fields bind verified time, validator profile, candidate path/exact bytes/artifact/runtime, the four paths/digests/caps, model rule/fit/sensor epochs and complete executing source/helper/interpreter binding. Check closed schema, exact externally pinned SHA, bounded owned reads, chronology (`candidate.created_at <= verified_at <= assessed_at`), finite physical coefficients and unchanged false-authority flags. Mint a context only after every fresh comparison succeeds. Receipt issuance uses full replay once plus before/after byte/runtime comparisons; set `verified_at` from the fresh completion clock after successful replay, then perform atomic0600 readback, with no self-issued final-stage authority.
-- [ ] Add and run tamper/refusal tests for resealing against the original pin, duplicate/nonfinite fields, future time, helper/interpreter/source drift, missing originals, restored-mtime/same-size replacement, symlink/hardlink/permission changes and fabricated constructors/dictionaries. Assert both binding rechecks reject drift. Run the unchanged original `test_native_thermal_artifact.py` numerical-tampering regressions in a separate capped batch.
-- [ ] Commit the helper, its tests and literal pins only; ledger exact RED/GREEN results and verify72+9 source hashes against the retained admitted model.
+- [x] Run `python3 QA/run_receipt_tests.py openhab/scripts/test_native_model_serving_receipt.py`; require genuine missing-interface/assertion RED, not resource admission refusal.
+- [x] Add receipt-profile stage reading for the selection factory: preserve existing v1/v2 stage fields, and define v3 as v2 plus closed `model_verification` (receipt path/SHA, helper path/SHA) and `score_dispatch` (owned record path/SHA). The external deployment SHA pins the entire closed stage; validate the current source manifest, originals/config/candidate and those new references. Task1 tests create complete owned fixture stages directly; Task4 constructs them operationally. Require the complete staged source closure to match freshly read bytes before minting a selection.
+- [x] Implement the interfaces. Receipt fields bind verified time, validator profile, candidate path/exact bytes/artifact/runtime, the four paths/digests/caps, model rule/fit/sensor epochs and complete executing source/helper/interpreter binding. Check closed schema, exact externally pinned SHA, bounded owned reads, chronology (`candidate.created_at <= verified_at <= assessed_at`), finite physical coefficients and unchanged false-authority flags. Mint a context only after every fresh comparison succeeds. Receipt issuance uses full replay once plus before/after byte/runtime comparisons; set `verified_at` from the fresh completion clock after successful replay, then perform atomic0600 readback, with no self-issued final-stage authority.
+- [x] Add and run tamper/refusal tests for resealing against the original pin, duplicate/nonfinite fields, future time, helper/interpreter/source drift, missing originals, restored-mtime/same-size replacement, symlink/hardlink/permission changes and fabricated constructors/dictionaries. Assert both binding rechecks reject drift. Run the unchanged original `test_native_thermal_artifact.py` numerical-tampering regressions in a separate capped batch.
+- [x] Commit the helper, its tests and literal pins only; ledger exact RED/GREEN results and verify72+9 source hashes against the retained admitted model.
 
-### Task2: Receipt serving for preparation, publication and household completion
+### Task 2: Receipt serving for preparation, publication and household completion
 
 **Files:** Modify `native_thermal_forecast.py`, `native_thermal_live.py`, `household_native_geometry_prepare.py`, `household_cycle.py`, `household/thermal_model.py`, `household/weather_context.py`; extend their existing native tests and create `test_native_serving_forecast.py`.
 
@@ -87,7 +87,7 @@ assert writes_after_dependency_drift == []
 - [ ] Add v3 loader fields `model_receipt_path` and `model_receipt_sha256` to the original native fields; receipt path must be resolved owned private storage. The externally pinned stage creates the selection; caller configuration alone does not. Pass that context through full household completion, including fresh source/runtime checks, rather than reintroducing candidate replay after delivery. Keep receipt audit association outside the capture body. Refusal and withdrawal use the current bounded logic with no stale context or fallback.
 - [ ] Run `test_native_serving_forecast.py`, native forecast/publication/geometry tests, `test_household_native_cycle.py`, `test_household_native_cycle_driver.py`, `test_household_native_thermal.py` and `test_household_native_weather.py` in serial batches <=85seconds. Verify original independent replay still catches altered predictions/geometry/inputs and November vent defaults remain unchanged. Commit; ledger exact comparisons and72+9 hash evidence.
 
-### Task3: Historical and mature outcome scoring without reselecting a model
+### Task 3: Historical and mature outcome scoring without reselecting a model
 
 **Files:** Modify `native_thermal_score.py`, native scoring sections of `native_thermal_live.py`, `household_forecast_score.py`; create `test_native_serving_score.py` and extend existing source/completion/report/coordinator tests.
 
@@ -106,7 +106,7 @@ assert legacy_scheduled_slots == (1, 3)
 - [ ] Add a closed owned score-dispatch record to the family, binding the retained legacy stage/config and explicit historical native selections. The current native role is the literal `current` and inherits the effective command's external deployment pin; its record does not contain its own final deployment digest. Assign original score timer slots minute%5 in(0,2) to native and(1,3) to the retained v1 worker. Each invocation runs at most one original job under its existing lock/guard/deadline; no parallel job and no timeout increase. A refused native receipt never triggers a legacy fallback in that invocation. Keep retained historical native selections explicit and source-pinned; absence withholds their job.
 - [ ] Run new tests plus existing native score/source/completion/paired-reader and both native/legacy queue/coordinator regressions in bounded serial batches. Verify full source-backed replay and source drift refusal remain independent. Commit and ledger the scheduling/parity results.
 
-### Task4: Final stage, external pins and transactional handoff
+### Task 4: Final stage, external pins and transactional handoff
 
 **Files:** Modify `household_cycle_deploy.py`, `household_native_family.py`, `household_native_handoff.py`, `household_native_install.py`, CLI entry points in preparer/cycle/scorer; extend native deployment/family/handoff/install tests and create `test_native_serving_selection.py`.
 
@@ -124,7 +124,7 @@ assert all(digest == retained_digest for digest, retained_digest in protected_ha
 - [ ] Update runtime qualification to verify the receipt path explicitly under the production interpreter. Keep full admission and original independent verifier available; every receipt-backed runtime check still freshly rehashes its complete dependencies. Extend effective-family checks to exact pins and both explicit scorer selections. Preserve existing inactive-service admission, timer quiescence, owned file replacement, reload/enable reconciliation and rollback semantics; no new recovery project.
 - [ ] Run affected deployment/family/handoff/install/preparer/coordinator cases through the capped runner. Verify all effective limits and source pins, refusal before timer quiescence on failed qualification and unchanged72+9 hashes. Commit and ledger exact head/results.
 
-### Task5: Exact timing, natural production evidence and final review
+### Task 5: Exact timing, natural production evidence and final review
 
 **Files:** Update `docs/operations/2026-10-13-native-preparer-deadline-diagnosis.md` and `docs/operations/household-program-progress.json`; create only private `QA` scripts/receipts/logs for source-backed timing and activation. Product changes belong to Tasks1–4.
 
@@ -138,4 +138,4 @@ assert all(digest == retained_digest for digest, retained_digest in protected_ha
 
 ## Plan self-review
 
-Spec coverage: receipt/authority/closure and fresh bindings are Task1/4; unchanged independent model replay, forecast/source/household parity and current input guards are Task2; historical selections, raw outcomes and legacy backlog are Task3; all caps/timing/activation/natural delivery/mature scoring are Task5. All five Review Focus conditions have named regression tests. Serving APIs accept `ServingModel` consistently; owned selection is the only model reader input. New profile and helper are outside the72+9 fitted closure. Final digest never self-binds: pinned commands are family outputs outside the stage manifest, and the current score-dispatch role inherits the external pin rather than embedding it. Existing inline execution remains selected. Written plan review is pending; no product implementation has started.
+Spec coverage: receipt/authority/closure and fresh bindings are Task1/4; unchanged independent model replay, forecast/source/household parity and current input guards are Task2; historical selections, raw outcomes and legacy backlog are Task3; all caps/timing/activation/natural delivery/mature scoring are Task5. All five Review Focus conditions have named regression tests. Serving APIs accept `ServingModel` consistently; owned selection is the only model reader input. New profile and helper are outside the72+9 fitted closure. Final digest never self-binds: pinned commands are family outputs outside the stage manifest, and the current score-dispatch role inherits the external pin rather than embedding it. Existing inline execution remains selected. Written implementation plan approved October13; execute inline under the retained constraints.
