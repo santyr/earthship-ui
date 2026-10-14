@@ -62,6 +62,23 @@ class RecentCycleWindowReader(EndpointWindowScoreReader):
         super().__init__(*args,**kwargs)
         self._pending_packets={};self._pending_query_bytes=0;self._pending_context=None
 
+    def verify_unchanged(self):
+        # Offline scoring/report replay may continue after acquisition ends.
+        # The caller's full-job guard still bounds CPU work and preparation time.
+        from hashlib import sha256
+        from pathlib import Path
+        from thermal_model.runtime_bundle import _owned_bytes
+        if self.shared_lock_guard is not None:self.shared_lock_guard()
+        if any(sha256(_owned_bytes(Path(self.settings[key]),16384)).hexdigest()!=value
+               for key,value in self.hashes.items()):
+            raise ValueError('original score source configuration changed')
+
+    def _acquisition_check(self):
+        # Every actual read keeps the original 50-second acquisition deadline.
+        self.budget.remaining()
+        super()._acquisition_check()
+        self.budget.remaining()
+
     def _fetch_packet(self,config,**request):
         targets=request['targets'];assessed=request['assessed_at'];epoch=request['sensor_epoch']
         key=(tuple(targets),assessed,epoch)

@@ -18,3 +18,18 @@ validation, model identity, or actuator authority is relaxed.
 Forty-four admission, candidate-identity, receipt, scheduling and upgrade tests
 passed in 17.27 seconds. The three new regressions failed before implementation.
 Actual package/report reconstruction and activation remain pending.
+
+Deployment `0c2d2549` from source `fe597bb` reused the original 19:08:13 UTC
+admission, retained the same model, and passed effective service/timer readback.
+The 20:51 production invocation persisted a second one-hour completion and wrote
+a valid current-model report: n=2, model MAE 0.156463 F, persistence MAE 0.27 F.
+Its final consistency check nevertheless returned a reader deadline error after
+the report was written. Acquisition had already finished; the base reader was
+incorrectly applying its 50-second read budget to later offline verification.
+
+The current batch reader now enforces that unchanged 50-second deadline before
+and after acquisition checks. Post-acquisition verification still hashes all
+original private configuration and runs the existing full-job guard, without
+reusing the read timer. The 120-second job and 130-second service limits remain.
+Two regressions failed before this correction; 58 reader/query/batching/scoring,
+deadline and scheduling tests pass in 5.32 seconds. Activation is pending.
