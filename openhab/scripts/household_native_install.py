@@ -169,6 +169,14 @@ def _quiesce_timers(root,*,guard,include_preparer=False):
         if failures:raise ValueError('original timer schedule restoration incomplete: '+','.join(failures))
 
 
+def _verify_shared_pool():
+    import os
+    from household_job_pool import read_pool
+    uid=os.getuid()
+    root=Path('/sys/fs/cgroup')/f'user.slice/user-{uid}.slice/user@{uid}.service/earthship.slice/earthship-work.slice'
+    read_pool(root)
+
+
 def _verify_effective_family(family,*,guard):
     """Read-only postconditions after the caller's coordinated manager reload."""
     family=deploy._directory(family);selected=family_api.verify(family,guard=guard)
@@ -176,6 +184,7 @@ def _verify_effective_family(family,*,guard):
     serving=selected['schema']=='earthship-native-thermal-service-family/v2'
     record=deploy.verify_stage(stage,expected_deployment_sha256=selected['deployment_sha256']) if serving else deploy.verify_stage(stage)
     root=deploy._path(record['service_file']).parent
+    if serving and family_api._shared_job_pool(stage):_verify_shared_pool()
     services=(('thermal-provisional-forecast.service','forecast.conf','1min 30s',['zzzz-household-cycle.conf']),
         ('thermal-provisional-score.service','score.conf',
             '2min 10s' if selected['score_service_timeout_seconds']==130 else '1min',['zzzz-household-score.conf']),

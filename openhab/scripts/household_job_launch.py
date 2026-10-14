@@ -91,7 +91,7 @@ class ScopedProcess:
     def cancel(self):self.permission.close()
 
 
-def start_scope(command, *, unit, memory_bytes, production, tasks, seconds):
+def start_scope(command, *, unit, memory_bytes, production, tasks, seconds, collection=False):
     environment = dict(os.environ, OPENBLAS_NUM_THREADS='1', OMP_NUM_THREADS='1', MKL_NUM_THREADS='1')
     permission = StartupPermission(Path('/run/user')/str(os.getuid()))
     shim = [sys.executable, str(Path(__file__).with_name('household_job_start.py')),
@@ -100,7 +100,8 @@ def start_scope(command, *, unit, memory_bytes, production, tasks, seconds):
         '--slice='+POOL_NAME, '--unit='+unit, '--description=Earthship managed job',
         '-p', 'MemoryMax='+str(memory_bytes), '-p', 'MemorySwapMax=0',
         '-p', 'CPUWeight='+('100' if production else '25'), '-p', 'TasksMax='+str(tasks),
-        '-p', 'RuntimeMaxSec='+str(seconds), '-p', 'IOWeight='+('100' if production else '10'),
+        '-p', 'RuntimeMaxSec='+str(seconds), '-p', 'IOWeight='+('100' if production and not collection else '10'),
+        *(['-p','CPUQuota=20%'] if collection else []),
         'nice', '-n', '15', 'ionice', '-c', '3', *shim]
     try:
         return ScopedProcess(subprocess.Popen(argv, env=environment), permission)
@@ -115,7 +116,7 @@ def stop_scope(unit):
 
 
 def launch_job(command, *, pool_path, lock_path, minimum_bytes, preferred_bytes,
-               reserve_bytes=HOST_RESERVE, production=False, tasks=96, seconds=600,
+               reserve_bytes=HOST_RESERVE, production=False, tasks=96, seconds=600, collection=False,
                available=available_memory, spawn=start_scope, stop=stop_scope, health=check_host_pressure):
     if (not isinstance(command, (list, tuple)) or not 1 <= len(command) <= 256
             or any(not isinstance(arg, str) or '\0' in arg for arg in command)
@@ -123,6 +124,8 @@ def launch_job(command, *, pool_path, lock_path, minimum_bytes, preferred_bytes,
         raise ValueError('bounded absolute command required')
     if type(tasks) is not int or not 1 <= tasks <= 128 or type(seconds) is not int or not 1 <= seconds <= 3600:
         raise ValueError('bounded task count and runtime required')
+    if collection and (minimum_bytes != 256*1024**2 or preferred_bytes != 256*1024**2 or tasks != 24 or seconds > 90):
+        raise ValueError('fixed compatible collection budget required')
     unit = 'earthship-job-'+uuid4().hex+'.scope'
     process = None
     with admission_gate(lock_path) as verify:
@@ -133,7 +136,7 @@ def launch_job(command, *, pool_path, lock_path, minimum_bytes, preferred_bytes,
                 minimum_bytes=minimum_bytes, preferred_bytes=preferred_bytes, reserve_bytes=reserve_bytes)
             verify()
             process = spawn(command, unit=unit, memory_bytes=memory,
-                production=production, tasks=tasks, seconds=seconds)
+                production=production, tasks=tasks, seconds=seconds, **({'collection':True} if collection else {}))
             deadline = time.monotonic() + 15
             while True:
                 status = process.poll()

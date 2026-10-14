@@ -10,6 +10,8 @@ def setup(tmp_path,monkeypatch):
     assert 'deployment_sha256' in inspect.signature(module.run).parameters, 'pinned receipt preparer is missing'
     m,config,libraries,settings,now,ticks,calls=fixture(tmp_path,monkeypatch)
     import native_thermal_live as native
+    import household_cycle_resources as resources
+    monkeypatch.setattr(resources,'publication_resource_preflight',lambda:calls.append('geometry_policy'))
     settings['schema']=native.SERVING_SCHEMA;config.write_text(json.dumps(settings))
     stage=tmp_path/'stage';source=stage/'sources/openhab/scripts/household_native_geometry_prepare.py';source.parent.mkdir(parents=True)
     source.write_bytes(Path(m.__file__).read_bytes());source.chmod(0o600);monkeypatch.setattr(m,'__file__',str(source))
@@ -34,7 +36,7 @@ def setup(tmp_path,monkeypatch):
 def test_outer_preparer_passes_fresh_context_after_lock_and_pressure_admission(tmp_path,monkeypatch):
     m,receipt,c,l,stage,now,ticks,calls=setup(tmp_path,monkeypatch)
     assert m.run(c,l,stage=stage,deployment_sha256='d'*64,clock=lambda:now[0],monotonic=lambda:ticks[0])['status']=='prepared'
-    assert calls.count('selected')==calls.count('admitted')==1
+    assert calls.count('selected')==calls.count('admitted')==calls.count('geometry_policy')==1
     assert calls.index('quiet_preflight')<calls.index('admitted')<calls.index('prepared')
 
 

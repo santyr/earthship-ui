@@ -4,6 +4,7 @@ The idle-IO fallback reads this process's priority directly. It neither changes
 priority nor launches a child for each original-source access.
 """
 import ctypes,math,os,stat
+from contextlib import contextmanager
 from pathlib import Path,PurePosixPath
 from thermal_model.capture_guard import _small_text
 
@@ -60,23 +61,59 @@ def _paths(leaf):
     return _cap_paths[1]
 
 
+SHARED_PRODUCTION_POOL = True
+SHARED_CGROUP_ROOT = Path('/sys/fs/cgroup')
+
+
+def _shared_pool_limit(leaf):
+    """Recognize only the owned pool, with fresh parent kernel limits.
+
+    Kept self-contained so pinned current admission also works when numerical
+    code is loaded from an archive predating the shared launcher.
+    """
+    if leaf.parent.name != 'earthship-work.slice':
+        return None
+    uid=os.getuid()
+    expected=SHARED_CGROUP_ROOT/f'user.slice/user-{uid}.slice/user@{uid}.service/earthship.slice/earthship-work.slice'
+    name=leaf.name
+    if (leaf.parent!=expected or leaf.resolve()!=leaf or
+            not name.startswith('earthship-job-') or not name.endswith('.scope') or
+            len(name)!=52 or any(c not in '0123456789abcdef' for c in name[14:-6])):
+        raise ValueError('owned shared worker ancestry required')
+    parent=leaf.parent
+    quota,period=map(int,_resource_text(parent/'cpu.max').split())
+    memory=int(_resource_text(parent/'memory.max'))
+    high=int(_resource_text(parent/'memory.high'))
+    swap=int(_resource_text(parent/'memory.swap.max'))
+    tasks=int(_resource_text(parent/'pids.max'))
+    if not (0<quota<=8*period and period>0 and 0<high<=memory<=6*1024**3 and swap==0 and 0<tasks<=256):
+        raise ValueError('verified shared parent budget required')
+    return memory
+
+
 def publication_resource_preflight(*,leaf=None,meminfo=Path('/proc/meminfo'),pressure=Path('/proc/pressure/memory'),
         get_nice=lambda:os.getpriority(os.PRIO_PROCESS,0),get_ioprio=current_ioprio,environ=None):
     try:
         leaf=_leaf() if leaf is None else Path(leaf)
         paths=_paths(leaf)
-        quota,period=map(int,_resource_text(paths['cpu.max']).split())
+        shared_limit=_shared_pool_limit(leaf)
+        quota_text,period_text=_resource_text(paths['cpu.max']).split()
+        period=int(period_text)
+        quota=None if quota_text=='max' else int(quota_text)
         memory=int(_resource_text(paths['memory.max']));swap=int(_resource_text(paths['memory.swap.max']))
         tasks=int(_resource_text(paths['pids.max']))
-        if not (0<quota and 0<period and quota<=period and 0<memory<=268435456 and swap==0 and 0<tasks<=24):
-            raise ValueError('publication caps exceed approved limits')
+        if shared_limit is None:
+            valid=quota is not None and 0<quota<=period and 0<period and 0<memory<=268435456 and swap==0 and 0<tasks<=24
+        else:
+            valid=period>0 and (quota is None or 0<quota<=8*period) and 0<memory<=shared_limit and swap==0 and 0<tasks<=128
+        if not valid:raise ValueError('publication caps exceed approved limits')
         try:weight=_resource_text(paths['io.weight']).splitlines()
         except FileNotFoundError:
             priority=get_ioprio()
             if type(priority) is not int or not 0<=priority<=65535 or priority>>13!=3:
                 raise ValueError('verified idle publication IO required')
         else:
-            if len(weight)!=1 or len(weight[0].split())!=2 or weight[0].split()[0]!='default' or not 0<int(weight[0].split()[1])<=10:
+            if len(weight)!=1 or len(weight[0].split())!=2 or weight[0].split()[0]!='default' or not 0<int(weight[0].split()[1])<=(100 if shared_limit is not None else 10):
                 raise ValueError('bounded publication IO weight required')
         nice=get_nice()
         if type(nice) is not int or nice<15:raise ValueError('lowered publication scheduling priority required')
@@ -98,10 +135,24 @@ def publication_resource_preflight(*,leaf=None,meminfo=Path('/proc/meminfo'),pre
                 if key in values:raise ValueError('publication PSI metadata unavailable')
                 values[key]=value
             average=float(values['avg10'])
-            if not math.isfinite(average) or not 0<=average<=.5:raise ValueError('publication memory pressure unavailable')
+            threshold=(5. if cells[0]=='some' else 1.) if shared_limit is not None else .5
+            if not math.isfinite(average) or not 0<=average<=threshold:raise ValueError('publication memory pressure unavailable')
         if seen!={'some','full'}:raise ValueError('complete publication PSI metadata required')
         environment=os.environ if environ is None else environ
         if any(environment.get(key)!='1' for key in ('OPENBLAS_NUM_THREADS','OMP_NUM_THREADS','MKL_NUM_THREADS')):
             raise ValueError('one numerical thread required')
     except (OSError,UnicodeError,ValueError,TypeError,KeyError,IndexError):
         raise ValueError('verified publication resources required') from None
+
+
+@contextmanager
+def publication_geometry_policy():
+    """Use current operational admission around original native calculations."""
+    import astro_geometry_worker as worker
+    publication_resource_preflight()
+    previous=worker._resource_preflight
+    worker._resource_preflight=publication_resource_preflight
+    try:
+        yield
+    finally:
+        worker._resource_preflight=previous

@@ -183,3 +183,29 @@ def test_permitted_shim_preserves_arguments_and_exit_status(tmp_path_factory):
         permit.authorize()
         output,_=child.communicate(timeout=3)
     assert child.returncode==7 and output.strip()==argument
+
+
+def test_collection_profile_cannot_expand_its_original_leaf_budget(tmp_path):
+    import pytest
+    from household_job_launch import launch_job
+    root,_=pool(tmp_path)
+    with pytest.raises(ValueError,match='collection'):
+        launch_job(['/usr/bin/true'],pool_path=root,lock_path=tmp_path/'gate.lock',
+            minimum_bytes=256*MiB,preferred_bytes=512*MiB,tasks=24,seconds=90,
+            collection=True,available=lambda:8*GiB,health=lambda:None)
+
+
+def test_collection_scope_keeps_strict_cpu_memory_tasks_and_io(monkeypatch):
+    import household_job_launch as launch
+    calls=[]
+    class Permit:
+        path=Path('/fixture/permission')
+        def __init__(self,*args):pass
+        def close(self):pass
+    monkeypatch.setattr(launch,'StartupPermission',Permit)
+    monkeypatch.setattr(launch.subprocess,'Popen',lambda argv,**kw:calls.append(argv))
+    launch.start_scope(['/usr/bin/true'],unit='earthship-job-test.scope',memory_bytes=256*MiB,
+        production=True,tasks=24,seconds=90,collection=True)
+    argv=calls[0]
+    for setting in ('CPUQuota=20%','MemoryMax=268435456','MemorySwapMax=0','TasksMax=24','IOWeight=10'):
+        assert setting in argv

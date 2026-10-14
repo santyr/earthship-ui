@@ -129,3 +129,70 @@ def test_resource_paths_reused_without_caching_current_caps(tmp_path,name,value)
 def test_resource_reader_retains_ascii_and_size_bounds(tmp_path,raw):
     args,_=fixture(tmp_path);(args['leaf']/'cpu.max').write_bytes(raw)
     with pytest.raises(ValueError):publication_resource_preflight(**args)
+
+
+def shared_fixture(tmp_path,monkeypatch):
+    import os
+    import household_cycle_resources as api
+    args,_=fixture(tmp_path)
+    root=tmp_path/'cgroup';uid=os.getuid()
+    pool=root/f'user.slice/user-{uid}.slice/user@{uid}.service/earthship.slice/earthship-work.slice'
+    leaf=pool/('earthship-job-'+'a'*32+'.scope');leaf.mkdir(parents=True)
+    for name,value in {'cpu.max':'800000 100000','memory.max':str(6*1024**3),
+            'memory.high':str(5*1024**3),'memory.swap.max':'0','pids.max':'256'}.items():
+        (pool/name).write_text(value)
+    for name,value in {'cpu.max':'max 100000','memory.max':str(512*1024**2),
+            'memory.swap.max':'0','pids.max':'24','io.weight':'default 100'}.items():
+        (leaf/name).write_text(value)
+    monkeypatch.setattr(api,'SHARED_CGROUP_ROOT',root,raising=False)
+    args['leaf']=leaf
+    return args,pool
+
+
+def test_shared_worker_uses_verified_parent_budget_and_current_pressure_policy(tmp_path,monkeypatch):
+    args,_=shared_fixture(tmp_path,monkeypatch)
+    args['pressure'].write_text('some avg10=2.0 avg60=0.0 avg300=0.0 total=1\nfull avg10=0.8 avg60=0.0 avg300=0.0 total=1\n')
+    publication_resource_preflight(**args)
+
+
+@pytest.mark.parametrize('target,name,value',[
+    ('pool','cpu.max','max 100000'),('pool','cpu.max','800001 100000'),
+    ('pool','memory.max',str(6*1024**3+1)),('pool','memory.high','0'),
+    ('pool','memory.swap.max','1'),('pool','pids.max','257'),
+    ('leaf','memory.max','max'),('leaf','memory.max',str(6*1024**3+1)),
+    ('leaf','cpu.max','900000 100000'),('leaf','memory.swap.max','1'),
+    ('leaf','pids.max','129'),('leaf','io.weight','default 101')])
+def test_shared_worker_rechecks_finite_parent_and_leaf_caps(tmp_path,monkeypatch,target,name,value):
+    args,pool=shared_fixture(tmp_path,monkeypatch)
+    publication_resource_preflight(**args)
+    ((pool if target=='pool' else args['leaf'])/name).write_text(value)
+    with pytest.raises(ValueError):publication_resource_preflight(**args)
+
+
+@pytest.mark.parametrize('damage',['foreign_parent','alias','some_pressure','full_pressure','ram'])
+def test_shared_worker_requires_owned_ancestry_and_host_headroom(tmp_path,monkeypatch,damage):
+    args,pool=shared_fixture(tmp_path,monkeypatch)
+    publication_resource_preflight(**args)
+    if damage=='foreign_parent':
+        moved=pool.with_name('other.slice');pool.rename(moved);args['leaf']=moved/args['leaf'].name
+    elif damage=='alias':
+        saved=pool.with_name('saved.slice');pool.rename(saved);pool.symlink_to(saved,target_is_directory=True)
+    elif damage=='ram':args['meminfo'].write_text('MemAvailable: 1 kB\n')
+    else:
+        some,full=('5.01','0') if damage=='some_pressure' else ('0','1.01')
+        args['pressure'].write_text(f'some avg10={some}\nfull avg10={full}\n')
+    with pytest.raises(ValueError):publication_resource_preflight(**args)
+
+
+@pytest.mark.parametrize('fails',[False,True])
+def test_geometry_policy_restores_original_guard_after_success_or_failure(monkeypatch,fails):
+    import household_cycle_resources as resources
+    import astro_geometry_worker as worker
+    calls=[];old=worker._resource_preflight
+    monkeypatch.setattr(resources,'publication_resource_preflight',lambda:calls.append('current'))
+    with pytest.raises(RuntimeError) if fails else __import__('contextlib').nullcontext():
+        with resources.publication_geometry_policy():
+            worker._resource_preflight()
+            assert calls==['current','current']
+            if fails:raise RuntimeError('geometry failed')
+    assert worker._resource_preflight is old

@@ -50,3 +50,18 @@ def test_other_roles_do_not_inherit_forecast_cpu_budget(tmp_path, monkeypatch, u
     states[unit]['CPUQuotaPerSecUSec'] = '1s'
     with pytest.raises(ValueError, match='role CPU budget'):
         install._verify_effective_family(family, guard=lambda: None)
+
+
+def test_shared_effective_family_requires_pool_readback(tmp_path,monkeypatch):
+    import household_native_family as family_api
+    import household_native_install as install
+    monkeypatch.setattr(family_api,'_shared_job_pool',lambda stage:True)
+    calls=[]
+    monkeypatch.setattr(install,'_verify_shared_pool',lambda:calls.append('pool'),raising=False)
+    _,family,pin,states=fixture(tmp_path,monkeypatch)
+    assert install._verify_effective_family(family,guard=lambda:None)['deployment_sha256']==pin
+    assert calls==['pool']
+    def refused():raise ValueError('shared pool unavailable')
+    monkeypatch.setattr(install,'_verify_shared_pool',refused)
+    with pytest.raises(ValueError,match='pool unavailable'):
+        install._verify_effective_family(family,guard=lambda:None)

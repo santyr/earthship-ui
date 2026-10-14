@@ -69,6 +69,28 @@ def _frequent_current_scores(stage):
     return b'\nSCORE_CURRENT_PERIOD_MINUTES = 10\n' in b'\n'+deploy._bytes(source)
 
 
+def _shared_job_pool(stage):
+    import household_cycle_deploy as deploy
+    scripts=stage/'sources/openhab/scripts'
+    policy=scripts/'household_cycle_resources.py'
+    if not policy.exists() or b'\nSHARED_PRODUCTION_POOL = True\n' not in b'\n'+deploy._bytes(policy):
+        return False
+    for name in ('run','launch','pool','budget','start'):
+        if not (scripts/('household_job_'+name+'.py')).is_file():
+            raise ValueError('complete sealed shared launcher required')
+    return True
+
+
+def _shared_command(raw, scripts, seconds):
+    rows=raw.decode().splitlines()
+    commands=[i for i,line in enumerate(rows) if line.startswith('ExecStart=') and line!='ExecStart=']
+    if len(commands)!=1:raise ValueError('one shared worker command required')
+    i=commands[0]
+    rows[i]='ExecStart=/usr/bin/python3 '+str(scripts/'household_job_run.py')+(
+        ' --production --minimum-mib 256 --preferred-mib 512 --tasks 24 --seconds '+str(seconds)+' -- ')+rows[i][10:]
+    return ('\n'.join(rows)+'\n').encode()
+
+
 def _render(stage,config,libraries,*,deployment_sha256=None):
     import household_cycle_deploy as deploy
     scripts=stage/'sources/openhab/scripts'
@@ -107,6 +129,10 @@ def _render(stage,config,libraries,*,deployment_sha256=None):
     files={'forecast.conf':forecast,
         'score.conf':score.encode(),'score-timer.conf':score_timer.encode(),
         'thermal-native-geometry-prepare.service':service.encode(),'thermal-native-geometry-prepare.timer':timer.encode()}
+    if deployment_sha256 is not None and _shared_job_pool(stage):
+        for name,seconds in (('forecast.conf',90),('score.conf',120 if _extended_score_window(stage) else 60),
+                ('thermal-native-geometry-prepare.service',90)):
+            files[name]=_shared_command(files[name],scripts,seconds)
     return files
 
 

@@ -11,7 +11,7 @@ from contextlib import contextmanager
 SCORE_LIFETIME_SECONDS = 120
 SCORE_CPU_QUOTA = '100%'
 SCORE_CURRENT_PERIOD_MINUTES = 10
-PUBLICATION_POLICY_SHA256 = '092dab2595bb8f8478fd0519118e1e277ab8aa61d887d5ff2fc38d4ea7717f70'
+PUBLICATION_POLICY_SHA256 = 'a7fdc1f633778ff6ce7a946b60de0ed2d23f1f31a78893e7eb945433f0c0a872'
 _production_policy = None
 PUBLICATION_MONITOR_SHA256 = '43cef34e31bc9b82a9d416f97bf9e15f255ebe95b873409089478e41e40fd9f9'
 _production_monitor = None
@@ -66,7 +66,7 @@ def production_pressure_monitor():
 
 
 def production_resource_preflight(*,leaf=None):
-    """Load the pinned one-core publication policy from this coordinator's stage."""
+    """Load the pinned current publication policy from this coordinator's stage."""
     global _production_policy
     import importlib.util
     from hashlib import sha256

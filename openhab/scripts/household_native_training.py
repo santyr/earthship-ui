@@ -152,7 +152,10 @@ class NativeTraining:
         env = dict(os.environ, EARTHSHIP_THERMAL_INPUT_CAPTURE='1',
             EARTHSHIP_GUARDED_CAPTURE_WORKER='1', EARTHSHIP_QUALIFICATION_FIT='0',
             EARTHSHIP_REMOTE_QUALIFICATION_FIT='0')
-        status, output = run_training_worker(command, check=self.guard, seconds=seconds, env=env)
+        scoped=['/usr/bin/python3',str(Path(__file__).with_name('household_job_run.py')),
+            '--production','--collection','--minimum-mib','256','--preferred-mib','256',
+            '--tasks','24','--seconds',str(seconds),'--',*command]
+        status, output = run_training_worker(scoped, check=self.guard, seconds=seconds, env=env)
         if status:
             # The public CLI intentionally omits credential values from errors.
             raise RuntimeError('daily measurement worker failed: ' + output.decode(errors='replace')[-800:])
@@ -247,7 +250,9 @@ class NativeTraining:
             origin = build_source(chunk, observed_at=datetime.now(timezone.utc), native_runtime=runtime,
                 source_status=source['status'], latitude=latitude, longitude=longitude,
                 timezone_name=source['timezone'], altitude_m=None)
-            cache = capture_batch(chunk, origin, library_paths=libraries, scratch=scratch, guard=self.guard)
+            from household_cycle_resources import publication_geometry_policy
+            with publication_geometry_policy():
+                cache = capture_batch(chunk, origin, library_paths=libraries, scratch=scratch, guard=self.guard)
             caches.append(cache)
             print(json.dumps(dict(status='training_geometry', completed=index + 1, total=len(chunks))), flush=True)
         if metadata() != source:

@@ -131,7 +131,9 @@ def run(config,libraries,*,stage=None,deployment_sha256=None,clock=lambda:dateti
             from native_model_serving_receipt import load_serving_selection,read_serving_model
             selected=load_serving_selection(stage,expected_deployment_sha256=deployment_sha256,assessed_at=clock(),guard=guard)
             model=read_serving_model(selected,assessed_at=clock(),guard=guard)
-            result=prepare_geometry(settings,issue=issue,library_paths=paths,guard=guard,serving_model=model)
+            from household_cycle_resources import publication_geometry_policy
+            with publication_geometry_policy():
+                result=prepare_geometry(settings,issue=issue,library_paths=paths,guard=guard,serving_model=model)
         else:
             result=prepare_geometry(settings,issue=issue,library_paths=paths,guard=guard)
         guard()
