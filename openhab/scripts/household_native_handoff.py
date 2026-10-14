@@ -114,7 +114,10 @@ def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard,previo
             raise ValueError('owned unit fragment or drop-in inventory differs')
         if expected_raw is not None:
             state=deploy._service_state(path)
-            if any(state.get(k)!=v for k,v in deploy.EFFECTIVE_LIMITS.items()) or not deploy._entry_matches(state,expected_raw):
+            limits=dict(deploy.EFFECTIVE_LIMITS)
+            if path==service and b'CPUQuota=100%\n' in expected_raw:
+                limits['CPUQuotaPerSecUSec']='1s'
+            if any(state.get(k)!=v for k,v in limits.items()) or not deploy._entry_matches(state,expected_raw):
                 raise ValueError('effective owned command or resource limits differ')
     expected_score_caps={**deploy.LIMITS,'TimeoutStartSec':'60'}
     if any(_rows(raws['score_service'],key)!=[value] for key,value in expected_score_caps.items()):

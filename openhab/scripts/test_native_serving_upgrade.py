@@ -31,7 +31,8 @@ def fixture(tmp_path,monkeypatch):
     def state(path):
         role='forecast' if path.name=='thermal-provisional-forecast.service' else ('score' if path.name=='thermal-provisional-score.service' else 'preparer_service')
         raw=targets[role].read_text();command=[line[10:] for line in raw.splitlines() if line.startswith('ExecStart=') and line!='ExecStart='][0]
-        return dict(deploy.EFFECTIVE_LIMITS,ExecStart=command,ActiveState='inactive',MainPID='0')
+        return dict(deploy.EFFECTIVE_LIMITS,ExecStart=command,ActiveState='inactive',MainPID='0',
+            CPUQuotaPerSecUSec='1s' if role=='forecast' and 'CPUQuota=100%\n' in raw else '200ms')
     monkeypatch.setattr(deploy,'_service_state',state)
     kwargs=dict(previous_forecast_stage=old_stage,previous_score_stage=old_stage,previous_family=old_family,
                 previous_deployment_sha256=old_pin,output=tmp_path/'upgrade-handoff',guard=lambda:None)
@@ -113,3 +114,28 @@ def test_upgrade_activation_preserves_existing_preparer_schedule_and_enable_link
     assert all(value=='active' for value in current.values())
     assert install._enable_link_identity(link)==identity
     assert ('stop',install.PREPARER_TIMER) in calls and ('start',install.PREPARER_TIMER) in calls
+
+
+def test_upgrade_from_one_core_forecast_preserves_declared_previous_limits(tmp_path, monkeypatch):
+    import household_native_family as family_api
+    monkeypatch.setattr(family_api, '_forecast_cpu_quota', lambda stage: '100%')
+    deploy, handoff, family, kwargs, targets, old_family = fixture(tmp_path, monkeypatch)
+    assert b'CPUQuota=100%\n' in targets['forecast'].read_bytes()
+    handoff.prepare(family, **kwargs)
+    assert handoff.verify(kwargs['output'], guard=lambda: None)['schema'] == 'earthship-native-thermal-handoff/v3'
+
+
+@pytest.mark.parametrize('unit,quota', [('thermal-provisional-forecast.service', '200ms'),
+    ('thermal-provisional-score.service', '1s'), ('thermal-native-geometry-prepare.service', '1s')])
+def test_upgrade_rejects_effective_quota_different_from_previous_role(tmp_path, monkeypatch, unit, quota):
+    import household_native_family as family_api
+    monkeypatch.setattr(family_api, '_forecast_cpu_quota', lambda stage: '100%')
+    deploy, handoff, family, kwargs, targets, old_family = fixture(tmp_path, monkeypatch)
+    original = deploy._service_state
+    def state(path):
+        result = original(path)
+        if path.name == unit: result['CPUQuotaPerSecUSec'] = quota
+        return result
+    monkeypatch.setattr(deploy, '_service_state', state)
+    with pytest.raises(ValueError, match='resource limits'):
+        handoff.prepare(family, **kwargs)

@@ -102,3 +102,10 @@ unchanged. No source is reclassified as fresh by this change.
 Three regression tests failed before the implementation. With the correction,
 54 native/legacy collection, orchestration, receipt and deadline tests passed
 in 16.86 seconds. Live source freshness remains to be checked after activation.
+
+The first freshness activation refused before unit changes because the previous
+family handoff still required a 20% effective forecast quota. The handoff now
+checks the quota declared by the already verified previous family. Four upgrade
+regressions cover a one-core prior forecast and incorrect forecast/score/preparer
+quotas. All 42 affected upgrade, handoff, effective-definition and installation
+lifecycle tests passed in 16.37 seconds. Existing timers remained active.
