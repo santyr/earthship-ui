@@ -67,3 +67,11 @@ is 19:21 UTC; its first 19:15 forecast cannot have a mature one-hour outcome unt
 20:20:15 UTC. Neither an empty report nor legacy score counts establish accuracy.
 Private deployment and normal-cycle evidence is retained in the serving-receipt
 QA directory under `actual-monitoring-continuity-20261014`.
+
+At the natural 19:21 UTC opportunity the scorer exited 0 and created the current
+model-specific report, assessed at 19:21:15.800053 UTC, with zero mature outcomes
+at every horizon. Current report production is therefore verified. The
+`historical_model_selection_unavailable` pending reason concerns older deliveries;
+it did not prevent the current report write. Mature scoring and accuracy remain
+unverified. See `2026-10-14-astro-native-serving-acceptance.md` and the canonical
+tracker's `current_model_report_natural_execution` record.

@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "Earthship observations remain below existing content; standalone household navigation removed. Current sourceb6a5e87/deployment2b8aab1b/model52dd5d12 passed effective activation readback and natural19:15:15UTC forecast delivery. Service exited0 in43seconds with81.9MiB peak and zero swap. Household snapshot was shadow with no expired qualified inputs at verification; HTTP200 API matched its cache while fresh. Short-lived evidence still expires between five-minute cycles. Deployment-only updates now preserve unchanged model identity; model-specific report files prevent historical displacement, and current native scoring receives a twenty-minute opportunity independent of retained history length. Actual current scoring/report production and mature accuracy remain pending. First morning fit remains unverified. No actuator authority. See proofs.native_monitoring_continuity_deployment.",
+      "current_evidence": "Earthship observations remain below existing content; standalone household navigation removed. Current sourceb6a5e87/deployment2b8aab1b/model52dd5d12 passed effective activation readback and natural19:15:15UTC forecast delivery. Service exited0 in43seconds with81.9MiB peak and zero swap. Household snapshot was shadow with no expired qualified inputs at verification; HTTP200 API matched its cache while fresh. Short-lived evidence still expires between five-minute cycles. Deployment-only updates now preserve unchanged model identity; model-specific report files prevent historical displacement, and current native scoring receives a twenty-minute opportunity independent of retained history length. Natural19:21UTC scoring exited0 and wrote the current artifact-specific report with zero mature outcomes. Report production is verified; mature scoring and accuracy remain pending. First morning fit remains unverified. No actuator authority. See proofs.native_monitoring_continuity_deployment.",
       "complete": false
     },
     {
@@ -93,7 +93,7 @@
     "No live owner migration without separate qualification",
     "No fabricated water state",
     "No new recovery work",
-    "SerialcappedlocalCPU20percent/memory256MiB/swap0/tasks24"
+    "Keep combined development and production demand within host headroom; more resources are authorized. Resource profiles are operational settings, not a permanent CPU20percent requirement. Shared dynamic coordination is proposed, not deployed."
   ],
   "proofs": {
     "foundation": {
@@ -4662,7 +4662,7 @@
       }
     },
     "astro_a08_irradiance_contract_acceptance": {
-      "status": "offline_source_contracts_and_edge_cases_verified_live_native_serving_pending",
+      "status": "offline_contracts_and_live_native_serving_verified",
       "recorded_at": "2026-10-13T22:11:48.914704+00:00",
       "source_sha256s": {
         "openhab/scripts/native_thermal_inputs.py": "f44600ab649b5867df2f8fc700a8426285a42de690d5622bc996a23e274ad716",
@@ -4716,9 +4716,10 @@
       "product_sources_changed": false,
       "production_model_changed": false,
       "live_writes": false,
-      "live_native_serving_qualification_complete": false,
+      "live_native_serving_qualification_complete": true,
       "production_accuracy_improvement_proven": false,
-      "full_program_complete": false
+      "full_program_complete": false,
+      "live_serving_evidence": "proofs.astro_a07_a08_native_serving_acceptance"
     },
     "astro_a10_predusk_baseline_acceptance": {
       "status": "existing_predusk_source_and_timing_qualified_isolated_event_design_pending",
@@ -6767,10 +6768,55 @@
       "activation_memory_peak_bytes": 59691008,
       "current_score_interval_minutes": 20,
       "report_max_age_minutes": 15,
-      "current_scoped_report_exists": false,
+      "current_scoped_report_exists": true,
       "completed_native_scores": 0,
       "source_document": "docs/operations/2026-10-14-native-monitoring-continuity.md",
-      "production_checkout_clean": true
+      "production_checkout_clean": true,
+      "current_model_report_natural_execution": {
+        "assessed_at": "2026-10-14T19:21:15.800053+00:00",
+        "artifact_sha256": "52dd5d122485f0bdafa0aed4fa7412c0823ce9829ed3d9bdc920e44d88526506",
+        "report_sha256": "a1391fc64127e2bdaac49b22c7ab6088066fd275faa5bae708c539d555c1fa30",
+        "report_path": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-13-native-model-serving-receipt/actual-review-fixes-20261014/native-evidence/native-provisional-performance-52dd5d122485f0bdafa0aed4fa7412c0823ce9829ed3d9bdc920e44d88526506.json",
+        "counts": {
+          "1": 0,
+          "12": 0,
+          "24": 0,
+          "6": 0
+        },
+        "service_exit": 0,
+        "accuracy_verified": false
+      },
+      "current_scoped_report_observed_at": "2026-10-14T19:21:15.800053+00:00"
+    },
+    "astro_a07_a08_native_serving_acceptance": {
+      "status": "native_geometry_and_irradiance_migration_acceptance_verified",
+      "recorded_at": "2026-10-14T19:25:47.376817+00:00",
+      "document": "docs/operations/2026-10-14-astro-native-serving-acceptance.md",
+      "private_evidence": ".superpowers/sdd/2026-10-13-native-model-serving-receipt/a07-a08-offline-serving-audit.json",
+      "private_evidence_sha256": "50decc6a6f39d52396d63b5b93beed3e968e71ce0d4d2e1c00acc2f5b56923bd",
+      "offline_audit_script_sha256": "f1cb42ade400896482f575e510a6e6d3f9dc1ad3b709c18a35f1bea2e78a4c4d",
+      "source_commit": "b6a5e87c3e66c445f5bf4b529c0efccdc1890e7b",
+      "deployment_sha256": "2b8aab1b7ce638f961a31155721fcacfe54590104e2c1995da11565873abf2fe",
+      "artifact_sha256": "52dd5d122485f0bdafa0aed4fa7412c0823ce9829ed3d9bdc920e44d88526506",
+      "issued_at": "2026-10-14T19:20:15+00:00",
+      "capture_sha256": "1b4b7a81d425fe89c415a840aeb11256857fbd95e5a0e076689e37c569e7b841",
+      "training_end": "2026-10-14T06:00:00+00:00",
+      "historical_geometry_cache_sha256": "66da27ef500b7a7d3d35bbc934197af4c510d7b11ac8e8f6f37caaa917c7adaf",
+      "training_geometry_sha256": "86772aa52b52208fe537e01289137435be60c9ad47f6ef1ed022ff9f94005b2f",
+      "forecast_geometry_sha256": "2e4c1855a25f4eaa3d340e16a36678ca4367536c4770b3ecd495f9f1c95b0e6d",
+      "historical_geometry_points": 88,
+      "forecast_horizon_hours": 24,
+      "geometry_replay_identical": true,
+      "forecast_replay_identical": true,
+      "network_attempts": 0,
+      "elapsed_seconds": 1.1276449899887666,
+      "model_refit_and_versioned_artifact_complete": true,
+      "prior_development_prediction_comparison_sha256": "4fd2321fd8d2deb1df0d97080c4efbb5da00af81faa28f27a982f9d9303a11c5",
+      "prior_comparison_reuses_training_endpoints": true,
+      "as_issued_accuracy_improvement_proven": false,
+      "live_native_serving_qualification_complete": true,
+      "automatic_actuation": false,
+      "full_program_complete": false
     }
   },
   "astro_efficiency_audit": {
@@ -6834,24 +6880,25 @@
       {
         "id": "A07",
         "requirement": "Consolidate thermal solar geometry through a replayable adapter",
-        "complete": false,
-        "status": "native_training_geometry_verified_versioned_model_work_pending",
+        "complete": true,
+        "status": "native_geometry_and_irradiance_migration_acceptance_verified",
         "task": "extend the shared observational adapter or provide a bounded geometry cache for the exact historical/future timestamps required by models. Record site, timezone, algorithm/binding version, requested instants and source digest. Replay must work without live OpenHAB. Compare both geometries near the horizon, then version/refit/revalidate affected datasets and model artifacts. Do not make one synchronous binding call per historical row or change only the main source while leaving staged deployed publishers on the previous contract.",
         "acceptance": "historical/future coverage, DST/leap days, exact requested instants, missing geometry, offline replay, horizon disagreements, artifact compatibility, replay parity and prediction comparisons before promotion. Consolidation reduces duplicated authority and maintenance; CPU savings are not established, and repeated binding calls could make it slower.",
         "native_cache_sha256": "66da27ef500b7a7d3d35bbc934197af4c510d7b11ac8e8f6f37caaa917c7adaf",
         "horizon_disagreements": 2,
         "native_training_series_sha256": "29a85097f6376320c859a78c0ac2a73eeddfd99067ddc478a173f0b3309034cc",
         "native_training_point_count": 778,
-        "native_training_horizon_disagreements": 1
+        "native_training_horizon_disagreements": 1,
+        "evidence": "proofs.astro_a07_a08_native_serving_acceptance"
       },
       {
         "id": "A08",
         "requirement": "Keep irradiance and sky inference as separate models",
-        "complete": false,
-        "status": "offline_source_contracts_and_edge_cases_verified_live_native_serving_pending",
+        "complete": true,
+        "status": "native_geometry_and_irradiance_migration_acceptance_verified",
         "task": "reuse Astro position first. Treat adoption of native radiation as a separate model experiment with comparison/refitting. Keep actual station radiation, forecast shortwave radiation, PV observations and evidence coverage as independent source contracts.",
         "acceptance": "low sun, missing/stale station data, zero denominator, bounded fractions, cloud transients, model refit and measured-versus-calculated lineage.",
-        "evidence": "proofs.astro_a08_irradiance_contract_acceptance"
+        "evidence": "proofs.astro_a07_a08_native_serving_acceptance"
       },
       {
         "id": "A09",
@@ -6894,7 +6941,7 @@
       "deployed_ui": true,
       "season_source": "native Sun_TimeLeft/Sun_NextSeason; existing display Item/writer preserved",
       "versions": "5.2.3 or greater stable",
-      "native_model_geometry_refit_complete": false,
+      "native_model_geometry_refit_complete": true,
       "independent_review_critical": 0,
       "independent_review_important": 3,
       "review_correction_passes": 1,
@@ -6920,5 +6967,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T19:16:18.962506+00:00"
+  "updated_at": "2026-10-14T19:25:47.376817+00:00"
 }
