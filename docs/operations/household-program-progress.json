@@ -5134,7 +5134,7 @@
       "no_native_activation_or_hardware_requests": true
     },
     "native_model_serving_receipt_plan": {
-      "status": "task4_unit_contracts_verified_actual_private_staging_pending",
+      "status": "task4_actual_staging_verified_task5_review_and_timing_pending",
       "recorded_at": "2026-10-14T00:09:26.086096+00:00",
       "user_reply": "plan approved",
       "presented_artifact_approved": "docs/superpowers/specs/2026-10-13-native-model-serving-receipt-design.md",
@@ -5154,7 +5154,8 @@
       "task1_complete": true,
       "task2_complete": true,
       "task3_complete": true,
-      "task4_complete": false
+      "task4_complete": true,
+      "task5_complete": false
     },
     "native_model_serving_receipt_task1": {
       "status": "task1_unit_contracts_verified",
@@ -5928,6 +5929,108 @@
       "production_interpreter_admission_qualified": false,
       "actual_final_stage_qualified": false,
       "live_units_changed": false,
+      "whole_plan_complete": false
+    },
+    "native_model_serving_receipt_task4": {
+      "status": "task4_actual_two_phase_staging_and_production_receipt_readback_verified",
+      "unit_executed_cases": 144,
+      "actual_operations": [
+        {
+          "mode": "candidate",
+          "label": "20261014T031037335437Z-candidate",
+          "operation_wall_seconds": 39.03724732296541,
+          "memory_peak_bytes": 110694400,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          },
+          "log_sha256": "eb67ef58c8f8bfa3b77167f97cf8db1946f2148cce9c633f5c5a9378146b20b5",
+          "source_commit": "e0e1375b27df2b1514f319fb42259cb9065fb094"
+        },
+        {
+          "mode": "bootstrap",
+          "label": "20261014T031835509739Z-bootstrap",
+          "operation_wall_seconds": 3.0386776629602537,
+          "memory_peak_bytes": 105136128,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          },
+          "log_sha256": "2c7afcfa22df7dbe99dfec1388b281358a461cb75d8192b28dac03c4a1ec1f01",
+          "source_commit": "e0e1375b27df2b1514f319fb42259cb9065fb094"
+        },
+        {
+          "mode": "admit",
+          "label": "20261014T032134991219Z-admit",
+          "operation_wall_seconds": 23.326652945019305,
+          "memory_peak_bytes": 113057792,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          },
+          "log_sha256": "f05f98ac931b3cea703318b0a7b3492963c2e14bc2a9136fb445aa45ccd5e032",
+          "source_commit": "e0e1375b27df2b1514f319fb42259cb9065fb094"
+        },
+        {
+          "mode": "final",
+          "label": "20261014T032258027593Z-final",
+          "operation_wall_seconds": 6.609083979972638,
+          "memory_peak_bytes": 99835904,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          },
+          "log_sha256": "0e18e42ee004b17548dbf138e12f665f03bc55b672e221cf6e132b4b6610d3dd",
+          "source_commit": "e0e1375b27df2b1514f319fb42259cb9065fb094"
+        },
+        {
+          "mode": "runtime",
+          "label": "20261014T032439828956Z-runtime",
+          "operation_wall_seconds": 12.668132693041116,
+          "memory_peak_bytes": 101511168,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          },
+          "log_sha256": "f00157575ddf1728a756c9b9a332550d8fbb5f854d96887df4672efdfc000d71",
+          "source_commit": "e0e1375b27df2b1514f319fb42259cb9065fb094"
+        }
+      ],
+      "source_commit": "e0e1375b27df2b1514f319fb42259cb9065fb094",
+      "artifact_sha256": "87896dd2db749f9f3ba0245c97367bccb2e33f32448c7a0c22e8b3f24248db3a",
+      "runtime_sha256": "95293950b20d1abb17a49e49209e5ed31b008534d78069188bf4516256cc47ce",
+      "deployment_sha256": "e516899c2f419b6bdb7c3f8388740afdb19162d1aa6e1e015171fb8c1e80c687",
+      "model_receipt_sha256": "eb3d393a0050375d03b3f9e44a8dec3c85a888f4f9c3d5942be388b5c0fc28f6",
+      "score_dispatch_sha256": "9e02bc44e3a47777b49def319f45df8af9368b1b0810e99594711512ea634d35",
+      "family_sha256": "b9199c65ea9fe7a03471b7223917d43be67f1af5e8019df77008f753456f2b9b",
+      "source_count": 222,
+      "protected_sources": 72,
+      "native_fitted_sources": 9,
+      "native_sources": 12,
+      "live_units_changed": false,
+      "live_writes": false,
+      "preparer_deadline_qualified": false,
+      "native_activation_qualified": false,
       "whole_plan_complete": false
     }
   },
