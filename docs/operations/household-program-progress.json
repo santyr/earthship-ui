@@ -7145,7 +7145,7 @@
       "documentation": "docs/operations/2026-10-14-score-production-cpu.md"
     },
     "native_household_solar_geometry": {
-      "status": "deployed_pending_normal_household_cycle",
+      "status": "normal_production_household_cycle_verified",
       "weather_context_schema": "earthship-household-prepared-weather/v3",
       "tests_passed": 240,
       "legacy_v1_v2_shapes_preserved": true,
@@ -7187,7 +7187,38 @@
       "activation_memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n",
       "daily_checkout_clean": true,
       "next_normal_household_issue": "2026-10-14T21:25:15+00:00",
-      "fit_executed": false
+      "fit_executed": false,
+      "normal_cycle": {
+        "issue": "2026-10-14T21:25:15+00:00",
+        "service_result": "success",
+        "exit_code": 0,
+        "exited_at": "2026-10-14T21:25:28+00:00",
+        "receipt_path": ".superpowers/sdd/2026-10-13-native-model-serving-receipt/actual-household-geometry-20261014/final/evidence/2545b7ffeea1c11027c22e7a1caa0064d12b129ccd6eb940235d7cedf3466839.household-model-plan-v5.json",
+        "receipt_sha256": "2545b7ffeea1c11027c22e7a1caa0064d12b129ccd6eb940235d7cedf3466839",
+        "positions": 288,
+        "series_sha256": "7dca7ce2aa8d9731adb3e73a859760270f8fcb5404f2a0b22c1b5d764dea5c00",
+        "available_at": "2026-10-14T21:23:48.516678+00:00",
+        "quality": "retained_native_calculation",
+        "automatic_actuation": false
+      }
+    },
+    "native_score_pressure_sampling": {
+      "status": "offline_original_outcomes_verified_pending_deployment",
+      "interval_seconds": 1,
+      "forced_job_boundary_checks": true,
+      "original_preflight_preserved": true,
+      "deadline_and_source_checks_every_callback": true,
+      "tests_passed": 89,
+      "original_outcomes": 5,
+      "baseline_seconds": 59.731606669025496,
+      "sampled_seconds": 35.449349969043396,
+      "baseline_pressure_seconds": 22.2562512406148,
+      "sampled_pressure_seconds": 0.08333363849669695,
+      "original_statistics_identical": true,
+      "original_inventory_bytes_verified": 1122490211,
+      "fit_executed": false,
+      "live_writes": false,
+      "documentation": "docs/operations/2026-10-14-score-production-cpu.md"
     }
   },
   "astro_efficiency_audit": {
@@ -7342,5 +7373,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T19:50:50.901863+00:00"
+  "updated_at": "2026-10-14T21:31:00+00:00"
 }

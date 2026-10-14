@@ -68,3 +68,5 @@ Activation peaked at 56,352,768 bytes with no memory-limit/OOM events; no fit,
 qualification probe, actuator request or forced forecast ran. The clean daily
 training checkout is at the same source. The first normal enriched household
 issue is expected at 21:25:15 UTC and is not yet verified.
+
+The first normal production issue at **2026-10-14 21:25:15 UTC** succeeded (service exit0 at21:25:28). Its immutable household receipt `2545b7ffeea1c11027c22e7a1caa0064d12b129ccd6eb940235d7cedf3466839` retains288 positions from native series `7dca7ce2aa8d9731adb3e73a859760270f8fcb5404f2a0b22c1b5d764dea5c00`, available21:23:48.516678UTC, with calculated-only quality and automatic actuation false. This closes the pending natural geometry-cycle check; independent measured weather and the broader household architecture remain incomplete.

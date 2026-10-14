@@ -87,3 +87,11 @@ returned HTTP 200. The clean daily-training checkout is at the same source.
 The natural 21:06 UTC legacy invocation exited 0 in five seconds. The natural
 21:16 UTC retained-native slot also succeeded: one outcome scored in 48 seconds,
 44.710 CPU seconds, 84.8 MiB peak memory and zero swap.
+
+## Repeated pressure polling
+
+An offline profile of the actual five current-model completions reproduced97,350 guard callbacks in59.732seconds. Pressure sampling consumed22.256seconds; the full original inventory was verified78times, totaling1,122,490,211bytes. These timings overlap: inventory verification itself calls the guard.
+
+The outside-fitted scoring coordinator now samples native inference pressure at the first callback and then at most once per second, with forced fresh checks before scoring and before returning success. It preserves native preflight, every-callback deadline/lock/config/source checks, original-source validation, kernel caps, pressure thresholds and fitting behavior. Refusals latch for the invocation. Clock regression/nonfinite values refuse. During a long blocking operation, cooperative samples resume when callbacks resume; kernel limits remain continuous. This changes detection cadence to the next callback after one second; it does not provide asynchronous host monitoring. The dynamic shared resource allocator remains proposed, not implemented.
+
+The same five original outcomes replay in35.449seconds (40.7% less wall time), with identical statistics and identical inventory count/bytes. Pressure overhead is0.083seconds. Network was denied, no fit ran, and no live writes occurred. The profile excludes the live consumer lock and does not claim end-to-end production timing.89 affected tests pass, including real memory-event refusal, forced final sampling, nonrenewing deadlines, retained-native dispatch and admission. Deployment and a natural scored cycle remain pending.

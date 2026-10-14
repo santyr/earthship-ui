@@ -15,6 +15,34 @@ PUBLICATION_POLICY_SHA256 = '092dab2595bb8f8478fd0519118e1e277ab8aa61d887d5ff2fc
 _production_policy = None
 
 
+
+class SampledScorePressure:
+    """Poll inference headroom at most once per second during replay.
+
+    The kernel enforces worker limits continuously. Job boundaries force a
+    fresh sample; deadlines, locks and source integrity are checked separately
+    on every callback. A refusal is permanent for this invocation.
+    """
+    def __init__(self, pressure, *, monotonic=time.monotonic):
+        self.pressure=pressure;self.monotonic=monotonic
+        self.last_sample=None;self.last_call=None;self.refused=False
+
+    def check(self, *, force=False):
+        import math
+        if self.refused:raise ValueError('score pressure previously refused')
+        try:
+            now=self.monotonic()
+            if not math.isfinite(now) or (self.last_call is not None and now<self.last_call):
+                raise ValueError('score pressure clock unavailable')
+            self.last_call=now
+            if force or self.last_sample is None or now-self.last_sample>=1.:
+                self.pressure.check()
+                self.last_sample=now
+        except (OSError, UnicodeError, ValueError, OverflowError):
+            self.refused=True
+            raise
+
+
 def production_resource_preflight(*,leaf=None):
     """Load the pinned one-core publication policy from this coordinator's stage."""
     global _production_policy
@@ -152,6 +180,7 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
         if settings.get('schema') in ('earthship-provisional-thermal-live-config/v2','earthship-provisional-thermal-live-config/v3'):
             from native_inference_pressure import NativeInferenceHeadroom
             pressure=NativeInferenceHeadroom();pressure.preflight()
+            pressure=SampledScorePressure(pressure,monotonic=monotonic)
         else:
             pressure=TrainingHeadroom(max_swapin_bytes_per_second=1048576)
         def guard():
@@ -173,10 +202,15 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
                 historical.append(load_serving_selection(Path(ref['stage']),expected_deployment_sha256=ref['deployment_sha256'],
                     assessed_at=clock(),guard=guard))
             historical=tuple(historical)
+            pressure.check(force=True)
             result=score_with_report(settings,guard=guard,clock=clock,queue=True,serving_model=model,historical_selections=historical)
-        else:result=score_with_report(settings,guard=guard,clock=clock,queue=True)
+        else:
+            if isinstance(pressure,SampledScorePressure):pressure.check(force=True)
+            result=score_with_report(settings,guard=guard,clock=clock,queue=True)
         guard()
         if verifier is not None and verifier(stage)!=binding:raise ValueError('staged score runtime changed')
+        if isinstance(pressure,SampledScorePressure):pressure.check(force=True)
+        guard()
         return result
 
 
