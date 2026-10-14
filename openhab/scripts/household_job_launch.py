@@ -1,0 +1,110 @@
+"""Serialize RAM admission until systemd exposes the new scope's commitment."""
+from contextlib import contextmanager
+import fcntl
+import os
+from pathlib import Path
+import stat
+import subprocess
+import time
+from uuid import uuid4
+
+from household_job_budget import AdmissionDeferred, admit_memory
+from household_job_pool import POOL_NAME, HOST_RESERVE, available_memory, read_pool, _counter, check_host_pressure
+
+
+@contextmanager
+def admission_gate(path, *, seconds=15):
+    path = Path(path)
+    if path.parent.resolve() != path.parent.absolute():
+        raise ValueError('real private admission directory required')
+    directory = path.parent.stat()
+    if directory.st_uid != os.getuid() or stat.S_IMODE(directory.st_mode) != 0o700:
+        raise ValueError('owned private admission directory required')
+    fd = os.open(path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+    try:
+        original = os.fstat(fd)
+        def verify():
+            current = path.lstat()
+            if (not stat.S_ISREG(current.st_mode) or current.st_uid != os.getuid()
+                    or current.st_nlink != 1 or stat.S_IMODE(current.st_mode) != 0o600
+                    or (current.st_dev, current.st_ino) != (original.st_dev, original.st_ino)):
+                raise ValueError('admission lock identity changed')
+        verify()
+        deadline = time.monotonic() + seconds
+        while True:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError:
+                if time.monotonic() >= deadline:
+                    raise AdmissionDeferred('another job is being admitted')
+                time.sleep(.05)
+        verify()
+        yield verify
+    finally:
+        os.close(fd)
+
+
+def start_scope(command, *, unit, memory_bytes, production, tasks, seconds):
+    environment = dict(os.environ, OPENBLAS_NUM_THREADS='1', OMP_NUM_THREADS='1', MKL_NUM_THREADS='1')
+    argv = ['systemd-run', '--user', '--scope', '--quiet', '--collect',
+        '--slice='+POOL_NAME, '--unit='+unit, '--description=Earthship managed job',
+        '-p', 'MemoryMax='+str(memory_bytes), '-p', 'MemorySwapMax=0',
+        '-p', 'CPUWeight='+('100' if production else '25'), '-p', 'TasksMax='+str(tasks),
+        '-p', 'RuntimeMaxSec='+str(seconds), '-p', 'IOWeight='+('100' if production else '10'),
+        'nice', '-n', '15', 'ionice', '-c', '3', *command]
+    return subprocess.Popen(argv, env=environment)
+
+
+def stop_scope(unit):
+    subprocess.run(['systemctl', '--user', 'stop', unit], check=True, timeout=15,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def launch_job(command, *, pool_path, lock_path, minimum_bytes, preferred_bytes,
+               reserve_bytes=HOST_RESERVE, production=False, tasks=96, seconds=600,
+               available=available_memory, spawn=start_scope, stop=stop_scope, health=check_host_pressure):
+    if (not isinstance(command, (list, tuple)) or not 1 <= len(command) <= 256
+            or any(not isinstance(arg, str) or '\0' in arg for arg in command)
+            or not Path(command[0]).is_absolute() or sum(map(len, command)) > 32768):
+        raise ValueError('bounded absolute command required')
+    if type(tasks) is not int or not 1 <= tasks <= 128 or type(seconds) is not int or not 1 <= seconds <= 3600:
+        raise ValueError('bounded task count and runtime required')
+    unit = 'earthship-job-'+uuid4().hex+'.scope'
+    process = None
+    try:
+        with admission_gate(lock_path) as verify:
+            health()
+            snapshot = read_pool(pool_path)
+            memory = admit_memory(available_bytes=available(), **snapshot,
+                minimum_bytes=minimum_bytes, preferred_bytes=preferred_bytes, reserve_bytes=reserve_bytes)
+            verify()
+            process = spawn(command, unit=unit, memory_bytes=memory,
+                production=production, tasks=tasks, seconds=seconds)
+            deadline = time.monotonic() + 15
+            while True:
+                # An already completed command needs no retained reservation.
+                # Any surviving descendants remain visible in their cgroup.
+                status = process.poll()
+                if status is not None:
+                    return status
+                leaf = Path(pool_path)/unit
+                if leaf.exists():
+                    if leaf.resolve()!=leaf.absolute():raise ValueError('real admitted scope required')
+                    if (_counter(leaf/'memory.max') != memory or
+                            _counter(leaf/'memory.swap.max') != 0):
+                        raise ValueError('started scope differs from admitted budget')
+                    verify()
+                    break
+                if time.monotonic() >= deadline:
+                    raise TimeoutError('scope admission was not confirmed')
+                time.sleep(.05)
+        while process.poll() is None:
+            health()
+            time.sleep(1)
+        return process.wait()
+    except BaseException:
+        if process is not None:
+            stop(unit)
+            process.wait()
+        raise

@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "Earthship observations remain below existing content; standalone household navigation removed. Deployment 715078d7 from cbec265 retains model 52dd5d12 and its original 19:08:13 UTC admission. Natural 21:01 UTC current-model scoring exited 0 after 65 seconds, with 97.2 MiB peak and zero swap. Three mature one-hour outcomes give model MAE 0.110915 F versus persistence 0.30 F; longer horizons remain empty and no accuracy graduation is claimed. Current-model scoring now runs every ten minutes within the fifteen-minute report TTL. Live publication and the deployed UI parser displayed all three outcomes at 21:05 UTC. The subsequent callback-only deployment a6b37ac4 from 2fbad86 passed effective readback and a normal legacy scoring run; its normal 21:16 historical slot succeeded in 48 seconds with zero swap. First natural morning fit and broader household observability qualification remain incomplete. No actuator authority. See proofs.native_current_model_production_scoring. At21:31UTC current-model scoring completed six one-hour outcomes in100seconds (96.867CPU seconds), modelMAE0.085103F versus persistence0.240F. The measured pressure-polling correction8245591 passes89 affected tests and independent review; same-five-outcome offline replay is35.449seconds versus59.732seconds with identical statistics. Deployment c3d2dbe5 is effective with all five owned files, caps and timers verified at21:36:20UTC; UI/publication HTTP200. The normal21:41UTC run succeeded in68seconds with seven original one-hour outcomes,64.810CPU seconds,93.0MiB peak and zero swap. Historical21:36 scoring exposed a retained obsolete pressure policy; correction8a112eb passes92tests and current admission in19actual source environments; deployment2beeb884 is effective with unchanged model, verified caps and active timers at21:43:10UTC. The next normal historical slot is21:56UTC and remains unverified.",
+      "current_evidence": "Earthship observations remain below existing content; standalone household navigation removed. Deployment 715078d7 from cbec265 retains model 52dd5d12 and its original 19:08:13 UTC admission. Natural 21:01 UTC current-model scoring exited 0 after 65 seconds, with 97.2 MiB peak and zero swap. Three mature one-hour outcomes give model MAE 0.110915 F versus persistence 0.30 F; longer horizons remain empty and no accuracy graduation is claimed. Current-model scoring now runs every ten minutes within the fifteen-minute report TTL. Live publication and the deployed UI parser displayed all three outcomes at 21:05 UTC. The subsequent callback-only deployment a6b37ac4 from 2fbad86 passed effective readback and a normal legacy scoring run; its normal 21:16 historical slot succeeded in 48 seconds with zero swap. First natural morning fit and broader household observability qualification remain incomplete. No actuator authority. See proofs.native_current_model_production_scoring. At21:31UTC current-model scoring completed six one-hour outcomes in100seconds (96.867CPU seconds), modelMAE0.085103F versus persistence0.240F. The measured pressure-polling correction8245591 passes89 affected tests and independent review; same-five-outcome offline replay is35.449seconds versus59.732seconds with identical statistics. Deployment c3d2dbe5 is effective with all five owned files, caps and timers verified at21:36:20UTC; UI/publication HTTP200. The normal21:41UTC run succeeded in68seconds with seven original one-hour outcomes,64.810CPU seconds,93.0MiB peak and zero swap. Historical21:36 scoring exposed a retained obsolete pressure policy; correction8a112eb passes92tests and current admission in19actual source environments; deployment2beeb884 is effective with unchanged model, verified caps and active timers at21:43:10UTC. The normal21:56UTC historical slot succeeded in82seconds, scoring one outcome and reconciling nine for its selected revision, with92.3MiB peak and zero swap.",
       "complete": false
     },
     {
@@ -7319,7 +7319,7 @@
       }
     },
     "native_retained_score_pressure_policy": {
-      "status": "deployed_pending_normal_historical_score",
+      "status": "normal_historical_score_verified",
       "source_commit": "8a112eb61564ed755fbd21b74bec3f234faad09c",
       "deployment_sha256": "2beeb8843b5d8f3b83b0540b8ceb4bb905ef6d395d13325c509d317ae481654e",
       "tests_passed": 92,
@@ -7335,7 +7335,34 @@
       "activation_memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n",
       "same_model_artifact_sha256": "52dd5d122485f0bdafa0aed4fa7412c0823ce9829ed3d9bdc920e44d88526506",
       "next_historical_score": "2026-10-14T21:56:00+00:00",
-      "daily_checkout_clean": true
+      "daily_checkout_clean": true,
+      "normal_cycle": {
+        "started_at": "2026-10-14T21:56:00+00:00",
+        "exited_at": "2026-10-14T21:57:22+00:00",
+        "invocation_id": "031534b3ed194e8091544f076ff65f49",
+        "status": "scored",
+        "scored": 1,
+        "selected_revision_scored": 9,
+        "exit_code": 0,
+        "cpu_seconds": 79.145157,
+        "memory_peak_bytes": 96862208,
+        "swap_peak_bytes": 0,
+        "automatic_actuation": false
+      }
+    },
+    "shared_host_job_resources": {
+      "status": "development_launcher_verified_production_migration_pending",
+      "tests_passed": 35,
+      "aggregate_memory_max_bytes": 6442450944,
+      "admission_reserve_bytes": 3221225472,
+      "aggregate_cpu_equivalents": 8,
+      "active_scope_memory_allocation_verified_bytes": 134217728,
+      "individual_cpu_quota_removed_within_pool": true,
+      "worker_swap_limit_bytes": 0,
+      "real_SIGTERM_scope_cleanup_verified": true,
+      "production_migrated": false,
+      "plan": "docs/superpowers/plans/2026-10-14-shared-job-resources.md",
+      "documentation": "docs/operations/2026-10-14-shared-job-resources.md"
     }
   },
   "astro_efficiency_audit": {
@@ -7490,5 +7517,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T21:43:42.745833+00:00"
+  "updated_at": "2026-10-14T21:58:55.654796+00:00"
 }
