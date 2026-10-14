@@ -12,7 +12,9 @@ def test_native_resource_admission_never_spawns_an_ionice_probe(monkeypatch):
     monkeypatch.setattr(subprocess,'check_output',checked)
     # This test is run inside the actual approved capped scope, not a fake
     # cgroup. Successful admission still proves the real process caps/priority.
-    native._resource_preflight()
+    from household_cycle_resources import publication_native_policy
+    with publication_native_policy():
+        native._resource_preflight()
 
 
 def test_native_resource_checker_refuses_changed_bound_helper_bytes(monkeypatch):
@@ -26,6 +28,10 @@ def test_native_resource_checker_refuses_changed_bound_helper_bytes(monkeypatch)
 def test_native_admission_resolves_only_the_freshly_read_helper(monkeypatch):
     from pathlib import Path
     import native_thermal_live as native
+    # Exercise the original pin verifier against a matching test pin. Live
+    # serving selects its new operational policy outside the fitted adapter.
+    from hashlib import sha256
+    monkeypatch.setattr(native,'RESOURCE_SOURCE_SHA256',sha256(Path(native.__file__).with_name('household_cycle_resources.py').read_bytes()).hexdigest())
     calls=[];original=Path.resolve
     def tracked(path,*args,**kwargs):
         calls.append(str(path));return original(path,*args,**kwargs)

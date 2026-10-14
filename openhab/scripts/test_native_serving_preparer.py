@@ -28,6 +28,7 @@ def setup(tmp_path,monkeypatch):
         assert actual is selected;guard();calls.append('admitted');return model
     monkeypatch.setattr(receipt,'load_serving_selection',selection);monkeypatch.setattr(receipt,'read_serving_model',read)
     def prepare(actual,*,issue,library_paths,guard,serving_model):
+        native._resource_preflight()
         assert serving_model is model and actual==settings;guard();calls.append('prepared');return {'status':'prepared'}
     monkeypatch.setattr(native,'prepare_geometry',prepare)
     return m,receipt,config,libraries,stage,now,ticks,calls
@@ -36,7 +37,8 @@ def setup(tmp_path,monkeypatch):
 def test_outer_preparer_passes_fresh_context_after_lock_and_pressure_admission(tmp_path,monkeypatch):
     m,receipt,c,l,stage,now,ticks,calls=setup(tmp_path,monkeypatch)
     assert m.run(c,l,stage=stage,deployment_sha256='d'*64,clock=lambda:now[0],monotonic=lambda:ticks[0])['status']=='prepared'
-    assert calls.count('selected')==calls.count('admitted')==calls.count('geometry_policy')==1
+    assert calls.count('selected')==calls.count('admitted')==1
+    assert calls.count('geometry_policy')==4
     assert calls.index('quiet_preflight')<calls.index('admitted')<calls.index('prepared')
 
 

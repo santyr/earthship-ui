@@ -26,6 +26,7 @@ def setup(tmp_path,monkeypatch):
         assert actual is selected;guard();calls.append('admitted');return model
     monkeypatch.setattr(receipt,'load_serving_selection',load);monkeypatch.setattr(receipt,'read_serving_model',read)
     def publish(value,*,guard,backend,serving_model):
+        native._resource_preflight()
         assert serving_model is model and value==settings;guard();calls.append('serving_published');backend.collection={'status':'collected'}
         return dict(status='published',delivery_verified=True,capture_sha256='b'*64)
     monkeypatch.setattr(native,'publish_cycle',publish)

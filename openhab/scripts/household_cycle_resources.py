@@ -156,3 +156,16 @@ def publication_geometry_policy():
         yield
     finally:
         worker._resource_preflight=previous
+
+
+@contextmanager
+def publication_native_policy():
+    """Retain fitted adapter bytes while selecting current operational limits."""
+    import native_thermal_live as native
+    publication_resource_preflight()
+    previous=native._resource_preflight
+    native._resource_preflight=publication_resource_preflight
+    try:
+        yield
+    finally:
+        native._resource_preflight=previous

@@ -11,7 +11,7 @@ from contextlib import contextmanager
 SCORE_LIFETIME_SECONDS = 120
 SCORE_CPU_QUOTA = '100%'
 SCORE_CURRENT_PERIOD_MINUTES = 10
-PUBLICATION_POLICY_SHA256 = 'a7fdc1f633778ff6ce7a946b60de0ed2d23f1f31a78893e7eb945433f0c0a872'
+PUBLICATION_POLICY_SHA256 = 'e7a330a82886605ef80f418f818bf2da90a2e419aa3264d7d981fa265642545c'
 _production_policy = None
 PUBLICATION_MONITOR_SHA256 = '43cef34e31bc9b82a9d416f97bf9e15f255ebe95b873409089478e41e40fd9f9'
 _production_monitor = None
@@ -316,8 +316,18 @@ def run_retained_worker(script,config,*,stage,deployment_sha256,retained_native)
         raise ValueError('retained worker changed before execution')
     options=dict(stage=stage)
     if retained_native:options.update(deployment_sha256=deployment_sha256,retained_native=True)
-    with production_score_policy():
-        result=namespace['run'](config,**options)
+    entry=namespace['run']
+    bindings=entry.__globals__
+    replacements={'production_resource_preflight':production_resource_preflight,
+        'production_pressure_monitor':production_pressure_monitor,
+        'production_score_policy':production_score_policy}
+    originals={name:bindings[name] for name in replacements if name in bindings}
+    try:
+        for name in originals:bindings[name]=replacements[name]
+        with production_score_policy():
+            result=entry(config,**options)
+    finally:
+        for name,original_binding in originals.items():bindings[name]=original_binding
     if deploy._bytes(script)!=original or read_manifest()!=manifest:
         raise ValueError('retained worker changed during execution')
     return result

@@ -134,3 +134,12 @@ def test_failure_site_omits_external_code_and_invalid_source_paths():
     for filename in ['/private/credentials.py','/archive/openhab/scripts/../private.py','/archive/openhab/scripts/private value.py']:
         try:exec(compile("raise ValueError('private input')",filename,'exec'),{})
         except ValueError as error:assert score.failure_site(error) is None
+
+
+def test_retained_entrypoint_own_policy_loader_uses_current_admission(tmp_path,monkeypatch):
+    body="def production_resource_preflight():\n raise ValueError('retired pinned limits')\ndef run(config, **kwargs):\n production_resource_preflight()\n return dict(status='waiting')\n"
+    stage,script,pin=archive(tmp_path,monkeypatch,body)
+    calls=[]
+    monkeypatch.setattr(score,'production_resource_preflight',lambda:calls.append('current'))
+    assert score.run_retained_worker(script,tmp_path/'config',stage=stage,deployment_sha256=pin,retained_native=True)==dict(status='waiting')
+    assert calls==['current','current']

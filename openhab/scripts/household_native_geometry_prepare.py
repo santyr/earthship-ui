@@ -90,6 +90,13 @@ class _SourceGuard:
 
 
 def run(config,libraries,*,stage=None,deployment_sha256=None,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic):
+    from contextlib import nullcontext
+    from household_cycle_resources import publication_native_policy
+    with publication_native_policy() if deployment_sha256 is not None else nullcontext():
+        return _run(config,libraries,stage=stage,deployment_sha256=deployment_sha256,clock=clock,monotonic=monotonic)
+
+
+def _run(config,libraries,*,stage=None,deployment_sha256=None,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic):
     from native_thermal_live import load_settings,prepare_geometry,_resource_preflight
     from thermal_model.provisional_live import _next_issue
     from thermal_model.capture_guard import SharedScoreLock

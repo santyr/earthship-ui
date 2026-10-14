@@ -196,3 +196,13 @@ def test_geometry_policy_restores_original_guard_after_success_or_failure(monkey
             assert calls==['current','current']
             if fails:raise RuntimeError('geometry failed')
     assert worker._resource_preflight is old
+
+
+def test_current_native_context_bypasses_only_retired_admission_and_restores_it(monkeypatch):
+    import household_cycle_resources as resources
+    import native_thermal_live as native
+    old=native._resource_preflight;calls=[]
+    monkeypatch.setattr(resources,'publication_resource_preflight',lambda:calls.append('current'))
+    with resources.publication_native_policy():
+        native._resource_preflight()
+    assert calls==['current','current'] and native._resource_preflight is old

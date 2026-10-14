@@ -303,6 +303,14 @@ class LazyForecastBackend:
 
 
 def run_cycle(config_path,*,code_revision,forecast_config=None,stage=None,deployment_sha256=None):
+    from contextlib import nullcontext
+    from household_cycle_resources import publication_native_policy
+    with publication_native_policy() if deployment_sha256 is not None else nullcontext():
+        return _run_cycle(config_path,code_revision=code_revision,forecast_config=forecast_config,
+            stage=stage,deployment_sha256=deployment_sha256)
+
+
+def _run_cycle(config_path,*,code_revision,forecast_config=None,stage=None,deployment_sha256=None):
     """Own the original lock; household preparation cannot suppress forecasts.
 
     Production passes the original forecast configuration independently of the
