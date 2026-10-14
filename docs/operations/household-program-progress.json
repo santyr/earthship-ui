@@ -6299,6 +6299,73 @@
       "household_error": "original_cycle_verification_failed_then_source_collection_failed",
       "native_mature_score_qualified": false,
       "whole_plan_complete": false
+    },
+    "native_model_serving_receipt_household_budget_fix": {
+      "status": "private_native_receipt_2mib_regression_verified_not_deployed",
+      "cases": 121,
+      "runs": [
+        {
+          "label": "20261014T054215980103Z",
+          "cases": 1,
+          "cold_seconds": 216.7025655749021,
+          "memory_peak_bytes": 142979072,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          },
+          "log_sha256": "a243513fb2723db4cfebb543a624fa63238f9e42573b4feeb37e25dbedb1967d"
+        },
+        {
+          "label": "20261014T054644278560Z",
+          "cases": 98,
+          "cold_seconds": 20.304933210019954,
+          "memory_peak_bytes": 174141440,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          },
+          "log_sha256": "f056185dc68ec58e8a31e798acd450056cf975905e8c1f56370c1fcf00807a19"
+        },
+        {
+          "label": "20261014T061035285179Z",
+          "cases": 22,
+          "cold_seconds": 73.21219412703067,
+          "memory_peak_bytes": 136724480,
+          "memory_events": {
+            "low": "0",
+            "high": "0",
+            "max": "0",
+            "oom": "0",
+            "oom_kill": "0",
+            "oom_group_kill": "0"
+          },
+          "log_sha256": "bb48e548c1172729c6cd9da2d872d52f1ecbd73610d850add782cd30bfb86db3"
+        }
+      ],
+      "protected_sources_unchanged": 72,
+      "native_fitted_sources_unchanged": 9,
+      "source_sha256s": {
+        "openhab/scripts/household/pipeline.py": "0f9c14a4a7d6b04b067e1b2a83bddfce6a8f3102b34187198d61eeafce9de556",
+        "openhab/scripts/test_native_household_receipt_budget.py": "a78041e29f62666699fa73ebecc88eb22b43c525329df0d091f0da79f0ce6691"
+      },
+      "public_view_limit_bytes": 32768,
+      "nested_plan_limit_bytes": 524288,
+      "active_deployment_unchanged": true,
+      "whole_plan_complete": false
+    },
+    "native_model_serving_receipt_psi_proposal": {
+      "status": "inactive_tested_user_decision_pending",
+      "document": "docs/operations/2026-10-13-native-inference-psi-window-proposal.md",
+      "tests": 10,
+      "active_guard_changed": false
     }
   },
   "astro_efficiency_audit": {
@@ -6448,5 +6515,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T04:54:07.177057+00:00"
+  "updated_at": "2026-10-14T06:19:48.415526+00:00"
 }

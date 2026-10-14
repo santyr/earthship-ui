@@ -11,7 +11,10 @@ from .intents import build_intent,EFFECT_UNITS
 from .control_contracts import instant,ContractRefused
 from .planning import seal_plan,_runtime_manifest,MIN_RESERVE_SOC
 
-MAX_BYTES=1024*1024
+# Native thermal inputs and original weather sources also appear in the
+# nested plan receipt. Bound the complete private envelope independently of
+# the smaller source, nested-plan and public observation limits.
+MAX_BYTES=2*1024*1024
 CONFIG_FIELDS={'horizon_hours','reserve_soc','low_trough_threshold_soc_pct','surplus_weight','reserve_weight','comfort_min_f','comfort_max_f'}
 INPUT_FIELDS={'snapshot','registry','energy_inputs','thermal_inputs','coordination','config','now'}
 FIELDS={'schema','inputs','runtime_manifest','output','receipt_sha256'}
