@@ -31,3 +31,26 @@ tests passed in 15.93 seconds. An offline check accepted the new policy against
 the actual legacy archive and all ten retained native archives, denying network
 access and executing no scores or fitting. Deployment and production scoring
 outcomes remain pending.
+
+
+The current model's failed 20:21 attempt also rebuilt offline from its 32 retained
+packets, using the original serving receipt for the 19:15 forecast. The canonical
+source score is `7e538e710674dc1ef84fc5af016e83a1e140ea56370495844e4d70308c7c6fa3`.
+For 20:15 UTC the prediction was 69.002446 F, the original observed value 69.26 F,
+and absolute error 0.257554 F. Persistence error was 0.18 F. This is one validated
+measurement, without a model-superiority or graduation claim. The replay took
+3.919 seconds with no network attempts, fitting, or production writes.
+
+
+Source `870293e` is deployed as
+`0db0237d3661453c77e15b2b0d5aaacf323823f3609000e9e246627b150e5875`.
+The original model artifact remains `52dd5d12...526506`. Effective readback
+verified all owned files, service pins and active timers; scorer CPU is `1s`,
+RAM is 268435456 bytes, swap is zero, and TasksMax is 24. The daily production
+checkout contains the same source. UI and both thermal publications returned
+HTTP 200 with the unchanged provisional model.
+
+The first normal legacy run at 20:36 UTC succeeded, refreshing 256 existing
+horizon samples with no new mature legacy outcome, using 2.958 CPU seconds.
+The first normal current-model slot after activation is 20:41 UTC; its live
+completion and performance report remain pending.

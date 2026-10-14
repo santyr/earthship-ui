@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "Earthship observations remain below existing content; standalone household navigation removed. Current sourceb6a5e87/deployment2b8aab1b/model52dd5d12 passed effective activation readback and natural19:15:15UTC forecast delivery. Service exited0 in43seconds with81.9MiB peak and zero swap. Household snapshot was shadow with no expired qualified inputs at verification; HTTP200 API matched its cache while fresh. Short-lived evidence still expires between five-minute cycles. Deployment-only updates now preserve unchanged model identity; model-specific report files prevent historical displacement, and current native scoring receives a twenty-minute opportunity independent of retained history length. Natural19:21UTC scoring exited0 and wrote the current artifact-specific report with zero mature outcomes. Report production is verified; mature scoring and accuracy remain pending. First morning fit remains unverified. No actuator authority. See proofs.native_monitoring_continuity_deployment.",
+      "current_evidence": "Earthship observations remain below existing content; standalone household navigation removed. Current sourceb6a5e87/deployment2b8aab1b/model52dd5d12 passed effective activation readback and natural19:15:15UTC forecast delivery. Service exited0 in43seconds with81.9MiB peak and zero swap. Household snapshot was shadow with no expired qualified inputs at verification; HTTP200 API matched its cache while fresh. Short-lived evidence still expires between five-minute cycles. Deployment-only updates now preserve unchanged model identity; model-specific report files prevent historical displacement, and current native scoring receives a twenty-minute opportunity independent of retained history length. Natural19:21UTC scoring exited0 and wrote the current artifact-specific report with zero mature outcomes. Report production is verified; mature scoring and accuracy remain pending. First morning fit remains unverified. No actuator authority. See proofs.native_monitoring_continuity_deployment. One-core score deployment 0db0237d from source870293e is effective with unchanged model52dd5d12 and 256MiB/zero-swap limits. The20:36 legacy run succeeded. Current-model first one-hour outcome rebuilt offline with0.257554F error versus0.18F persistence; production completion pending the20:41 slot. No graduation claim.",
       "complete": false
     },
     {
@@ -6962,20 +6962,56 @@
       "full_program_complete": false
     },
     "native_score_diagnostics_deployment": {
-      "source_commit": "129fe2b65ff78aebcb0e72987cda554916ad4b34",
-      "deployment_sha256": "f66064c6d87932152c4a1f39ff12b19471180c3a05cb8f9b3f4e2177b81107fb",
+      "source_commit": "3cd7ecf4ce9c909a743d8eec742c3c4d5d6bc178",
+      "deployment_sha256": "a0b8f5ce71c3e25356551d54750493685c2c817da4ed7fba26ae0839dbda433a",
       "artifact_sha256": "52dd5d122485f0bdafa0aed4fa7412c0823ce9829ed3d9bdc920e44d88526506",
       "trained_through": "2026-10-14T06:00:00+00:00",
       "status": "native_family_activated",
       "fit_executed": false,
       "automatic_actuation": false,
-      "tests": "40 focused tests passed; exact legacy helper TypeError reproduced before correction",
+      "tests": "46 diagnostics/dispatch cases; subsequent one-core profile has 129 affected cases",
       "effective_readback": "2026-10-14T20:11:10.873223+00:00: five files, three service pins and caps, active timers; UI and provisional publications HTTP 200",
-      "natural_failure_reason": "20:11 historical scoring completed 20:12:34 UTC with validation_refused, 18.317 CPU seconds, 84.8 MiB peak and zero swap; exact validation cause remains unresolved",
-      "daily_checkout": "129fe2b65ff78aebcb0e72987cda554916ad4b34",
+      "natural_failure_reason": "20:21 current score expired its reader budget at thermal_model/capture_readers.py:36; 20.245 CPU seconds, 83.8 MiB peak, no swap. Exact retained historical and current scores both rebuild offline at one core.",
+      "daily_checkout": "3cd7ecf4ce9c909a743d8eec742c3c4d5d6bc178",
       "documentation": "docs/operations/2026-10-14-retained-score-diagnostics.md",
       "initial_handoff_gap": "20:05 forecast withheld with empty new geometry directory; normal preparation and 20:10 publication recovered",
       "cpu_throttling": "During that run: 897/904 periods throttled, 71.692760 seconds throttled; memory PSI and max/OOM events zero. This proves throttling, not the cause of validation refusal."
+    },
+    "current_native_first_hour_offline_score": {
+      "status": "original_source_score_rebuilt_offline",
+      "artifact_sha256": "52dd5d122485f0bdafa0aed4fa7412c0823ce9829ed3d9bdc920e44d88526506",
+      "issued_at": "2026-10-14T19:15:15+00:00",
+      "target_at": "2026-10-14T20:15:15+00:00",
+      "model_f": 69.00244609059112,
+      "observed_f": 69.26,
+      "model_absolute_error_f": 0.2575539094088839,
+      "persistence_absolute_error_f": 0.1799999999999926,
+      "source_score_sha256": "7e538e710674dc1ef84fc5af016e83a1e140ea56370495844e4d70308c7c6fa3",
+      "retained_packets": 32,
+      "network_attempts": 0,
+      "fit_executed": false,
+      "live_writes": false,
+      "graduated": false,
+      "production_score_completion": "one-core deployment verified; scheduled current-model completion pending"
+    },
+    "native_score_cpu_deployment": {
+      "source_commit": "870293ef30a58b38f539bf67a27ccd6613677c2c",
+      "deployment_sha256": "0db0237d3661453c77e15b2b0d5aaacf323823f3609000e9e246627b150e5875",
+      "artifact_sha256": "52dd5d122485f0bdafa0aed4fa7412c0823ce9829ed3d9bdc920e44d88526506",
+      "trained_through": "2026-10-14T06:00:00+00:00",
+      "status": "native_family_activated",
+      "effective_readback_at": "2026-10-14T20:36:24.749068+00:00",
+      "effective_cpu_quota": "1s",
+      "memory_max_bytes": 268435456,
+      "memory_swap_max_bytes": 0,
+      "tasks_max": 24,
+      "tests": "129 affected tests passed; all 11 retained legacy/native admission contexts accepted actual one-core profile offline",
+      "fit_executed": false,
+      "automatic_actuation": false,
+      "daily_checkout": "870293ef30a58b38f539bf67a27ccd6613677c2c",
+      "first_legacy_run": "20:36 UTC: monitoring_refreshed, 256 existing horizon samples, no new mature legacy outcome; 2.958 CPU seconds",
+      "first_current_native_run": "pending scheduled 20:41 UTC opportunity",
+      "documentation": "docs/operations/2026-10-14-score-production-cpu.md"
     }
   },
   "astro_efficiency_audit": {
