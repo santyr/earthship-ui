@@ -6596,7 +6596,7 @@
       "fresh_fit_executed": false
     },
     "native_fresh_training_20261014": {
-      "status": "fresh_fit_complete_publication_and_daily_automation_pending",
+      "status": "fresh_model_naturally_published_daily_automation_pending",
       "capture_sha256": "5f62f362abca0d57d455e0a29ebb8aef760dba294dc303e8b2dc1cb94cf587e3",
       "assembled_snapshot_sha256": "0f1cf1286e5599628915a238db74c1d6ba6a35b9f76fa1ebc5daae11459898f2",
       "geometry_series_sha256": "86772aa52b52208fe537e01289137435be60c9ad47f6ef1ed022ff9f94005b2f",
@@ -6608,17 +6608,33 @@
       "fit_seconds": 19.605679549043998,
       "fit_peak_bytes": 75247616,
       "fit_executed": true,
-      "production_model_changed": false,
-      "automatic_training_complete": false
+      "production_model_changed": true,
+      "automatic_training_complete": false,
+      "artifact_sha256": "62323d7c23cbd7cf5adaaa003bdd4a3d69287641fc00e0e28806950bd626f1f6",
+      "deployment_sha256": "c2acc6097982f0ef65f9c03d96548280f28c89702eaa9661258d00bf15aec650",
+      "model_receipt_sha256": "db43eb24dcf289660a860f3d802359d6022081c1c43b619e7d9eaab94a6bfb5f",
+      "activation_seconds": 97.82395758596249,
+      "qualification_probes_run": false,
+      "natural_preparer_success": true,
+      "natural_preparer_started_at": "2026-10-14T17:48:05+00:00",
+      "natural_preparer_finished_at": "2026-10-14T17:48:50+00:00",
+      "natural_preparer_peak_mib": 105,
+      "natural_preparer_swap_peak_bytes": 0,
+      "first_natural_issue": "2026-10-14T17:50:15+00:00",
+      "live_readback_at": "2026-10-14T17:50:47.611411+00:00",
+      "live_training_age_hours": 11.846558728055555,
+      "live_status": "provisional",
+      "independent_origin_dates": 5
     },
     "native_available_ram_admission": {
-      "status": "implemented_targeted_tests_passed_not_activated",
+      "status": "activated_and_natural_preparer_succeeded",
       "tests_passed": 73,
       "test_seconds": 1.8,
       "host_swap_occupancy_or_traffic_blocks_admission": false,
       "worker_swap_disabled": true,
       "ram_reserve_and_oom_checks_preserved": true,
-      "production_limits_changed": false
+      "production_limits_changed": false,
+      "deployment_sha256": "c2acc6097982f0ef65f9c03d96548280f28c89702eaa9661258d00bf15aec650"
     }
   },
   "astro_efficiency_audit": {
@@ -6768,5 +6784,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T17:38:28.673956+00:00"
+  "updated_at": "2026-10-14T17:52:51.075817+00:00"
 }
