@@ -46,13 +46,27 @@ existing individual capture and fitting API bounds remain intact. Development
 checks run serially in their own capped scopes.
 
 Validation: eight date, rollover, idempotency and failure-order tests first
-failed before implementation. Ten scheduler/pipeline tests plus six production
+failed before implementation. Eleven scheduler/pipeline tests plus six production
 RAM-admission tests pass. The pipeline test executes the real native fit on
 synthetic measurements and verifies its original evidence before packaging.
-Activation and the next natural morning execution require live evidence; unit
-tests alone do not establish their completion.
+The next natural morning execution still requires live evidence; unit tests
+alone do not establish its completion.
 
 Remaining limitation: the existing serving dispatch retains at most 31 historical
 stages. Daily automation preserves that invariant. Retiring fully settled model
 history is still required before that bound is reached; no retained score evidence
 is silently discarded by this worker.
+
+At 2026-10-14 18:05 UTC, the production checkout was clean at `fb3cbe9`.
+The installed unit bytes matched the committed templates. The daily service
+exited successfully with `already_current` in 3.394 seconds and did not fit or
+change the selected model. The timer was enabled and active, with its next
+trigger at October 15, 06:50 MDT. The obsolete legacy timer was disabled and
+inactive. The three forecast/score/preparer timers remained active.
+
+The first installation check exposed a missing private daily lock; a regression
+test now covers first-run creation, concurrent exclusion and inode preservation.
+The production checkout also inherited group-writable files from the shell
+umask; installation removed group/other write permission from its tracked files.
+Use umask 0022 or stricter when updating this checkout. Both setup issues were
+corrected before enabling the timer.

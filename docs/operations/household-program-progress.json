@@ -6596,7 +6596,7 @@
       "fresh_fit_executed": false
     },
     "native_fresh_training_20261014": {
-      "status": "fresh_model_naturally_published_daily_automation_pending",
+      "status": "fresh_model_published_morning_automation_enabled",
       "capture_sha256": "5f62f362abca0d57d455e0a29ebb8aef760dba294dc303e8b2dc1cb94cf587e3",
       "assembled_snapshot_sha256": "0f1cf1286e5599628915a238db74c1d6ba6a35b9f76fa1ebc5daae11459898f2",
       "geometry_series_sha256": "86772aa52b52208fe537e01289137435be60c9ad47f6ef1ed022ff9f94005b2f",
@@ -6624,7 +6624,8 @@
       "live_readback_at": "2026-10-14T17:50:47.611411+00:00",
       "live_training_age_hours": 11.846558728055555,
       "live_status": "provisional",
-      "independent_origin_dates": 5
+      "independent_origin_dates": 5,
+      "daily_automation_proof": "proofs.native_daily_training_automation"
     },
     "native_available_ram_admission": {
       "status": "activated_and_natural_preparer_succeeded",
@@ -6635,6 +6636,32 @@
       "ram_reserve_and_oom_checks_preserved": true,
       "production_limits_changed": false,
       "deployment_sha256": "c2acc6097982f0ef65f9c03d96548280f28c89702eaa9661258d00bf15aec650"
+    },
+    "native_daily_training_automation": {
+      "status": "morning_timer_enabled_current_model_skip_verified",
+      "assessed_at": "2026-10-14T18:05:51.034798+00:00",
+      "source_commit": "fb3cbe9451c927270c55da7329900d84caabb5bb",
+      "production_checkout": "/home/sat/earthship-ui/.worktrees/native-daily-production",
+      "production_checkout_clean": true,
+      "timer": "thermal-native-daily.timer",
+      "next_trigger": "2026-10-15T06:50:00-06:00",
+      "timezone": "America/Denver",
+      "legacy_training_timer_disabled": true,
+      "service_exit": 0,
+      "service_status": "already_current",
+      "service_seconds": 3.394162924028933,
+      "trained_through": "2026-10-14T06:00:00+00:00",
+      "first_natural_daily_fit_verified": false,
+      "tests_passed": 17,
+      "historical_models": 3,
+      "historical_stage_limit": 31,
+      "remaining": "verify the next natural daily fit and retire fully settled historical stages before the existing limit",
+      "unit_sha256": {
+        "thermal-native-daily.service": "fa8a8b6d8ac8bb9f2e9917a421df33dc134a4db5cf78952c876fd0aa08e737c9",
+        "thermal-native-daily.timer": "feac24482c129a1afa57d0a56fa3213c6e8d62779b2f95e6f1d239a32816e089"
+      },
+      "automatic_actuation": false,
+      "source_document": "docs/operations/2026-10-14-native-daily-training.md"
     }
   },
   "astro_efficiency_audit": {
@@ -6784,5 +6811,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T17:52:51.075817+00:00"
+  "updated_at": "2026-10-14T18:06:18.617279+00:00"
 }
