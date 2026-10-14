@@ -20,7 +20,7 @@
     {
       "phase": "2",
       "requirement": "Immutable HouseholdSnapshot and live evidence capture",
-      "current_evidence": "Source snapshot/v6 retains original bank/topology, power, forecast/operator and measured-weather contexts. Common-clock native temperature, power and measured-weather capture/replay are deployed. Native weather context/v3 now exposes all 288 retained original solar positions with calculation-only provenance; 240 affected tests, independent review and actual 21:10 source replay pass. Source 5df4b35 is deployed with effective readback; the first normal enriched household cycle remains pending. Nominal bank20.48kWh is configuration; calibrated usable energy, humidity, wind measurement, authority and owner inputs remain incomplete.",
+      "current_evidence": "Source snapshot/v6 retains original bank/topology, power, forecast/operator and measured-weather contexts. Common-clock native temperature, power and measured-weather capture/replay are deployed. Native weather context/v3 now exposes all 288 retained original solar positions with calculation-only provenance; 240 affected tests, independent review and actual 21:10 source replay pass. Source 5df4b35 is deployed with effective readback; the first normal enriched household issue at21:25:15UTC succeeded and retained288 native positions with original provenance and no actuator authority. Nominal bank20.48kWh is configuration; calibrated usable energy, humidity, wind measurement, authority and owner inputs remain incomplete.",
       "complete": false
     },
     {
@@ -32,7 +32,7 @@
     {
       "phase": "3",
       "requirement": "Pure domain models with numerical parity",
-      "current_evidence": "Pure energy preserves72 production goldens; original24h thermal and weather forcing rederive exactly on one source/model snapshot clock. Weather integration has687 passing affected tests after the single review fix pass. A naturally delivered22:20:15UTC original and current committed-source capture pass pure/privateCLI replay. Energy is a new shadow projection from earlier retained parameters plus original current SoC, with input qualification not_assessed. Original bank/load/weather qualification and rolling energy trajectories remain incomplete; PR24 exact head passed all four hosted checks and merged ec4f9c2. Prepared energy/v2 now binds unchanged numerical capacity to retained original nominal configuration on v5; overall input qualification stays not_assessed. Pipeline/plan/v4 pure and fixture operational CLI replay pass within734 affected tests. Actual source and final review remain pending. Single final bank/load review found four Important gaps; one correction pass enforces original observation topology, optional inverter age, independent malformed configuration and common CLI deadline. All761 affected tests pass. Corrected committed c94124d source binds to the naturally delivered00:15:15UTC original with exact thermal/weather and pure/privateCLI replay. AC expired before model time and remains unavailable; nominal capacity is20.48kWh, calibrated usable energy remains unavailable. PR25 exact head passed all four hosted checks and merged f76e2cd. Original measured-weather point context now has31 pure tests with141 passing source/parser checks; snapshot/model/candidate/outcome integration and actual source acquisition remain pending. Measured-weather snapshot/v6 and model/shadow receipts/v5 now preserve original received lux, radiation proxy and cumulative rain-counter context. Thirteen integration cases prove distinct v5/v6 candidates, enclosing outcomes, private CLI and corrupt/type/expiry refusal;805 household/forecast cases pass in bounded serial groups, with110 unchanged weather-validator cases also verified. Actual source acquisition and final review remain pending; calibration/rain-rate/action qualification remains false. Native provisional candidate/v2 now independently rederives original dataset/geometry/support/loss/physical rollouts and reads identically from213 sealed sources with the production interpreter. Real runtime-bound fit5c0c45d and candidateee0e142 retain all72 protected originals and9 native sources; current production selection remains v1. Native as-issued forecast/capture/scoring integration and broader phase3 qualification remain incomplete. Native as-issued origin/forecast/publication v2 pure adapter now retains exact future geometry and original compressed temperature queries, independently rederives native hourly predictions, and preserves November vent defaults. One independent review found two Important issues;13 RED regressions verified lossless clocks and caller snapshot freezing. Corrected09c485c passes202 affected cases in two capped serial batches. Actual source/latency, current wider runtime, scorer/UI/household/producer integration and coherent selection remain pending.",
+      "current_evidence": "Pure energy preserves72 production goldens; original24h thermal and weather forcing rederive exactly on one source/model snapshot clock. Weather integration has687 passing affected tests after the single review fix pass. A naturally delivered22:20:15UTC original and current committed-source capture pass pure/privateCLI replay. Energy is a new shadow projection from earlier retained parameters plus original current SoC, with input qualification not_assessed. Original bank/load/weather qualification and rolling energy trajectories remain incomplete; PR24 exact head passed all four hosted checks and merged ec4f9c2. Prepared energy/v2 now binds unchanged numerical capacity to retained original nominal configuration on v5; overall input qualification stays not_assessed. Pipeline/plan/v4 pure and fixture operational CLI replay pass within734 affected tests. Actual source and final review remain pending. Single final bank/load review found four Important gaps; one correction pass enforces original observation topology, optional inverter age, independent malformed configuration and common CLI deadline. All761 affected tests pass. Corrected committed c94124d source binds to the naturally delivered00:15:15UTC original with exact thermal/weather and pure/privateCLI replay. AC expired before model time and remains unavailable; nominal capacity is20.48kWh, calibrated usable energy remains unavailable. PR25 exact head passed all four hosted checks and merged f76e2cd. Original measured-weather point context now has31 pure tests with141 passing source/parser checks; snapshot/model/candidate/outcome integration and actual source acquisition remain pending. Measured-weather snapshot/v6 and model/shadow receipts/v5 now preserve original received lux, radiation proxy and cumulative rain-counter context. Thirteen integration cases prove distinct v5/v6 candidates, enclosing outcomes, private CLI and corrupt/type/expiry refusal;805 household/forecast cases pass in bounded serial groups, with110 unchanged weather-validator cases also verified. Actual source acquisition and final review remain pending; calibration/rain-rate/action qualification remains false. Native provisional candidate/v2 now independently rederives original dataset/geometry/support/loss/physical rollouts and reads identically from213 sealed sources with the production interpreter. Real runtime-bound fit5c0c45d and candidateee0e142 retain all72 protected originals and9 native sources; production now selects native candidate/v2 artifact52dd5d12, trained through2026-10-14T06:00:00Z, with normal forecast/household publication and original-source scoring. Native as-issued forecast/capture/scoring integration and broader phase3 qualification remain incomplete. Native as-issued origin/forecast/publication v2 pure adapter now retains exact future geometry and original compressed temperature queries, independently rederives native hourly predictions, and preserves November vent defaults. One independent review found two Important issues;13 RED regressions verified lossless clocks and caller snapshot freezing. Corrected09c485c passes202 affected cases in two capped serial batches. Actual source/latency, current wider runtime, scorer/UI/household/producer integration and coherent selection remain pending.",
       "complete": false
     },
     {
@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "Earthship observations remain below existing content; standalone household navigation removed. Deployment 715078d7 from cbec265 retains model 52dd5d12 and its original 19:08:13 UTC admission. Natural 21:01 UTC current-model scoring exited 0 after 65 seconds, with 97.2 MiB peak and zero swap. Three mature one-hour outcomes give model MAE 0.110915 F versus persistence 0.30 F; longer horizons remain empty and no accuracy graduation is claimed. Current-model scoring now runs every ten minutes within the fifteen-minute report TTL. Live publication and the deployed UI parser displayed all three outcomes at 21:05 UTC. The subsequent callback-only deployment a6b37ac4 from 2fbad86 passed effective readback and a normal legacy scoring run; its normal 21:16 historical slot succeeded in 48 seconds with zero swap. First natural morning fit and broader household observability qualification remain incomplete. No actuator authority. See proofs.native_current_model_production_scoring.",
+      "current_evidence": "Earthship observations remain below existing content; standalone household navigation removed. Deployment 715078d7 from cbec265 retains model 52dd5d12 and its original 19:08:13 UTC admission. Natural 21:01 UTC current-model scoring exited 0 after 65 seconds, with 97.2 MiB peak and zero swap. Three mature one-hour outcomes give model MAE 0.110915 F versus persistence 0.30 F; longer horizons remain empty and no accuracy graduation is claimed. Current-model scoring now runs every ten minutes within the fifteen-minute report TTL. Live publication and the deployed UI parser displayed all three outcomes at 21:05 UTC. The subsequent callback-only deployment a6b37ac4 from 2fbad86 passed effective readback and a normal legacy scoring run; its normal 21:16 historical slot succeeded in 48 seconds with zero swap. First natural morning fit and broader household observability qualification remain incomplete. No actuator authority. See proofs.native_current_model_production_scoring. At21:31UTC current-model scoring completed six one-hour outcomes in100seconds (96.867CPU seconds), modelMAE0.085103F versus persistence0.240F. The measured pressure-polling correction8245591 passes89 affected tests and independent review; same-five-outcome offline replay is35.449seconds versus59.732seconds with identical statistics. Deployment c3d2dbe5 is effective with all five owned files, caps and timers verified at21:36:20UTC; UI/publication HTTP200. The first normal updated current-model score is due21:41UTC and remains unverified.",
       "complete": false
     },
     {
@@ -6664,7 +6664,7 @@
       },
       "automatic_actuation": false,
       "source_document": "docs/operations/2026-10-14-native-daily-training.md",
-      "production_source_commit": "5df4b35692ad1a16cc5f2e92ad2615464c3a84df",
+      "production_source_commit": "82455917db8a02b24383b3b018b3f594a5e58004",
       "production_checkout_verified_at": "2026-10-14T21:22:17.839981+00:00"
     },
     "native_forecast_cpu_deployment": {
@@ -7203,7 +7203,7 @@
       }
     },
     "native_score_pressure_sampling": {
-      "status": "offline_original_outcomes_verified_pending_deployment",
+      "status": "deployed_pending_normal_current_model_score",
       "interval_seconds": 1,
       "forced_job_boundary_checks": true,
       "original_preflight_preserved": true,
@@ -7218,7 +7218,16 @@
       "original_inventory_bytes_verified": 1122490211,
       "fit_executed": false,
       "live_writes": false,
-      "documentation": "docs/operations/2026-10-14-score-production-cpu.md"
+      "documentation": "docs/operations/2026-10-14-score-production-cpu.md",
+      "source_commit": "82455917db8a02b24383b3b018b3f594a5e58004",
+      "review": "Independent immutable review found no Critical, Important or Minor issues.",
+      "deployment_sha256": "c3d2dbe5ce7dff2df4b72124119fd1fec71928b59ea99cb650940789820db164",
+      "effective_readback_at": "2026-10-14T21:36:20.849867+00:00",
+      "activation_memory_peak_bytes": 59293696,
+      "activation_memory_events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n",
+      "same_model_artifact_sha256": "52dd5d122485f0bdafa0aed4fa7412c0823ce9829ed3d9bdc920e44d88526506",
+      "next_current_model_score": "2026-10-14T21:41:00+00:00",
+      "daily_checkout_clean": true
     }
   },
   "astro_efficiency_audit": {
@@ -7373,5 +7382,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T21:31:00+00:00"
+  "updated_at": "2026-10-14T21:36:42.221933+00:00"
 }
