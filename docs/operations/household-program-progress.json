@@ -6960,6 +6960,20 @@
       "live_writes": false,
       "attended_qualification_complete": false,
       "full_program_complete": false
+    },
+    "native_score_diagnostics_deployment": {
+      "source_commit": "d702d47abaf71e6b6c138b9114bc54209218b645",
+      "deployment_sha256": "fd2aed248b91f97ec2770ac6adf42d0eb1676a8e00d4348f86e6f14e0c96a4e7",
+      "artifact_sha256": "52dd5d122485f0bdafa0aed4fa7412c0823ce9829ed3d9bdc920e44d88526506",
+      "trained_through": "2026-10-14T06:00:00+00:00",
+      "status": "native_family_activated",
+      "fit_executed": false,
+      "automatic_actuation": false,
+      "tests": "39 focused tests passed",
+      "effective_readback": "2026-10-14T20:04:36.933544+00:00: five files, three service pins and caps, active timers; UI/publications HTTP 200",
+      "natural_failure_reason": "pending next scheduled scoring failure",
+      "daily_checkout": "d702d47abaf71e6b6c138b9114bc54209218b645",
+      "documentation": "docs/operations/2026-10-14-retained-score-diagnostics.md"
     }
   },
   "astro_efficiency_audit": {

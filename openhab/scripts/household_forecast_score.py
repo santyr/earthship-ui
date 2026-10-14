@@ -169,7 +169,12 @@ def run_retained_worker(script,config,*,stage,deployment_sha256,retained_native)
     stage=deploy._path(stage);script=deploy._path(script)
     source='openhab/scripts/household_forecast_score.py'
     if script!=stage/'sources'/source:raise ValueError('owned retained score path required')
-    manifest=deploy._bytes(stage/'deployment.json',private=True,maximum=131072)
+    def read_manifest():
+        # The v1 archive predates the helper's maximum keyword.
+        raw=deploy._bytes(stage/'deployment.json',private=True)
+        if len(raw)>131072:raise ValueError('bounded retained manifest required')
+        return raw
+    manifest=read_manifest()
     if sha256(manifest).hexdigest()!=deployment_sha256:raise ValueError('retained worker deployment changed')
     if Path(deploy.__file__).resolve()!=stage/'sources/openhab/scripts/household_cycle_deploy.py':
         raise ValueError('retained worker dependency context differs')
@@ -178,12 +183,12 @@ def run_retained_worker(script,config,*,stage,deployment_sha256,retained_native)
     if sha256(original).hexdigest()!=record['source_manifest'].get(source):
         raise ValueError('retained worker source changed')
     namespace=runpy.run_path(str(script),run_name='retained_score_worker')
-    if deploy._bytes(script)!=original or deploy._bytes(stage/'deployment.json',private=True,maximum=131072)!=manifest:
+    if deploy._bytes(script)!=original or read_manifest()!=manifest:
         raise ValueError('retained worker changed before execution')
     options=dict(stage=stage)
     if retained_native:options.update(deployment_sha256=deployment_sha256,retained_native=True)
     result=namespace['run'](config,**options)
-    if deploy._bytes(script)!=original or deploy._bytes(stage/'deployment.json',private=True,maximum=131072)!=manifest:
+    if deploy._bytes(script)!=original or read_manifest()!=manifest:
         raise ValueError('retained worker changed during execution')
     return result
 

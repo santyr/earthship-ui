@@ -99,3 +99,12 @@ def test_legacy_dispatch_reenters_reporting_wrapper_with_archived_dependencies(t
     config.write_text('{ }')
     with pytest.raises(ValueError):score.execute_legacy_score(selection)
     assert seen==[]
+
+
+def test_legacy_worker_supports_original_bytes_helper_signature(tmp_path,monkeypatch):
+    import household_cycle_deploy as deploy
+    stage,script,pin=archive(tmp_path,monkeypatch,"def run(*args, **kwargs): return dict(status='waiting')\n")
+    original=deploy._bytes
+    def legacy_bytes(path,*,private=False):return original(path,private=private)
+    monkeypatch.setattr(deploy,'_bytes',legacy_bytes)
+    assert score.run_retained_worker(script,tmp_path/'config',stage=stage,deployment_sha256=pin,retained_native=False)==dict(status='waiting')
