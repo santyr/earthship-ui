@@ -54,6 +54,7 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
     from thermal_model.training_pressure_guard import TrainingHeadroom
     from thermal_model.policy_registration import _read_private
     from household_observation import _private_file
+    deadline=monotonic()+50
     _resource_preflight()
     os.environ['EARTHSHIP_QUALIFICATION_FIT']='0';os.environ['EARTHSHIP_REMOTE_QUALIFICATION_FIT']='0'
     config=Path(config).absolute();original=_private_file(config,8192)
@@ -77,7 +78,6 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
         binding=verifier(stage)
         if Path(__file__).resolve()!=stage/'sources/openhab/scripts/household_forecast_score.py':
             raise ValueError('staged score coordinator execution required')
-    deadline=monotonic()+50
     dispatch=None
     if receipt_profile:
         def selection_guard():
@@ -94,8 +94,16 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
         target='current' if retained_native else native_score_selection(dispatch,now)
         if target!='current':
             selection_guard()
-            if verifier(stage)!=binding:raise ValueError('staged historical score selection changed before dispatch')
-            return execute_retained_native_score(target)
+            archived=verify_stage(Path(target['stage']),expected_deployment_sha256=target['deployment_sha256'])
+            selection_guard()
+            compatible=(archived['runtime_sha256']==binding['runtime_sha256'] and
+                archived['model_verification']['helper']['sha256']==binding['model_verification']['helper']['sha256'])
+            if not compatible:
+                if verifier(stage)!=binding:raise ValueError('staged historical score selection changed before dispatch')
+                return execute_retained_native_score(target)
+            # Compatible owned history is re-read below and scored with its
+            # original model association, without restarting the lifetime.
+
     with SharedScoreLock(settings['shared_lock']) as lock:
         if settings.get('schema') in ('earthship-provisional-thermal-live-config/v2','earthship-provisional-thermal-live-config/v3'):
             from native_inference_pressure import NativeInferenceHeadroom
