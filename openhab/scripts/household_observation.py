@@ -122,10 +122,10 @@ def _move_no_replace(directory_fd,source,target):
         raise OSError(code,os.strerror(code))
 
 
-def materialize(receipt_path,output_path,*,clock=lambda:datetime.now(timezone.utc)):
-    from household_pipeline import pipeline_runtime_manifest,verify_source_closure
-    from household.thermal_model import _execution_runtime
+def materialize(receipt_path,output_path,*,clock=lambda:datetime.now(timezone.utc),publication_guard=lambda:None):
+    from household_pipeline import pipeline_runtime_manifest,verify_source_closure,thermal_execution_runtime
     from household.pipeline import MAX_BYTES as RECEIPT_BYTES
+    publication_guard()
     source,target=Path(receipt_path).absolute(),Path(output_path).absolute()
     if source==target:raise ValueError('original receipt cannot be a publication target')
     directory=_directory(target.parent);previous=_existing_view(target)
@@ -135,21 +135,23 @@ def materialize(receipt_path,output_path,*,clock=lambda:datetime.now(timezone.ut
     measured=version=='earthship-household-model-plan-receipt/v5'
     def runtime():return pipeline_runtime_manifest(expanded=expanded,configured=configured,measured=measured)
     executing=runtime();root=Path(__file__).resolve().parent
-    thermal=None if record['inputs']['thermal_inputs'] is None else _execution_runtime(root)
+    thermal=thermal_execution_runtime(root,record['inputs']['thermal_inputs'])
     own=Path(__file__).read_bytes()
     if expanded:verify_source_closure(record,executing)
     view=observe_pipeline(record,runtime_manifest=executing,thermal_runtime=thermal,observed_at=clock());encoded=canonical(view)
+    publication_guard()
     directory_fd=os.open(target.parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
-    temp='.household-observation-'+secrets.token_hex(16);displaced=None;published=False;created=False
+    temp='.household-observation-'+secrets.token_hex(16);displaced=None;published=False;created=False;installed=False;installed_identity=None
     try:
         info=os.fstat(directory_fd)
         if (info.st_dev,info.st_ino,info.st_mode)!=directory:raise ValueError('publication directory changed')
         fd=os.open(temp,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600,dir_fd=directory_fd);created=True
         with os.fdopen(fd,'wb') as stream:stream.write(encoded);stream.flush();os.fsync(stream.fileno())
         if (_private_file(source,RECEIPT_BYTES)!=original or runtime()!=executing or Path(__file__).read_bytes()!=own or
-            (None if thermal is None else _execution_runtime(root))!=thermal or _directory(target.parent)!=directory or
+            thermal_execution_runtime(root,record['inputs']['thermal_inputs'])!=thermal or _directory(target.parent)!=directory or
             _existing_view(target)!=previous or _directory(target.parent)!=directory):
             raise ValueError('source, runtime or publication target changed')
+        publication_guard()
         if previous is not None:
             backup='.household-observation-displaced-'+secrets.token_hex(16)
             _move_no_replace(directory_fd,target.name,backup);displaced=backup
@@ -158,14 +160,24 @@ def materialize(receipt_path,output_path,*,clock=lambda:datetime.now(timezone.ut
             # mtime must still match. Unknown displaced files are restored.
             if saved[0]!=previous[0] or saved[1][:-1]!=previous[1][:-1]:
                 raise ValueError('publication target changed')
+        publication_guard()
+        temporary=os.stat(temp,dir_fd=directory_fd,follow_symlinks=False)
+        installed_identity=(temporary.st_dev,temporary.st_ino)
         try:os.link(temp,target.name,src_dir_fd=directory_fd,dst_dir_fd=directory_fd,follow_symlinks=False)
         except FileExistsError:raise ValueError('publication target changed') from None
+        installed=True
         os.unlink(temp,dir_fd=directory_fd);created=False
         if _private_file(Path(target.name),MAX_BYTES,directory_fd=directory_fd)[0]!=encoded or _directory(target.parent)!=directory:
             raise ValueError('publication readback differs')
+        publication_guard()
         os.fsync(directory_fd);published=True
     finally:
         try:
+            if installed and not published:
+                try:current=os.stat(target.name,dir_fd=directory_fd,follow_symlinks=False)
+                except FileNotFoundError:pass
+                else:
+                    if (current.st_dev,current.st_ino)==installed_identity:os.unlink(target.name,dir_fd=directory_fd)
             if displaced is not None:
                 if published:os.unlink(displaced,dir_fd=directory_fd)
                 else:

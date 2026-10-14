@@ -102,8 +102,16 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
             from native_model_serving_receipt import load_serving_selection,read_serving_model
             selected=load_serving_selection(stage,expected_deployment_sha256=deployment_sha256,assessed_at=clock(),guard=guard)
             model=read_serving_model(selected,assessed_at=clock(),guard=guard)
-            historical=tuple(load_serving_selection(Path(ref['stage']),expected_deployment_sha256=ref['deployment_sha256'],
-                assessed_at=clock(),guard=guard) for ref in ([] if retained_native else dispatch['historical']))
+            historical=[]
+            for ref in ([] if retained_native else dispatch['historical']):
+                guard()
+                archived=verify_stage(Path(ref['stage']),expected_deployment_sha256=ref['deployment_sha256'])
+                # Different source revisions execute only in their sealed worker.
+                if (archived['runtime_sha256']!=binding['runtime_sha256'] or
+                    archived['model_verification']['helper']['sha256']!=binding['model_verification']['helper']['sha256']):continue
+                historical.append(load_serving_selection(Path(ref['stage']),expected_deployment_sha256=ref['deployment_sha256'],
+                    assessed_at=clock(),guard=guard))
+            historical=tuple(historical)
             result=score_with_report(settings,guard=guard,clock=clock,queue=True,serving_model=model,historical_selections=historical)
         else:result=score_with_report(settings,guard=guard,clock=clock,queue=True)
         guard()
@@ -215,9 +223,10 @@ def native_score_selection(dispatch,at):
     if score_role(at)!='current':raise ValueError('explicit native scoring opportunity required')
     historical=dispatch['historical']
     if at.minute%5==0 or not historical:return 'current'
-    # One current opportunity remains every five minutes; the other rotates
-    # retained archives explicitly. This is scheduling, never refusal fallback.
-    return historical[(int(at.timestamp())//300)%len(historical)]
+    # Slot zero can be refused by the original pre-issue margin. Rotate the
+    # reliably admissible slot two across current and all retained workers.
+    targets=['current',*historical]
+    return targets[(int(at.timestamp())//300)%len(targets)]
 
 
 def execute_retained_native_score(selection):

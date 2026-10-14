@@ -259,7 +259,7 @@ def complete_cycle(*,publication,collection,parameter_record,runtime_manifest,co
     _retain_original(evidence_directory,collection['originals'],'.household-sources-v1.json',MAX_SOURCE_BYTES)
     receipt=_retain_original(evidence_directory,record,'.household-model-plan-v5.json',PIPELINE_BYTES)
     unchanged()
-    return materialize(receipt,observation_cache,clock=clock)
+    return materialize(receipt,observation_cache,clock=clock,publication_guard=unchanged)
 
 
 class LazyForecastBackend:

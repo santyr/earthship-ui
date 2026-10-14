@@ -29,7 +29,7 @@ def fixture(tmp_path,monkeypatch,minute):
     monkeypatch.setattr(locks,'SharedScoreLock',Lock);monkeypatch.setattr(pressure,'NativeInferenceHeadroom',Headroom)
     import household_cycle_deploy as deploy
     def verify(actual,*,expected_deployment_sha256=None):
-        assert actual==stage and expected_deployment_sha256=='a'*64;calls.append('stage_verified');return {'schema':'earthship-household-cycle-deployment/v3'}
+        assert actual==stage and expected_deployment_sha256=='a'*64;calls.append('stage_verified');return {'schema':'earthship-household-cycle-deployment/v3','runtime_sha256':'a'*64,'model_verification':{'helper':{'sha256':'a'*64}}}
     monkeypatch.setattr(deploy,'verify_stage',verify)
     dispatch={'current':'current','legacy':{'stage':str(tmp_path/'legacy'),'config':str(tmp_path/'legacy.json')},'historical':[]}
     def selected(actual,*,deployment_sha256,guard):
