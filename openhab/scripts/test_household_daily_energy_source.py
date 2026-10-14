@@ -93,7 +93,7 @@ def test_live_collector_freezes_today_state_and_matching_owner_receipt(tmp_path,
     monkeypatch.setattr(module,'DAILY_STATE_PATH',state,raising=False)
     raw['Forecast_Prediction_Receipt_JSON']=daily['receipt_raw']
     result=collector(issue=now+timedelta(seconds=8),remaining=lambda:6.,guard=lambda:None)
-    assert result['schema']=='earthship-household-cycle-sources/v2'
+    assert result['schema']=='earthship-household-cycle-sources/v3'
     retained=result['daily_energy_source']
     assert retained['record']==daily['record']
     assert retained['receipt_raw']==daily['receipt_raw']

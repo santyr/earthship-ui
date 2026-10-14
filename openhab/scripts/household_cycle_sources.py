@@ -51,7 +51,7 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
 
 class CycleSourceCollector:
     """Gather original fixed receipts, never a supplied scalar or action."""
-    def __init__(self,*,token_file,openhab_base,code_revision,clock=lambda:datetime.now(timezone.utc),owner_reader=None):
+    def __init__(self,*,token_file,openhab_base,code_revision,clock=lambda:datetime.now(timezone.utc),owner_reader=None,rule_reader=None):
         from thermal_model.capture_readers import BASES
         from weather_temperature_config import load_temperature_receiver_configuration
         from household_pipeline import pipeline_runtime_manifest
@@ -71,6 +71,7 @@ class CycleSourceCollector:
         self.clock=clock;self.base=openhab_base;self.code_revision=code_revision
         self.opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),_NoRedirect())
         self.owner_reader=owner_reader or self._owner_http
+        self.rule_reader=rule_reader or self._rules_http
         self.runtime_reader=lambda:pipeline_runtime_manifest(expanded=True,configured=True,measured=True)
         self.runtime=self.runtime_reader()
         self.registry_paths={'managed':ROOT/'openhab/managed-resources.json','ownership':ROOT/'openhab/file-config/ownership.json'}
@@ -98,6 +99,12 @@ class CycleSourceCollector:
         from household_cycle_deadline import borrow_observation_timer
         with borrow_observation_timer():return self._owner_transport(item,remaining=remaining)
 
+    def _rules_http(self,*,remaining):
+        from household_cycle_deadline import borrow_observation_timer
+        from household.owner_sources import ENDPOINT,MAX_RAW_BYTES
+        with borrow_observation_timer():
+            return self._get_original(ENDPOINT,maximum=MAX_RAW_BYTES,remaining=remaining).decode('utf-8')
+
     def _measured_http(self,**request):
         from household_cycle_deadline import borrow_observation_timer
         from household.measured_weather_capture import _http_get
@@ -108,10 +115,17 @@ class CycleSourceCollector:
         from household.power_snapshot import SOURCES
         if item not in {DAILY_RECEIPT_ITEM,*RECEIPT_ITEMS.values(),*[row[0] for row in SOURCES.values()]}:
             raise ValueError('fixed owner item required')
+        raw=self._get_original('/items/'+item,maximum=8192,remaining=remaining)
+        value=loads(raw)
+        if not isinstance(value.get('state'),str) or len(value['state'].encode())>4096:
+            raise ValueError('bounded original owner state required')
+        return value['state']
+
+    def _get_original(self,endpoint,*,maximum,remaining):
         budget=remaining()
         if threading.current_thread() is not threading.main_thread() or signal.getitimer(signal.ITIMER_REAL)!=(0.,0.):
             raise ValueError('exclusive owner transport budget required')
-        url=self.base+'/items/'+item
+        url=self.base+endpoint
         request=urllib.request.Request(url,method='GET',headers={'Authorization':'Bearer '+self.token})
         previous=signal.getsignal(signal.SIGALRM)
         def expired(*args):raise TimeoutError('owner transport deadline elapsed')
@@ -120,15 +134,12 @@ class CycleSourceCollector:
             signal.setitimer(signal.ITIMER_REAL,min(2.,budget))
             with self.opener.open(request,timeout=min(2.,budget)) as response:
                 if response.status!=200 or response.geturl()!=url:raise ValueError('fixed owner response required')
-                raw=response.read(8193)
+                raw=response.read(maximum+1)
             remaining()
         finally:
             signal.setitimer(signal.ITIMER_REAL,0.);signal.signal(signal.SIGALRM,previous)
-        if len(raw)>8192:raise ValueError('bounded owner response required')
-        value=loads(raw)
-        if not isinstance(value.get('state'),str) or len(value['state'].encode())>4096:
-            raise ValueError('bounded original owner state required')
-        return value['state']
+        if len(raw)>maximum:raise ValueError('bounded owner response required')
+        return raw
 
     def __call__(self,*,issue,remaining,guard):
         from household.capture import RECEIPT_ITEMS,NATIVE_ROLES,fetch_receipt
@@ -197,10 +208,25 @@ class CycleSourceCollector:
         receipt=compile_power_inputs(bundle,managed=loads(self.registry['managed']),ownership=loads(self.registry['ownership']),
             code_revision=self.code_revision,runtime_manifest=self.runtime)
         if replay_power_snapshot(receipt,runtime_manifest=self.runtime)!=receipt:raise ValueError('original source replay differs')
+        from household.owner_sources import ENDPOINT,coordination_from_rules
+        from household.capabilities import CapabilityRegistry
+        owner_source=None
+        check()
+        requested=utc(self.clock())
+        try:
+            raw=self.rule_reader(remaining=check)
+            received=utc(self.clock())
+            owner_source=dict(schema='earthship-household-owner-source/v1',endpoint=ENDPOINT,raw=raw,
+                sha256=sha256(raw.encode()).hexdigest(),requested_at=requested.isoformat(),received_at=received.isoformat())
+            registry=CapabilityRegistry(canonical({key:value for key,value in receipt['registry'].items() if key!='registry_id'}))
+            coordination_from_rules(owner_source,snapshot_id=receipt['snapshot']['snapshot_id'],registry=registry,horizon_hours=24,as_of=received)
+        except (OSError,ValueError,KeyError,TypeError,UnicodeError):
+            owner_source=None
+        check()
         self.verify_unchanged(check);finished=utc(self.clock())
         if not started<=finished<issue:raise ValueError('source collection clock changed')
-        result=dict(schema='earthship-household-cycle-sources/v2',issue=issue.isoformat(),captured_at=finished.isoformat(),
-            power_receipt=receipt,energy_configuration=configuration.to_dict(),measured_weather=measured.to_dict(),daily_energy_source=daily_source,
+        result=dict(schema='earthship-household-cycle-sources/v3',issue=issue.isoformat(),captured_at=finished.isoformat(),
+            power_receipt=receipt,energy_configuration=configuration.to_dict(),measured_weather=measured.to_dict(),daily_energy_source=daily_source,owner_source=owner_source,
             owner_bindings=dict(before=before,after=after),automatic_actuation=False)
         if len(canonical(result))>1048576:raise ValueError('bounded cycle source originals required')
         check();return result

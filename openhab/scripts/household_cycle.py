@@ -107,9 +107,11 @@ def derive_cycle(*,originals,capture,receipts,thermal,weather,parameter_record,r
         raise ValueError('explicit original cycle capture version required')
     validate_delivery(capture,receipts)
     fields={'schema','issue','captured_at','power_receipt','energy_configuration','measured_weather','owner_bindings','automatic_actuation'}
-    daily_source_version=isinstance(originals,dict) and originals.get('schema')=='earthship-household-cycle-sources/v2'
+    daily_source_version=isinstance(originals,dict) and originals.get('schema') in ('earthship-household-cycle-sources/v2','earthship-household-cycle-sources/v3')
     if daily_source_version:fields.add('daily_energy_source')
-    if not isinstance(originals,dict) or set(originals)!=fields or originals['schema'] not in ('earthship-household-cycle-sources/v1','earthship-household-cycle-sources/v2') or originals['automatic_actuation'] is not False:
+    owner_source_version=isinstance(originals,dict) and originals.get('schema')=='earthship-household-cycle-sources/v3'
+    if owner_source_version:fields.add('owner_source')
+    if not isinstance(originals,dict) or set(originals)!=fields or originals['schema'] not in ('earthship-household-cycle-sources/v1','earthship-household-cycle-sources/v2','earthship-household-cycle-sources/v3') or originals['automatic_actuation'] is not False:
         raise ValueError('closed original cycle sources required')
     issue=instant(capture['issued_at']);now=utc(now)
     if instant(originals['issue'])!=issue or instant(originals['captured_at'])>issue or now<instant(capture['published_at']):
@@ -149,6 +151,13 @@ def derive_cycle(*,originals,capture,receipts,thermal,weather,parameter_record,r
     if registry.to_dict()!=source['registry']:raise ValueError('original registry differs')
     preferences=dict(horizon_hours=24,reserve_soc=10.,low_trough_threshold_soc_pct=90.,surplus_weight=1.,reserve_weight=1.,comfort_min_f=65.,comfort_max_f=80.)
     coordination=dict(schema='earthship-shadow-coordination/v1',snapshotId=snapshot.snapshot_id,horizonHours=24,baseline_soc_floor=None,facts={})
+    if owner_source_version:
+        from household.owner_sources import coordination_from_rules
+        owner_source=originals['owner_source']
+        if owner_source is not None and instant(owner_source['received_at'])>instant(originals['captured_at']):
+            raise ValueError('owner observation arrived after frozen source collection')
+        coordination=coordination_from_rules(owner_source,snapshot_id=snapshot.snapshot_id,registry=registry,
+            horizon_hours=preferences['horizon_hours'],as_of=issue)
     record=seal_pipeline(snapshot=snapshot,registry=registry,energy_inputs=energy,thermal_inputs=thermal,
         thermal_runtime=thermal.to_dict()['executing_runtime'],coordination=coordination,config=preferences,now=now,runtime_manifest=runtime_manifest)
     if record['output']['projections']['thermal']['output']!=capture['output']:

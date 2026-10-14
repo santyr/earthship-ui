@@ -92,13 +92,18 @@ def plan(*,snapshot,registry,candidates,coordination,utilities,now,reserve_soc,h
     """Maximize declared utility only after every hard bound has passed."""
     if not isinstance(snapshot,HouseholdSnapshot) or not isinstance(registry,CapabilityRegistry):raise ValueError('immutable source context required')
     if type(horizon_hours) is not int or horizon_hours not in (6,12,24):raise ValueError('explicit supported horizon required')
-    now=utc(now);snap=snapshot.to_dict();registry=registry.to_dict()
+    now=utc(now);snap=snapshot.to_dict()
     if instant(snap['as_of'])>now or instant(snap['created_at'])>now:raise ValueError('snapshot unavailable at decision')
     if not isinstance(candidates,(tuple,list)) or len(candidates)>MAX_CANDIDATES or any(not isinstance(item,HouseholdIntent) for item in candidates):
         raise ValueError('bounded typed candidates required')
     if type(reserve_soc) not in (int,float) or not math.isfinite(reserve_soc) or not MIN_RESERVE_SOC<=reserve_soc<=100:raise ValueError('bounded explicit reserve required')
+    if isinstance(coordination,dict) and coordination.get('schema')=='earthship-shadow-coordination/v2':
+        from .owner_sources import validate_coordination
+        coordination=validate_coordination(coordination,snapshot_id=snapshot.snapshot_id,registry=registry,
+            horizon_hours=horizon_hours,as_of=instant(snap['as_of']))
     if not isinstance(coordination,dict) or set(coordination)!={'schema','snapshotId','baseline_soc_floor','facts','horizonHours'} or coordination['schema']!='earthship-shadow-coordination/v1' or coordination['snapshotId']!=snapshot.snapshot_id or type(coordination['horizonHours']) is not int or coordination['horizonHours']!=horizon_hours:
         raise ValueError('closed frozen coordination context required')
+    registry=registry.to_dict()
     coordination=loads(canonical(coordination))
     if len(canonical(coordination))>65536 or not isinstance(coordination['facts'],dict) or len(coordination['facts'])>8:raise ValueError('bounded owner facts required')
     for owner,facts in coordination['facts'].items():
