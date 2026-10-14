@@ -13,6 +13,8 @@ SCORE_CPU_QUOTA = '100%'
 SCORE_CURRENT_PERIOD_MINUTES = 10
 PUBLICATION_POLICY_SHA256 = '092dab2595bb8f8478fd0519118e1e277ab8aa61d887d5ff2fc38d4ea7717f70'
 _production_policy = None
+PUBLICATION_MONITOR_SHA256 = '43cef34e31bc9b82a9d416f97bf9e15f255ebe95b873409089478e41e40fd9f9'
+_production_monitor = None
 
 
 
@@ -43,6 +45,26 @@ class SampledScorePressure:
             raise
 
 
+    def preflight(self):
+        self.check(force=True)
+
+
+def production_pressure_monitor():
+    """Use this release's pressure policy with an archived numerical runtime."""
+    global _production_monitor
+    import importlib.util
+    from hashlib import sha256
+    from thermal_model.origin_capture import _source_bytes
+    path=Path(__file__).resolve().with_name('household_cycle_pressure.py')
+    if sha256(_source_bytes(path,maximum=262144)).hexdigest()!=PUBLICATION_MONITOR_SHA256:
+        raise ValueError('score publication monitor source differs')
+    if _production_monitor is None or Path(_production_monitor.__file__).resolve()!=path:
+        spec=importlib.util.spec_from_file_location('_earthship_score_publication_monitor',path)
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        _production_monitor=module
+    return _production_monitor.PublicationHeadroom(resource_check=production_resource_preflight)
+
+
 def production_resource_preflight(*,leaf=None):
     """Load the pinned one-core publication policy from this coordinator's stage."""
     global _production_policy
@@ -65,17 +87,26 @@ def production_score_policy():
     import thermal_installed_intel as installed
     import household_cycle_resources as resources
     production_resource_preflight()
-    hooks=[(installed,'_resource_preflight'),(resources,'publication_resource_preflight')]
+    monitors=[]
+    def current_headroom():
+        pressure=SampledScorePressure(production_pressure_monitor())
+        monitors.append(pressure)
+        return pressure
+    hooks=[(installed,'_resource_preflight',production_resource_preflight),
+        (resources,'publication_resource_preflight',production_resource_preflight)]
     # Native archives also bind this policy at import time. Override admission
     # only; their numerical functions and source/receipt validation stay original.
     if Path(installed.__file__).with_name('native_thermal_live.py').is_file():
         import native_thermal_live as native
         if hasattr(native,'_resource_preflight'):
-            hooks.append((native,'_resource_preflight'))
-    originals=[(module,name,getattr(module,name)) for module,name in hooks]
+            hooks.append((native,'_resource_preflight',production_resource_preflight))
+        import native_inference_pressure as inference
+        hooks.append((inference,'NativeInferenceHeadroom',current_headroom))
+    originals=[(module,name,getattr(module,name)) for module,name,_ in hooks]
     try:
-        for module,name,_ in originals:setattr(module,name,production_resource_preflight)
+        for module,name,replacement in hooks:setattr(module,name,replacement)
         yield
+        for pressure in monitors:pressure.check(force=True)
     finally:
         for module,name,original in reversed(originals):setattr(module,name,original)
 

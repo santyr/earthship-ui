@@ -83,3 +83,43 @@ def test_explicit_missing_cgroup_is_not_replaced_with_current_worker(tmp_path):
     import household_forecast_score as score
     with pytest.raises(ValueError,match='verified publication resources required'):
         score.production_resource_preflight(leaf=tmp_path/'missing-cgroup')
+
+
+def test_retained_native_uses_current_monitor_instead_of_retired_swap_guard(tmp_path,monkeypatch):
+    import household_forecast_score as score,native_inference_pressure as native
+    from pathlib import Path
+    for name in ('household_forecast_score.py','household_cycle_resources.py','household_cycle_pressure.py'):
+        target=tmp_path/name;target.write_bytes(Path(score.__file__).with_name(name).read_bytes());target.chmod(0o644)
+    monkeypatch.setattr(score,'__file__',str(tmp_path/'household_forecast_score.py'))
+    class RetiredMonitor:
+        def __init__(self):raise AssertionError('retired host-wide swap guard executed')
+    monkeypatch.setattr(native,'NativeInferenceHeadroom',RetiredMonitor)
+    with score.production_score_policy():
+        monitor=native.NativeInferenceHeadroom();monitor.preflight();monitor.check()
+    assert native.NativeInferenceHeadroom is RetiredMonitor
+
+
+def test_retained_worker_exit_forces_current_memory_event_check(tmp_path,monkeypatch):
+    import household_forecast_score as score,native_inference_pressure as native
+    from household_cycle_pressure import PublicationHeadroom
+    vmstat=tmp_path/'vmstat';vmstat.write_text('oom_kill 0\n')
+    events=tmp_path/'memory.events';events.write_text('max 0\noom 0\noom_kill 0\n')
+    def monitor():
+        return PublicationHeadroom(vmstat=vmstat,memory_events=events,resource_check=score.production_resource_preflight)
+    monkeypatch.setattr(score,'production_pressure_monitor',monitor,raising=False)
+    original=native.NativeInferenceHeadroom
+    with pytest.raises(ValueError,match='memory-limit counters changed'):
+        with score.production_score_policy():
+            pressure=native.NativeInferenceHeadroom();pressure.preflight()
+            events.write_text('max 1\noom 0\noom_kill 0\n')
+    assert native.NativeInferenceHeadroom is original
+
+
+def test_current_monitor_source_drift_refuses_before_loading(tmp_path,monkeypatch):
+    import household_forecast_score as score
+    coordinator=tmp_path/'household_forecast_score.py';coordinator.write_text('# test\n')
+    (tmp_path/'household_cycle_pressure.py').write_text("raise AssertionError('changed monitor loaded')\n")
+    (tmp_path/'household_cycle_pressure.py').chmod(0o644)
+    monkeypatch.setattr(score,'__file__',str(coordinator))
+    with pytest.raises(ValueError,match='monitor source'):
+        score.production_pressure_monitor()
