@@ -46,3 +46,24 @@ The report reader/writer changes the optional serving runtime, so this deploymen
 requires a newly bound candidate using the unchanged fit. Subsequent changes that
 leave both that runtime and original evidence unchanged preserve its model ID.
 Activation and natural-cycle verification are recorded separately below.
+
+## Activated and serving
+
+Source `b6a5e87`, deployment `2b8aab1b`, model `52dd5d12` activated after the
+previous forecast completed. All five owned files, exact service limits and pins,
+and three active timers matched. Activation peaked at 56.9 MiB with no memory
+limit events. The daily production checkout is clean at this same source.
+
+The normal geometry preparer succeeded. The first scheduled forecast completed
+in 43 seconds with exit 0, verified delivery, 12.585 CPU seconds, 81.9 MiB peak
+memory and zero swap. Its 19:15:15 UTC household snapshot was shadow, with no
+expired qualified sources at verification. At 19:15:30.311 the HTTP200 endpoint
+exactly matched the cache and selected model, before the 19:15:35.112 expiry.
+
+This verifies serving after deployment. The new current-model scoring opportunity
+and artifact-specific report write still require natural execution. No native
+completed scores existed at this readback. The next native current opportunity
+is 19:21 UTC; its first 19:15 forecast cannot have a mature one-hour outcome until
+20:20:15 UTC. Neither an empty report nor legacy score counts establish accuracy.
+Private deployment and normal-cycle evidence is retained in the serving-receipt
+QA directory under `actual-monitoring-continuity-20261014`.

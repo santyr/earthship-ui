@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "Earthship observations remain below existing content; standalone household navigation removed. Source255d7df/deployment945107f8/modeld0b0d9c8 activated October14 with one CPU for forecasting,256MiB memory and zero worker swap. Natural18:55:15UTC forecast and household snapshot delivered successfully; service exited0 in43seconds with82.1MiB peak and no swap. Household result was shadow with no expired qualified inputs when verified18:55:26.912UTC; HTTP200 API exactly matched cache at18:55:30.753UTC. Shortest source validity ended18:55:33.044UTC, so this establishes fresh-at-publication observational recovery, not continuous freshness between five-minute cycles or physical qualification. Daily native training is enabled for06:50MDT; first natural fit and mature native accuracy remain unverified. See proofs.native_household_freshness_deployment. No actuator authority.",
+      "current_evidence": "Earthship observations remain below existing content; standalone household navigation removed. Current sourceb6a5e87/deployment2b8aab1b/model52dd5d12 passed effective activation readback and natural19:15:15UTC forecast delivery. Service exited0 in43seconds with81.9MiB peak and zero swap. Household snapshot was shadow with no expired qualified inputs at verification; HTTP200 API matched its cache while fresh. Short-lived evidence still expires between five-minute cycles. Deployment-only updates now preserve unchanged model identity; model-specific report files prevent historical displacement, and current native scoring receives a twenty-minute opportunity independent of retained history length. Actual current scoring/report production and mature accuracy remain pending. First morning fit remains unverified. No actuator authority. See proofs.native_monitoring_continuity_deployment.",
       "complete": false
     },
     {
@@ -6662,8 +6662,8 @@
       },
       "automatic_actuation": false,
       "source_document": "docs/operations/2026-10-14-native-daily-training.md",
-      "production_source_commit": "255d7dfec2d59e5bb35f82ea895719df18c01707",
-      "production_checkout_verified_at": "2026-10-14T18:55:30.752856+00:00"
+      "production_source_commit": "b6a5e87c3e66c445f5bf4b529c0efccdc1890e7b",
+      "production_checkout_verified_at": "2026-10-14T19:15:30.311118+00:00"
     },
     "native_forecast_cpu_deployment": {
       "assessed_at": "2026-10-14T18:41:43.124789+00:00",
@@ -6732,6 +6732,45 @@
       "fit_executed": false,
       "source_document": "docs/operations/2026-10-14-household-observation-window.md",
       "remaining": "Live snapshot expiry remains shorter than the five-minute forecast cadence. Mature native accuracy and other architectural requirements remain incomplete."
+    },
+    "native_monitoring_continuity_deployment": {
+      "assessed_at": "2026-10-14T19:15:30.311118+00:00",
+      "source_commit": "b6a5e87c3e66c445f5bf4b529c0efccdc1890e7b",
+      "deployment_sha256": "2b8aab1b7ce638f961a31155721fcacfe54590104e2c1995da11565873abf2fe",
+      "artifact_sha256": "52dd5d122485f0bdafa0aed4fa7412c0823ce9829ed3d9bdc920e44d88526506",
+      "service": {
+        "MainPID": "0",
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "MemoryPeak": "85872640",
+        "MemorySwapPeak": "0",
+        "CPUUsageNSec": "12584816000",
+        "ActiveState": "inactive"
+      },
+      "http_status": 200,
+      "api_matches_cache": true,
+      "observation_sha256": "574edf22ad3c4cc842a447e285b74515c6685383aff916fd5bbc830fb8e69df3",
+      "snapshot_as_of": "2026-10-14T19:15:15+00:00",
+      "verified_at": "2026-10-14T19:15:26.879982+00:00",
+      "valid_until": "2026-10-14T19:15:35.112000+00:00",
+      "fresh_when_checked": true,
+      "planner_mode": "shadow",
+      "expired_roles": [],
+      "model_matches": true,
+      "automatic_actuation": false,
+      "status": "deployed_normal_forecast_verified_native_scoring_pending",
+      "test_batches_passed": [
+        46,
+        12
+      ],
+      "fit_executed": false,
+      "activation_memory_peak_bytes": 59691008,
+      "current_score_interval_minutes": 20,
+      "report_max_age_minutes": 15,
+      "current_scoped_report_exists": false,
+      "completed_native_scores": 0,
+      "source_document": "docs/operations/2026-10-14-native-monitoring-continuity.md",
+      "production_checkout_clean": true
     }
   },
   "astro_efficiency_audit": {
@@ -6881,5 +6920,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T18:06:18.617279+00:00"
+  "updated_at": "2026-10-14T19:16:18.962506+00:00"
 }
