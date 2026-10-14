@@ -6544,7 +6544,7 @@
       "live_household_completion_qualified": false
     },
     "native_practical_scoring_budget": {
-      "status": "candidate_receipt_validated_cold_probe_refused_global_swapout_policy_adjusted",
+      "status": "not_activated_superseded_by_separate_development_and_production_resource_policy",
       "source_document": "docs/operations/2026-10-14-practical-native-scoring-budget.md",
       "original_worker_seconds": 50,
       "new_worker_seconds": 120,
@@ -6576,7 +6576,12 @@
       "inference_swapout_mib_per_second": 16,
       "inference_short_psi_some_pct": 5,
       "inference_short_psi_full_pct": 1,
-      "host_swap_configuration_changed": false
+      "host_swap_configuration_changed": false,
+      "additional_repeated_qualification_stopped": true,
+      "development_and_production_limits_must_be_separate": true,
+      "production_admission_basis": "available RAM and bounded worker RAM with worker swap disabled; host swap occupancy and unrelated paging do not prohibit execution",
+      "next_priority": "restore daily capture, fit and publication for the active native model",
+      "production_host_swap_disabled": false
     },
     "native_daily_training_freshness_diagnosis": {
       "status": "daily_native_refresh_not_restored",
@@ -6738,5 +6743,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T17:17:58.232754+00:00"
+  "updated_at": "2026-10-14T17:21:39.996270+00:00"
 }
