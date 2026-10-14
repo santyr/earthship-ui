@@ -21,7 +21,7 @@ class NativeInferenceHeadroom(TrainingHeadroom):
             from household_cycle_pressure import PublicationHeadroom
             worker_check=PublicationHeadroom().check
         if not callable(worker_check):raise ValueError('worker resource checker required')
-        self.worker_check=worker_check;self.samples=deque();self.refused=False
+        self.worker_check=worker_check;self.samples=deque();self.pressure_samples=deque();self.refused=False
 
     def check(self):
         if self.refused:raise ValueError('native inference headroom previously refused')
@@ -53,7 +53,14 @@ class NativeInferenceHeadroom(TrainingHeadroom):
                 if swapped_in<0:raise ValueError('host swap-read counter regressed')
                 for key,limit in (('some',.5),('full',.1)):
                     delta=pressure[key]-old_pressure[key]
-                    if delta<0 or delta>(now-at)*1000000*limit/100:raise ValueError('interval memory pressure exceeded')
+                    if delta<0:raise ValueError('memory pressure counter regressed')
+            self.pressure_samples.append((now,pressure))
+            while len(self.pressure_samples)>1 and self.pressure_samples[1][0]<=now-1:
+                self.pressure_samples.popleft()
+            if len(self.pressure_samples)>65536:raise ValueError('bounded inference pressure samples exceeded')
+            for key,limit in (('some',.5),('full',.1)):
+                if pressure[key]-self.pressure_samples[0][1][key]>1000000*limit/100:
+                    raise ValueError('trailing one-second memory pressure exceeded')
             self.samples.append((now,counters['pswpin']))
             # Retain the sample before the boundary: do not discard an
             # unmeasured partial interval or interpolate cumulative counters.
