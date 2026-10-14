@@ -7381,15 +7381,18 @@
       },
       "review": "final integration review Important retained-policy binding fixed RED to GREEN; full230-test suite passes",
       "operations": "docs/operations/2026-10-14-shared-job-resources.md",
-      "implementation_commit": "2ba6e7098d5000c3d96996bee2f52aed7e88b37b",
-      "deployment_sha256": "995ed1da43dcd7bcdfacf77f24a8b384ff0150315dd51d82c182182702087702",
+      "implementation_commit": "82adbb79c6409adca056441e3a222c0fff20ef79",
+      "deployment_sha256": "01f83547adbb3246107919a5262b4862c21b39632fb705e2e2e24ca4f304f263",
       "integration_tests": 230,
       "natural_forecast": "22:25:15UTC published and observation_written; scope13.108CPU seconds,78.3MiB peak,zero swap",
       "natural_legacy_score": "22:26UTC monitoring_refreshed;256 retained legacy outcomes;zero new mature outcomes",
-      "natural_current_native_score": "pending",
+      "natural_current_native_score": "22:41UTC passed admission, then inventory mutation RuntimeError; reproduced and fixed in6e5a036 with83 affected tests; corrected deployment pending",
       "natural_preparer": "22:28:05UTC to22:28:09UTC; exit0; retained prepared geometry result",
       "natural_daily_fit": "pending2026-10-15T06:50MDT",
-      "fit_executed_during_rollout": false
+      "fit_executed_during_rollout": false,
+      "current_score_correction_tests": 68,
+      "daily_checkout": "82adbb7; clean and idle during update",
+      "inventory_correction_tests": 83
     }
   },
   "astro_efficiency_audit": {
