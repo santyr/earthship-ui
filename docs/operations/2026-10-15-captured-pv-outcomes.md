@@ -49,9 +49,13 @@ replays a full saved score offline against the exact external originals and
 executing runtime. Files are private and bounded; changed inputs refuse. It does
 not read live history, issue a forecast or fit a model.
 
-The focused verification passes 54 tests before the broader household/backend
-run. Tests cover meter-plane distinctions, same-duration arithmetic, valid zero,
+The broad household/backend verification passes 1,701 tests. After the single
+review correction, all 56 focused cases pass, including genuine older and later
+originals with a shared solar cohort but different captured-PV eligibility. Tests cover meter-plane distinctions, same-duration arithmetic, valid zero,
 missing coverage, cutover, DST, stream changes, original/runtime tampering, learned
 scenario binding, compact admissions, file-only replay and optional-job isolation.
-The final deployment and natural-score evidence will be recorded after the single
-final review. Full PR #3 remains incomplete and actuator requests stay disabled.
+The final review found one Important admission issue, now fixed: a solar cohort
+does not bind original current-PV availability or its stream epoch. Ineligible
+chosen originals are excluded before queue admission, preserving their original
+selection and allowing later valid comparisons to advance. No repeat review is
+required. Deployment and natural-score evidence remain pending. Full PR #3 remains incomplete and actuator requests stay disabled.

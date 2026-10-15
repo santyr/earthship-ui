@@ -135,6 +135,15 @@ def run(*,stage,historical,guard,deadline,clock=lambda:datetime.now(timezone.utc
         for name in ('forecast_sha256','forecast_receipt_sha256','cohort_id'):digest(ref[name])
         path=Path(ref['forecast_path'])
         if path.parent not in allowed or path.name!=ref['forecast_sha256']+'.household-energy-forecast-v1.json' or instant(ref['issued_at']).replace(minute=0,second=0,microsecond=0)!=at:raise ValueError('original sampled PV target differs')
+        # A solar/SoC cohort does not bind original controller availability or
+        # its power-stream epoch. Check the exact chosen original before it can
+        # enter this domain's due queue; never choose a replacement forecast.
+        candidate,origin_plan,origin_files=read_forecast(path)
+        if identity(candidate)!=ref['forecast_sha256'] or candidate['receipt_sha256']!=ref['forecast_receipt_sha256'] or candidate['output']['array_pv']['origin']!=ref['issued_at']:
+            raise ValueError('original imported PV reference differs')
+        captured_context=_context(candidate,origin_plan,None)['cohort']
+        unchanged(origin_files);check()
+        if captured_context is None or identity(captured_context)!=cohort_id:continue
         samples[hour]={k:ref[k] for k in ('forecast_path','forecast_sha256','forecast_receipt_sha256','issued_at')}
         samples[hour].update(cohort_id=cohort_id,score_file_sha256=None,sample_sha256=None,retry_after=None)
     verified=[];due=[];pending=[]
