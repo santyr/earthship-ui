@@ -1,7 +1,10 @@
 """Repeated native replay admission must verify idle I/O without process spawn."""
+import os
 import subprocess
+import pytest
 
 
+@pytest.mark.skipif(os.environ.get('EARTHSHIP_RESOURCE_SMOKE')!='1',reason='requires an explicitly selected capped publication scope')
 def test_native_resource_admission_never_spawns_an_ionice_probe(monkeypatch):
     import native_thermal_live as native
     original=subprocess.check_output
@@ -25,13 +28,18 @@ def test_native_resource_checker_refuses_changed_bound_helper_bytes(monkeypatch)
         native._resource_preflight()
 
 
-def test_native_admission_resolves_only_the_freshly_read_helper(monkeypatch):
+def test_native_admission_resolves_only_the_freshly_read_helper(tmp_path,monkeypatch):
     from pathlib import Path
     import native_thermal_live as native
     # Exercise the original pin verifier against a matching test pin. Live
     # serving selects its new operational policy outside the fitted adapter.
     from hashlib import sha256
     monkeypatch.setattr(native,'RESOURCE_SOURCE_SHA256',sha256(Path(native.__file__).with_name('household_cycle_resources.py').read_bytes()).hexdigest())
+    # Supply deterministic kernel metadata through the real verifier's public
+    # arguments; its loaded source location and helper-byte checks stay real.
+    from test_household_cycle_resources import fixture
+    args,_=fixture(tmp_path)
+    monkeypatch.setattr(native._publication_resource_preflight,'__kwdefaults__',args)
     calls=[];original=Path.resolve
     def tracked(path,*args,**kwargs):
         calls.append(str(path));return original(path,*args,**kwargs)

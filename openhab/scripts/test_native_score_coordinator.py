@@ -44,7 +44,7 @@ def test_native_private_runner_uses_native_loader_and_original_lock_deadline(tmp
     path=tmp_path/'native-config.json';path.write_text(json.dumps(settings));path.chmod(0o600);calls=[]
     monkeypatch.setattr(native,'load_settings',lambda actual:settings if actual==path else pytest.fail('wrong native config'))
     monkeypatch.setattr(legacy,'load_settings',lambda *a:pytest.fail('native private runner used legacy loader'))
-    monkeypatch.setattr(installed,'_resource_preflight',lambda:None)
+    monkeypatch.setattr(coordinator,'production_resource_preflight',lambda:None)
     class Lock:
         def __init__(self,actual):assert actual==settings['shared_lock']
         def __enter__(self):calls.append('locked');return self
@@ -55,6 +55,7 @@ def test_native_private_runner_uses_native_loader_and_original_lock_deadline(tmp
         def preflight(self):calls.append('preflight')
         def check(self):calls.append('headroom')
     monkeypatch.setattr(locks,'SharedScoreLock',Lock);monkeypatch.setattr(pressure,'NativeInferenceHeadroom',Headroom)
+    monkeypatch.setattr(coordinator,'production_pressure_monitor',Headroom)
     def score(value,*,guard,clock,queue):
         assert value==settings and queue is True;guard();return {'status':'waiting','scored':0,'automatic_actuation':False}
     monkeypatch.setattr(coordinator,'score_with_report',score)

@@ -7,6 +7,17 @@ from test_native_serving_score import queried,originals
 
 def report_fixture(tmp_path,originals,monkeypatch):
     scores,model,capture,args,serving_args=queried(tmp_path,originals,monkeypatch)
+    # These cases exercise original-score replay and mutation detection, not
+    # the hosted runner's scheduling priority or cgroup membership.
+    import household_forecast_score as coordinator
+    from household_cycle_resources import publication_resource_preflight
+    from test_household_cycle_resources import fixture as resource_fixture
+    from test_household_cycle_pressure import fixture as pressure_fixture
+    resource_root=tmp_path/'kernel';resource_root.mkdir()
+    resource_args,_=resource_fixture(resource_root)
+    monitor,_,_,_=pressure_fixture(resource_root,monkeypatch)
+    monkeypatch.setattr(coordinator,'production_resource_preflight',lambda:publication_resource_preflight(**resource_args))
+    monkeypatch.setattr(coordinator,'production_pressure_monitor',lambda:monitor)
     record=scores.build_serving_source_score(**serving_args)
     path=scores.persist_source_score(tmp_path,record)
     at=args['assessed_at']+timedelta(seconds=10)
