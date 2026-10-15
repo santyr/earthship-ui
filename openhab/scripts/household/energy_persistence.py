@@ -45,6 +45,8 @@ def _reading(row,identity,unit,at,now,maximum_age):
         return 'required_source_unqualified'
     if any(ref.get(k) is None for k in ('observed_at','available_at','valid_until')):
         return 'required_source_unavailable'
+    if type(maximum_age) is not int or maximum_age<=0:
+        raise ValueError('present battery source requires explicit original age policy')
     observed,available,until=(instant(ref[k]) for k in ('observed_at','available_at','valid_until'))
     if not observed<=available<=at or at-observed>timedelta(seconds=maximum_age) or now>=until:
         return 'required_source_expired'
@@ -80,7 +82,7 @@ def project_persistence(*,snapshot,metric_source,horizon_hours,now):
     ages=doc['temporal_policy']['max_age_seconds']
     for name,row,source,unit in (('battery_soc',soc,'BMS_SOC_Evidence_JSON','percent'),
         ('battery_power_w',power,'Power_Evidence_JSON:battery.dc_power_w','W')):
-        if reason is None:reason=_reading(row,source,unit,at,now,ages[name])
+        if reason is None:reason=_reading(row,source,unit,at,now,ages.get(name))
     if reason is None:
         clocks=[instant(row['evidence']['observed_at']) for row in (soc,power)]
         if max(clocks)-min(clocks)>timedelta(seconds=doc['temporal_policy']['max_skew_seconds']):reason='source_skew'

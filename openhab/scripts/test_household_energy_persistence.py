@@ -18,7 +18,7 @@ def metric(at,**changes):
         raw=raw,sha256=sha256(raw.encode()).hexdigest(),available_at=at.isoformat(),**changes)
 
 
-def fixture(tmp_path,monkeypatch,*,watts=-500,old=False,skew=None,bank_raw="default"):
+def fixture(tmp_path,monkeypatch,*,watts=-500,old=False,skew=None,bank_raw="default",missing_power=False):
     def source(at):
         original=source_at(at);v=deepcopy(original['inputs']);bundle=v['bundle'];row=bundle['power_sources'][0]
         bundle['base_inputs']['sources'][0]['source_identity']='BMS_SOC_Evidence_JSON'
@@ -26,6 +26,9 @@ def fixture(tmp_path,monkeypatch,*,watts=-500,old=False,skew=None,bank_raw="defa
         row['raw']=canonical(raw).decode();row['expected_sha256']=sha256(row['raw'].encode()).hexdigest()
         if old:bundle['power_policy']['max_age_seconds']['battery_power_w']=1
         if skew is not None:bundle['power_policy']['max_skew_seconds']=skew
+        if missing_power:
+            bundle['power_sources']=[row for row in bundle['power_sources'] if row['kind']!='power']
+            bundle['power_policy']['max_age_seconds'].pop('battery_power_w')
         return compile_power_inputs(bundle,managed=v['managed'],ownership=v['ownership'],code_revision=v['code_revision'],runtime_manifest=original['runtime_manifest'])
     snap,_,_,_=make(tmp_path,monkeypatch,source=source,bank_raw=bank_raw);at=instant(snap.to_dict()['as_of'])
     return snap,metric(at-timedelta(seconds=1)),instant(snap.to_dict()['created_at'])
@@ -232,3 +235,11 @@ def test_new_pipeline_cannot_omit_its_baseline_runtime_dependency(tmp_path,monke
     _,record,runtime,_=pipeline_fixture(tmp_path,monkeypatch)
     record['runtime_manifest'].pop('openhab/scripts/household/energy_persistence.py')
     with pytest.raises(ValueError):verify_source_closure(record,runtime)
+
+
+def test_absent_power_source_without_age_policy_withholds_only_baseline(tmp_path,monkeypatch):
+    snap,source,now=fixture(tmp_path,monkeypatch,missing_power=True)
+    assert 'battery_power_w' not in snap.to_dict()['temporal_policy']['max_age_seconds']
+    out=project(snap,source,now)
+    assert out['status']=='unavailable' and out['reason']=='required_source_unavailable'
+    assert out['trajectory']==[] and out['automatic_actuation'] is False
