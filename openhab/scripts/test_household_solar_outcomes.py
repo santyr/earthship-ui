@@ -110,3 +110,37 @@ def test_supplied_endpoint_corruption_refuses_even_when_solar_scenario_is_unavai
     args['forecast_receipt']=seal_energy_forecast(plan_receipt=args['plan_receipt'],system_source=None,horizon_source=inputs['horizon_source'],topology_source=inputs['topology_source'],now=instant(inputs['assessed_at']),runtime_manifest=args['forecast_runtime_manifest'])
     args['endpoint_sources']['1']['source_sha256']='f'*64
     with pytest.raises(ValueError):api.seal_energy_outcomes(**args)
+
+
+def test_resealed_plan_cannot_supply_an_unreplayed_constant_power_reference(tmp_path,monkeypatch,originals):
+    api,args=context(tmp_path,monkeypatch,originals)
+    from household_energy_forecast import seal_energy_forecast
+    plan=args['plan_receipt'];reference=plan['output']['projections']['energy_persistence']
+    reference['trajectory'][1]['nominal_soc_pct']=0
+    reference['projection_sha256']=identity({k:v for k,v in reference.items() if k!='projection_sha256'})
+    plan['receipt_sha256']=identity({k:v for k,v in plan.items() if k!='receipt_sha256'})
+    inputs=args['forecast_receipt']['inputs']
+    args['forecast_receipt']=seal_energy_forecast(plan_receipt=plan,system_source=inputs['system_source'],horizon_source=inputs['horizon_source'],topology_source=inputs['topology_source'],now=instant(inputs['assessed_at']),runtime_manifest=args['forecast_runtime_manifest'])
+    with pytest.raises(ValueError,match='reference'):api.seal_energy_outcomes(**args)
+
+
+def test_cohort_binds_the_complete_forecast_numerical_source_closure(tmp_path,monkeypatch,originals):
+    api,args=context(tmp_path,monkeypatch,originals);forecast=args['forecast_receipt'];before=api.cohort_for(forecast,args['plan_receipt'])
+    for source in ('household/power_flows.py','household/energy_configuration.py','household/energy_persistence.py'):
+        changed=deepcopy(forecast);changed['runtime_manifest']['openhab/scripts/'+source]='f'*64
+        assert api.cohort_for(changed,args['plan_receipt'])!=before
+
+
+@pytest.mark.parametrize('hours',[6,12])
+def test_shorter_original_reference_is_explicitly_unavailable_instead_of_indexing_past_it(tmp_path,monkeypatch,originals,hours):
+    api,args=context(tmp_path,monkeypatch,originals)
+    from household.energy_persistence import project_persistence
+    from household.model_snapshot import restore_snapshot
+    from household_energy_forecast import seal_energy_forecast
+    plan=args['plan_receipt'];inputs=plan['inputs'];inputs['config']['horizon_hours']=hours
+    snapshot=restore_snapshot(inputs['snapshot'],inputs['source_contexts'])
+    plan['output']['projections']['energy_persistence']=project_persistence(snapshot=snapshot,metric_source=inputs['energy_persistence_source'],horizon_hours=hours,now=instant(inputs['now']))
+    plan['receipt_sha256']=identity({k:v for k,v in plan.items() if k!='receipt_sha256'})
+    original=args['forecast_receipt']['inputs'];args['forecast_receipt']=seal_energy_forecast(plan_receipt=plan,system_source=original['system_source'],horizon_source=original['horizon_source'],topology_source=original['topology_source'],now=instant(original['assessed_at']),runtime_manifest=args['forecast_runtime_manifest'])
+    score=api.seal_energy_outcomes(**args)
+    assert score['output']['cohort'] is None and score['output']['by_horizon']['1']['status']=='scenario_or_reference_unavailable'

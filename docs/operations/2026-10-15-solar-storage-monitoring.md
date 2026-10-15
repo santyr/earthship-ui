@@ -15,14 +15,17 @@ model leaves system overhead, charge-rate limits and taper unqualified.
 
 For each retained original, the scenario is compared with the original plan's
 constant net battery power reference and hold-SoC reference. All three use the
-same original issue, nominal capacity, initial SoC and measured endpoint. Targets
+same original issue, nominal capacity, initial SoC and measured endpoint. The
+constant-power reference is independently rederived from the original snapshot,
+metric semantics, configured horizon and decision time. Shorter 6/12-hour
+references remain explicitly unavailable to this fixed 24-hour comparison. Targets
 are 1, 6, 12 and 24 hours after issue, with five minutes allowed for persistence.
 The atomic BMS source must meet the existing source epoch, latest-row barrier,
 quality, expiry and original collection-clock checks. Invalid or missing actuals
 never become numerical scores or fall back to an older good row.
 
 A bounded seven-day cohort samples one original per UTC hour. Cohort identity
-binds the numerical model sources, array, horizon, topology, physical bank,
+binds the complete retained forecast runtime, array, horizon, topology, physical bank,
 nominal capacity and BMS stream epoch. Each terminal endpoint is retained once;
 errors use the original prediction, not a revised hindsight forecast. Reports
 include attempts, matched counts, independent Denver origin days, MAE, bias,

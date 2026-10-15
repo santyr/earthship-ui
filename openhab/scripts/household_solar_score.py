@@ -8,7 +8,7 @@ from household.control_contracts import instant
 from household.evidence import utc,digest
 from household_observation import _private_file,_directory
 from household_energy_forecast import forecast_runtime_manifest,replay_energy_forecast
-from household_solar_outcomes import seal_energy_outcomes,validate_score,cohort_for,build_energy_performance,energy_outcome_runtime_manifest,HORIZONS,MAX_BYTES
+from household_solar_outcomes import seal_energy_outcomes,validate_score,cohort_for,matched_reference,build_energy_performance,energy_outcome_runtime_manifest,HORIZONS,MAX_BYTES
 from household_energy_state import publish_owned,INDEX
 
 SUFFIX='.household-energy-forecast-v1.json'
@@ -92,7 +92,7 @@ def run(*,stage,historical,guard,deadline,clock=lambda:datetime.now(timezone.utc
     if not current:return dict(status='waiting',reason='current_solar_origin_unavailable')
     latest=max(current,key=lambda p:p.stat().st_mtime);forecast,plan,original=read_forecast(latest)
     replay_energy_forecast(forecast,plan_receipt=plan,runtime_manifest=fr);unchanged(original);check()
-    if plan['output']['projections'].get('energy_persistence',{}).get('status')!='projected_nominal_baseline':
+    if matched_reference(plan) is None:
         return dict(status='waiting',reason='current_solar_reference_unavailable')
     cohort=cohort_for(forecast,plan)
     if cohort is None:return dict(status='waiting',reason='current_solar_storage_scenario_unavailable')
@@ -113,7 +113,7 @@ def run(*,stage,historical,guard,deadline,clock=lambda:datetime.now(timezone.utc
         if hint in samples:continue
         forecast,plan,original=read_forecast(path);issued=instant(forecast['output']['array_pv']['origin']);hour=issued.replace(minute=0,second=0,microsecond=0).isoformat()
         if hour in samples or not now-timedelta(days=7)<=issued<=now or forecast['runtime_manifest']!=fr:continue
-        if cohort_for(forecast,plan)!=cohort or plan['output']['projections'].get('energy_persistence',{}).get('status')!='projected_nominal_baseline':continue
+        if cohort_for(forecast,plan)!=cohort or matched_reference(plan) is None:continue
         replay_energy_forecast(forecast,plan_receipt=plan,runtime_manifest=fr);unchanged(original)
         samples[hour]=dict(forecast_path=str(path),forecast_sha256=sha256(original[1][0]).hexdigest(),forecast_receipt_sha256=forecast['receipt_sha256'],issued_at=issued.isoformat(),cohort_id=cohort_id,score_path=None,retry_after=None)
         break

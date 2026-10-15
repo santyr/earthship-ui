@@ -10,6 +10,8 @@ from household.evidence import utc,digest,epoch
 from household.control_contracts import instant
 from household.planning import _runtime_manifest
 from household.battery_outcomes import endpoint_value,HORIZONS
+from household.model_snapshot import restore_snapshot
+from household.energy_persistence import project_persistence
 from household_energy_forecast import replay_energy_forecast,forecast_runtime_manifest as current_forecast_runtime
 from household_snapshot import _read
 
@@ -36,12 +38,23 @@ def cohort_for(forecast,plan):
     bank=energy['physical_bank_epoch']['value'];source=energy['battery_soc']['evidence']['source_epoch']
     if not isinstance(bank,str) or not 1<=len(bank)<=128:return None
     epoch(source)
-    names=('household_pv_model.py','household_solar_horizon.py','household_energy_forecast.py')
-    model_sources={name:forecast['runtime_manifest']['openhab/scripts/'+name] for name in names}
-    model_sources['reference']=plan['runtime_manifest']['openhab/scripts/household/energy_persistence.py']
+    # Bind the complete retained prediction closure, including load-flow and
+    # configuration helpers. Operational scoring/publication modules are separate.
+    model_sources=forecast['runtime_manifest']
     return dict(model_rule=storage['model_rule'],model_sources_sha256=identity(model_sources),system_sha256=inputs['system_source']['sha256'],
         horizon_sha256=inputs['horizon_source']['sha256'],topology_sha256=inputs['topology_source']['sha256'],bank_epoch=bank,
         nominal_bank_kwh=storage['nominal_bank_kwh'],source_epoch=source)
+
+
+def matched_reference(plan):
+    """Rederive the original reference independently of saved plan outputs."""
+    saved=plan['output']['projections'].get('energy_persistence')
+    if saved is None:return None
+    inputs=plan['inputs'];snapshot=restore_snapshot(inputs['snapshot'],inputs['source_contexts'])
+    original=project_persistence(snapshot=snapshot,metric_source=inputs.get('energy_persistence_source'),
+        horizon_hours=inputs['config']['horizon_hours'],now=instant(inputs['now']))
+    if canonical(saved)!=canonical(original):raise ValueError('original constant-power reference differs')
+    return original if original['status']=='projected_nominal_baseline' and original['horizon_hours']==24 else None
 
 
 def _cohort(value):
@@ -62,7 +75,7 @@ def seal_energy_outcomes(*,forecast_receipt,plan_receipt,endpoint_sources,assess
     issue=instant(forecast['output']['array_pv']['origin']);decision=instant(forecast['inputs']['assessed_at'])
     if not issue<=decision<=issue+timedelta(seconds=120) or assessed<decision:raise ValueError('original scenario issue or assessment differs')
     if not isinstance(endpoint_sources,dict) or not set(endpoint_sources)<={str(h) for h in HORIZONS}:raise ValueError('closed mature endpoint map required')
-    sources=loads(canonical(endpoint_sources));storage=forecast['output']['nominal_storage'];baseline=plan_receipt['output']['projections'].get('energy_persistence')
+    sources=loads(canonical(endpoint_sources));storage=forecast['output']['nominal_storage'];baseline=matched_reference(plan_receipt)
     cohort=cohort_for(forecast,plan_receipt);available=cohort is not None and baseline is not None and baseline['status']=='projected_nominal_baseline'
     if available and (baseline['origin']!=issue.isoformat() or baseline['initial_soc_pct']!=storage['initial_soc_pct'] or baseline['nominal_bank_kwh']!=storage['nominal_bank_kwh']):raise ValueError('matched reference origin differs')
     predictions={}
