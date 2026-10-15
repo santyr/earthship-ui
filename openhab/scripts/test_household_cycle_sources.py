@@ -78,7 +78,7 @@ def collector_fixture(tmp_path,monkeypatch):
     owner_calls=[]
     def owner(item,*,remaining):
         assert 0<remaining()<=10;owner_calls.append(item);return raw[item]
-    collector=module.CycleSourceCollector(token_file=token,openhab_base='http://127.0.0.1:8080/rest',code_revision='c'*40,clock=lambda:NOW,owner_reader=owner,rule_reader=lambda **kw:'[]')
+    collector=module.CycleSourceCollector(token_file=token,openhab_base='http://127.0.0.1:8080/rest',code_revision='c'*40,clock=lambda:NOW,owner_reader=owner,rule_reader=lambda **kw:'[]',policy_reader=lambda **kw:None)
     return collector,raw,owner_calls,connections,NOW
 
 def test_real_collector_compiles_exact_sources_with_unknown_native_fields(tmp_path,monkeypatch):

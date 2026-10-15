@@ -52,7 +52,7 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
 
 class CycleSourceCollector:
     """Gather original fixed receipts, never a supplied scalar or action."""
-    def __init__(self,*,token_file,openhab_base,code_revision,clock=lambda:datetime.now(timezone.utc),owner_reader=None,rule_reader=None):
+    def __init__(self,*,token_file,openhab_base,code_revision,clock=lambda:datetime.now(timezone.utc),owner_reader=None,rule_reader=None,policy_reader=None):
         from thermal_model.capture_readers import BASES
         from weather_temperature_config import load_temperature_receiver_configuration
         from household_pipeline import pipeline_runtime_manifest
@@ -73,6 +73,7 @@ class CycleSourceCollector:
         self.opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),_NoRedirect())
         self.owner_reader=owner_reader or self._owner_http
         self.rule_reader=rule_reader or self._rules_http
+        self.policy_reader=policy_reader or self._policy_http
         self.runtime_reader=lambda:pipeline_runtime_manifest(expanded=True,configured=True,measured=True)
         self.runtime=self.runtime_reader()
         self.registry_paths={'managed':ROOT/'openhab/managed-resources.json','ownership':ROOT/'openhab/file-config/ownership.json'}
@@ -105,6 +106,18 @@ class CycleSourceCollector:
         from household.owner_sources import ENDPOINT,MAX_RAW_BYTES
         with borrow_observation_timer():
             return self._get_original(ENDPOINT,maximum=MAX_RAW_BYTES,remaining=remaining).decode('utf-8')
+
+    def _policy_http(self,*,remaining):
+        from household_cycle_deadline import borrow_observation_timer
+        from household.owner_policy import RULE_ENDPOINT,STATUS_ENDPOINT
+        result=dict(schema='earthship-greywater-policy-source/v1')
+        with borrow_observation_timer():
+            for name,endpoint,maximum in (('rule_before',RULE_ENDPOINT,65536),('status',STATUS_ENDPOINT,2048),('rule_after',RULE_ENDPOINT,65536)):
+                remaining();requested=utc(self.clock())
+                raw=self._get_original(endpoint,maximum=maximum,remaining=remaining).decode('utf-8')
+                result[name]=dict(endpoint=endpoint,raw=raw,sha256=sha256(raw.encode()).hexdigest(),
+                    requested_at=requested.isoformat(),received_at=utc(self.clock()).isoformat())
+        return result
 
     def _measured_http(self,**request):
         from household_cycle_deadline import borrow_observation_timer
@@ -224,10 +237,19 @@ class CycleSourceCollector:
         except (OSError,ValueError,KeyError,TypeError,UnicodeError,RecursionError,HTTPException):
             owner_source=None
         check()
+        from household.owner_policy import observe_policy
+        policy_source=None
+        try:
+            policy_source=self.policy_reader(remaining=check)
+            registry=CapabilityRegistry(canonical({key:value for key,value in receipt['registry'].items() if key!='registry_id'}))
+            observe_policy(policy_source,registry=registry,as_of=utc(self.clock()))
+        except (OSError,ValueError,KeyError,TypeError,UnicodeError,RecursionError,HTTPException):
+            policy_source=None
+        check()
         self.verify_unchanged(check);finished=utc(self.clock())
         if not started<=finished<issue:raise ValueError('source collection clock changed')
-        result=dict(schema='earthship-household-cycle-sources/v3',issue=issue.isoformat(),captured_at=finished.isoformat(),
-            power_receipt=receipt,energy_configuration=configuration.to_dict(),measured_weather=measured.to_dict(),daily_energy_source=daily_source,owner_source=owner_source,
+        result=dict(schema='earthship-household-cycle-sources/v4',issue=issue.isoformat(),captured_at=finished.isoformat(),
+            power_receipt=receipt,energy_configuration=configuration.to_dict(),measured_weather=measured.to_dict(),daily_energy_source=daily_source,owner_source=owner_source,policy_source=policy_source,
             owner_bindings=dict(before=before,after=after),automatic_actuation=False)
         if len(canonical(result))>1048576:raise ValueError('bounded cycle source originals required')
         check();return result

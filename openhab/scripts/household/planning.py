@@ -97,7 +97,7 @@ def plan(*,snapshot,registry,candidates,coordination,utilities,now,reserve_soc,h
     if not isinstance(candidates,(tuple,list)) or len(candidates)>MAX_CANDIDATES or any(not isinstance(item,HouseholdIntent) for item in candidates):
         raise ValueError('bounded typed candidates required')
     if type(reserve_soc) not in (int,float) or not math.isfinite(reserve_soc) or not MIN_RESERVE_SOC<=reserve_soc<=100:raise ValueError('bounded explicit reserve required')
-    if isinstance(coordination,dict) and coordination.get('schema')=='earthship-shadow-coordination/v2':
+    if isinstance(coordination,dict) and coordination.get('schema') in ('earthship-shadow-coordination/v2','earthship-shadow-coordination/v3'):
         from .owner_sources import validate_coordination
         coordination=validate_coordination(coordination,snapshot_id=snapshot.snapshot_id,registry=registry,
             horizon_hours=horizon_hours,as_of=instant(snap['as_of']))

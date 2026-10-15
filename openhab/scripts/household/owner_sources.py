@@ -55,9 +55,30 @@ def coordination_from_rules(source,*,snapshot_id,registry,horizon_hours,as_of):
     return loads(canonical(result))
 
 
+def coordination_from_policy(source,policy_source,*,snapshot_id,registry,horizon_hours,as_of):
+    from .owner_policy import observe_policy,BLOCKERS,OWNER
+    result=coordination_from_rules(source,snapshot_id=snapshot_id,registry=registry,horizon_hours=horizon_hours,as_of=as_of)
+    observation=observe_policy(policy_source,registry=registry,as_of=as_of)
+    result.update(schema='earthship-shadow-coordination/v3',policy_source=policy_source,policy_observations={})
+    if observation is not None:
+        result['policy_observations'][OWNER]=observation
+        gate=BLOCKERS.get(observation['reason'])
+        if gate is not None:
+            raw=canonical(dict(schema='earthship-shadow-coordination-fact/v1',kind=gate,owner=OWNER,value=False,
+                snapshotId=snapshot_id,horizonHours=horizon_hours,receivedAt=observation['evaluated_at'],
+                validUntil=observation['valid_until'],scope='declared_shadow_bounds')).decode()
+            result['facts'].setdefault(OWNER,{})[gate]=dict(raw=raw,sha256=sha256(raw.encode()).hexdigest())
+    return loads(canonical(result))
+
+
 def validate_coordination(value,*,snapshot_id,registry,horizon_hours,as_of):
-    if not isinstance(value,dict) or set(value)!={'schema','snapshotId','horizonHours','baseline_soc_floor','facts','owner_source'}:
+    policy=isinstance(value,dict) and value.get('schema')=='earthship-shadow-coordination/v3'
+    fields={'schema','snapshotId','horizonHours','baseline_soc_floor','facts','owner_source'}
+    if policy:fields.update(('policy_source','policy_observations'))
+    if not isinstance(value,dict) or set(value)!=fields:
         raise ValueError('closed source-bound coordination required')
-    expected=coordination_from_rules(value['owner_source'],snapshot_id=snapshot_id,registry=registry,horizon_hours=horizon_hours,as_of=as_of)
+    kwargs=dict(snapshot_id=snapshot_id,registry=registry,horizon_hours=horizon_hours,as_of=as_of)
+    expected=(coordination_from_policy(value['owner_source'],value['policy_source'],**kwargs) if policy else
+        coordination_from_rules(value['owner_source'],**kwargs))
     if canonical(value)!=canonical(expected):raise ValueError('owner facts differ from original rule observation')
-    return {**{key:val for key,val in expected.items() if key!='owner_source'},'schema':'earthship-shadow-coordination/v1'}
+    return {**{key:val for key,val in expected.items() if key not in ('owner_source','policy_source','policy_observations')},'schema':'earthship-shadow-coordination/v1'}

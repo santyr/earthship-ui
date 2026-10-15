@@ -107,11 +107,13 @@ def derive_cycle(*,originals,capture,receipts,thermal,weather,parameter_record,r
         raise ValueError('explicit original cycle capture version required')
     validate_delivery(capture,receipts)
     fields={'schema','issue','captured_at','power_receipt','energy_configuration','measured_weather','owner_bindings','automatic_actuation'}
-    daily_source_version=isinstance(originals,dict) and originals.get('schema') in ('earthship-household-cycle-sources/v2','earthship-household-cycle-sources/v3')
+    daily_source_version=isinstance(originals,dict) and originals.get('schema') in ('earthship-household-cycle-sources/v2','earthship-household-cycle-sources/v3','earthship-household-cycle-sources/v4')
     if daily_source_version:fields.add('daily_energy_source')
-    owner_source_version=isinstance(originals,dict) and originals.get('schema')=='earthship-household-cycle-sources/v3'
+    owner_source_version=isinstance(originals,dict) and originals.get('schema') in ('earthship-household-cycle-sources/v3','earthship-household-cycle-sources/v4')
     if owner_source_version:fields.add('owner_source')
-    if not isinstance(originals,dict) or set(originals)!=fields or originals['schema'] not in ('earthship-household-cycle-sources/v1','earthship-household-cycle-sources/v2','earthship-household-cycle-sources/v3') or originals['automatic_actuation'] is not False:
+    policy_source_version=isinstance(originals,dict) and originals.get('schema')=='earthship-household-cycle-sources/v4'
+    if policy_source_version:fields.add('policy_source')
+    if not isinstance(originals,dict) or set(originals)!=fields or originals['schema'] not in ('earthship-household-cycle-sources/v1','earthship-household-cycle-sources/v2','earthship-household-cycle-sources/v3','earthship-household-cycle-sources/v4') or originals['automatic_actuation'] is not False:
         raise ValueError('closed original cycle sources required')
     issue=instant(capture['issued_at']);now=utc(now)
     if instant(originals['issue'])!=issue or instant(originals['captured_at'])>issue or now<instant(capture['published_at']):
@@ -158,6 +160,13 @@ def derive_cycle(*,originals,capture,receipts,thermal,weather,parameter_record,r
             raise ValueError('owner observation arrived after frozen source collection')
         coordination=coordination_from_rules(owner_source,snapshot_id=snapshot.snapshot_id,registry=registry,
             horizon_hours=preferences['horizon_hours'],as_of=issue)
+    if policy_source_version:
+        from household.owner_sources import coordination_from_policy
+        policy_source=originals['policy_source']
+        if policy_source is not None and instant(policy_source['rule_after']['received_at'])>instant(originals['captured_at']):
+            raise ValueError('policy observation arrived after frozen source collection')
+        coordination=coordination_from_policy(originals['owner_source'],policy_source,snapshot_id=snapshot.snapshot_id,
+            registry=registry,horizon_hours=preferences['horizon_hours'],as_of=issue)
     record=seal_pipeline(snapshot=snapshot,registry=registry,energy_inputs=energy,thermal_inputs=thermal,
         thermal_runtime=thermal.to_dict()['executing_runtime'],coordination=coordination,config=preferences,now=now,runtime_manifest=runtime_manifest)
     if record['output']['projections']['thermal']['output']!=capture['output']:
