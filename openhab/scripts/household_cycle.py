@@ -107,17 +107,19 @@ def derive_cycle(*,originals,capture,receipts,thermal,weather,parameter_record,r
         raise ValueError('explicit original cycle capture version required')
     validate_delivery(capture,receipts)
     fields={'schema','issue','captured_at','power_receipt','energy_configuration','measured_weather','owner_bindings','automatic_actuation'}
-    daily_source_version=isinstance(originals,dict) and originals.get('schema') in ('earthship-household-cycle-sources/v2','earthship-household-cycle-sources/v3','earthship-household-cycle-sources/v4','earthship-household-cycle-sources/v5','earthship-household-cycle-sources/v6')
+    daily_source_version=isinstance(originals,dict) and originals.get('schema') in ('earthship-household-cycle-sources/v2','earthship-household-cycle-sources/v3','earthship-household-cycle-sources/v4','earthship-household-cycle-sources/v5','earthship-household-cycle-sources/v6','earthship-household-cycle-sources/v7')
     if daily_source_version:fields.add('daily_energy_source')
-    owner_source_version=isinstance(originals,dict) and originals.get('schema') in ('earthship-household-cycle-sources/v3','earthship-household-cycle-sources/v4','earthship-household-cycle-sources/v5','earthship-household-cycle-sources/v6')
+    owner_source_version=isinstance(originals,dict) and originals.get('schema') in ('earthship-household-cycle-sources/v3','earthship-household-cycle-sources/v4','earthship-household-cycle-sources/v5','earthship-household-cycle-sources/v6','earthship-household-cycle-sources/v7')
     if owner_source_version:fields.add('owner_source')
-    policy_source_version=isinstance(originals,dict) and originals.get('schema') in ('earthship-household-cycle-sources/v4','earthship-household-cycle-sources/v5','earthship-household-cycle-sources/v6')
+    policy_source_version=isinstance(originals,dict) and originals.get('schema') in ('earthship-household-cycle-sources/v4','earthship-household-cycle-sources/v5','earthship-household-cycle-sources/v6','earthship-household-cycle-sources/v7')
     if policy_source_version:fields.add('policy_source')
-    persistence_version=isinstance(originals,dict) and originals.get('schema') in ('earthship-household-cycle-sources/v5','earthship-household-cycle-sources/v6')
-    flow_version=isinstance(originals,dict) and originals.get('schema')=='earthship-household-cycle-sources/v6'
+    persistence_version=isinstance(originals,dict) and originals.get('schema') in ('earthship-household-cycle-sources/v5','earthship-household-cycle-sources/v6','earthship-household-cycle-sources/v7')
+    flow_version=isinstance(originals,dict) and originals.get('schema') in ('earthship-household-cycle-sources/v6','earthship-household-cycle-sources/v7')
+    pv_version=isinstance(originals,dict) and originals.get('schema')=='earthship-household-cycle-sources/v7'
+    if pv_version:fields.update(('pv_system_source','solar_horizon_source'))
     if flow_version:fields.add('load_topology_source')
     if persistence_version:fields.add('energy_persistence_source')
-    if not isinstance(originals,dict) or set(originals)!=fields or originals['schema'] not in ('earthship-household-cycle-sources/v1','earthship-household-cycle-sources/v2','earthship-household-cycle-sources/v3','earthship-household-cycle-sources/v4','earthship-household-cycle-sources/v5','earthship-household-cycle-sources/v6') or originals['automatic_actuation'] is not False:
+    if not isinstance(originals,dict) or set(originals)!=fields or originals['schema'] not in ('earthship-household-cycle-sources/v1','earthship-household-cycle-sources/v2','earthship-household-cycle-sources/v3','earthship-household-cycle-sources/v4','earthship-household-cycle-sources/v5','earthship-household-cycle-sources/v6','earthship-household-cycle-sources/v7') or originals['automatic_actuation'] is not False:
         raise ValueError('closed original cycle sources required')
     issue=instant(capture['issued_at']);now=utc(now)
     if instant(originals['issue'])!=issue or instant(originals['captured_at'])>issue or now<instant(capture['published_at']):
@@ -175,6 +177,11 @@ def derive_cycle(*,originals,capture,receipts,thermal,weather,parameter_record,r
         source=originals['load_topology_source']
         if source is not None and instant(source['available_at'])>instant(originals['captured_at']):
             raise ValueError('load topology arrived after frozen source collection')
+    if pv_version:
+        for key in ('pv_system_source','solar_horizon_source'):
+            source=originals[key]
+            if source is not None and instant(source['available_at'])>instant(originals['captured_at']):
+                raise ValueError('PV or horizon source arrived after frozen collection')
     persistence={}
     if persistence_version:
         source=originals['energy_persistence_source']
@@ -329,13 +336,21 @@ def complete_cycle(*,publication,collection,parameter_record,runtime_manifest,co
     _retain_original(evidence_directory,collection['originals'],'.household-sources-v1.json',MAX_SOURCE_BYTES)
     suffix='.household-model-plan-v6.json' if record.get('schema')=='earthship-household-model-plan-receipt/v6' else '.household-model-plan-v5.json'
     receipt=_retain_original(evidence_directory,record,suffix,PIPELINE_BYTES)
-    if collection['originals'].get('schema')=='earthship-household-cycle-sources/v6':
+    if collection['originals'].get('schema') in ('earthship-household-cycle-sources/v6','earthship-household-cycle-sources/v7'):
         from household_power_flows import seal_flow_receipt,flow_runtime_manifest,MAX_BYTES as FLOW_BYTES
         unchanged()
         flow=seal_flow_receipt(plan_receipt=record,topology_source=collection['originals']['load_topology_source'],
             now=clock(),runtime_manifest=flow_runtime_manifest())
         unchanged()
         _retain_original(evidence_directory,flow,'.household-power-flow-v1.json',FLOW_BYTES)
+    if collection['originals'].get('schema')=='earthship-household-cycle-sources/v7':
+        from household_energy_forecast import seal_energy_forecast,forecast_runtime_manifest,MAX_BYTES as ENERGY_BYTES
+        unchanged()
+        energy=seal_energy_forecast(plan_receipt=record,system_source=collection['originals']['pv_system_source'],
+            horizon_source=collection['originals']['solar_horizon_source'],topology_source=collection['originals']['load_topology_source'],
+            now=clock(),runtime_manifest=forecast_runtime_manifest())
+        unchanged()
+        _retain_original(evidence_directory,energy,'.household-energy-forecast-v1.json',ENERGY_BYTES)
     unchanged()
     return materialize(receipt,observation_cache,clock=clock,publication_guard=unchanged)
 

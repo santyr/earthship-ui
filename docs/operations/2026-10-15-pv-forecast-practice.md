@@ -56,3 +56,38 @@ The deployed flow model separates source-qualified household AC consumption, net
 Next, implement an hourly provisional array model using the shared retained forecast/geometry and source-bound array specification. Calculate potential generation separately from captured generation, load and storage; retain every issued trajectory. Use documented controller/battery limits only when available, preserving uncertainty rather than inventing a fully closed balance. Treat verified curtailed production as a censored potential-generation target; unknown limitation status stays unknown. This censoring decision is our engineering inference from the distinction between available and captured power, not a quoted standard requirement.
 
 Evaluate chronologically by horizon and by independently observed operating conditions, including recovery days. Use only information available before issue; preserve the existing forecast as a reference and add a clearly named persistence reference where original source support permits. Report counts, missingness, bias, MAE/RMSE and reference skill. Introduce calibrated uncertainty as enough independent days accumulate. Never learn the physical solar gain from unclassified curtailed output as if it measured all available solar. Any revision of the old gain bound/calibration gate needs this diagnosis and source evaluation, rather than a forced 8.5 kWh forecast. Existing actuator ownership and host resource coordination remain intact.
+
+## Provisional implementation checkpoint
+
+The current development batch adds a dependency-free scalar array model checked
+against 27 independent pvlib 0.16.1 reference cases. It integrates the retained
+hour-ending radiation means over partial UTC hours and the original native
+five-minute geometry. Its response uses Erbs decomposition, isotropic
+transposition, a Faiman temperature proxy and PVWatts-style DC output with
+explicit provisional temperature/loss assumptions. Exact module coefficients
+and losses remain unmeasured.
+
+A source-bound PVGIS skyline now masks direct beam and its ground reflection,
+while retaining diffuse sky irradiance. Its site fingerprint must match the
+original native geometry. The model labels the map unvalidated and leaves
+nearby obstructions and diffuse sky-view correction unmodeled. Missing horizon
+configuration produces a clearly labeled unobstructed reference; supplied
+unsupported or mismatched configuration withholds the new projection. It does
+not replace native Astro events or the existing thermal model's forcing.
+
+The separate `household_energy_forecast.py` receipt retains PV potential and a
+conditional nominal-storage scenario against an external unchanged plan.
+Storage holds the original current household AC load constant, uses fresh
+source-qualified initial SoC and declared nominal capacity, and exposes its
+assumed efficiencies, zero overhead assumption, unaccepted PV and unserved
+energy. It has no measured charge-rate/taper limits, learned load trajectory,
+usable-energy qualification or actuation authority. This scenario is a baseline
+for later comparisons, not a calibrated captured-PV forecast.
+
+Cycle source v7 retains the original array and horizon files; old source and
+plan contracts remain supported. Neither new model code nor configuration is
+inside the original fitted thermal closure. The new receipt explicitly binds
+its executing sources and replays without readers or providers. Scheduled
+collection/deployment and actual production replay are still pending at this
+checkpoint. No manually triggered fitting or production inference probe is
+part of the verification.

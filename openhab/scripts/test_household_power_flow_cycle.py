@@ -15,7 +15,7 @@ def test_collector_retains_original_topology_and_refuses_midcycle_replacement(tm
     source=declaration(NOW);raw=source['raw']
     collector,_,_,_,now=collector_fixture(tmp_path,monkeypatch,load_topology_raw=raw)
     result=collector(issue=now+timedelta(seconds=8),remaining=lambda:6.,guard=lambda:None)
-    assert result['schema']=='earthship-household-cycle-sources/v6'
+    assert result['schema']=='earthship-household-cycle-sources/v7'
     assert result['load_topology_source']['raw']==raw
     assert result['load_topology_source']['sha256']==sha256(raw.encode()).hexdigest()
     reader=collector.owner_reader

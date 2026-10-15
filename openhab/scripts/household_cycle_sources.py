@@ -39,6 +39,8 @@ DAILY_STATE_PATH=Path('/home/sat/.local/state/forecast-intel/state.json')
 DAILY_RECEIPT_ITEM='Forecast_Prediction_Receipt_JSON'
 METRIC_PATH=Path('/home/sat/Solar_PV/analytics/config/metric-sources.json')
 LOAD_TOPOLOGY_PATH=Path(__file__).resolve().parents[2]/'openhab/household-energy-topology.json'
+PV_SYSTEM_PATH=Path(__file__).resolve().parents[2]/'openhab/household-pv-system.json'
+SOLAR_HORIZON_PATH=Path(__file__).resolve().parents[2]/'openhab/household-solar-horizon.json'
 
 PRIVATE_PATHS={
     'energy_db':Path('/home/sat/.config/hex/energy-power-reader.jdbc'),
@@ -95,6 +97,18 @@ class CycleSourceCollector:
                 self.load_topology_source=prepare_topology_source(original[0].encode('utf-8'),available_at=utc(self.clock()))
         except (OSError,ValueError,UnicodeError,RecursionError):
             self.load_topology_source=None
+        from household_pv_model import prepare_system_source
+        from household_solar_horizon import prepare_horizon_source,MAX_BYTES as HORIZON_BYTES
+        self.pv_system_source=self.solar_horizon_source=None
+        for attribute,path,maximum,prepare in (
+            ('pv_system_source',PV_SYSTEM_PATH,8192,prepare_system_source),
+            ('solar_horizon_source',SOLAR_HORIZON_PATH,HORIZON_BYTES,prepare_horizon_source)):
+            try:
+                original=_owned_text(path,maximum,lambda:6.)
+                self.policy_bindings.append((path,maximum,original))
+                if original[0] is not None:setattr(self,attribute,prepare(original[0].encode('utf-8'),available_at=utc(self.clock())))
+            except (OSError,ValueError,UnicodeError,RecursionError):
+                setattr(self,attribute,None)
         # Optional original sign/unit declaration. Malformed configuration
         # withholds the new baseline while preserving the other domains.
         from household.energy_persistence import METRIC_MAX_BYTES,METRIC_IDENTITY
@@ -275,8 +289,9 @@ class CycleSourceCollector:
         check()
         self.verify_unchanged(check);finished=utc(self.clock())
         if not started<=finished<issue:raise ValueError('source collection clock changed')
-        result=dict(schema='earthship-household-cycle-sources/v6',issue=issue.isoformat(),captured_at=finished.isoformat(),
+        result=dict(schema='earthship-household-cycle-sources/v7',issue=issue.isoformat(),captured_at=finished.isoformat(),
             power_receipt=receipt,energy_configuration=configuration.to_dict(),measured_weather=measured.to_dict(),daily_energy_source=daily_source,owner_source=owner_source,policy_source=policy_source,energy_persistence_source=self.metric_source,load_topology_source=self.load_topology_source,
+            pv_system_source=self.pv_system_source,solar_horizon_source=self.solar_horizon_source,
             owner_bindings=dict(before=before,after=after),automatic_actuation=False)
         if len(canonical(result))>1048576:raise ValueError('bounded cycle source originals required')
         check();return result
