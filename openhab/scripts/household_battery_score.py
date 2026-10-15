@@ -29,6 +29,12 @@ def read_plan(path):
     return plan,(raw,metadata)
 
 
+def replay_compatible(plan,*,runtime):
+    try:original_plan_runtime(plan,actual=runtime)
+    except ValueError:return False
+    return True
+
+
 def score_origin(path,*,previous,reader,clock,guard,runtime,thermal_runtime=None):
     guard();plan,original=read_plan(path);expected=original_plan_runtime(plan,actual=runtime)
     thermal=thermal_runtime if thermal_runtime is not None else thermal_execution_runtime(Path(__file__).resolve().parent,plan['inputs']['thermal_inputs'])
@@ -43,7 +49,10 @@ def score_origin(path,*,previous,reader,clock,guard,runtime,thermal_runtime=None
         for hours in HORIZONS:
             target=issue+timedelta(hours=hours);key=str(hours)
             if hours<=plan['inputs']['config']['horizon_hours'] and now>=target+timedelta(minutes=5) and key not in sources:
-                guard();sources[key]=reader(target_at=target);guard()
+                guard()
+                try:sources[key]=reader(target_at=target)
+                except EndpointDeferred:break
+                guard()
     guard();result=seal_battery_outcomes(plan_receipt=plan,endpoint_sources=sources,assessed_at=clock(),plan_runtime_manifest=expected,
         outcome_runtime_manifest=runtime,thermal_runtime=thermal)
     if _private_file(Path(path),2097152)!=original:raise ValueError('battery origin changed')
@@ -134,19 +143,21 @@ def run(*,stage,historical,guard,clock=lambda:datetime.now(timezone.utc),monoton
     for hour,ref in index['samples'].items():
         issued=instant(hour)
         if issued!=issued.replace(minute=0,second=0,microsecond=0) or issued>now:raise ValueError('original hourly sample key required')
+        if issued<now-timedelta(days=7):continue
         if not isinstance(ref,dict) or set(ref)!={'plan_path','plan_sha256','plan_receipt_sha256','issued_at','cohort_id','score_path','retry_after'}:raise ValueError('closed original battery reference required')
         path=Path(ref['plan_path']);digest(ref['plan_sha256']);digest(ref['plan_receipt_sha256']);digest(ref['cohort_id'])
         if path.parent not in allowed or path.name!=ref['plan_sha256']+SUFFIX:raise ValueError('explicit retained battery origin required')
         if instant(ref['issued_at']).replace(minute=0,second=0,microsecond=0)!=issued:raise ValueError('hourly sample binding differs')
         if ref['score_path'] is not None and Path(ref['score_path']).parent!=store:raise ValueError('owned compact score required')
         if ref['retry_after'] is not None and not instant(ref['issued_at'])<=instant(ref['retry_after'])<=now+timedelta(minutes=30):raise ValueError('bounded endpoint retry required')
-        if issued>=now-timedelta(days=7):samples[hour]=ref
+        samples[hour]=ref
     # Add one previously unsampled original, oldest first. Existing choices never change.
     for path in paths:
         check();hint=datetime.fromtimestamp(path.stat().st_mtime,timezone.utc).replace(minute=0,second=0,microsecond=0).isoformat()
         if hint in samples:continue
         plan,original=read_plan(path);issued=instant(plan['inputs']['snapshot']['as_of']);hour=issued.replace(minute=0,second=0,microsecond=0).isoformat()
         if hour in samples or issued>now or issued<now-timedelta(days=7):continue
+        if not replay_compatible(plan,runtime=runtime):continue
         value=plan['output']['projections']['energy_persistence']
         if value['status']!='projected_nominal_baseline':continue
         candidate_cohort=_cohort(plan,value)
@@ -171,7 +182,9 @@ def run(*,stage,historical,guard,clock=lambda:datetime.now(timezone.utc),monoton
             if ref['retry_after'] is not None:at=max(at,instant(ref['retry_after']))
             pending.append(at)
             if at<=now:mature.append(at)
-        if mature:due.append((min(mature),hour,ref,previous))
+        if mature:
+            plan,_=read_plan(Path(ref['plan_path']));check()
+            if replay_compatible(plan,runtime=runtime):due.append((min(mature),hour,ref,previous))
     if due:
         _,hour,ref,previous=min(due)
         if reader is None:
@@ -192,7 +205,8 @@ def run(*,stage,historical,guard,clock=lambda:datetime.now(timezone.utc),monoton
             ref['retry_after']=(utc(clock())+timedelta(minutes=30)).isoformat()
         else:
             if completed['output']['cohort_id']!=cohort_id:raise ValueError('sampled current battery cohort differs')
-            ref['score_path']=str(retain(store,completed,guard=check));ref['retry_after']=None
+            ref['score_path']=str(retain(store,completed,guard=check))
+            ref['retry_after']=(utc(clock())+timedelta(minutes=30)).isoformat() if any(r['status']=='pending_source' for r in completed['output']['by_horizon'].values()) else None
             scores=[v for v in scores if v['inputs']['plan_receipt_sha256']!=ref['plan_receipt_sha256']]+[completed]
         pending=[]
         for r in samples.values():

@@ -96,3 +96,61 @@ def test_transient_endpoint_failure_is_deferred_without_repeatedly_blocking_norm
     assert result['status']=='battery_performance_refreshed' and result['count']==0
     again=api().run(stage=stage,historical=[],guard=lambda:None,clock=lambda:requested+timedelta(minutes=1),monotonic=lambda:0.,deadline=20.,state_root=state,reader=lambda **kw:pytest.fail('failed origin retried before backoff'))
     assert again['count']==0
+
+
+def scheduler_case(tmp_path,monkeypatch):
+    import os
+    plan,runtime,thermal,target,requested,rows,path=origin(tmp_path,monkeypatch)
+    stage=tmp_path/'stage';stage.mkdir(mode=0o700);evidence=stage/'evidence';evidence.mkdir(mode=0o700)
+    retained=evidence/path.name;path.rename(retained);issued=target-timedelta(hours=1)
+    os.utime(retained,(issued.timestamp()+14,issued.timestamp()+14));state=tmp_path/'state';state.mkdir(mode=0o700)
+    monkeypatch.setattr(api(),'battery_runtime_manifest',lambda:runtime)
+    monkeypatch.setattr(api(),'thermal_execution_runtime',lambda *args:thermal.to_dict()['executing_runtime'])
+    kwargs=dict(stage=stage,historical=[],guard=lambda:None,clock=lambda:requested+timedelta(seconds=2),monotonic=lambda:0.,deadline=20.,state_root=state,reader=lambda **kw:packet(target,requested,rows))
+    return kwargs,plan,runtime,thermal,target,requested,rows,state,issued
+
+
+def test_incompatible_historical_origin_cannot_starve_current_compatible_sample(tmp_path,monkeypatch):
+    import os
+    from household.codec import identity
+    kw,plan,_,_,_,_,_,state,issued=scheduler_case(tmp_path,monkeypatch)
+    archived=tmp_path/'archived';archived.mkdir(mode=0o700);evidence=archived/'evidence';evidence.mkdir(mode=0o700)
+    old=deepcopy(plan);old['runtime_manifest']['openhab/scripts/household/capture.py']='f'*64
+    old['receipt_sha256']=identity({k:v for k,v in old.items() if k!='receipt_sha256'})
+    raw=canonical(old);path=evidence/(sha256(raw).hexdigest()+api().SUFFIX);path.write_bytes(raw);path.chmod(0o600)
+    os.utime(path,(issued.timestamp()-3600,issued.timestamp()-3600))
+    kw['historical']=[{'stage':str(archived),'deployment_sha256':'a'*64}]
+    result=api().run(**kw)
+    assert result['count']==1
+    ref=next(iter(loads((state/'battery-outcomes/samples.json').read_bytes())['samples'].values()))
+    assert ref['plan_receipt_sha256']==plan['receipt_sha256'] and ref['plan_path'].startswith(str(kw['stage']))
+
+
+def test_expired_hour_is_pruned_before_removed_stage_membership_validation(tmp_path,monkeypatch):
+    kw,_,_,_,_,_,_,state,issued=scheduler_case(tmp_path,monkeypatch)
+    store=state/'battery-outcomes';store.mkdir(mode=0o700)
+    hour=(issued-timedelta(days=8)).replace(minute=0,second=0,microsecond=0).isoformat()
+    old=dict(plan_path=str(tmp_path/'removed/evidence'/('0'*64+api().SUFFIX)),plan_sha256='0'*64,plan_receipt_sha256='1'*64,issued_at=hour,cohort_id='2'*64,score_path=None,retry_after=None)
+    index=store/'samples.json';index.write_bytes(canonical(dict(schema=api().INDEX_SCHEMA,samples={hour:old})));index.chmod(0o600)
+    result=api().run(**kw)
+    assert result['count']==1 and hour not in loads(index.read_bytes())['samples']
+
+
+def test_later_horizon_failure_retains_earlier_success_and_retries_only_pending_target(tmp_path,monkeypatch):
+    plan,runtime,thermal,target,_,rows,path=origin(tmp_path,monkeypatch)
+    requested=target+timedelta(hours=5,minutes=5);calls=[]
+    def first(**kw):
+        calls.append(kw['target_at'])
+        if kw['target_at']!=target:raise api().EndpointDeferred()
+        return packet(target,requested,rows)
+    score=api().score_origin(path,previous=None,reader=first,clock=lambda:requested+timedelta(seconds=2),guard=lambda:None,runtime=runtime,thermal_runtime=thermal.to_dict()['executing_runtime'])
+    assert score['output']['by_horizon']['1']['status']=='scored'
+    assert score['output']['by_horizon']['6']['status']=='pending_source'
+    report=importlib.import_module('household.battery_outcomes').build_performance([score],cohort=score['output']['cohort'],generated_at=requested+timedelta(seconds=3),next_mature_at=None)
+    assert report['by_horizon']['1']['count']==1 and report['by_horizon']['6']['attempted_count']==0
+    def second(**kw):
+        assert kw['target_at']==target+timedelta(hours=5)
+        return packet(kw['target_at'],requested+timedelta(minutes=31),[(at+timedelta(hours=5),raw) for at,raw in rows])
+    again=api().score_origin(path,previous=score,reader=second,clock=lambda:requested+timedelta(minutes=31,seconds=2),guard=lambda:None,runtime=runtime,thermal_runtime=thermal.to_dict()['executing_runtime'])
+    assert again['inputs']['endpoint_sources']['1']==score['inputs']['endpoint_sources']['1']
+    assert calls==[target,target+timedelta(hours=5)]

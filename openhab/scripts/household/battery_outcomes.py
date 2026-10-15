@@ -92,7 +92,7 @@ def seal_battery_outcomes(*,plan_receipt,endpoint_sources,assessed_at,plan_runti
             row.update(status='baseline_unavailable',reason=baseline['reason'])
         else:
             actual,reason=endpoint_value(source,target=target,assessed=assessed,source_epoch=cohort['source_epoch'])
-            row.update(status='source_unavailable',reason=reason)
+            row.update(status='pending_source' if source is None else 'source_unavailable',reason=reason)
             if actual is not None:
                 point=baseline['trajectory'][hours]
                 if instant(point['at'])!=target:raise ValueError('original battery target differs')
@@ -146,6 +146,8 @@ def _score_record(record):
         if row['status']=='not_mature':
             if mature or row['reason'] is not None or key in inputs['endpoint_sources']:raise ValueError('immature endpoint differs')
         elif not mature:raise ValueError('terminal endpoint precedes maturity')
+        elif row['status']=='pending_source':
+            if cohort is None or row['reason']!='endpoint_source_required' or key in inputs['endpoint_sources']:raise ValueError('pending acquisition cannot supply original evidence')
         elif row['status']=='baseline_unavailable':
             if cohort is not None or not isinstance(row['reason'],str) or re.fullmatch('[a-z][a-z0-9_]{0,79}',row['reason']) is None:raise ValueError('unavailable baseline reason required')
         elif row['status'] in ('scored','source_unavailable') and cohort is not None:
@@ -198,7 +200,7 @@ def build_performance(scores,*,cohort,generated_at,next_mature_at):
             hours=int(key)
             if hours not in HORIZONS or row['horizon_hours']!=hours or instant(row['target_at'])!=issued+timedelta(hours=hours):
                 raise ValueError('bounded original report target required')
-            if row['status']=='not_mature':continue
+            if row['status'] in ('not_mature','pending_source'):continue
             if row['status']=='scored':
                 actual,reason=endpoint_value(score['inputs']['endpoint_sources'].get(key),target=instant(row['target_at']),assessed=assessed,source_epoch=cohort['source_epoch'])
                 if reason is not None or actual!=row['actual_soc_pct']:raise ValueError('saved endpoint observation differs')
