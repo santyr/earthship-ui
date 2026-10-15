@@ -135,6 +135,21 @@ first-install-only; if any thermal unit is already present, stop and use a
 separately reviewed upgrade procedure. Completing implementation or collecting
 shadow evidence does not graduate the model to advice.
 
+## Current household ML and PV work
+
+The [household program tracker](docs/operations/household-program-progress.json)
+records the active PR #3 scope and deployed native ML evidence. The earlier
+thermal shadow instructions above describe their original first-install path.
+
+- [Consumption and battery storage](docs/operations/2026-10-15-household-power-flows.md): deployed source-bound flow separation and natural replay evidence.
+- [PV forecast practice](docs/operations/2026-10-15-pv-forecast-practice.md): array geometry, shared thermal/PV solar inputs, recovery-day diagnosis and remaining forecast implementation.
+- [Shared job resources](docs/operations/2026-10-14-shared-job-resources.md): combined production/development resource coordination.
+
+Canonical electrical-system meaning and measured array geometry also live in
+Solar_PV's `docs/architecture/current-system.md` and
+`docs/operations/pv-forecasting.md`. A geometry-aware PV forecast remains pending;
+recorded geometry and flow observations do not establish forecasting skill.
+
 ## Config (not committed)
 
 Runtime config lives in `config.json` (openHAB base URL + API token),

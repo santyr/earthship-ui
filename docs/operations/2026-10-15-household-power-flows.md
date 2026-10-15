@@ -1,29 +1,99 @@
 # Household consumption and battery storage
 
-The operator confirmed on October15 that the only DC loads are associated with the battery and solar-PV system. The current declaration is retained in `openhab/household-energy-topology.json`, effective from the time it was recorded (13:36:41UTC). It describes current topology and must change if household DC loads are installed. It is operator configuration, not measured power or hardware authorization.
+Source `a9eb2901340d6d057110b61886631d0afb64dd51` is deployed as
+`4804d057d54b13e8ff4a93dc21e99f6db4f98192c853a1115637458efa478d75`.
+The owned ML family activated on **2026-10-15 at 14:26:29 UTC**. All five
+installed definitions, effective commands, three active timers, both score
+calendars and public UI/model/forecast endpoints passed readback. The complete
+current trained candidate `188a42a8` is unchanged. The clean, idle daily
+checkout was advanced to the same source without changing or starting its unit.
 
-Household consumption is the source-qualified inverter AC load when the original inverter-only/no-bypass/no-generator topology applies. The operator's separate AC-only declaration permits calling that quantity household load. Net battery DC power retains its positive-charging sign: positive becomes battery charge, negative becomes battery discharge. Charging is storage, not an addition to the household consumption learning target. Controller PV output remains its own measured quantity, not total available solar. System DC consumption and AC/DC conversion losses remain unknown; the balance is not claimed closed.
+## Meaning and provenance
 
-The new pure power-flow model consumes the same immutable configured snapshot used by household forecasting. Each original measurement retains its source identity, digest, acquisition clocks and explicit age policy. Missing or expired measurements remain unknown. Missing or unsupported operator topology retains the known AC and storage observations while withholding the total-household label. Supplied original hashes or availability that disagree refuse replay. No capacity calibration, action effect, reserve permission or actuator authority is introduced.
+The operator confirmed on October 15 that the only DC loads concern the
+battery and solar-PV system. `openhab/household-energy-topology.json` retains
+that declaration, effective from its recording at 13:36:41 UTC. It is current
+operator configuration, not a measured zero DC load or a retroactive topology
+assertion. Update it if household DC loads are installed.
 
-Cycle sources/v6 add the before-issue operator declaration. A separate compact `earthship-household-power-flow-receipt/v1` binds the unchanged external model-plan/v6 by semantic and canonical document hashes, plus its own model/runtime source closure. The normal cycle retains this private sidecar under an immutable content-hash filename. Original cycle-source versions retain their previous outputs. Neither the existing plan format nor battery outcome format changes, preserving current chronological evaluation.
+Qualified inverter AC load represents household consumption only when its
+original inverter-only/no-bypass/no-generator attestation and the operator's
+AC-only declaration both apply. Net battery DC power separately identifies
+charging and discharging, using the original validated sign, scale and unit
+configuration. Charging does not increase the household consumption learning
+target. Reported controller PV output remains distinct from potential solar
+generation. System DC consumption and conversion losses remain unknown; the
+model does not claim a closed power balance.
 
-The private CLI is file-only:
+Every reading preserves original source identity, digest, acquisition clocks,
+expiry and explicit age policy. Missing or expired data remains unknown.
+Missing or unsupported optional topology withholds the total-household label
+while preserving independent AC/storage observations. Supplied hash or
+availability corruption refuses replay. Optional decoder failures cannot
+disable unrelated household observations.
+
+## Receipt and execution contract
+
+Cycle sources/v6 retain the original topology declaration. The private
+`earthship-household-power-flow-receipt/v1` sidecar binds the unchanged external
+model-plan/v6 by semantic and canonical document hashes, plus its own runtime
+and verifier source closure. Normal cycles retain it under an immutable
+content-hash filename. Existing plan and battery outcome formats are unchanged.
+The file-only replay command is:
 
 ```sh
 python3 openhab/scripts/household_power_flows.py --receipt FLOW --plan ORIGINAL_PLAN
 ```
 
-It validates the external original snapshot/source closure, rederives every flow, checks its own runtime and original file bytes again, and prints only the reconstructed receipt. There is no database, network or action path in this replay.
+Replay reconstructs the original configured snapshot, checks source/runtime
+closure, rederives flows and checks original files again. It has no database,
+network, fitting or actuator path.
 
-This establishes distinct consumption/storage inputs for subsequent rolling energy models. Weather-driven response, learned load patterns, calibrated usable energy and qualified action outcomes remain unfinished. The Open-Meteo radiation field used by the next energy model represents the preceding hour's mean, so future energy integration must use those intervals and preserve partial-hour boundaries ([provider documentation](https://open-meteo.com/en/docs?past_days=1)).
+The rollout reached the original 31-entry scoring dispatch cap. No evidence
+was deleted. Dispatch now accepts up to 63 explicitly pinned historical stages,
+within the unchanged 128 KiB metadata bound. Current native scoring retains its
+31 historical-model inference envelope; older stages keep independent rotating
+worker opportunities. The actual package retains all 32 prior stages in
+8,680 bytes. Deadlines, resource coordination and fitted numerical sources are
+unchanged. Historical lifecycle retention remains future work.
 
-Initial verification:13 new flow tests failed before implementation;66 affected flow/energy cases then passed. Six original-plan/CLI tamper cases reproduced the missing receipt implementation;19 combined flow/receipt cases passed. Four collector/cycle/package cases failed before integration, then263 affected cases passed in63.25seconds. Broader regression, immutable review and deployment evidence remain pending.
+## Verification and natural observation
 
-The broader run passed1,880 cases and found two obsolete cycle-source/v5 assertions in owner-policy tests. Their original receipt/hash/clock checks remain; only the expected current source version changed to v6. An additional RED regression found that a malformed clock inside an otherwise readable optional topology declaration erased the flow observation. It now leaves the household-DC scope unknown while preserving qualified AC/storage readings. All82 focused flow/owner cases pass after those corrections. The final broad run and one immutable review are pending.
+After the single immutable review and correction pass, **1,892 regression
+cases passed in 375.15 seconds**, including the 310 directly affected flow,
+source, cycle and owner tests. Review corrections validated original battery
+semantics, included the executing plan verifier and isolated optional decoder
+recursion. The separate dispatch-capacity correction passed **227 affected
+cases in 46.94 seconds**, including 32/63-stage roundtrips, complete historical
+rotation, the original inference envelope and 64-stage refusal.
 
-The final pre-review broad run passed1,883 cases. The single immutable review found Important gaps in original battery sign/unit validation and inclusion of the executing plan verifier in replay's source closure. The optional deeply nested topology failure was also accepted as Important because it could disable unrelated household observations. One correction pass uses the original strict metric validator, retains `household_outcomes.py` in the runtime manifest, and isolates decoder recursion at optional acquisition. All310 affected tests pass after correction (58.46seconds); the broader post-review run and live activation remain pending. The parser-error isolation test injects the decoder failure because Python3.12 accepts bounded nesting that can overflow older decoders. No repeat review or product depth restriction was added.
+Normal preparation completed at 14:28:09 UTC. The first scheduled forecast
+issued at **14:30:15 UTC** and the service exited successfully at **14:30:30**.
+The retained flow receipt reported:
 
-Post-review broad regression passed1,892 cases in375.15seconds. Packaging then reached the original31-entry dispatch inventory cap. No history was deleted. A separate bounded operational correction permits63 explicitly pinned dispatch stages while retaining the original31 historical-model envelope in each current native scoring invocation. All older stages keep independent rotating worker opportunities and their exact original worker contracts. File-byte limits, deadlines, shared resources, source pins and fitted model bytes are unchanged. All227 affected dispatch/family/scoring cases pass46.94seconds, including32/63-stage roundtrips and full historical rotation,31-model inference containment and64-stage refusal. This is capacity for retained stage metadata, not additional concurrent jobs. Eventual historical lifecycle retention remains unfinished.
+| Quantity | Observed value |
+|---|---:|
+| Household AC consumption | 292 W |
+| Net battery charging | 705 W |
+| Battery discharge | 0 W |
+| Reported controller PV output | 1,039 W |
+| System overhead / conversion losses | Unknown |
 
-The PV research and recovery-day diagnosis are recorded in [PV forecast practice](2026-10-15-pv-forecast-practice.md). Exact array tilt is awaiting an operator measurement; current known orientation is165degrees and canonical quoted array capacity4.2kW DC.
+Receipt `52812b5762c883d498c61da75f93ed7ee5a17950ec4a8dd5a9900e793c9d47b2`
+binds original plan
+`dc7a106a9f3784d5e03e4b6c81ab6f3a2817723d4554a3d59a8211c9150834db`.
+Pure replay and the exact deployed CLI returned identical results. The 42 W
+difference between these observed quantities is not a qualified loss estimate.
+Private rollout proof is in the existing common-cycle workspace under
+`weather-energy-20261015/`; no extra forecast, score or fit was triggered.
+
+## PV model follow-up
+
+[PV forecast practice and recovery-day diagnosis](2026-10-15-pv-forecast-practice.md)
+records the research, array geometry and remaining work. The source profile
+`openhab/household-pv-system.json` records the quoted 4.2 kW DC rating,
+approximately 165° azimuth and operator-measured 57.4° tilt above horizontal.
+It retains the raw 32.6° inclinometer reading and horizontal-at-90° convention.
+That profile prepares the next model; a new geometry-aware PV forecast is not
+yet deployed. Rolling PV/load prediction, usable-energy calibration, action
+outcomes and the full PR #3 architecture remain incomplete.

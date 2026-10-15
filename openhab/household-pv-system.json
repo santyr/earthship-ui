@@ -1,0 +1,34 @@
+{
+  "schema": "earthship-household-pv-system/v1",
+  "recorded_at": "2026-10-15T14:26:54.650623+00:00",
+  "array": {
+    "module_count": 12,
+    "module_nameplate_w": 350,
+    "dc_nameplate_w": 4200,
+    "surface_azimuth_degrees": 165.0,
+    "surface_tilt_degrees": 57.4
+  },
+  "inventory_source": {
+    "repository": "santyr/Solar_PV",
+    "commit": "26ccc7aaa54ca0f9830e23ec8c31e9bd7e99fe5b",
+    "path": "docs/architecture/current-system.md",
+    "sha256": "438c6edc680489f3dd0be1400421c058cab232c7c1f578d7e1e6159f21e42ace",
+    "basis": "operator_transcription_of_original_quote"
+  },
+  "orientation_source": {
+    "basis": "operator_reported",
+    "azimuth_description": "about 15 degrees east from south",
+    "inclinometer_reading_degrees": 32.6,
+    "inclinometer_horizontal_degrees": 90.0,
+    "surface_tilt_calculation": "90 - 32.6",
+    "tilt_intent": "maximum_gain_in_December"
+  },
+  "unverified": [
+    "exact_module_model",
+    "string_topology",
+    "temperature_coefficient",
+    "shading_profile",
+    "electrical_conversion_losses"
+  ],
+  "automatic_actuation": false
+}
