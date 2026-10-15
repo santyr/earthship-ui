@@ -44,7 +44,7 @@
     {
       "phase": "5",
       "requirement": "Hard constraint registry and deterministic arbiter",
-      "current_evidence": "Deterministic shadow hard-gate registry and arbiter implemented. Source e2865cf now collects original rule summaries and derives only registered engine readiness; all three owners verified at natural2026-10-15T00:00:15UTC issue with identical pure/privateCLI replay.416 affected tests pass after one review correction. Physical idle/cooldown/curfew/operator facts, policy baselines and qualified bounds remain incomplete.",
+      "current_evidence": "Deterministic shadow hard-gate registry and arbiter implemented. Sourceff57a66 retains all three source-bound engine-readiness observations and bracketed greywater policy originals. Normal2026-10-15T01:15:15UTC receipt derives only the explicit after_dark negative curfew fact; pure/privateCLI replay identical.583 affected tests pass; final review clean. Physical readiness, operator permission, qualified bounds and full policy baselines remain incomplete.",
       "complete": false
     },
     {
@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "Earthship observations remain below existing content; no standalone household navigation. Model52dd5d12 remains provisional. Natural00:00:15UTC forecast and household observation retain fresh daily inputs plus source-bound engine readiness for all three owners, with exact replay. Scoring again hit its deadline at23:53 and23:58UTC; growing replay cost is the next performance task. Earlier19-outcome report modelMAE0.318363F versus persistence0.170526F remains historical evidence only. Natural daily diagnostic/training verification remains pending October15 at06:40/06:50MDT. Qualified physical/action outcomes and full architecture remain incomplete.",
+      "current_evidence": "Earthship observations remain below existing content. Model52dd5d12 remains provisional. First normalff57a66 issue2026-10-15T01:15:15UTC refreshes current daily energy, all three owner engine observations and negative greywater curfew fact with exact replay; service exit0 at01:15:29UTC. Initiald9c471e observer envelope refusal was reproduced offline and corrected with one bounded1MiB private-plan limit. Historical00:21UTC current-model report had27 one-hour outcomes, modelMAE0.266789F versus persistence0.200000F; this is not a current accuracy or graduation claim. Natural next daily diagnostic/training verification remains pending October15 at06:40/06:50MDT. Qualified physical/action outcomes and full architecture remain incomplete.",
       "complete": false
     },
     {
@@ -7383,25 +7383,25 @@
       },
       "review": "final integration review Important retained-policy binding fixed RED to GREEN; full230-test suite passes",
       "operations": "docs/operations/2026-10-14-shared-job-resources.md",
-      "implementation_commit": "177a8a10cef290971ca931aca3d725b6a3670a76",
-      "deployment_sha256": "7afb91b2011a70e3f0bf03e2116eca2f22f38e6b0f2744f5add4205f9f6bc835",
+      "implementation_commit": "ff57a660455852d9cd70f957c3fb6f50a7e90f0f",
+      "deployment_sha256": "f20691db9a6039dd183a89e74d500a0b90cc364ea2c0c1fb7c52c61f892f7b53",
       "integration_tests": 230,
-      "natural_forecast": "2026-10-15T00:35:15UTC first177a8a1 issue succeeded;service exit0 at00:35:29UTC; corrected registry verified by pure/exact-stage CLI replay; geometry retained before cutover.",
+      "natural_forecast": "2026-10-15T01:15:15UTC firstff57a66 issue succeeded;exit0 at01:15:29UTC; current household policy observation verified by pure/exact-stageCLI replay.",
       "natural_legacy_score": "22:26UTC monitoring_refreshed;256 retained legacy outcomes;zero new mature outcomes",
       "natural_current_native_score": "2026-10-15T00:21:00..00:21:44UTC current role exit0;1 new mature outcome;27 current-model outcomes;40.467CPU seconds.",
-      "natural_preparer": "2026-10-15T00:18:05..09UTC scheduled preparation on3fd481c exit0",
+      "natural_preparer": "2026-10-15T01:13:05..09UTC scheduled preparation succeeded on previousd9c471e; identical original01:15:15packet retained before activation.",
       "natural_daily_fit": "pending2026-10-15T06:50MDT",
       "fit_executed_during_rollout": false,
       "current_score_correction_tests": 68,
       "daily_checkout": {
-        "source_commit": "177a8a10cef290971ca931aca3d725b6a3670a76",
+        "source_commit": "ff57a660455852d9cd70f957c3fb6f50a7e90f0f",
         "unit_sha256": "eacc1ad9aa28564629258e53f82c80017b640820b4ba739b592dc7dba970da16",
         "unit_unchanged": true,
         "service_started": false,
-        "assessed_at": "2026-10-15T00:34:31.476956+00:00"
+        "assessed_at": "2026-10-15T01:12:59.201653+00:00"
       },
       "inventory_correction_tests": 83,
-      "effective_readback_at": "2026-10-15T00:34:31.424502+00:00",
+      "effective_readback_at": "2026-10-15T01:16:01.590799+00:00",
       "current_score_runtime_risk": "Observed120second deadline failures resolved for27-outcome cohort by3fd481c; one current run44seconds. Larger cohorts and daily fitting remain to be observed.",
       "current_model_one_hour_performance": {
         "count": 27,
@@ -7906,6 +7906,140 @@
       },
       "automatic_actuation": false,
       "evidence": ".superpowers/sdd/2026-10-12-household-common-cycle/owner-policy-20261014"
+    },
+    "household_owner_policy_observations": {
+      "implemented": true,
+      "deployed": true,
+      "source_commit": "ff57a660455852d9cd70f957c3fb6f50a7e90f0f",
+      "initial_source_commit": "d9c471e119d508dfbc4bc3e729a8885bf1b2c018",
+      "deployment_sha256": "f20691db9a6039dd183a89e74d500a0b90cc364ea2c0c1fb7c52c61f892f7b53",
+      "activated_at": "2026-10-15T01:14:25.031942+00:00",
+      "python_tests": 583,
+      "suite_seconds": 63.15,
+      "review": "Final immutable reviews of source and envelope correction found no Critical, Important or Minor findings.",
+      "source_schema": "earthship-household-cycle-sources/v4",
+      "coordination_schema": "earthship-shadow-coordination/v3",
+      "policy_source_schema": "earthship-greywater-policy-source/v1",
+      "natural_household_receipt": {
+        "assessed_at": "2026-10-15T01:15:53.958101+00:00",
+        "automatic_actuation": false,
+        "current_soc_pct": 89.0,
+        "daily_issued_at": "2026-10-14T12:40:49.420253+00:00",
+        "daily_prediction_day": "2026-10-14",
+        "daily_receipt_sha256": "8411e0c34698981eda772133b843cace8dc7bfb76cce96fa1a692478df0ca8a2",
+        "daily_resource_kwh": 2.011388888888889,
+        "greywater_registry": {
+          "availability": "not_assessed",
+          "contractVersion": "legacy-correlated-v1",
+          "legacyIngresses": [],
+          "manualAuthority": "request",
+          "ownerRule": "hex_southoutlet_cycle",
+          "ownerSource": "openhab/rules/southoutlet-cycle-installed.js",
+          "plannerAuthority": "none",
+          "protectedActuators": [
+            "East_Bed_Socket_Outlet_2_Power",
+            "SouthOutlet_Outlet2_Switch"
+          ],
+          "protectedDependencies": [
+            "BMS_Comms_Status",
+            "BMS_SOC_Evidence_JSON",
+            "DCData_Voltage",
+            "East_Bed_Socket_Outlet_2_Power",
+            "SkyCondition",
+            "SouthOutlet_AutoStatus",
+            "SouthOutlet_LastAutoRun",
+            "SouthOutlet_LowSocCutoff",
+            "SouthOutlet_Outlet2_Switch",
+            "Sun_Position_Elevation"
+          ],
+          "requestBindings": [
+            {
+              "requestItem": "SouthOutlet_ManualRequest",
+              "resultItem": "SouthOutlet_ManualResult"
+            }
+          ],
+          "safetyInputs": [
+            "BMS_Comms_Status",
+            "BMS_SOC_Evidence_JSON",
+            "DCData_Voltage",
+            "SkyCondition",
+            "SouthOutlet_LowSocCutoff",
+            "Sun_Position_Elevation"
+          ],
+          "safetyInputsComplete": false
+        },
+        "input_qualification": "not_assessed",
+        "live_writes": false,
+        "nested_plan_bytes": 590277,
+        "owner_facts_at_issue": {
+          "88bd9ec4de": {
+            "owner_available": true
+          },
+          "hex_night_load_override": {
+            "owner_available": true
+          },
+          "hex_southoutlet_cycle": {
+            "curfew_allowed": false,
+            "owner_available": true
+          }
+        },
+        "owner_policy": {
+          "evaluated_at": "2026-10-15T01:15:00.744000+00:00",
+          "next_eligible_at": null,
+          "next_pump": null,
+          "owner": "hex_southoutlet_cycle",
+          "physical_permission": false,
+          "reason": "after_dark",
+          "rule_sha256": "4c34780e544d80af8eb36d047a949fa30e0198bb50fa57650285052db3c52d9b",
+          "scheduling": "blocked",
+          "source_sha256": "e55034ef5f5da9ae858b18a21b272ec6127f2368adef52b28ae0b6c4a1af9a43",
+          "valid_until": "2026-10-15T01:17:00.744000+00:00"
+        },
+        "owner_received_at": "2026-10-15T01:15:08.296569+00:00",
+        "owner_requested_at": "2026-10-15T01:15:08.292822+00:00",
+        "owner_source_sha256": "7ef4fd852ce87e3a87bd37c3e1ccf5c4493a0329a7fcd8c5236bb1c54fb5929e",
+        "policy_collection_seconds": 0.010811,
+        "private_cli_replay_identical": true,
+        "pure_replay_identical": true,
+        "receipt_bytes": 1406435,
+        "receipt_path": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-14-shared-job-resources/production-ff57a66/final/evidence/4426e26921a0eb95e0cf15baf7e4cb84297d4982bfda6606dd3372db09413483.household-model-plan-v5.json",
+        "receipt_sha256": "2723d48f69cae221ae7fe4da2c5d10a60b4690ca322b7308e569ff4ef159575f",
+        "snapshot_as_of": "2026-10-15T01:15:15+00:00",
+        "source_collected_at": "2026-10-15T01:15:08.017365+00:00",
+        "source_commit": "ff57a660455852d9cd70f957c3fb6f50a7e90f0f",
+        "status": "natural_owner_policy_observation_verified",
+        "tomorrow_cloud_pct": 42
+      },
+      "owner_readback": {
+        "assessed_at": "2026-10-15T01:14:57.539303+00:00",
+        "owners": {
+          "hex_southoutlet_cycle": {
+            "definition_unchanged": true,
+            "script_sha256": "4c34780e544d80af8eb36d047a949fa30e0198bb50fa57650285052db3c52d9b"
+          },
+          "88bd9ec4de": {
+            "definition_unchanged": true,
+            "script_sha256": "730053e0f3245cb83461e3fe6e3b05d49c8b508631e8cdb4a889c8be8d915978"
+          },
+          "hex_night_load_override": {
+            "definition_unchanged": true,
+            "script_sha256": "e7aed419e81f6772ef26cb48e788e6eef33b47ebb1cd27d664425a772831d793"
+          }
+        },
+        "live_writes": false
+      },
+      "physical_permission": false,
+      "automatic_actuation": false,
+      "initial_production_failure": {
+        "deployment_sha256": "9081b664708386ce9254ce33bd4747ef60d41ebf312e58d38b1e594587d57725",
+        "reason": "512KiB nested-plan limit exceeded by valid native geometry and bracketed policy originals",
+        "forecast_service_exit": 0,
+        "retained_original_plan_bytes": 507628,
+        "added_policy_source_bytes": 81431,
+        "private_plan_limit_bytes": 1048576,
+        "correction_verified": true
+      },
+      "remaining": "Observed negative blockers do not qualify physical readiness, operator permission, calibrated bounds, full policy baselines or action effects. Stable rule bracketing establishes source observed during collection, not a historical code identity embedded in evaluated status."
     }
   },
   "astro_efficiency_audit": {
@@ -8060,5 +8194,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-15T00:36:22.013963+00:00"
+  "updated_at": "2026-10-15T01:16:45.264756+00:00"
 }
