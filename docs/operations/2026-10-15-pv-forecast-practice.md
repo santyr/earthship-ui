@@ -22,6 +22,17 @@ The operator now reports an array approximately **15 degrees east of south: azim
 
 Thermal and PV models should share the same retained, as-issued weather and Astro geometry. They need separate receiving-plane/response models: glazing, mass, ventilation and shades determine thermal response; array orientation, module temperature and electrical constraints determine PV response. Forecast radiation remains distinct from measured lux/radiation proxies. Open-Meteo hourly shortwave is a preceding-hour mean, requiring interval-end integration and correct partial-hour/UTC boundaries ([provider documentation](https://open-meteo.com/en/docs)).
 
+## Valley terrain and seasonal sunlight
+
+The operator reports seasonal mountain shadows at this valley location.
+The [terrain-horizon diagnosis](2026-10-15-terrain-horizon-diagnosis.md) retains
+a location-specific PVGIS map estimate and a read-only comparison with twelve
+days of original station receipts. Use the map as a provisional skyline prior,
+then test corrections against repeated clear-weather observations and later
+days. Preserve direct/diffuse light separation, native Astro event times and
+receiver-specific obstruction uncertainty. This is not an already deployed
+horizon correction or annual validation.
+
 ## Actual recovery-day check
 
 Read-only analysis used the retained daily prediction and source-qualified scoring state, not a new fit or a forecast probe. Private sanitized proof is `weather-energy-20261015/pv-recovery-diagnosis.json` under the common-cycle workspace.
