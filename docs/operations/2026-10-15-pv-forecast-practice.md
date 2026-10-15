@@ -92,3 +92,44 @@ its executing sources and replays without readers or providers. Scheduled
 collection/deployment and actual production replay are still pending at this
 checkpoint. No manually triggered fitting or production inference probe is
 part of the verification.
+
+## Verified deployment — October 15
+
+Source `522241e1e25dbb8f7a8ef59f5968bef29bf68758` is deployed as
+`b5a73ec302c1959f85d0614347249a8140820a0e61378471eff2752156677013`.
+The complete trained candidate `188a42a8` is unchanged. Activation finished at
+15:46:45Z without restart, fitting or manual forecast/qualification probes.
+Five owned unit files, all three timers, both score calendars, unchanged shared
+resource limits and the public UI/model endpoints pass effective readback.
+The clean idle daily checkout advances to this source with its unit unchanged.
+
+The scheduled geometry preparer completed at 15:48:09Z. The first scheduled
+forecast process ran 15:49:45–15:50:32Z, approximately 47 seconds at systemd's
+displayed timestamp resolution, and exited zero. Its original issue is
+15:50:15Z. The new PV/storage receipt
+`834b31dbc5fc7cebcb4cf27f65a3d9f90d23cad0799746936342d3ec1eb3b1ff`
+binds original plan
+`2592c6b0617e26fae3846a92a857e29876617fde4392dc3e39c04cea5ad428db`.
+Original configuration bytes match the staged files; receipt rederivation and
+its exact staged file-only CLI output are identical, preserving both documents.
+
+That original projects 19.9206 kWh of potential array DC over the **next 24
+hours**, with 15.6527 kWh potential remaining before local midnight. Thirteen
+retained geometry steps are mountain-blocked. Its separate storage scenario
+uses source-qualified 427 W household AC held constant, 87% initial SoC and
+declared nominal capacity. It models 10.4988 kWh captured over the next 24 hours
+and 82.4374% final nominal SoC under the stated assumptions. These are different
+quantities and intervals from the existing daily captured-PV prediction; they
+are not measured outcomes, calibrated skill or a replacement for that issued
+forecast. The new receipt remains private pending chronological PV outcome and
+public UI integration.
+
+Verification: 1,462 household Python tests pass after the single review
+correction; 2,419 frontend tests across 152 files pass. A separate deployment
+history fix aligns model-admission lookup with 63 retained stages plus the
+current stage; 43 affected admission/dispatch/family cases pass. It preserves
+the earliest exact model admission rather than deleting evidence or retraining.
+The immutable review found one Important fallback issue and one minor integrity
+edge; missing or unusable terrain now withholds only PV/storage, and source
+wrapper integrity is checked even without geometry. Live owner rules and
+original thermal predictions remain unchanged. Full PR #3 is still incomplete.

@@ -101,6 +101,10 @@ already includes the same local obstruction.
 
 Preserve Astro's event times and owner daylight rules. The effective direct-sun
 window is a model-layer result, not a replacement for astronomical sunrise or
-sunset. The uncommitted array prototype currently assumes an unobstructed
-horizon; it must not be presented as a validated terrain-aware production
-forecast. Existing production forecasts and actuator authority remain unchanged.
+sunset. The initial array prototype assumed an unobstructed horizon. The later
+October 15 deployment now requires the source-bound provisional map profile
+for its new PV/storage observer, withholds that projection if the profile is
+missing or unusable, and retains exact original receipts. See the
+[verified deployment](2026-10-15-pv-forecast-practice.md#verified-deployment--october-15).
+The map is still unvalidated; existing thermal forecasts, daily PV predictions
+and actuator authority remain unchanged.
