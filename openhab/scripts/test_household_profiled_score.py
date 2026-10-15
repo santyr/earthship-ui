@@ -56,3 +56,45 @@ def test_source_failure_is_deferred_without_losing_other_domain_or_original_fore
     assert report['by_horizon']['1']['load']['count']==0 and report['by_horizon']['1']['soc']['count']==1
     index=loads((kwargs['state_root']/'profiled-energy-outcomes/samples.json').read_bytes())
     assert next(iter(index['samples'].values()))['retry_after'] is not None
+
+
+def test_backlogged_origin_saves_bounded_progress_in_each_opportunity(tmp_path,monkeypatch,originals):
+    api,kwargs,calls,args=staged(tmp_path,monkeypatch,originals)
+    issue=instant(args['profiled_receipt']['output']['issued_at']);elapsed=[100.]
+    kwargs.update(clock=lambda:issue+timedelta(hours=25),monotonic=lambda:elapsed[0])
+    def hour_reader(*,start,end):
+        calls.append(('hour',end));elapsed[0]+=2
+        return args['hour_sources']['1'] if end==issue+timedelta(hours=1) else None
+    def endpoint_reader(*,target_at):
+        calls.append(('endpoint',target_at));elapsed[0]+=2
+        return args['endpoint_sources']['1'] if target_at==issue+timedelta(hours=1) else None
+    kwargs.update(hour_reader=hour_reader,endpoint_reader=endpoint_reader)
+    result=api.run(**kwargs)
+    assert result['count']==2 and len(calls)==2
+    index=loads((kwargs['state_root']/'profiled-energy-outcomes/samples.json').read_bytes())
+    assert next(iter(index['samples'].values()))['sample_sha256'] is not None
+    kwargs['deadline']=elapsed[0]+15
+    again=api.run(**kwargs)
+    assert again['count']==2 and len(calls)==4
+    assert all(target!=issue+timedelta(hours=1) for _,target in calls[2:])
+
+
+@pytest.mark.parametrize('already_indexed',[False,True])
+def test_new_unavailable_forecast_keeps_previous_valid_origin_scoring(tmp_path,monkeypatch,originals,already_indexed):
+    api,kwargs,calls,args=staged(tmp_path,monkeypatch,originals)
+    # Retain a valid origin before its first target has matured.
+    issue=instant(args['profiled_receipt']['output']['issued_at'])
+    kwargs['clock']=lambda:issue+timedelta(minutes=30)
+    if already_indexed:api.run(**kwargs)
+    assert calls==[]
+    from household_profiled_forecast import seal_profiled_forecast,profiled_runtime_manifest
+    from household_energy_forecast import forecast_runtime_manifest
+    from household_cycle import _retain_original
+    unavailable=seal_profiled_forecast(energy_receipt=args['energy_receipt'],plan_receipt=args['plan_receipt'],load_source=None,now=instant(args['energy_receipt']['inputs']['assessed_at']),
+        runtime_manifest=profiled_runtime_manifest(),energy_runtime_manifest=forecast_runtime_manifest(),load_runtime_manifest={})
+    path=_retain_original(kwargs['stage']/'evidence',unavailable,api.SUFFIX,262144)
+    at=(issue+timedelta(minutes=1)).timestamp();os.utime(path,(at,at))
+    kwargs['clock']=lambda:args['assessed_at']
+    result=api.run(**kwargs)
+    assert result['status']=='profiled_energy_performance_refreshed' and result['count']==2
+    assert calls==['hour','endpoint']

@@ -69,8 +69,14 @@ are implemented. The full frontend suite passes 2,462 cases and builds successfu
 smoke skips; those actual scope tests passed separately with opt-in. The complete load-feature run passes 131 cases. After tightening runtime-change
 revalidation to require all original byte pins, 39 affected source/store/daily
 cases pass, including refusal of resealed original data. The cross-day model-
-version comparison also passes. Final feature review and deployment remain
-outstanding.
+version comparison also passes. The single immutable feature review identified
+two outcome-collection issues: lost progress when all mature source reads exceed
+the slot, and an unavailable newest origin blocking older valid outcomes. The
+correction limits each opportunity to two source acquisitions, caps readers at
+four seconds with a five-second publication reserve, and continues eligible
+retained outcomes independently of the newest origin. Final correction checks pass 31 affected outcome/state/scheduler cases. Deployment
+will use the unchanged existing thermal artifact; load fitting remains on the
+normal morning schedule.
 
 The new Earthship panel shows learned hourly demand against the original current-
 load assumption, and the corresponding nominal SoC trajectories. It reports

@@ -8611,7 +8611,7 @@
       "timeout_correction": "45_minutes_same_full_tests_no_production_policy_change"
     },
     "hourly_ac_load_profile": {
-      "status": "implemented_verified_preparing_single_immutable_review",
+      "status": "single_review_corrected_verified_ready_for_owned_deployment",
       "approval": "load_model_design_explicitly_approved",
       "source_target": "inverter_AC_output_energy",
       "historical_data_audit": "14_completed_Denver_days_233068_original_rows_11_to_14_supported_independent_days_per_clock_hour",
@@ -8623,7 +8623,7 @@
       "read_only": true,
       "automatic_actuation": false,
       "plan": "docs/operations/2026-10-15-hourly-ac-load-model.md",
-      "verification": "broader_backend_running_frontend_2462pass",
+      "verification": "backend_1624pass_frontend_2462pass_build_pass_correction_31pass",
       "full_goal_complete": false,
       "backend_regression_passed": 1624,
       "backend_explicit_resource_smoke_skips": 2,
@@ -8636,7 +8636,11 @@
       "final_revalidation_tests_passed": 39,
       "daily_version_aggregation_test_passed": true,
       "normal_morning_training_not_triggered": true,
-      "live_deployed": false
+      "live_deployed": false,
+      "reviewed_head": "4b7e3b762a1fe70a1a6928a81f728ec158cdd679",
+      "review_findings": 2,
+      "review_correction_passes": 1,
+      "review_correction_tests_passed": 31
     }
   },
   "astro_efficiency_audit": {

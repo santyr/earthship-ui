@@ -87,12 +87,12 @@ def run(*,stage,historical,guard,deadline,clock=lambda:datetime.now(timezone.utc
     stages=[Path(stage)]+[Path(row['stage']) for row in historical]
     if len(stages)>64 or len(set(stages))!=len(stages):raise ValueError('bounded unique retained profiled stages required')
     paths=candidates(stages,now=now,guard=check);current=[p for p in paths if p.parent==Path(stage)/'evidence']
-    if not current:return dict(status='waiting',reason='current_profiled_origin_unavailable',automatic_actuation=False)
-    latest=max(current,key=lambda p:p.stat().st_mtime);forecast,energy,plan,original=read_forecast(latest)
-    replay_profiled_forecast(forecast,energy_receipt=energy,plan_receipt=plan,runtime_manifest=fr,energy_runtime_manifest=er,load_runtime_manifest={} if forecast['inputs']['load_source'] is None else lr)
-    unchanged(original);check();cohort=cohort_for_profiled(forecast,energy,plan)
-    if cohort is None:return dict(status='waiting',reason='current_load_profile_unavailable',automatic_actuation=False)
-    cohort_id=identity(cohort);root=Path(state_root) if state_root is not None else Path.home()/'.local/state/household-intel';_directory(root)
+    cohort=None
+    if current:
+        latest=max(current,key=lambda p:p.stat().st_mtime);forecast,energy,plan,original=read_forecast(latest)
+        replay_profiled_forecast(forecast,energy_receipt=energy,plan_receipt=plan,runtime_manifest=fr,energy_runtime_manifest=er,load_runtime_manifest={} if forecast['inputs']['load_source'] is None else lr)
+        unchanged(original);check();cohort=cohort_for_profiled(forecast,energy,plan)
+    root=Path(state_root) if state_root is not None else Path.home()/'.local/state/household-intel';_directory(root)
     store=root/'profiled-energy-outcomes';store.mkdir(mode=0o700,exist_ok=True);_directory(store);index_path=store/'samples.json'
     try:index=loads(_private_file(index_path,262144)[0])
     except FileNotFoundError:index=dict(schema=INDEX,samples={})
@@ -110,6 +110,26 @@ def run(*,stage,historical,guard,deadline,clock=lambda:datetime.now(timezone.utc
         if (ref['sample_sha256'] is None)!=(ref['score_file_sha256'] is None):raise ValueError('complete original profile score/sample pair required')
         if ref['retry_after'] is not None and not instant(ref['issued_at'])<=instant(ref['retry_after'])<=now+timedelta(minutes=30):raise ValueError('bounded profile source retry required')
         refs[hour]=ref
+    # An unavailable newest origin does not revoke earlier issued predictions.
+    if cohort is None:
+        for ref in sorted(refs.values(),key=lambda r:r['issued_at'],reverse=True):
+            check();saved,saved_energy,saved_plan,original=read_forecast(Path(ref['forecast_path']))
+            if saved['runtime_manifest']!=fr or saved['load_runtime_manifest']!=lr:continue
+            if saved['receipt_sha256']!=ref['forecast_receipt_sha256'] or sha256(original[1][0]).hexdigest()!=ref['forecast_sha256']:raise ValueError('original sampled profile forecast differs')
+            replay_profiled_forecast(saved,energy_receipt=saved_energy,plan_receipt=saved_plan,runtime_manifest=fr,energy_runtime_manifest=er,load_runtime_manifest=lr)
+            candidate=cohort_for_profiled(saved,saved_energy,saved_plan);unchanged(original)
+            if candidate is not None:
+                if identity(candidate)!=ref['cohort_id']:raise ValueError('original sampled profile cohort differs')
+                cohort=candidate;break
+    if cohort is None:
+        for path in sorted(paths,key=lambda p:p.stat().st_mtime,reverse=True):
+            check();saved,saved_energy,saved_plan,original=read_forecast(path)
+            if saved['runtime_manifest']!=fr or saved['load_runtime_manifest']!=lr:continue
+            replay_profiled_forecast(saved,energy_receipt=saved_energy,plan_receipt=saved_plan,runtime_manifest=fr,energy_runtime_manifest=er,load_runtime_manifest=lr)
+            candidate=cohort_for_profiled(saved,saved_energy,saved_plan);unchanged(original)
+            if candidate is not None:cohort=candidate;break
+    if cohort is None:return dict(status='waiting',reason='current_load_profile_unavailable',automatic_actuation=False)
+    cohort_id=identity(cohort)
     for path in paths:
         check();hint=datetime.fromtimestamp(path.stat().st_mtime,timezone.utc).replace(minute=0,second=0,microsecond=0).isoformat()
         if hint in refs:continue
@@ -128,35 +148,42 @@ def run(*,stage,historical,guard,deadline,clock=lambda:datetime.now(timezone.utc
     by_hour={}
     for hour,ref in refs.items():
         check()
-        if ref['cohort_id']!=cohort_id:continue
         sample=None if ref['sample_sha256'] is None else _read_sample(store,ref)
-        if sample is not None:samples.append(sample);by_hour[hour]=sample
+        if sample is not None:
+            by_hour[hour]=sample
+            if ref['cohort_id']==cohort_id:samples.append(sample)
         pending=pending_for(ref,sample)
         if pending and min(pending)<=now:due.append((min(pending),hour,ref,sample))
-    if due:
-        _,hour,ref,previous_sample=min(due);saved,saved_energy,saved_plan,original=read_forecast(Path(ref['forecast_path']))
+    selected=None
+    for entry in sorted(due):
+        check();_,hour,ref,previous_sample=entry;saved,saved_energy,saved_plan,original=read_forecast(Path(ref['forecast_path']))
+        if saved['runtime_manifest']!=fr or saved['load_runtime_manifest']!=lr:continue
+        selected=entry;break
+    if selected is not None:
         if saved['receipt_sha256']!=ref['forecast_receipt_sha256'] or sha256(original[1][0]).hexdigest()!=ref['forecast_sha256']:raise ValueError('original sampled profile forecast differs')
         previous=None if previous_sample is None else _read_full_score(store,ref,previous_sample)
         hour_sources={} if previous is None else loads(canonical(previous['inputs']['hour_sources']))
         endpoints={} if previous is None else loads(canonical(previous['reference_score']['inputs']['endpoint_sources']))
+        read_stop=stop-5.
         if hour_reader is None or endpoint_reader is None:
             from household_capture import _connection
             from household_ac_load_window import capture_hour
             from household_battery_source import fetch_endpoint
             connect=_connection(str(Path.home()/'.config/hex/energy-power-reader.jdbc'),'energy_power_reader')
             def remaining():
-                check();value=min(15.,stop-monotonic())
+                check();value=min(4.,read_stop-monotonic(),stop-monotonic()-5.)
                 if value<1:raise TimeoutError('profile source opportunity elapsed')
                 return value
             if hour_reader is None:hour_reader=lambda **request:capture_hour(connect=connect,remaining=remaining,clock=clock,**request)
             if endpoint_reader is None:endpoint_reader=lambda **request:fetch_endpoint(lambda:connect(remaining=remaining),remaining=remaining,clock=clock,**request)
-        deferred=False;issue=instant(ref['issued_at'])
+        deferred=False;attempts=0;issue=instant(ref['issued_at'])
         for h in HORIZONS:
             key=str(h);target=issue+timedelta(hours=h)
             if now<target+timedelta(minutes=5):continue
             for mapping,reader,request in ((hour_sources,hour_reader,dict(start=target-timedelta(hours=1),end=target)),(endpoints,endpoint_reader,dict(target_at=target))):
                 if key in mapping:continue
-                check()
+                if attempts>=2 or stop-monotonic()<5.:break
+                check();attempts+=1;read_stop=min(stop-5.,monotonic()+4.)
                 try:value=reader(**request)
                 except Exception:value=None;deferred=True
                 if value is not None:mapping[key]=value
@@ -164,12 +191,13 @@ def run(*,stage,historical,guard,deadline,clock=lambda:datetime.now(timezone.utc
                 check()
         score=seal_profiled_outcomes(profiled_receipt=saved,energy_receipt=saved_energy,plan_receipt=saved_plan,hour_sources=hour_sources,endpoint_sources=endpoints,assessed_at=clock(),
             runtime_manifest=runtime,forecast_runtime_manifest=fr,energy_runtime_manifest=er,load_runtime_manifest=lr)
-        if score['output']['cohort_id']!=cohort_id:raise ValueError('original sampled profile cohort differs')
+        if score['output']['cohort_id']!=ref['cohort_id']:raise ValueError('original sampled profile cohort differs')
         sample=summarize_verified_score(score,verified_at=clock());unchanged(original);check()
         compressed=gzip.compress(canonical(score),compresslevel=3,mtime=0);raw_pin=sha256(compressed).hexdigest();sample_raw=canonical(sample);sample_pin=sha256(sample_raw).hexdigest()
         _immutable(store/(raw_pin+RAW_SUFFIX),compressed);_immutable(store/(sample_pin+SAMPLE_SUFFIX),sample_raw)
         ref.update(sample_sha256=sample_pin,score_file_sha256=raw_pin,retry_after=(utc(clock())+timedelta(minutes=10)).isoformat() if deferred else None)
-        by_hour[hour]=sample;samples=[s for s in samples if s['profiled_receipt_sha256']!=sample['profiled_receipt_sha256']]+[sample]
+        by_hour[hour]=sample
+        if ref['cohort_id']==cohort_id:samples=[s for s in samples if s['profiled_receipt_sha256']!=sample['profiled_receipt_sha256']]+[sample]
     pending=[at for hour,ref in refs.items() if ref['cohort_id']==cohort_id for at in pending_for(ref,by_hour.get(hour))]
     check()
     if producer_runtime()!=runtime or profiled_runtime_manifest()!=fr or forecast_runtime_manifest()!=er or load_runtime_manifest()!=lr:raise ValueError('profile score runtime changed')
