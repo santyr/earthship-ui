@@ -4,6 +4,7 @@ import { resolve, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { OBSERVATION_MAX_BYTES, parseHouseholdObservation } from './observation.js';
 import { parseBatteryPerformance } from './batteryPerformance.js';
+import { parseEnergyObservation, parseEnergyPerformance } from './energyObservation.js';
 
 // Preserve Vite's default sensitive-file exclusions and add private agent and
 // receipt staging. Filesystem permissions alone do not constrain the web server.
@@ -45,19 +46,26 @@ async function readObservation(path, nowMs, validate = parseHouseholdObservation
 export function householdObservationPlugin({
   cachePath = process.env.HOUSEHOLD_OBSERVATION_CACHE || resolve(homedir(), '.local/state/household-intel/observation.json'),
   batteryCachePath = resolve(homedir(), '.local/state/household-intel/battery-performance.json'),
+  energyCachePath = resolve(homedir(), '.local/state/household-intel/energy-observation.json'),
+  energyPerformanceCachePath = resolve(homedir(), '.local/state/household-intel/energy-performance.json'),
   now = Date.now,
 } = {}) {
   const attach = server => { server.middlewares.use(async (req, res, next) => {
     let url;
     try { url = new URL(req.url || '/', 'http://localhost'); } catch { return next(); }
-    const battery = url.pathname === '/api/household-battery-performance';
-    if (!battery && url.pathname !== '/api/household-observation') return next();
+    const route = {
+      '/api/household-observation': [cachePath, parseHouseholdObservation],
+      '/api/household-battery-performance': [batteryCachePath, parseBatteryPerformance],
+      '/api/household-energy-observation': [energyCachePath, parseEnergyObservation],
+      '/api/household-energy-performance': [energyPerformanceCachePath, parseEnergyPerformance],
+    }[url.pathname];
+    if (!route) return next();
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     if (req.method !== 'GET') { res.setHeader('Allow', 'GET'); res.writeHead(405).end('{"status":"unavailable"}'); return; }
     if (url.search) { res.writeHead(400).end('{"status":"unavailable"}'); return; }
-    try { const raw = await readObservation(battery ? batteryCachePath : cachePath, now(), battery ? parseBatteryPerformance : parseHouseholdObservation); res.writeHead(200).end(raw); }
+    try { const raw = await readObservation(route[0], now(), route[1]); res.writeHead(200).end(raw); }
     catch { if (!res.headersSent) res.writeHead(503); res.end('{"status":"unavailable"}'); }
   }); };
   return { name: 'household-observation', configureServer: attach, configurePreviewServer: attach };

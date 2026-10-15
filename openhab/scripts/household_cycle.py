@@ -352,7 +352,18 @@ def complete_cycle(*,publication,collection,parameter_record,runtime_manifest,co
         unchanged()
         _retain_original(evidence_directory,energy,'.household-energy-forecast-v1.json',ENERGY_BYTES)
     unchanged()
-    return materialize(receipt,observation_cache,clock=clock,publication_guard=unchanged)
+    result=materialize(receipt,observation_cache,clock=clock,publication_guard=unchanged)
+    if collection['originals'].get('schema')=='earthship-household-cycle-sources/v7':
+        from household_energy_state import project_energy_observation,publish_owned
+        from pathlib import Path
+        try:
+            view=project_energy_observation(energy,plan_receipt=record,generated_at=clock())
+            publish_owned(Path(observation_cache).parent/'energy-observation.json',view,guard=unchanged)
+            result['energy_observation_status']='written'
+        except (OSError,ValueError):
+            result['energy_observation_status']='unavailable'
+        unchanged()
+    return result
 
 
 class LazyForecastBackend:
