@@ -44,7 +44,7 @@
     {
       "phase": "5",
       "requirement": "Hard constraint registry and deterministic arbiter",
-      "current_evidence": "Pure hard-gate registry and deterministic owner/cumulative-reserve arbitration implemented under declared shadow bounds. Live coordination source adapters and qualified bounds remain incomplete.",
+      "current_evidence": "Deterministic shadow hard-gate registry and arbiter implemented. Source e2865cf now collects original rule summaries and derives only registered engine readiness; all three owners verified at natural2026-10-15T00:00:15UTC issue with identical pure/privateCLI replay.416 affected tests pass after one review correction. Physical idle/cooldown/curfew/operator facts, policy baselines and qualified bounds remain incomplete.",
       "complete": false
     },
     {
@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "Earthship observations remain below existing content; standalone household navigation removed. Model 52dd5d12 remains provisional. Natural historical and current scoring completed in 100 and 104 seconds after deployment 40178cdf from 0e7d773. Current report has 19 one-hour outcomes: model MAE 0.318363 F versus persistence 0.170526 F, bias +0.266700 F; longer horizons remain empty. Forecast, preparation, five effective definitions, timers and public HTTP endpoints verified. Completed-trough compatible adapter deployed; natural daily verification remains pending October 15 at 06:40 MDT and training at 06:50 MDT. Qualified physical/action outcomes and the full architecture remain incomplete.",
+      "current_evidence": "Earthship observations remain below existing content; no standalone household navigation. Model52dd5d12 remains provisional. Natural00:00:15UTC forecast and household observation retain fresh daily inputs plus source-bound engine readiness for all three owners, with exact replay. Scoring again hit its deadline at23:53 and23:58UTC; growing replay cost is the next performance task. Earlier19-outcome report modelMAE0.318363F versus persistence0.170526F remains historical evidence only. Natural daily diagnostic/training verification remains pending October15 at06:40/06:50MDT. Qualified physical/action outcomes and full architecture remain incomplete.",
       "complete": false
     },
     {
@@ -7383,29 +7383,29 @@
       },
       "review": "final integration review Important retained-policy binding fixed RED to GREEN; full230-test suite passes",
       "operations": "docs/operations/2026-10-14-shared-job-resources.md",
-      "implementation_commit": "b26ab0173b31d49a52f46faf314c80f65b3845ff",
-      "deployment_sha256": "6a6748c05373701d581679ba194d43f0237f8a761765d9c9ea7306875e37d1f6",
+      "implementation_commit": "e2865cf0be2bbdb2a731ae2a947bbc85208850f3",
+      "deployment_sha256": "1401a55b7f10e92fa718e0fc9817d40e486c314c73e454e90a3f82ff0143ad6b",
       "integration_tests": 230,
-      "natural_forecast": "23:15:15UTC published with household observation; service exit0 at23:15:29UTC; 13.119CPU seconds",
+      "natural_forecast": "2026-10-15T00:00:15UTC normal issue, service exit0 at00:00:29UTC; owner source original/pure/exact-stage CLI replay identical",
       "natural_legacy_score": "22:26UTC monitoring_refreshed;256 retained legacy outcomes;zero new mature outcomes",
       "natural_current_native_score": "23:21:00 UTC to 23:22:44 UTC; scored 1 new mature outcome; 19 current-revision outcomes; 100.493 CPU seconds; exit 0; 94.7 MiB peak RAM; zero swap.",
-      "natural_preparer": "23:18:05UTC to23:18:09UTC; exit0",
+      "natural_preparer": "2026-10-14T23:58:05..09UTC normal preparation on new stage exit0",
       "natural_daily_fit": "pending2026-10-15T06:50MDT",
       "fit_executed_during_rollout": false,
       "current_score_correction_tests": 68,
       "daily_checkout": {
         "status": "daily_source_synchronized",
-        "source_commit": "b26ab0173b31d49a52f46faf314c80f65b3845ff",
-        "previous_source_commit": "0e7d773aea5d9a4977a0e592dc698c1f6a812669",
+        "source_commit": "e2865cf0be2bbdb2a731ae2a947bbc85208850f3",
+        "previous_source_commit": "b26ab0173b31d49a52f46faf314c80f65b3845ff",
         "clean": true,
         "idle_before_checkout": true,
         "unit_unchanged": true,
         "unit_sha256": "eacc1ad9aa28564629258e53f82c80017b640820b4ba739b592dc7dba970da16",
-        "assessed_at": "2026-10-14T23:42:22.711400+00:00"
+        "assessed_at": "2026-10-14T23:57:36.728491+00:00"
       },
       "inventory_correction_tests": 83,
-      "effective_readback_at": "2026-10-14T23:41:27.252071+00:00",
-      "current_score_runtime_risk": "Current role completed in 104 seconds and historical role in 100 seconds against the 120-second lifetime. Both observed paths now pass; report cost still grows with cohort size.",
+      "effective_readback_at": "2026-10-14T23:57:36.668575+00:00",
+      "current_score_runtime_risk": "23:51..23:53UTC and23:56:19..23:58UTC scorer withheld at deadline (household_forecast_score.py:250).23:51 worker consumed116.509CPU seconds. Current report still replays growing cohorts and repeatedly verifies model bindings; previous success at19 outcomes does not establish scalability.",
       "current_model_one_hour_performance": {
         "count": 19,
         "model_mae_f": 0.318363417497883,
@@ -7415,7 +7415,7 @@
         "longer_horizon_outcomes": 0
       },
       "natural_historical_score": "23:16:00UTC to23:17:40UTC succeeded:1 new/18 current-model outcomes;96.107CPU seconds;93.7MiB peak RAM;zero swap. Previous22:56 slot timed out at120seconds.",
-      "next_performance_change": "No further patch required for the observed timeout. Monitor cohort growth; prioritize current original energy inputs and read-only coordination evidence for PR #3.",
+      "next_performance_change": "Reduce repeated invocation-local model/source validation in growing score reports while retaining original dependency integrity and the geometry/forecast reservation. No manual scoring or forecast probes.",
       "report_reuse_tests": 91,
       "report_reuse_review": "Independent review of8bb1785..0e7d773 found no Critical or Important findings",
       "report_reuse_deployed_at": "2026-10-14T23:14:37.153523+00:00",
@@ -7518,7 +7518,7 @@
       "resolution": {
         "daily_input_refresh_verified_at": "2026-10-14T23:41:44.040860+00:00",
         "current_receipt_sha256": "9985b56edec6059329ff0443161ec5197f61072a4fb0e7f87e760b74fe8f8249",
-        "remaining": "Qualified owner coordination facts and baseline SoC floor remain incomplete; no new actuator authority."
+        "remaining": "Current daily inputs and original rule-engine readiness are now bound. Physical coordination gates and baseline SoC floor remain incomplete."
       }
     },
     "household_daily_energy_source_refresh": {
@@ -7578,6 +7578,53 @@
       "reviewed_commit": "83c6f33265ff504d5b4c0b5757ab2dc089812291",
       "source_commit": "b26ab0173b31d49a52f46faf314c80f65b3845ff",
       "deployment_sha256": "6a6748c05373701d581679ba194d43f0237f8a761765d9c9ea7306875e37d1f6"
+    },
+    "household_owner_readiness": {
+      "implemented": true,
+      "deployed": true,
+      "source_commit": "e2865cf0be2bbdb2a731ae2a947bbc85208850f3",
+      "deployment_sha256": "1401a55b7f10e92fa718e0fc9817d40e486c314c73e454e90a3f82ff0143ad6b",
+      "tests_passed": 416,
+      "suite_seconds": 63.79,
+      "review": "One Important optional HTTP/decoder exception-isolation issue reproduced and fixed in one pass; no other findings.",
+      "source_schema": "earthship-household-cycle-sources/v3",
+      "coordination_schema": "earthship-shadow-coordination/v2",
+      "natural_verification": {
+        "assessed_at": "2026-10-15T00:00:40.661703+00:00",
+        "automatic_actuation": false,
+        "current_soc_pct": 90.0,
+        "daily_issued_at": "2026-10-14T12:40:49.420253+00:00",
+        "daily_prediction_day": "2026-10-14",
+        "daily_receipt_sha256": "8411e0c34698981eda772133b843cace8dc7bfb76cce96fa1a692478df0ca8a2",
+        "daily_resource_kwh": 2.011388888888889,
+        "input_qualification": "not_assessed",
+        "live_writes": false,
+        "owner_facts_at_issue": {
+          "88bd9ec4de": {
+            "owner_available": true
+          },
+          "hex_night_load_override": {
+            "owner_available": true
+          },
+          "hex_southoutlet_cycle": {
+            "owner_available": true
+          }
+        },
+        "owner_received_at": "2026-10-15T00:00:08.295645+00:00",
+        "owner_requested_at": "2026-10-15T00:00:08.291683+00:00",
+        "owner_source_sha256": "7ef4fd852ce87e3a87bd37c3e1ccf5c4493a0329a7fcd8c5236bb1c54fb5929e",
+        "private_cli_replay_identical": true,
+        "pure_replay_identical": true,
+        "receipt_path": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-14-shared-job-resources/production-e2865cf/final/evidence/91131bd82bb4a1893906866bca9ffce516d7e0cb0258457f1c60bd1b34edb59d.household-model-plan-v5.json",
+        "receipt_sha256": "f7a4635e6de205ee5cb6df8b05486da958801c84e7f41846aef7bdb718745846",
+        "snapshot_as_of": "2026-10-15T00:00:15+00:00",
+        "source_collected_at": "2026-10-15T00:00:08.020544+00:00",
+        "source_commit": "e2865cf0be2bbdb2a731ae2a947bbc85208850f3",
+        "status": "natural_owner_readiness_household_pipeline_verified",
+        "tomorrow_cloud_pct": 42
+      },
+      "authority": "none",
+      "remaining": "Physical owner idleness, cooldown, curfew, operator permission, source-bound policy baselines and qualified action effects remain unknown."
     }
   },
   "astro_efficiency_audit": {
@@ -7732,5 +7779,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-14T23:36:53.360919+00:00"
+  "updated_at": "2026-10-15T00:00:40.661703+00:00"
 }
