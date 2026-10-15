@@ -336,6 +336,17 @@ def run_battery_slot(config,*,original,settings,stage,binding,dispatch,verifier,
                         clock=clock,monotonic=monotonic,deadline=profiled_deadline)
                 except Exception as error:
                     profiled=dict(status='deferred',reason=failure_reason(error),failure_site=failure_site(error))
+        captured_pv=None
+        if (stage/'sources/openhab/scripts/household_pv_score.py').is_file():
+            from household_pv_score import run as score_captured_pv
+            pv_deadline=min(stop-10,monotonic()+15)
+            captured_pv=dict(status='deferred',reason='captured_PV_budget_reserved')
+            if pv_deadline-monotonic()>=5:
+                try:
+                    captured_pv=score_captured_pv(stage=stage,historical=dispatch['historical'],guard=guard,
+                        clock=clock,monotonic=monotonic,deadline=pv_deadline)
+                except Exception as error:
+                    captured_pv=dict(status='deferred',reason=failure_reason(error),failure_site=failure_site(error))
         guard()
         if verifier(stage)!=binding:raise ValueError('battery slot runtime changed')
         pressure.check(force=True);guard()
@@ -343,6 +354,7 @@ def run_battery_slot(config,*,original,settings,stage,binding,dispatch,verifier,
             scored=0,battery_outcomes=result,automatic_actuation=False)
         if solar is not None:output['solar_outcomes']=solar
         if profiled is not None:output['profiled_outcomes']=profiled
+        if captured_pv is not None:output['captured_pv_outcomes']=captured_pv
         return output
 
 

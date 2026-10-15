@@ -126,3 +126,25 @@ def test_setup_uses_original_battery_deadline_without_renewing_it(tmp_path,monke
     else:
         assert c.run(config,stage=stage,deployment_sha256='a'*64,clock=lambda:now,monotonic=lambda:ticks[0])['status']=='monitoring_refreshed'
         assert calls.count('battery')==1
+
+
+@pytest.mark.parametrize('fails',[False,True])
+def test_optional_captured_PV_failure_preserves_existing_battery_result(tmp_path,monkeypatch,fails):
+    c,config,stage,calls,model,now,dispatch=fixture(tmp_path,monkeypatch,8)
+    import household_battery_score as battery
+    import household_pv_score as pv
+    (stage/'sources/openhab/scripts/household_pv_score.py').write_text('# optional captured-PV producer\n')
+    class Pressure:
+        def check(self):pass
+    monkeypatch.setattr(c,'production_pressure_monitor',lambda:Pressure())
+    monkeypatch.setattr(battery,'run',lambda **kw:{'status':'battery_performance_refreshed','count':2,'automatic_actuation':False})
+    def work(**kw):
+        assert kw['stage']==stage and kw['deadline']<=135
+        kw['guard']()
+        if fails:raise ValueError('private meter connection details')
+        return dict(status='captured_pv_performance_refreshed',count=1,automatic_actuation=False)
+    monkeypatch.setattr(pv,'run',work)
+    result=c.run(config,stage=stage,deployment_sha256='a'*64,clock=lambda:now,monotonic=lambda:100.)
+    assert result['battery_outcomes']['count']==2 and result['status']=='monitoring_refreshed'
+    assert result['captured_pv_outcomes']['status']==('deferred' if fails else 'captured_pv_performance_refreshed')
+    assert 'private meter connection details' not in str(result) and result['automatic_actuation'] is False
