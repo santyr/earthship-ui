@@ -52,6 +52,7 @@ def horizon_configuration(source,*,origin,site,timezone_name):
             body['validation_status']!='unvalidated_map_estimate' or any(body[k] is not False for k in
                 ('nearby_obstructions_included','diffuse_sky_view_modeled','physical_calibration_qualified','automatic_actuation'))):raise ValueError()
         _profile(body['profile'])
+        if site is None:return None,'native_solar_geometry_unavailable'
         if body['timezone']!=timezone_name or body['site_sha256']!=identity({k:site[k] for k in ('latitude','longitude')}):
             return None,'solar_horizon_site_mismatch'
         return loads(canonical(body)),None

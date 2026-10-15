@@ -70,9 +70,10 @@ and losses remain unmeasured.
 A source-bound PVGIS skyline now masks direct beam and its ground reflection,
 while retaining diffuse sky irradiance. Its site fingerprint must match the
 original native geometry. The model labels the map unvalidated and leaves
-nearby obstructions and diffuse sky-view correction unmodeled. Missing horizon
-configuration produces a clearly labeled unobstructed reference; supplied
-unsupported or mismatched configuration withholds the new projection. It does
+nearby obstructions and diffuse sky-view correction unmodeled. Missing, malformed, unsupported or mismatched horizon configuration withholds
+only the new PV/storage projection. The pure numerical integrator retains an
+unobstructed reference for independent comparison, without using that as a
+serving fallback. It does
 not replace native Astro events or the existing thermal model's forcing.
 
 The separate `household_energy_forecast.py` receipt retains PV potential and a

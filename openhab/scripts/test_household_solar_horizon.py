@@ -51,7 +51,7 @@ def test_changed_original_source_bytes_or_availability_cannot_be_relabelled():
 
 
 def test_mountain_shade_removes_direct_beam_and_its_ground_reflection_but_retains_diffuse():
-    args=dict(array=ARRAY,assumptions=pv().ASSUMPTIONS,ghi_wm2=500,elevation_degrees=5,azimuth_degrees=270,day_of_year=288,temp_f=59,wind_mph=2)
+    args=dict(array=ARRAY,assumptions=pv().ASSUMPTIONS,ghi_wm2=500,elevation_degrees=5,azimuth_degrees=165,day_of_year=288,temp_f=59,wind_mph=2)
     clear=pv().array_power(**args)
     shaded=pv().array_power(**args,horizon_elevation_degrees=8.8)
     assert shaded['dni_wm2']==0 and shaded['dhi_wm2']==clear['dhi_wm2']
@@ -62,7 +62,7 @@ def test_mountain_shade_removes_direct_beam_and_its_ground_reflection_but_retain
 
 def test_integrated_terrain_mask_changes_only_solar_response_and_preserves_original_weather():
     args=model_inputs();args['array']=ARRAY
-    for row in args['positions']:row.update(elevation_degrees=5,azimuth_degrees=270)
+    for row in args['positions']:row.update(elevation_degrees=5,azimuth_degrees=165)
     before=canonical(args['hourly_forecast']);unshaded=pv().integrate_array(**args)
     config,reason=api().horizon_configuration(source(),origin=ORIGIN,site=SITE,timezone_name='America/Denver');assert reason is None
     shaded=pv().integrate_array(**args,horizon_profile=config['profile'])

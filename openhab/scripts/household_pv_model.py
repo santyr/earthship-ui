@@ -224,15 +224,17 @@ def project_pv(*,weather,system_source,now,horizon_source=None):
     from household_solar_horizon import horizon_configuration
     horizon_source=None if horizon_source is None else loads(canonical(horizon_source))
     geometry=context.get('solar_geometry');horizon=None;terrain_reason='solar_horizon_unavailable'
-    if geometry is not None:
-        horizon,terrain_reason=horizon_configuration(horizon_source,origin=origin,site=geometry['site'],timezone_name=geometry['timezone'])
-    if horizon_source is not None and horizon is None and reason is None:reason=terrain_reason
+    horizon,terrain_reason=horizon_configuration(horizon_source,origin=origin,
+        site=None if geometry is None else geometry['site'],timezone_name=None if geometry is None else geometry['timezone'])
+    if reason is None:
+        if geometry is None:reason='native_solar_geometry_unavailable'
+        elif horizon is None:reason=terrain_reason
     out=dict(schema='earthship-household-pv-projection/v1',status='unavailable',reason=reason,origin=origin.isoformat(),
         assessed_at=now.isoformat(),weather_context_sha256=context['weather_context_sha256'],
         original_capture_sha256=context['original_capture_sha256'],weather_rows_sha256=context['weather_rows_sha256'],
         system_source_sha256=None if source is None else identity(source),geometry_series_sha256=context.get('geometry_series_sha256'),
         horizon_source_sha256=None if horizon_source is None else identity(horizon_source),
-        terrain_status='unobstructed_reference_horizon_unavailable' if horizon is None else horizon['validation_status'],
+        terrain_status='unavailable' if horizon is None else horizon['validation_status'],
         potential_pv_kwh=None,remaining_today_potential_kwh=None,captured_pv_kwh=None,trajectory=[],steps=[],
         confidence='provisional_uncalibrated',physical_calibration_qualified=False,action_effects_qualified=False,automatic_actuation=False)
     if reason is None:

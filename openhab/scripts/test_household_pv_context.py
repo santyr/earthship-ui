@@ -6,12 +6,13 @@ from household.codec import canonical
 from household.control_contracts import instant
 from test_household_native_weather import made,originals
 from test_household_pv_model import source
+from test_household_solar_horizon import source as horizon_source
 
 
 def test_pv_forecast_uses_the_same_original_native_weather_and_geometry(tmp_path,monkeypatch,originals):
     import household_pv_model as pv_model
     capture,_,_,weather=made(tmp_path,monkeypatch,originals);at=instant(capture['issued_at'])
-    out=pv_model.project_pv(weather=weather,system_source=source(at),now=instant(capture['published_at']))
+    out=pv_model.project_pv(weather=weather,system_source=source(at),horizon_source=horizon_source(at),now=instant(capture['published_at']))
     assert out['status']=='projected_provisional_array_potential',out['reason']
     assert len(out['trajectory'])==24 and out['potential_pv_kwh']>0
     assert out['weather_context_sha256']==weather.to_dict()['weather_sha256']
@@ -24,7 +25,7 @@ def test_pv_forecast_uses_the_same_original_native_weather_and_geometry(tmp_path
 def test_missing_array_configuration_withholds_pv_without_mutating_thermal_weather(tmp_path,monkeypatch,originals):
     import household_pv_model as pv_model
     capture,_,_,weather=made(tmp_path,monkeypatch,originals);before=weather.content
-    out=pv_model.project_pv(weather=weather,system_source=None,now=instant(capture['published_at']))
+    out=pv_model.project_pv(weather=weather,system_source=None,horizon_source=horizon_source(instant(capture['issued_at'])),now=instant(capture['published_at']))
     assert out['status']=='unavailable' and out['reason']=='pv_system_unavailable'
     assert out['trajectory']==[] and weather.content==before
 
@@ -32,12 +33,12 @@ def test_missing_array_configuration_withholds_pv_without_mutating_thermal_weath
 def test_pv_projection_rejects_lookalikes_and_preserves_frozen_inputs_without_reads(tmp_path,monkeypatch,originals):
     import household_pv_model as pv_model
     capture,_,_,weather=made(tmp_path,monkeypatch,originals);at=instant(capture['issued_at']);system=source(at);now=instant(capture['published_at'])
-    before=canonical(system);expected=pv_model.project_pv(weather=weather,system_source=system,now=now)
-    with pytest.raises(ValueError):pv_model.project_pv(weather=weather.to_dict(),system_source=system,now=now)
+    before=canonical(system);horizon=horizon_source(at);expected=pv_model.project_pv(weather=weather,system_source=system,horizon_source=horizon,now=now)
+    with pytest.raises(ValueError):pv_model.project_pv(weather=weather.to_dict(),system_source=system,horizon_source=horizon_source(at),now=now)
     import builtins
     def forbidden(*a,**kw):pytest.fail('read during frozen PV projection')
     monkeypatch.setattr(builtins,'open',forbidden)
-    assert pv_model.project_pv(weather=weather,system_source=system,now=now)==expected
+    assert pv_model.project_pv(weather=weather,system_source=system,horizon_source=horizon,now=now)==expected
     assert canonical(system)==before
 
 
