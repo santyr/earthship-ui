@@ -9,18 +9,17 @@ from household.control_contracts import instant
 from household.power_flows import project_power_flows
 from household.model_snapshot import restore_snapshot
 from household.planning import _runtime_manifest
-from household_pipeline import pipeline_runtime_manifest
-from household_outcomes import original_plan_runtime
+from household_outcomes import original_plan_runtime,outcome_runtime_manifest
 from household_snapshot import _read
 
 MAX_BYTES=65536
-REQUIRED={'openhab/scripts/household/power_flows.py','openhab/scripts/household_power_flows.py'}
+REQUIRED={'openhab/scripts/household/power_flows.py','openhab/scripts/household_power_flows.py','openhab/scripts/household_outcomes.py'}
 FIELDS={'schema','inputs','runtime_manifest','output','receipt_sha256'}
 INPUT_FIELDS={'plan_receipt_sha256','plan_document_sha256','topology_source','assessed_at'}
 
 
 def flow_runtime_manifest():
-    result=pipeline_runtime_manifest(expanded=True,configured=True,measured=True)
+    result=outcome_runtime_manifest()
     result['openhab/scripts/household_power_flows.py']=sha256(_read(Path(__file__).resolve(),262144)).hexdigest()
     return result
 
@@ -35,7 +34,7 @@ def seal_flow_receipt(*,plan_receipt,topology_source,now,runtime_manifest):
     value=dict(schema='earthship-household-power-flow-receipt/v1',inputs=dict(
         plan_receipt_sha256=plan['receipt_sha256'],plan_document_sha256=sha256(canonical(plan)).hexdigest(),
         topology_source=topology_source,assessed_at=now.isoformat()),runtime_manifest=runtime,
-        output=project_power_flows(snapshot=snapshot,topology_source=topology_source,now=now))
+        output=project_power_flows(snapshot=snapshot,topology_source=topology_source,now=now,metric_source=plan['inputs'].get('energy_persistence_source')))
     value['receipt_sha256']=identity(value)
     if len(canonical(value))>MAX_BYTES:raise ValueError('bounded original flow receipt required')
     return loads(canonical(value))

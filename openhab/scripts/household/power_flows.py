@@ -9,7 +9,7 @@ from .codec import canonical,loads,identity
 from .control_contracts import instant
 from .evidence import utc
 from .energy_source_snapshot import EnergySourceSnapshot
-from .energy_persistence import _reading
+from .energy_persistence import _reading,_metric
 
 TOPOLOGY_IDENTITY='earthship-ui/openhab/household-energy-topology.json'
 SOURCE_FIELDS={'schema','source_identity','raw','sha256','available_at'}
@@ -48,12 +48,14 @@ def _dc_scope(source,at):
     return 'none_operator_declared',None
 
 
-def project_power_flows(*,snapshot,topology_source,now):
+def project_power_flows(*,snapshot,topology_source,now,metric_source=None):
     if not isinstance(snapshot,EnergySourceSnapshot):raise ValueError('original configured energy snapshot required')
     now=utc(now);doc=snapshot.to_dict();at=instant(doc['as_of'])
     if now<instant(doc['created_at']):raise ValueError('flow projection precedes original snapshot availability')
     topology_source=None if topology_source is None else loads(canonical(topology_source))
     scope,scope_reason=_dc_scope(topology_source,at)
+    metric_source=None if metric_source is None else loads(canonical(metric_source))
+    metric_reason=_metric(metric_source,at)
     rows=doc['domains']['energy'];ages=doc['temporal_policy']['max_age_seconds'];values={};refs={};reasons={}
     for output,role,source in (
         ('battery_net_dc_w','battery_power_w','Power_Evidence_JSON:battery.dc_power_w'),
@@ -67,6 +69,9 @@ def project_power_flows(*,snapshot,topology_source,now):
         if reason is None and output!='battery_net_dc_w' and number<0:reason='unsupported_export_flow'
         values[output]=number if reason is None else None;reasons[output]=reason
         if reason is None:refs[output]=row['evidence']['digest']
+    if metric_reason is not None:
+        values['battery_net_dc_w']=None;reasons['battery_net_dc_w']=metric_reason
+        refs.pop('battery_net_dc_w',None)
     battery=values['battery_net_dc_w'];ac=values['household_ac_load_w']
     values.update(battery_charge_w=None if battery is None else max(0,battery),
         battery_discharge_w=None if battery is None else max(0,-battery),
@@ -78,8 +83,9 @@ def project_power_flows(*,snapshot,topology_source,now):
     out=dict(schema='earthship-household-power-flows/v1',snapshot_id=snapshot.snapshot_id,origin=at.isoformat(),assessed_at=now.isoformat(),
         status='available' if available else 'partial' if measured else 'unavailable',**values,
         household_dc_scope=scope,household_load_basis='attested_inverter_only_ac_load_and_operator_dc_scope' if values['household_load_w'] is not None else None,
-        storage_basis='signed_net_battery_dc_power_positive_charging',solar_scope='reported_controller_output_not_total_available_solar',
+        storage_basis=None if battery is None else 'signed_net_battery_dc_power_positive_charging',solar_scope='reported_controller_output_not_total_available_solar',
         topology_source_sha256=None if topology_source is None else identity(topology_source),
+        metric_source_sha256=None if metric_source is None else identity(metric_source),
         energy_configuration_sha256=doc['energy_configuration_sha256'],source_evidence_sha256=refs,reasons=reasons,
         balance_closed=False,physical_calibration_qualified=False,action_effects_qualified=False,automatic_actuation=False)
     out['projection_sha256']=identity(out)

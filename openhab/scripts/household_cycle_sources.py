@@ -93,7 +93,7 @@ class CycleSourceCollector:
             self.policy_bindings.append((LOAD_TOPOLOGY_PATH,4096,original))
             if original[0] is not None:
                 self.load_topology_source=prepare_topology_source(original[0].encode('utf-8'),available_at=utc(self.clock()))
-        except (OSError,ValueError,UnicodeError):
+        except (OSError,ValueError,UnicodeError,RecursionError):
             self.load_topology_source=None
         # Optional original sign/unit declaration. Malformed configuration
         # withholds the new baseline while preserving the other domains.
