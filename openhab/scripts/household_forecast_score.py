@@ -184,6 +184,7 @@ def score_with_report(settings,*,guard,clock=lambda:datetime.now(timezone.utc),q
 
 
 def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic):
+    started=monotonic()
     import os
     _resource_preflight=production_resource_preflight
     from thermal_model.provisional_live import load_settings,_next_issue
@@ -191,7 +192,7 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
     from thermal_model.training_pressure_guard import TrainingHeadroom
     from thermal_model.policy_registration import _read_private
     from household_observation import _private_file
-    deadline=monotonic()+SCORE_LIFETIME_SECONDS
+    deadline=started+SCORE_LIFETIME_SECONDS
     _resource_preflight()
     os.environ['EARTHSHIP_QUALIFICATION_FIT']='0';os.environ['EARTHSHIP_REMOTE_QUALIFICATION_FIT']='0'
     config=Path(config).absolute();original=_private_file(config,8192)
@@ -205,6 +206,12 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
     if receipt_profile and (stage is None or deployment_sha256 is None):raise ValueError('external serving score stage pin required')
     own=Path(__file__).read_bytes();now=clock();issue=_next_issue(now)
     if issue-now<timedelta(seconds=90):raise BlockingIOError('forecast preparation window reserved')
+    role='current' if retained_native else score_role(now)
+    if receipt_profile and role=='battery':deadline=min(deadline,started+45)
+    def selection_guard():
+        _resource_preflight()
+        if monotonic()>=deadline or _private_file(config,8192)!=original or Path(__file__).read_bytes()!=own:
+            raise ValueError('score source or selection changed before dispatch')
     verifier=None;binding=None
     if stage is not None:
         from household_cycle_deploy import verify_stage
@@ -212,17 +219,15 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
         if receipt_profile:
             def verifier(actual):return verify_stage(actual,expected_deployment_sha256=deployment_sha256)
         else:verifier=verify_stage
+        if receipt_profile:selection_guard()
         binding=verifier(stage)
+        if receipt_profile:selection_guard()
         if Path(__file__).resolve()!=stage/'sources/openhab/scripts/household_forecast_score.py':
             raise ValueError('staged score coordinator execution required')
     dispatch=None
     if receipt_profile:
-        def selection_guard():
-            _resource_preflight()
-            if monotonic()>=deadline or _private_file(config,8192)!=original or Path(__file__).read_bytes()!=own:
-                raise ValueError('score source or selection changed before dispatch')
         dispatch=read_score_dispatch(stage,deployment_sha256=deployment_sha256,guard=selection_guard)
-        role='current' if retained_native else score_role(now)
+        selection_guard()
         if role=='battery':
             return run_battery_slot(config,original=original,settings=settings,stage=stage,binding=binding,dispatch=dispatch,
                 verifier=verifier,deadline=deadline,issue=issue,clock=clock,monotonic=monotonic)
@@ -289,7 +294,7 @@ def run_battery_slot(config,*,original,settings,stage,binding,dispatch,verifier,
     from household_observation import _private_file
     from household_battery_score import run as score_battery
     own=Path(__file__).read_bytes()
-    stop=min(deadline,monotonic()+45,monotonic()+(issue-timedelta(seconds=30)-clock()).total_seconds()-10)
+    stop=min(deadline,monotonic()+(issue-timedelta(seconds=30)-clock()).total_seconds()-10)
     with SharedScoreLock(settings['shared_lock']) as lock:
         pressure=SampledScorePressure(production_pressure_monitor(),monotonic=monotonic)
         pressure.check(force=True)

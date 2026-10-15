@@ -90,3 +90,39 @@ def test_independent_work_cannot_escape_its_final_deadline_or_forecast_margin(tm
     monkeypatch.setattr(battery,'run',overrun)
     with pytest.raises(ValueError,match='battery opportunity elapsed'):
         c.run(config,stage=stage,deployment_sha256='a'*64,clock=lambda:wall[0],monotonic=lambda:ticks[0])
+
+
+@pytest.mark.parametrize('setup',['stage','dispatch'])
+@pytest.mark.parametrize('elapsed',[20.,46.])
+def test_setup_uses_original_battery_deadline_without_renewing_it(tmp_path,monkeypatch,setup,elapsed):
+    c,config,stage,calls,model,now,dispatch=fixture(tmp_path,monkeypatch,8)
+    import household_battery_score as battery
+    import household_cycle_deploy as deploy
+    ticks=[100.]
+    class Pressure:
+        def check(self):pass
+    monkeypatch.setattr(c,'production_pressure_monitor',lambda:Pressure())
+    if setup=='stage':
+        original=deploy.verify_stage
+        def slow(*a,**kw):
+            result=original(*a,**kw)
+            if calls.count('stage_verified')==1:ticks[0]+=elapsed
+            return result
+        monkeypatch.setattr(deploy,'verify_stage',slow)
+    else:
+        original=c.read_score_dispatch
+        def slow(*a,**kw):
+            result=original(*a,**kw);ticks[0]+=elapsed;kw['guard']();return result
+        monkeypatch.setattr(c,'read_score_dispatch',slow)
+    def work(**kw):
+        assert kw['deadline']==135.,'battery budget restarted after setup'
+        calls.append('battery');kw['guard']()
+        return {'status':'battery_performance_refreshed','count':1}
+    monkeypatch.setattr(battery,'run',work)
+    if elapsed>45:
+        with pytest.raises(ValueError):
+            c.run(config,stage=stage,deployment_sha256='a'*64,clock=lambda:now,monotonic=lambda:ticks[0])
+        assert 'battery' not in calls and 'locked' not in calls
+    else:
+        assert c.run(config,stage=stage,deployment_sha256='a'*64,clock=lambda:now,monotonic=lambda:ticks[0])['status']=='monitoring_refreshed'
+        assert calls.count('battery')==1
