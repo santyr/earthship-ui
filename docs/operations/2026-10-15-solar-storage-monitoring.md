@@ -55,11 +55,43 @@ minutes from the original issue; reports expire thirty minutes after generation.
 A cache read cannot renew source freshness. The Earthship view labels expiry,
 missing evidence, unmatched model cohorts and provisional quantities.
 
-## Verification status
+## Verified deployment and first scheduled observation
+
+Source `a5397426f0ca0d9a5b2cc700c9aea6eda354fc31` is activated as
+`dbc1369cb9e43a225475fb2ea32f5cd0abe0a909141df71a1885eabd48d8523c`.
+The complete trained artifact `188a42a8` is unchanged. Effective readback verifies
+all five owned files, three timers, both score calendars, the shared pool and
+HTTP availability. The clean idle daily checkout advances with its unit bytes
+unchanged and without starting training. Five committed UI files are installed
+without restarting the UI service; protected thermal overlays remain unchanged.
+
+The normal 16:50:15Z issue is retained and publishes its original clock. It
+projects 16.4638 kWh potential over the next 24 hours and a separate 9.9176 kWh
+conditional capture scenario from 98% SoC, holding the original 353 W AC load
+constant. These different quantities are provisional predictions, not measured
+outcomes or the previous whole-day forecast. Its external-original replay and
+exact staged file-only CLI are identical; original forecast and plan bytes are
+unchanged. The fixed public GET returns 200 and the 24-hour chart/inspection
+control renders at 1280x800 and 800x1024 with no page errors, write attempts or
+horizontal document overflow. Actual screenshots are retained privately.
+
+The new accuracy cache is initially unavailable pending its first scheduled
+mature comparison. The earliest retained eligible PV origin is 15:50:15Z; its
+one-hour endpoint matures at 16:55:15Z and the next independent battery/solar
+opportunity is 16:58:20Z. This checkpoint does not claim any scored scenario
+outcome. The 16:46:33Z scoring launch was refused shared admission during the
+handoff; the ordinary 16:48:20Z opportunity and geometry preparer subsequently
+completed normally, without manual retry or safeguard changes.
 
 The broad household/backend suite passes 1,500 cases in 302.55 seconds. All
-2,439 frontend cases across 155 files pass, and the frontend build passes. The
-final immutable review, live deployment and naturally issued outcome evidence
-are pending. Prior-revision hosted Python CI has environment/fixture failures;
-its ML, encrypted delivery, authentication and GitGuardian checks pass. These
-local results do not claim that hosted merge checks are clear.
+2,439 frontend cases across 155 files pass, and the frontend build passes. One
+immutable review received one correction pass: independently rederive reference
+numerics, bind the complete forecast source closure in cohorts and handle
+shorter reference horizons explicitly. Four red regressions reproduce these
+issues; 53 affected cases pass after correction. An additional cache-isolation
+case preserves the original publication path and unrelated target bytes.
+
+Prior-revision hosted Python CI has interpreter-permission and real-resource
+environment failures; its ML, encrypted delivery, authentication and GitGuardian
+checks pass. These local results do not claim that hosted merge checks are
+clear. Full PR #3 and comparable PV energy calibration remain incomplete.

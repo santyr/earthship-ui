@@ -133,3 +133,16 @@ The immutable review found one Important fallback issue and one minor integrity
 edge; missing or unusable terrain now withholds only PV/storage, and source
 wrapper integrity is checked even without geometry. Live owner rules and
 original thermal predictions remain unchanged. Full PR #3 is still incomplete.
+
+## Monitoring follow-up — October 15
+
+Operational source `a539742` now adds a public 24-hour solar/storage chart and
+independently verified original-reference SoC comparison under the existing
+shared scoring schedule. The normal 16:50:15Z receipt, original plan and exact
+staged file-only replay match; laptop/tablet rendering and the fixed public GET
+are verified. This later original uses its own retained weather/load/SoC inputs;
+it does not revise the earlier 15:50 forecast. The first mature scheduled
+comparison is pending at this checkpoint, and PV energy accuracy remains
+unavailable until meter scope is comparable. See the [monitoring deployment and
+validation record](2026-10-15-solar-storage-monitoring.md). Full PR #3 remains
+incomplete.
