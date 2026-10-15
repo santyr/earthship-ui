@@ -8441,6 +8441,18 @@
         "assessed_at": "2026-10-15T13:16:43.915743+00:00"
       },
       "automatic_actuation": false
+    },
+    "pv_forecasting_research": {
+      "document": "docs/operations/2026-10-15-pv-forecast-practice.md",
+      "operator_array_azimuth_degrees": 165,
+      "quoted_array_dc_kw": 4.2,
+      "tilt_degrees": null,
+      "tilt_status": "operator_measurement_pending",
+      "shared_retained_weather_and_astro_inputs": true,
+      "pv_load_storage_targets_separate": true,
+      "new_pv_forecast_deployed": false,
+      "recovery_day_estimate_8_5_kwh": "plausible_not_verified",
+      "full_phase_complete": false
     }
   },
   "astro_efficiency_audit": {

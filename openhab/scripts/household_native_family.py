@@ -230,7 +230,7 @@ def prepare_score_dispatch(*,legacy_stage,legacy_deployment_sha256,historical_se
     legacy_stage=deploy._directory(legacy_stage);output=deploy._path(output)
     deploy._directory(output.parent)
     if output.exists() or output.is_symlink():raise ValueError('distinct owned score dispatch output required')
-    if type(historical_selections) is not tuple or len(historical_selections)>31:
+    if type(historical_selections) is not tuple or len(historical_selections)>63:
         raise ValueError('bounded explicit historical score selection tuple required')
     references=[]
     def retained(stage,pin,schema):

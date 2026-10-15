@@ -266,7 +266,9 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
             selected=load_serving_selection(stage,expected_deployment_sha256=deployment_sha256,assessed_at=clock(),guard=guard)
             model=read_serving_model(selected,assessed_at=clock(),guard=guard)
             historical=[]
-            for ref in ([] if retained_native else dispatch['historical']):
+            # Keep the original per-process native inference envelope. Every
+            # older explicit stage still gets its own rotating worker slot.
+            for ref in ([] if retained_native else dispatch['historical'][-31:]):
                 guard()
                 archived=verify_stage(Path(ref['stage']),expected_deployment_sha256=ref['deployment_sha256'])
                 # Different source revisions execute only in their sealed worker.
@@ -476,7 +478,7 @@ def read_score_dispatch(stage,*,deployment_sha256,guard):
     if cycle.get('forecast_config')!=str(config) or loads(original_config).get('schema')!='earthship-provisional-thermal-live-config/v1':
         raise ValueError('retained legacy cycle configuration differs')
     historical=value['historical']
-    if not isinstance(historical,list) or len(historical)>31:raise ValueError('bounded explicit historical score selections required')
+    if not isinstance(historical,list) or len(historical)>63:raise ValueError('bounded explicit historical score selections required')
     seen={str(stage)}
     for selection in historical:
         guard()
