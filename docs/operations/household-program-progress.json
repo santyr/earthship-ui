@@ -8597,10 +8597,46 @@
       "live_matched_table_verified": true
     },
     "hosted_runtime_environment_correction": {
-      "status": "focused_checks_passed_hosted_pending",
+      "status": "all_existing_python_and_frontend_passed_hosted_overall_timeout",
       "unscoped": "11pass1skip",
       "scoped": "144pass includingrealcgroup optin",
-      "production_safeguards_unchanged": true
+      "production_safeguards_unchanged": true,
+      "source_commit": "5c74c0ae2ccfbe24658ea48baa4772a691c21828",
+      "hosted_run": 38778917509,
+      "hosted_OpenHAB_Python_passed": 6039,
+      "hosted_OpenHAB_Python_skipped": 24,
+      "hosted_frontend_passed": 2439,
+      "hosted_completion_passed": 571,
+      "hosted_remaining": "operational_tools_cancelled_after_existing_30_minute_job_limit",
+      "timeout_correction": "45_minutes_same_full_tests_no_production_policy_change"
+    },
+    "hourly_ac_load_profile": {
+      "status": "implemented_verified_preparing_single_immutable_review",
+      "approval": "load_model_design_explicitly_approved",
+      "source_target": "inverter_AC_output_energy",
+      "historical_data_audit": "14_completed_Denver_days_233068_original_rows_11_to_14_supported_independent_days_per_clock_hour",
+      "historical_audit_model_fit_executed": false,
+      "learning_schedule": "existing_morning_job_only",
+      "new_agent_triggered_production_fit_or_forecast": false,
+      "source_and_coverage_evidence_retained": true,
+      "original_v1_forecast_runtime_unchanged": true,
+      "read_only": true,
+      "automatic_actuation": false,
+      "plan": "docs/operations/2026-10-15-hourly-ac-load-model.md",
+      "verification": "broader_backend_running_frontend_2462pass",
+      "full_goal_complete": false,
+      "backend_regression_passed": 1624,
+      "backend_explicit_resource_smoke_skips": 2,
+      "backend_seconds": 417.86,
+      "backend_dev_preferred_memory_mib": 3072,
+      "development_resource_guards_unchanged": true,
+      "frontend_passed": 2462,
+      "frontend_build_passed": true,
+      "feature_tests_passed": 131,
+      "final_revalidation_tests_passed": 39,
+      "daily_version_aggregation_test_passed": true,
+      "normal_morning_training_not_triggered": true,
+      "live_deployed": false
     }
   },
   "astro_efficiency_audit": {
@@ -8755,5 +8791,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-15T17:01:16.500180+00:00"
+  "updated_at": "2026-10-15T18:37:22.237034+00:00"
 }

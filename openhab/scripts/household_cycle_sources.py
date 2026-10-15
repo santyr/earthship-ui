@@ -216,6 +216,13 @@ class CycleSourceCollector:
             if utc(self.clock())>=issue:raise ValueError('original sources arrived after issue')
             return value
         check();before={};after={}
+        from household_ac_load_store import read_current,AC_LOAD_ROOT
+        ac_load_source=None
+        try:
+            ac_load_source=read_current(AC_LOAD_ROOT,assessed_at=utc(self.clock()),guard=check)
+        except (OSError,ValueError):
+            pass
+        check()
         # Daily state is an existing mutable input, not an immutable credential
         # or release artifact. Retain only its exact energy record and match it
         # to the independently read published receipt before using it.
@@ -289,9 +296,9 @@ class CycleSourceCollector:
         check()
         self.verify_unchanged(check);finished=utc(self.clock())
         if not started<=finished<issue:raise ValueError('source collection clock changed')
-        result=dict(schema='earthship-household-cycle-sources/v7',issue=issue.isoformat(),captured_at=finished.isoformat(),
+        result=dict(schema='earthship-household-cycle-sources/v8',issue=issue.isoformat(),captured_at=finished.isoformat(),
             power_receipt=receipt,energy_configuration=configuration.to_dict(),measured_weather=measured.to_dict(),daily_energy_source=daily_source,owner_source=owner_source,policy_source=policy_source,energy_persistence_source=self.metric_source,load_topology_source=self.load_topology_source,
-            pv_system_source=self.pv_system_source,solar_horizon_source=self.solar_horizon_source,
+            pv_system_source=self.pv_system_source,solar_horizon_source=self.solar_horizon_source,ac_load_source=ac_load_source,
             owner_bindings=dict(before=before,after=after),automatic_actuation=False)
         if len(canonical(result))>1048576:raise ValueError('bounded cycle source originals required')
         check();return result

@@ -91,7 +91,7 @@ def test_collector_retains_bounded_original_rule_summary(tmp_path,monkeypatch):
         assert remaining()>0;calls.append(1);return original['raw']
     collector.rule_reader=read
     result=collector(issue=now+timedelta(seconds=8),remaining=lambda:6.,guard=lambda:None)
-    assert result['schema']=='earthship-household-cycle-sources/v7'
+    assert result['schema']=='earthship-household-cycle-sources/v8'
     assert result['owner_source']['raw']==original['raw'] and calls==[1]
     assert result['owner_source']['requested_at']==now.isoformat()
     assert result['owner_source']['received_at']==now.isoformat()

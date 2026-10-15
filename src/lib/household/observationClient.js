@@ -3,6 +3,8 @@ import { OBSERVATION_MAX_BYTES } from './observation.js';
 export const loadHouseholdObservation = signal => load('/api/household-observation', signal);
 export const loadEnergyObservation = signal => load('/api/household-energy-observation', signal);
 export const loadEnergyPerformance = signal => load('/api/household-energy-performance', signal);
+export const loadProfiledObservation = signal => load('/api/household-profiled-energy-observation', signal);
+export const loadProfiledPerformance = signal => load('/api/household-profiled-energy-performance', signal);
 export const loadBatteryPerformance = signal => load('/api/household-battery-performance', signal);
 
 async function load(path, signal) {

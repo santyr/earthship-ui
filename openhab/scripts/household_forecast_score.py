@@ -325,12 +325,24 @@ def run_battery_slot(config,*,original,settings,stage,binding,dispatch,verifier,
                         clock=clock,monotonic=monotonic,deadline=solar_deadline)
                 except Exception as error:
                     solar=dict(status='deferred',reason=failure_reason(error),failure_site=failure_site(error))
+        profiled=None
+        if (stage/'sources/openhab/scripts/household_profiled_score.py').is_file():
+            from household_profiled_score import run as score_profiled
+            profiled_deadline=min(stop-10,monotonic()+15)
+            profiled=dict(status='deferred',reason='profiled_budget_reserved')
+            if profiled_deadline-monotonic()>=5:
+                try:
+                    profiled=score_profiled(stage=stage,historical=dispatch['historical'],guard=guard,
+                        clock=clock,monotonic=monotonic,deadline=profiled_deadline)
+                except Exception as error:
+                    profiled=dict(status='deferred',reason=failure_reason(error),failure_site=failure_site(error))
         guard()
         if verifier(stage)!=binding:raise ValueError('battery slot runtime changed')
         pressure.check(force=True);guard()
         output=dict(status='monitoring_refreshed' if result.get('status')=='battery_performance_refreshed' else 'waiting',
             scored=0,battery_outcomes=result,automatic_actuation=False)
         if solar is not None:output['solar_outcomes']=solar
+        if profiled is not None:output['profiled_outcomes']=profiled
         return output
 
 

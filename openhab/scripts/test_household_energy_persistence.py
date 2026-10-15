@@ -187,7 +187,7 @@ def test_collector_retains_fixed_metric_original_and_refuses_midcycle_change(tmp
     raw=metric(NOW)['raw']
     collector,_,calls,_,now=collector_fixture(tmp_path,monkeypatch,metric_raw=raw)
     out=collector(issue=now+timedelta(seconds=8),remaining=lambda:6.,guard=lambda:None)
-    assert out['schema']=='earthship-household-cycle-sources/v7'
+    assert out['schema']=='earthship-household-cycle-sources/v8'
     assert out['energy_persistence_source']['raw']==raw
     assert out['energy_persistence_source']['available_at']==now.isoformat()
     reader=collector.owner_reader

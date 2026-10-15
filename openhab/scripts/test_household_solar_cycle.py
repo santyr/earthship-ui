@@ -47,3 +47,23 @@ def test_solar_outcomes_share_only_unused_battery_slot_budget_without_affecting_
     assert result['status']=='monitoring_refreshed' and result['battery_outcomes']['count']==12
     assert result['solar_outcomes']['status']==('deferred' if fails else 'solar_storage_performance_refreshed')
     assert 'operator-private-diagnostic' not in str(result) and 'read_model' not in calls
+
+
+@pytest.mark.parametrize('fails',[False,True])
+def test_profiled_outcomes_use_remaining_slot_without_changing_existing_results(tmp_path,monkeypatch,fails):
+    from test_native_serving_score_driver import fixture
+    import household_battery_score as battery,household_profiled_score as profiled
+    c,config,stage,calls,model,now,dispatch=fixture(tmp_path,monkeypatch,8)
+    path=stage/'sources/openhab/scripts/household_profiled_score.py';path.parent.mkdir(parents=True,exist_ok=True);path.write_text('# retained producer')
+    class Pressure:
+        def check(self):pass
+    monkeypatch.setattr(c,'production_pressure_monitor',lambda:Pressure())
+    monkeypatch.setattr(battery,'run',lambda **kw:dict(status='battery_performance_refreshed',count=12))
+    def score(**kw):
+        assert kw['stage']==stage and kw['historical']==[] and 100<kw['deadline']<=115;kw['guard']()
+        if fails:raise ValueError('private source detail')
+        return dict(status='profiled_energy_performance_refreshed',count=2)
+    monkeypatch.setattr(profiled,'run',score)
+    value=c.run(config,stage=stage,deployment_sha256='a'*64,clock=lambda:now,monotonic=lambda:100.)
+    assert value['battery_outcomes']['count']==12 and value['profiled_outcomes']['status']==('deferred' if fails else 'profiled_energy_performance_refreshed')
+    assert 'private source detail' not in str(value)

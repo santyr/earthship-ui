@@ -40,13 +40,23 @@ def retained_parts(rows, cutoff):
 
 def run_daily(backend, *, now, timezone_name):
     cutoff = training_cutoff(now, timezone_name)
+    load = None
+    prepare_load = getattr(backend, 'prepare_ac_load', None)
+    if prepare_load is not None:
+        try:
+            load = prepare_load(cutoff)
+        except Exception:
+            load = dict(status='deferred', reason='load_profile_refresh_failed', automatic_actuation=False)
+    def result(value):
+        if load is not None: value = dict(value, ac_load=load)
+        return value
     previous = backend.current()
     if datetime.fromisoformat(previous['trained_through']) >= cutoff:
-        return dict(status='already_current', trained_through=previous['trained_through'],
-                    cutoff=cutoff.isoformat(), fit_executed=False, automatic_actuation=False)
+        return result(dict(status='already_current', trained_through=previous['trained_through'],
+                    cutoff=cutoff.isoformat(), fit_executed=False, automatic_actuation=False))
     selection = backend.prepare(cutoff, previous)
-    return dict(backend.activate(selection, previous), cutoff=cutoff.isoformat(),
-                fit_executed=True, automatic_actuation=False)
+    return result(dict(backend.activate(selection, previous), cutoff=cutoff.isoformat(),
+                fit_executed=True, automatic_actuation=False))
 
 
 def main(argv=None):

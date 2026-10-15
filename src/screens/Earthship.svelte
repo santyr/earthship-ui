@@ -11,6 +11,7 @@
   import ThermalModelCard from '../lib/ui/ThermalModelCard.svelte';
   import HouseholdObservation from '../lib/ui/HouseholdObservation.svelte';
   import EnergyForecast from '../lib/ui/EnergyForecast.svelte';
+  import ProfiledEnergy from '../lib/ui/ProfiledEnergy.svelte';
   import { colors } from '../lib/ui/tokens.js';
   import { greywaterState, relativeAgeText } from '../lib/ui/homeCardState.js';
   import { greywaterSchedule } from '../lib/ui/greywaterSchedule.js';
@@ -303,6 +304,7 @@
 <section class="earthship-observation" aria-label="Household intelligence">
   <HouseholdObservation />
   <EnergyForecast />
+  <ProfiledEnergy />
 </section>
 </div>
 

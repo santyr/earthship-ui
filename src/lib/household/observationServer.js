@@ -5,6 +5,7 @@ import { homedir } from 'node:os';
 import { OBSERVATION_MAX_BYTES, parseHouseholdObservation } from './observation.js';
 import { parseBatteryPerformance } from './batteryPerformance.js';
 import { parseEnergyObservation, parseEnergyPerformance } from './energyObservation.js';
+import { parseProfiledObservation, parseProfiledPerformance } from './profiledObservation.js';
 
 // Preserve Vite's default sensitive-file exclusions and add private agent and
 // receipt staging. Filesystem permissions alone do not constrain the web server.
@@ -48,6 +49,8 @@ export function householdObservationPlugin({
   batteryCachePath = resolve(homedir(), '.local/state/household-intel/battery-performance.json'),
   energyCachePath = resolve(homedir(), '.local/state/household-intel/energy-observation.json'),
   energyPerformanceCachePath = resolve(homedir(), '.local/state/household-intel/energy-performance.json'),
+  profiledCachePath = resolve(homedir(), '.local/state/household-intel/profiled-energy-observation.json'),
+  profiledPerformanceCachePath = resolve(homedir(), '.local/state/household-intel/profiled-energy-performance.json'),
   now = Date.now,
 } = {}) {
   const attach = server => { server.middlewares.use(async (req, res, next) => {
@@ -58,6 +61,8 @@ export function householdObservationPlugin({
       '/api/household-battery-performance': [batteryCachePath, parseBatteryPerformance],
       '/api/household-energy-observation': [energyCachePath, parseEnergyObservation],
       '/api/household-energy-performance': [energyPerformanceCachePath, parseEnergyPerformance],
+      '/api/household-profiled-energy-observation': [profiledCachePath, parseProfiledObservation],
+      '/api/household-profiled-energy-performance': [profiledPerformanceCachePath, parseProfiledPerformance],
     }[url.pathname];
     if (!route) return next();
     res.setHeader('Content-Type', 'application/json; charset=utf-8');

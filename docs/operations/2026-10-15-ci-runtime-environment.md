@@ -41,3 +41,13 @@ The five affected files pass 38 cases with two explicit cgroup smoke skips;
 scoped opt-in verification is retained separately. Hosted verification of the
 final correction is still required. This is a CI
 environment correction, not completion of the remaining PR #3 architecture.
+
+The final environment correction in `5c74c0a` passed all 6,039 OpenHAB Python
+cases (24 explicit skips and 91 subtests), all 2,439 frontend tests, the frontend
+build, all 571 completion cases and real isolated nak authentication in hosted
+run `38778917509`. The OpenHAB step took 27m02s. The job then reached its existing
+30-minute overall timeout during operational-tooling tests, which were cancelled
+without a reported assertion failure. The hosted job allowance is increased to
+45 minutes so the existing full checks can finish; no check is removed and no
+production resource policy changes. The next feature push will verify that final
+workflow. No unchanged CI rerun was triggered after the cancellation.

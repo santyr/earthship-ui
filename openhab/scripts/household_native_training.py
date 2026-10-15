@@ -139,6 +139,25 @@ class NativeTraining:
         self.capture_config = read(config['capture_config'], 8192)
         self.inputs = read(config['staging_inputs'])
 
+    def prepare_ac_load(self, cutoff):
+        """Independent read-only AC-output model in the existing morning job."""
+        from household_ac_load_store import refresh_profile, AC_LOAD_ROOT, ENERGY_READER_CONFIG
+        from household_capture import _connection
+        deadline = time.monotonic() + 120.
+        def remaining():
+            self.guard()
+            value = deadline - time.monotonic()
+            if value < 1: raise TimeoutError('daily load profile deadline elapsed')
+            return min(15., value)
+        result = dict(status='deferred', reason='load_profile_refresh_failed', automatic_actuation=False)
+        try:
+            connect = _connection(str(ENERGY_READER_CONFIG), 'energy_power_reader')
+            result = refresh_profile(root=AC_LOAD_ROOT, connect=connect, cutoff=cutoff,
+                clock=lambda: datetime.now(timezone.utc), remaining=remaining, guard=remaining)
+            return result
+        finally:
+            save(self.state / 'last-ac-load-result.json', result)
+
     def current(self):
         from native_model_serving_receipt import load_serving_selection, read_serving_model
         selected = effective_selection()

@@ -127,3 +127,31 @@ def test_first_run_creates_owned_lock_and_concurrent_run_refuses(tmp_path):
             with training.daily_lock(lock):pass
     with training.daily_lock(lock):assert lock.stat().st_ino==inode
     assert lock.stat().st_mode & 0o777 == 0o600
+
+
+def test_load_domain_refresh_runs_even_when_thermal_is_already_current():
+    b=Backend('2026-10-15T06:00:00+00:00');calls=[]
+    b.prepare_ac_load=lambda cutoff:calls.append(cutoff) or dict(status='load_profile_prepared')
+    result=daily().run_daily(b,now=datetime(2026,10,15,13,tzinfo=timezone.utc),timezone_name='America/Denver')
+    assert result['status']=='already_current' and result['ac_load']['status']=='load_profile_prepared'
+    assert calls==[datetime(2026,10,15,6,tzinfo=timezone.utc)] and b.calls==[]
+
+
+def test_load_failure_is_sanitized_and_does_not_prevent_thermal_refresh():
+    b=Backend('2026-10-14T06:00:00+00:00');calls=[]
+    def failed(cutoff):calls.append(cutoff);raise ValueError('private source detail must not be published')
+    b.prepare_ac_load=failed
+    result=daily().run_daily(b,now=datetime(2026,10,15,13,tzinfo=timezone.utc),timezone_name='America/Denver')
+    assert result['status']=='native_family_activated' and len(calls)==1
+    assert result['ac_load']==dict(status='deferred',reason='load_profile_refresh_failed',automatic_actuation=False)
+    assert 'private source' not in str(result)
+
+
+def test_load_refresh_precedes_thermal_selection_and_retains_its_own_status():
+    b=Backend('2026-10-14T06:00:00+00:00');calls=[]
+    b.prepare_ac_load=lambda cutoff:calls.append('load') or dict(status='load_profile_prepared')
+    def failed_current():calls.append('thermal');raise ValueError('thermal selection unavailable')
+    b.current=failed_current
+    with pytest.raises(ValueError,match='thermal selection unavailable'):
+        daily().run_daily(b,now=datetime(2026,10,15,13,tzinfo=timezone.utc),timezone_name='America/Denver')
+    assert calls==['load','thermal']

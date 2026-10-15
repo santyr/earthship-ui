@@ -16,7 +16,7 @@ def test_collector_retains_and_brackets_original_array_and_terrain_files(tmp_pat
     system=system_source(NOW);horizon=horizon_source(NOW)
     collector,_,_,_,now=collector_fixture(tmp_path,monkeypatch,pv_system_raw=system['raw'],solar_horizon_raw=horizon['raw'])
     out=collector(issue=now+timedelta(seconds=8),remaining=lambda:6.,guard=lambda:None)
-    assert out['schema']=='earthship-household-cycle-sources/v7'
+    assert out['schema']=='earthship-household-cycle-sources/v8'
     assert out['pv_system_source']['raw']==system['raw'] and out['solar_horizon_source']['raw']==horizon['raw']
     reader=collector.owner_reader
     def changed(*a,**kw):
