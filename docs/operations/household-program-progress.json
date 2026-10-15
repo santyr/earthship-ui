@@ -56,7 +56,7 @@
     {
       "phase": "7",
       "requirement": "Deterministic sealed household plan replay and outcome scoring",
-      "current_evidence": "Model trajectories, generated candidates and complete plans rederive from sealed receipts. Pure chronological thermal scoring and conservative daily-unit summaries implemented; one actual original delivered forecast qualified mature native1/6/12h outcomes and replayed identically through private CLI. Qualified energy/night-minimum, owner-policy/action outcomes and full original-source household pipeline remain incomplete. Source-bound completed-night energy scoring and private replay implemented. Actual888rows qualified a85percent minimum; missing exact as-issued numerical arguments prevent an actual household-model score. Native scored-pair/v2 now replays externally pinned native forecasts and both persisted receipts, checks mature sensor-phase outcomes, preserves model/geometry lineage and bounded current-revision baseline reports. Initial219 affected cases passed; one immutable review/one correction pass adds complete saved-receipt metadata and lossless outcome clocks, with17 new regressions and31 original scoring/forecast cases passing. Raw outcome provenance/reconciliation,11-source runtime qualification and native live integration remain incomplete.",
+      "current_evidence": "Model trajectories, generated candidates and complete plans rederive from sealed receipts. Pure chronological thermal scoring and conservative daily-unit summaries implemented; one actual original delivered forecast qualified mature native1/6/12h outcomes and replayed identically through private CLI. Qualified energy/night-minimum, owner-policy/action outcomes and full original-source household pipeline remain incomplete. Source-bound completed-night energy scoring and private replay implemented. Actual888rows qualified a85percent minimum; missing exact as-issued numerical arguments prevent an actual household-model score. Native scored-pair/v2 now replays externally pinned native forecasts and both persisted receipts, checks mature sensor-phase outcomes, preserves model/geometry lineage and bounded current-revision baseline reports. Initial219 affected cases passed; one immutable review/one correction pass adds complete saved-receipt metadata and lossless outcome clocks, with17 new regressions and31 original scoring/forecast cases passing. Raw outcome provenance/reconciliation,11-source runtime qualification and native live integration remain incomplete. Operational scoring follow-up3fd481c preserves original full report checks and scored27 current-model one-hour outcomes naturally in44seconds at2026-10-15T00:21UTC. Current one-hour MAE0.266789F remains worse than persistence0.200000F; no longer-horizon outcomes in this cohort and no graduation. Exact-stage household receipt replay at00:20:15UTC also matches. These resolve runtime/replay evidence only, not remaining cross-domain/action outcome requirements.",
       "complete": false
     },
     {
@@ -7383,39 +7383,36 @@
       },
       "review": "final integration review Important retained-policy binding fixed RED to GREEN; full230-test suite passes",
       "operations": "docs/operations/2026-10-14-shared-job-resources.md",
-      "implementation_commit": "e2865cf0be2bbdb2a731ae2a947bbc85208850f3",
-      "deployment_sha256": "1401a55b7f10e92fa718e0fc9817d40e486c314c73e454e90a3f82ff0143ad6b",
+      "implementation_commit": "3fd481cb11a0a0540de2ad72452c5c646dd26d4f",
+      "deployment_sha256": "13ef52cded8dc3a14833190532622fe872c7ca3b7a7ee9fd51989b363adcd11e",
       "integration_tests": 230,
-      "natural_forecast": "2026-10-15T00:00:15UTC normal issue, service exit0 at00:00:29UTC; owner source original/pure/exact-stage CLI replay identical",
+      "natural_forecast": "2026-10-15T00:20:15UTC normal issue on3fd481c; service exit0 at00:20:29UTC; pure and exact-stage private CLI household replay identical",
       "natural_legacy_score": "22:26UTC monitoring_refreshed;256 retained legacy outcomes;zero new mature outcomes",
-      "natural_current_native_score": "23:21:00 UTC to 23:22:44 UTC; scored 1 new mature outcome; 19 current-revision outcomes; 100.493 CPU seconds; exit 0; 94.7 MiB peak RAM; zero swap.",
-      "natural_preparer": "2026-10-14T23:58:05..09UTC normal preparation on new stage exit0",
+      "natural_current_native_score": "2026-10-15T00:21:00..00:21:44UTC current role exit0;1 new mature outcome;27 current-model outcomes;40.467CPU seconds.",
+      "natural_preparer": "2026-10-15T00:18:05..09UTC scheduled preparation on3fd481c exit0",
       "natural_daily_fit": "pending2026-10-15T06:50MDT",
       "fit_executed_during_rollout": false,
       "current_score_correction_tests": 68,
       "daily_checkout": {
-        "status": "daily_source_synchronized",
-        "source_commit": "e2865cf0be2bbdb2a731ae2a947bbc85208850f3",
-        "previous_source_commit": "b26ab0173b31d49a52f46faf314c80f65b3845ff",
-        "clean": true,
-        "idle_before_checkout": true,
-        "unit_unchanged": true,
+        "source_commit": "3fd481cb11a0a0540de2ad72452c5c646dd26d4f",
         "unit_sha256": "eacc1ad9aa28564629258e53f82c80017b640820b4ba739b592dc7dba970da16",
-        "assessed_at": "2026-10-14T23:57:36.728491+00:00"
+        "unit_unchanged": true,
+        "service_started": false,
+        "assessed_at": "2026-10-15T00:15:14.275465+00:00"
       },
       "inventory_correction_tests": 83,
-      "effective_readback_at": "2026-10-14T23:57:36.668575+00:00",
-      "current_score_runtime_risk": "23:51..23:53UTC and23:56:19..23:58UTC scorer withheld at deadline (household_forecast_score.py:250).23:51 worker consumed116.509CPU seconds. Current report still replays growing cohorts and repeatedly verifies model bindings; previous success at19 outcomes does not establish scalability.",
+      "effective_readback_at": "2026-10-15T00:21:15.728286+00:00",
+      "current_score_runtime_risk": "Observed120second deadline failures resolved for27-outcome cohort by3fd481c; one current run44seconds. Larger cohorts and daily fitting remain to be observed.",
       "current_model_one_hour_performance": {
-        "count": 19,
-        "model_mae_f": 0.318363417497883,
-        "persistence_mae_f": 0.17052631578947341,
-        "model_bias_f": 0.2667003083510547,
+        "count": 27,
+        "model_mae_f": 0.266789119514501,
+        "persistence_mae_f": 0.19999999999999915,
+        "model_bias_f": 0.17453238086244482,
         "graduated": false,
         "longer_horizon_outcomes": 0
       },
       "natural_historical_score": "23:16:00UTC to23:17:40UTC succeeded:1 new/18 current-model outcomes;96.107CPU seconds;93.7MiB peak RAM;zero swap. Previous22:56 slot timed out at120seconds.",
-      "next_performance_change": "Reduce repeated invocation-local model/source validation in growing score reports while retaining original dependency integrity and the geometry/forecast reservation. No manual scoring or forecast probes.",
+      "next_performance_change": "Monitor report latency as cohorts grow; no additional resource-limit change needed for observed current-score failure.",
       "report_reuse_tests": 91,
       "report_reuse_review": "Independent review of8bb1785..0e7d773 found no Critical or Important findings",
       "report_reuse_deployed_at": "2026-10-14T23:14:37.153523+00:00",
@@ -7625,6 +7622,178 @@
       },
       "authority": "none",
       "remaining": "Physical owner idleness, cooldown, curfew, operator permission, source-bound policy baselines and qualified action effects remain unknown."
+    },
+    "native_score_report_model_binding_reuse": {
+      "source_commit": "3fd481cb11a0a0540de2ad72452c5c646dd26d4f",
+      "deployment_sha256": "13ef52cded8dc3a14833190532622fe872c7ca3b7a7ee9fd51989b363adcd11e",
+      "activated_at": "2026-10-15T00:14:38.615881+00:00",
+      "tests": 87,
+      "tests_seconds": 62.64,
+      "fixture_full_model_reads_before": 12,
+      "fixture_full_model_reads_after": 2,
+      "fixture_numerical_report_identical": true,
+      "review": "No Critical or Important findings. Minor: copied contexts inherit the same frame; current scorer is synchronous. Documentation narrowed.",
+      "artifact_sha256": "52dd5d122485f0bdafa0aed4fa7412c0823ce9829ed3d9bdc920e44d88526506",
+      "model_changed": false,
+      "fit_executed": false,
+      "automatic_actuation": false,
+      "natural_historical_score": {
+        "role": "historical",
+        "scope": "earthship-job-1a564c1ca2e34432ba36364b63e9721a.scope",
+        "service": {
+          "MainPID": "0",
+          "ExecMainStartTimestamp": "Wed 2026-10-14 18:16:00 MDT",
+          "ExecMainExitTimestamp": "Wed 2026-10-14 18:16:49 MDT",
+          "ExecMainStatus": "0",
+          "InvocationID": "a04289813b5d4922a3b7ff1b2f4f6e05"
+        },
+        "messages": [
+          "Started earthship-job-1a564c1ca2e34432ba36364b63e9721a.scope - Earthship managed job.",
+          "{\"status\": \"scored\", \"scored\": 1, \"current_revision_scored\": 1, \"automatic_actuation\": false}",
+          "earthship-job-1a564c1ca2e34432ba36364b63e9721a.scope: Consumed 17.517s CPU time."
+        ],
+        "assessed_at": "2026-10-15T00:18:03.105869+00:00",
+        "elapsed_seconds": 49,
+        "cpu_seconds": 17.517,
+        "cohort_count": 1,
+        "current_large_cohort_proven": false
+      },
+      "natural_current_score": {
+        "scope": "earthship-job-c7733904691d4930a1cc3f1419a01fa0.scope",
+        "service": {
+          "at": "2026-10-15T00:21:48.195140+00:00",
+          "unit": "thermal-provisional-score.service",
+          "MainPID": "0",
+          "ExecMainStartTimestamp": "Wed 2026-10-14 18:21:00 MDT",
+          "ExecMainExitTimestamp": "Wed 2026-10-14 18:21:44 MDT",
+          "ExecMainStatus": "0",
+          "ActiveState": "inactive",
+          "InvocationID": "402f240d966d474dbf071918146395ff"
+        },
+        "result": {
+          "status": "scored",
+          "scored": 1,
+          "current_revision_scored": 27,
+          "automatic_actuation": false
+        },
+        "cpu_seconds": 40.467,
+        "elapsed_seconds": 44,
+        "performance": {
+          "artifact_sha256": "52dd5d122485f0bdafa0aed4fa7412c0823ce9829ed3d9bdc920e44d88526506",
+          "assessed_at": "2026-10-15T00:21:19.419399+00:00",
+          "by_horizon": {
+            "1": {
+              "model": {
+                "bias_f": 0.17453238086244482,
+                "count": 27,
+                "mae_f": 0.266789119514501
+              },
+              "persistence": {
+                "bias_f": 0.06666666666666604,
+                "count": 27,
+                "mae_f": 0.19999999999999915
+              },
+              "recent_cycle": {
+                "bias_f": null,
+                "count": 0,
+                "mae_f": null
+              }
+            },
+            "12": {
+              "model": {
+                "bias_f": null,
+                "count": 0,
+                "mae_f": null
+              },
+              "persistence": {
+                "bias_f": null,
+                "count": 0,
+                "mae_f": null
+              },
+              "recent_cycle": {
+                "bias_f": null,
+                "count": 0,
+                "mae_f": null
+              }
+            },
+            "24": {
+              "model": {
+                "bias_f": null,
+                "count": 0,
+                "mae_f": null
+              },
+              "persistence": {
+                "bias_f": null,
+                "count": 0,
+                "mae_f": null
+              },
+              "recent_cycle": {
+                "bias_f": null,
+                "count": 0,
+                "mae_f": null
+              }
+            },
+            "6": {
+              "model": {
+                "bias_f": null,
+                "count": 0,
+                "mae_f": null
+              },
+              "persistence": {
+                "bias_f": null,
+                "count": 0,
+                "mae_f": null
+              },
+              "recent_cycle": {
+                "bias_f": null,
+                "count": 0,
+                "mae_f": null
+              }
+            }
+          },
+          "graduated": false,
+          "schema": "earthship-provisional-thermal-performance/v1"
+        },
+        "report_path": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-13-native-model-serving-receipt/actual-review-fixes-20261014/native-evidence/native-provisional-performance-52dd5d122485f0bdafa0aed4fa7412c0823ce9829ed3d9bdc920e44d88526506.json",
+        "report_sha256": "f48f3565f04cd2a87c63f04512d6e82026b649cd17c78a3badff84aebf0935d7",
+        "assessed_at": "2026-10-15T00:23:02.669366+00:00"
+      },
+      "forecast_recovery": {
+        "assessed_at": "2026-10-15T00:21:03.910180+00:00",
+        "automatic_actuation": false,
+        "current_soc_pct": 89.0,
+        "daily_issued_at": "2026-10-14T12:40:49.420253+00:00",
+        "daily_prediction_day": "2026-10-14",
+        "daily_receipt_sha256": "8411e0c34698981eda772133b843cace8dc7bfb76cce96fa1a692478df0ca8a2",
+        "daily_resource_kwh": 2.011388888888889,
+        "input_qualification": "not_assessed",
+        "live_writes": false,
+        "owner_facts_at_issue": {
+          "88bd9ec4de": {
+            "owner_available": true
+          },
+          "hex_night_load_override": {
+            "owner_available": true
+          },
+          "hex_southoutlet_cycle": {
+            "owner_available": true
+          }
+        },
+        "owner_received_at": "2026-10-15T00:20:08.265055+00:00",
+        "owner_requested_at": "2026-10-15T00:20:08.261435+00:00",
+        "owner_source_sha256": "7ef4fd852ce87e3a87bd37c3e1ccf5c4493a0329a7fcd8c5236bb1c54fb5929e",
+        "private_cli_replay_identical": true,
+        "pure_replay_identical": true,
+        "receipt_path": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-14-shared-job-resources/production-3fd481c/final/evidence/df5a3ba0094d2e8e0fc4a22710337a4b4487a1b422180ec506c222517a21bc98.household-model-plan-v5.json",
+        "receipt_sha256": "6c0c43b3cd9120936edbebe716a036f661425545489c358e52469f11caafa2a0",
+        "snapshot_as_of": "2026-10-15T00:20:15+00:00",
+        "source_collected_at": "2026-10-15T00:20:08.017980+00:00",
+        "source_commit": "3fd481cb11a0a0540de2ad72452c5c646dd26d4f",
+        "status": "natural_owner_readiness_household_pipeline_verified",
+        "tomorrow_cloud_pct": 42
+      },
+      "evidence": ".superpowers/sdd/2026-10-14-shared-job-resources/production-3fd481c",
+      "handoff_continuity_gap": "One00:15:15UTC forecast withheld after cutover; original geometry copy followed warm-start. Next normal00:20:15UTC forecast recovered; no manual invocation."
     }
   },
   "astro_efficiency_audit": {
@@ -7779,5 +7948,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-15T00:00:40.661703+00:00"
+  "updated_at": "2026-10-15T00:23:02.671578+00:00"
 }
