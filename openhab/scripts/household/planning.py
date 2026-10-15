@@ -14,6 +14,9 @@ from .capabilities import CapabilityRegistry
 from .intents import HouseholdIntent,parse_intent
 from .control_contracts import instant,ContractRefused
 
+# Native geometry/source contexts and bracketed owner originals share this
+# private envelope. Individual source and public-output bounds stay separate.
+MAX_RECEIPT_BYTES=1024*1024
 MAX_CANDIDATES=8
 MIN_RESERVE_SOC=10.  # Existing full-bank emergency reserve; input may tighten it.
 CAPABILITIES={'RUN_GREYWATER_CYCLE':'greywater-request-v1','RUN_FEEDER_CYCLE':'feeder-request-v1',
@@ -212,12 +215,12 @@ def seal_plan(*,runtime_manifest,model_refs,forecast_ref,**arguments):
     receipt=loads(canonical(dict(schema='earthship-household-shadow-plan-receipt/v'+str(version),inputs=inputs,runtime_manifest=runtime,
         model_refs=model_refs,forecast_ref=forecast_ref,plan=output)))
     receipt['receipt_sha256']=identity(receipt)
-    if len(canonical(receipt))>512*1024:raise ValueError('bounded sealed plan receipt required')
+    if len(canonical(receipt))>MAX_RECEIPT_BYTES:raise ValueError('bounded sealed plan receipt required')
     return receipt
 
 
 def replay_plan(receipt,*,runtime_manifest):
-    if not isinstance(receipt,dict) or set(receipt)!=RECEIPT_FIELDS or receipt['schema'] not in ('earthship-household-shadow-plan-receipt/v1','earthship-household-shadow-plan-receipt/v2','earthship-household-shadow-plan-receipt/v3','earthship-household-shadow-plan-receipt/v4','earthship-household-shadow-plan-receipt/v5') or len(canonical(receipt))>512*1024:
+    if not isinstance(receipt,dict) or set(receipt)!=RECEIPT_FIELDS or receipt['schema'] not in ('earthship-household-shadow-plan-receipt/v1','earthship-household-shadow-plan-receipt/v2','earthship-household-shadow-plan-receipt/v3','earthship-household-shadow-plan-receipt/v4','earthship-household-shadow-plan-receipt/v5') or len(canonical(receipt))>MAX_RECEIPT_BYTES:
         raise ValueError('closed bounded original plan receipt required')
     if identity({key:value for key,value in receipt.items() if key!='receipt_sha256'})!=receipt['receipt_sha256']:raise ValueError('sealed original plan differs')
     runtime=_runtime_manifest(runtime_manifest)

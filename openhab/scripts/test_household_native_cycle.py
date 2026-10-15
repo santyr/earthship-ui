@@ -79,7 +79,8 @@ def test_native_complete_cycle_dispatches_native_preparation_before_pure_derivat
     assert result=={'status':'fixture_materialized'} and calls==['prepare','derive']
 
 
-def test_native_cycle_derivation_preserves_original_forecast_and_measured_sources(tmp_path,monkeypatch,originals):
+@pytest.mark.parametrize("policy",[False,True])
+def test_native_cycle_derivation_preserves_original_forecast_and_measured_sources(tmp_path,monkeypatch,originals,policy,capsys):
     from household.weather_context import prepare_native_cycle_contexts
     from household.energy_configuration import prepare_energy_configuration
     from household.measured_weather import prepare_measured_weather
@@ -104,10 +105,56 @@ def test_native_cycle_derivation_preserves_original_forecast_and_measured_source
     retained=dict(schema='earthship-household-cycle-sources/v1',issue=issue.isoformat(),captured_at=at.isoformat(),
         power_receipt=source_at(at),energy_configuration=configuration.to_dict(),measured_weather=measured.to_dict(),
         owner_bindings={'before':{},'after':{}},automatic_actuation=False)
+    runtime=RUNTIME
+    if policy:
+        from household_pipeline import pipeline_runtime_manifest
+        from household.power_snapshot import compile_power_inputs
+        runtime=pipeline_runtime_manifest(expanded=True,configured=True,measured=True)
+        original_inputs=retained['power_receipt']['inputs']
+        retained['power_receipt']=compile_power_inputs(original_inputs['bundle'],managed=original_inputs['managed'],ownership=original_inputs['ownership'],
+            code_revision=original_inputs['code_revision'],runtime_manifest=runtime)
     params=dict(collected_at=(issue-timedelta(days=1)).isoformat(),record={'household_energy_inputs':FIXTURE['cases'][0]['inputs']})
     record=cycle.derive_cycle(originals=retained,capture=c,receipts=r,thermal=thermal,weather=weather,
-        parameter_record=params,runtime_manifest=RUNTIME,code_revision=CODE,now=instant(c['published_at']))
+        parameter_record=params,runtime_manifest=runtime,code_revision=CODE,now=instant(c['published_at']))
+    if policy:
+        # Full native geometry plus original installed rule/status evidence must
+        # fit the private plan and survive replay; the public view stays small.
+        from household.pipeline import seal_pipeline,_restore
+        from household.model_snapshot import restore_snapshot
+        from household.energy_model import PreparedEnergyInputs
+        from household.capabilities import CapabilityRegistry
+        from household.owner_sources import coordination_from_policy
+        from test_household_owner_policy import original
+        from hashlib import sha256
+        source=original(now=issue)
+        # OpenHAB also includes descriptive metadata. Exercise valid responses
+        # near the existing 64 KiB source bound, rather than tiny rule stubs.
+        for name in ('rule_before','rule_after'):
+            body=json.loads(source[name]['raw']);body['description']='M'*(64000-len(canonical(body)))
+            raw=canonical(body).decode()
+            assert len(raw.encode())<65536
+            source[name].update(raw=raw,sha256=sha256(raw.encode()).hexdigest())
+        raw=canonical([json.loads(source['rule_before']['raw'])]).decode()
+        owner=dict(schema='earthship-household-owner-source/v1',endpoint='/rules?summary=true',raw=raw,
+            sha256=sha256(raw.encode()).hexdigest(),requested_at=(issue-timedelta(seconds=3)).isoformat(),
+            received_at=(issue-timedelta(seconds=1)).isoformat())
+        inputs=record['inputs'];snapshot=restore_snapshot(inputs['snapshot'],inputs['source_contexts'])
+        registry=_restore(inputs['registry'],CapabilityRegistry,'registry_id')
+        coordination=coordination_from_policy(owner,source,snapshot_id=snapshot.snapshot_id,registry=registry,horizon_hours=24,as_of=issue)
+        record=seal_pipeline(snapshot=snapshot,registry=registry,energy_inputs=PreparedEnergyInputs(canonical(inputs['energy_inputs'])),
+            thermal_inputs=thermal,thermal_runtime=thermal.to_dict()['executing_runtime'],coordination=coordination,
+            config=inputs['config'],now=instant(inputs['now']),runtime_manifest=runtime)
+        from household.resources import seal_resources,replay_resources,UNITS
+        analysis=seal_resources(plan_receipt=record['output']['plan_receipt'],scales={name:1. for name in UNITS},orders=[],
+            assessed_at=instant(inputs['now']),plan_runtime_manifest=runtime,analysis_runtime_manifest=runtime)
+        assert replay_resources(analysis,plan_runtime_manifest=runtime,analysis_runtime_manifest=runtime)==analysis
+        import household_plan
+        path=tmp_path/'native-owner-plan.json';path.write_bytes(canonical(record['output']['plan_receipt']));path.chmod(0o600)
+        assert household_plan.main(['--receipt',str(path)])==0
+        assert json.loads(capsys.readouterr().out)==record['output']['plan_receipt']
+        assert record['inputs']['coordination']['policy_source']==source
+        assert record['inputs']['coordination']['policy_observations']['hex_southoutlet_cycle']['reason']=='after_dark'
     assert record['output']['projections']['thermal']['output']==c['output']
     assert record['output']['projections']['weather']['schema']=='earthship-household-weather-projection/v3'
     assert record['output']['automatic_actuation'] is False
-    assert replay_pipeline(record,runtime_manifest=RUNTIME,thermal_runtime=thermal.to_dict()['executing_runtime'])==record
+    assert replay_pipeline(record,runtime_manifest=runtime,thermal_runtime=thermal.to_dict()['executing_runtime'])==record

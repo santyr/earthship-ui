@@ -9,7 +9,7 @@ from .codec import canonical,loads,identity
 from .evidence import utc
 from .control_contracts import instant
 from .intents import EFFECT_UNITS
-from .planning import replay_plan,_runtime_manifest,MAX_CANDIDATES
+from .planning import replay_plan,_runtime_manifest,MAX_CANDIDATES,MAX_RECEIPT_BYTES
 
 MAX_BYTES=1024*1024
 MAX_ORDERS=16
@@ -78,7 +78,7 @@ def _order(row,vectors,decisions,scales):
 
 def seal_resources(*,plan_receipt,scales,orders,assessed_at,plan_runtime_manifest,analysis_runtime_manifest):
     """Rederive an original plan, then annotate declared effects without I/O."""
-    if not isinstance(plan_receipt,dict) or len(canonical(plan_receipt))>512*1024:raise ValueError('bounded original plan required')
+    if not isinstance(plan_receipt,dict) or len(canonical(plan_receipt))>MAX_RECEIPT_BYTES:raise ValueError('bounded original plan required')
     plan=replay_plan(plan_receipt,runtime_manifest=plan_runtime_manifest)
     assessed=utc(assessed_at)
     if assessed<instant(plan['inputs']['now']):raise ValueError('analysis precedes original decision')
