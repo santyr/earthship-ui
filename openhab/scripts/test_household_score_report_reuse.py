@@ -101,3 +101,96 @@ def test_consecutive_reuse_preserves_caller_isolation_and_consumes_only_one_hit(
     scores.reconcile_serving_source_report=original_report
     assert reuse.wrap_report(scores)()=='verified'
     assert scores.read_serving_source_score is reader
+
+
+def test_report_rechecks_model_bindings_at_boundaries_not_per_historical_step(tmp_path,originals,monkeypatch):
+    from household_forecast_score import production_score_policy
+    import native_model_serving_receipt as serving
+    scores,entries,kwargs,expected,calls,args,path=report_fixture(tmp_path,originals,monkeypatch)
+    kwargs['assessed_at']+=timedelta(seconds=60);expected['assessed_at']=kwargs['assessed_at'].isoformat()
+    full_bindings=serving._bindings;reads=[]
+    def counted(*args,**kwargs):
+        result=full_bindings(*args,**kwargs);reads.append(result);return result
+    monkeypatch.setattr(serving,'_bindings',counted)
+    original=serving.read_serving_model
+    with production_score_policy():
+        assert scores.reconcile_serving_source_report(entries,**kwargs)==expected
+        assert len(reads)==2, 'one model must be fully rebound at report entry and final verification only'
+        assert scores.reconcile_serving_source_report(entries,**kwargs)==expected
+        assert len(reads)==4, 'each new report must obtain fresh model bindings'
+    assert serving.read_serving_model is original
+
+
+@pytest.mark.parametrize('changed',['candidate','dataset','receipt'])
+def test_reused_model_still_refuses_final_original_changes(tmp_path,originals,monkeypatch,changed):
+    from household_forecast_score import production_score_policy
+    import json,native_model_serving_receipt as serving
+    scores,entries,kwargs,expected,calls,args,path=report_fixture(tmp_path,originals,monkeypatch)
+    kwargs['assessed_at']+=timedelta(seconds=60)
+    selected=json.loads(kwargs['selections'][0]._encoded)
+    candidate=json.loads(Path(selected['candidate_path']).read_bytes())
+    target=Path({'candidate':selected['candidate_path'],'dataset':candidate['originals']['dataset']['path'],
+        'receipt':selected['receipt']['path']}[changed])
+    old=target.read_bytes();mutated=[];reader=serving.read_serving_model
+    def guard():
+        if calls and not mutated:target.write_bytes(old+b' ');mutated.append(True)
+    with pytest.raises(ValueError):
+        with production_score_policy():scores.reconcile_serving_source_report(entries,check_budget=guard,**kwargs)
+    assert mutated and serving.read_serving_model is reader
+
+
+def test_intermediate_model_reuse_preserves_chronology_and_caller_isolation(tmp_path,originals,monkeypatch):
+    import json
+    import household_score_report_reuse as reuse,native_model_serving_receipt as serving
+    scores,entries,kwargs,expected,calls,args,path=report_fixture(tmp_path,originals,monkeypatch)
+    at=kwargs['assessed_at']+timedelta(seconds=60);selection=kwargs['selections'][0]
+    original=serving.read_serving_model
+    with reuse._model_reads(scores,at):
+        model=serving.read_serving_model(selection,assessed_at=at,guard=lambda:None)
+        receipt=json.loads(model._encoded)['receipt'];verified=serving._utc(receipt['verified_at'])
+        with pytest.raises(ValueError,match='chronology'):
+            serving.read_serving_model(selection,assessed_at=verified-timedelta(microseconds=1),guard=lambda:None)
+        changed=model.candidate;changed['artifact_sha256']='0'*64
+        cached=serving.read_serving_model(selection,assessed_at=kwargs['assessed_at'],guard=lambda:None)
+        assert cached.candidate['artifact_sha256']==expected['artifact_sha256']
+        with pytest.raises(TimeoutError):
+            serving.read_serving_model(selection,assessed_at=kwargs['assessed_at'],guard=lambda:(_ for _ in ()).throw(TimeoutError()))
+        assert serving.read_serving_model(selection,assessed_at=at,guard=lambda:None)._encoded==model._encoded
+    assert serving.read_serving_model is original
+
+
+def test_unknown_model_helper_runs_full_original_report(tmp_path,originals,monkeypatch):
+    import household_score_report_reuse as reuse,native_model_serving_receipt as serving
+    scores,entries,kwargs,expected,calls,args,path=report_fixture(tmp_path,originals,monkeypatch)
+    monkeypatch.setattr(reuse,'SUPPORTED_MODEL_HELPER_SHA256','0'*64)
+    bindings=serving._bindings;reads=[]
+    def counted(*args,**kwargs):
+        value=bindings(*args,**kwargs);reads.append(1);return value
+    monkeypatch.setattr(serving,'_bindings',counted)
+    assert reuse.wrap_report(scores)(entries,**kwargs)==expected
+    assert len(reads)==12
+
+
+def test_nested_and_other_execution_contexts_cannot_borrow_model_cache(tmp_path,originals,monkeypatch):
+    from contextvars import Context
+    import household_score_report_reuse as reuse,native_model_serving_receipt as serving
+    scores,entries,kwargs,expected,calls,args,path=report_fixture(tmp_path,originals,monkeypatch)
+    at=kwargs['assessed_at']+timedelta(seconds=60);selection=kwargs['selections'][0]
+    bindings=serving._bindings;reads=[];original=serving.read_serving_model
+    def counted(*args,**kwargs):
+        value=bindings(*args,**kwargs);reads.append(1);return value
+    monkeypatch.setattr(serving,'_bindings',counted)
+    with reuse._model_reads(scores,at):
+        serving.read_serving_model(selection,assessed_at=at,guard=lambda:None)
+        serving.read_serving_model(selection,assessed_at=kwargs['assessed_at'],guard=lambda:None)
+        assert len(reads)==1
+        Context().run(serving.read_serving_model,selection,assessed_at=kwargs['assessed_at'],guard=lambda:None)
+        assert len(reads)==2
+        with reuse._model_reads(scores,at):
+            serving.read_serving_model(selection,assessed_at=kwargs['assessed_at'],guard=lambda:None)
+        assert len(reads)==3
+        serving.read_serving_model(selection,assessed_at=kwargs['assessed_at'],guard=lambda:None)
+        assert len(reads)==3
+        serving.read_serving_model(selection,assessed_at=at,guard=lambda:None)
+        assert len(reads)==4
+    assert serving.read_serving_model is original
