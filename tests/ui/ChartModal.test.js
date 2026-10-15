@@ -3,9 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/sv
 import { flushSync } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('svelte', async () => import(
-  `${process.cwd()}/node_modules/svelte/src/index-client.js`
-));
+vi.mock('svelte', async () => import('../../node_modules/svelte/src/index-client.js'));
 
 const mocks = vi.hoisted(() => {
   const chart = {

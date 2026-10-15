@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/sv
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('svelte', async () => import(
-  `${process.cwd()}/node_modules/svelte/src/index-client.js`
+  '../../node_modules/svelte/src/index-client.js'
 ));
 
 import EnergyAnalyticsDetail from '../../src/lib/ui/EnergyAnalyticsDetail.svelte';

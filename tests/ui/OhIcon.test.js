@@ -5,7 +5,7 @@ import { cleanup, render, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('svelte', async () => import(
-  `${process.cwd()}/node_modules/svelte/src/index-client.js`
+  '../../node_modules/svelte/src/index-client.js'
 ));
 
 import OhIcon, { iconCollectionsReady } from '../../src/lib/ui/OhIcon.svelte';

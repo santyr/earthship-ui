@@ -1,7 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { createRuleHarness } from './rule-harness.js';
+import { withGreywaterSocEvidence } from './greywater-evidence.js';
 
+// Historical single-pump request-ledger regressions remain on their original fixture.
+// The manifest/installed-owner checks below exercise the observed two-pump source.
+const CANONICAL_RULE_URL = new URL('../../openhab/rules/southoutlet-cycle-installed.js', import.meta.url);
 const RULE_URL = new URL('../../openhab/rules/southoutlet-cycle.js', import.meta.url);
 const MANIFEST_URL = new URL('../../openhab/managed-resources.json', import.meta.url);
 
@@ -73,16 +77,30 @@ function auto(overrides = {}) {
 }
 
 describe('[RED:T15A-1] canonical greywater rule resources', () => {
+  it.each([[18, 'SouthOutlet_Outlet2_Switch'], [19, 'East_Bed_Socket_Outlet_2_Power']])(
+    'the manifest owner selects the alternating installed pump at UTC hour %i', async (hour, pump) => {
+      const manifest = JSON.parse(await readFile(MANIFEST_URL, 'utf8'));
+      const source = await readFile(new URL(`../../${manifest.subsets.greywater.rule.source}`, import.meta.url), 'utf8');
+      const h = withGreywaterSocEvidence(createRuleHarness({ source,
+        now: Date.parse(`2026-07-18T${hour}:00:00.000Z`),
+        states: baseStates({ East_Bed_Socket_Outlet_2_Power: 'OFF' }),
+      }));
+      h.execute();
+      expect(h.events.filter(event => event.type === 'command' && event.value === 'ON')
+        .map(event => event.item)).toEqual([pump]);
+    },
+  );
+
   it('exposes the versioned owner, items, capability, and request trigger', async () => {
     const [source, manifest] = await Promise.all([
-      readFile(RULE_URL, 'utf8'),
+      readFile(CANONICAL_RULE_URL, 'utf8'),
       readFile(MANIFEST_URL, 'utf8').then(JSON.parse),
     ]);
     const greywater = manifest.subsets?.greywater;
     expect(greywater?.capability).toBe('greywater-request-v1');
     expect(greywater?.rule).toMatchObject({
       uid: 'hex_southoutlet_cycle',
-      source: 'openhab/rules/southoutlet-cycle.js',
+      source: 'openhab/rules/southoutlet-cycle-installed.js',
     });
     expect(source).toContain('EARTHSHIP_SOUTHOUTLET_VERSION');
     expect(greywater?.items).toEqual(expect.arrayContaining([
