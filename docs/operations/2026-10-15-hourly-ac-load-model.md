@@ -99,3 +99,30 @@ with a 512 MiB minimum and 2 GiB preferred allocation. Its outer 256 MiB/20%
 service limits apply to the supervising launcher; the managed work scope receives
 the admitted dynamic budget. No new timer, off-host requirement, production
 pressure threshold or worker swap allowance is introduced.
+
+Deployment on October 15 at 18:51:34 UTC activated source `c71f14e` as
+`06feca50c4db28e3c1be5e20becca164aef5de0ca6f5ce21263d0dbef874f8f0`.
+The complete thermal model `188a42a8` is unchanged. All five owned definitions,
+three timers, both score calendars and shared budgets pass live readback.
+The clean daily checkout now selects that source; its service unit is unchanged
+and was not started manually. Five owned UI files were installed while protecting
+existing thermal/PV files and unrelated live overlays. Actual laptop and tablet
+views show the new collecting state alongside the existing solar chart, without
+page errors, write attempts or horizontal overflow.
+
+The first load model will be prepared by the existing scheduled morning job on
+October 16 at 06:50 MDT. Until then, learned-demand and storage comparisons remain
+collecting. This deployment does not establish load forecasting skill, physical
+storage calibration or full PR #3 completion. The review corrections pass 31
+affected tests; all three new regressions fail against the immutable pre-fix
+scorer, and all six scorer tests pass against the final source. Earlier broad
+backend/frontend results above remain the pre-correction regression baseline.
+
+The first normal issue at 18:55:15 UTC completed successfully. Its separately
+versioned receipt explicitly records `load_model_unavailable`, as expected before
+the morning job. The original v1 forecast remains available and its entire
+numerical runtime is byte-identical to the earlier deployed original. Both pure
+and exact activated CLI replay match the saved new receipt. The public curated
+GET returns HTTP 200 and exactly matches its issued receipt projection. This is
+verified publication of unavailability, not a trained-load forecast or skill
+claim.
