@@ -11,6 +11,9 @@ from contextlib import contextmanager
 SCORE_LIFETIME_SECONDS = 120
 SCORE_CPU_QUOTA = '100%'
 SCORE_CURRENT_PERIOD_MINUTES = 10
+BATTERY_SCORE_PERIOD_MINUTES = 10
+BATTERY_SCORE_OFFSET_MINUTE = 8
+BATTERY_SCORE_OFFSET_SECOND = 20
 PUBLICATION_POLICY_SHA256 = 'e7a330a82886605ef80f418f818bf2da90a2e419aa3264d7d981fa265642545c'
 _production_policy = None
 PUBLICATION_MONITOR_SHA256 = '43cef34e31bc9b82a9d416f97bf9e15f255ebe95b873409089478e41e40fd9f9'
@@ -220,6 +223,9 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
                 raise ValueError('score source or selection changed before dispatch')
         dispatch=read_score_dispatch(stage,deployment_sha256=deployment_sha256,guard=selection_guard)
         role='current' if retained_native else score_role(now)
+        if role=='battery':
+            return run_battery_slot(config,original=original,settings=settings,stage=stage,binding=binding,dispatch=dispatch,
+                verifier=verifier,deadline=deadline,issue=issue,clock=clock,monotonic=monotonic)
         if role=='reserved':return dict(status='waiting',scored=0,pending_reason='forecast_slot_reserved',automatic_actuation=False)
         if role=='legacy':
             selection_guard()
@@ -270,24 +276,41 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
         else:
             if isinstance(pressure,SampledScorePressure):pressure.check(force=True)
             result=score_with_report(settings,guard=guard,clock=clock,queue=True)
-        if receipt_profile and not retained_native and result.get('status') in ('scored','waiting','monitoring_refreshed'):
-            # Optional outcome work shares this lock/lifetime; leave time for the
-            # original final stage verification and never hide its failures.
-            battery_deadline=min(deadline-10,monotonic()+(issue-timedelta(seconds=135)-clock()).total_seconds()-10)
-            battery_result=dict(status='deferred',reason='score_budget_reserved')
-            if battery_deadline-monotonic()>=10:
-                try:
-                    from household_battery_score import run as score_battery
-                    battery_result=score_battery(stage=stage,historical=dispatch['historical'],guard=guard,
-                        clock=clock,monotonic=monotonic,deadline=battery_deadline)
-                except Exception:
-                    battery_result=dict(status='deferred',reason='battery_outcome_unavailable')
-            result=dict(result,battery_outcomes=battery_result)
         guard()
         if verifier is not None and verifier(stage)!=binding:raise ValueError('staged score runtime changed')
         if isinstance(pressure,SampledScorePressure):pressure.check(force=True)
         guard()
         return result
+
+
+def run_battery_slot(config,*,original,settings,stage,binding,dispatch,verifier,deadline,issue,clock,monotonic):
+    """Read-only work after preparation, independent of thermal replay growth."""
+    from thermal_model.capture_guard import SharedScoreLock
+    from household_observation import _private_file
+    from household_battery_score import run as score_battery
+    own=Path(__file__).read_bytes()
+    stop=min(deadline,monotonic()+45,monotonic()+(issue-timedelta(seconds=30)-clock()).total_seconds()-10)
+    with SharedScoreLock(settings['shared_lock']) as lock:
+        pressure=SampledScorePressure(production_pressure_monitor(),monotonic=monotonic)
+        pressure.check(force=True)
+        def guard():
+            lock.verify();pressure.check()
+            if monotonic()>=stop or clock()>=issue-timedelta(seconds=40):raise ValueError('battery opportunity elapsed')
+            if _private_file(config,8192)!=original or Path(__file__).read_bytes()!=own:raise ValueError('battery slot source or configuration changed')
+        guard()
+        work_deadline=min(stop-10,monotonic()+20)
+        result=dict(status='deferred',reason='battery_budget_reserved')
+        if work_deadline-monotonic()>=10:
+            try:
+                result=score_battery(stage=stage,historical=dispatch['historical'],guard=guard,
+                    clock=clock,monotonic=monotonic,deadline=work_deadline)
+            except Exception as error:
+                result=dict(status='deferred',reason=failure_reason(error),failure_site=failure_site(error))
+        guard()
+        if verifier(stage)!=binding:raise ValueError('battery slot runtime changed')
+        pressure.check(force=True);guard()
+        return dict(status='monitoring_refreshed' if result.get('status')=='battery_performance_refreshed' else 'waiting',
+            scored=0,battery_outcomes=result,automatic_actuation=False)
 
 
 def failure_reason(error):
@@ -406,6 +429,7 @@ def main(argv=None):
 def score_role(at):
     from astro_geometry import _instant
     at=_instant(at)
+    if at.minute%10==BATTERY_SCORE_OFFSET_MINUTE:return 'battery'
     if at.minute%10==1:return 'current'
     if at.minute%20==6:return 'legacy'
     if at.minute%20==16:return 'historical'

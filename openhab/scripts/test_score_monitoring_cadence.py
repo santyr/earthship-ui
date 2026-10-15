@@ -7,13 +7,15 @@ def test_daily_cadence_keeps_current_fresh_without_more_jobs():
     import household_forecast_score as score
     begin=datetime(2026,10,14,tzinfo=timezone.utc)
     history=[dict(stage='/archive/'+str(i),deployment_sha256=format(i,'064x')) for i in range(31)]
-    roles={name:[] for name in ['current','historical','legacy','reserved']};selected=[]
+    roles={name:[] for name in ['current','historical','legacy','battery','reserved']};selected=[]
     for minute in range(24*60):
         at=begin+timedelta(minutes=minute);role=score.score_role(at);roles[role].append(minute)
         if role in ('current','historical'):
             target=score.native_score_selection(dict(historical=history),at)
             if role=='current':assert target=='current'
             else:selected.append(target['stage'])
+    assert len(roles['battery'])==144
+    assert all(minute%10==8 for minute in roles['battery'])
     assert len(roles['current'])==144
     assert len(roles['historical'])==len(roles['legacy'])==72
     assert all(b-a==10 for a,b in zip(roles['current'],roles['current'][1:]))

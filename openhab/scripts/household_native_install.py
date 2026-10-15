@@ -199,7 +199,9 @@ def _verify_effective_family(family,*,guard):
             not deploy._entry_matches(state,deploy._bytes(family/source,private=True))):
             raise ValueError('effective native service definition differs')
     score_calendars=['*-*-* *:'+minute+'/5:10 UTC' for minute in ('00','01','02','03')] if serving else ['*-*-* *:01/5:00 UTC','*-*-* *:02/5:00 UTC']
-    if serving and selected['score_service_timeout_seconds']==130:score_calendars=['*-*-* *:01/5:00 UTC']
+    if serving and selected['score_service_timeout_seconds']==130:
+        score_calendars=['*-*-* *:01/5:00 UTC']
+        if family_api._independent_battery_slot(stage):score_calendars.append('*-*-* *:08/10:20 UTC')
     timers=(('thermal-provisional-forecast.timer',[selected['original_forecast_warm_clock']],[]),
         ('thermal-provisional-score.timer',score_calendars,['zzzz-household-native-timer.conf']),
         ('thermal-native-geometry-prepare.timer',['*-*-* *:03/5:05 UTC'],[]))

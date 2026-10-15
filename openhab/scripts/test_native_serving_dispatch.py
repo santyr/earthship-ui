@@ -14,7 +14,8 @@ def test_legacy_backlog_keeps_explicit_scheduled_opportunities():
     roles=[selector(datetime(2026,10,13,18,minute,10,tzinfo=timezone.utc)) for minute in range(10)]
     assert tuple(i for i in range(10) if roles[i]=='legacy')==(6,)
     assert tuple(i for i in range(10) if roles[i]=='current')==(1,)
-    assert roles.count('reserved')==8
+    assert tuple(i for i in range(10) if roles[i]=='battery')==(8,)
+    assert roles.count('reserved')==7
 
 
 def test_receipt_score_refusal_cannot_route_to_legacy_monitor(monkeypatch,settings,tmp_path):

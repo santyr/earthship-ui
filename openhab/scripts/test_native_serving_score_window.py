@@ -25,7 +25,7 @@ def test_one_full_window_per_cycle_rotates_native_and_legacy():
     import household_forecast_score as c
     roles = [c.score_role(datetime(2026,10,14,18,m,0,tzinfo=timezone.utc)) for m in range(10)]
     assert roles[1] == 'current' and roles[6] == 'legacy'
-    assert roles.count('reserved') == 8
+    assert roles[8]=='battery' and roles.count('reserved') == 7
 
 
 def test_verified_family_preserves_old_policy_and_spaces_new_work(tmp_path):

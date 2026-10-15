@@ -23,15 +23,15 @@ def test_admissible_configured_slots_cover_current_and_retained(tmp_path,monkeyp
     with pytest.raises(BlockingIOError):coordinator.run(config,stage=stage,deployment_sha256='a'*64,clock=lambda:before,monotonic=lambda:100)
     after=now.replace(minute=0,second=16)
     coordinator.run(config,stage=stage,deployment_sha256='a'*64,clock=lambda:after,monotonic=lambda:100)
-    assert seen==['current'];seen.clear()
-    for minute in (2,7):
-        at=now.replace(minute=minute,second=10)
+    assert seen==[]  # Publication's reserved minute does not score.
+    for minute in (1,11,16):
+        at=now.replace(minute=minute,second=20)
         coordinator.run(config,stage=stage,deployment_sha256='a'*64,clock=lambda:at,monotonic=lambda:100)
-    assert set(seen)=={'current','history'}
+    assert seen==['current','current','history']
 
 
 def test_older_helper_is_opaque_to_current_worker(tmp_path,monkeypatch):
-    coordinator,config,stage,calls,model,now,dispatch=fixture(tmp_path,monkeypatch,0)
+    coordinator,config,stage,calls,model,now,dispatch=fixture(tmp_path,monkeypatch,1)
     import household_cycle_deploy as deploy
     historical=tmp_path/'older';historical.mkdir(mode=0o700)
     helper=historical/'native_model_serving_receipt.py';helper.write_bytes(b'# genuine different archived helper bytes\n')
@@ -45,6 +45,7 @@ def test_older_helper_is_opaque_to_current_worker(tmp_path,monkeypatch):
     monkeypatch.setattr(coordinator,'score_with_report',lambda *a,**k: {'status':'waiting'} if k['historical_selections']==() else pytest.fail('incompatible history loaded'))
     at=now.replace(second=20)
     assert coordinator.run(config,stage=stage,deployment_sha256='a'*64,clock=lambda:at,monotonic=lambda:100)['status']=='waiting'
+    assert 'read_model' in calls
 
 
 @pytest.mark.parametrize('phase',['replay','readback'])

@@ -69,6 +69,15 @@ def _frequent_current_scores(stage):
     return b'\nSCORE_CURRENT_PERIOD_MINUTES = 10\n' in b'\n'+deploy._bytes(source)
 
 
+def _independent_battery_slot(stage):
+    import household_cycle_deploy as deploy
+    scripts=stage/'sources/openhab/scripts';raw=b'\n'+deploy._bytes(scripts/'household_forecast_score.py')
+    if b'\nBATTERY_SCORE_PERIOD_MINUTES = 10\n' not in raw:return False
+    if (b'\nBATTERY_SCORE_OFFSET_MINUTE = 8\n' not in raw or b'\nBATTERY_SCORE_OFFSET_SECOND = 20\n' not in raw
+        or not (scripts/'household_battery_score.py').is_file()):raise ValueError('complete independent battery opportunity required')
+    return True
+
+
 def _shared_job_pool(stage):
     import household_cycle_deploy as deploy
     scripts=stage/'sources/openhab/scripts'
@@ -122,6 +131,7 @@ def _render(stage,config,libraries,*,deployment_sha256=None):
     if deployment_sha256 is not None and _extended_score_window(stage):
         score+='TimeoutStartSec=130\n'
         score_timer='[Timer]\nOnCalendar=\nOnCalendar=*-*-* *:01/5:00 UTC\n'
+        if _independent_battery_slot(stage):score_timer+='OnCalendar=*-*-* *:08/10:20 UTC\n'
     if deployment_sha256 is not None and _forecast_cpu_quota(stage)=='100%':
         forecast+=b'CPUQuota=100%\n'
     if deployment_sha256 is not None and _score_cpu_quota(stage)=='100%':
@@ -159,6 +169,10 @@ def _metadata(stage,libraries,original,actual,record,files):
             if _frequent_current_scores(stage):
                 result['score_slot_roles']=dict(current=[1,11],historical=[16],legacy=[6],period_minutes=20)
                 result['schedule']['score_role_period_seconds']=1200
+            if _independent_battery_slot(stage):
+                result['score_slot_roles']['battery']=[8,18]
+                result['schedule'].update(battery_score_offsets_seconds=[500],battery_score_period_seconds=600,
+                    battery_work_timeout_seconds=20,battery_total_timeout_seconds=45)
     return result
 
 
