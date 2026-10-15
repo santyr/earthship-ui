@@ -32,7 +32,7 @@
     {
       "phase": "3",
       "requirement": "Pure domain models with numerical parity",
-      "current_evidence": "Pure energy preserves72 production goldens; original24h thermal and weather forcing rederive exactly on one source/model snapshot clock. Weather integration has687 passing affected tests after the single review fix pass. A naturally delivered22:20:15UTC original and current committed-source capture pass pure/privateCLI replay. Energy is a new shadow projection from earlier retained parameters plus original current SoC, with input qualification not_assessed. Original bank/load/weather qualification and rolling energy trajectories remain incomplete; PR24 exact head passed all four hosted checks and merged ec4f9c2. Prepared energy/v2 now binds unchanged numerical capacity to retained original nominal configuration on v5; overall input qualification stays not_assessed. Pipeline/plan/v4 pure and fixture operational CLI replay pass within734 affected tests. Actual source and final review remain pending. Single final bank/load review found four Important gaps; one correction pass enforces original observation topology, optional inverter age, independent malformed configuration and common CLI deadline. All761 affected tests pass. Corrected committed c94124d source binds to the naturally delivered00:15:15UTC original with exact thermal/weather and pure/privateCLI replay. AC expired before model time and remains unavailable; nominal capacity is20.48kWh, calibrated usable energy remains unavailable. PR25 exact head passed all four hosted checks and merged f76e2cd. Original measured-weather point context now has31 pure tests with141 passing source/parser checks; snapshot/model/candidate/outcome integration and actual source acquisition remain pending. Measured-weather snapshot/v6 and model/shadow receipts/v5 now preserve original received lux, radiation proxy and cumulative rain-counter context. Thirteen integration cases prove distinct v5/v6 candidates, enclosing outcomes, private CLI and corrupt/type/expiry refusal;805 household/forecast cases pass in bounded serial groups, with110 unchanged weather-validator cases also verified. Actual source acquisition and final review remain pending; calibration/rain-rate/action qualification remains false. Native provisional candidate/v2 now independently rederives original dataset/geometry/support/loss/physical rollouts and reads identically from213 sealed sources with the production interpreter. Real runtime-bound fit5c0c45d and candidateee0e142 retain all72 protected originals and9 native sources; production now selects native candidate/v2 artifact52dd5d12, trained through2026-10-14T06:00:00Z, with normal forecast/household publication and original-source scoring. Native as-issued forecast/capture/scoring integration and broader phase3 qualification remain incomplete. Native as-issued origin/forecast/publication v2 pure adapter now retains exact future geometry and original compressed temperature queries, independently rederives native hourly predictions, and preserves November vent defaults. One independent review found two Important issues;13 RED regressions verified lossless clocks and caller snapshot freezing. Corrected09c485c passes202 affected cases in two capped serial batches. Actual source/latency, current wider runtime, scorer/UI/household/producer integration and coherent selection remain pending.",
+      "current_evidence": "Pure energy preserves72 production goldens; original24h thermal and weather forcing rederive exactly on one source/model snapshot clock. Weather integration has687 passing affected tests after the single review fix pass. A naturally delivered22:20:15UTC original and current committed-source capture pass pure/privateCLI replay. Energy is a new shadow projection from earlier retained parameters plus original current SoC, with input qualification not_assessed. Original bank/load/weather qualification and rolling energy trajectories remain incomplete; PR24 exact head passed all four hosted checks and merged ec4f9c2. Prepared energy/v2 now binds unchanged numerical capacity to retained original nominal configuration on v5; overall input qualification stays not_assessed. Pipeline/plan/v4 pure and fixture operational CLI replay pass within734 affected tests. Actual source and final review remain pending. Single final bank/load review found four Important gaps; one correction pass enforces original observation topology, optional inverter age, independent malformed configuration and common CLI deadline. All761 affected tests pass. Corrected committed c94124d source binds to the naturally delivered00:15:15UTC original with exact thermal/weather and pure/privateCLI replay. AC expired before model time and remains unavailable; nominal capacity is20.48kWh, calibrated usable energy remains unavailable. PR25 exact head passed all four hosted checks and merged f76e2cd. Original measured-weather point context now has31 pure tests with141 passing source/parser checks; snapshot/model/candidate/outcome integration and actual source acquisition remain pending. Measured-weather snapshot/v6 and model/shadow receipts/v5 now preserve original received lux, radiation proxy and cumulative rain-counter context. Thirteen integration cases prove distinct v5/v6 candidates, enclosing outcomes, private CLI and corrupt/type/expiry refusal;805 household/forecast cases pass in bounded serial groups, with110 unchanged weather-validator cases also verified. Actual source acquisition and final review remain pending; calibration/rain-rate/action qualification remains false. Native provisional candidate/v2 now independently rederives original dataset/geometry/support/loss/physical rollouts and reads identically from213 sealed sources with the production interpreter. Real runtime-bound fit5c0c45d and candidateee0e142 retain all72 protected originals and9 native sources; production now selects native candidate/v2 artifact52dd5d12, trained through2026-10-14T06:00:00Z, with normal forecast/household publication and original-source scoring. Native as-issued forecast/capture/scoring integration and broader phase3 qualification remain incomplete. Native as-issued origin/forecast/publication v2 pure adapter now retains exact future geometry and original compressed temperature queries, independently rederives native hourly predictions, and preserves November vent defaults. One independent review found two Important issues;13 RED regressions verified lossless clocks and caller snapshot freezing. Corrected09c485c passes202 affected cases in two capped serial batches. Actual source/latency, current wider runtime, scorer/UI/household/producer integration and coherent selection remain pending. Source886ff4c now retains a separate conditional current-net-DC-power battery baseline on original nominal capacity; normal01:45:15UTC capture and pure/deployedCLI replay match.658 affected tests include72dailyparity cases. Actual served24h baseline plus offline6/12h variants from the same originals are verified; qualified rolling PV/load forecasts and calibrated usable energy remain incomplete.",
       "complete": false
     },
     {
@@ -50,13 +50,13 @@
     {
       "phase": "6",
       "requirement": "Shadow household planner",
-      "current_evidence": "Bounded exhaustive coordination and model-triggered shadow generation merged. Rolling operational inputs, qualified effects and actual/current-owner policy baselines remain incomplete.",
+      "current_evidence": "Bounded exhaustive coordination and model-triggered shadow generation implemented. Source886ff4c adds a separate nominal current-power battery persistence trajectory to pipeline/v6, with original metric sign/units, SoC,power,capacity and exact replay. Its minimum does not supply a reserve-permission fact. Qualified rolling PV/load forecasts, action effects, and actual/current-owner policy baselines remain incomplete.",
       "complete": false
     },
     {
       "phase": "7",
       "requirement": "Deterministic sealed household plan replay and outcome scoring",
-      "current_evidence": "Model trajectories, generated candidates and complete plans rederive from sealed receipts. Pure chronological thermal scoring and conservative daily-unit summaries implemented; one actual original delivered forecast qualified mature native1/6/12h outcomes and replayed identically through private CLI. Qualified energy/night-minimum, owner-policy/action outcomes and full original-source household pipeline remain incomplete. Source-bound completed-night energy scoring and private replay implemented. Actual888rows qualified a85percent minimum; missing exact as-issued numerical arguments prevent an actual household-model score. Native scored-pair/v2 now replays externally pinned native forecasts and both persisted receipts, checks mature sensor-phase outcomes, preserves model/geometry lineage and bounded current-revision baseline reports. Initial219 affected cases passed; one immutable review/one correction pass adds complete saved-receipt metadata and lossless outcome clocks, with17 new regressions and31 original scoring/forecast cases passing. Raw outcome provenance/reconciliation,11-source runtime qualification and native live integration remain incomplete. Operational scoring follow-up3fd481c preserves original full report checks and scored27 current-model one-hour outcomes naturally in44seconds at2026-10-15T00:21UTC. Current one-hour MAE0.266789F remains worse than persistence0.200000F; no longer-horizon outcomes in this cohort and no graduation. Exact-stage household receipt replay at00:20:15UTC also matches. These resolve runtime/replay evidence only, not remaining cross-domain/action outcome requirements.",
+      "current_evidence": "Model trajectories, generated candidates and complete plans rederive from sealed receipts. Pure chronological thermal scoring and conservative daily-unit summaries implemented; one actual original delivered forecast qualified mature native1/6/12h outcomes and replayed identically through private CLI. Qualified energy/night-minimum, owner-policy/action outcomes and full original-source household pipeline remain incomplete. Source-bound completed-night energy scoring and private replay implemented. Actual888rows qualified a85percent minimum; missing exact as-issued numerical arguments prevent an actual household-model score. Native scored-pair/v2 now replays externally pinned native forecasts and both persisted receipts, checks mature sensor-phase outcomes, preserves model/geometry lineage and bounded current-revision baseline reports. Initial219 affected cases passed; one immutable review/one correction pass adds complete saved-receipt metadata and lossless outcome clocks, with17 new regressions and31 original scoring/forecast cases passing. Raw outcome provenance/reconciliation,11-source runtime qualification and native live integration remain incomplete. Operational scoring follow-up3fd481c preserves original full report checks and scored27 current-model one-hour outcomes naturally in44seconds at2026-10-15T00:21UTC. Current one-hour MAE0.266789F remains worse than persistence0.200000F; no longer-horizon outcomes in this cohort and no graduation. Exact-stage household receipt replay at00:20:15UTC also matches. These resolve runtime/replay evidence only, not remaining cross-domain/action outcome requirements. Source886ff4c retains original as-issued24h battery persistence input/output in normal01:45:15UTC v6 receipt. Mature endpoint scoring of this baseline and public comparison remain pending; no measured baseline accuracy is claimed.",
       "complete": false
     },
     {
@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "Earthship observations remain below existing content. Model52dd5d12 remains provisional. First normalff57a66 issue2026-10-15T01:15:15UTC refreshes current daily energy, all three owner engine observations and negative greywater curfew fact with exact replay; service exit0 at01:15:29UTC. Initiald9c471e observer envelope refusal was reproduced offline and corrected with one bounded1MiB private-plan limit. Historical00:21UTC current-model report had27 one-hour outcomes, modelMAE0.266789F versus persistence0.200000F; this is not a current accuracy or graduation claim. Natural next daily diagnostic/training verification remains pending October15 at06:40/06:50MDT. Qualified physical/action outcomes and full architecture remain incomplete.",
+      "current_evidence": "Earthship observations remain below existing content. Model52dd5d12 remains provisional. Normal886ff4c issue2026-10-15T01:45:15UTC and household observation succeed with source-bound current daily energy and owner observations plus a private nominal battery baseline. Pure/exact-stageCLI replay matches; service exit0 at01:45:29UTC and next normal scoring slot exits0 at01:46:06UTC. Public compact schema remains unchanged; baseline public comparison is not yet implemented. Historical00:21UTC report modelMAE0.266789F versus persistence0.200000F remains historical evidence only. Next natural daily diagnostic/training verification remains pending October15 at06:40/06:50MDT. Qualified physical/action outcomes and full architecture remain incomplete.",
       "complete": false
     },
     {
@@ -7383,25 +7383,25 @@
       },
       "review": "final integration review Important retained-policy binding fixed RED to GREEN; full230-test suite passes",
       "operations": "docs/operations/2026-10-14-shared-job-resources.md",
-      "implementation_commit": "ff57a660455852d9cd70f957c3fb6f50a7e90f0f",
-      "deployment_sha256": "f20691db9a6039dd183a89e74d500a0b90cc364ea2c0c1fb7c52c61f892f7b53",
+      "implementation_commit": "886ff4c5c33f4f6483485c2448405f24e649d9c3",
+      "deployment_sha256": "f6851c74117c16822ad5b151ea3c23949d475a0c25cd5dca85031261949e635f",
       "integration_tests": 230,
-      "natural_forecast": "2026-10-15T01:15:15UTC firstff57a66 issue succeeded;exit0 at01:15:29UTC; current household policy observation verified by pure/exact-stageCLI replay.",
+      "natural_forecast": "2026-10-15T01:45:15UTC first886ff4c issue succeeded;exit0 at01:45:29UTC; v6 household receipt and current battery baseline verified by pure/exact-stageCLI replay.",
       "natural_legacy_score": "22:26UTC monitoring_refreshed;256 retained legacy outcomes;zero new mature outcomes",
       "natural_current_native_score": "2026-10-15T00:21:00..00:21:44UTC current role exit0;1 new mature outcome;27 current-model outcomes;40.467CPU seconds.",
-      "natural_preparer": "2026-10-15T01:13:05..09UTC scheduled preparation succeeded on previousd9c471e; identical original01:15:15packet retained before activation.",
+      "natural_preparer": "2026-10-15T01:43:05..09UTC scheduled preparation succeeded on previousff57a66; identical original01:45:15packet retained before activation.",
       "natural_daily_fit": "pending2026-10-15T06:50MDT",
       "fit_executed_during_rollout": false,
       "current_score_correction_tests": 68,
       "daily_checkout": {
-        "source_commit": "ff57a660455852d9cd70f957c3fb6f50a7e90f0f",
+        "source_commit": "886ff4c5c33f4f6483485c2448405f24e649d9c3",
         "unit_sha256": "eacc1ad9aa28564629258e53f82c80017b640820b4ba739b592dc7dba970da16",
         "unit_unchanged": true,
         "service_started": false,
-        "assessed_at": "2026-10-15T01:12:59.201653+00:00"
+        "assessed_at": "2026-10-15T01:43:21.948439+00:00"
       },
       "inventory_correction_tests": 83,
-      "effective_readback_at": "2026-10-15T01:16:01.590799+00:00",
+      "effective_readback_at": "2026-10-15T01:46:21.983655+00:00",
       "current_score_runtime_risk": "Observed120second deadline failures resolved for27-outcome cohort by3fd481c; one current run44seconds. Larger cohorts and daily fitting remain to be observed.",
       "current_model_one_hour_performance": {
         "count": 27,
@@ -8040,6 +8040,168 @@
         "correction_verified": true
       },
       "remaining": "Observed negative blockers do not qualify physical readiness, operator permission, calibrated bounds, full policy baselines or action effects. Stable rule bracketing establishes source observed during collection, not a historical code identity embedded in evaluated status."
+    },
+    "household_energy_persistence": {
+      "implemented": true,
+      "deployed": true,
+      "source_commit": "886ff4c5c33f4f6483485c2448405f24e649d9c3",
+      "reviewed_source_commit": "9eb4efb3e697b7dcb03a88f4ddf6468427e44603",
+      "deployment_sha256": "f6851c74117c16822ad5b151ea3c23949d475a0c25cd5dca85031261949e635f",
+      "activated_at": "2026-10-15T01:44:34.554351+00:00",
+      "python_tests": 658,
+      "suite_seconds": 96.12,
+      "legacy_daily_goldens": 72,
+      "review": "One final immutable review found missing-power/absent-age lookup issue, reported Minor and regraded Important for optional-source isolation. One RED-to-GREEN correction pass preserves explicit age for present sources; full658-test suite passes. No rereview.",
+      "source_schema": "earthship-household-cycle-sources/v5",
+      "pipeline_schema": "earthship-household-model-plan-receipt/v6",
+      "model_rule": "constant_net_dc_power_nominal_capacity_v1",
+      "natural_household_receipt": {
+        "assessed_at": "2026-10-15T01:45:57.628129+00:00",
+        "automatic_actuation": false,
+        "current_soc_pct": 89.0,
+        "daily_issued_at": "2026-10-14T12:40:49.420253+00:00",
+        "daily_prediction_day": "2026-10-14",
+        "daily_receipt_sha256": "8411e0c34698981eda772133b843cace8dc7bfb76cce96fa1a692478df0ca8a2",
+        "daily_resource_kwh": 2.011388888888889,
+        "energy_baseline": {
+          "baseline_reserve_permission": false,
+          "battery_power_w": -173,
+          "forecast_forcing_qualified": false,
+          "horizons": {
+            "12": {
+              "endpoint_nominal_soc_pct": 78.86328125,
+              "projection_sha256": "90629f49239e0d307d5f6ec98d85a00717c7436ca31dcbe5dc0555ebbd6d53fc",
+              "status": "projected_nominal_baseline"
+            },
+            "24": {
+              "endpoint_nominal_soc_pct": 68.7265625,
+              "projection_sha256": "60e2a9711168c2bc050b6b377dce0787607afd432a46f1b143ea47f4dad868f8",
+              "status": "projected_nominal_baseline"
+            },
+            "6": {
+              "endpoint_nominal_soc_pct": 83.931640625,
+              "projection_sha256": "f4a48825cca64528eb6226a13e217a67e3ea1b7516c9f17f5ebfb539adebb877",
+              "status": "projected_nominal_baseline"
+            }
+          },
+          "initial_soc_pct": 89.0,
+          "metric_source_sha256": "ee7d5ff7f74a8f4b33bd9927a6d6baa8fb04b9a636b8abf3f7ed63e5971ee017",
+          "model_rule": "constant_net_dc_power_nominal_capacity_v1",
+          "nominal_bank_kwh": 20.48,
+          "origin": "2026-10-15T01:45:15+00:00",
+          "physical_calibration_qualified": false
+        },
+        "greywater_registry": {
+          "availability": "not_assessed",
+          "contractVersion": "legacy-correlated-v1",
+          "legacyIngresses": [],
+          "manualAuthority": "request",
+          "ownerRule": "hex_southoutlet_cycle",
+          "ownerSource": "openhab/rules/southoutlet-cycle-installed.js",
+          "plannerAuthority": "none",
+          "protectedActuators": [
+            "East_Bed_Socket_Outlet_2_Power",
+            "SouthOutlet_Outlet2_Switch"
+          ],
+          "protectedDependencies": [
+            "BMS_Comms_Status",
+            "BMS_SOC_Evidence_JSON",
+            "DCData_Voltage",
+            "East_Bed_Socket_Outlet_2_Power",
+            "SkyCondition",
+            "SouthOutlet_AutoStatus",
+            "SouthOutlet_LastAutoRun",
+            "SouthOutlet_LowSocCutoff",
+            "SouthOutlet_Outlet2_Switch",
+            "Sun_Position_Elevation"
+          ],
+          "requestBindings": [
+            {
+              "requestItem": "SouthOutlet_ManualRequest",
+              "resultItem": "SouthOutlet_ManualResult"
+            }
+          ],
+          "safetyInputs": [
+            "BMS_Comms_Status",
+            "BMS_SOC_Evidence_JSON",
+            "DCData_Voltage",
+            "SkyCondition",
+            "SouthOutlet_LowSocCutoff",
+            "Sun_Position_Elevation"
+          ],
+          "safetyInputsComplete": false
+        },
+        "input_qualification": "not_assessed",
+        "live_writes": false,
+        "nested_plan_bytes": 590529,
+        "owner_facts_at_issue": {
+          "88bd9ec4de": {
+            "owner_available": true
+          },
+          "hex_night_load_override": {
+            "owner_available": true
+          },
+          "hex_southoutlet_cycle": {
+            "curfew_allowed": false,
+            "owner_available": true
+          }
+        },
+        "owner_policy": {
+          "evaluated_at": "2026-10-15T01:45:00.744000+00:00",
+          "next_eligible_at": null,
+          "next_pump": null,
+          "owner": "hex_southoutlet_cycle",
+          "physical_permission": false,
+          "reason": "after_dark",
+          "rule_sha256": "4c34780e544d80af8eb36d047a949fa30e0198bb50fa57650285052db3c52d9b",
+          "scheduling": "blocked",
+          "source_sha256": "42429f1e0be3f12c42f53e7d4b02e748c2a6969854832aeec780fd42da025966",
+          "valid_until": "2026-10-15T01:47:00.744000+00:00"
+        },
+        "owner_received_at": "2026-10-15T01:45:08.300394+00:00",
+        "owner_requested_at": "2026-10-15T01:45:08.296979+00:00",
+        "owner_source_sha256": "7ef4fd852ce87e3a87bd37c3e1ccf5c4493a0329a7fcd8c5236bb1c54fb5929e",
+        "policy_collection_seconds": 0.009102,
+        "private_cli_replay_identical": true,
+        "pure_replay_identical": true,
+        "receipt_bytes": 1424992,
+        "receipt_path": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-14-shared-job-resources/production-886ff4c/final/evidence/5a299e8767c083a573eed11bedefc6235332922b981dd7e4e10170d878e9d997.household-model-plan-v6.json",
+        "receipt_sha256": "717b20a8fe802d7a7c73ea89b9d8072b1de7fd9b8ac425fecf65bcb12c35ecb6",
+        "snapshot_as_of": "2026-10-15T01:45:15+00:00",
+        "source_collected_at": "2026-10-15T01:45:08.015429+00:00",
+        "source_commit": "886ff4c5c33f4f6483485c2448405f24e649d9c3",
+        "status": "natural_energy_persistence_household_pipeline_verified",
+        "tomorrow_cloud_pct": 42
+      },
+      "sealed_production_horizon_hours": 24,
+      "offline_original_source_variants_hours": [
+        6,
+        12
+      ],
+      "owner_readback": {
+        "assessed_at": "2026-10-15T01:45:19.221561+00:00",
+        "owners": {
+          "hex_southoutlet_cycle": {
+            "definition_unchanged": true,
+            "script_sha256": "4c34780e544d80af8eb36d047a949fa30e0198bb50fa57650285052db3c52d9b"
+          },
+          "88bd9ec4de": {
+            "definition_unchanged": true,
+            "script_sha256": "730053e0f3245cb83461e3fe6e3b05d49c8b508631e8cdb4a889c8be8d915978"
+          },
+          "hex_night_load_override": {
+            "definition_unchanged": true,
+            "script_sha256": "e7aed419e81f6772ef26cb48e788e6eef33b47ebb1cd27d664425a772831d793"
+          }
+        },
+        "live_writes": false
+      },
+      "physical_calibration_qualified": false,
+      "forecast_forcing_qualified": false,
+      "baseline_minimum_authorizes_reserve": false,
+      "automatic_actuation": false,
+      "public_observation_schema_unchanged": true,
+      "remaining": "Mature baseline endpoint scoring and public comparisons remain required. This conditional baseline is not the qualified rolling PV/load forecast or calibrated usable energy, and does not satisfy remaining action-effect, owner-integration or graduation requirements."
     }
   },
   "astro_efficiency_audit": {
@@ -8194,5 +8356,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-15T01:16:45.264756+00:00"
+  "updated_at": "2026-10-15T01:47:36.100273+00:00"
 }
