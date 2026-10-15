@@ -104,7 +104,8 @@ def retained_model_admission(candidate, *, selections, guard):
     """Reuse the earliest externally pinned admission of this exact model."""
     from household_cycle_deploy import verify_stage
     from native_model_serving_receipt import load_serving_selection, read_serving_model
-    if not isinstance(selections,(list,tuple)) or not 1<=len(selections)<=32:
+    # A complete retained dispatch has up to63 stages, plus the current one.
+    if not isinstance(selections,(list,tuple)) or not 1<=len(selections)<=64:
         raise ValueError('bounded retained admission selections required')
     best=None;seen=set()
     for reference in selections:
