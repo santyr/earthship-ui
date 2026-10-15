@@ -166,7 +166,7 @@ INPUT_FIELDS={'snapshot','registry','candidates','coordination','utilities','now
 
 
 def _runtime_manifest(value):
-    if not isinstance(value,dict) or not 1<=len(value)<=64:raise ValueError('bounded explicit runtime manifest required')
+    if not isinstance(value,dict) or not 1<=len(value)<=128:raise ValueError('bounded explicit runtime manifest required')
     for name,sha in value.items():
         if not isinstance(name,str) or not re.fullmatch('[A-Za-z0-9_./-]{1,192}',name) or name.startswith('/') or '..' in name:
             raise ValueError('bounded runtime source name required')

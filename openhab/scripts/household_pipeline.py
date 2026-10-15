@@ -41,6 +41,8 @@ POWER_COMPANIONS={'companion/earthship_energy/'+name+'.py' for name in ('ac_evid
 
 
 def verify_source_closure(record,actual):
+    if record.get('schema')=='earthship-household-model-plan-receipt/v6' and 'openhab/scripts/household/energy_persistence.py' not in record['runtime_manifest']:
+        raise ValueError('energy persistence runtime source required')
     contexts=record['inputs'].get('source_contexts')
     if not isinstance(contexts,dict) or not 1<=len(contexts)<=9:raise ValueError('bounded original source contexts required')
     required={'openhab/scripts/'+name for name in VALIDATORS}
@@ -83,9 +85,9 @@ def main(argv=None):
     parser.add_argument('--receipt',required=True,type=Path);args=parser.parse_args(argv)
     try:
         raw=_read(args.receipt,MAX_BYTES,private=True);record=loads(raw)
-        expanded=record.get('schema') in ('earthship-household-model-plan-receipt/v2','earthship-household-model-plan-receipt/v3','earthship-household-model-plan-receipt/v4','earthship-household-model-plan-receipt/v5')
-        configured=record.get('schema') in ('earthship-household-model-plan-receipt/v4','earthship-household-model-plan-receipt/v5')
-        measured=record.get('schema')=='earthship-household-model-plan-receipt/v5'
+        expanded=record.get('schema') in ('earthship-household-model-plan-receipt/v2','earthship-household-model-plan-receipt/v3','earthship-household-model-plan-receipt/v4','earthship-household-model-plan-receipt/v5','earthship-household-model-plan-receipt/v6')
+        configured=record.get('schema') in ('earthship-household-model-plan-receipt/v4','earthship-household-model-plan-receipt/v5','earthship-household-model-plan-receipt/v6')
+        measured=record.get('schema') in ('earthship-household-model-plan-receipt/v5','earthship-household-model-plan-receipt/v6')
         executing=pipeline_runtime_manifest(expanded=expanded,configured=configured,measured=measured);root=Path(__file__).resolve().parent
         thermal=thermal_execution_runtime(root,record['inputs']['thermal_inputs'])
         if expanded:verify_source_closure(record,executing)

@@ -37,6 +37,7 @@ from household_cycle_deadline import MAX_OBSERVATION_SECONDS
 
 DAILY_STATE_PATH=Path('/home/sat/.local/state/forecast-intel/state.json')
 DAILY_RECEIPT_ITEM='Forecast_Prediction_Receipt_JSON'
+METRIC_PATH=Path('/home/sat/Solar_PV/analytics/config/metric-sources.json')
 
 PRIVATE_PATHS={
     'energy_db':Path('/home/sat/.config/hex/energy-power-reader.jdbc'),
@@ -84,6 +85,22 @@ class CycleSourceCollector:
         self.policy_bindings=[(path,CONFIGURATION_SOURCES[kind][1],_owned_text(path,CONFIGURATION_SOURCES[kind][1],lambda:6.))
             for kind,path in FIXED_PATHS.items()]
         self.policy_bindings.extend((path,4096,_owned_text(path,4096,lambda:6.)) for path in FIXED_POLICY_PATHS.values())
+        # Optional original sign/unit declaration. Malformed configuration
+        # withholds the new baseline while preserving the other domains.
+        from household.energy_persistence import METRIC_MAX_BYTES,METRIC_IDENTITY
+        self.metric_source=None
+        try:
+            original=_owned_text(METRIC_PATH,METRIC_MAX_BYTES,lambda:6.)
+            self.policy_bindings.append((METRIC_PATH,METRIC_MAX_BYTES,original))
+            raw=original[0]
+            if raw is not None:
+                loads(raw)
+                from hashlib import sha256
+                self.metric_source=dict(schema='earthship-household-battery-metric-source/v1',source_identity=METRIC_IDENTITY,
+                    raw=raw,sha256=sha256(raw.encode()).hexdigest(),available_at=utc(self.clock()).isoformat())
+        except (OSError,ValueError,UnicodeError,RecursionError):
+            self.metric_source=None
+
 
     def verify_unchanged(self,check=lambda:6.):
         from household_snapshot import _read
@@ -248,8 +265,8 @@ class CycleSourceCollector:
         check()
         self.verify_unchanged(check);finished=utc(self.clock())
         if not started<=finished<issue:raise ValueError('source collection clock changed')
-        result=dict(schema='earthship-household-cycle-sources/v4',issue=issue.isoformat(),captured_at=finished.isoformat(),
-            power_receipt=receipt,energy_configuration=configuration.to_dict(),measured_weather=measured.to_dict(),daily_energy_source=daily_source,owner_source=owner_source,policy_source=policy_source,
+        result=dict(schema='earthship-household-cycle-sources/v5',issue=issue.isoformat(),captured_at=finished.isoformat(),
+            power_receipt=receipt,energy_configuration=configuration.to_dict(),measured_weather=measured.to_dict(),daily_energy_source=daily_source,owner_source=owner_source,policy_source=policy_source,energy_persistence_source=self.metric_source,
             owner_bindings=dict(before=before,after=after),automatic_actuation=False)
         if len(canonical(result))>1048576:raise ValueError('bounded cycle source originals required')
         check();return result

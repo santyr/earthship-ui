@@ -130,9 +130,9 @@ def materialize(receipt_path,output_path,*,clock=lambda:datetime.now(timezone.ut
     if source==target:raise ValueError('original receipt cannot be a publication target')
     directory=_directory(target.parent);previous=_existing_view(target)
     original=_private_file(source,RECEIPT_BYTES);record=loads(original[0]);version=record.get('schema')
-    expanded=version in ('earthship-household-model-plan-receipt/v2','earthship-household-model-plan-receipt/v3','earthship-household-model-plan-receipt/v4','earthship-household-model-plan-receipt/v5')
-    configured=version in ('earthship-household-model-plan-receipt/v4','earthship-household-model-plan-receipt/v5')
-    measured=version=='earthship-household-model-plan-receipt/v5'
+    expanded=version in ('earthship-household-model-plan-receipt/v2','earthship-household-model-plan-receipt/v3','earthship-household-model-plan-receipt/v4','earthship-household-model-plan-receipt/v5','earthship-household-model-plan-receipt/v6')
+    configured=version in ('earthship-household-model-plan-receipt/v4','earthship-household-model-plan-receipt/v5','earthship-household-model-plan-receipt/v6')
+    measured=version in ('earthship-household-model-plan-receipt/v5','earthship-household-model-plan-receipt/v6')
     def runtime():return pipeline_runtime_manifest(expanded=expanded,configured=configured,measured=measured)
     executing=runtime();root=Path(__file__).resolve().parent
     thermal=thermal_execution_runtime(root,record['inputs']['thermal_inputs'])

@@ -107,7 +107,7 @@ def test_collector_keeps_bracketed_policy_originals(tmp_path,monkeypatch):
         assert remaining()>0;calls.append(1);return value
     collector.policy_reader=read
     result=collector(issue=now+timedelta(seconds=8),remaining=lambda:6.,guard=lambda:None)
-    assert result['schema']=='earthship-household-cycle-sources/v4' and result['policy_source']==value and calls==[1]
+    assert result['schema']=='earthship-household-cycle-sources/v5' and result['policy_source']==value and calls==[1]
 
 @pytest.mark.parametrize('failure',['transport','malformed','nested','truncated'])
 def test_optional_policy_failure_preserves_source_domains(failure,tmp_path,monkeypatch):
