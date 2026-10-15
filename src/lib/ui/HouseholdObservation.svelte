@@ -2,8 +2,12 @@
   import { onMount } from 'svelte';
   import Tile from './Tile.svelte';
   import { parseHouseholdObservation } from '../household/observation.js';
-  import { loadHouseholdObservation } from '../household/observationClient.js';
+  import { loadHouseholdObservation, loadBatteryPerformance } from '../household/observationClient.js';
 
+  import { parseBatteryPerformance } from '../household/batteryPerformance.js';
+
+  let batteryRaw = $state(null);
+  const battery = $derived(parseBatteryPerformance(batteryRaw, { nowMs }));
   let raw = $state(null), nowMs = $state(Date.now());
   const view = $derived(parseHouseholdObservation(raw, { nowMs }));
   const selected = $derived(view?.proposals.filter(item => item.selected) ?? []);
@@ -18,11 +22,14 @@
       nowMs = Date.now(); controller?.abort(); clearTimeout(deadline);
       const current = new AbortController(); controller = current;
       deadline = setTimeout(() => current.abort(), 10_000);
-      try {
-        const received = await loadHouseholdObservation(current.signal);
-        if (!stopped && controller === current) { raw = received; nowMs = Date.now(); }
-      } catch { if (!stopped && controller === current) raw = null; }
-      finally { if (controller === current) clearTimeout(deadline); }
+      const results = await Promise.allSettled([
+        loadHouseholdObservation(current.signal), loadBatteryPerformance(current.signal),
+      ]);
+      if (!stopped && controller === current) {
+        raw = results[0].status === 'fulfilled' ? results[0].value : null;
+        batteryRaw = results[1].status === 'fulfilled' ? results[1].value : null;
+        nowMs = Date.now(); clearTimeout(deadline);
+      }
     }
     refresh();
     const timer = setInterval(refresh, 30_000);
@@ -55,6 +62,25 @@
       <p>Verified observation unavailable</p>
       <p>Suggested action, model identities, effects and policy comparison are unavailable.</p>
     {/if}
+  </Tile>
+  <Tile label="Battery forecast accuracy">
+    {#if battery}
+      {#if battery.expired}<p class="notice">Battery accuracy report is stale</p>{/if}
+      <p>Mean absolute error in battery SoC percentage points; lower is better.</p>
+      <div class="source-table">
+        <table><thead><tr><th>Horizon</th><th>Constant power</th><th>Hold SoC</th><th>Samples</th><th>Origin days</th></tr></thead>
+          <tbody>{#each ['1', '6', '12', '24'] as hours}
+            {@const row = battery.by_horizon[hours]}
+            <tr><td>{hours}h</td><td>{row.count ? row.mae_soc_pct.constant_power.toFixed(2) : 'Collecting'}</td>
+              <td>{row.count ? row.mae_soc_pct.hold_soc.toFixed(2) : 'Collecting'}</td><td>{row.count} / {row.attempted_count} attempts</td><td>{row.unique_origin_days}</td></tr>
+          {/each}</tbody>
+        </table>
+      </div>
+      <p>Assumes current battery power continues; capacity is configured. One original forecast per hour over the last seven days.</p>
+      <p>Last measured endpoint: {battery.last_target_at ? date(battery.last_target_at) : 'Collecting'}.</p>
+      {#if battery.next_mature_at}<p>Next pending assessment: {date(battery.next_mature_at)}.</p>{/if}
+      <p>Report updated {date(battery.generated_at)}. These comparisons do not establish action benefits.</p>
+    {:else}<p>Battery accuracy report unavailable</p>{/if}
   </Tile>
   {#if view}
     <Tile label="Models and original identities">

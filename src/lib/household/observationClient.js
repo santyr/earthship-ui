@@ -1,7 +1,10 @@
 import { OBSERVATION_MAX_BYTES } from './observation.js';
 
-export async function loadHouseholdObservation(signal) {
-  const response = await fetch('/api/household-observation', { signal, cache: 'no-store', redirect: 'error' });
+export const loadHouseholdObservation = signal => load('/api/household-observation', signal);
+export const loadBatteryPerformance = signal => load('/api/household-battery-performance', signal);
+
+async function load(path, signal) {
+  const response = await fetch(path, { signal, cache: 'no-store', redirect: 'error' });
   if (!response.ok || !response.body?.getReader || Number(response.headers.get('content-length')) > OBSERVATION_MAX_BYTES) {
     await response.body?.cancel(); throw new Error('Observation unavailable');
   }

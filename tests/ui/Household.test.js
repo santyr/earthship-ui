@@ -8,7 +8,7 @@ import { observation, proposal, AT } from '../fixtures/household-observation.js'
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 function serve(row) {
   vi.spyOn(Date, 'now').mockReturnValue(AT);
-  const fetcher = vi.fn(async () => new Response(JSON.stringify(row), { status: 200 }));
+  const fetcher = vi.fn(async url => new Response(JSON.stringify(url === '/api/household-observation' ? row : { status: 'unavailable' }), { status: 200 }));
   vi.stubGlobal('fetch', fetcher); return fetcher;
 }
 describe('Earthship household observation panels', () => {
@@ -62,10 +62,10 @@ it('recalculates original expiry on polling and stops all requests after navigat
   vi.spyOn(Date, 'now').mockReturnValue(AT + 60_000);
   await vi.advanceTimersByTimeAsync(30_000);
   expect(container.textContent).toContain('Original plan expired');
-  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(fetcher).toHaveBeenCalledTimes(4);
   unmount();
   await vi.advanceTimersByTimeAsync(90_000);
-  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(fetcher).toHaveBeenCalledTimes(4);
 });
 
 it('expires the displayed plan independently of a slow network polling interval', async () => {
@@ -76,5 +76,17 @@ it('expires the displayed plan independently of a slow network polling interval'
   vi.spyOn(Date, 'now').mockReturnValue(AT + 60_000);
   await vi.advanceTimersByTimeAsync(1_000);
   expect(container.textContent).toContain('Original plan expired');
-  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
+it('shows measured battery baseline errors and distinct empty horizons without requiring current planning', async () => {
+  const { batteryPerformance } = await import('../fixtures/household-battery-performance.js');
+  vi.spyOn(Date, 'now').mockReturnValue(AT);
+  vi.stubGlobal('fetch', async url => new Response(JSON.stringify(url === '/api/household-battery-performance' ? batteryPerformance() : { status: 'unavailable' })));
+  const { container, getByText } = render(HouseholdObservation);
+  await waitFor(() => expect(container.textContent).toContain('2.56'));
+  expect(getByText('Battery forecast accuracy')).toBeTruthy(); expect(container.textContent).toContain('5.00');
+  expect(container.textContent).toContain('percentage points'); expect(container.textContent).toContain('Collecting');
+  expect(container.textContent).toContain('Assumes current battery power continues');
+  expect(container.querySelector('button, form, input, select')).toBeNull();
 });

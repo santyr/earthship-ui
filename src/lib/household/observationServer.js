@@ -3,6 +3,7 @@ import { open, realpath, stat, lstat } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { OBSERVATION_MAX_BYTES, parseHouseholdObservation } from './observation.js';
+import { parseBatteryPerformance } from './batteryPerformance.js';
 
 // Preserve Vite's default sensitive-file exclusions and add private agent and
 // receipt staging. Filesystem permissions alone do not constrain the web server.
@@ -16,7 +17,7 @@ function ownedFile(info) {
 function same(a, b) {
   return ['dev', 'ino', 'mode', 'uid', 'nlink', 'size', 'mtimeMs', 'ctimeMs'].every(key => a[key] === b[key]);
 }
-async function readObservation(path, nowMs) {
+async function readObservation(path, nowMs, validate = parseHouseholdObservation) {
   if (resolve(path) !== path || await realpath(path) !== path) throw new Error('unavailable');
   const parent = await stat(dirname(path));
   if (!parent.isDirectory() || parent.uid !== process.getuid() || (parent.mode & 0o777) !== 0o700) throw new Error('unavailable');
@@ -35,7 +36,7 @@ async function readObservation(path, nowMs) {
       || !same(original, await handle.stat()) || !same(original, await lstat(path))
       || !same(parent, await stat(dirname(path))) || await realpath(path) !== path) throw new Error('unavailable');
     const raw = new TextDecoder('utf-8', { fatal: true }).decode(bytes.subarray(0, length));
-    if (!parseHouseholdObservation(raw, { nowMs })) throw new Error('unavailable');
+    if (!validate(raw, { nowMs })) throw new Error('unavailable');
     return raw;
   } finally { await handle.close(); }
 }
@@ -43,18 +44,20 @@ async function readObservation(path, nowMs) {
 /** Fixed file transport only: no receipt replay, model execution or command path. */
 export function householdObservationPlugin({
   cachePath = process.env.HOUSEHOLD_OBSERVATION_CACHE || resolve(homedir(), '.local/state/household-intel/observation.json'),
+  batteryCachePath = resolve(homedir(), '.local/state/household-intel/battery-performance.json'),
   now = Date.now,
 } = {}) {
   const attach = server => { server.middlewares.use(async (req, res, next) => {
     let url;
     try { url = new URL(req.url || '/', 'http://localhost'); } catch { return next(); }
-    if (url.pathname !== '/api/household-observation') return next();
+    const battery = url.pathname === '/api/household-battery-performance';
+    if (!battery && url.pathname !== '/api/household-observation') return next();
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     if (req.method !== 'GET') { res.setHeader('Allow', 'GET'); res.writeHead(405).end('{"status":"unavailable"}'); return; }
     if (url.search) { res.writeHead(400).end('{"status":"unavailable"}'); return; }
-    try { const raw = await readObservation(cachePath, now()); res.writeHead(200).end(raw); }
+    try { const raw = await readObservation(battery ? batteryCachePath : cachePath, now(), battery ? parseBatteryPerformance : parseHouseholdObservation); res.writeHead(200).end(raw); }
     catch { if (!res.headersSent) res.writeHead(503); res.end('{"status":"unavailable"}'); }
   }); };
   return { name: 'household-observation', configureServer: attach, configurePreviewServer: attach };

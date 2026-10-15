@@ -270,6 +270,19 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
         else:
             if isinstance(pressure,SampledScorePressure):pressure.check(force=True)
             result=score_with_report(settings,guard=guard,clock=clock,queue=True)
+        if receipt_profile and not retained_native and result.get('status') in ('scored','waiting','monitoring_refreshed'):
+            # Optional outcome work shares this lock/lifetime; leave time for the
+            # original final stage verification and never hide its failures.
+            battery_deadline=min(deadline-10,monotonic()+(issue-timedelta(seconds=135)-clock()).total_seconds()-10)
+            battery_result=dict(status='deferred',reason='score_budget_reserved')
+            if battery_deadline-monotonic()>=10:
+                try:
+                    from household_battery_score import run as score_battery
+                    battery_result=score_battery(stage=stage,historical=dispatch['historical'],guard=guard,
+                        clock=clock,monotonic=monotonic,deadline=battery_deadline)
+                except Exception:
+                    battery_result=dict(status='deferred',reason='battery_outcome_unavailable')
+            result=dict(result,battery_outcomes=battery_result)
         guard()
         if verifier is not None and verifier(stage)!=binding:raise ValueError('staged score runtime changed')
         if isinstance(pressure,SampledScorePressure):pressure.check(force=True)

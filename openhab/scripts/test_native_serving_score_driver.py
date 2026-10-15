@@ -88,3 +88,31 @@ def test_current_slot_selects_current_native_admission_and_restores_it(tmp_path,
     else:
         assert coordinator.run(config,stage=stage,deployment_sha256='a'*64,clock=lambda:now,monotonic=lambda:100)['status']=='waiting'
     assert native._resource_preflight is original
+
+
+@pytest.mark.parametrize('fails',[False,True])
+def test_optional_battery_scoring_preserves_successful_thermal_result(tmp_path,monkeypatch,fails):
+    coordinator,config,stage,calls,model,now,dispatch=fixture(tmp_path,monkeypatch,1)
+    import household_battery_score as battery
+    monkeypatch.setattr(coordinator,'score_with_report',lambda *a,**kw:{'status':'waiting','scored':0,'automatic_actuation':False})
+    def run(**kwargs):
+        assert kwargs['stage']==stage and kwargs['historical']==[] and kwargs['deadline']==190
+        kwargs['guard']();calls.append('battery')
+        if fails:raise ValueError('private database context')
+        return {'status':'battery_performance_refreshed','count':1}
+    monkeypatch.setattr(battery,'run',run)
+    result=coordinator.run(config,stage=stage,deployment_sha256='a'*64,clock=lambda:now,monotonic=lambda:100)
+    assert result['status']=='waiting' and result['scored']==0 and calls.count('battery')==1
+    assert result['battery_outcomes']['status']==('deferred' if fails else 'battery_performance_refreshed')
+    assert 'private database context' not in json.dumps(result)
+
+
+def test_battery_scoring_defers_when_original_score_consumed_its_budget(tmp_path,monkeypatch):
+    coordinator,config,stage,calls,model,now,dispatch=fixture(tmp_path,monkeypatch,1)
+    import household_battery_score as battery
+    ticks=[100.]
+    def scored(*a,**kw):ticks[0]=205.;return {'status':'waiting','scored':0,'automatic_actuation':False}
+    monkeypatch.setattr(coordinator,'score_with_report',scored)
+    monkeypatch.setattr(battery,'run',lambda **kw:pytest.fail('battery ran without final-verification margin'))
+    result=coordinator.run(config,stage=stage,deployment_sha256='a'*64,clock=lambda:now,monotonic=lambda:ticks[0])
+    assert result['status']=='waiting' and result['battery_outcomes']['status']=='deferred'

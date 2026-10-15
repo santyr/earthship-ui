@@ -21,7 +21,7 @@ function time(value) {
 
 // JSON.parse alone collapses duplicate keys, leaving overridden private bytes
 // in the original transport body. Scan validated JSON with decoded key names.
-function uniqueObjectKeys(raw) {
+export function uniqueObjectKeys(raw) {
   let offset = 0;
   const space = () => { while (/\s/.test(raw[offset] ?? '') && offset < raw.length) offset++; };
   function string() {
