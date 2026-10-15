@@ -32,7 +32,7 @@
     {
       "phase": "3",
       "requirement": "Pure domain models with numerical parity",
-      "current_evidence": "Pure energy retains72 production goldens. The native provisional thermal candidate188a42a8, trained through2026-10-15T06:00Z, remains unchanged. Common-clock thermal/weather/energy and measured-weather contexts, original nominal bank configuration and conditional battery baseline are deployed and replayable. Source522241e adds independent24h array-PV potential from retained native weather/geometry,4.2kW/165approx/57.4tilt configuration and the location-bound provisional PVGIS terrain skyline; direct beam is masked while diffuse remains. The normal15:50:15UTC PV/storage receipt replays identically through the exact staged CLI and original plan. Its conditional storage holds source-qualified427W AC load constant from87percent SoC and explicitly assumes efficiencies/zero system overhead/no charge rate or taper.1462 household tests,2419 frontend tests and43 admission/dispatch checks pass. These are provisional physical scenarios, not calibrated captured-PV/load forecasts or usable-energy bounds. Learned load profiles, action response, physical calibration and full phase3 qualification remain incomplete. Sourcec71f14e deploys the separately versioned hourly AC-demand profile, unchanged-v1 storage comparison, retained matched load/SoC outcomes and read-only Earthship panel. All owned definitions/timers and actual laptop/tablet collecting states verify. No production fitting or forecast was manually triggered; first load training remains scheduled2026-10-16at06:50MDT. Live learned-load numerics and skill remain unqualified.",
+      "current_evidence": "Pure energy retains72 production goldens. The native provisional thermal candidate188a42a8, trained through2026-10-15T06:00Z, remains unchanged. Common-clock thermal/weather/energy and measured-weather contexts, original nominal bank configuration and conditional battery baseline are deployed and replayable. Source522241e adds independent24h array-PV potential from retained native weather/geometry,4.2kW/165approx/57.4tilt configuration and the location-bound provisional PVGIS terrain skyline; direct beam is masked while diffuse remains. The normal15:50:15UTC PV/storage receipt replays identically through the exact staged CLI and original plan. Its conditional storage holds source-qualified427W AC load constant from87percent SoC and explicitly assumes efficiencies/zero system overhead/no charge rate or taper.1462 household tests,2419 frontend tests and43 admission/dispatch checks pass. These are provisional physical scenarios, not calibrated captured-PV/load forecasts or usable-energy bounds. Learned load profiles, action response, physical calibration and full phase3 qualification remain incomplete. Sourcec71f14e deploys the separately versioned hourly AC-demand profile, unchanged-v1 storage comparison, retained matched load/SoC outcomes and read-only Earthship panel. All owned definitions/timers and actual laptop/tablet collecting states verify. No production fitting or forecast was manually triggered; first load training remains scheduled2026-10-16at06:50MDT. Live learned-load numerics and skill remain unqualified. Source521762d now deploys a separate same-issue nominal trajectory shadow plan without changing prior forecasts/plans/scores. Natural19:40:15UTC receiptfef4edd9 uses the constant-AC PV scenario pending normal learned-load preparation, generates greywater and night-loadOFF hypothetical candidates, preserves original coordination and selects no actions. Exact activated CLI and originalv1energy replay match.1655backend cases pass, final review has no Critical/Important findings; live action effects and broader qualification remain incomplete.",
       "complete": false
     },
     {
@@ -50,13 +50,13 @@
     {
       "phase": "6",
       "requirement": "Shadow household planner",
-      "current_evidence": "Bounded exhaustive coordination and model-triggered shadow generation implemented. Source886ff4c adds a separate nominal current-power battery persistence trajectory to pipeline/v6, with original metric sign/units, SoC,power,capacity and exact replay. Its minimum does not supply a reserve-permission fact. Qualified rolling PV/load forecasts, action effects, and actual/current-owner policy baselines remain incomplete.",
+      "current_evidence": "Bounded exhaustive coordination and model-triggered shadow generation implemented. Source886ff4c adds a separate nominal current-power battery persistence trajectory to pipeline/v6, with original metric sign/units, SoC,power,capacity and exact replay. Its minimum does not supply a reserve-permission fact. Qualified rolling PV/load forecasts, action effects, and actual/current-owner policy baselines remain incomplete. Source521762d now deploys a separate same-issue nominal trajectory shadow plan without changing prior forecasts/plans/scores. Natural19:40:15UTC receiptfef4edd9 uses the constant-AC PV scenario pending normal learned-load preparation, generates greywater and night-loadOFF hypothetical candidates, preserves original coordination and selects no actions. Exact activated CLI and originalv1energy replay match.1655backend cases pass, final review has no Critical/Important findings; live action effects and broader qualification remain incomplete.",
       "complete": false
     },
     {
       "phase": "7",
       "requirement": "Deterministic sealed household plan replay and outcome scoring",
-      "current_evidence": "Model trajectories, generated candidates and complete plans rederive from sealed receipts. Pure chronological thermal scoring and conservative daily-unit summaries implemented; one actual original delivered forecast qualified mature native1/6/12h outcomes and replayed identically through private CLI. Qualified energy/night-minimum, owner-policy/action outcomes and full original-source household pipeline remain incomplete. Source-bound completed-night energy scoring and private replay implemented. Actual888rows qualified a85percent minimum; missing exact as-issued numerical arguments prevent an actual household-model score. Native scored-pair/v2 now replays externally pinned native forecasts and both persisted receipts, checks mature sensor-phase outcomes, preserves model/geometry lineage and bounded current-revision baseline reports. Initial219 affected cases passed; one immutable review/one correction pass adds complete saved-receipt metadata and lossless outcome clocks, with17 new regressions and31 original scoring/forecast cases passing. Raw outcome provenance/reconciliation,11-source runtime qualification and native live integration remain incomplete. Operational scoring follow-up3fd481c preserves original full report checks and scored27 current-model one-hour outcomes naturally in44seconds at2026-10-15T00:21UTC. Current one-hour MAE0.266789F remains worse than persistence0.200000F; no longer-horizon outcomes in this cohort and no graduation. Exact-stage household receipt replay at00:20:15UTC also matches. These resolve runtime/replay evidence only, not remaining cross-domain/action outcome requirements. Source886ff4c retains original as-issued24h battery persistence input/output in normal01:45:15UTC v6 receipt. Conditional battery endpoint scoring and the public comparison are now deployed. Naturally produced original one/six-hour packets rederive identically through pure code and the exact bbe4b65 staged CLI. The fresh report has10 one-hour pairs (constant-power MAE0.409766 versus hold-SoC1.2 percentage points) and5 six-hour pairs (1.898047 versus7.2);12/24h remain empty. This does not qualify capacity, PV/load forcing, action response or graduation. Original-plan-bound PV/storage trajectories are now naturally retained with complete source/config/runtime bindings and exact-stage replay; matched chronological PV outcomes/reference skill remain incomplete. Sourcea539742 adds matched solar/load scenario SoC outcomes against independently rederived original net-power and hold-SoC references;15:50 original matures16:55:15UTC,first scheduled comparison pending. PV energy meter-scope qualification remains open. Normal16:58:20UTC slot finishesin5seconds and scores15:50:15original against98percent actualSoC;absoluteerrors0.1210122/1.4980469/11points forsolar/constantpower/hold. Exact3fileCLIreplaymatches. Oneoriginal/dayonly; longerhorizons andgeneralskill unqualified. Sourcec71f14e deploys the separately versioned hourly AC-demand profile, unchanged-v1 storage comparison, retained matched load/SoC outcomes and read-only Earthship panel. All owned definitions/timers and actual laptop/tablet collecting states verify. No production fitting or forecast was manually triggered; first load training remains scheduled2026-10-16at06:50MDT. Live learned-load numerics and skill remain unqualified.",
+      "current_evidence": "Model trajectories, generated candidates and complete plans rederive from sealed receipts. Pure chronological thermal scoring and conservative daily-unit summaries implemented; one actual original delivered forecast qualified mature native1/6/12h outcomes and replayed identically through private CLI. Qualified energy/night-minimum, owner-policy/action outcomes and full original-source household pipeline remain incomplete. Source-bound completed-night energy scoring and private replay implemented. Actual888rows qualified a85percent minimum; missing exact as-issued numerical arguments prevent an actual household-model score. Native scored-pair/v2 now replays externally pinned native forecasts and both persisted receipts, checks mature sensor-phase outcomes, preserves model/geometry lineage and bounded current-revision baseline reports. Initial219 affected cases passed; one immutable review/one correction pass adds complete saved-receipt metadata and lossless outcome clocks, with17 new regressions and31 original scoring/forecast cases passing. Raw outcome provenance/reconciliation,11-source runtime qualification and native live integration remain incomplete. Operational scoring follow-up3fd481c preserves original full report checks and scored27 current-model one-hour outcomes naturally in44seconds at2026-10-15T00:21UTC. Current one-hour MAE0.266789F remains worse than persistence0.200000F; no longer-horizon outcomes in this cohort and no graduation. Exact-stage household receipt replay at00:20:15UTC also matches. These resolve runtime/replay evidence only, not remaining cross-domain/action outcome requirements. Source886ff4c retains original as-issued24h battery persistence input/output in normal01:45:15UTC v6 receipt. Conditional battery endpoint scoring and the public comparison are now deployed. Naturally produced original one/six-hour packets rederive identically through pure code and the exact bbe4b65 staged CLI. The fresh report has10 one-hour pairs (constant-power MAE0.409766 versus hold-SoC1.2 percentage points) and5 six-hour pairs (1.898047 versus7.2);12/24h remain empty. This does not qualify capacity, PV/load forcing, action response or graduation. Original-plan-bound PV/storage trajectories are now naturally retained with complete source/config/runtime bindings and exact-stage replay; matched chronological PV outcomes/reference skill remain incomplete. Sourcea539742 adds matched solar/load scenario SoC outcomes against independently rederived original net-power and hold-SoC references;15:50 original matures16:55:15UTC,first scheduled comparison pending. PV energy meter-scope qualification remains open. Normal16:58:20UTC slot finishesin5seconds and scores15:50:15original against98percent actualSoC;absoluteerrors0.1210122/1.4980469/11points forsolar/constantpower/hold. Exact3fileCLIreplaymatches. Oneoriginal/dayonly; longerhorizons andgeneralskill unqualified. Sourcec71f14e deploys the separately versioned hourly AC-demand profile, unchanged-v1 storage comparison, retained matched load/SoC outcomes and read-only Earthship panel. All owned definitions/timers and actual laptop/tablet collecting states verify. No production fitting or forecast was manually triggered; first load training remains scheduled2026-10-16at06:50MDT. Live learned-load numerics and skill remain unqualified. Source521762d now deploys a separate same-issue nominal trajectory shadow plan without changing prior forecasts/plans/scores. Natural19:40:15UTC receiptfef4edd9 uses the constant-AC PV scenario pending normal learned-load preparation, generates greywater and night-loadOFF hypothetical candidates, preserves original coordination and selects no actions. Exact activated CLI and originalv1energy replay match.1655backend cases pass, final review has no Critical/Important findings; live action effects and broader qualification remain incomplete.",
       "complete": false
     },
     {
@@ -8682,7 +8682,7 @@
       "original_v1_runtime_unchanged": true
     },
     "trajectory_shadow_plan": {
-      "status": "verified_preparing_single_immutable_review",
+      "status": "deployed_first_natural_receipt_verified",
       "design_approved": true,
       "separate_receipt": true,
       "existing_forecasts_plans_scores_preserved": true,
@@ -8691,7 +8691,7 @@
       "initial_feature_tests_passed": 20,
       "additional_binding_gate_tests_passed": 3,
       "broader_backend_verification": "passed",
-      "live_deployed": false,
+      "live_deployed": true,
       "document": "docs/operations/2026-10-15-trajectory-shadow-plan.md",
       "full_goal_complete": false,
       "backend_passed": 1655,
@@ -8699,7 +8699,27 @@
       "backend_seconds": 514.51,
       "tooling_affected_passed": 54,
       "original_PV_and_thermal_source_hashes_preserved": true,
-      "protected_release_pins_unchanged": true
+      "protected_release_pins_unchanged": true,
+      "source_commit": "521762db9550a2f6e3d7c7ba8eb7e7831923fbde",
+      "deployment_sha256": "6ea305c7385578ac2f3fc7f7261c11f39209af01258f15e24a59799ec9985cd3",
+      "review_critical": 0,
+      "review_important": 0,
+      "review_correction_passes": 0,
+      "owned_definitions_verified": 5,
+      "owned_timers_verified": 3,
+      "daily_unit_unchanged": true,
+      "complete_thermal_artifact_unchanged": true,
+      "first_normal_issue": "2026-10-15T19:40:15+00:00",
+      "first_normal_receipt_sha256": "fef4edd90851d38b104ebcb21f9c9f39401b622b5e0017834c3acd4dd3b6c3c7",
+      "first_normal_projection_basis": "constant_load_pv",
+      "actual_candidate_types": [
+        "RUN_GREYWATER_CYCLE",
+        "SET_NIGHT_LOAD_OVERRIDE"
+      ],
+      "actual_selected_actions": 0,
+      "original_coordination_preserved": true,
+      "exact_stage_CLI_replay_identical": true,
+      "original_v1_replay_identical": true
     }
   },
   "astro_efficiency_audit": {
@@ -8854,5 +8874,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-15T18:55:44.682046+00:00"
+  "updated_at": "2026-10-15T19:44:01.304055+00:00"
 }

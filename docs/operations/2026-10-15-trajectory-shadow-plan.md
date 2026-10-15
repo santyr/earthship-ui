@@ -63,7 +63,14 @@ separately before this batch, which changes no resource policy. All 54 affected
 operational-tooling tests pass after binding historical qualification tests to
 their exact original source fixture. Runtime-hash checks confirm the original
 v1 PV numerical closure, fitted thermal source closures and protected control/
-release helpers are unchanged. Final review and deployment are still pending. Production continues on source `c71f14e`. The learned-load model remains
+release helpers are unchanged. The single final review found no Critical or Important issues. Source
+`521762d` activated at 19:36:36 UTC on October 15 as
+`6ea305c7385578ac2f3fc7f7261c11f39209af01258f15e24a59799ec9985cd3`.
+All five owned definitions, three timers, both scoring calendars and shared
+budgets pass effective readback. The complete thermal artifact `188a42a8`
+remains unchanged; no restart, refit or manual forecast/qualification occurred.
+The clean daily source checkout is updated while its service unit remains
+byte-identical and was not manually started. The learned-load model remains
 scheduled for its first normal morning preparation on October 16 at 06:50 MDT.
 
 The original read-only Milestone 1 is independently verified on the actual
@@ -75,3 +82,12 @@ identical complete activated CLI replay. Its plan receipt is
 The empty set correctly reflects unknown effects/permission facts. This proves
 the specified read-only milestone; it does not complete the broader architecture,
 qualify action effects, establish model skill or permit physical requests.
+
+The first natural issue at 19:40:15 UTC completed successfully and retained
+`fef4edd90851d38b104ebcb21f9c9f39401b622b5e0017834c3acd4dd3b6c3c7`.
+It used the same-issue constant-load PV scenario while the learned model remains
+collecting. Its trajectory generated hypothetical greywater and night-load OFF
+candidates. The original coordination packet remained identical and the selected
+action set remained empty (`input_incomplete`). Exact activated CLI replay matches
+the saved receipt; the original v1 energy receipt also replays identically and
+all original files remain unchanged. No live forecast was manually initiated.
