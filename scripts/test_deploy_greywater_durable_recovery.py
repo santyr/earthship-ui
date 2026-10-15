@@ -14,6 +14,7 @@ spec = importlib.util.spec_from_file_location('greywater_recovery_release', PATH
 release = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(release)
 NOW = datetime(2026, 10, 3, 23, tzinfo=timezone.utc)
+QUALIFIED = Path(__file__).with_name('fixtures') / 'greywater-durable-recovery-4c34780e.js.txt'
 
 
 def values():
@@ -54,10 +55,11 @@ def test_apply_requires_attendance_and_physical_confirmation_before_live_reads(m
 
 def test_pins_match_qualified_candidate():
     assert release.guard.OLD_SHA == 'e697e2626a5e1ab4e4d079612c4b85d16dd79178a4ff80a5208b4bb108970d18'
-    assert release.guard.NEW_SHA == release.guard.digest(release.guard.SOURCE.read_text())
+    assert release.guard.NEW_SHA == release.guard.digest(QUALIFIED.read_text())
 
 
 def transaction(monkeypatch, *, enable_failure=False, item_drift=False):
+    monkeypatch.setattr(release.guard, 'SOURCE', QUALIFIED)
     baseline = {'uid': release.guard.UID, 'name': 'fixture', 'triggers': [], 'conditions': [],
                 'actions': [{'configuration': {'script': 'fixture-original'}}],
                 'status': {'status': 'IDLE', 'statusDetail': 'NONE'}}
@@ -131,3 +133,10 @@ def test_unowned_item_drift_blocks_enable_and_unsafe_rollback(monkeypatch):
         release.main(['--apply', '--attended', '--physical-pumps-off'])
     assert live['status'] == {'status': 'UNINITIALIZED', 'statusDetail': 'DISABLED'}
     assert len([x for x in calls if x[1] == 'PUT']) == 1
+
+
+def test_unreviewed_candidate_is_refused_before_any_live_read(monkeypatch):
+    monkeypatch.setattr(release.guard, 'SOURCE', SimpleNamespace(read_text=lambda: QUALIFIED.read_text()+'\n'))
+    monkeypatch.setattr(release.guard.oh, 'get', lambda *_: pytest.fail('unexpected production read'))
+    with pytest.raises(RuntimeError, match='qualified candidate drift'):
+        release.main(['--apply', '--attended', '--physical-pumps-off'])

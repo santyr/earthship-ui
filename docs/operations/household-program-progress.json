@@ -86,7 +86,28 @@
   ],
   "milestone_1": {
     "requirement": "Capture qualified originals; freeze snapshot; load registry; run energy/thermal projections; typedshadowintents; hardconstraints; deterministicplan; sealedlocalreceipt; identicalofflinereplay",
-    "complete": false
+    "complete": true,
+    "evidence": {
+      "issue": "2026-10-15T18:55:15+00:00",
+      "snapshot_id": "ad1c94b39232b5ddf28d2884f29817da4cc8576628da24c59581734965c1b2db",
+      "plan_receipt_sha256": "fd8cfec6f4c572b6c6bb201fdd76a939116c4078ef81d2eecb76b29033e92836",
+      "registry_id": "7b27669b47624c39eb9cba4b376a19899ce069d0d39d5ad9139bf8730f00cd2d",
+      "checks": {
+        "qualified_original_measurements": true,
+        "shared_frozen_snapshot": true,
+        "declared_registry": true,
+        "existing_energy_and_thermal": true,
+        "typed_intent_generated": true,
+        "hard_constraints_applied": true,
+        "sealed_deterministic_shadow_plan": true,
+        "offline_exact_replay": true
+      },
+      "selected_actions": 0,
+      "scope": "original_read_only_command_equivalent_only",
+      "action_effects_qualified": false,
+      "full_goal_complete": false,
+      "document": "docs/operations/2026-10-15-trajectory-shadow-plan.md"
+    }
   },
   "preserved_boundaries": [
     "No direct provider/actuator requests",
@@ -8659,6 +8680,26 @@
       "pure_and_exact_stage_replay_identical": true,
       "curated_GET_identical_http_200": true,
       "original_v1_runtime_unchanged": true
+    },
+    "trajectory_shadow_plan": {
+      "status": "verified_preparing_single_immutable_review",
+      "design_approved": true,
+      "separate_receipt": true,
+      "existing_forecasts_plans_scores_preserved": true,
+      "unknown_effects_preserved": true,
+      "actuator_requests_disabled": true,
+      "initial_feature_tests_passed": 20,
+      "additional_binding_gate_tests_passed": 3,
+      "broader_backend_verification": "passed",
+      "live_deployed": false,
+      "document": "docs/operations/2026-10-15-trajectory-shadow-plan.md",
+      "full_goal_complete": false,
+      "backend_passed": 1655,
+      "backend_explicit_resource_smoke_skips": 2,
+      "backend_seconds": 514.51,
+      "tooling_affected_passed": 54,
+      "original_PV_and_thermal_source_hashes_preserved": true,
+      "protected_release_pins_unchanged": true
     }
   },
   "astro_efficiency_audit": {

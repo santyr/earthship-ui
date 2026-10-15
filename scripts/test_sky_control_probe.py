@@ -26,9 +26,9 @@ def test_exact_live_and_canonical_action_required(monkeypatch):
         probe.control_payload(rule, b'other')
 
 
-def test_durable_consumer_requires_explicit_revision_and_exact_canonical_source():
-    source = (Path(__file__).resolve().parents[1]
-              / 'openhab/rules/southoutlet-cycle-current.js').read_bytes()
+def test_durable_consumer_requires_explicit_revision_and_exact_qualified_source():
+    source = (Path(__file__).with_name('fixtures')
+              / 'greywater-durable-recovery-4c34780e.js.txt').read_bytes()
     rule = baseline(source.decode())
     assert sha256(source).hexdigest() == probe.DURABLE_ACTION_SHA
     assert probe.control_payload(rule, source, consumer_revision='durable-recovery') == {

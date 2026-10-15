@@ -11,8 +11,9 @@ probe = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(probe)
 
 
-def test_current_candidate_is_exactly_pinned():
-    assert probe.sha(probe.SOURCE.read_bytes()) == probe.CANDIDATE_SHA
+def test_original_qualified_source_is_exactly_pinned():
+    source=Path(__file__).with_name('fixtures') / 'greywater-durable-recovery-4c34780e.js.txt'
+    assert probe.sha(source.read_bytes()) == probe.CANDIDATE_SHA
 
 
 def test_unreviewed_candidate_refused_before_live_read_or_container_creation(monkeypatch):

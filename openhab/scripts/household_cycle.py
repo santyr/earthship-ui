@@ -395,6 +395,22 @@ def complete_cycle(*,publication,collection,parameter_record,runtime_manifest,co
             except (OSError,ValueError):
                 pass
         unchanged()
+        from household_trajectory_plan import seal_trajectory_plan,trajectory_runtime_manifest,MAX_BYTES as SHADOW_BYTES
+        result['trajectory_shadow_status']='unavailable'
+        try:
+            shadow_runtime=trajectory_runtime_manifest()
+            retained_profile=profiled if profiled_status=='retained' else None
+            lr={} if retained_profile is None or retained_profile['inputs']['load_source'] is None else load_runtime()
+            shadow=seal_trajectory_plan(plan_receipt=record,energy_receipt=energy,profiled_receipt=retained_profile,now=clock(),
+                runtime_manifest=shadow_runtime,thermal_runtime=None if record['inputs']['thermal_inputs'] is None else record['inputs']['thermal_inputs']['executing_runtime'],
+                load_runtime_manifest=lr)
+            unchanged()
+            if trajectory_runtime_manifest()!=shadow_runtime or lr and load_runtime()!=lr:raise ValueError('trajectory shadow runtime changed')
+            _retain_original(evidence_directory,shadow,'.household-trajectory-shadow-v1.json',SHADOW_BYTES)
+            result['trajectory_shadow_status']='retained'
+        except (OSError,ValueError):
+            pass
+        unchanged()
     return result
 
 

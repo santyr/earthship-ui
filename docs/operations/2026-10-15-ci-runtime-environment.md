@@ -51,3 +51,21 @@ without a reported assertion failure. The hosted job allowance is increased to
 45 minutes so the existing full checks can finish; no check is removed and no
 production resource policy changes. The next feature push will verify that final
 workflow. No unchanged CI rerun was triggered after the cancellation.
+
+Final-head run `38789771014` passed all 2,462 frontend cases and the build,
+571 completion cases (101 explicit skips), and 6,167 OpenHAB Python cases
+(24 explicit skips and 91 subtests). The OpenHAB stage completed in 18m58s.
+Operational tooling passed 1,488 cases with three explicit skips, but exposed
+seven fixture failures.
+The October 3 greywater helpers intentionally retain their qualified
+`4c34780e` source pin; the canonical file now contains the separately prepared,
+uninstalled `693b65b8` daylight candidate. Updating the production pins would
+incorrectly qualify a different control revision.
+
+The repair retains the exact historical qualified bytes as a non-executable
+text fixture and binds only the three affected offline test modules to them.
+All production helper paths/pins, current candidate bytes and live owner rules
+remain unchanged. The original seven failures reproduce locally; all 54 affected
+tests pass after the fixture repair, including refusal of changed candidate bytes
+before any live read. No recovery rehearsal, live control handoff or pump command
+is run. The next consolidated source batch will carry this repair through CI.
