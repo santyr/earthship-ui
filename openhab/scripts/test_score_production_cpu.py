@@ -1,4 +1,5 @@
 """Scoring uses the verified publication profile, including archived workers."""
+import os
 import pytest
 
 
@@ -66,8 +67,9 @@ def test_one_core_score_effective_readback_matches_only_opted_in_family(tmp_path
         install._verify_effective_family(selected,guard=lambda:None)
 
 
+@pytest.mark.skipif(os.environ.get('EARTHSHIP_RESOURCE_SMOKE')!='1',reason='requires an explicitly selected capped publication scope')
 def test_retained_pressure_monitor_checks_actual_worker_cgroup():
-    # Run under the same one-core, 256-MiB, zero-swap scope as production.
+    # Opt in inside a verified publication scope or the owned shared pool.
     # Dropping the leaf keyword from the adapter breaks this real caller.
     import household_forecast_score as score
     from native_inference_pressure import NativeInferenceHeadroom
@@ -94,9 +96,14 @@ def test_retained_native_uses_current_monitor_instead_of_retired_swap_guard(tmp_
     class RetiredMonitor:
         def __init__(self):raise AssertionError('retired host-wide swap guard executed')
     monkeypatch.setattr(native,'NativeInferenceHeadroom',RetiredMonitor)
+    from test_household_cycle_pressure import fixture
+    current,_,_,calls=fixture(tmp_path,monkeypatch)
+    monkeypatch.setattr(score,'production_resource_preflight',lambda:calls.append('admitted'))
+    monkeypatch.setattr(score,'production_pressure_monitor',lambda:current)
     with score.production_score_policy():
         monitor=native.NativeInferenceHeadroom();monitor.preflight();monitor.check()
-    assert native.NativeInferenceHeadroom is RetiredMonitor
+        assert monitor.pressure is current and current.previous is not None
+    assert native.NativeInferenceHeadroom is RetiredMonitor and 'admitted' in calls
 
 
 def test_retained_worker_exit_forces_current_memory_event_check(tmp_path,monkeypatch):
@@ -106,6 +113,7 @@ def test_retained_worker_exit_forces_current_memory_event_check(tmp_path,monkeyp
     events=tmp_path/'memory.events';events.write_text('max 0\noom 0\noom_kill 0\n')
     def monitor():
         return PublicationHeadroom(vmstat=vmstat,memory_events=events,resource_check=score.production_resource_preflight)
+    monkeypatch.setattr(score,'production_resource_preflight',lambda:None)
     monkeypatch.setattr(score,'production_pressure_monitor',monitor,raising=False)
     original=native.NativeInferenceHeadroom
     with pytest.raises(ValueError,match='memory-limit counters changed'):
@@ -134,6 +142,18 @@ def test_policy_sample_during_original_verification_does_not_mutate_inventory(tm
     for name in ('household_forecast_score.py','household_cycle_resources.py','household_cycle_pressure.py','household_score_report_reuse.py'):
         target=tmp_path/name;target.write_bytes(Path(score.__file__).with_name(name).read_bytes());target.chmod(0o644)
     monkeypatch.setattr(score,'__file__',str(tmp_path/'household_forecast_score.py'))
+    if operation=='production_resource_preflight':
+        # Preserve the pinned helper read/inventory boundary while supplying
+        # deterministic kernel metadata instead of the runner's real limits.
+        from types import SimpleNamespace
+        from test_household_cycle_resources import fixture
+        from household_cycle_resources import publication_resource_preflight
+        args,_=fixture(tmp_path)
+        def preflight(*,leaf=None):
+            assert leaf is None
+            publication_resource_preflight(**args)
+        monkeypatch.setattr(score,'_production_policy',SimpleNamespace(
+            __file__=str(tmp_path/'household_cycle_resources.py'),publication_resource_preflight=preflight))
     original=tmp_path/'original';original.write_bytes(b'original evidence');original.chmod(0o600)
     later=tmp_path/'later';later.write_bytes(b'later evidence');later.chmod(0o600)
     calls=[]

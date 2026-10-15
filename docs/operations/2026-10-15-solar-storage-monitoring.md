@@ -95,3 +95,21 @@ Prior-revision hosted Python CI has interpreter-permission and real-resource
 environment failures; its ML, encrypted delivery, authentication and GitGuardian
 checks pass. These local results do not claim that hosted merge checks are
 clear. Full PR #3 and comparable PV energy calibration remain incomplete.
+
+## First matched production outcome — 16:58 UTC
+
+The ordinary 16:58:20Z battery/solar opportunity exits zero at16:58:25Z. It
+scores the original15:50:15Z issue against the atomic16:50:15Z BMS endpoint:
+actual98%, solar/load scenario98.1210122%, constant net-power96.5019531% and
+hold-SoC87%. Absolute errors are0.1210122,1.4980469 and11 percentage points.
+This is one original from one day; it does not establish general forecasting
+skill. Six-, twelve- and twenty-four-hour outcomes remain collecting.
+
+The compact receipt `4f6aa73f51c2706bf8574eff7f8aa00cdef2b49ac2283086bf2ef77ab1d9aa0e`
+replays identically from both external original documents through the exact
+staged CLI. Original forecasts, plans, source index and score bytes are unchanged.
+The fixed accuracy GET and matched table render on laptop/tablet with no page
+errors, blocked write attempts or horizontal document overflow. Automatic
+actuation and physical/causal qualification remain false; comparable PV energy
+accuracy remains unavailable. The earlier missing-cache state is now superseded
+by this measured result.
