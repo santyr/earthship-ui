@@ -56,7 +56,7 @@
     {
       "phase": "7",
       "requirement": "Deterministic sealed household plan replay and outcome scoring",
-      "current_evidence": "Model trajectories, generated candidates and complete plans rederive from sealed receipts. Pure chronological thermal scoring and conservative daily-unit summaries implemented; one actual original delivered forecast qualified mature native1/6/12h outcomes and replayed identically through private CLI. Qualified energy/night-minimum, owner-policy/action outcomes and full original-source household pipeline remain incomplete. Source-bound completed-night energy scoring and private replay implemented. Actual888rows qualified a85percent minimum; missing exact as-issued numerical arguments prevent an actual household-model score. Native scored-pair/v2 now replays externally pinned native forecasts and both persisted receipts, checks mature sensor-phase outcomes, preserves model/geometry lineage and bounded current-revision baseline reports. Initial219 affected cases passed; one immutable review/one correction pass adds complete saved-receipt metadata and lossless outcome clocks, with17 new regressions and31 original scoring/forecast cases passing. Raw outcome provenance/reconciliation,11-source runtime qualification and native live integration remain incomplete. Operational scoring follow-up3fd481c preserves original full report checks and scored27 current-model one-hour outcomes naturally in44seconds at2026-10-15T00:21UTC. Current one-hour MAE0.266789F remains worse than persistence0.200000F; no longer-horizon outcomes in this cohort and no graduation. Exact-stage household receipt replay at00:20:15UTC also matches. These resolve runtime/replay evidence only, not remaining cross-domain/action outcome requirements. Source886ff4c retains original as-issued24h battery persistence input/output in normal01:45:15UTC v6 receipt. Mature endpoint scoring of this baseline and public comparison remain pending; no measured baseline accuracy is claimed.",
+      "current_evidence": "Model trajectories, generated candidates and complete plans rederive from sealed receipts. Pure chronological thermal scoring and conservative daily-unit summaries implemented; one actual original delivered forecast qualified mature native1/6/12h outcomes and replayed identically through private CLI. Qualified energy/night-minimum, owner-policy/action outcomes and full original-source household pipeline remain incomplete. Source-bound completed-night energy scoring and private replay implemented. Actual888rows qualified a85percent minimum; missing exact as-issued numerical arguments prevent an actual household-model score. Native scored-pair/v2 now replays externally pinned native forecasts and both persisted receipts, checks mature sensor-phase outcomes, preserves model/geometry lineage and bounded current-revision baseline reports. Initial219 affected cases passed; one immutable review/one correction pass adds complete saved-receipt metadata and lossless outcome clocks, with17 new regressions and31 original scoring/forecast cases passing. Raw outcome provenance/reconciliation,11-source runtime qualification and native live integration remain incomplete. Operational scoring follow-up3fd481c preserves original full report checks and scored27 current-model one-hour outcomes naturally in44seconds at2026-10-15T00:21UTC. Current one-hour MAE0.266789F remains worse than persistence0.200000F; no longer-horizon outcomes in this cohort and no graduation. Exact-stage household receipt replay at00:20:15UTC also matches. These resolve runtime/replay evidence only, not remaining cross-domain/action outcome requirements. Source886ff4c retains original as-issued24h battery persistence input/output in normal01:45:15UTC v6 receipt. Conditional battery endpoint scoring and the public comparison are now deployed. Naturally produced original one/six-hour packets rederive identically through pure code and the exact bbe4b65 staged CLI. The fresh report has10 one-hour pairs (constant-power MAE0.409766 versus hold-SoC1.2 percentage points) and5 six-hour pairs (1.898047 versus7.2);12/24h remain empty. This does not qualify capacity, PV/load forcing, action response or graduation.",
       "complete": false
     },
     {
@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "Earthship observations remain below existing content. Model52dd5d12 remains provisional. Normal886ff4c issue2026-10-15T01:45:15UTC and household observation succeed with source-bound current daily energy and owner observations plus a private nominal battery baseline. Pure/exact-stageCLI replay matches; service exit0 at01:45:29UTC and next normal scoring slot exits0 at01:46:06UTC. Public compact schema remains unchanged; baseline public comparison is not yet implemented. Historical00:21UTC report modelMAE0.266789F versus persistence0.200000F remains historical evidence only. Next natural daily diagnostic/training verification remains pending October15 at06:40/06:50MDT. Qualified physical/action outcomes and full architecture remain incomplete.",
+      "current_evidence": "Earthship observations and the battery accuracy table render below existing content on laptop/tablet. Sourcebbe4b65 is deployed as336004b58f7478fdedaa716214d00c369cfe96bb9942487611d034d226dd3d89; all5 owned definitions, both score calendars, shared caps and HTTP endpoints pass effective readback. Normal06:50MDT training completed06:51:50 with provisional188a42a8 trained through2026-10-15T06:00Z. Normal13:20:15UTC forecast/household receipt succeeds and replays identically through pure/exact-stageCLI. Public battery GET returns the exact fresh curated cache; real laptop/tablet rendering was verified with9one-hour/5six-hour pairs, and the latest report has10one-hour/5six-hour pairs. The independent13:18:20 slot completed waiting before the first new-stage original existed; actual independent refresh is pending13:28:20UTC. Full physical/action outcomes and architecture remain incomplete.",
       "complete": false
     },
     {
@@ -8202,6 +8202,238 @@
       "automatic_actuation": false,
       "public_observation_schema_unchanged": true,
       "remaining": "Mature baseline endpoint scoring and public comparisons remain required. This conditional baseline is not the qualified rolling PV/load forecast or calibrated usable energy, and does not satisfy remaining action-effect, owner-integration or graduation requirements."
+    },
+    "household_battery_outcomes": {
+      "implemented": true,
+      "deployed": true,
+      "source_commit": "bbe4b6581e6666add0999eb4abbb4be209d708f3",
+      "reviewed_source_commit": "84b262e01b9f83bd2b7652b54504108824386951",
+      "review_correction_commit": "bbe4b6581e6666add0999eb4abbb4be209d708f3",
+      "deployment_sha256": "336004b58f7478fdedaa716214d00c369cfe96bb9942487611d034d226dd3d89",
+      "activated_at": "2026-10-15T13:16:27.994151+00:00",
+      "python_tests": 1374,
+      "scheduling_python_tests": 295,
+      "scheduling_suite_seconds": 108.88,
+      "js_tests": 59,
+      "review": "One immutable review and one Important correction pass per implementation batch; no rereview. All3 initial retention findings and the scheduling setup-deadline finding reproduced then corrected.",
+      "natural_household_receipt": {
+        "assessed_at": "2026-10-15T13:20:57.066486+00:00",
+        "automatic_actuation": false,
+        "document_sha256": "7879ad1fef928f6b765495c12553a466722871df736a72eab2a4778630f1ac07",
+        "exact_stage_cli_identical": true,
+        "initial_soc_pct": 76.0,
+        "nominal_bank_kwh": 20.48,
+        "power_w": -263,
+        "pure_replay_identical": true,
+        "receipt_path": "/home/sat/earthship-ui/.worktrees/household-observability-20261011/.superpowers/sdd/2026-10-12-household-common-cycle/battery-scheduling-20261015/production-bbe4b65/final/evidence/7879ad1fef928f6b765495c12553a466722871df736a72eab2a4778630f1ac07.household-model-plan-v6.json",
+        "receipt_sha256": "8a0987c152c55b6cce32ba7d6c4f969188d409120891e76f1e6954b2fad5fbbb",
+        "snapshot_as_of": "2026-10-15T13:20:15+00:00",
+        "status": "normal_current_pipeline_replayed"
+      },
+      "natural_original_battery_endpoints": {
+        "original_issue": "2026-10-15T01:45:15+00:00",
+        "plan_receipt_sha256": "717b20a8fe802d7a7c73ea89b9d8072b1de7fd9b8ac425fecf65bcb12c35ecb6",
+        "score_receipt_sha256": "566e18238c34b16f0f099a019c4aaf752c97725568f758549a5f756949b69ff1",
+        "endpoints": {
+          "1": {
+            "absolute_errors_soc_pct": {
+              "constant_power": 1.1552734375,
+              "hold_soc": 2.0
+            },
+            "actual_soc_pct": 87.0,
+            "predictions_soc_pct": {
+              "constant_power": 88.1552734375,
+              "hold_soc": 89.0
+            },
+            "source_sha256": "38c2ff87415cc1ede621ee948e873215303c1029701bcaead830a0fff2eb0571",
+            "target_at": "2026-10-15T02:45:15+00:00"
+          },
+          "6": {
+            "absolute_errors_soc_pct": {
+              "constant_power": 2.931640625,
+              "hold_soc": 8.0
+            },
+            "actual_soc_pct": 81.0,
+            "predictions_soc_pct": {
+              "constant_power": 83.931640625,
+              "hold_soc": 89.0
+            },
+            "source_sha256": "5a776be13126a84399c3937f86f8d4301dc7b30be92f776ff21614c53858fee7",
+            "target_at": "2026-10-15T07:45:15+00:00"
+          }
+        },
+        "pure_replay_identical": true,
+        "exact_stage_cli_identical": true
+      },
+      "natural_report": {
+        "automatic_actuation": false,
+        "by_horizon": {
+          "1": {
+            "attempted_count": 10,
+            "bias_soc_pct": {
+              "constant_power": 0.18242187500000143,
+              "hold_soc": 1.2
+            },
+            "count": 10,
+            "last_target_at": "2026-10-15T11:00:15+00:00",
+            "mae_soc_pct": {
+              "constant_power": 0.40976562500000424,
+              "hold_soc": 1.2
+            },
+            "unique_origin_days": 2
+          },
+          "12": {
+            "attempted_count": 0,
+            "bias_soc_pct": null,
+            "count": 0,
+            "last_target_at": null,
+            "mae_soc_pct": null,
+            "unique_origin_days": 0
+          },
+          "24": {
+            "attempted_count": 0,
+            "bias_soc_pct": null,
+            "count": 0,
+            "last_target_at": null,
+            "mae_soc_pct": null,
+            "unique_origin_days": 0
+          },
+          "6": {
+            "attempted_count": 5,
+            "bias_soc_pct": {
+              "constant_power": 0.7488281250000028,
+              "hold_soc": 7.2
+            },
+            "count": 5,
+            "last_target_at": "2026-10-15T11:00:15+00:00",
+            "mae_soc_pct": {
+              "constant_power": 1.8980468750000028,
+              "hold_soc": 7.2
+            },
+            "unique_origin_days": 1
+          }
+        },
+        "causal_benefit_qualified": false,
+        "cohort_id": "3f7162b6ce306c9e9bf50915685bdd52529f086016192325f8396f282c9e2fb6",
+        "generated_at": "2026-10-15T13:11:15.483820+00:00",
+        "graduated": false,
+        "last_target_at": "2026-10-15T11:00:15+00:00",
+        "model_rule": "constant_net_dc_power_nominal_capacity_v1",
+        "next_mature_at": "2026-10-15T12:05:15+00:00",
+        "physical_calibration_qualified": false,
+        "report_sha256": "3eae2b80d48a5cc6004813c8b77dadd59ff90c49699e7f8dc6206135902ca1c7",
+        "sampling_basis": "one_origin_per_utc_hour",
+        "schema": "earthship-household-battery-performance/v1",
+        "unique_origin_days": 2,
+        "valid_until": "2026-10-15T13:41:15.483820+00:00",
+        "validation_scope": "sealed_producer_endpoint_pairs"
+      },
+      "public_readback": {
+        "assessed_at": "2026-10-15T13:20:35.497878+00:00",
+        "http_status": 200,
+        "report_sha256": "3eae2b80d48a5cc6004813c8b77dadd59ff90c49699e7f8dc6206135902ca1c7",
+        "document_sha256": "c1647a6c71f21206e7e40f933f0928249b9846a1997bac94c04a9fdb4f34c8bc",
+        "generated_at": "2026-10-15T13:11:15.483820+00:00",
+        "valid_until": "2026-10-15T13:41:15.483820+00:00",
+        "matches_fixed_private_cache": true,
+        "live_writes": false
+      },
+      "live_render": {
+        "assessed_at": "2026-10-15T13:01:32.116Z",
+        "views": [
+          "laptop",
+          "tablet"
+        ],
+        "counts": {
+          "1": 9,
+          "6": 5,
+          "12": 0,
+          "24": 0
+        },
+        "report_sha256": "bbb00eb8fa427a43a5b1935a59fe71a3d2feca52bad35f37c0b326a008ba0577",
+        "read_only": true
+      },
+      "effective_definition_readback": true,
+      "battery_calendar_effective": true,
+      "natural_scheduling": {
+        "status": "normal_forecast_and_battery_opportunity_observed",
+        "assessed_at": "2026-10-15T13:20:58.449494+00:00",
+        "services": {
+          "thermal-provisional-forecast": {
+            "MainPID": "0",
+            "ExecMainStartTimestamp": "Thu 2026-10-15 07:19:45 MDT",
+            "ExecMainExitTimestamp": "Thu 2026-10-15 07:20:30 MDT",
+            "ExecMainStatus": "0",
+            "InvocationID": "3953e6df3df04e27b328bd33b4e873fa"
+          },
+          "thermal-provisional-score": {
+            "MainPID": "0",
+            "ExecMainStartTimestamp": "Thu 2026-10-15 07:18:20 MDT",
+            "ExecMainExitTimestamp": "Thu 2026-10-15 07:18:22 MDT",
+            "ExecMainStatus": "0",
+            "InvocationID": "3e47a4c3df374fe68454ae99adfb46af"
+          },
+          "thermal-native-geometry-prepare": {
+            "MainPID": "0",
+            "ExecMainStartTimestamp": "Thu 2026-10-15 07:18:05 MDT",
+            "ExecMainExitTimestamp": "Thu 2026-10-15 07:18:09 MDT",
+            "ExecMainStatus": "0",
+            "InvocationID": "b2661f5d0a4f4fba86a26e7bf0ddace2"
+          }
+        },
+        "battery_slot": {
+          "status": "waiting",
+          "scored": 0,
+          "automatic_actuation": false,
+          "battery_outcomes": {
+            "status": "waiting",
+            "reason": "current_battery_origin_unavailable"
+          }
+        },
+        "next_battery_opportunity": "2026-10-15T13:28:20+00:00",
+        "independent_report_refresh_verified": false,
+        "reason": "first_battery_opportunity_preceded_first_new_stage_forecast",
+        "manual_jobs_triggered": false
+      },
+      "owner_readback": {
+        "hex_southoutlet_cycle": {
+          "definition_unchanged": true,
+          "script_sha256": "4c34780e544d80af8eb36d047a949fa30e0198bb50fa57650285052db3c52d9b"
+        },
+        "88bd9ec4de": {
+          "definition_unchanged": true,
+          "script_sha256": "730053e0f3245cb83461e3fe6e3b05d49c8b508631e8cdb4a889c8be8d915978"
+        },
+        "hex_night_load_override": {
+          "definition_unchanged": true,
+          "script_sha256": "e7aed419e81f6772ef26cb48e788e6eef33b47ebb1cd27d664425a772831d793"
+        }
+      },
+      "automatic_actuation": false,
+      "fit_executed_for_rollout": false,
+      "qualification_probes_run": false,
+      "remaining": [
+        "Observe first independent report refresh at next normal13:28:20UTC opportunity.",
+        "Collect mature12/24h endpoints and additional distinct origin dates.",
+        "Qualify rolling PV/load forcing, usable energy, action response and owner-policy/cross-domain outcomes; conditional baseline accuracy does not complete the architecture."
+      ]
+    },
+    "native_scheduled_training_20261015": {
+      "status": "scheduled_daily_training_succeeded",
+      "started_at": "2026-10-15T12:50:00+00:00",
+      "finished_at": "2026-10-15T12:51:50+00:00",
+      "training_end": "2026-10-15T06:00:00+00:00",
+      "artifact_sha256": "188a42a8b4b2d575231bd635d4092f908e668977dfda2df8065d1a87fb376100",
+      "deployment_sha256": "36742709fb90d163e499f30fcffe65c611f4760e44453fbf385a3189715bdc53",
+      "agent_triggered": false,
+      "daily_source_install": {
+        "source_commit": "bbe4b6581e6666add0999eb4abbb4be209d708f3",
+        "unit_sha256": "eacc1ad9aa28564629258e53f82c80017b640820b4ba739b592dc7dba970da16",
+        "unit_unchanged": true,
+        "service_started": false,
+        "assessed_at": "2026-10-15T13:16:43.915743+00:00"
+      },
+      "automatic_actuation": false
     }
   },
   "astro_efficiency_audit": {
@@ -8356,5 +8588,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-15T01:47:36.100273+00:00"
+  "updated_at": "2026-10-15T13:22:17.918781+00:00"
 }
