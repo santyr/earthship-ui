@@ -31,7 +31,7 @@ def test_unsafe_configuration_refuses_before_any_live_collection(damage,tmp_path
         alias=tmp_path/'alias.json';alias.symlink_to(path);path=alias
     with pytest.raises(ValueError):api().load_cycle_settings(path)
 
-def collector_fixture(tmp_path,monkeypatch,*,metric_raw=None):
+def collector_fixture(tmp_path,monkeypatch,*,metric_raw=None,load_topology_raw=None):
     from datetime import timedelta
     from uuid import UUID
     from household.codec import canonical
@@ -48,6 +48,9 @@ def collector_fixture(tmp_path,monkeypatch,*,metric_raw=None):
     metric_path=tmp_path/'metric-sources.json'
     if metric_raw is not None:metric_path.write_text(metric_raw)
     monkeypatch.setattr(module,'METRIC_PATH',metric_path,raising=False)
+    topology_path=tmp_path/'household-energy-topology.json'
+    if load_topology_raw is not None:topology_path.write_text(load_topology_raw)
+    monkeypatch.setattr(module,'LOAD_TOPOLOGY_PATH',topology_path,raising=False)
     paths={name:tmp_path/(name+'.json') for name in ('energy_db','native_db','native_policy')}
     policy={'version':2,'streams':{stream:{'model':model,'sensor_id':sensor,**POLICY,'sensor_epoch':str(UUID(int=30+index))} for index,(name,(stream,model,sensor)) in enumerate(STREAMS.items())}}
     for name,path in paths.items():

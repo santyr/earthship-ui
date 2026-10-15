@@ -13,6 +13,7 @@ LIMITS={'TimeoutStartSec':'90','CPUQuota':'20%','MemoryMax':'256M','MemorySwapMa
 REGISTRY=('openhab/managed-resources.json','openhab/file-config/ownership.json')
 NATIVE_WORKER='openhab/scripts/astro_geometry_worker.py'
 JAVA_SOURCE='scripts/java/NativeSolarGeometry.java'
+LOAD_TOPOLOGY_SOURCE='openhab/household-energy-topology.json'
 MAX_BYTES=2*1024*1024
 
 
@@ -161,13 +162,14 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
     # Archive the immutable commit object, not the mutable index/worktree. A
     # concurrent edit after the cleanliness check cannot acquire this identity.
     import io,tarfile
-    java_paths=[JAVA_SOURCE] if _git(repo,'ls-tree','--name-only',code_revision,'--',JAVA_SOURCE).strip() else []
-    archived=_git(repo,'archive','--format=tar',code_revision,'--','openhab/scripts',*REGISTRY,*java_paths)
+    extra_paths=[name for name in (JAVA_SOURCE,LOAD_TOPOLOGY_SOURCE)
+        if _git(repo,'ls-tree','--name-only',code_revision,'--',name).strip()]
+    archived=_git(repo,'archive','--format=tar',code_revision,'--','openhab/scripts',*REGISTRY,*extra_paths)
     if len(archived)>32*1024*1024:raise ValueError('bounded committed source archive required')
     sources={}
     with tarfile.open(fileobj=io.BytesIO(archived),mode='r:') as archive:
         for member in archive:
-            wanted=(member.name in (*REGISTRY,JAVA_SOURCE) or member.name.startswith('openhab/scripts/') and member.name.endswith('.py') and not Path(member.name).name.startswith('test_'))
+            wanted=(member.name in (*REGISTRY,JAVA_SOURCE,LOAD_TOPOLOGY_SOURCE) or member.name.startswith('openhab/scripts/') and member.name.endswith('.py') and not Path(member.name).name.startswith('test_'))
             if not wanted:continue
             if member.name in sources or not member.isfile() or member.size>MAX_BYTES:raise ValueError('unique committed regular source required')
             sources[member.name]=archive.extractfile(member).read(MAX_BYTES+1)

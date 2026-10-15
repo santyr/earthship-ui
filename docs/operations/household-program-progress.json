@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "Earthship observations and the battery accuracy table render below existing content on laptop/tablet. Sourcebbe4b65 is deployed as336004b58f7478fdedaa716214d00c369cfe96bb9942487611d034d226dd3d89; all5 owned definitions, both score calendars, shared caps and HTTP endpoints pass effective readback. Normal06:50MDT training completed06:51:50 with provisional188a42a8 trained through2026-10-15T06:00Z. Normal13:20:15UTC forecast/household receipt succeeds and replays identically through pure/exact-stageCLI. Public battery GET returns the exact fresh curated cache; real laptop/tablet rendering was verified with9one-hour/5six-hour pairs, and the latest report has10one-hour/5six-hour pairs. The independent13:18:20 slot completed waiting before the first new-stage original existed; actual independent refresh is pending13:28:20UTC. Full physical/action outcomes and architecture remain incomplete.",
+      "current_evidence": "Earthship observations and the battery accuracy table render below existing content on laptop/tablet. Sourcebbe4b65 is deployed as336004b58f7478fdedaa716214d00c369cfe96bb9942487611d034d226dd3d89; all5 owned definitions, both score calendars, shared caps and HTTP endpoints pass effective readback. Normal06:50MDT training completed06:51:50 with provisional188a42a8 trained through2026-10-15T06:00Z. Normal13:20:15UTC forecast/household receipt succeeds and replays identically through pure/exact-stageCLI. Public battery GET returns the exact fresh curated cache; real laptop/tablet rendering was verified with9one-hour/5six-hour pairs, and the latest report has10one-hour/5six-hour pairs. The independent13:18:20 slot completed waiting before the first new-stage original existed; the normal13:28:20UTC opportunity completed in5seconds and refreshed the report at13:28:24UTC with10one-hour/6six-hour pairs. Full physical/action outcomes and architecture remain incomplete.",
       "complete": false
     },
     {
@@ -8391,9 +8391,17 @@
           }
         },
         "next_battery_opportunity": "2026-10-15T13:28:20+00:00",
-        "independent_report_refresh_verified": false,
-        "reason": "first_battery_opportunity_preceded_first_new_stage_forecast",
-        "manual_jobs_triggered": false
+        "independent_report_refresh_verified": true,
+        "reason": "normal_independent_battery_refresh_completed",
+        "manual_jobs_triggered": false,
+        "first_independent_refresh_at": "2026-10-15T13:28:24.761041+00:00",
+        "first_independent_refresh_report_sha256": "22b4a0daab0a2216882c2e141a84198541f72965a15fe4f2ec82cf825d7ec42e",
+        "first_independent_counts": {
+          "1": 10,
+          "6": 6,
+          "12": 0,
+          "24": 0
+        }
       },
       "owner_readback": {
         "hex_southoutlet_cycle": {
@@ -8413,7 +8421,6 @@
       "fit_executed_for_rollout": false,
       "qualification_probes_run": false,
       "remaining": [
-        "Observe first independent report refresh at next normal13:28:20UTC opportunity.",
         "Collect mature12/24h endpoints and additional distinct origin dates.",
         "Qualify rolling PV/load forcing, usable energy, action response and owner-policy/cross-domain outcomes; conditional baseline accuracy does not complete the architecture."
       ]
@@ -8588,5 +8595,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-15T13:22:17.918781+00:00"
+  "updated_at": "2026-10-15T13:29:36+00:00"
 }
