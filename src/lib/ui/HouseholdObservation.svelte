@@ -57,7 +57,22 @@
       </dl>
       {#if view.expired}<p class="notice">Original plan expired</p>{/if}
       <p>Confidence: {view.confidence} · <span>Effects unqualified</span></p>
-      <p>Current OpenHAB policy comparison: unavailable · {words(view.policy_comparison.reason)}</p>
+      {#if view.policyComparison}
+        <h2>Observed greywater policy</h2>
+        {@const policy = view.policyComparison}
+        {#if policy.expired}<p class="notice">Owner policy observation is stale</p>{/if}
+        {#if policy.owner_reason}<p>At original issue: {words(policy.owner_reason)} · {words(policy.owner_scheduling)}.</p>{/if}
+        {#if policy.status === 'observed_block'}<p>Observed block: {words(policy.gate)}.</p>
+        {:else}<p>Policy gate comparison unavailable · {words(policy.reason)}.</p>{/if}
+        {#each policy.comparisons as comparison (comparison.intent_id)}
+          <p>Greywater proposal: {words(comparison.status)}.</p>
+        {/each}
+        {#if !policy.comparisons.length}<p>No greywater proposal to compare at this issue.</p>{/if}
+        {#if policy.evaluated_at}<p>Owner evaluated {date(policy.evaluated_at)} · expires {date(policy.valid_until)}.</p>{/if}
+        <p>Action eligibility and performance benefits remain unknown.</p>
+      {:else}
+        <p>Current OpenHAB policy comparison: unavailable · {words(view.policy_comparison.reason)}</p>
+      {/if}
       <h2>Suggested action</h2>
       {#if selected.length === 0}<p>No action selected</p>
       {:else}<p>Selected shadow proposals: {selected.map(item => item.type).join(', ')}. Effects remain unqualified.</p>{/if}

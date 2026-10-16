@@ -1,3 +1,4 @@
+import { parsePolicyComparison } from './policyComparison.js';
 import { parseSourceTimestamp } from '../openhab/timestamp.js';
 
 export const OBSERVATION_MAX_BYTES = 32768;
@@ -62,7 +63,7 @@ export function parseHouseholdObservation(raw, { nowMs = Date.now() } = {}) {
   try {
     const row = JSON.parse(raw);
     uniqueObjectKeys(raw);
-    if (!shape(row, FIELDS) || row.schema !== 'earthship-household-observation/v1'
+    if (!shape(row, FIELDS) || !['earthship-household-observation/v1','earthship-household-observation/v2'].includes(row.schema)
       || !digest(row.receipt_sha256) || !digest(row.snapshot_id)
       || row.authority !== 'none' || row.automatic_actuation !== false || row.effects_qualified !== false
       || row.confidence !== 'unavailable' || row.planner_version !== 'bounded_exhaustive_v1'
@@ -83,7 +84,7 @@ export function parseHouseholdObservation(raw, { nowMs = Date.now() } = {}) {
     if (!shape(generation, ['status', 'reason', 'input_qualification'])
       || !['generated_shadow_only', 'unavailable'].includes(generation.status)
       || !reason(generation.reason) || generation.input_qualification !== 'not_assessed') return null;
-    if (!shape(row.policy_comparison, ['status', 'reason']) || row.policy_comparison.status !== 'unavailable' || !reason(row.policy_comparison.reason)) return null;
+    if (row.schema==='earthship-household-observation/v1' && (!shape(row.policy_comparison, ['status', 'reason']) || row.policy_comparison.status !== 'unavailable' || !reason(row.policy_comparison.reason))) return null;
     if (!list(row.proposals, 8) || new Set(row.proposals.map(item => item?.intent_id)).size !== row.proposals.length) return null;
     for (const item of row.proposals) {
       if (!shape(item, ['intent_id', 'type', 'selected', 'confidence', 'reasons', 'expected_effects', 'effect_units', 'decision_status', 'decision_reason', 'hard_checks'])
@@ -121,7 +122,9 @@ export function parseHouseholdObservation(raw, { nowMs = Date.now() } = {}) {
       if (source.current_quality !== atVerification) return null;
       sources.push({ ...source, current_quality: qualified ? (nowMs >= expiry ? 'expired' : 'qualified') : 'unavailable' });
     }
-    return { ...row, source_quality: sources, expired: nowMs >= until,
+    const policy = row.schema==='earthship-household-observation/v2' ? parsePolicyComparison(row.policy_comparison,{decisionMs:decision,nowMs,proposals:row.proposals}) : null;
+    if (row.schema==='earthship-household-observation/v2' && policy===null) return null;
+    return { ...row, ...(policy===null?{}:{policyComparison:policy}), source_quality: sources, expired: nowMs >= until,
       effectiveMode: nowMs < until ? row.planner_mode : 'unavailable', snapshotAgeSeconds: Math.floor((nowMs - snapshot) / 1000) };
   } catch { return null; }
 }

@@ -121,3 +121,17 @@ it('does not expose malformed captured-PV fields or claim accuracy from an unava
   await waitFor(() => expect(getByText('Captured-PV accuracy report unavailable')).toBeTruthy());
   expect(container.textContent).not.toContain('/do-not-display');
 });
+it('shows an as-issued matching greywater block without implying performance or physical permission', async () => {
+  const { policyObservation }=await import('../fixtures/household-observation.js');serve(policyObservation());
+  const {container,getByText}=render(HouseholdObservation);
+  await waitFor(()=>expect(getByText('Observed greywater policy')).toBeTruthy());
+  expect(container.textContent).toContain('matching block');expect(container.textContent).toContain('after dark');
+  expect(container.textContent).toContain('Action eligibility and performance benefits remain unknown');
+  expect(container.querySelector('button, form, input, select')).toBeNull();
+});
+it('expires the displayed owner observation at its original clock independently of polling', async () => {
+  const {policyObservation}=await import('../fixtures/household-observation.js');serve(policyObservation());vi.useFakeTimers();
+  const {container}=render(HouseholdObservation);await vi.advanceTimersByTimeAsync(1);
+  vi.spyOn(Date,'now').mockReturnValue(AT+120000);await vi.advanceTimersByTimeAsync(1000);
+  expect(container.textContent).toContain('Owner policy observation is stale');
+});

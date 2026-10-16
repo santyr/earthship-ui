@@ -60,3 +60,10 @@ it('never serves a private payload hidden behind a duplicate public key', async 
   expect(response.status).toBe(503);
   expect(await response.text()).toBe('{"status":"unavailable"}');
 });
+it('serves the compatible policy observation version without permitting private nested originals', async()=>{
+  const {policyObservation}=await import('./fixtures/household-observation.js');
+  const base=await endpoint(()=>policyObservation());const response=await fetch(`${base}/api/household-observation`);
+  expect(response.status).toBe(200);expect(await response.json()).toEqual(policyObservation());
+  const denied=await endpoint(()=>{const r=policyObservation();r.policy_comparison.comparisons[0].raw='private';return r;});
+  const bad=await fetch(`${denied}/api/household-observation`);expect(bad.status).toBe(503);expect(await bad.json()).toEqual({status:'unavailable'});
+});

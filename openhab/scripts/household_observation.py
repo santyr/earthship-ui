@@ -15,6 +15,36 @@ def _reason(value):
     return value
 
 
+def _policy_comparison(coordination,proposals,decision):
+    """Describe rederived original blocks, never eligibility or performance."""
+    from household.owner_policy import OWNER,BLOCKERS
+    from household.planning import GATES
+    observation=coordination['policy_observations'].get(OWNER)
+    value=dict(schema='earthship-household-policy-block-comparison/v1',status='unavailable',reason='source_unavailable',
+        owner=OWNER,owner_reason=None,owner_scheduling=None,evaluated_at=None,valid_until=None,
+        source_sha256=None,rule_sha256=None,gate=None,comparisons=[],performance_status='unavailable',
+        performance_reason='unqualified_effect',physical_permission=False,automatic_actuation=False)
+    if observation is not None:
+        value.update(owner_reason=observation['reason'],owner_scheduling=observation['scheduling'],
+            evaluated_at=observation['evaluated_at'],valid_until=observation['valid_until'],
+            source_sha256=observation['source_sha256'],rule_sha256=observation['rule_sha256'])
+        if instant(observation['evaluated_at'])>decision:raise ValueError('owner evaluation follows original decision')
+        if decision>=instant(observation['valid_until']):value['reason']='source_stale'
+        elif observation['reason'] in BLOCKERS:value.update(status='observed_block',reason=None,gate=BLOCKERS[observation['reason']])
+        else:value['reason']='eligibility_not_permission' if observation['scheduling']=='conditional' else 'owner_reason_not_comparable'
+    for proposal in proposals:
+        if proposal['type']!='RUN_GREYWATER_CYCLE':continue
+        check=None
+        if value['gate'] is not None:
+            matches=[row for row in proposal['hard_checks'] if row['rule']==value['gate']]
+            if len(matches)==1:check=matches[0]
+        status='unknown'
+        if check is not None and check['status']!='unknown':
+            status='matching_block' if check['status']=='rejected' and check['reason']==GATES[value['gate']] else 'different_gate_result'
+        value['comparisons'].append(dict(intent_id=proposal['intent_id'],status=status,shadow_status=None if check is None else check['status']))
+    return value
+
+
 def observe_pipeline(receipt,*,runtime_manifest,thermal_runtime,observed_at):
     observed=utc(observed_at)
     original=replay_pipeline(receipt,runtime_manifest=runtime_manifest,thermal_runtime=thermal_runtime)
@@ -61,6 +91,8 @@ def observe_pipeline(receipt,*,runtime_manifest,thermal_runtime,observed_at):
         candidate_generation=dict(status=generation['status'],reason=_reason(generation['reason']),input_qualification=generation['input_qualification']),
         proposals=proposals,source_quality=sources,confidence='unavailable',effects_qualified=False,
         policy_comparison=dict(status='unavailable',reason=_reason(plan['baseline_reasons']['current_owner_policy'])))
+    if inputs['coordination']['schema']=='earthship-shadow-coordination/v3':
+        view.update(schema='earthship-household-observation/v2',policy_comparison=_policy_comparison(inputs['coordination'],proposals,decision))
     if len(canonical(view))>MAX_BYTES:raise ValueError('bounded public observation required')
     return view
 
@@ -104,7 +136,7 @@ def _existing_view(path):
     try:raw,metadata=_private_file(path,MAX_BYTES)
     except FileNotFoundError:return None
     value=loads(raw)
-    if not isinstance(value,dict) or set(value)!=PUBLIC_FIELDS or value['schema']!='earthship-household-observation/v1':
+    if not isinstance(value,dict) or set(value)!=PUBLIC_FIELDS or value['schema'] not in ('earthship-household-observation/v1','earthship-household-observation/v2'):
         raise ValueError('existing target is not an observation cache')
     return raw,metadata
 
