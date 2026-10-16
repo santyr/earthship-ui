@@ -1,0 +1,129 @@
+name: earthship-sensors-test
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "5m", max-file: "3" }
+services:
+  mqtt:
+    image: eclipse-mosquitto:2.0.22@sha256:199ea8ef2e35ec2b1b37e59cfd1dbae538ed4dfa4a2251a121a52215a6248a21
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    volumes:
+      - ../../.superpowers/lorawan-private/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ../../.superpowers/lorawan-private/mqtt.passwords:/mosquitto/config/passwords:ro
+      - ../../.superpowers/lorawan-private/mqtt.acl:/mosquitto/config/acl:ro
+      - ../../.superpowers/lorawan-private/mosquitto_sub:/mosquitto/config/mosquitto_sub:ro
+      - ../../.superpowers/lorawan-private/mqtt_data:/mosquitto/data
+    environment: { XDG_CONFIG_HOME: /mosquitto/config }
+    tmpfs: ["/mosquitto/log"]
+    ports: ["127.0.0.1:18884:1883"]
+    networks: [sensors, management]
+    cap_drop: [ALL]
+    logging: *logging
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD-SHELL, "mosquitto_sub -E -W 3 -t earthship/sensors/v1/service >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+  postgres:
+    image: postgres:16@sha256:95206741a5b214807675e14165369d05b93a9cf692223b616d07cca227e74b0b
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_admin
+      POSTGRES_DB: sensors_test
+    volumes:
+      - database:/var/lib/postgresql/data
+      - ../../.superpowers/lorawan-private/postgres_admin:/run/secrets/postgres_admin:ro
+      - ../../.superpowers/lorawan-private/init.sql:/docker-entrypoint-initdb.d/10-sensors.sql:ro
+    networks: [sensors]
+    logging: *logging
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U postgres -d sensors_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  ingest:
+    build:
+      context: ../..
+      dockerfile: services/lorawan/Dockerfile
+    image: earthship-observations:test
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    volumes:
+      - ../../.superpowers/lorawan-private/ingest.json:/run/private/ingest.json:ro
+      - ./registry.simulation.json:/run/registry.json:ro
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    networks: [sensors]
+    depends_on:
+      postgres: { condition: service_healthy }
+      mqtt: { condition: service_started }
+    logging: *logging
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, python, -c, "import json,time,datetime; h=json.load(open('/tmp/sensor-health.json')); assert h['mqtt_connected'] and time.time()-datetime.datetime.fromisoformat(h['at']).timestamp()<45"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+  simulator:
+    image: earthship-observations:test
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    profiles: [simulation]
+    volumes:
+      - ../../.superpowers/lorawan-private/simulator.json:/run/private/simulator.json:ro
+      - ./registry.simulation.json:/run/registry.json:ro
+    command: [python, -m, services.lorawan.simulate, --config, /run/private/simulator.json, --registry, /run/registry.json, --faults]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    networks: [sensors]
+  openhab:
+    image: openhab/openhab:5.2.1-debian@sha256:bfd4a60e90da18cf917a9004bbc22354fc818825f3c6f0351e471a2e938d6c3c
+    environment:
+      EXTRA_JAVA_OPTS: -Xms128m -Xmx768m -Duser.home=/openhab/userdata
+      USER_ID: "${LOCAL_UID:-1000}"
+      GROUP_ID: "${LOCAL_GID:-1000}"
+      TZ: America/Denver
+    ports: ["127.0.0.1:18084:8080"]
+    volumes:
+      - ../../.superpowers/lorawan-private/openhab:/openhab/conf
+      - ../../.superpowers/lorawan-private/addons:/openhab/addons
+      - openhab_data:/openhab/userdata
+    networks: [sensors, management]
+    logging: *logging
+    mem_limit: 1536m
+    cpus: 2
+    healthcheck:
+      test: [CMD, curl, -f, http://localhost:8080/rest/]
+      interval: 15s
+      timeout: 5s
+      start_period: 90s
+      retries: 12
+  redis:
+    image: redis:7.4.2-alpine@sha256:02419de7eddf55aa5bcf49efb74e88fa8d931b4d77c07eff8a6b2144472b6952
+    profiles: [chirpstack]
+    command: [redis-server, /run/private/redis.conf]
+    volumes:
+      - ../../.superpowers/lorawan-private/redis.conf:/run/private/redis.conf:ro
+      - redis_data:/data
+    networks: [sensors]
+    logging: *logging
+  chirpstack:
+    image: chirpstack/chirpstack:4.19.2@sha256:cecb45bd2dfc9de55d32c620d6674093f859a899f4de36eb82924c7aa3bda8de
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    profiles: [chirpstack]
+    command: [-c, /etc/chirpstack]
+    volumes:
+      - ../../.superpowers/lorawan-private/chirpstack:/etc/chirpstack:ro
+    ports: ["127.0.0.1:18085:8080"]
+    networks: [sensors, management]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
+      mqtt: { condition: service_started }
+    logging: *logging
+networks:
+  sensors: { internal: true }
+  management: {}
+volumes:
+  database:
+  openhab_data:
+  redis_data:

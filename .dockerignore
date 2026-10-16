@@ -1,0 +1,5 @@
+**
+!services/
+!services/**
+services/**/__pycache__/
+services/**/tests/

@@ -42,8 +42,8 @@ describe('navigate + currentRoute', () => {
     expect(get(currentRoute)).toBe('home');
   });
 
-  it('keeps household inspection within the Earthship route', () => {
-    expect(ROUTES).toEqual(['home', 'energy', 'weather', 'earthship', 'shades', 'controls']);
+  it('keeps household inspection within Earthship alongside the sensors route', () => {
+    expect(ROUTES).toEqual(['home', 'energy', 'weather', 'earthship', 'shades', 'controls', 'ventilation']);
   });
 
   it('navigates to the controls route', () => {

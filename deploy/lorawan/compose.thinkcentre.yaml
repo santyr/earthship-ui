@@ -1,0 +1,44 @@
+# Activated ThinkCentre deployment; private files are outside source control.
+name: earthship-sensors
+services:
+  redis:
+    image: redis:7.4.2-alpine@sha256:02419de7eddf55aa5bcf49efb74e88fa8d931b4d77c07eff8a6b2144472b6952
+    command: [redis-server, /run/private/redis.conf]
+    ports: ["127.0.0.1:6394:6379"]
+    volumes: ["/var/snap/docker/common/earthship-sensors/private/redis.conf:/run/private/redis.conf:ro", "redis_data:/data"]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD-SHELL, 'REDISCLI_AUTH=$$(sed -n "s/^requirepass //p" /run/private/redis.conf) redis-cli ping | grep -q PONG']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    logging: &logging {driver: json-file, options: {max-size: "10m", max-file: "3"}}
+  chirpstack:
+    image: chirpstack/chirpstack:4.19.2@sha256:cecb45bd2dfc9de55d32c620d6674093f859a899f4de36eb82924c7aa3bda8de
+    user: "10001:10001"
+    network_mode: host
+    command: [-c, /etc/chirpstack]
+    volumes: ["/var/snap/docker/common/earthship-sensors/private/chirpstack:/etc/chirpstack:ro"]
+    restart: unless-stopped
+    depends_on: {redis: {condition: service_healthy}}
+    logging: *logging
+  ingest:
+    build: {context: /var/snap/docker/common/earthship-sensors/releases/2deca464ac8a, dockerfile: services/lorawan/Dockerfile}
+    image: earthship-observations:2deca464ac8a
+    user: "10001:10001"
+    network_mode: host
+    volumes:
+      - /var/snap/docker/common/earthship-sensors/private/ingest.json:/run/private/ingest.json:ro
+      - /var/snap/docker/common/earthship-sensors/private/registry.json:/run/registry.json:ro
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    restart: unless-stopped
+    logging: *logging
+    healthcheck:
+      test: [CMD, python, -c, "import json,time,datetime; h=json.load(open('/tmp/sensor-health.json')); assert h['mqtt_connected'] and time.time()-datetime.datetime.fromisoformat(h['at']).timestamp()<45"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+volumes:
+  redis_data:

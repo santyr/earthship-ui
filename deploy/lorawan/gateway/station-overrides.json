@@ -1,0 +1,4 @@
+{
+  "SX1302_conf": { "device": "usb:/dev/ttyACM0", "pps": false },
+  "station_conf": { "routerid": "REPLACE_WITH_GATEWAY_EUI", "log_level": "INFO", "gps": "" }
+}

@@ -96,7 +96,7 @@ export default defineConfig(() => {
     server: {
       // Development builds and private diagnostics must not reload household screens.
       watch: { ignored: ['**/.worktrees/**', '**/.superpowers/**'] },
-      fs: { deny: HOUSEHOLD_FS_DENY },
+      fs: { deny: [...HOUSEHOLD_FS_DENY, '**/deploy/lorawan/private/**', '**/*.sqlite', '**/*.sqlite-*'] },
       // Vite's DNS-rebinding protection only admits localhost + literal IPs
       // by default; household clients (tablet, Shield) reach the console by
       // hostname, so allow this machine's real names explicitly. Keep this a

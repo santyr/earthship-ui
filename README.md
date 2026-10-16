@@ -155,3 +155,12 @@ recorded geometry and flow observations do not establish forecasting skill.
 Runtime config lives in `config.json` (openHAB base URL + API token),
 served alongside the static bundle. It is gitignored — never commit it.
 Copy `config.example.json` and fill in your own values.
+
+## Distributed sensor observations
+
+The staged local LoRaWAN path and transport-independent registry are documented in
+[the sensor runbook](docs/operations/lorawan-sensors.md). The new `#/ventilation`
+screen reads OpenHAB REST/SSE, keeps last-known contacts separate from validity,
+and supports an isolated synthetic demonstration. Production services and model
+behavior remain unchanged. See [validation](docs/operations/lorawan-validation.md)
+and [future water, greenhouse and property sensing](docs/operations/sensor-expansion.md).
