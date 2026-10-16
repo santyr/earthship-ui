@@ -116,3 +116,32 @@ that exact smoke inside the actual shared pool then passes. Deployment/daily
 integration and focused guard/dispatch checks pass41 tests. These are separate
 batches with overlap, not a sum of distinct cases. Original-output offline replay
 above uses the production archive, independently of synthetic fixture timing.
+
+
+## Production activation
+
+The single immutable review of source1a3d5d8 found no Critical, Important or
+Minor issues and requested no correction. Independent Gitleaks8.30.1 default
+rules, no suppression and full redaction report zero findings for the committed
+change. GitGuardian's large-PR skip is not represented as a clean scan.
+
+The owned unchanged-model activation completed at2026-10-16T14:46:49Z,
+deployment097e4f75. Complete model284139ee, trained through2026-10-16T06:00Z,
+remains byte-identical. No fit, fresh forecast, serving qualification probe or
+explicit service restart was run. The transaction waited for idle workers,
+quiesced the existing timers, verified the generation and restored those timers.
+Readback at14:47:24Z verifies all five owned files, effective shared launchers
+and deployment pins, all three active timers and the existing score calendars.
+UI, model and forecast returnHTTP200/provisional. Shared6GiB maximum/5GiB high,
+zero worker swap,256 tasks and8core-equivalent ceiling are unchanged. The clean
+idle daily checkout now selects1a3d5d8 with unchanged daily unit bytes; training
+was not started.
+
+The original50-second archive's next scheduled selection is18:06UTC
+(12:06MDT) in the42-entry history rotation. Its network-denied original-output
+parity is verified above. End-to-end production backlog latency for that exact
+selection remains pending its normal job; no manual score was triggered to
+replace that evidence. Current-model/other natural jobs and post-activation
+publication observations are recorded separately. Full PR #3 qualification,
+physical/action effects and owner integration remain incomplete. Actuator
+requests stay disabled.
