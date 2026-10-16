@@ -240,7 +240,7 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
             selection_guard()
             compatible=(archived['runtime_sha256']==binding['runtime_sha256'] and
                 archived['model_verification']['helper']['sha256']==binding['model_verification']['helper']['sha256'])
-            if not compatible:
+            if not compatible or target not in dispatch['historical'][-31:]:
                 if verifier(stage)!=binding:raise ValueError('staged historical score selection changed before dispatch')
                 return execute_retained_native_score(target)
             # Compatible owned history is re-read below and scored with its

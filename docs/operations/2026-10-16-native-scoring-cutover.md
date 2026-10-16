@@ -35,3 +35,13 @@ the original legacy routing. Full-day scheduling proves zero legacy slots,
 unchanged current/battery cadence and no additional timer invocations. Both
 32- and 63-stage inventories rotate completely. Earlier sealed family metadata
 and timer bytes remain valid through owned upgrade preparation.
+
+The final review identified one Important pre-existing dispatch gap directly
+relevant to the cutover: a selected compatible historical stage outside the
+last 31 was not executed by either route. One correction dispatches that stage
+through its own sealed worker. A failing-to-passing boundary regression proves
+execution outside the envelope and continued bounded in-process execution
+inside it. No model selection limit was widened. The review had no Critical
+or Minor findings. All 107 final affected cases pass in 19.04 seconds; an
+additional 59 owned install/family/daily lifecycle regressions pass in 12.35
+seconds. No repeated review pass was needed.

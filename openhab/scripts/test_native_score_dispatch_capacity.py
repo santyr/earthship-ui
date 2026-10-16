@@ -55,3 +55,29 @@ def test_dispatch_retains_a_finite_inventory_bound(tmp_path,monkeypatch):
         writer(legacy_stage=legacy,legacy_deployment_sha256=pin,
             historical_selections=({},)*64,output=output,guard=lambda:None)
     assert not output.exists()
+
+
+@pytest.mark.parametrize('target_index',[0,62])
+def test_selected_compatible_history_outside_envelope_executes_its_retained_worker(tmp_path,monkeypatch,target_index):
+    from test_native_serving_score_driver import fixture
+    import household_cycle_deploy as deploy,native_model_serving_receipt as admission
+    c,config,stage,calls,model,now,dispatch=fixture(tmp_path,monkeypatch,6)
+    refs=[dict(stage=str(tmp_path/str(i)),deployment_sha256='a'*64) for i in range(63)]
+    dispatch['historical']=refs;target=refs[target_index]
+    old=deploy.verify_stage
+    monkeypatch.setattr(deploy,'verify_stage',lambda actual,**kw:old(stage,**kw))
+    monkeypatch.setattr(c,'native_score_selection',lambda *a:target)
+    monkeypatch.setattr(admission,'load_serving_selection',lambda actual,**kw:str(actual))
+    monkeypatch.setattr(admission,'read_serving_model',lambda *a,**kw:model)
+    executed=[]
+    def retained(selected):
+        executed.append(selected);return dict(status='waiting',scored=0,automatic_actuation=False)
+    def in_process(settings,*,guard,clock,queue,serving_model,historical_selections):
+        assert historical_selections==tuple(r['stage'] for r in refs[-31:])
+        return dict(status='waiting',scored=0,automatic_actuation=False)
+    monkeypatch.setattr(c,'execute_retained_native_score',retained)
+    monkeypatch.setattr(c,'execute_legacy_score',lambda *a:pytest.fail('legacy execution after cutover'))
+    monkeypatch.setattr(c,'score_with_report',in_process)
+    assert c.run(config,stage=stage,deployment_sha256='a'*64,clock=lambda:now,monotonic=lambda:100)['status']=='waiting'
+    assert executed==([target] if target_index==0 else [])
+    assert ('locked' in calls)==(target_index==62)
