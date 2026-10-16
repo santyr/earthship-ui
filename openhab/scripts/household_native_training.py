@@ -305,11 +305,11 @@ class NativeTraining:
         os.environ['EARTHSHIP_REMOTE_QUALIFICATION_FIT'] = '0'
         fit = fit_native_development(data, expected_dataset_sha256=data.sha256,
             training_start=data.development.start, training_end=data.development.end,
-            guard=self.guard, timeout_seconds=85)
+            guard=self.guard, timeout_seconds=85, joint=True, irradiance=True)
         if current_native_runtime(guard=self.guard) != runtime:
             raise ValueError('native fitted runtime changed during training')
         commit = subprocess.check_output(['git', '-C', str(self.repo), 'rev-parse', 'HEAD'], text=True).strip()
-        evidence = dict(schema='earthship-native-development-fit-evidence/v2',
+        evidence = dict(schema='earthship-native-development-fit-evidence/v4',
             created_at=datetime.now(timezone.utc).isoformat(), code_revision=commit, fit_runtime=runtime,
             fit=fit, release_authorized=False, production_model_changed=False)
         evidence_path = run / 'fit-evidence.json'

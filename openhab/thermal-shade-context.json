@@ -1,0 +1,13 @@
+{
+  "schema": "earthship-thermal-shade-context/v1",
+  "nominal_shade_rejection_fraction": 0.65,
+  "transmission_prior": 0.35,
+  "interpretation": "Nominal cloth rating is a provisional solar-gain prior, not measured building attenuation.",
+  "outdoor_zones": [
+    {"id": "kitchen", "name": "Kitchen", "rooms": ["Kitchen"]},
+    {"id": "living_room", "name": "Living Room", "rooms": ["Living Room"]},
+    {"id": "bedroom_bathroom", "name": "Bedroom / Bathroom", "rooms": ["Bedroom", "Bathroom"]}
+  ],
+  "expected_reinstallation": "mid-to-late May 2027; operator confirmation required",
+  "automatic_reinstallation": false
+}

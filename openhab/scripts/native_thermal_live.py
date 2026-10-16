@@ -638,7 +638,7 @@ def _retain_native_gap(folder,job,delivery,delivery_path,capture,*,horizon,targe
     return value
 
 
-SERVING_RECEIPT_SOURCE_SHA256='94d85e37afc79e08cf9de93ba937b2ba845acc7111c0a23e483b186d8ff9a57e'
+SERVING_RECEIPT_SOURCE_SHA256='11121a94a4501c7af520b9df54ec879a3c75edadc87a0d15afd279bf83bbf58e'
 
 
 def serving_delivery_model(delivery_path,delivery,*,current_model,historical_selections,assessed_at,guard):

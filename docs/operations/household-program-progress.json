@@ -32,7 +32,7 @@
     {
       "phase": "3",
       "requirement": "Pure domain models with numerical parity",
-      "current_evidence": "Pure energy retains72 production goldens. The native provisional thermal candidate188a42a8, trained through2026-10-15T06:00Z, remains unchanged. Common-clock thermal/weather/energy and measured-weather contexts, original nominal bank configuration and conditional battery baseline are deployed and replayable. Source522241e adds independent24h array-PV potential from retained native weather/geometry,4.2kW/165approx/57.4tilt configuration and the location-bound provisional PVGIS terrain skyline; direct beam is masked while diffuse remains. The normal15:50:15UTC PV/storage receipt replays identically through the exact staged CLI and original plan. Its conditional storage holds source-qualified427W AC load constant from87percent SoC and explicitly assumes efficiencies/zero system overhead/no charge rate or taper.1462 household tests,2419 frontend tests and43 admission/dispatch checks pass. These are provisional physical scenarios, not calibrated captured-PV/load forecasts or usable-energy bounds. Learned load profiles, action response, physical calibration and full phase3 qualification remain incomplete. Sourcec71f14e deploys the separately versioned hourly AC-demand profile, unchanged-v1 storage comparison, retained matched load/SoC outcomes and read-only Earthship panel. All owned definitions/timers and actual laptop/tablet collecting states verify. No production fitting or forecast was manually triggered; first load training remains scheduled2026-10-16at06:50MDT. Live learned-load numerics and skill remain unqualified. Source521762d now deploys a separate same-issue nominal trajectory shadow plan without changing prior forecasts/plans/scores. Natural19:40:15UTC receiptfef4edd9 uses the constant-AC PV scenario pending normal learned-load preparation, generates greywater and night-loadOFF hypothetical candidates, preserves original coordination and selects no actions. Exact activated CLI and originalv1energy replay match.1655backend cases pass, final review has no Critical/Important findings; live action effects and broader qualification remain incomplete. The normal2026-10-16at06:50MDT job completed06:54:07, activating284139ee thermal and31bab20b hourly AC artifacts trained through local midnight. All24 load bins have at least11 supporting days from14 original local days. After an initial busy-preparer rollover gap, the next normal preparer succeeded and07:00:15MDT issued provisional thermal plus the first conditional learned-load PV/storage scenario; actual laptop/tablet pass. Numerical skill/intervals/physical calibration remain unqualified. Current-model native scoring succeeds. Source1a3d5d8 now deploys current outside-model historical orchestration at the existing120-second budget, preserving archived numerical functions and the complete284139ee model. Actual retained source output replays identically; all five definitions/timers/pins verify. The oldest archive normal job is next18:06UTC, so its live backlog latency remains pending. Scheduled legacy scoring is retired. First scheduled learned-load report2026-10-16T14:08:33Z now has one1h pair/one origin day: AC error0.000255kWh versus current-load0.022406; SoC errors learned-PV0.281384,constant-AC-PV0.399484,constant-power1.030273,hold-SoC0 percentage points. Longer horizons/independent-day skill remain collecting. The first learned-load AC/SoC outcome now replays identically through the exact deployed file-only CLI, with network forbidden and all originals unchanged; The first learned captured-PV1h pair now replays identically through the exact deployed file-only CLI; both nominal load scenarios predict the same0.126116kWh against0.132509kWh actual, so load-model benefit is not established. The earlier newest-reference pause recovered on the normal14:38 opportunity without a producer patch.",
+      "current_evidence": "Pure energy retains72 production goldens. The native provisional thermal candidate188a42a8, trained through2026-10-15T06:00Z, remains unchanged. Common-clock thermal/weather/energy and measured-weather contexts, original nominal bank configuration and conditional battery baseline are deployed and replayable. Source522241e adds independent24h array-PV potential from retained native weather/geometry,4.2kW/165approx/57.4tilt configuration and the location-bound provisional PVGIS terrain skyline; direct beam is masked while diffuse remains. The normal15:50:15UTC PV/storage receipt replays identically through the exact staged CLI and original plan. Its conditional storage holds source-qualified427W AC load constant from87percent SoC and explicitly assumes efficiencies/zero system overhead/no charge rate or taper.1462 household tests,2419 frontend tests and43 admission/dispatch checks pass. These are provisional physical scenarios, not calibrated captured-PV/load forecasts or usable-energy bounds. Learned load profiles, action response, physical calibration and full phase3 qualification remain incomplete. Sourcec71f14e deploys the separately versioned hourly AC-demand profile, unchanged-v1 storage comparison, retained matched load/SoC outcomes and read-only Earthship panel. All owned definitions/timers and actual laptop/tablet collecting states verify. No production fitting or forecast was manually triggered; first load training remains scheduled2026-10-16at06:50MDT. Live learned-load numerics and skill remain unqualified. Source521762d now deploys a separate same-issue nominal trajectory shadow plan without changing prior forecasts/plans/scores. Natural19:40:15UTC receiptfef4edd9 uses the constant-AC PV scenario pending normal learned-load preparation, generates greywater and night-loadOFF hypothetical candidates, preserves original coordination and selects no actions. Exact activated CLI and originalv1energy replay match.1655backend cases pass, final review has no Critical/Important findings; live action effects and broader qualification remain incomplete. The normal2026-10-16at06:50MDT job completed06:54:07, activating284139ee thermal and31bab20b hourly AC artifacts trained through local midnight. All24 load bins have at least11 supporting days from14 original local days. After an initial busy-preparer rollover gap, the next normal preparer succeeded and07:00:15MDT issued provisional thermal plus the first conditional learned-load PV/storage scenario; actual laptop/tablet pass. Numerical skill/intervals/physical calibration remain unqualified. Current-model native scoring succeeds. Source1a3d5d8 now deploys current outside-model historical orchestration at the existing120-second budget, preserving archived numerical functions and the complete284139ee model. Actual retained source output replays identically; all five definitions/timers/pins verify. The oldest archive normal job is next18:06UTC, so its live backlog latency remains pending. Scheduled legacy scoring is retired. First scheduled learned-load report2026-10-16T14:08:33Z now has one1h pair/one origin day: AC error0.000255kWh versus current-load0.022406; SoC errors learned-PV0.281384,constant-AC-PV0.399484,constant-power1.030273,hold-SoC0 percentage points. Longer horizons/independent-day skill remain collecting. The first learned-load AC/SoC outcome now replays identically through the exact deployed file-only CLI, with network forbidden and all originals unchanged; The first learned captured-PV1h pair now replays identically through the exact deployed file-only CLI; both nominal load scenarios predict the same0.126116kWh against0.132509kWh actual, so load-model benefit is not established. The earlier newest-reference pause recovered on the normal14:38 opportunity without a producer patch. Later October16, source d4122fd corrects the implausible118.5F hallway high using explicitly versioned W/m2 solar heat inputs and same-day shade-regime endpoint selection. Fresh training ends23:10Z. Normal23:35:15Z publication and actual laptop/tablet show91.7F. Two same-day one-hour measured-weather holdouts improve2.56 to0.88F MAE versus0.81F persistence; independent-day/next-day skill remains unqualified. Details:docs/operations/2026-10-16-hallway-high-diagnosis.md.",
       "complete": false
     },
     {
@@ -9943,6 +9943,172 @@
       "daily_unit_unchanged": true,
       "daily_service_started": false,
       "source_expiry_preserved": true
+    },
+    "thermal_four_regime_shades": {
+      "status": "deployed_normal_cycle_and_live_ui_verified",
+      "design_approved": true,
+      "document": "docs/operations/2026-10-16-four-regime-thermal-shades.md",
+      "nominal_shade_rejection_fraction": 0.65,
+      "transmission_prior": 0.35,
+      "outdoor_zones": [
+        "kitchen",
+        "living_room",
+        "bedroom_bathroom"
+      ],
+      "all_outdoor_shades_removed": true,
+      "expected_reinstallation": "mid-to-late May 2027; operator confirmation required",
+      "automatic_reinstallation": false,
+      "vent_open_effective_at": "2026-10-16T19:20:00+00:00",
+      "model_rule": "earthship-native-joint-shade-dynamics/v3",
+      "backend_broad_passed": 870,
+      "backend_broad_skipped": 1,
+      "backend_final_focused_passed": 49,
+      "frontend_passed": 2577,
+      "build_passed": true,
+      "old_implementations_preserved": true,
+      "unobserved_solar_gains_prior_only": true,
+      "automatic_actuation": false,
+      "action_advice_enabled": false,
+      "resource_policy_changed": false,
+      "full_goal_complete": false,
+      "source_commit": "ecc05d4a7ce7df702e4e8e83386ae13a251ed670",
+      "deployment_sha256": "9d8fb9e0c44fe9bd09092f4efbd9d9de3c90cd056099aabb14f99c4e84919d41",
+      "artifact_sha256": "a48b0274d16b039d7f27537e7b576fab257769fe0953c95ff8034d06741faca8",
+      "activated_at": "2026-10-16T20:16:54.460812+00:00",
+      "training_end": "2026-10-16T06:00:00+00:00",
+      "regime_support": {
+        "both_closed": {
+          "daylight_sample_count": 576,
+          "endpoint_count": 27,
+          "solar_endpoint_count": 17,
+          "status": "observed_unqualified"
+        },
+        "indoor_only": {
+          "daylight_sample_count": 0,
+          "endpoint_count": 0,
+          "solar_endpoint_count": 0,
+          "status": "prior_only"
+        },
+        "outdoor_only": {
+          "daylight_sample_count": 0,
+          "endpoint_count": 0,
+          "solar_endpoint_count": 0,
+          "status": "prior_only"
+        },
+        "unshaded": {
+          "daylight_sample_count": 0,
+          "endpoint_count": 0,
+          "solar_endpoint_count": 0,
+          "status": "prior_only"
+        }
+      },
+      "conditioning_rank": 8,
+      "parameter_count": 14,
+      "packaging_tests_passed": 80,
+      "handoff_tests_passed": 77,
+      "final_review": {
+        "commit": "cc7728f45f2e6e865e8a7e022aec8a1c9c1ecdd1",
+        "important_findings": 1,
+        "corrected": "5d79e9e",
+        "re_reviewed": false
+      },
+      "full_admission_passed": true,
+      "handoff_preflight_passed": true,
+      "owned_files_verified": 5,
+      "timers_active": 3,
+      "daily_source_advanced": true,
+      "daily_unit_unchanged": true,
+      "ui_unrelated_overlays_preserved": 161,
+      "normal_issue_at": "2026-10-16T20:20:15+00:00",
+      "normal_household_decision_at": "2026-10-16T20:20:27.173462+00:00",
+      "normal_origin_actions": {
+        "action_knowledge": "as_of_snapshot_not_outcome_confirmation",
+        "indoor_shade_closed": 1.0,
+        "mode": "warm",
+        "outdoor_shade_present": 0.0,
+        "vent_open": 1.0,
+        "vent_provenance": "manual_dm"
+      },
+      "normal_forecast_status": "provisional",
+      "normal_forecast_advice_empty": true,
+      "live_ui": {
+        "cases": 2,
+        "states": [
+          "ready",
+          "ready"
+        ],
+        "errors": 0,
+        "mutations": 0,
+        "outer_overflow": false,
+        "nominal_prior_visible": true
+      },
+      "training_data_refreshed": false,
+      "first_fit_reused_retained_measurements": true,
+      "superseded_by": "thermal_irradiance_high_correction"
+    },
+    "thermal_irradiance_high_correction": {
+      "status": "deployed_normal_cycle_and_live_ui_verified",
+      "document": "docs/operations/2026-10-16-hallway-high-diagnosis.md",
+      "source_commit": "d4122fd9fc3b7a8449fa6aa673fd6e1a2bbbed3a",
+      "deployment_sha256": "32bbaed5de4e0217d96382b1d016fad2bef685d7fc35e8f175e82d65b543c87e",
+      "artifact_sha256": "1ccff0a33a9b0b2474c70da9d8af81c6384a58f34e26e7d36b871d83b317b275",
+      "activated_at": "2026-10-16T23:32:02.016334+00:00",
+      "rule": "earthship-native-irradiance-shade-dynamics/v4",
+      "training_end": "2026-10-16T23:10:00+00:00",
+      "regime_aware_daily_selection": true,
+      "solar_feature_units": "W/m2",
+      "old_original_high_f": 118.50197610013977,
+      "corrected_same_original_high_f": 91.85666014836896,
+      "holdout": {
+        "training_end": "2026-10-16T21:00:00+00:00",
+        "window_count": 2,
+        "independent_days": 1,
+        "weather": "original_measured_weather",
+        "old_mae_f": 2.5568688523971375,
+        "new_mae_f": 0.8757442897682566,
+        "persistence_mae_f": 0.81,
+        "next_day_skill_qualified": false
+      },
+      "backend_passed": 663,
+      "backend_skipped": 1,
+      "frontend_focused_passed": 81,
+      "build_passed": true,
+      "review": {
+        "base": "0d5344ba10c90dba2788cb79ccff4879df6d62a4",
+        "head": "d4122fd9fc3b7a8449fa6aa673fd6e1a2bbbed3a",
+        "findings": 0,
+        "static": true
+      },
+      "automatic_actuation": false,
+      "release_authorized": false,
+      "resource_policy_changed": false,
+      "original_math_preserved": true,
+      "full_goal_complete": false,
+      "normal_issue_at": "2026-10-16T23:35:15+00:00",
+      "normal_household_decision_at": "2026-10-16T23:35:27.297567+00:00",
+      "normal_high_f": 91.73999937473705,
+      "normal_high_at": "2026-10-17T22:35:15+00:00",
+      "normal_origin_actions": {
+        "action_knowledge": "as_of_snapshot_not_outcome_confirmation",
+        "indoor_shade_closed": 1.0,
+        "mode": "warm",
+        "outdoor_shade_present": 0.0,
+        "vent_open": 1.0,
+        "vent_provenance": "manual_dm"
+      },
+      "normal_forecast_advice_empty": true,
+      "live_ui": {
+        "cases": 2,
+        "displayed_high": "91.7\u00b0F",
+        "errors": 0,
+        "mutations": 0,
+        "outer_overflow": false
+      },
+      "owned_definitions_verified": 5,
+      "timers_active": 3,
+      "daily_source_advanced": true,
+      "daily_unit_unchanged": true,
+      "unrelated_ui_overlays_preserved": 161
     }
   },
   "astro_efficiency_audit": {

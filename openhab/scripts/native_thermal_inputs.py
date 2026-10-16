@@ -212,9 +212,9 @@ def build_native_development(record, *, expected_snapshot_sha256, sensor_epochs,
     return result
 
 
-def select_native_endpoints(data, *, horizon_hours, start, end):
+def select_native_endpoints(data, *, horizon_hours, start, end, joint=False):
     if type(data) is not NativeDevelopmentData: raise ValueError('validated native development data required')
-    points = select_development_endpoints(data.development, horizon_hours=horizon_hours, start=start, end=end)
+    points = select_development_endpoints(data.development, horizon_hours=horizon_hours, start=start, end=end, joint=joint)
     return tuple(NativeDevelopmentEndpoint(point.origin, point.target, point.forcings,
         point.source_snapshot_sha256, data.sha256, data.geometry.sha256) for point in points)
 
