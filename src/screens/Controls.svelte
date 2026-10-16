@@ -1,4 +1,5 @@
 <script>
+  import RecommendationPreview from '../lib/ui/RecommendationPreview.svelte';
   import Toggle from '../lib/ui/Toggle.svelte';
   import Tile from '../lib/ui/Tile.svelte';
   import { CONTROL_CATALOG } from '../lib/controls/catalog.js';
@@ -50,6 +51,8 @@
         <Toggle control={CONTROL_CATALOG.goatCam} {releaseMode} {capabilities} {ownerTransitioning} providerStatus={providerFor(CONTROL_CATALOG.goatCam)} />
         <Toggle control={CONTROL_CATALOG.feedOnce} {releaseMode} {capabilities} providerStatus={providerFor(CONTROL_CATALOG.feedOnce)} onColor={colors.advisory} />
       </div>
+      <RecommendationPreview group="devices" />
+      <RecommendationPreview group="feeding" />
     </Tile>
   </section>
 
@@ -59,6 +62,8 @@
         <Toggle control={CONTROL_CATALOG.circulation} {releaseMode} {capabilities} providerStatus={providerFor(CONTROL_CATALOG.circulation)} onColor={colors.water} />
         <Toggle control={CONTROL_CATALOG.override} {releaseMode} {capabilities} {ownerTransitioning} onColor={colors.advisory} />
       </div>
+      <RecommendationPreview group="greywater" />
+      <RecommendationPreview group="night-policy" />
     </Tile>
   </section>
 </div>
@@ -88,6 +93,7 @@
   }
 
   .cell :global(.tile-body) {
+    display:flex; flex-direction:column; min-height:0;
     overflow: hidden;
   }
 
@@ -95,7 +101,7 @@
     display: grid;
     gap: 0.52rem;
     width: 100%;
-    height: 100%;
+    flex:1; height:auto;
     min-width: 0;
     min-height: 0;
     overflow: hidden;

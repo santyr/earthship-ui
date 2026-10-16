@@ -6,6 +6,7 @@
   // Mirrors the dark-console aesthetic (Tile chrome, tokens.colors,
   // click-to-chart via openChart) established on Home/Energy/Weather.
   import { onMount, onDestroy } from 'svelte';
+  import RecommendationPreview from '../lib/ui/RecommendationPreview.svelte';
   import Tile from '../lib/ui/Tile.svelte';
   import ThermalLoop from '../lib/ui/ThermalLoop.svelte';
   import ThermalModelCard from '../lib/ui/ThermalModelCard.svelte';
@@ -257,6 +258,7 @@
 
   <div class="cell greywater-cell">
     <Tile label="Greywater Circulation" accent={colors.water}>
+      <RecommendationPreview group="greywater" />
       <div class="greywater-body">
         <div class="gw-pumps">
         <div class="gw-top">
@@ -468,11 +470,13 @@
   /* ---- Greywater ---- */
   .gw-pumps { display: flex; flex-wrap: wrap; gap: 0.5rem 2rem; }
   .gw-name { font-size: 0.72rem; color: #aab4c2; }
+  .greywater-cell :global(.tile-body) { display:flex; flex-direction:column; min-height:0; }
   .greywater-body {
+    flex:1; min-height:0; overflow:auto;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    height: 100%;
+    justify-content: flex-start;
+    height: auto;
     gap: 0.5rem;
   }
   .gw-top {

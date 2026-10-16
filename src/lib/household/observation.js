@@ -64,7 +64,7 @@ export function parseHouseholdObservation(raw, { nowMs = Date.now() } = {}) {
   try {
     const row = JSON.parse(raw);
     uniqueObjectKeys(raw);
-    if (!shape(row, row?.schema==='earthship-household-observation/v3'?[...FIELDS,'qualification_report']:FIELDS) || !['earthship-household-observation/v1','earthship-household-observation/v2','earthship-household-observation/v3'].includes(row.schema)
+    if (!shape(row, ['earthship-household-observation/v3','earthship-household-observation/v4'].includes(row?.schema)?[...FIELDS,'qualification_report']:FIELDS) || !['earthship-household-observation/v1','earthship-household-observation/v2','earthship-household-observation/v3','earthship-household-observation/v4'].includes(row.schema)
       || !digest(row.receipt_sha256) || !digest(row.snapshot_id)
       || row.authority !== 'none' || row.automatic_actuation !== false || row.effects_qualified !== false
       || row.confidence !== 'unavailable' || row.planner_version !== 'bounded_exhaustive_v1'
@@ -88,13 +88,21 @@ export function parseHouseholdObservation(raw, { nowMs = Date.now() } = {}) {
     if (row.schema==='earthship-household-observation/v1' && (!shape(row.policy_comparison, ['status', 'reason']) || row.policy_comparison.status !== 'unavailable' || !reason(row.policy_comparison.reason))) return null;
     if (!list(row.proposals, 8) || new Set(row.proposals.map(item => item?.intent_id)).size !== row.proposals.length) return null;
     for (const item of row.proposals) {
-      if (!shape(item, ['intent_id', 'type', 'selected', 'confidence', 'reasons', 'expected_effects', 'effect_units', 'decision_status', 'decision_reason', 'hard_checks'])
+      const actionFields=row.schema==='earthship-household-observation/v4'?['parameters','created_at','expires_at']:[];
+      if (!shape(item, [...actionFields,'intent_id', 'type', 'selected', 'confidence', 'reasons', 'expected_effects', 'effect_units', 'decision_status', 'decision_reason', 'hard_checks'])
         || !digest(item.intent_id) || !TYPES.includes(item.type) || typeof item.selected !== 'boolean'
         || !CONFIDENCE.includes(item.confidence) || !list(item.reasons, 16) || !item.reasons.length || !item.reasons.every(token)
         || new Set(item.reasons).size !== item.reasons.length || !reason(item.decision_reason)
         || !['accepted', 'rejected', 'unknown', 'superseded', 'deferred'].includes(item.decision_status)
         || !shape(item.expected_effects, Object.keys(EFFECT_UNITS)) || !shape(item.effect_units, Object.keys(EFFECT_UNITS))
         || !list(item.hard_checks, 32)) return null;
+      if(row.schema==='earthship-household-observation/v4'){
+        const created=time(item.created_at),expires=time(item.expires_at),p=item.parameters;
+        if(created!==decision||expires===null||expires<=created||expires-created>300000)return null;
+        if(['NO_ACTION','RUN_GREYWATER_CYCLE','RUN_FEEDER_CYCLE'].includes(item.type)){if(!shape(p,[]))return null;}
+        else if(item.type==='SET_NIGHT_LOAD_OVERRIDE'){if(!shape(p,['command'])||!['ON','OFF'].includes(p.command))return null;}
+        else if(!shape(p,['device','command'])||!['dishwasher','shureflo','goat-cam'].includes(p.device)||!['ON','OFF'].includes(p.command))return null;
+      }
       for (const key of Object.keys(EFFECT_UNITS)) {
         const value = item.expected_effects[key];
         if (item.effect_units[key] !== EFFECT_UNITS[key] || (value !== null && (typeof value !== 'number' || !Number.isFinite(value)
@@ -125,7 +133,7 @@ export function parseHouseholdObservation(raw, { nowMs = Date.now() } = {}) {
     }
     const policy = row.schema!=='earthship-household-observation/v1' ? parsePolicyComparison(row.policy_comparison,{decisionMs:decision,nowMs,proposals:row.proposals}) : null;
     if (row.schema!=='earthship-household-observation/v1' && policy===null) return null;
-    if (row.schema==='earthship-household-observation/v3' && parseQualification(row.qualification_report,row)===null) return null;
+    if (['earthship-household-observation/v3','earthship-household-observation/v4'].includes(row.schema) && parseQualification(row.qualification_report,row)===null) return null;
     return { ...row, ...(policy===null?{}:{policyComparison:policy}), source_quality: sources, expired: nowMs >= until,
       effectiveMode: nowMs < until ? row.planner_mode : 'unavailable', snapshotAgeSeconds: Math.floor((nowMs - snapshot) / 1000) };
   } catch { return null; }

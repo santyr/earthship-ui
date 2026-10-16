@@ -1,4 +1,5 @@
 <script>
+  import RecommendationPreview from './RecommendationPreview.svelte';
   import Tile from './Tile.svelte';
   import ThermalModelPlot from './ThermalModelPlot.svelte';
 
@@ -40,6 +41,7 @@
 <div class="thermal-model-card" data-state={result?.state || 'unavailable'}>
   <Tile label="Thermal Model" accent="#a78bfa" fill clip padding="0.65rem 0.75rem">
     <div class="card-body">
+      <RecommendationPreview group="ventilation" />
       <div class="status-row">
         <span class="shadow-badge">{result?.badge || 'SHADOW'}</span>
         <span class:stale={result?.state === 'stale'} class="freshness">{freshness}</span>
@@ -126,6 +128,7 @@
     min-height: 0;
   }
   .card-body {
+    overflow:auto;
     position: relative;
     display: flex;
     flex-direction: column;

@@ -270,7 +270,7 @@ def test_private_materializer_upgrades_a_known_cache_and_preserves_issued_origin
     source.write_bytes(canonical(record));before=source.read_bytes()
     api().materialize(source,target,clock=lambda:NOW)
     view=json.loads(target.read_bytes())
-    assert view['schema']=='earthship-household-observation/v3'
+    assert view['schema']=='earthship-household-observation/v4'
     assert view['policy_comparison']['comparisons'][0]['status']=='matching_block'
     assert source.read_bytes()==before and target.stat().st_nlink==1
     assert 'rule_before' not in target.read_text() and 'policy_source' not in target.read_text()

@@ -1,10 +1,11 @@
 <script>
   import { parseChronologicalSummary } from '../household/chronology.js';
+  import { householdObservationRaw, recommendationClock } from '../household/recommendationState.js';
   import { onMount } from 'svelte';
   import Tile from './Tile.svelte';
   import {QUALIFICATION_GATES,QUALIFICATION_FAMILIES} from '../household/qualification.js';
   import { parseHouseholdObservation } from '../household/observation.js';
-  import { loadHouseholdObservation, loadChronologicalSummary, loadBatteryPerformance, loadCapturedPvPerformance } from '../household/observationClient.js';
+  import { loadChronologicalSummary, loadBatteryPerformance, loadCapturedPvPerformance } from '../household/observationClient.js';
 
   import { parseCapturedPvPerformance } from '../household/capturedPvPerformance.js';
   import { parseBatteryPerformance } from '../household/batteryPerformance.js';
@@ -15,7 +16,7 @@
   const capturedPv = $derived(parseCapturedPvPerformance(capturedPvRaw, { nowMs }));
   let batteryRaw = $state(null);
   const battery = $derived(parseBatteryPerformance(batteryRaw, { nowMs }));
-  let raw = $state(null), nowMs = $state(Date.now());
+  const raw = $derived($householdObservationRaw), nowMs = $derived($recommendationClock);
   const view = $derived(parseHouseholdObservation(raw, { nowMs }));
   const selected = $derived(view?.proposals.filter(item => item.selected) ?? []);
   const words = value => value == null ? 'unknown' : value.replaceAll('_', ' ');
@@ -26,24 +27,22 @@
   onMount(() => {
     let stopped = false, controller = null, deadline = null;
     async function refresh() {
-      nowMs = Date.now(); controller?.abort(); clearTimeout(deadline);
+      controller?.abort(); clearTimeout(deadline);
       const current = new AbortController(); controller = current;
       deadline = setTimeout(() => current.abort(), 10_000);
       const results = await Promise.allSettled([
-        loadHouseholdObservation(current.signal), loadBatteryPerformance(current.signal), loadCapturedPvPerformance(current.signal), loadChronologicalSummary(current.signal),
+        loadBatteryPerformance(current.signal), loadCapturedPvPerformance(current.signal), loadChronologicalSummary(current.signal),
       ]);
       if (!stopped && controller === current) {
-        raw = results[0].status === 'fulfilled' ? results[0].value : null;
-        batteryRaw = results[1].status === 'fulfilled' ? results[1].value : null;
-        capturedPvRaw = results[2].status === 'fulfilled' ? results[2].value : null;
-        chronologyRaw = results[3].status === 'fulfilled' ? results[3].value : null;
-        nowMs = Date.now(); clearTimeout(deadline);
+        batteryRaw = results[0].status === 'fulfilled' ? results[0].value : null;
+        capturedPvRaw = results[1].status === 'fulfilled' ? results[1].value : null;
+        chronologyRaw = results[2].status === 'fulfilled' ? results[2].value : null;
+        clearTimeout(deadline);
       }
     }
     refresh();
     const timer = setInterval(refresh, 30_000);
-    const clock = setInterval(() => { nowMs = Date.now(); }, 1_000);
-    return () => { stopped = true; clearInterval(timer); clearInterval(clock); clearTimeout(deadline); controller?.abort(); };
+    return () => { stopped = true; clearInterval(timer); clearTimeout(deadline); controller?.abort(); };
   });
 </script>
 

@@ -9895,6 +9895,27 @@
         "default_rules": true,
         "no_suppression": true
       }
+    },
+    "contextual_recommendation_previews": {
+      "status": "implemented_pending_review_and_deployment",
+      "design_approved": true,
+      "document": "docs/operations/2026-10-16-contextual-recommendation-previews.md",
+      "observation_schema": "earthship-household-observation/v4",
+      "legacy_observations_supported": true,
+      "source_bound_action_parameters": true,
+      "original_intent_clocks_retained": true,
+      "shared_read_only_poll": true,
+      "backend_tests_passed": 89,
+      "frontend_tests_passed": 2574,
+      "build_passed": true,
+      "synthetic_browser_cases": 10,
+      "synthetic_browser_mutations": 0,
+      "automatic_actuation": false,
+      "release_authorized": false,
+      "extra_forecasts": false,
+      "fit_executed": false,
+      "resource_policy_changed": false,
+      "full_goal_complete": false
     }
   },
   "astro_efficiency_audit": {
