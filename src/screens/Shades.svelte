@@ -1,4 +1,5 @@
 <script>
+  import RecommendationPreview from '../lib/ui/RecommendationPreview.svelte';
   import { onMount } from 'svelte';
   import { items, connection } from '../lib/openhab/index.js';
   import { SHADE_COUNT, SHADE_GROUPS, SHADE_SLOTS, SHADE_VIEWS, shadeGroupPresentation, shadePresentation, shadePreviewEnabled } from '../lib/shades/catalog.js';
@@ -167,6 +168,7 @@
   <header class="page-heading">
     <div>
       <h1>Window shades</h1>
+      <RecommendationPreview group="shades" tiny />
       <p>{SHADE_COUNT} planned · {mapped} mapped · {reporting} reporting</p>
     </div>
     <div class="release-state" role="status">{previewMode ? sharedPreviewConnected ? 'Shared preview only · no shade commands' : 'Local preview only · no shade commands' : 'Hardware not commissioned · movement disabled'}</div>

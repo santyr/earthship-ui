@@ -81,7 +81,7 @@ def _qualification_report(view,registry):
         release_authorized=False,automatic_actuation=False,families=families)
 
 
-def observe_pipeline(receipt,*,runtime_manifest,thermal_runtime,observed_at):
+def observe_pipeline(receipt,*,runtime_manifest,thermal_runtime,observed_at,include_action_details=False):
     observed=utc(observed_at)
     original=replay_pipeline(receipt,runtime_manifest=runtime_manifest,thermal_runtime=thermal_runtime)
     inputs=original['inputs'];output=original['output'];snapshot=inputs['snapshot'];plan=output['plan_receipt']['plan']
@@ -130,6 +130,12 @@ def observe_pipeline(receipt,*,runtime_manifest,thermal_runtime,observed_at):
     if inputs['coordination']['schema']=='earthship-shadow-coordination/v3':
         view.update(schema='earthship-household-observation/v3',policy_comparison=_policy_comparison(inputs['coordination'],proposals,decision))
         view['qualification_report']=_qualification_report(view,inputs['registry'])
+        if include_action_details:
+            view['schema']='earthship-household-observation/v4'
+            intents={item['intentId']:item for item in output['candidate_intents']}
+            for proposal in proposals:
+                item=intents[proposal['intent_id']]
+                proposal.update(parameters=item['parameters'],created_at=item['createdAt'],expires_at=item['expiresAt'])
     if len(canonical(view))>MAX_BYTES:raise ValueError('bounded public observation required')
     return view
 
@@ -173,8 +179,8 @@ def _existing_view(path):
     try:raw,metadata=_private_file(path,MAX_BYTES)
     except FileNotFoundError:return None
     value=loads(raw)
-    fields=PUBLIC_FIELDS|({'qualification_report'} if value.get('schema')=='earthship-household-observation/v3' else set()) if isinstance(value,dict) else set()
-    if not isinstance(value,dict) or set(value)!=fields or value['schema'] not in ('earthship-household-observation/v1','earthship-household-observation/v2','earthship-household-observation/v3'):
+    fields=PUBLIC_FIELDS|({'qualification_report'} if value.get('schema') in ('earthship-household-observation/v3','earthship-household-observation/v4') else set()) if isinstance(value,dict) else set()
+    if not isinstance(value,dict) or set(value)!=fields or value['schema'] not in ('earthship-household-observation/v1','earthship-household-observation/v2','earthship-household-observation/v3','earthship-household-observation/v4'):
         raise ValueError('existing target is not an observation cache')
     return raw,metadata
 
@@ -208,7 +214,7 @@ def materialize(receipt_path,output_path,*,clock=lambda:datetime.now(timezone.ut
     thermal=thermal_execution_runtime(root,record['inputs']['thermal_inputs'])
     own=Path(__file__).read_bytes()
     if expanded:verify_source_closure(record,executing)
-    view=observe_pipeline(record,runtime_manifest=executing,thermal_runtime=thermal,observed_at=clock());encoded=canonical(view)
+    view=observe_pipeline(record,runtime_manifest=executing,thermal_runtime=thermal,observed_at=clock(),include_action_details=True);encoded=canonical(view)
     publication_guard()
     directory_fd=os.open(target.parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
     temp='.household-observation-'+secrets.token_hex(16);displaced=None;published=False;created=False;installed=False;installed_identity=None

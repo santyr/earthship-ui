@@ -73,7 +73,9 @@ def test_materializer_upgrades_v2_cache_without_changing_issued_original(tmp_pat
     source.write_bytes(canonical(record));source.chmod(0o600);before=source.read_bytes()
     api.materialize(source,target,clock=lambda:NOW)
     old=json.loads(target.read_bytes());old.pop('qualification_report');old['schema']='earthship-household-observation/v2'
+    for proposal in old['proposals']:
+        for key in ('parameters','created_at','expires_at'):proposal.pop(key)
     target.write_bytes(canonical(old))
     api.materialize(source,target,clock=lambda:NOW+timedelta(minutes=1))
-    assert json.loads(target.read_bytes())['schema']=='earthship-household-observation/v3'
+    assert json.loads(target.read_bytes())['schema']=='earthship-household-observation/v4'
     assert source.read_bytes()==before and target.stat().st_nlink==1

@@ -4,6 +4,7 @@
   // history charts. Reuses Home's dark instrument-panel aesthetic (Tile /
   // StatTile chrome, tokens.colors) but favors inline HistoryChart panels
   // over Home's click-to-modal pattern, since this screen IS the charts.
+  import RecommendationPreview from '../lib/ui/RecommendationPreview.svelte';
   import Tile from '../lib/ui/Tile.svelte';
   import StatTile from '../lib/ui/StatTile.svelte';
   import HistoryChart from '../lib/ui/HistoryChart.svelte';
@@ -104,6 +105,7 @@
           {/if}
         </div>
       </div>
+      <RecommendationPreview group="loads" />
     </Tile>
   </div>
 

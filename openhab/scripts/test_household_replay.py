@@ -73,3 +73,26 @@ def test_cli_refuses_special_file_before_a_blocking_read(tmp_path):
     api();fifo=tmp_path/'inputs.fifo';os.mkfifo(fifo,0o600)
     result=subprocess.run([sys.executable,str(Path(__file__).with_name('household_snapshot.py')),'--input',str(fifo)],capture_output=True,text=True,timeout=3)
     assert result.returncode!=0 and not result.stdout and 'Traceback' not in result.stderr
+
+
+@pytest.mark.parametrize('count',[64,65,128])
+def test_expanded_runtime_preserves_every_source_and_replays(count):
+    runtime={f'source_{i}.py':'d'*64 for i in range(count)}
+    original=build(runtime=runtime)
+    assert original['runtime_manifest']==runtime
+    assert api().verify_replay(original,build(runtime=runtime))==original['receipt_sha256']
+    changed=dict(runtime);changed[f'source_{count-1}.py']='e'*64
+    with pytest.raises(ValueError):api().verify_replay(original,build(runtime=changed))
+
+
+def test_runtime_remains_bounded_and_validates_every_source_hash():
+    with pytest.raises(ValueError):build(runtime={f'source_{i}.py':'d'*64 for i in range(129)})
+    runtime={f'source_{i}.py':'d'*64 for i in range(65)};runtime['source_64.py']='invalid'
+    with pytest.raises(ValueError):build(runtime=runtime)
+
+
+def test_current_complete_measured_runtime_is_accepted_without_dropping_sources():
+    from household_pipeline import pipeline_runtime_manifest
+    runtime=pipeline_runtime_manifest(expanded=True,configured=True,measured=True)
+    assert 'openhab/scripts/household/sensor_observations.py' in runtime
+    assert build(runtime=runtime)['runtime_manifest']==runtime

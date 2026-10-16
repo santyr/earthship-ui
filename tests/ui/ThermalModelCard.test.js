@@ -67,7 +67,7 @@ describe('ThermalModelCard shadow-only presentation', () => {
 
     const copy = container.textContent.toLowerCase();
     expect(copy).not.toMatch(/\bsaved\b|\bwill\b|\brecommend(?:ed|ation)?\b|\bautom(?:ate|ation)\b|\bactuat(?:e|or)\b|\bcommand\b/);
-    expect(container.querySelector('button, form, input, select, textarea, a[href]')).toBeNull();
+    expect(container.querySelector('button:not([popovertarget]), form, input, select, textarea, a[href]')).toBeNull();
   });
 
   it('separates fresh shadow-output age from old model and training-data ages', () => {
@@ -147,7 +147,9 @@ describe('ThermalModelCard shadow-only presentation', () => {
     expect(getByText('Thermal model unavailable')).toBeTruthy();
     expect(queryByText('Candidate vent window')).toBeNull();
     expect(queryByText(/modeled/i)).toBeNull();
-    expect(container.textContent.toLowerCase()).not.toMatch(/recommend|advice|will open|will close/);
+    expect(container.textContent.toLowerCase()).not.toMatch(/will open|will close/);
+    expect(container.textContent).toContain('Model ventilation advice unavailable');
+    expect(container.querySelector('[data-recommendation-group] h3')).toBeNull();
   });
 
   it('uses a native disclosure for the accessible plot and has no scripted event handlers', () => {

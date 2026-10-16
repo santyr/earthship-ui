@@ -109,7 +109,7 @@ describe('Earthship thermal model integration', () => {
     expect(getByText('Existing thermal advisory remains authoritative')).toBeTruthy();
     expect([...container.querySelectorAll('.zone-label')].map((node) => node.textContent))
       .toEqual(['North Mass', 'Room Air', 'South Wall', 'Outdoor']);
-    expect(container.querySelector('.thermal-model-cell button')).toBeNull();
+    expect(container.querySelector('.thermal-model-cell button:not([popovertarget])')).toBeNull();
   });
 });
 

@@ -1,0 +1,41 @@
+# Contextual recommendation previews — 2026-10-16
+
+Approved scope: show model-generated actuation suggestions beside the relevant UI content while keeping automatic actuation disabled. Display action, original time, rationale, confidence and blockers, and distinguish unavailable and expired evidence. No execution control is added.
+
+Placements: greywater beside Earthship circulation; ventilation beside the thermal model; aggregate load suggestions on Energy; individual load/feeding suggestions with Household Loads on Controls and override/greywater suggestions with Water & Policy; feeding on the existing Home card; shade advice on Shades when actually published. Compact summaries open information-only native popovers containing complete source clocks and original reasons/blocks. These buttons only open or close details.
+
+Public observation v4 adds the original validated intent parameters and creation/expiry clocks after the existing complete plan replay. The frontend accepts only the registered action types, fixed device names and ON/OFF commands. It keeps v1/v2/v3 readable, and never infers a command from a legacy intent type or reason. Original source, snapshot, receipt and qualification bindings remain unchanged. The new fields do not change planning, fitting, effects or qualification gates.
+
+The observation panel and contextual previews share one fixed read-only GET poll and one display clock. The last subscriber aborts pending reads and stops polling; superseded or late responses cannot replace a newer subscription. Original expiry controls display status without waiting for another poll. Expired suggestions remain historical and do not become current recommendations through re-verification.
+
+Climate presentation consumes the existing validated thermal publication. Forecast baselines, assumed vent states and withheld action advice do not become recommendations. A published ventilation candidate with both explicit endpoints can be shown with its actual timing and unqualified/expired state. Closed-vent candidates do not fabricate a timed window. Shade trajectory markers may describe baseline state and use rounded hourly buckets; they remain unavailable as advice until an explicit candidate action/timing contract exists. No per-shade state, recommendation, physical effect or control permission is invented. Existing motorized-shade preview controls are separate from these model displays.
+
+All automatic-actuation and release flags remain false. No request translation, owner migration, model fitting, extra forecast, production resource-policy change or recovery work is included. The live Home AQI overlay is preserved because Home itself is not modified.
+
+## Verification
+
+Affected backend tests: 89 passed. Full frontend suite: 2,575 passed. The initial full run exposed four obsolete assertions forbidding all buttons or even the phrase “advice unavailable”; they now permit only information popovers while still rejecting execution inputs/buttons and fabricated advice. One intermediate rerun hit the existing HTTP fixture's random `bad port` allocation in `household-observation-server` permissions coverage; the final full run passed all 2,574 tests without a product change for that transient failure.
+
+Private synthetic browser checks cover all five screens at laptop1280×800 and tablet1340×800, count shared observation requests and block every mutation request. A clipping regression was reproduced and corrected by preserving accessible inner scrolling for existing greywater and thermal details. Unavailable thermal output legitimately has no plot details. Final private geometry: ten cases passed with zero page errors, mutation requests or outer overflow. Every details popover fit the viewport; the shared observation endpoint was requested once per screen. Final build passed with the existing large-chunk warning. Single review and live deployment evidence follow below.
+
+Full household qualification remains open. These previews do not establish statistical independence, model skill, physical safety or permission to actuate.
+
+The single immutable feature review found two important presentation defects: ambiguous shade trajectory markers and null closed-vent endpoints. Both were reproduced by failing regressions and corrected in one pass. No actuation path was found. A minor expired-climate limitation remains: the existing strict thermal parser withholds expired publications entirely, so these display unavailable rather than historical action details; no freshness is renewed. Extending that parser is deferred. No re-review was requested.
+
+After the review corrections, the full frontend suite passed 2,575 tests in 168 files and the production build passed. Backend numerical and receipt logic was unchanged by the correction.
+
+## Deployment integration correction
+
+The first two normal cycles published the unchanged thermal forecast but refused household collection. A bounded read-only source diagnosis located the refusal at the foundation replay validator's 64-entry manifest ceiling: the sensor module already merged on main expands the complete measured runtime from 64 to 65 entries. The foundation ceiling now matches the existing planner ceiling of 128, preserving every source hash, per-entry validation, drift refusal and total byte limits. No resource threshold changes. Failing regressions cover 65 entries and the actual complete measured runtime; 138 affected backend tests pass after correction, including 64/65/128 boundaries, 129-entry refusal and last-entry hash validation/drift refusal. No fitting, forecast publication or actuator request was used for diagnosis.
+
+## Verified live rollout
+
+Final deployed source: `e8946e45aabe61def5201e26478940461d621750`. Backend deployment: `36c0ee8c56eb676503563a6fc258906d7af8fe6d45acd807502f30406b86260f`. Complete trained model remains `284139ee4ab464adca22e79eae741f740ee62ffcda9a1f86b1be550e8180fe9f`, with training through 2026-10-16T06:00Z. No fit, manual forecast, qualification probe or resource-policy change was performed.
+
+Activation completed at 2026-10-16T17:56:52.968986+00:00 after waiting for idle workers and acquiring the shared lock. All five owned definitions, effective launcher commands, three active timers and the independent battery-scoring calendar verified. The idle daily checkout advanced to the same source; its unit bytes were unchanged and its service was not started. The UI install preserved 151 unrelated live overlay files, including Home's AQI overlay; the eleven intended live files match the final deployed commit exactly. No explicit UI service restart.
+
+The next scheduled cycle produced observation v4 with original decision `2026-10-16T18:00:27.148062+00:00`, observed at `2026-10-16T18:00:34.586668+00:00`, body SHA-256 `66946b9a017210be8b1b12b4db9927535ec674d255213c334ac2f9302fdad108`. Actual proposals were night-load override OFF and a greywater circulation cycle; both were unselected. Original source expiry `2026-10-16T18:00:36.272092+00:00` was preserved, along with each intent's two-minute expiry. The UI correctly shows expired history after source expiry rather than renewing permission. Release and automatic actuation remain false. Scheduled chronology, energy, profiled and trajectory reporting also completed.
+
+Final live checks used this actual validated v4 source on Home, Energy, Earthship, Controls and Shades at laptop 1280×800 and tablet 1340×800. All ten cases passed: zero page errors, mutation requests or outer overflow; at most one shared observation GET per screen; information popovers fit the viewport; existing greywater and thermal details remained accessible. Exact override OFF labels matched the source. Ventilation and shade advice remain explicitly unavailable where the model withholds advice.
+
+Validation totals: 138 affected backend tests and 2,575 frontend tests passed, and the production build passed. Independent Gitleaks default-rule scanning found zero findings; GitGuardian passed on the deployed code commit. PR #32 contains this bounded feature. Hosted CI and secret checks on the final documentation commit are reported separately; a skipped scan is never treated as a clean pass. Full household/PR #3 qualification remains unfinished and actual actuation remains disabled.

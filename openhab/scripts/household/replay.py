@@ -24,7 +24,7 @@ def compile_inputs(bundle, *, managed, ownership, code_revision, runtime_manifes
         raise ValueError('closed bounded original input bundle required')
     policy=bundle['policy']
     if not isinstance(policy,dict) or set(policy)!=POLICY_FIELDS: raise ValueError('closed original temporal policy required')
-    if not isinstance(runtime_manifest,dict) or not 1 <= len(runtime_manifest) <= 64:
+    if not isinstance(runtime_manifest,dict) or not 1 <= len(runtime_manifest) <= 128:
         raise ValueError('explicit bounded executing source manifest required')
     for name,sha in runtime_manifest.items():
         if not isinstance(name,str) or not re.fullmatch('[A-Za-z0-9_./:-]{1,192}',name) or '..' in name:

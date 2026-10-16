@@ -96,3 +96,11 @@ it('serves chronology only through its fixed GET route and withholds invalid nes
  const damaged=structuredClone(summary);damaged.version_groups[0].versions.models[0].raw='private';
  await writeFile(file,JSON.stringify(damaged));const denied=await fetch(url);expect(denied.status).toBe(503);expect(await denied.text()).toBe('{"status":"unavailable"}');
 });
+
+it('serves only validated source-bound v4 action details',async()=>{
+ const {recommendationObservation}=await import('./fixtures/household-recommendations.js');
+ const base=await endpoint(()=>recommendationObservation());const response=await fetch(`${base}/api/household-observation`);
+ expect(response.status).toBe(200);expect((await response.json()).proposals[1].parameters).toEqual({command:'OFF'});
+ const denied=await endpoint(()=>{const r=recommendationObservation();r.proposals[1].parameters.private='do-not-expose';return r;});
+ const bad=await fetch(`${denied}/api/household-observation`);expect(bad.status).toBe(503);expect(await bad.text()).toBe('{"status":"unavailable"}');
+});
