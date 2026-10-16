@@ -6,7 +6,7 @@ from .snapshot import HouseholdSnapshot
 from .model_snapshot import MAX_SOURCE_BYTES
 from .weather_context import PreparedWeatherContext,MAX_BYTES as WEATHER_BYTES
 from .energy_configuration import PreparedEnergyConfiguration,MAX_BYTES as CONFIGURATION_BYTES
-from .energy_source_snapshot import EnergySourceSnapshot,bind_energy_source_snapshot
+from .energy_source_snapshot import EnergySourceSnapshot
 from .measured_weather import PreparedMeasuredWeather,project_measured_weather,MAX_BYTES,ROLES,_policy
 
 CONTEXT_SCHEMA='earthship-household-measured-source-context/v1'
@@ -14,8 +14,8 @@ CAPABILITIES={'radiation_proxy_display':['light_lux','solar_radiation_proxy_wm2'
 
 
 def _render(source,weather,configuration,measured,revision):
-    base=bind_energy_source_snapshot(source_receipt=source,source_runtime_manifest=source['runtime_manifest'],
-        weather_context=weather,energy_configuration=configuration,code_revision=revision)
+    from .energy_source_snapshot import _render as render_energy
+    base=HouseholdSnapshot(canonical(render_energy(source,weather,configuration,revision)))
     doc=base.to_dict();base_id=doc.pop('snapshot_id');at=instant(doc['as_of'])
     projection=project_measured_weather(measured,as_of=at)
     doc['created_at']=max(instant(doc['created_at']),instant(measured.to_dict()['created_at'])).isoformat()

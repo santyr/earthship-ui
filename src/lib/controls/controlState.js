@@ -64,13 +64,24 @@ function unavailable(reason, detail = '') {
   };
 }
 
-function circadianHealth(raw) {
+function circadianHealth(raw, nowMs = Date.now()) {
   if (raw === undefined || raw === null || INVALID_STATES.has(String(raw).trim().toUpperCase())) {
     return { healthLabel: 'Health unavailable', detail: 'No circadian result reported' };
   }
   const detail = String(raw);
-  const degraded = /(skip|backoff|degrad|fail|error|offline|unavailable)/i.test(detail);
-  return { healthLabel: degraded ? 'Degraded' : 'Healthy', detail };
+  const receipt = detail.match(/\bcheckedAt=([^\s]+)/);
+  if (receipt) {
+    const age = nowMs - Date.parse(receipt[1]);
+    if (!Number.isFinite(age) || age < 0 || age > 10 * 60_000) {
+      return { healthLabel: 'Health unavailable', detail: `Circadian result is stale. ${detail}` };
+    }
+  }
+  if (/^disabled$/i.test(detail.trim())) return { healthLabel: 'Disabled', detail };
+  if (/^unavailable\b/i.test(detail)) return { healthLabel: 'Health unavailable', detail };
+  // OFF is normal. Legacy CLI exceptions/unknown states were missed by the old
+  // blanket 'skip' matcher; retain their interpretation during rule rollback.
+  const degraded = /(backoff|degrad|fail|error|offline|unavailable|(?:state|temp)-exc|state-unknown)/i.test(detail);
+  return { healthLabel: degraded ? 'Degraded' : receipt ? 'Healthy' : 'Health unavailable', detail };
 }
 
 function couplingDetail(value) {
@@ -132,7 +143,7 @@ export function deriveControlState(control, context = {}) {
   if (!value) return unavailable('State unavailable');
 
   if (control.kind === 'binary-policy') {
-    const health = circadianHealth(items[control.healthItem]);
+    const health = circadianHealth(items[control.healthItem], context.nowMs);
     if (!isDirectControlAllowed(control, releaseMode)) {
       return disabledStatus(value, 'Maintenance release — commands unavailable', health);
     }

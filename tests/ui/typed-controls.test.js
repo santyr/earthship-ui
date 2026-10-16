@@ -184,6 +184,23 @@ describe('typed controls UI', () => {
     expect(mocks.sendCommand).not.toHaveBeenCalled();
   });
 
+  it('accepts a new health receipt arriving between clock ticks', async () => {
+    items.set({LivingRoomCircadian_Enable:'ON',LivingRoomCircadian_LastResult:`healthy checkedAt=${new Date().toISOString()} target=4500K`});
+    render(Toggle, {props:{control:CONTROL_CATALOG.circadian,releaseMode:'safe-compat'}});
+    await vi.advanceTimersByTimeAsync(1_000);
+    items.set({LivingRoomCircadian_Enable:'ON',LivingRoomCircadian_LastResult:`healthy checkedAt=${new Date().toISOString()} target=4550K`});
+    await vi.advanceTimersByTimeAsync(0);
+    expect(screen.getByText('Healthy')).toBeInTheDocument();
+  });
+
+  it('expires circadian health without depending on further SSE item events', async () => {
+    items.set({LivingRoomCircadian_Enable:'ON',LivingRoomCircadian_LastResult:`healthy checkedAt=${new Date().toISOString()} target=4500K`});
+    render(Toggle, {props:{control:CONTROL_CATALOG.circadian,releaseMode:'safe-compat'}});
+    expect(screen.getByText('Healthy')).toBeInTheDocument();
+    await vi.advanceTimersByTimeAsync(10 * 60_000 + 10_000);
+    expect(screen.getByText('Health unavailable')).toBeInTheDocument();
+  });
+
   it('renders circadian execution health separately from desired policy', () => {
     items.set({
       LivingRoomCircadian_Enable: 'ON',

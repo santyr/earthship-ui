@@ -1,4 +1,7 @@
 <script>
+  import { itemUpdateEvidence, thingStatuses } from '../lib/openhab/store.js';
+  import { nativeCurrentSkyContext } from '../lib/weather/astroPresentation.js';
+
   import { onMount } from 'svelte';
   import {
     historyExtremaForDay,
@@ -63,8 +66,11 @@
       document.removeEventListener('visibilitychange', update);
     };
   });
+  const astroContext = $derived({ states:$items, evidence:$itemUpdateEvidence, now:Math.max(wallClock, Date.now()),
+    connected:$connection === 'live', sunOnline:$thingStatuses['astro:sun:local']?.status === 'ONLINE',
+    moonOnline:$thingStatuses['astro:moon:local']?.status === 'ONLINE' });
   const skyIcon = $derived(outdoorConditionIcon($items.SkyConditionIcon, {
-    at: wallClock, sunrise: $items.Sun_Rise_Start, sunset: $items.Sun_Set_End,
+    ...nativeCurrentSkyContext(astroContext),
   }));
   // Task 5.1 — Weather console: current conditions, 14h hourly strip, 10-day
   // forecast, and measured wind/rain/pressure tiles. Mirrors Home's
@@ -78,7 +84,7 @@
   import DailyForecast from '../lib/ui/DailyForecast.svelte';
   import { colors } from '../lib/ui/tokens.js';
   import { skyIconColor } from '../lib/ui/wmo.js';
-  import { items, num, fmt } from '../lib/openhab';
+  import { items, connection, num, fmt } from '../lib/openhab';
   import { openChart } from '../lib/ui/chartStore.js';
   import { openWeatherDetail } from '../lib/weather/detailStore.js';
   import {

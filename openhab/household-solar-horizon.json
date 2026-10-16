@@ -1,0 +1,216 @@
+{
+  "schema": "earthship-household-solar-horizon/v1",
+  "recorded_at": "2026-10-15T15:03:44.977951+00:00",
+  "site_sha256": "b4380e7eb6a59afc7b3b85f6660861b5dce7ee936cb6fcdbc542a731073b30e0",
+  "timezone": "America/Denver",
+  "source": {
+    "provider": "European_Commission_JRC_PVGIS",
+    "api_version": "5.3",
+    "tool": "printhorizon",
+    "response_sha256": "284643f993d60d48165cb01ea77475dcfd1bc5836ec4d119780e76806d900846",
+    "retrieved_at": "2026-10-15T15:03:44.977951+00:00"
+  },
+  "basis": "DEM_calculated",
+  "azimuth_convention": "clockwise_from_true_north",
+  "angular_step_degrees": 7.5,
+  "profile": [
+    {
+      "azimuth_degrees": 0.0,
+      "elevation_degrees": 3.8
+    },
+    {
+      "azimuth_degrees": 7.5,
+      "elevation_degrees": 5.7
+    },
+    {
+      "azimuth_degrees": 15.0,
+      "elevation_degrees": 5.3
+    },
+    {
+      "azimuth_degrees": 22.5,
+      "elevation_degrees": 5.3
+    },
+    {
+      "azimuth_degrees": 30.0,
+      "elevation_degrees": 6.5
+    },
+    {
+      "azimuth_degrees": 37.5,
+      "elevation_degrees": 6.5
+    },
+    {
+      "azimuth_degrees": 45.0,
+      "elevation_degrees": 6.5
+    },
+    {
+      "azimuth_degrees": 52.5,
+      "elevation_degrees": 5.7
+    },
+    {
+      "azimuth_degrees": 60.0,
+      "elevation_degrees": 5.3
+    },
+    {
+      "azimuth_degrees": 67.5,
+      "elevation_degrees": 4.6
+    },
+    {
+      "azimuth_degrees": 75.0,
+      "elevation_degrees": 4.2
+    },
+    {
+      "azimuth_degrees": 82.5,
+      "elevation_degrees": 5.3
+    },
+    {
+      "azimuth_degrees": 90.0,
+      "elevation_degrees": 4.2
+    },
+    {
+      "azimuth_degrees": 97.5,
+      "elevation_degrees": 3.8
+    },
+    {
+      "azimuth_degrees": 105.0,
+      "elevation_degrees": 3.1
+    },
+    {
+      "azimuth_degrees": 112.5,
+      "elevation_degrees": 1.9
+    },
+    {
+      "azimuth_degrees": 120.0,
+      "elevation_degrees": 1.9
+    },
+    {
+      "azimuth_degrees": 127.5,
+      "elevation_degrees": 1.5
+    },
+    {
+      "azimuth_degrees": 135.0,
+      "elevation_degrees": 1.9
+    },
+    {
+      "azimuth_degrees": 142.5,
+      "elevation_degrees": 2.3
+    },
+    {
+      "azimuth_degrees": 150.0,
+      "elevation_degrees": 3.8
+    },
+    {
+      "azimuth_degrees": 157.5,
+      "elevation_degrees": 5.3
+    },
+    {
+      "azimuth_degrees": 165.0,
+      "elevation_degrees": 6.9
+    },
+    {
+      "azimuth_degrees": 172.5,
+      "elevation_degrees": 6.1
+    },
+    {
+      "azimuth_degrees": 180.0,
+      "elevation_degrees": 6.5
+    },
+    {
+      "azimuth_degrees": 187.5,
+      "elevation_degrees": 7.3
+    },
+    {
+      "azimuth_degrees": 195.0,
+      "elevation_degrees": 7.6
+    },
+    {
+      "azimuth_degrees": 202.5,
+      "elevation_degrees": 9.5
+    },
+    {
+      "azimuth_degrees": 210.0,
+      "elevation_degrees": 9.5
+    },
+    {
+      "azimuth_degrees": 217.5,
+      "elevation_degrees": 8.8
+    },
+    {
+      "azimuth_degrees": 225.0,
+      "elevation_degrees": 8.4
+    },
+    {
+      "azimuth_degrees": 232.5,
+      "elevation_degrees": 9.5
+    },
+    {
+      "azimuth_degrees": 240.0,
+      "elevation_degrees": 9.5
+    },
+    {
+      "azimuth_degrees": 247.5,
+      "elevation_degrees": 9.5
+    },
+    {
+      "azimuth_degrees": 255.0,
+      "elevation_degrees": 9.5
+    },
+    {
+      "azimuth_degrees": 262.5,
+      "elevation_degrees": 10.3
+    },
+    {
+      "azimuth_degrees": 270.0,
+      "elevation_degrees": 8.8
+    },
+    {
+      "azimuth_degrees": 277.5,
+      "elevation_degrees": 6.5
+    },
+    {
+      "azimuth_degrees": 285.0,
+      "elevation_degrees": 5.3
+    },
+    {
+      "azimuth_degrees": 292.5,
+      "elevation_degrees": 3.8
+    },
+    {
+      "azimuth_degrees": 300.0,
+      "elevation_degrees": 3.8
+    },
+    {
+      "azimuth_degrees": 307.5,
+      "elevation_degrees": 4.2
+    },
+    {
+      "azimuth_degrees": 315.0,
+      "elevation_degrees": 4.2
+    },
+    {
+      "azimuth_degrees": 322.5,
+      "elevation_degrees": 3.4
+    },
+    {
+      "azimuth_degrees": 330.0,
+      "elevation_degrees": 2.3
+    },
+    {
+      "azimuth_degrees": 337.5,
+      "elevation_degrees": 2.7
+    },
+    {
+      "azimuth_degrees": 345.0,
+      "elevation_degrees": 1.9
+    },
+    {
+      "azimuth_degrees": 352.5,
+      "elevation_degrees": 3.1
+    }
+  ],
+  "terrain_resolution_m_approximate": 90,
+  "validation_status": "unvalidated_map_estimate",
+  "nearby_obstructions_included": false,
+  "diffuse_sky_view_modeled": false,
+  "physical_calibration_qualified": false,
+  "automatic_actuation": false
+}

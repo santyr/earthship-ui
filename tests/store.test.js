@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { get } from 'svelte/store';
 import {
   applySnapshot,
+  applyUpdateEvidence,
   applyState,
   applyThingSnapshot,
   applyThingStatus,
@@ -88,6 +89,28 @@ describe('store', () => {
     applyState('TS_B', '2');
     expect(get(itemUpdateEvidence)[name]).toEqual({ lastKnown: sourceAt, available: true });
     expect(get(itemUpdateEvidence).TS_B).toBeUndefined();
+  });
+
+  it('retains native Astro state with its upstream generation and clears missing snapshot evidence', () => {
+    const at = Date.now() - 16000;
+    applySnapshot([{ name:'Sun_TimeLeft', state:'1 d', lastStateUpdate:at }, { name:'Sun_NextSeason', state:'WINTER', lastStateUpdate:at }]);
+    expect(get(itemUpdateEvidence).Sun_TimeLeft).toEqual({ lastKnown:at, available:true, state:'1 d' });
+    applyState('Sun_TimeLeft','0 d');
+    expect(get(itemUpdateEvidence).Sun_TimeLeft.state).toBe('1 d');
+    applySnapshot([]);
+    expect(get(itemUpdateEvidence).Sun_TimeLeft.available).toBe(false);
+  });
+
+  it('keeps native current state coherent when an older reconnect snapshot follows a fresh SSE update', () => {
+    const at = Date.now()-16000;
+    applySnapshot([{name:'Moon_MoonPhaseName',state:'FULL',lastStateUpdate:at}]);
+    applyUpdateEvidence('Moon_MoonPhaseName',at+5000,'WANING_GIBBOUS');
+    expect(get(items).Moon_MoonPhaseName).toBe('WANING_GIBBOUS');
+    applySnapshot([{name:'Moon_MoonPhaseName',state:'FULL',lastStateUpdate:at}]);
+    expect(get(items).Moon_MoonPhaseName).toBe('WANING_GIBBOUS');
+    expect(get(itemUpdateEvidence).Moon_MoonPhaseName.state).toBe('WANING_GIBBOUS');
+    applyUpdateEvidence('Moon_MoonPhaseName',at+6000,'WANING_GIBBOUS');
+    expect(get(items).Moon_MoonPhaseName).toBe('WANING_GIBBOUS');
   });
 
   it('connection defaults to connecting', () => {

@@ -17,8 +17,8 @@
  *   else SoC >= 98. The interim curtailment-only block is removed entirely.
  * - The BMS/voltage fail-closed chain requires a fresh source-bound atomic
  *   SoC receipt. A held, change-only BMS_SOC state is not a fresh sample.
- * - AFTER-DARK CURFEW (operator, 2026-07-19) preserved exactly: cycles require
- *   Sun elevation > 0; it fails closed on missing astro data and gates BOTH the
+ * - AFTER-DARK CURFEW (operator, 2026-07-19): cycles require
+ *   fresh positive elevation, ONLINE Astro and current-day native bounds; gates BOTH the
  *   automatic and the manual paths. A cycle caught running past sunset is forced
  *   OFF on the next evaluation.
  * - The 24h aerobic fallback only widens *why* a start is considered (gap > 24h);
@@ -34,7 +34,7 @@
  * live rule replacement.
  */
 
-const { actions, cache, items, time } = require('openhab');
+const { actions, cache, items, things, time } = require('openhab');
 
 const EARTHSHIP_SOUTHOUTLET_VERSION = 'greywater-request-v1';
 const LEDGER_VERSION = 'greywater-request-ledger/v1';
@@ -50,6 +50,10 @@ const CFG = {
   statusItem: 'SouthOutlet_AutoStatus',
   skyConditionItem: 'SkyCondition',
   sunElevationItem: 'Sun_Position_Elevation',
+  sunThing: 'astro:sun:local',
+  daylightStartItem: 'Sun_Daylight_Start',
+  sunsetItem: 'Sun_Set_Start',
+  daylightMaxAgeMs: 120000,
   requestItem: 'SouthOutlet_ManualRequest',
   resultItem: 'SouthOutlet_ManualResult',
   lastCycleStartItem: 'SouthOutlet_LastCycleStart',
@@ -487,6 +491,33 @@ function trustedSoc() {
   } catch (_) { return NaN; }
 }
 
+// Native updates and same-day event bounds are independent requirements.
+// A restored positive elevation is not permission to start or keep a pump ON.
+function daylightFailure(currentMs) {
+  try {
+    if (String(things.getThing(CFG.sunThing).status) !== 'ONLINE') return 'astro_offline';
+    const elevation = num(CFG.sunElevationItem);
+    if (!Number.isFinite(elevation) || elevation <= 0 || elevation > 90) return 'not_daylight';
+    const stamp = items.getItem(CFG.sunElevationItem).lastStateUpdateInstant;
+    const updatedAt = stamp === null || stamp === undefined ? NaN : Number(stamp.toEpochMilli());
+    if (!Number.isSafeInteger(updatedAt) || updatedAt <= 0 || updatedAt > currentMs
+        || currentMs - updatedAt >= CFG.daylightMaxAgeMs) return 'astro_stale';
+    function eventAt(name) {
+      const raw = state(name);
+      if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:?\d{2})$/.test(raw)) return NaN;
+      return epochMillis(raw);
+    }
+    const start = eventAt(CFG.daylightStartItem), end = eventAt(CFG.sunsetItem);
+    if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end)
+        || start >= end || end - start >= 86400000
+        || currentMs < start || currentMs >= end) return 'outside_daylight_bounds';
+    const calendar = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Denver' });
+    const day = value => calendar.format(new Date(value));
+    if (day(start) !== day(currentMs) || day(end) !== day(currentMs)) return 'wrong_day_bounds';
+    return null;
+  } catch (_) { return 'astro_unavailable'; }
+}
+
 // Fail-closed safety chain preserved from the live rule. Returns the first
 // failing gate as { reason, fields } (a force-OFF condition) or null.
 function safetyReason(soc) {
@@ -510,11 +541,13 @@ function safetyReason(soc) {
   }
   // After-dark curfew: fail closed on missing astro data; gates auto + manual.
   const elev = num(CFG.sunElevationItem);
-  if (!Number.isFinite(elev) || elev <= 0) {
+  const daylight = daylightFailure(nowMillis());
+  if (daylight !== null) {
     return {
       reason: 'after_dark',
       fields: {
         sunElev: Number.isFinite(elev) ? elev.toFixed(1) : state(CFG.sunElevationItem),
+        daylight,
         soc: soc.toFixed(1),
       },
     };

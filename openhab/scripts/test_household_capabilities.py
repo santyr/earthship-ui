@@ -21,7 +21,7 @@ def test_actual_registry_is_pinned_descriptive_and_immutable():
     assert set(view['capabilities'])=={'feeder-request-v1','greywater-request-v1','night-load-owner-v1'}
     grey=view['capabilities']['greywater-request-v1']
     assert grey['ownerRule']=='hex_southoutlet_cycle'
-    assert grey['protectedActuators']==['SouthOutlet_Outlet2_Switch']
+    assert grey['protectedActuators']==['East_Bed_Socket_Outlet_2_Power','SouthOutlet_Outlet2_Switch']
     assert grey['plannerAuthority']=='none' and view['descriptiveOnly'] is True
     assert grey['requestBindings']==[{'requestItem':'SouthOutlet_ManualRequest','resultItem':'SouthOutlet_ManualResult'}]
     managed['subsets']['greywater']['rule']['uid']='changed'
@@ -53,4 +53,30 @@ def test_different_owner_cannot_redeclare_the_same_correlated_result():
     managed,ownership=originals();grey=managed['subsets']['greywater']
     grey['items'].append(dict(name='GoatFeeder_ManualResult',type='String'))
     grey['householdContract']['requestBindings'][0]['resultItem']='GoatFeeder_ManualResult'
+    with pytest.raises(ValueError):api().build_registry(managed,ownership)
+
+
+def test_greywater_descriptor_matches_observed_installed_two_pump_source():
+    from hashlib import sha256
+    managed,ownership=originals();subset=managed['subsets']['greywater']
+    # Original live GET matched this reviewed historical revision on 2026-10-14.
+    assert sha256((ROOT/subset['rule']['source']).read_bytes()).hexdigest()=='4c34780e544d80af8eb36d047a949fa30e0198bb50fa57650285052db3c52d9b'
+    grey=api().build_registry(managed,ownership).to_dict()['capabilities']['greywater-request-v1']
+    assert 'BMS_SOC_Evidence_JSON' in grey['safetyInputs']
+    assert 'BMS_SOC' not in grey['safetyInputs']
+    assert set(grey['protectedActuators'])<=set(grey['protectedDependencies'])
+    assert grey['safetyInputsComplete'] is False and grey['plannerAuthority']=='none'
+
+
+@pytest.mark.parametrize('damage',['duplicate_actuator','request_alias'])
+def test_east_greywater_pump_is_protected_across_owner_contracts(damage):
+    managed,ownership=originals();feeder=managed['subsets']['feeder']
+    east='East_Bed_Socket_Outlet_2_Power'
+    if damage=='duplicate_actuator':
+        feeder['protectedDependencies'].append(east)
+        feeder['householdContract']['protectedActuators'].append(east)
+    else:
+        feeder['items'][0]['name']=east
+        feeder['householdContract']['requestBindings'][0]['requestItem']=east
+        feeder['rule']['triggers'][0]['configuration']['itemName']=east
     with pytest.raises(ValueError):api().build_registry(managed,ownership)

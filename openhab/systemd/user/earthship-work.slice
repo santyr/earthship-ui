@@ -1,0 +1,15 @@
+[Unit]
+Description=Combined Earthship development and native ML work budget
+
+[Slice]
+CPUAccounting=yes
+CPUQuota=800%
+CPUWeight=100
+MemoryAccounting=yes
+MemoryHigh=5G
+MemoryMax=6G
+MemorySwapMax=0
+TasksAccounting=yes
+TasksMax=256
+IOAccounting=yes
+IOWeight=100

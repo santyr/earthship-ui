@@ -65,10 +65,13 @@ it('keeps hours of constant SoC healthy using fresh atomic receipts', async () =
   }
   expect(get(items).BMS_SOC).toBe('100');
 });
-it('subscribes only to two update topics and never renders their duplicate values', async () => {
+it('subscribes to curated update topics without duplicating temperature values', async () => {
   await boot();
   expect(new URL(FakeES.all[0].url, 'http://fixture').searchParams.get('topics').split(',')).toEqual([
-    'openhab/items/*/statechanged', 'openhab/things/*/status', `openhab/items/${OUT}/stateupdated`, `openhab/items/${IN}/stateupdated`]);
+    'openhab/items/*/statechanged', 'openhab/things/*/status', `openhab/items/${OUT}/stateupdated`, `openhab/items/${IN}/stateupdated`,
+    'openhab/items/Sun_TimeLeft/stateupdated', 'openhab/items/Sun_NextSeason/stateupdated',
+    'openhab/items/Sun_Daylight_Duration/stateupdated', 'openhab/items/Sun_Rise_Start/stateupdated',
+    'openhab/items/Sun_Set_End/stateupdated', 'openhab/items/Moon_MoonPhaseName/stateupdated']);
   const seen = vi.fn(); const unsubscribe = items.subscribe(seen); seen.mockClear();
   emit(OUT, 'statechanged', { value: '71' }); emit(OUT, 'stateupdated', { value: '71', lastStateUpdate: '2026-09-05T11:59:59.123456789-06:00[America/Denver]' });
   emit('Other', 'stateupdated', { value: '2', lastStateUpdate: NOW });

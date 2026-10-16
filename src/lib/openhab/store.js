@@ -3,6 +3,8 @@ import { createClient } from './client.js';
 import { createSSE } from './sse.js';
 import { parseSourceTimestamp } from './timestamp.js';
 import { TEMPERATURE_ITEMS } from '../alerts/staleness.js';
+import { ASTRO_EVIDENCE_ITEMS } from '../weather/astroPresentation.js';
+const EVIDENCE_ITEMS = [...TEMPERATURE_ITEMS.map(item => item.name), ...ASTRO_EVIDENCE_ITEMS];
 
 export const items = writable({});
 export const thingStatuses = writable({});
@@ -28,26 +30,33 @@ export function getClientOnce() {
 // ordinary statechanged receipt times never do.
 export const itemUpdateEvidence = writable({});
 
-export function applyUpdateEvidence(name, rawTimestamp) {
-  if (!TEMPERATURE_ITEMS.some(item => item.name === name)) return;
+export function applyUpdateEvidence(name, rawTimestamp, state) {
+  if (!EVIDENCE_ITEMS.includes(name)) return;
   const timestamp = parseSourceTimestamp(rawTimestamp);
   const prior = get(itemUpdateEvidence)[name];
-  if (timestamp !== null && prior?.lastKnown != null && timestamp < prior.lastKnown) return;
+  if (timestamp !== null && prior?.lastKnown != null && timestamp < prior.lastKnown) return false;
   itemUpdateEvidence.update(current => ({
     ...current,
-    [name]: { lastKnown: timestamp ?? prior?.lastKnown ?? null, available: timestamp !== null },
+    [name]: { lastKnown: timestamp ?? prior?.lastKnown ?? null, available: timestamp !== null,
+      ...(ASTRO_EVIDENCE_ITEMS.includes(name) ? { state } : {}) },
   }));
+  if (ASTRO_EVIDENCE_ITEMS.includes(name) && timestamp !== null && typeof state === 'string') applyState(name, state);
+  return true;
 }
 
 export function applySnapshot(arr) {
   const rows = new Map(arr.map(item => [item.name, item]));
-  for (const item of TEMPERATURE_ITEMS) applyUpdateEvidence(item.name, rows.get(item.name)?.lastStateUpdate);
+  const accepted = new Map();
+  for (const name of EVIDENCE_ITEMS) accepted.set(name, applyUpdateEvidence(name, rows.get(name)?.lastStateUpdate, rows.get(name)?.state));
   items.update((m) => {
     const next = { ...m };
     for (const name of ['BMS_SOC_Evidence_JSON', 'BMS_Comms_Status', 'BMS_DevicePresent']) {
       if (!rows.has(name)) delete next[name];
     }
-    for (const it of arr) next[it.name] = it.state;
+    for (const it of arr) {
+      if (ASTRO_EVIDENCE_ITEMS.includes(it.name) && accepted.get(it.name) === false) continue;
+      next[it.name] = it.state;
+    }
     return next;
   });
 }

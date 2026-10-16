@@ -1,0 +1,26 @@
+[Unit]
+Description=Refresh the native thermal model through local midnight
+StartLimitIntervalSec=3h
+StartLimitBurst=3
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/sat/earthship-ui/.worktrees/native-daily-production
+Environment="PYTHONPATH=/home/sat/earthship-ui/.worktrees/native-daily-production/openhab/scripts:/home/sat/Solar_PV/analytics/src"
+Environment=OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1
+Environment=EARTHSHIP_QUALIFICATION_FIT=0 EARTHSHIP_REMOTE_QUALIFICATION_FIT=0
+ExecStart=/usr/bin/python3 /home/sat/earthship-ui/.worktrees/native-daily-production/openhab/scripts/household_job_run.py --production --minimum-mib 512 --preferred-mib 2048 --tasks 48 --seconds 1800 -- /usr/bin/python3 -m household_native_daily --config /home/sat/.local/state/thermal-intel/native-daily/config.json
+CPUQuota=20%
+MemoryMax=256M
+MemorySwapMax=0
+TasksMax=24
+IOWeight=10
+IOSchedulingClass=idle
+Nice=15
+TimeoutStartSec=30min
+TimeoutStopSec=30s
+KillMode=control-group
+OOMPolicy=kill
+UMask=0077
+Restart=on-failure
+RestartSec=15min

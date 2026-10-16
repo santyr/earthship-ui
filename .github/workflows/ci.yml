@@ -12,7 +12,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       OPENBLAS_NUM_THREADS: "1"
       OMP_NUM_THREADS: "1"
@@ -36,6 +36,18 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-test.txt
       - run: python -m pip install -r requirements-test.txt
+      - name: Make disposable launchers meet runtime provenance permissions
+        shell: bash
+        run: |
+          set -euo pipefail
+          ci_python_path="$(python -c 'import os, sys; print(os.path.realpath(sys.executable))')"
+          # setup-python's tool cache may be group-writable; production binding
+          # intentionally rejects that. Tighten this ephemeral runner, not policy.
+          sudo chmod go-w "$ci_python_path"
+          stat --format='%a %U %n' "$ci_python_path"
+          ci_java_path="$(readlink -f "$(command -v java)")"
+          sudo chmod go-w "$ci_java_path"
+          stat --format='%a %U %n' "$ci_java_path"
       - name: Fetch pinned companion library for Python tests
         uses: actions/checkout@v4
         with:

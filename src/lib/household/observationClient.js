@@ -1,7 +1,16 @@
 import { OBSERVATION_MAX_BYTES } from './observation.js';
 
-export async function loadHouseholdObservation(signal) {
-  const response = await fetch('/api/household-observation', { signal, cache: 'no-store', redirect: 'error' });
+export const loadChronologicalSummary = signal => load('/api/household-chronological-summary', signal);
+export const loadHouseholdObservation = signal => load('/api/household-observation', signal);
+export const loadEnergyObservation = signal => load('/api/household-energy-observation', signal);
+export const loadEnergyPerformance = signal => load('/api/household-energy-performance', signal);
+export const loadProfiledObservation = signal => load('/api/household-profiled-energy-observation', signal);
+export const loadProfiledPerformance = signal => load('/api/household-profiled-energy-performance', signal);
+export const loadCapturedPvPerformance = signal => load('/api/household-captured-pv-performance', signal);
+export const loadBatteryPerformance = signal => load('/api/household-battery-performance', signal);
+
+async function load(path, signal) {
+  const response = await fetch(path, { signal, cache: 'no-store', redirect: 'error' });
   if (!response.ok || !response.body?.getReader || Number(response.headers.get('content-length')) > OBSERVATION_MAX_BYTES) {
     await response.body?.cancel(); throw new Error('Observation unavailable');
   }

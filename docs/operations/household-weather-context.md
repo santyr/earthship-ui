@@ -19,3 +19,54 @@ Nine roles qualified at collection, but inverter AC expired before the common mo
 The first collector attempt refused the normal publisher's existing shared lock before any source data was retained. A one-shot capped timer then collected before the following scheduled issue; no publisher start/restart or lock bypass occurred. The successful natural issue does not resolve the publisher's separately observed intermittent delivery failures. Private source/config/data files remain outside Git; only this sanitized evidence account is published.
 
 PR [#24](https://github.com/santyr/earthship-ui/pull/24) merged at `ec4f9c2c68b4d39338fb6958937564a5ea651fae` after exact head `eb4b492b841393189336574184a0453fc7a815a5` passed CI, encrypted-delivery, authentication and GitGuardian. CI run `38180181944` includes the full OpenHAB Python suite, disposable PostgreSQL and operational-tooling regressions. Final documentation-head private CLI replay equals the original sealed household receipt. This closes the weather-context integration gates while the full PR #3 program remains active.
+
+
+## Native solar geometry in the shared snapshot — 2026-10-14
+
+New native weather preparation emits prepared-weather/v3 and weather-projection/v3.
+It exposes the original native solar-position series already verified with the
+thermal capture: exact timestamps, elevation and azimuth, site/timezone, binding
+runtime, availability and cache/series identities. The common weather domain retains
+that same value under `solar_geometry`, so energy, thermal and planner replay use
+one snapshot identity. No additional astronomy calculation or live read is added.
+
+The row is `retained_native_calculation`, with no observed-at timestamp. It cannot
+serve as qualified physical evidence or authorize an action. Measured radiation,
+humidity and wind remain unknown without their own sources; solar event times and
+daylight duration are explicitly unavailable in this position-only series. Its
+validity ends at the final retained position; no interpolation or extrapolation is
+introduced. Existing v1/v2 weather contexts retain their exact prior projection
+and snapshot shapes; only v3 opts into the new field.
+
+Two regressions reproduced the missing projection/snapshot field. The 61 native
+and legacy weather/common-cycle cases and 179 downstream planner, measured-weather,
+energy, outcome, resource and serving-context cases pass. These include exact
+original thermal parity, old native receipt replay, no-I/O restoration, immutable
+returned positions and refusal of resealed derived-position changes. Original
+captures and candidates keep their existing verification; configured 256 KiB
+snapshot and 2 MiB pipeline limits are unchanged. The independent static review found no Critical, Important or Minor issues.
+Actual retained-source replay passed; production activation is recorded below.
+
+
+Committed source `5df4b35` replayed the original 21:10:15 UTC household receipt
+`a0625927...f37134` identically, then rebuilt it with the v3 geometry context.
+All 288 native positions from series `c813fcb0...7e0a4` match the new shared
+snapshot and weather projection. Geometry was available at 21:08:48 UTC, before
+the original issue. Both energy and thermal outputs remain exactly equal. Pure
+and private operational CLI replay match the derived receipt
+`1eeea0aa...cd0d1`. The snapshot is 111,526 bytes and receipt 1,152,494 bytes,
+within the unchanged limits. Verification took 2.215 seconds with no network,
+fitting or production writes. This is a new offline derivation from retained
+evidence, not a claim that the old live issue contained the new field.
+
+
+Source `5df4b35` is deployed as `124cff62` through the existing owned-family
+handoff after the normal 21:20 forecast. Effective files, service pins, limits
+and active timers match; UI and thermal publication endpoints return HTTP 200.
+The original model `52dd5d12...526506` and its 19:08 admission remain selected.
+Activation peaked at 56,352,768 bytes with no memory-limit/OOM events; no fit,
+qualification probe, actuator request or forced forecast ran. The clean daily
+training checkout is at the same source. The first normal enriched household
+issue is expected at 21:25:15 UTC and is not yet verified.
+
+The first normal production issue at **2026-10-14 21:25:15 UTC** succeeded (service exit0 at21:25:28). Its immutable household receipt `2545b7ffeea1c11027c22e7a1caa0064d12b129ccd6eb940235d7cedf3466839` retains288 positions from native series `7dca7ce2aa8d9731adb3e73a859760270f8fcb5404f2a0b22c1b5d764dea5c00`, available21:23:48.516678UTC, with calculated-only quality and automatic actuation false. This closes the pending natural geometry-cycle check; independent measured weather and the broader household architecture remain incomplete.

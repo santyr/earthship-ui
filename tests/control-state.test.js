@@ -353,3 +353,36 @@ describe('submission presentation', () => {
     expect(outcomePresentation('unknown').label).toBe('Outcome unknown');
   });
 });
+
+describe('circadian execution health', () => {
+  it.each([
+    [`healthy checkedAt=${new Date().toISOString()} target=4500K living room 1=skip-off`, 'Healthy'],
+    ['elev=25 target=4500K living room 1=skip-off', 'Health unavailable'],
+    ['disabled', 'Disabled'],
+    ['elev=25 target=4500K living room 1=temp-exc', 'Degraded'],
+    ['elev=25 target=4500K living room 1=state-unknown', 'Degraded'],
+    ['unavailable: astro-stale', 'Health unavailable'],
+  ])('renders %s as %s', (result, expected) => {
+    const state = deriveControlState(CONTROL_CATALOG.circadian, {
+      ...live, items: {LivingRoomCircadian_Enable:'ON',LivingRoomCircadian_LastResult:result},
+    });
+    expect(state.healthLabel).toBe(expected);
+    expect(state.enabled).toBe(true);
+  });
+});
+
+
+describe('circadian health freshness', () => {
+  it('does not claim a restored historical successful run is currently healthy', () => {
+    const state = deriveControlState(CONTROL_CATALOG.circadian, {
+      ...live, items: {LivingRoomCircadian_Enable:'ON',LivingRoomCircadian_LastResult:'healthy checkedAt=2020-01-01T00:00:00Z target=4500K'},
+    });
+    expect(state.healthLabel).toBe('Health unavailable');
+  });
+  it('accepts a recent device-verified health receipt', () => {
+    const state = deriveControlState(CONTROL_CATALOG.circadian, {
+      ...live, items: {LivingRoomCircadian_Enable:'ON',LivingRoomCircadian_LastResult:`healthy checkedAt=${new Date().toISOString()} target=4500K`},
+    });
+    expect(state.healthLabel).toBe('Healthy');
+  });
+});

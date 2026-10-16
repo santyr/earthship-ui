@@ -186,3 +186,91 @@ def test_publication_substitution_preserves_unrelated_files(damage,tmp_path,monk
     monkeypatch.setattr(mod,'_existing_view',substitute)
     with pytest.raises(ValueError):mod.materialize(source,target,clock=lambda:NOW+timedelta(minutes=10))
     assert target.read_bytes()==marker
+
+# A frozen explicit owner block must be compared at its own gate, regardless
+# of unrelated unknown permissions or model effects.
+def policy_record(reason='after_dark', **changes):
+    from test_household_owner_policy import context,original
+    return pipeline(coordination=context(original(reason)),**changes)
+
+
+@pytest.mark.parametrize('reason,gate',[('after_dark','curfew_allowed'),('cooldown_wait','cooldown_ready'),('cycle_active','owner_idle')])
+def test_retained_explicit_owner_block_matches_only_its_shadow_gate(reason,gate):
+    record=policy_record(reason);before=json.dumps(record,sort_keys=True);view=observe(record)
+    assert view['schema']=='earthship-household-observation/v3'
+    comparison=view['policy_comparison']
+    assert comparison['schema']=='earthship-household-policy-block-comparison/v1'
+    assert comparison['status']=='observed_block' and comparison['gate']==gate
+    assert comparison['owner_reason']==reason and comparison['physical_permission'] is False
+    assert comparison['performance_status']=='unavailable' and comparison['automatic_actuation'] is False
+    assert len(comparison['comparisons'])==1
+    assert comparison['comparisons'][0]['status']=='matching_block'
+    assert comparison['comparisons'][0]['shadow_status']=='rejected'
+    assert record['output']['plan_receipt']['plan']['baseline_scores']['current_owner_policy'] is None
+    assert json.dumps(record,sort_keys=True)==before
+
+
+@pytest.mark.parametrize('reason,expected',[('cycle_completed','eligibility_not_permission'),('low_soc','owner_reason_not_comparable')])
+def test_conditional_or_unmapped_owner_observation_never_implies_agreement_or_permission(reason,expected):
+    view=observe(policy_record(reason));comparison=view['policy_comparison']
+    assert comparison['status']=='unavailable' and comparison['reason']==expected
+    assert comparison['gate'] is None
+    assert all(row['status']=='unknown' and row['shadow_status'] is None for row in comparison['comparisons'])
+    assert comparison['physical_permission'] is False
+
+
+def test_retained_owner_expiry_does_not_renew_when_observer_runs_later():
+    early=observe(policy_record());later=observe(policy_record(),at=NOW+timedelta(minutes=5))
+    assert early['policy_comparison']==later['policy_comparison']
+    assert instant(later['policy_comparison']['valid_until'])==NOW+timedelta(seconds=115)
+    assert later['planner_mode']=='unavailable'
+
+
+def test_expired_before_original_decision_does_not_supply_a_matching_block():
+    from test_household_owner_policy import context,original
+    record=pipeline(coordination=context(original(evaluated=NOW-timedelta(seconds=119))),now=NOW+timedelta(seconds=1))
+    view=observe(record,at=NOW+timedelta(seconds=1));p=view['policy_comparison']
+    assert p['status']=='unavailable' and p['reason']=='source_stale' and p['gate'] is None
+    assert all(row['status']=='unknown' for row in p['comparisons'])
+
+
+def test_owner_block_without_a_greywater_proposal_is_observed_without_inventing_agreement():
+    view=observe(policy_record(energy_inputs=None));p=view['policy_comparison']
+    assert p['status']=='observed_block' and p['comparisons']==[]
+    assert view['proposals']==[] and not view['automatic_actuation']
+
+
+def test_missing_policy_original_stays_explicitly_unknown_in_the_new_view():
+    from test_household_owner_policy import context
+    ctx=context()
+    # Regenerate the coordination from originals rather than modifying facts.
+    from household.owner_sources import coordination_from_policy
+    from test_household_planning import setup
+    snap,registry=setup()
+    ctx=coordination_from_policy(ctx['owner_source'],None,snapshot_id=snap.snapshot_id,registry=registry,horizon_hours=24,as_of=NOW)
+    p=observe(pipeline(coordination=ctx))['policy_comparison']
+    assert p['status']=='unavailable' and p['reason']=='source_unavailable'
+    assert p['evaluated_at'] is None and p['valid_until'] is None and p['source_sha256'] is None
+
+
+def test_forged_retained_policy_result_cannot_survive_replay_and_publication():
+    record=policy_record();record['inputs']['coordination']['policy_observations']['hex_southoutlet_cycle']['reason']='busy'
+    record['receipt_sha256']=identity({k:v for k,v in record.items() if k!='receipt_sha256'})
+    with pytest.raises(ValueError):observe(record)
+
+
+def test_private_materializer_upgrades_a_known_cache_and_preserves_issued_original(tmp_path):
+    from household_pipeline import pipeline_runtime_manifest
+    from household.codec import canonical
+    from test_household_owner_policy import context
+    source,target,_=materializer_fixture(tmp_path)
+    api().materialize(source,target,clock=lambda:NOW)
+    assert json.loads(target.read_bytes())['schema']=='earthship-household-observation/v1'
+    record=pipeline(coordination=context(),runtime_manifest=pipeline_runtime_manifest())
+    source.write_bytes(canonical(record));before=source.read_bytes()
+    api().materialize(source,target,clock=lambda:NOW)
+    view=json.loads(target.read_bytes())
+    assert view['schema']=='earthship-household-observation/v3'
+    assert view['policy_comparison']['comparisons'][0]['status']=='matching_block'
+    assert source.read_bytes()==before and target.stat().st_nlink==1
+    assert 'rule_before' not in target.read_text() and 'policy_source' not in target.read_text()

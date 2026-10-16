@@ -1,3 +1,4 @@
+import { HOUSEHOLD_TIMEZONE } from '../site.js';
 import { num } from '../openhab/values.js';
 import { wmoIcon } from './wmo.js';
 import { contextualSkyIcon } from '../weather/celestial.js';
@@ -75,7 +76,7 @@ export function relativeAgeText(raw, nowMs = Date.now()) {
 }
 
 const EARTHSHIP_DAY = new Intl.DateTimeFormat('en-US', {
-  timeZone: 'America/Denver', year: 'numeric', month: '2-digit', day: '2-digit',
+  timeZone: HOUSEHOLD_TIMEZONE, year: 'numeric', month: '2-digit', day: '2-digit',
 });
 let cachedDay = null;
 let cachedDayStartMs = null;
@@ -160,54 +161,6 @@ export function advanceGoatFeederTracker(tracker, raw) {
     tracker: { initialized: true, previous: known },
     activated: tracker.previous === 'OFF' && known === 'ON',
   };
-}
-const DAY_MS = 86_400_000;
-const JULIAN_UNIX_EPOCH = 2_440_587.5;
-const SEASON_EVENTS = Object.freeze([
-  ['spring equinox', [2451623.80984, 365242.37404, 0.05169, -0.00411, -0.00057]],
-  ['summer solstice', [2451716.56767, 365241.62603, 0.00325, 0.00888, -0.00030]],
-  ['autumn equinox', [2451810.21715, 365242.01767, -0.11575, 0.00337, 0.00078]],
-  ['winter solstice', [2451900.05952, 365242.74049, -0.06223, -0.00823, 0.00032]],
-]);
-
-function seasonInstant(year, coefficients) {
-  const y = (year - 2000) / 1000;
-  const jde = coefficients.reduce((sum, coefficient, power) => sum + coefficient * y ** power, 0);
-  return new Date((jde - JULIAN_UNIX_EPOCH) * DAY_MS);
-}
-
-function localDayStamp(date) {
-  return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-export function nextSeasonEvent(now = new Date()) {
-  if (!(now instanceof Date) || Number.isNaN(now.getTime())) return null;
-  const year = now.getFullYear();
-  if (year < 2000 || year > 3000) return null;
-  const today = localDayStamp(now);
-  const candidates = [year, year + 1]
-    .flatMap((candidateYear) => SEASON_EVENTS.map(([name, coefficients]) => {
-      if (candidateYear > 3000) return null;
-      return {
-        name,
-        instant: seasonInstant(candidateYear, coefficients),
-      };
-    }).filter(Boolean))
-    .map((event) => ({ ...event, day: localDayStamp(event.instant) }))
-    .filter((event) => event.day >= today)
-    .sort((a, b) => a.day - b.day);
-  const next = candidates[0];
-  if (!next) return null;
-  const days = Math.round((next.day - today) / DAY_MS);
-  return {
-    name: next.name,
-    days,
-    label: days === 0
-      ? `${next.name} today`
-      : `${days} ${days === 1 ? 'day' : 'days'} to ${next.name}`,
-    instant: next.instant,
-  };
-
 }
 function signedStateColor(value, neutral) {
   const number = finiteNumber(value);

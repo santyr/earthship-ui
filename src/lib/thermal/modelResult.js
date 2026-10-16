@@ -307,7 +307,7 @@ function validateReleasePayload(payload) {
 }
 
 function validatePayload(payload) {
-  if (payload?.version === 8) return validateProvisionalPublication(payload, { exactObject, finiteNumber, timestamp });
+  if (payload?.version === 8 || payload?.version === 9) return validateProvisionalPublication(payload, { exactObject, finiteNumber, timestamp });
   if (payload?.version === 4 || payload?.version === 5 || payload?.version === 7) return validateInstalledPublication(payload, { exactObject, finiteNumber, timestamp });
   if (payload?.version === 2 || payload?.version === 3) return validateReleasePayload(payload);
   exactObject(payload, TOP_LEVEL_FIELDS);
@@ -495,7 +495,7 @@ export function parseThermalModelResult(raw, nowMs = Date.now()) {
     const payload = JSON.parse(raw);publicationVersion = payload?.version;
     const parsed = validatePayload(payload);
     const ageMicros = millisecondsToMicros(nowMs) - parsed.generatedAtMicros;
-    if (ageMicros < 0n) return [4,5,7,8].includes(publicationVersion) ? { ...unavailableResult(), mode:'unavailable', badge:'UNAVAILABLE' } : unavailableResult();
+    if (ageMicros < 0n) return [4,5,7,8,9].includes(publicationVersion) ? { ...unavailableResult(), mode:'unavailable', badge:'UNAVAILABLE' } : unavailableResult();
     if (parsed.validUntilMicros !== undefined && millisecondsToMicros(nowMs) >= parsed.validUntilMicros) {
       return { ...unavailableResult(), mode:'unavailable', badge:'UNAVAILABLE' };
     }
@@ -533,6 +533,6 @@ export function parseThermalModelResult(raw, nowMs = Date.now()) {
       reasons: parsed.reasons,
     };
   } catch {
-    return [4,5,7,8].includes(publicationVersion) ? { ...unavailableResult(), mode:'unavailable', badge:'UNAVAILABLE' } : unavailableResult();
+    return [4,5,7,8,9].includes(publicationVersion) ? { ...unavailableResult(), mode:'unavailable', badge:'UNAVAILABLE' } : unavailableResult();
   }
 }

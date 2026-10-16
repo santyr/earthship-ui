@@ -1,22 +1,14 @@
 <script>
   import { onDestroy, onMount } from 'svelte';
-  import { nextSeasonEvent } from './homeCardState.js';
+  import { items, itemUpdateEvidence, thingStatuses, connection } from '../openhab/store.js';
+  import { nativeSeasonLabel } from '../weather/astroPresentation.js';
 
-  const REFRESH_MS = 60 * 60 * 1000;
-  let now = $state(new Date());
+  let now = $state(Date.now());
   let refreshTimer;
-
-  const label = $derived(nextSeasonEvent(now)?.label ?? 'Season unavailable');
-
-  onMount(() => {
-    refreshTimer = setInterval(() => {
-      now = new Date();
-    }, REFRESH_MS);
-  });
-
-  onDestroy(() => {
-    clearInterval(refreshTimer);
-  });
+  const label = $derived(nativeSeasonLabel({ states:$items, evidence:$itemUpdateEvidence,
+    now:Math.max(now, Date.now()), connected:$connection === 'live', sunOnline:$thingStatuses['astro:sun:local']?.status === 'ONLINE' }));
+  onMount(() => { refreshTimer = setInterval(() => { now = Date.now(); }, 30_000); });
+  onDestroy(() => { clearInterval(refreshTimer); });
 </script>
 
 <div class="sm-row sm-season" role="status" aria-live="polite" title={label}>{label}</div>

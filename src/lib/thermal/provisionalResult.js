@@ -5,7 +5,8 @@ export function validateProvisionalPublication(payload, { exactObject, finiteNum
   const physical = value => { finiteNumber(value); if (value < -40 || value > 140) throw new TypeError('physical temperature exceeded'); return value; };
   const HOUR = 3600000000n;
   exactObject(payload, fields('schema','version','status','generatedAt','validUntil','model','forecast','confidence','graduation','automaticActuation','reasons'));
-  if (payload.schema !== 'earthship-provisional-thermal-publication/v1' || payload.version !== 8 || !['provisional','unavailable'].includes(payload.status)) throw new TypeError('unsupported provisional contract');
+  const native = payload.version === 9;
+  if (payload.schema !== `earthship-provisional-thermal-publication/v${native ? 2 : 1}` || ![8,9].includes(payload.version) || !['provisional','unavailable'].includes(payload.status)) throw new TypeError('unsupported provisional contract');
   const issued = timestamp(payload.generatedAt), valid = timestamp(payload.validUntil);
   if (valid.epochMicros - issued.epochMicros !== 900000000n) throw new TypeError('bounded provisional expiry required');
   exactObject(payload.confidence, fields('grade','actionLabels'));
@@ -26,8 +27,14 @@ export function validateProvisionalPublication(payload, { exactObject, finiteNum
       || !Number.isInteger(model.independentOriginDates) || model.independentOriginDates < 1 || model.independentOriginDates > 256 || model.regularizationStrength !== 1) throw new TypeError('invalid provisional learning evidence');
   exactObject(model.horizonSupport, fields('1','6','12','24'));
   if (Object.values(model.horizonSupport).some(x => !Number.isInteger(x) || x < 0 || x > 64) || Object.values(model.horizonSupport).reduce((a,b) => a+b,0) < 1) throw new TypeError('invalid provisional support');
-  const numeric = exactObject(payload.forecast, fields('schema','status','generated_at','artifact_sha256','runtime_sha256','horizon_hours','initial','origin_actions','trajectory','confidence','prediction_intervals','advice','graduated','automatic_actuation'));
-  if (numeric.schema !== 'earthship-provisional-thermal-forecast/v1' || numeric.status !== 'provisional' || numeric.confidence !== 'low' || numeric.graduated !== false || numeric.automatic_actuation !== false
+  const numericFields = fields('schema','status','generated_at','artifact_sha256','runtime_sha256','horizon_hours','initial','origin_actions','trajectory','confidence','prediction_intervals','advice','graduated','automatic_actuation');
+  if (native) { numericFields.add('model_rule'); numericFields.add('geometry_series_sha256'); }
+  const numeric = exactObject(payload.forecast, numericFields);
+  if (native) {
+    if (numeric.model_rule !== 'earthship-native-installed-shade-dynamics/v2') throw new TypeError('unsupported native model rule');
+    sha(numeric.geometry_series_sha256);
+  }
+  if (numeric.schema !== `earthship-provisional-thermal-forecast/v${native ? 2 : 1}` || numeric.status !== 'provisional' || numeric.confidence !== 'low' || numeric.graduated !== false || numeric.automatic_actuation !== false
       || numeric.prediction_intervals !== null || !Array.isArray(numeric.advice) || numeric.advice.length || timestamp(numeric.generated_at).epochMicros !== issued.epochMicros
       || numeric.artifact_sha256 !== model.artifactSha256 || numeric.runtime_sha256 !== model.runtimeSha256) throw new TypeError('provisional numeric source changed');
   exactObject(numeric.initial, fields('air_f','mass_f','outdoor_f'));Object.values(numeric.initial).forEach(physical);

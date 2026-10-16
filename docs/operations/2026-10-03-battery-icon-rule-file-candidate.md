@@ -5,6 +5,40 @@ recorded below. Its action/cron and both outputs are unchanged. No Item, link,
 persistence mapping, household control or service was changed or restarted.
 The earlier candidate checks below remain their original scoped evidence.
 
+## October 4 natural charging-status transitions verified
+
+The original file writer naturally changed `BatteryChargingStatus` **OFF ->
+ON -> OFF -> ON** this morning. All three changed-event records explicitly
+identify `org.openhab.automation.jsscripting$file:battery-icon.js`; corresponding
+icon logs identify `jsscripting.file.battery-icon.js`. The exact installed and
+canonical source remains `bc6c0954b232902d4b5af444b6381cf5c8ea4af062aa5a12b8195de364729b45`,
+with sole file ownership, IDLE/NONE and the original 30-second cron.
+
+| Natural transition | Source event (UTC) | New original charging JDBC value | Matching icon JDBC row (UTC) |
+| --- | --- | --- | --- |
+| OFF -> ON, current 2.58 A | 2026-10-04T14:03:30.608Z | ON at the same millisecond | charging-90 at 14:03:30.611Z |
+| ON -> OFF, current 0.98 A | 2026-10-04T14:04:30.608Z | OFF at the same millisecond | battery-80 at 14:04:30.610Z |
+| OFF -> ON, current 2.56 A | 2026-10-04T14:09:30.607Z | ON at the same millisecond | charging-90 at 14:09:30.609Z |
+
+The fixed JDBC API query uses `serviceId=jdbc`, explicit
+`starttime=2026-10-04T14:00:00Z`, `endtime=2026-10-04T14:15:00Z` and
+`boundary=false`. It returns exactly three icon rows and five charging rows.
+The charging history also contains the prior ON/OFF values at two transition
+milliseconds; these original rows are preserved, rather than assuming a unique
+row or ordering for values sharing a timestamp. Restricted read-only metadata
+confirms unchanged JDBC identities **31/154**. The account has no permission
+to read those display tables directly; the actual bounded JDBC persistence
+API is the history source used here.
+
+Readback at 14:57Z has charging ON and `iconify:mdi:battery-charging-90`.
+Retained complete proof SHA-256:
+`e66281f326dfdc8e99217842f88b467a91deee648743cd14ec04f14d3cb4b33f`
+(`/tmp/earthship-battery-charging-natural.json`). This closes the distinct
+natural charging-status observation gate. No manual execution, synthetic Item
+write or charge manipulation was performed. Production whole-JVM recovery
+remains a separate attended gate; these display observations confer no control
+authority or freshness guarantee.
+
 ## October 4 natural changed icon and new JDBC rows verified
 
 The file writer naturally logged `battery-90` at October 3 19:45:00.607 MDT

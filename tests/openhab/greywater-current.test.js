@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { createRuleHarness } from './rule-harness.js';
-import { socEvidence, withGreywaterSocEvidence } from './greywater-evidence.js';
+import { socEvidence, withGreywaterEvidence } from './greywater-evidence.js';
 
 const source = readFileSync(new URL('../../openhab/rules/southoutlet-cycle-current.js', import.meta.url), 'utf8');
 const now = Date.parse('2026-09-19T18:00:00Z'); // local noon, South
@@ -18,7 +18,7 @@ const ons = h => h.events.filter(e => e.type === 'command' && e.value === 'ON');
 function harness({ token, overrides = {}, clock = now, script = source } = {}) {
   if (token !== undefined) script = script.replace('runSouthOutlet(typeof event',
     `cache.shared.put(BUSY_KEY, ${JSON.stringify(token)});\nrunSouthOutlet(typeof event`);
-  return withGreywaterSocEvidence(
+  return withGreywaterEvidence(
     createRuleHarness({ source: script, now: clock, states: { ...states, ...overrides } }), overrides);
 }
 

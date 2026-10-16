@@ -49,3 +49,14 @@ no sender, endpoint or enable flag. Live planner authority remains absent.
 Later stages must add pure domain projections, constraints, arbitration,
 deterministic shadow planning and original outcome/replay qualification. Owner
 v2 migrations and any physical request release remain independently qualified.
+
+
+## Observed installed greywater inventory, 2026-10-14
+
+Live read-only inspection found the registry still described the older single-pump source. The installed rule exactly matches historical revision `2c94b3c:openhab/rules/southoutlet-cycle-current.js`, SHA256 `4c34780e544d80af8eb36d047a949fa30e0198bb50fa57650285052db3c52d9b`. Source `177a8a1` retains those exact bytes in `openhab/rules/southoutlet-cycle-installed.js` and points the managed descriptor there. The separately prepared daylight-freshness candidate remains unchanged in `southoutlet-cycle-current.js`; its additional checks are not present in the observed live rule. The snapshot filename records this observation, not continuous live-source qualification.
+
+The descriptor now protects both `SouthOutlet_Outlet2_Switch` and `East_Bed_Socket_Outlet_2_Power`, and names `BMS_SOC_Evidence_JSON` as the actual SoC safety input. This prevents another declared owner or request binding from claiming the East pump. Authority remains descriptive-only and safety inputs remain explicitly incomplete. No subset installer was invoked. Live owner rule source, triggers, conditions and configuration were re-read unchanged for greywater, feeder and night-load after the ML rollout.
+
+Regression verification: four failures reproduced the old source and missing East protection;406 affected Python tests and32 JavaScript manifest/proxy tests passed. Final review found no issues and independently checked all six owner orders plus twelve collision cases. ML deployment `7afb91b2011a70e3f0bf03e2116eca2f22f38e6b0f2744f5add4205f9f6bc835` activated at2026-10-15T00:34:14UTC with the original trained model. Geometry for00:35:15UTC was retained before cutover. Physical-state facts, actual-policy baselines and owner contract migrations remain unfinished. Private original observations/readback are retained in `.superpowers/sdd/2026-10-12-household-common-cycle/owner-policy-20261014/`.
+
+The first scheduled forecast on the corrected stage issued at2026-10-15T00:35:15UTC and exited0 at00:35:29UTC. Its household receipt `28bc0b9aeb103e2231f910d8a3550d24bbc696b8453e2c912edeaa595a0e7191` contains both protected pumps and the corrected source-boundSoC dependency, and replays identically through pure and exact-stage privateCLI paths. Prepopulating geometry before cutover preserved this forecast. The daily checkout matches177a8a1; its installed unit and morning schedule remain unchanged.

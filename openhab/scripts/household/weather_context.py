@@ -1,5 +1,6 @@
 """Original weather and operator context; forecasts are not measured sources."""
 from dataclasses import dataclass,asdict
+from copy import deepcopy
 from hashlib import sha256
 import base64,binascii,zlib
 from .codec import canonical,loads,identity
@@ -44,12 +45,18 @@ def _decode_original(value):
 
 
 def _original(value):
-    if not isinstance(value,dict) or set(value)!=FIELDS or value['schema']!='earthship-household-prepared-weather/v1':
+    if not isinstance(value,dict) or set(value)!=FIELDS or value['schema'] not in ('earthship-household-prepared-weather/v1','earthship-household-prepared-weather/v2','earthship-household-prepared-weather/v3'):
         raise ValueError('closed original weather context required')
     if identity({key:item for key,item in value.items() if key!='weather_sha256'})!=value['weather_sha256']:
         raise ValueError('sealed original weather context differs')
     prepared=PreparedProjection(canonical(value['prepared_thermal']));model=prepared.to_dict();capture=_decode_original(value['original_capture'])
-    if (not isinstance(capture,dict) or set(capture)!=CAPTURE_FIELDS or capture['schema']!=CAPTURE_SCHEMA or
+    native=value['schema'] in ('earthship-household-prepared-weather/v2','earthship-household-prepared-weather/v3')
+    fields,schema=CAPTURE_FIELDS,CAPTURE_SCHEMA
+    if native:
+        from native_thermal_forecast import CAPTURE_FIELDS as fields,CAPTURE_SCHEMA as schema
+    if model['schema']!='earthship-household-prepared-thermal/v'+str(2 if native else 1):
+        raise ValueError('original weather and prepared model versions differ')
+    if (not isinstance(capture,dict) or set(capture)!=fields or capture['schema']!=schema or
         capture_digest(capture,'capture_sha256')!=capture['capture_sha256'] or
         capture['capture_sha256']!=model['original_capture_sha256']):
         raise ValueError('original capture identity differs from prepared model')
@@ -59,6 +66,11 @@ def _original(value):
         capture['candidate']['artifact_sha256']!=model['artifact_sha256'] or capture['candidate']['runtime_sha256']!=model['runtime_sha256']):
         raise ValueError('original weather/model origin differs')
     candidate=capture['candidate']
+    if native and (canonical(model['executing_runtime']['thermal_runtime'])!=canonical(candidate['runtime']) or
+            canonical(model['geometry'])!=canonical(capture['geometry']) or
+            model['geometry_series_sha256']!=capture['geometry_series_sha256'] or
+            model['model_rule']!=capture['output']['model_rule']):
+        raise ValueError('original native model runtime or geometry differs')
     if (candidate_digest(candidate)!=candidate['artifact_sha256'] or
         canonical(candidate['fit']['coefficients'])!=canonical(model['coefficients'])):
         raise ValueError('original candidate identity or prepared coefficients differ')
@@ -116,15 +128,79 @@ def prepare_weather_context(capture,*,prepared_thermal):
     return PreparedWeatherContext(canonical(value))
 
 
+def prepare_cycle_contexts(capture,*,code_revision):
+    """Validate one frozen original capture before preparing both model contexts.
+
+    Callers cannot supply a trusted flag or a previously prepared lookalike.
+    The complete native archive replay remains inside prepare_projection.
+    Standalone weather preparation retains its separate validation boundary.
+    """
+    from .thermal_model import prepare_projection
+    raw=canonical(capture)
+    if not 1<=len(raw)<=MAX_ORIGINAL_BYTES:raise ValueError('bounded complete original capture required')
+    original=loads(raw)
+    thermal=prepare_projection(original,code_revision=code_revision)
+    value=dict(schema='earthship-household-prepared-weather/v1',original_capture=_encode_original(original),prepared_thermal=thermal.to_dict())
+    value['weather_sha256']=identity(value)
+    return thermal,PreparedWeatherContext(canonical(value))
+
+
 def project_weather(context):
     if not isinstance(context,PreparedWeatherContext):raise ValueError('frozen original weather context required')
     value=context.to_dict();capture=_decode_original(value['original_capture']);model=value['prepared_thermal'];forecast=capture['inputs']['forecast']
-    result=dict(schema='earthship-household-weather-projection/v1',weather_context_sha256=value['weather_sha256'],
+    native=value['schema'] in ('earthship-household-prepared-weather/v2','earthship-household-prepared-weather/v3')
+    result=dict(schema='earthship-household-weather-projection/v'+value['schema'].rsplit('/v',1)[1],weather_context_sha256=value['weather_sha256'],
         original_capture_sha256=capture['capture_sha256'],weather_rows_sha256=forecast['rows_sha256'],
         provider_issued_at=forecast['issued_at'],provider_captured_at=forecast['captured_at'],origin=model['issue'],
         available_at=capture['inputs_available_at'],horizon_hours=model['horizon_hours'],forcings=model['forcings'],
         hourly_forecast=forecast['rows'],origin_states=model['actions'],confidence='not_assessed',input_qualification='not_assessed',
         original_weather_receipts_verified=True,unknown_observations=list(UNKNOWN_OBSERVATIONS),
         action_effects_qualified=False,automatic_actuation=False)
+    if native:result.update(geometry_series_sha256=model['geometry_series_sha256'],model_rule=model['model_rule'])
+    if value['schema']=='earthship-household-prepared-weather/v3':
+        # PreparedWeatherContext already validates the complete original series,
+        # native output, exact forcing grid and availability. Expose those same
+        # frozen bytes; do not rerun astronomy or infer measured daylight/radiation.
+        packet=model['geometry'];caches=packet['caches']
+        result['solar_geometry']=dict(series_sha256=packet['series_sha256'],rule=packet['rule'],
+            request_sha256=packet['request']['request_sha256'],native_runtime=packet['native_runtime'],
+            source_identity=caches[0]['source']['source_thing'],site=caches[0]['source']['site'],
+            timezone=packet['request']['timezone'],available_at=max(cache['computed_at'] for cache in caches),
+            cache_sha256s=[cache['cache_sha256'] for cache in caches],
+            positions=[row for cache in caches for row in cache['positions']],
+            quality='retained_native_calculation',daylight_events_available=False)
+        result['unknown_observations'].remove('daylight_geometry')
     result['projection_sha256']=identity(result)
     return result
+
+
+def prepare_native_weather_context(capture,*,prepared_thermal,runtime,expected_artifact_sha256,expected_capture_sha256,check_budget=lambda:None):
+    if not isinstance(prepared_thermal,PreparedProjection) or prepared_thermal.to_dict()['schema']!='earthship-household-prepared-thermal/v2':
+        raise ValueError('separately prepared native model required')
+    from native_thermal_forecast import validate_capture
+    capture,runtime=map(deepcopy,(capture,runtime))
+    original=validate_capture(capture,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
+        expected_capture_sha256=expected_capture_sha256,check_budget=check_budget)
+    value=dict(schema='earthship-household-prepared-weather/v3',original_capture=_encode_original(original),prepared_thermal=prepared_thermal.to_dict())
+    value['weather_sha256']=identity(value);result=PreparedWeatherContext(canonical(value));check_budget();return result
+
+
+def prepare_native_cycle_contexts(capture,*,code_revision,runtime,expected_artifact_sha256,expected_capture_sha256,check_budget=lambda:None):
+    from .thermal_model import prepare_native_projection
+    original,runtime=map(deepcopy,(capture,runtime))
+    thermal=prepare_native_projection(original,code_revision=code_revision,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
+        expected_capture_sha256=expected_capture_sha256,check_budget=check_budget)
+    value=dict(schema='earthship-household-prepared-weather/v3',original_capture=_encode_original(original),prepared_thermal=thermal.to_dict())
+    value['weather_sha256']=identity(value);weather=PreparedWeatherContext(canonical(value));check_budget();return thermal,weather
+
+
+def prepare_serving_native_cycle_contexts(capture,model,*,code_revision,expected_capture_sha256,check_budget=lambda:None):
+    from native_model_serving_receipt import _require_model
+    from .thermal_model import prepare_serving_native_projection
+    _require_model(model)
+    original=deepcopy(capture)
+    thermal=prepare_serving_native_projection(original,model,code_revision=code_revision,
+        expected_capture_sha256=expected_capture_sha256,check_budget=check_budget)
+    value=dict(schema='earthship-household-prepared-weather/v3',original_capture=_encode_original(original),prepared_thermal=thermal.to_dict())
+    value['weather_sha256']=identity(value);weather=PreparedWeatherContext(canonical(value));check_budget()
+    return thermal,weather

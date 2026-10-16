@@ -1,0 +1,9 @@
+// Original Sun calendar and eclipse display identities; sole file provider after cutover.
+DateTime Sun_Autumn "Autumn" (Sun) ["Point"] { channel="astro:sun:local:season#autumn" }
+Number:Angle Sun_Eclipse_PartialElevation "Elevation" (Sun) ["Point"] { channel="astro:sun:local:eclipse#partialElevation" }
+DateTime Sun_PartialEclipse "Partial Eclipse" (Sun) ["Point"] { channel="astro:sun:local:eclipse#partial" }
+DateTime Sun_RingEclipse "Ring Eclipse" (Sun) ["Point"] { channel="astro:sun:local:eclipse#ring" }
+DateTime Sun_Spring "Spring" (Sun) ["Point"] { channel="astro:sun:local:season#spring" }
+DateTime Sun_Summer "Summer" (Sun) ["Point"] { channel="astro:sun:local:season#summer" }
+DateTime Sun_TotalEclipse "Total Eclipse" (Sun) ["Point"] { channel="astro:sun:local:eclipse#total" }
+DateTime Sun_Winter "Winter" (Sun) ["Point"] { channel="astro:sun:local:season#winter" }

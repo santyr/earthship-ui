@@ -1,0 +1,9 @@
+{
+  "schema": "earthship-household-load-topology/v1",
+  "confirmed_by": "operator",
+  "confirmed_at": "2026-10-15T13:36:41+00:00",
+  "effective_from": "2026-10-15T13:36:41+00:00",
+  "effective_until": null,
+  "household_loads": "ac_only",
+  "dc_loads": "battery_and_solar_pv_system"
+}

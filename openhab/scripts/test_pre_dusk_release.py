@@ -2,6 +2,7 @@
 
 from datetime import date, datetime, timedelta, timezone
 import json
+from urllib.parse import parse_qs
 
 import pytest
 
@@ -68,6 +69,7 @@ def test_exact_archived_issue_numeric_and_source_qualify_without_ui_claim():
     result = qualify_day(get, source, day=DAY, now=NOW)
     assert result['status'] == 'qualified_natural_issue'
     assert result['trough_soc_pct'] == 81
+    assert result['numeric_state_basis'] == 'new_persisted_value'
     assert result['source_item'] == 'BMS_SOC_Evidence_JSON'
     assert result['display_selection_verified'] is False
     assert result['night_outcome_scored'] is False
@@ -143,4 +145,100 @@ def test_score_refuses_wrong_outcome_and_missing_natural_issue():
                                  lambda *_: pytest.fail('missing issue'),
                                  day=DAY, now=assessed)
     assert result['status'] == 'missing_natural_issue'
+    assert result['night_outcome_scored'] is False
+
+
+# These exercise the real history parsers and gate. Only local REST I/O is
+# replaced; the range-aware archive preserves actual everyChange timestamps.
+def carry_forward_archive(prior):
+    get_receipts, _ = archive(numeric=())
+    paths = []
+    def get(path):
+        paths.append(path)
+        item = path.split('?', 1)[0].rsplit('/', 1)[-1]
+        if item != NUMERIC_ITEM:
+            return get_receipts(path)
+        query = parse_qs(path.split('?', 1)[1])
+        start = datetime.fromisoformat(query['starttime'][0].replace('Z', '+00:00'))
+        end = datetime.fromisoformat(query['endtime'][0].replace('Z', '+00:00'))
+        selected = [row for row in prior
+                    if start.timestamp()*1000 <= row['time'] < end.timestamp()*1000]
+        return {'name': item, 'datapoints': str(len(selected)), 'data': selected}
+    return get, paths
+
+
+def prior_number(at='2026-09-28T23:30:01+00:00', value='81.0'):
+    return {'time': int(datetime.fromisoformat(at).timestamp()*1000), 'state': value}
+
+
+def test_unchanged_number_qualifies_with_actual_prior_timestamp_and_fresh_receipt():
+    get, paths = carry_forward_archive([prior_number()])
+    result = qualify_day(get, source, day=DAY, now=NOW)
+    assert result['status'] == 'qualified_natural_issue'
+    assert result['trough_soc_pct'] == 81
+    assert result['pre_dusk_issued_at'] == '2026-09-29T23:30:00+00:00'
+    assert result['numeric_persisted_at'] == '2026-09-28T23:30:01+00:00'
+    assert result['numeric_state_basis'] == 'unchanged_persisted_value'
+    assert result['night_outcome_scored'] is False
+    assert result['display_selection_verified'] is False
+    assert len(paths) == 4
+    assert all(path.startswith('/persistence/items/') for path in paths)
+    assert parse_qs(paths[-1].split('?', 1)[1])['boundary'] == ['false']
+
+
+def test_unchanged_number_can_score_the_same_completed_night():
+    get, _ = carry_forward_archive([prior_number()])
+    result = score_completed_day(get, source, lambda *_: measured_night(),
+        day=DAY, now=datetime(2026, 9, 30, 17, 10, tzinfo=timezone.utc))
+    assert result['status'] == 'scored_completed_night'
+    assert result['score']['absolute_error_improvement_pp'] == 28
+    assert result['numeric_persisted_at'] == '2026-09-28T23:30:01+00:00'
+
+
+@pytest.mark.parametrize('prior', [
+    [],
+    [prior_number(value='80')],
+    [prior_number(), prior_number('2026-09-29T01:00:00+00:00', '80')],
+    [prior_number(), prior_number()],
+    [prior_number(value='UNDEF')],
+    [prior_number(value='81.5')],
+    [prior_number('2026-08-01T23:30:01+00:00')],
+    [prior_number('2026-09-30T23:30:01+00:00')],
+    [prior_number('2026-09-29T22:00:00+00:00')],
+])
+def test_unchanged_number_refuses_missing_conflicting_invalid_or_unbounded_anchor(prior):
+    get, _ = carry_forward_archive(prior)
+    with pytest.raises(NaturalIssueUnavailable):
+        qualify_day(get, source, day=DAY, now=NOW)
+
+
+def test_unchanged_number_still_requires_exact_original_soc_source():
+    get, _ = carry_forward_archive([prior_number()])
+    with pytest.raises(NaturalIssueUnavailable):
+        qualify_day(get, lambda _: {**source(LATE), 'source_digest_sha256': 'b'*64},
+                    day=DAY, now=NOW)
+
+
+def test_unchanged_number_refuses_oversized_history():
+    at = datetime(2026, 9, 28, 12, tzinfo=timezone.utc)
+    rows = [prior_number((at + timedelta(minutes=i)).isoformat()) for i in range(65)]
+    get, _ = carry_forward_archive(rows)
+    with pytest.raises(NaturalIssueUnavailable):
+        qualify_day(get, source, day=DAY, now=NOW)
+
+
+
+def test_unchanged_number_uses_latest_matching_change_instead_of_older_conflict():
+    get, _ = carry_forward_archive([
+        prior_number('2026-09-27T23:30:01+00:00', '80'), prior_number()])
+    result = qualify_day(get, source, day=DAY, now=NOW)
+    assert result['numeric_persisted_at'] == '2026-09-28T23:30:01+00:00'
+    assert result['trough_soc_pct'] == 81
+
+
+def test_unchanged_number_waits_for_real_night_outcome():
+    get, _ = carry_forward_archive([prior_number()])
+    result = score_completed_day(get, source,
+        lambda *_: pytest.fail('night has not closed'), day=DAY, now=NOW)
+    assert result['status'] == 'pending_night_outcome'
     assert result['night_outcome_scored'] is False

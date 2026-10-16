@@ -14,6 +14,9 @@ from .capabilities import CapabilityRegistry
 from .intents import HouseholdIntent,parse_intent
 from .control_contracts import instant,ContractRefused
 
+# Native geometry/source contexts and bracketed owner originals share this
+# private envelope. Individual source and public-output bounds stay separate.
+MAX_RECEIPT_BYTES=1024*1024
 MAX_CANDIDATES=8
 MIN_RESERVE_SOC=10.  # Existing full-bank emergency reserve; input may tighten it.
 CAPABILITIES={'RUN_GREYWATER_CYCLE':'greywater-request-v1','RUN_FEEDER_CYCLE':'feeder-request-v1',
@@ -92,13 +95,18 @@ def plan(*,snapshot,registry,candidates,coordination,utilities,now,reserve_soc,h
     """Maximize declared utility only after every hard bound has passed."""
     if not isinstance(snapshot,HouseholdSnapshot) or not isinstance(registry,CapabilityRegistry):raise ValueError('immutable source context required')
     if type(horizon_hours) is not int or horizon_hours not in (6,12,24):raise ValueError('explicit supported horizon required')
-    now=utc(now);snap=snapshot.to_dict();registry=registry.to_dict()
+    now=utc(now);snap=snapshot.to_dict()
     if instant(snap['as_of'])>now or instant(snap['created_at'])>now:raise ValueError('snapshot unavailable at decision')
     if not isinstance(candidates,(tuple,list)) or len(candidates)>MAX_CANDIDATES or any(not isinstance(item,HouseholdIntent) for item in candidates):
         raise ValueError('bounded typed candidates required')
     if type(reserve_soc) not in (int,float) or not math.isfinite(reserve_soc) or not MIN_RESERVE_SOC<=reserve_soc<=100:raise ValueError('bounded explicit reserve required')
+    if isinstance(coordination,dict) and coordination.get('schema') in ('earthship-shadow-coordination/v2','earthship-shadow-coordination/v3'):
+        from .owner_sources import validate_coordination
+        coordination=validate_coordination(coordination,snapshot_id=snapshot.snapshot_id,registry=registry,
+            horizon_hours=horizon_hours,as_of=instant(snap['as_of']))
     if not isinstance(coordination,dict) or set(coordination)!={'schema','snapshotId','baseline_soc_floor','facts','horizonHours'} or coordination['schema']!='earthship-shadow-coordination/v1' or coordination['snapshotId']!=snapshot.snapshot_id or type(coordination['horizonHours']) is not int or coordination['horizonHours']!=horizon_hours:
         raise ValueError('closed frozen coordination context required')
+    registry=registry.to_dict()
     coordination=loads(canonical(coordination))
     if len(canonical(coordination))>65536 or not isinstance(coordination['facts'],dict) or len(coordination['facts'])>8:raise ValueError('bounded owner facts required')
     for owner,facts in coordination['facts'].items():
@@ -158,7 +166,7 @@ INPUT_FIELDS={'snapshot','registry','candidates','coordination','utilities','now
 
 
 def _runtime_manifest(value):
-    if not isinstance(value,dict) or not 1<=len(value)<=64:raise ValueError('bounded explicit runtime manifest required')
+    if not isinstance(value,dict) or not 1<=len(value)<=128:raise ValueError('bounded explicit runtime manifest required')
     for name,sha in value.items():
         if not isinstance(name,str) or not re.fullmatch('[A-Za-z0-9_./-]{1,192}',name) or name.startswith('/') or '..' in name:
             raise ValueError('bounded runtime source name required')
@@ -207,12 +215,12 @@ def seal_plan(*,runtime_manifest,model_refs,forecast_ref,**arguments):
     receipt=loads(canonical(dict(schema='earthship-household-shadow-plan-receipt/v'+str(version),inputs=inputs,runtime_manifest=runtime,
         model_refs=model_refs,forecast_ref=forecast_ref,plan=output)))
     receipt['receipt_sha256']=identity(receipt)
-    if len(canonical(receipt))>512*1024:raise ValueError('bounded sealed plan receipt required')
+    if len(canonical(receipt))>MAX_RECEIPT_BYTES:raise ValueError('bounded sealed plan receipt required')
     return receipt
 
 
 def replay_plan(receipt,*,runtime_manifest):
-    if not isinstance(receipt,dict) or set(receipt)!=RECEIPT_FIELDS or receipt['schema'] not in ('earthship-household-shadow-plan-receipt/v1','earthship-household-shadow-plan-receipt/v2','earthship-household-shadow-plan-receipt/v3','earthship-household-shadow-plan-receipt/v4','earthship-household-shadow-plan-receipt/v5') or len(canonical(receipt))>512*1024:
+    if not isinstance(receipt,dict) or set(receipt)!=RECEIPT_FIELDS or receipt['schema'] not in ('earthship-household-shadow-plan-receipt/v1','earthship-household-shadow-plan-receipt/v2','earthship-household-shadow-plan-receipt/v3','earthship-household-shadow-plan-receipt/v4','earthship-household-shadow-plan-receipt/v5') or len(canonical(receipt))>MAX_RECEIPT_BYTES:
         raise ValueError('closed bounded original plan receipt required')
     if identity({key:value for key,value in receipt.items() if key!='receipt_sha256'})!=receipt['receipt_sha256']:raise ValueError('sealed original plan differs')
     runtime=_runtime_manifest(runtime_manifest)

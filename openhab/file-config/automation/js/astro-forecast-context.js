@@ -4,6 +4,15 @@ const SOURCE = 'astro:sun:local';
 const OUTPUT = 'Astro_Forecast_Context_JSON';
 const SCHEMA = 'astro-future-solar-context/v1';
 
+function supportedBindingVersion(version) {
+  if (typeof version !== 'string') return false;
+  const match = /^(0|[1-9][0-9]{0,9})\.(0|[1-9][0-9]{0,9})\.(0|[1-9][0-9]{0,9})$/.exec(version);
+  if (!match) return false;
+  const [major, minor, patch] = match.slice(1).map(Number);
+  if ([major, minor, patch].some(value => value > 2147483647)) return false;
+  return major > 5 || (major === 5 && (minor > 2 || (minor === 2 && patch >= 3)));
+}
+
 function quantity(raw, unit, low, high) {
   const text = String(raw);
   if (!text.endsWith(' ' + unit)) throw new Error('Astro quantity unit mismatch');
@@ -17,6 +26,7 @@ function quantity(raw, unit, low, high) {
 }
 
 function buildContext(adapter) {
+  if (!supportedBindingVersion(adapter.bindingVersion)) throw new Error('Astro binding 5.2.3 or later required');
   const days = [];
   const sunrise = new Map();
   const rise = index => {
@@ -41,7 +51,7 @@ function buildContext(adapter) {
       noonReferenceRadiationWm2: quantity(adapter.radiation(i), 'W/m²', 0, 1500)});
   }
   const result = {version: 1, schema: SCHEMA, sourceThing: SOURCE,
-    calculationVersion: 'openhab-astro-5.2.1', timezone: adapter.timezone,
+    calculationVersion: 'openhab-astro-' + adapter.bindingVersion, timezone: adapter.timezone,
     geolocation: adapter.geolocation, recordedAt: adapter.recordedAt,
     validUntil: adapter.validUntil, days};
   const body = JSON.stringify(result);
@@ -50,24 +60,31 @@ function buildContext(adapter) {
 }
 
 function publish() {
+  let reason = 'source_unavailable';
+  const withhold = code => console.warn('Astro forecast context withheld: ' + code);
   try {
     const {actions, things, items, osgi} = require('openhab');
     const thing = things.getThing(SOURCE);
-    if (String(thing.status) !== 'ONLINE') return;
+    if (String(thing.status) !== 'ONLINE') { withhold('source_offline'); return; }
     const sun = actions.get('astro', SOURCE);
-    if (!sun) return;
+    if (!sun) { withhold('actions_missing'); return; }
+    if (!['getEventTime', 'getElevation', 'getAzimuth', 'getTotalRadiation']
+      .every(name => typeof sun[name] === 'function')) { withhold('actions_incomplete'); return; }
     const FrameworkUtil = Java.type('org.osgi.framework.FrameworkUtil');
     const bundles = FrameworkUtil.getBundle(Java.type('org.openhab.core.OpenHAB')).getBundleContext().getBundles();
     const binding = Array.from(bundles).find(bundle => String(bundle.getSymbolicName()) === 'org.openhab.binding.astro');
-    if (!binding || String(binding.getVersion()) !== '5.2.1') return;
+    const bindingVersion = binding && String(binding.getVersion());
+    if (!supportedBindingVersion(bindingVersion)) { withhold('binding_unsupported'); return; }
+    reason = 'site_or_timezone_unavailable';
     const zone = osgi.getService('org.openhab.core.i18n.TimeZoneProvider').getTimeZone();
     const ZonedDateTime = Java.type('java.time.ZonedDateTime');
     const now = ZonedDateTime.now(zone);
     const first = now.toLocalDate();
     const configuration = thing.rawThing.getConfiguration();
     const atNoon = index => first.plusDays(index).atTime(12, 0).atZone(zone);
+    reason = 'native_action_or_quantity_invalid';
     const body = buildContext({
-      timezone: String(zone.getId()), geolocation: String(configuration.get('geolocation')),
+      bindingVersion, timezone: String(zone.getId()), geolocation: String(configuration.get('geolocation')),
       recordedAt: String(now.toInstant()),
       validUntil: String(first.plusDays(1).atStartOfDay(zone).toInstant()),
       day: index => String(first.plusDays(index)),
@@ -76,9 +93,10 @@ function publish() {
       azimuth: index => sun.getAzimuth(atNoon(index)),
       radiation: index => sun.getTotalRadiation(atNoon(index)),
     });
+    reason = 'output_unavailable';
     items.getItem(OUTPUT).postUpdate(body);
   } catch (_) {
-    console.warn('Astro forecast context unavailable; no calculated receipt published');
+    withhold(reason);
   }
 }
 

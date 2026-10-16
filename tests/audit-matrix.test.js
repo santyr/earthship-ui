@@ -90,7 +90,6 @@ describe('canonical UI audit matrix', () => {
       'CONTROLS-SAFETY',
       'OPENHAB-MAINUI-ACTUATORS',
       'DEPLOY-USER-SERVICE',
-      'SECURITY-TOKEN-ROTATION',
       'DEVICE-M9-SIGNOFF',
       'WEATHER-DETAIL-MODAL',
     ])));

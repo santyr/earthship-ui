@@ -1,4 +1,7 @@
 <script>
+  import { itemUpdateEvidence, thingStatuses } from '../lib/openhab/store.js';
+  import { nativeCurrentSkyContext, nativeDaylightText, siteTimeLabel } from '../lib/weather/astroPresentation.js';
+
   // Task 3.1 — LIVE dense Home console. Binds real openHAB items (Task 0.1-3.0
   // infra), renders real icons via OhIcon, and makes weather/battery/solar/
   // wind/rain/baro tiles clickable -> openChart(). Indoor added alongside
@@ -48,7 +51,7 @@
     uvIndexColor,
     windSpeedColor,
   } from '../lib/ui/homeCardState.js';
-  import { items, connection, num, fmt, socBands, runtimeText, splitRoundedMinutes, getClientOnce } from '../lib/openhab';
+  import { items, connection, num, fmt, socBands, runtimeText, getClientOnce } from '../lib/openhab';
   import { openChart } from '../lib/ui/chartStore.js';
   import { openWeatherDetail } from '../lib/weather/detailStore.js';
   import {
@@ -259,40 +262,12 @@
   // ---- Small null-safe formatting helpers ----------------------------------
 
 
-  function formatTime(iso) {
-    if (!iso || iso === 'NULL' || iso === 'UNDEF') return '—';
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return '—';
-    return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-  }
-
-  // Compact form for cramped tiles: "5:54 AM" -> "5:54a" (no space, single
-  // lowercase letter) so it doesn't wrap in the narrow Sun & Moon tile.
-  function formatTimeShort(iso) {
-    const t = formatTime(iso);
-    if (t === '—') return t;
-    return t.replace(/\s?([AP])M$/i, (_, p) => p.toLowerCase());
-  }
-
   function prettifyMoon(name) {
     if (!name || name === 'NULL' || name === 'UNDEF') return '—';
     return String(name)
       .replace(/_/g, ' ')
       .toLowerCase()
       .replace(/\b\w/g, (c) => c.toUpperCase());
-  }
-
-  function daylightText(riseIso, setIso) {
-    if (!riseIso || !setIso || riseIso === 'NULL' || setIso === 'NULL' || riseIso === 'UNDEF' || setIso === 'UNDEF')
-      return '—';
-    const r = new Date(riseIso);
-    const s = new Date(setIso);
-    if (Number.isNaN(r.getTime()) || Number.isNaN(s.getTime())) return '—';
-    const diffMs = s - r;
-    if (diffMs <= 0) return '—';
-    // Round to whole minutes first, then carry into hours (never "14h 60m").
-    const { hours: h, minutes: m } = splitRoundedMinutes(diffMs / 60000);
-    return `${h}h ${m}m`;
   }
 
   function onKeyActivate(e, fn) {
@@ -340,8 +315,11 @@
   const netTodayColor = $derived(netStateColor(netToday));
 
   const outdoorTemp = $derived(num($items.AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature));
+  const astroContext = $derived({ states:$items, evidence:$itemUpdateEvidence, now:Math.max(wallClock, Date.now()),
+    connected:$connection === 'live', sunOnline:$thingStatuses['astro:sun:local']?.status === 'ONLINE',
+    moonOnline:$thingStatuses['astro:moon:local']?.status === 'ONLINE' });
   const outdoorConditionIcon = $derived(selectOutdoorConditionIcon($items.SkyConditionIcon, {
-    at: wallClock, sunrise: $items.Sun_Rise_Start, sunset: $items.Sun_Set_End,
+    ...nativeCurrentSkyContext(astroContext),
   }));
   const outdoorIconColor = $derived(outdoorTemperatureIconColor(outdoorTemp));
   const currentAqi = $derived(adaptCurrentAqi($items.Current_US_AQI));
@@ -442,10 +420,10 @@
   const btcPctText = $derived(btcPct === null ? '—' : `${btcPct >= 0 ? '+' : ''}${btcPct.toFixed(2)}%`);
   const btcPctColor = $derived(bitcoinStateColor(btcPct));
 
-  const sunRiseText = $derived(formatTimeShort($items.Sun_Rise_Start));
-  const sunSetText = $derived(formatTimeShort($items.Sun_Set_End));
+  const sunRiseText = $derived(siteTimeLabel($items.Sun_Rise_Start));
+  const sunSetText = $derived(siteTimeLabel($items.Sun_Set_End));
   const moonText = $derived(prettifyMoon($items.Moon_MoonPhaseName));
-  const daylight = $derived(daylightText($items.Sun_Rise_Start, $items.Sun_Set_End));
+  const daylight = $derived(nativeDaylightText(astroContext));
 
   // ---- Click-to-chart handlers ----------------------------------------------
   function openOutdoorChart() {

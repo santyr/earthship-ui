@@ -1,3 +1,4 @@
+import { HOUSEHOLD_TIMEZONE } from '../site.js';
 export const FORECAST_DETAIL_ITEM = 'Forecast_10Day_JSON';
 export const FORECAST_DETAIL_MAX_BYTES = 64 * 1024;
 export const FORECAST_DETAIL_STALE_MS = 4 * 60 * 60 * 1_000;
@@ -15,7 +16,7 @@ function unavailable(reason) {
     status: 'unavailable',
     reason,
     generatedAtMs: null,
-    timezone: 'America/Denver',
+    timezone: HOUSEHOLD_TIMEZONE,
     days: Object.freeze([]),
   });
 }
@@ -132,7 +133,7 @@ export function parseForecast10Day(raw, { nowMs = Date.now() } = {}) {
     const temperatureAdjustment = parsed.version === 2
       ? normalizeTemperatureAdjustment(parsed.temperatureAdjustment)
       : null;
-    if (parsed.timezone !== 'America/Denver') throw new TypeError('unexpected forecast timezone');
+    if (parsed.timezone !== HOUSEHOLD_TIMEZONE) throw new TypeError('unexpected forecast timezone');
     if (!OFFSET_TIMESTAMP.test(parsed.generatedAt ?? '')) {
       throw new TypeError('generatedAt must include an offset');
     }

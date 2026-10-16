@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('svelte', async () => import(
-  `${process.cwd()}/node_modules/svelte/src/index-client.js`
+  '../../node_modules/svelte/src/index-client.js'
 ));
 
 import DailyForecast from '../../src/lib/ui/DailyForecast.svelte';

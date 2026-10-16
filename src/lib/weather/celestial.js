@@ -30,10 +30,14 @@ export function isDaylight({ isDay, at, sunrise, sunset } = {}) {
 
 export function contextualSkyIcon(icon, context) {
   const day = isDaylight(context);
-  if (day === null) return icon;
   const name = String(icon).replace(/^iconify:/, '');
+  if (day === null) {
+    // A retained current moon icon is not evidence of today's phase or sun bounds.
+    if (context?.currentMoonIcon !== undefined && /^(?:mdi:moon-[a-z-]+|mdi:weather-night|bi:moon(?:-fill)?)$/.test(name)) return 'mdi:weather-night';
+    return icon;
+  }
   if (/^(?:mdi:white-balance-sunny|mdi:weather-(?:sunny|night)|mdi:moon-[a-z-]+|bi:(?:sun|moon)(?:-fill)?)$/.test(name)) {
-    return day ? 'mdi:weather-sunny' : moonPhaseIcon(context.at);
+    return day ? 'mdi:weather-sunny' : (context.currentMoonIcon ?? moonPhaseIcon(context.at));
   }
   if (/^(?:mdi:weather-(?:night-)?partly-cloudy|bi:cloud-(?:sun|moon)(?:-fill)?)$/.test(name)) {
     return day ? 'mdi:weather-partly-cloudy' : 'mdi:weather-night-partly-cloudy';

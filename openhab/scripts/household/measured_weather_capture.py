@@ -22,12 +22,12 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self,*args,**kwargs):raise ValueError('fixed receiver redirects refused')
 
 
-def _http_get(*,kind,url,remaining):
+def _http_get(*,kind,url,remaining,opener=None):
     if kind not in SOURCES or url!=SOURCES[kind][1]:raise ValueError('fixed original receiver endpoint required')
     budget=remaining()
     if type(budget) not in (int,float) or not 0.001<=budget<=15.:raise ValueError('receiver budget unavailable')
     request=urllib.request.Request(url,method='GET',headers={'Accept':'application/json'})
-    opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),_NoRedirect())
+    if opener is None:opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),_NoRedirect())
     # Socket timeouts alone can be renewed by each byte of a trickled response.
     # The CLI runs on the main thread; refuse to replace another owner's timer.
     if threading.current_thread() is not threading.main_thread() or signal.getitimer(signal.ITIMER_REAL)!=(0.,0.):

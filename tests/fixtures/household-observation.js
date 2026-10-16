@@ -20,3 +20,14 @@ export function proposal() {
     decision_status: 'unknown', decision_reason: 'unqualified_effect',
     hard_checks: [{ rule: 'battery_reserve', status: 'unknown', reason: 'unqualified_effect' }] };
 }
+export function policyObservation() {
+  const v=observation(); v.schema='earthship-household-observation/v2';
+  const item=proposal(); Object.assign(item,{type:'RUN_GREYWATER_CYCLE',decision_status:'rejected',decision_reason:'after_dark',hard_checks:[{rule:'curfew_allowed',status:'rejected',reason:'after_dark'},{rule:'battery_reserve',status:'unknown',reason:'unqualified_effect'}]});
+  v.proposals=[item];
+  v.policy_comparison={schema:'earthship-household-policy-block-comparison/v1',status:'observed_block',reason:null,
+    owner:'hex_southoutlet_cycle',owner_reason:'after_dark',owner_scheduling:'blocked',evaluated_at:'2026-10-12T03:00:25Z',valid_until:'2026-10-12T03:02:25Z',
+    source_sha256:'e'.repeat(64),rule_sha256:'4c34780e544d80af8eb36d047a949fa30e0198bb50fa57650285052db3c52d9b',gate:'curfew_allowed',
+    comparisons:[{intent_id:item.intent_id,status:'matching_block',shadow_status:'rejected'}],
+    performance_status:'unavailable',performance_reason:'unqualified_effect',physical_permission:false,automatic_actuation:false};
+  return v;
+}

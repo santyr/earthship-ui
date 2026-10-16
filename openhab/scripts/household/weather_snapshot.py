@@ -1,9 +1,10 @@
 """Original forecast/operator context extends one common observational identity."""
 from dataclasses import dataclass
+from functools import cached_property
 from datetime import timedelta
 from .codec import canonical,loads,identity
 from .snapshot import HouseholdSnapshot
-from .model_snapshot import ModelSnapshot,bind_model_snapshot,MAX_SOURCE_BYTES
+from .model_snapshot import ModelSnapshot,MAX_SOURCE_BYTES
 from .weather_context import PreparedWeatherContext,project_weather,MAX_BYTES
 from .control_contracts import instant
 
@@ -21,8 +22,21 @@ def _row(role,value,unit,context,*,operator=False):
         reason=None,parent_digests=[capture['capture_sha256'],body['weather_sha256']]))
 
 
+def _geometry_row(value,*,capture,weather_sha256):
+    return dict(value=value,unit='solar_position_trajectory',reason=None,evidence=dict(
+        source_role='solar_geometry',source_identity=value['source_identity'],digest=value['series_sha256'],
+        source_epoch=None,hardware_epoch=None,observed_at=None,received_at=value['available_at'],
+        available_at=value['available_at'],valid_until=value['positions'][-1]['at'],
+        assessed_at=capture['issued_at'],quality='retained_native_calculation',reason=None,
+        parent_digests=[capture['capture_sha256'],weather_sha256,*value['cache_sha256s']]))
+
+
 def _render(source,weather,revision):
-    base=bind_model_snapshot(source_receipt=source,source_runtime_manifest=source['runtime_manifest'],thermal_inputs=weather.prepared,code_revision=revision)
+    from .model_snapshot import _render as render_model,describe_thermal
+    # The original model renderer validates source replay and descriptor.
+    # Compose its bounded document rather than constructing an intermediate
+    # ModelSnapshot which would render and validate the same originals again.
+    base=HouseholdSnapshot(canonical(render_model(source,describe_thermal(weather.prepared),revision)))
     doc=base.to_dict();base_id=doc.pop('snapshot_id');projection=project_weather(weather);capture=weather.original_capture;forecast=capture['inputs']['forecast']
     domain=doc['domains']['weather'];actions=projection['origin_states']
     fields={
@@ -32,6 +46,8 @@ def _render(source,weather,revision):
         'forecast_wind_trajectory':([dict(at=row['at'],wind_mph=row['windMph']) for row in projection['hourly_forecast']],'mph_trajectory'),
         'forecast_weather_codes':([dict(at=row['at'],weather_code=row['weatherCode']) for row in projection['hourly_forecast']],'code_trajectory')}
     for role,(value,unit) in fields.items():domain[role]=_row(role,value,unit,weather)
+    if 'solar_geometry' in projection:
+        domain['solar_geometry']=_geometry_row(projection['solar_geometry'],capture=capture,weather_sha256=projection['weather_context_sha256'])
     doc['domains']['thermal']['shade_state']=_row('shade_state',dict(indoor_closed=actions['indoor_shade_closed'],outdoor_present=actions['outdoor_shade_present'],actuator_position=None),'state',weather,operator=True)
     doc['domains']['thermal']['ventilation_state']=_row('ventilation_state',dict(legacy_coarse_open=actions['vent_open'],provenance=actions['vent_provenance'],window=None,skylight=None),'state',weather,operator=True)
     if actions['mode']!='unknown':domain['season_mode']=_row('season_mode',actions['mode'],'state',weather,operator=True)
@@ -53,7 +69,8 @@ class WeatherSnapshot(ModelSnapshot):
         weather=PreparedWeatherContext(self.original_weather)
         if canonical(_render(loads(self.original_source),weather,doc['code_revision']))!=self.content:raise ValueError('original weather snapshot differs')
 
-    @property
+    # Only immutable original context is reused; freshness is assessed by the planner.
+    @cached_property
     def weather(self):return PreparedWeatherContext(self.original_weather)
 
     @property

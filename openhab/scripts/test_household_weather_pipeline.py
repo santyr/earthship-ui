@@ -154,3 +154,32 @@ def test_weather_stale_sources_and_translator_remain_fail_closed(tmp_path,monkey
     intent=parse_intent(canonical(result['output']['no_action_intent']).decode(),snapshot=snap,now=at)
     with pytest.raises(ContractRefused) as error:intent_to_request(intent)
     assert error.value.reason_code=='planner_authority_disabled'
+
+
+def test_one_snapshot_reuses_immutable_weather_validation_during_planning(tmp_path,monkeypatch):
+    snap,context,prepared,_=make(tmp_path,monkeypatch)
+    from household import weather_context
+    from household.weather_context import project_weather
+    original=weather_context._original;validated=[]
+    def validate(value):
+        validated.append(value['weather_sha256'])
+        return original(value)
+    monkeypatch.setattr(weather_context,'_original',validate)
+    expected=project_weather(context)
+    result=model_pipeline(snap,prepared)
+    assert result['inputs']['source_contexts'][snap.snapshot_id]['weather_inputs']==context.to_dict()
+    assert project_weather(snap.weather)==expected
+    detached=snap.weather.original_capture;detached['inputs']['forecast']['rows'][0]['windMph']+=1
+    assert project_weather(snap.weather)==expected
+    assert validated==[context.to_dict()['weather_sha256']]
+
+
+def test_reused_weather_context_does_not_cache_source_freshness(tmp_path,monkeypatch):
+    from datetime import timedelta
+    snap,context,prepared,_=make(tmp_path,monkeypatch)
+    before=model_pipeline(snap,prepared)
+    stale=model_pipeline(snap,prepared,now=instant(snap.to_dict()['as_of'])+timedelta(seconds=101))
+    assert snap.weather.to_dict()==context.to_dict()
+    assert before['output']['candidate_generation']['status']=='generated_shadow_only'
+    assert stale['output']['candidate_generation']['status']=='unavailable'
+    assert stale['output']['candidate_generation']['reason']=='source_stale'

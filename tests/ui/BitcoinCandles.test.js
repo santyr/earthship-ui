@@ -3,7 +3,7 @@ import { cleanup, render, waitFor } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('svelte', async () => import(
-  process.cwd() + '/node_modules/svelte/src/index-client.js'
+  '../../node_modules/svelte/src/index-client.js'
 ));
 
 const mocks = vi.hoisted(() => {

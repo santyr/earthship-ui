@@ -1,0 +1,27 @@
+// Preserve the original Moon display identities, Point semantics and channel links.
+// Install only after the managed providers have been withdrawn.
+DateTime Moon_Apogee_Date "Date" (Moon) ["Point"] { channel="astro:moon:local:apogee#date" }
+Number:Length Moon_Apogee_Distance "Distance" (Moon) ["Point"] { channel="astro:moon:local:apogee#distance" }
+Number:Angle Moon_Azimuth "Azimuth" (Moon) ["Point"] { channel="astro:moon:local:position#azimuth" }
+DateTime Moon_Distance_Date "Date" (Moon) ["Point"] { channel="astro:moon:local:distance#date" }
+Number:Length Moon_Distance_Distance "Distance" (Moon) ["Point"] { channel="astro:moon:local:distance#distance" }
+Number:Angle Moon_Eclipse_PartialElevation "Elevation" (Moon) ["Point"] { channel="astro:moon:local:eclipse#partialElevation" }
+Number:Angle Moon_Eclipse_TotalElevation "Elevation" (Moon) ["Point"] { channel="astro:moon:local:eclipse#totalElevation" }
+DateTime Moon_FirstQuarter "First Quarter" (Moon) ["Point"] { channel="astro:moon:local:phase#firstQuarter" }
+DateTime Moon_FullMoon "Full Moon" (Moon) ["Point"] { channel="astro:moon:local:phase#full" }
+DateTime Moon_NewMoon "New Moon" (Moon) ["Point"] { channel="astro:moon:local:phase#new" }
+DateTime Moon_PartialMoonEclipse "Partial Moon Eclipse" (Moon) ["Point"] { channel="astro:moon:local:eclipse#partial" }
+DateTime Moon_Perigee_Date "Date" (Moon) ["Point"] { channel="astro:moon:local:perigee#date" }
+Number:Length Moon_Perigee_Distance "Distance" (Moon) ["Point"] { channel="astro:moon:local:perigee#distance" }
+Number:Time Moon_Phase_Age "Moon Age" (Moon) ["Point"] { channel="astro:moon:local:phase#age" }
+Number:Angle Moon_Phase_AgeDegree "Moon Age" (Moon) ["Point"] { channel="astro:moon:local:phase#ageDegree" }
+Number:Dimensionless Moon_Phase_AgePercent "Moon Age" (Moon) ["Point"] { channel="astro:moon:local:phase#agePercent" }
+Number:Angle Moon_Position_Elevation "Elevation" (Moon) ["Point"] { channel="astro:moon:local:position#elevation" }
+DateTime Moon_Rise_End "End Time" (Moon) ["Point"] { channel="astro:moon:local:rise#end" }
+DateTime Moon_Rise_Start "Start Time" (Moon) ["Point"] { channel="astro:moon:local:rise#start" }
+DateTime Moon_Set_End "End Time" (Moon) ["Point"] { channel="astro:moon:local:set#end" }
+DateTime Moon_Set_Start "Start Time" (Moon) ["Point"] { channel="astro:moon:local:set#start" }
+Number Moon_ShadeLengthRatio "Shade Length Ratio" (Moon) ["Point"] { channel="astro:moon:local:position#shadeLength" }
+String Moon_Sign "Sign" (Moon) ["Point"] { channel="astro:moon:local:zodiac#sign" }
+DateTime Moon_ThirdQuarter "Third Quarter" (Moon) ["Point"] { channel="astro:moon:local:phase#thirdQuarter" }
+DateTime Moon_TotalMoonEclipse "Total Moon Eclipse" (Moon) ["Point"] { channel="astro:moon:local:eclipse#total" }

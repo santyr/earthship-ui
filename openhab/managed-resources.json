@@ -151,7 +151,7 @@
       "rule": {
         "uid": "hex_southoutlet_cycle",
         "name": "SouthOutlet SOC-Gated Cycle",
-        "source": "openhab/rules/southoutlet-cycle.js",
+        "source": "openhab/rules/southoutlet-cycle-installed.js",
         "triggers": [
           {
             "id": "cron",
@@ -178,10 +178,11 @@
       },
       "protectedDependencies": [
         "SouthOutlet_Outlet2_Switch",
+        "East_Bed_Socket_Outlet_2_Power",
         "SouthOutlet_LastAutoRun",
         "SouthOutlet_AutoStatus",
         "SouthOutlet_LowSocCutoff",
-        "BMS_SOC",
+        "BMS_SOC_Evidence_JSON",
         "BMS_Comms_Status",
         "DCData_Voltage",
         "SkyCondition",
@@ -195,10 +196,11 @@
           }
         ],
         "protectedActuators": [
-          "SouthOutlet_Outlet2_Switch"
+          "SouthOutlet_Outlet2_Switch",
+          "East_Bed_Socket_Outlet_2_Power"
         ],
         "safetyInputs": [
-          "BMS_SOC",
+          "BMS_SOC_Evidence_JSON",
           "BMS_Comms_Status",
           "DCData_Voltage",
           "SouthOutlet_LowSocCutoff",

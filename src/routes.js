@@ -1,7 +1,7 @@
 // Tiny hash router — no dependency.
 import { writable } from 'svelte/store';
 
-export const ROUTES = ['home', 'energy', 'weather', 'earthship', 'shades', 'controls', 'household', 'ventilation'];
+export const ROUTES = ['home', 'energy', 'weather', 'earthship', 'shades', 'controls', 'ventilation'];
 const DEFAULT_ROUTE = 'home';
 
 // Pure: hash string -> route name. Unknown/empty hash falls back to default.
@@ -10,6 +10,7 @@ export function parseHash(hash) {
   const name = String(hash ?? '')
     .trim()
     .replace(/^#\/?/, '');
+  if (name === 'household') return 'earthship';
   return ROUTES.includes(name) ? name : DEFAULT_ROUTE;
 }
 
@@ -20,7 +21,7 @@ export const currentRoute = writable(parseHash(initialHash));
 // Falls back to setting the store directly when no browser location exists
 // (e.g. under test).
 export function navigate(name) {
-  const route = ROUTES.includes(name) ? name : DEFAULT_ROUTE;
+  const route = parseHash(name);
   if (typeof location !== 'undefined') {
     location.hash = `/${route}`;
   } else {

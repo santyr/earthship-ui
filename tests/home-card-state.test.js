@@ -25,7 +25,6 @@ import {
   localDayHistoryRange,
   maxHistoryValue,
   netStateColor,
-  nextSeasonEvent,
   outdoorConditionIcon,
   outdoorTemperatureIconColor,
   pressurePresentation,
@@ -83,43 +82,6 @@ describe('Home signed card state colors', () => {
     state = advanceGoatFeederTracker(state, 'UNDEF').tracker;
 
     expect(advanceGoatFeederTracker(state, 'ON').activated).toBe(false);
-  });
-
-  it('counts browser-local calendar days to the 2026 autumn equinox', () => {
-    expect(nextSeasonEvent(new Date(2026, 6, 18, 23, 30))).toMatchObject({
-      name: 'autumn equinox',
-      days: 66,
-      label: '66 days to autumn equinox',
-    });
-  });
-
-  it('uses singular and event-day seasonal wording', () => {
-    expect(nextSeasonEvent(new Date(2026, 8, 21, 12))).toMatchObject({
-      days: 1,
-      label: '1 day to autumn equinox',
-    });
-    expect(nextSeasonEvent(new Date(2026, 8, 22, 23))).toMatchObject({
-      days: 0,
-      label: 'autumn equinox today',
-    });
-  });
-
-  it('counts local calendar days across daylight-saving changes', () => {
-    expect(nextSeasonEvent(new Date(2026, 2, 7, 23))).toMatchObject({
-      name: 'spring equinox',
-      days: 13,
-    });
-  });
-
-  it('rolls from the December solstice to the next spring equinox', () => {
-    expect(nextSeasonEvent(new Date(2026, 11, 22, 12))).toMatchObject({
-      name: 'spring equinox',
-    });
-  });
-
-  it('declines dates outside the supported astronomical approximation', () => {
-    expect(nextSeasonEvent(new Date(1999, 0, 1))).toBeNull();
-    expect(nextSeasonEvent(new Date('invalid'))).toBeNull();
   });
 
   it.each([
@@ -617,11 +579,7 @@ describe('Home signed card state colors', () => {
     expect(home).toMatch(/\.sunmoon-body\s*\{[^}]*justify-content:\s*center/is);
   });
 
-  it('rounds daylight to whole minutes before carrying into hours', () => {
-    // Boundary bug: 14 h 59.7 m must render "15h 0m", never "14h 60m".
-    expect(home).toContain('splitRoundedMinutes');
-    expect(home).not.toContain('Math.round((diffMs % 3600000) / 60000)');
-  });
+
 
   it('uses stronger smoothing only for the compact Baro sparkline', () => {
     expect(home).toMatch(

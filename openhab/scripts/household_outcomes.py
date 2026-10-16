@@ -31,14 +31,14 @@ def original_plan_runtime(plan,*,actual):
         'household_plan.py','household_pipeline.py','forecast_intel.py','hourly_temperature_runtime.py'))
     required.update(('companion/earthship_energy/db.py','companion/earthship_energy/bms_evidence.py',
         'openhab/managed-resources.json','openhab/file-config/ownership.json'))
-    if plan.get('schema') in ('earthship-household-model-plan-receipt/v2','earthship-household-shadow-plan-receipt/v2','earthship-household-model-plan-receipt/v3','earthship-household-shadow-plan-receipt/v3','earthship-household-model-plan-receipt/v4','earthship-household-shadow-plan-receipt/v4','earthship-household-model-plan-receipt/v5','earthship-household-shadow-plan-receipt/v5'):
+    if plan.get('schema') in ('earthship-household-model-plan-receipt/v2','earthship-household-shadow-plan-receipt/v2','earthship-household-model-plan-receipt/v3','earthship-household-shadow-plan-receipt/v3','earthship-household-model-plan-receipt/v4','earthship-household-shadow-plan-receipt/v4','earthship-household-model-plan-receipt/v5','earthship-household-shadow-plan-receipt/v5','earthship-household-model-plan-receipt/v6'):
         required.update('openhab/scripts/household/'+name+'.py' for name in ('model_snapshot','power_snapshot','power_capture'))
         required.update(POWER_COMPANIONS)
-        if plan['schema'].endswith(('/v3','/v4','/v5')):required.update('openhab/scripts/household/'+name+'.py' for name in ('weather_context','weather_snapshot'))
-        if plan['schema'].endswith(('/v4','/v5')):
+        if plan['schema'].endswith(('/v3','/v4','/v5','/v6')):required.update('openhab/scripts/household/'+name+'.py' for name in ('weather_context','weather_snapshot'))
+        if plan['schema'].endswith(('/v4','/v5','/v6')):
             required.update('openhab/scripts/household/'+name+'.py' for name in ('energy_configuration','energy_configuration_capture','energy_source_snapshot','energy_outcome_sources'))
             required.add('openhab/scripts/advisory_windows.py')
-        if plan['schema'].endswith('/v5'):
+        if plan['schema'].endswith(('/v5','/v6')):
             required.update('openhab/scripts/household/'+name+'.py' for name in ('measured_weather','measured_weather_snapshot','measured_weather_capture'))
             required.update('openhab/scripts/'+name for name in MEASURED_VALIDATORS)
         verify_source_closure(plan,actual)

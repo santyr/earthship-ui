@@ -15,6 +15,72 @@ def _reason(value):
     return value
 
 
+def _policy_comparison(coordination,proposals,decision):
+    """Describe rederived original blocks, never eligibility or performance."""
+    from household.owner_policy import OWNER,BLOCKERS
+    from household.planning import GATES
+    observation=coordination['policy_observations'].get(OWNER)
+    value=dict(schema='earthship-household-policy-block-comparison/v1',status='unavailable',reason='source_unavailable',
+        owner=OWNER,owner_reason=None,owner_scheduling=None,evaluated_at=None,valid_until=None,
+        source_sha256=None,rule_sha256=None,gate=None,comparisons=[],performance_status='unavailable',
+        performance_reason='unqualified_effect',physical_permission=False,automatic_actuation=False)
+    if observation is not None:
+        value.update(owner_reason=observation['reason'],owner_scheduling=observation['scheduling'],
+            evaluated_at=observation['evaluated_at'],valid_until=observation['valid_until'],
+            source_sha256=observation['source_sha256'],rule_sha256=observation['rule_sha256'])
+        if instant(observation['evaluated_at'])>decision:raise ValueError('owner evaluation follows original decision')
+        if decision>=instant(observation['valid_until']):value['reason']='source_stale'
+        elif observation['reason'] in BLOCKERS:value.update(status='observed_block',reason=None,gate=BLOCKERS[observation['reason']])
+        else:value['reason']='eligibility_not_permission' if observation['scheduling']=='conditional' else 'owner_reason_not_comparable'
+    for proposal in proposals:
+        if proposal['type']!='RUN_GREYWATER_CYCLE':continue
+        check=None
+        if value['gate'] is not None:
+            matches=[row for row in proposal['hard_checks'] if row['rule']==value['gate']]
+            if len(matches)==1:check=matches[0]
+        status='unknown'
+        if check is not None and check['status']!='unknown':
+            status='matching_block' if check['status']=='rejected' and check['reason']==GATES[value['gate']] else 'different_gate_result'
+        value['comparisons'].append(dict(intent_id=proposal['intent_id'],status=status,shadow_status=None if check is None else check['status']))
+    return value
+
+
+
+def _qualification_report(view,registry):
+    """Evidence observed in this replay; no gate or intent is graduated here.
+
+    Called only after complete pipeline rederivation. Separate outcome,
+    uncertainty, owner and release audits are not part of an as-issued plan.
+    """
+    from household.planning import CAPABILITIES
+    missing=(('independent_windows','intent_windows_not_qualified'),
+        ('input_stability','input_sensitivity_not_qualified'),
+        ('model_error_uncertainty','action_model_error_not_qualified'),
+        ('baseline_comparison','policy_performance_not_qualified'),
+        ('reason_codes','operator_interpretation_not_qualified'),
+        ('no_planner_rollback','separate_release_rollback_not_qualified'),
+        ('no_provider_write_path','protected_write_audit_not_bound'),
+        ('owner_safety_recheck','owner_physical_safety_not_qualified'))
+    families=[]
+    def gate(key,observed,reason):
+        return dict(id=key,evidence_status='observed' if observed else 'unavailable',reason=reason)
+    for kind,capability_id in CAPABILITIES.items():
+        capability=registry['capabilities'].get(capability_id)
+        proposals=[row for row in view['proposals'] if row['type']==kind]
+        unknown=[row for row in proposals if any(check['status']=='unknown' for check in row['hard_checks'])]
+        if any(row['selected'] for row in unknown):raise ValueError('unknown original checks cannot authorize a proposal')
+        gates=[gate('deterministic_replay',True,'original_plan_replayed'),
+            gate('evidence_contracts',capability is not None,'original_source_contracts_replayed' if capability is not None else 'registered_capability_unavailable'),
+            gate('hard_constraints',bool(proposals),'original_family_checks_replayed' if proposals else 'no_family_proposal'),
+            gate('unknown_fails_closed',bool(unknown),'unknown_checks_blocked_in_original' if unknown else 'unknown_case_not_observed')]
+        gates.extend(gate(key,False,reason) for key,reason in missing)
+        families.append(dict(intent_type=kind,capability_id=capability_id,owner=None if capability is None else capability['ownerRule'],
+            proposal_count=len(proposals),status='not_qualified',release_authorized=False,gates=gates))
+    return dict(schema='earthship-household-intent-qualification/v1',scope='original_plan_evidence',status='not_qualified',
+        receipt_sha256=view['receipt_sha256'],snapshot_id=view['snapshot_id'],decision_at=view['decision_at'],
+        release_authorized=False,automatic_actuation=False,families=families)
+
+
 def observe_pipeline(receipt,*,runtime_manifest,thermal_runtime,observed_at):
     observed=utc(observed_at)
     original=replay_pipeline(receipt,runtime_manifest=runtime_manifest,thermal_runtime=thermal_runtime)
@@ -61,6 +127,9 @@ def observe_pipeline(receipt,*,runtime_manifest,thermal_runtime,observed_at):
         candidate_generation=dict(status=generation['status'],reason=_reason(generation['reason']),input_qualification=generation['input_qualification']),
         proposals=proposals,source_quality=sources,confidence='unavailable',effects_qualified=False,
         policy_comparison=dict(status='unavailable',reason=_reason(plan['baseline_reasons']['current_owner_policy'])))
+    if inputs['coordination']['schema']=='earthship-shadow-coordination/v3':
+        view.update(schema='earthship-household-observation/v3',policy_comparison=_policy_comparison(inputs['coordination'],proposals,decision))
+        view['qualification_report']=_qualification_report(view,inputs['registry'])
     if len(canonical(view))>MAX_BYTES:raise ValueError('bounded public observation required')
     return view
 
@@ -104,7 +173,8 @@ def _existing_view(path):
     try:raw,metadata=_private_file(path,MAX_BYTES)
     except FileNotFoundError:return None
     value=loads(raw)
-    if not isinstance(value,dict) or set(value)!=PUBLIC_FIELDS or value['schema']!='earthship-household-observation/v1':
+    fields=PUBLIC_FIELDS|({'qualification_report'} if value.get('schema')=='earthship-household-observation/v3' else set()) if isinstance(value,dict) else set()
+    if not isinstance(value,dict) or set(value)!=fields or value['schema'] not in ('earthship-household-observation/v1','earthship-household-observation/v2','earthship-household-observation/v3'):
         raise ValueError('existing target is not an observation cache')
     return raw,metadata
 
@@ -122,34 +192,36 @@ def _move_no_replace(directory_fd,source,target):
         raise OSError(code,os.strerror(code))
 
 
-def materialize(receipt_path,output_path,*,clock=lambda:datetime.now(timezone.utc)):
-    from household_pipeline import pipeline_runtime_manifest,verify_source_closure
-    from household.thermal_model import _execution_runtime
+def materialize(receipt_path,output_path,*,clock=lambda:datetime.now(timezone.utc),publication_guard=lambda:None):
+    from household_pipeline import pipeline_runtime_manifest,verify_source_closure,thermal_execution_runtime
     from household.pipeline import MAX_BYTES as RECEIPT_BYTES
+    publication_guard()
     source,target=Path(receipt_path).absolute(),Path(output_path).absolute()
     if source==target:raise ValueError('original receipt cannot be a publication target')
     directory=_directory(target.parent);previous=_existing_view(target)
     original=_private_file(source,RECEIPT_BYTES);record=loads(original[0]);version=record.get('schema')
-    expanded=version in ('earthship-household-model-plan-receipt/v2','earthship-household-model-plan-receipt/v3','earthship-household-model-plan-receipt/v4','earthship-household-model-plan-receipt/v5')
-    configured=version in ('earthship-household-model-plan-receipt/v4','earthship-household-model-plan-receipt/v5')
-    measured=version=='earthship-household-model-plan-receipt/v5'
+    expanded=version in ('earthship-household-model-plan-receipt/v2','earthship-household-model-plan-receipt/v3','earthship-household-model-plan-receipt/v4','earthship-household-model-plan-receipt/v5','earthship-household-model-plan-receipt/v6')
+    configured=version in ('earthship-household-model-plan-receipt/v4','earthship-household-model-plan-receipt/v5','earthship-household-model-plan-receipt/v6')
+    measured=version in ('earthship-household-model-plan-receipt/v5','earthship-household-model-plan-receipt/v6')
     def runtime():return pipeline_runtime_manifest(expanded=expanded,configured=configured,measured=measured)
     executing=runtime();root=Path(__file__).resolve().parent
-    thermal=None if record['inputs']['thermal_inputs'] is None else _execution_runtime(root)
+    thermal=thermal_execution_runtime(root,record['inputs']['thermal_inputs'])
     own=Path(__file__).read_bytes()
     if expanded:verify_source_closure(record,executing)
     view=observe_pipeline(record,runtime_manifest=executing,thermal_runtime=thermal,observed_at=clock());encoded=canonical(view)
+    publication_guard()
     directory_fd=os.open(target.parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
-    temp='.household-observation-'+secrets.token_hex(16);displaced=None;published=False;created=False
+    temp='.household-observation-'+secrets.token_hex(16);displaced=None;published=False;created=False;installed=False;installed_identity=None
     try:
         info=os.fstat(directory_fd)
         if (info.st_dev,info.st_ino,info.st_mode)!=directory:raise ValueError('publication directory changed')
         fd=os.open(temp,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600,dir_fd=directory_fd);created=True
         with os.fdopen(fd,'wb') as stream:stream.write(encoded);stream.flush();os.fsync(stream.fileno())
         if (_private_file(source,RECEIPT_BYTES)!=original or runtime()!=executing or Path(__file__).read_bytes()!=own or
-            (None if thermal is None else _execution_runtime(root))!=thermal or _directory(target.parent)!=directory or
+            thermal_execution_runtime(root,record['inputs']['thermal_inputs'])!=thermal or _directory(target.parent)!=directory or
             _existing_view(target)!=previous or _directory(target.parent)!=directory):
             raise ValueError('source, runtime or publication target changed')
+        publication_guard()
         if previous is not None:
             backup='.household-observation-displaced-'+secrets.token_hex(16)
             _move_no_replace(directory_fd,target.name,backup);displaced=backup
@@ -158,14 +230,24 @@ def materialize(receipt_path,output_path,*,clock=lambda:datetime.now(timezone.ut
             # mtime must still match. Unknown displaced files are restored.
             if saved[0]!=previous[0] or saved[1][:-1]!=previous[1][:-1]:
                 raise ValueError('publication target changed')
+        publication_guard()
+        temporary=os.stat(temp,dir_fd=directory_fd,follow_symlinks=False)
+        installed_identity=(temporary.st_dev,temporary.st_ino)
         try:os.link(temp,target.name,src_dir_fd=directory_fd,dst_dir_fd=directory_fd,follow_symlinks=False)
         except FileExistsError:raise ValueError('publication target changed') from None
+        installed=True
         os.unlink(temp,dir_fd=directory_fd);created=False
         if _private_file(Path(target.name),MAX_BYTES,directory_fd=directory_fd)[0]!=encoded or _directory(target.parent)!=directory:
             raise ValueError('publication readback differs')
+        publication_guard()
         os.fsync(directory_fd);published=True
     finally:
         try:
+            if installed and not published:
+                try:current=os.stat(target.name,dir_fd=directory_fd,follow_symlinks=False)
+                except FileNotFoundError:pass
+                else:
+                    if (current.st_dev,current.st_ino)==installed_identity:os.unlink(target.name,dir_fd=directory_fd)
             if displaced is not None:
                 if published:os.unlink(displaced,dir_fd=directory_fd)
                 else:
@@ -175,8 +257,16 @@ def materialize(receipt_path,output_path,*,clock=lambda:datetime.now(timezone.ut
                     except FileExistsError:pass
             if created:os.unlink(temp,dir_fd=directory_fd)
         finally:os.close(directory_fd)
+    # Optional reporting consumes this successful replay, never a second model run.
+    chronology='unavailable'
+    try:
+        from household_chronology import retain_and_summarize
+        retain_and_summarize(record,view,directory=target.parent,generated_at=clock(),guard=publication_guard)
+        chronology='written'
+    except (OSError,ValueError,RecursionError):
+        pass
     return dict(status='observation_written',receipt_sha256=view['receipt_sha256'],snapshot_id=view['snapshot_id'],
-        observation_sha256=sha256(encoded).hexdigest(),planner_mode=view['planner_mode'],automatic_actuation=False)
+        observation_sha256=sha256(encoded).hexdigest(),planner_mode=view['planner_mode'],automatic_actuation=False,chronology_status=chronology)
 
 
 def main(argv=None):
