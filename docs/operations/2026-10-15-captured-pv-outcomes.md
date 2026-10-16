@@ -58,4 +58,21 @@ The final review found one Important admission issue, now fixed: a solar cohort
 does not bind original current-PV availability or its stream epoch. Ineligible
 chosen originals are excluded before queue admission, preserving their original
 selection and allowing later valid comparisons to advance. No repeat review is
-required. Deployment and natural-score evidence remain pending. Full PR #3 remains incomplete and actuator requests stay disabled.
+required. Deployment and natural-score evidence follow. Full PR #3 remains incomplete and actuator requests stay disabled.
+
+Source `dd16b98` activated at 2026-10-15T23:51:39.876899+00:00 as deployment
+`33bf61cfe8559ed10fc627510af49529c64e29db2c98cef2164acfebfc0c26c7`. All five owned definitions, three timers,
+both scoring calendars and HTTP endpoints pass effective readback. The complete
+thermal artifact `188a42a8` and daily service unit remain unchanged. The clean idle
+daily source is advanced without starting its job. No fit, manual forecast,
+qualification probe or service restart occurred.
+
+The normal 2026-10-15T23:58:26.424973+00:00 opportunity retained the original
+2026-10-15T15:50:15+00:00 forecast's first captured-PV comparison. Qualified
+controller output was 2.511182 kWh over
+3599.710 seconds (99.9919% coverage); the
+frozen constant-load scenario predicted 2.846700 kWh and current-PV
+persistence predicted 2.474801 kWh over that same
+duration. Exact activated CLI replay matches the full saved score, and all
+external original files remain unchanged. This is one origin/day, not established
+general skill. The learned-load model remains on its ordinary morning schedule.
