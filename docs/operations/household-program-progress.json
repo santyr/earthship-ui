@@ -9897,7 +9897,7 @@
       }
     },
     "contextual_recommendation_previews": {
-      "status": "review_corrected_pending_deployment",
+      "status": "deployed_preview_only",
       "design_approved": true,
       "document": "docs/operations/2026-10-16-contextual-recommendation-previews.md",
       "observation_schema": "earthship-household-observation/v4",
@@ -9922,7 +9922,27 @@
       "minor_expired_climate_history_deferred": true,
       "manifest_integration_corrected": true,
       "manifest_limit": 128,
-      "actual_measured_manifest_entries": 65
+      "actual_measured_manifest_entries": 65,
+      "deployed_source_commit": "e8946e45aabe61def5201e26478940461d621750",
+      "deployment_sha256": "36c0ee8c56eb676503563a6fc258906d7af8fe6d45acd807502f30406b86260f",
+      "model_artifact_sha256": "284139ee4ab464adca22e79eae741f740ee62ffcda9a1f86b1be550e8180fe9f",
+      "complete_model_unchanged": true,
+      "live_browser_cases": 10,
+      "live_browser_errors": 0,
+      "live_browser_mutations": 0,
+      "live_browser_outer_overflow": 0,
+      "unrelated_live_ui_files_preserved": 151,
+      "natural_observation_schema": "earthship-household-observation/v4",
+      "natural_decision_at": "2026-10-16T18:00:27.148062+00:00",
+      "natural_observed_at": "2026-10-16T18:00:34.586668+00:00",
+      "natural_body_sha256": "66946b9a017210be8b1b12b4db9927535ec674d255213c334ac2f9302fdad108",
+      "natural_release_authorized": false,
+      "natural_automatic_actuation": false,
+      "managed_definitions_verified": 5,
+      "timers_verified": 3,
+      "daily_unit_unchanged": true,
+      "daily_service_started": false,
+      "source_expiry_preserved": true
     }
   },
   "astro_efficiency_audit": {
