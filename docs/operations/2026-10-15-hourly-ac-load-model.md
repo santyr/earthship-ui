@@ -126,3 +126,17 @@ and exact activated CLI replay match the saved new receipt. The public curated
 GET returns HTTP 200 and exactly matches its issued receipt projection. This is
 verified publication of unavailability, not a trained-load forecast or skill
 claim.
+
+
+The first normal learned-load outcome report at2026-10-16T14:08:33.173872Z
+contains one qualified one-hour pair from one origin day/model version. AC
+energy absolute error is0.000255102kWh for the hourly profile versus
+0.022405726kWh for holding the original AC load constant. Nominal SoC error is
+0.281384 percentage points for learned-load PV/storage,0.399484 for constant
+AC PV/storage,1.030273 for constant battery power, and0 for hold-SoC.
+Therefore this single observation does not show overall dominance or establish
+independent-day skill, calibrated usable capacity or action effects. Longer
+learned-load horizons are still collecting. These are the existing scheduled
+scorer's curated results, not a manual forecast, fit or independently replayed
+outcome claim. The captured-PV report still has zero learned-load pairs at this
+checkpoint; its eligibility/progress remains a separate check.

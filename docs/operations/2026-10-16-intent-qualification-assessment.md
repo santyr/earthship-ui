@@ -65,5 +65,33 @@ stays separate from the three families with no proposal. All four remain
 unqualified, with48 explicit evidence rows. The actual generated18,072-byte
 view passes the browser contract; original files and unavailable policy
 baseline scores remain unchanged. No model fit, new forecast, live publication
-or qualification probe was performed by this replay. Final review, deployment
-and natural-publication evidence follow separately.
+or qualification probe was performed by this replay. The single final review found no Critical, Important or Minor issues; no
+correction or repeated review pass was needed.
+
+Reader source5e20b24 deployed at2026-10-16T13:57:09Z, preserving the old v2
+cache until the backend update. The observer activated at14:01:48Z as
+`5c3f7d8e5c039d0d163a5917b5a64faa262a6493c3758ad93c10f442d7cac2a3`.
+Complete thermal artifact284139ee and its original admission stayed unchanged.
+Effective readback at14:02:30Z verifies all five owned definitions, all three
+timers, both scoring calendars, native-only roles, shared resource limits and
+HTTP200 provisional model/forecast availability. The idle daily checkout now
+uses the same reviewed source with unchanged unit bytes. Unrelated UI overlays
+were preserved; no explicit service restart was used.
+
+The first natural v3 decision at2026-10-16T14:05:27.122284Z retained receipt
+`5fe5dc1e1351dfbcac8637067f6d35751864604bcb38bab21e832386cbbbf573`.
+Exact deployed CLI replay reproduces its qualification report and policy
+comparison identically, leaving the original unchanged. Real1280x800 laptop
+and1340x800 tablet checks verify four expandable families and48 evidence rows
+below existing Earthship content, with no action controls, outer overflow,
+page errors or mutation requests. Every family remains unqualified. No fit,
+fresh forecast, qualification probe or live publication was manually triggered.
+This deploys the evidence assessment; phase10 qualification and the full PR#3
+program remain incomplete.
+
+The separate native-history scoring opportunity at08:06MDT withheld at its
+deadline (`household_forecast_score.py:98` in the retained worker context).
+This operational issue remains open; the08:05 forecast/assessment and08:08
+independent outcomes completed successfully. The latter produced the first
+one-hour learned-load comparison, recorded in the hourly AC-load document.
+No forecast accuracy result changes the per-intent release assessment.
