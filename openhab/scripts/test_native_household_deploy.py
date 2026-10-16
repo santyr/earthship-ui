@@ -135,3 +135,21 @@ def test_native_runtime_probe_uses_external_pins_and_original_pressure_guard(tmp
     result=m.verify_runtime(stage)
     assert result['status']=='runtime_verified' and result['automatic_actuation'] is False
     assert 'preflight' in calls and 'pressure' in calls and calls.count('native_reader')==1
+
+
+@pytest.mark.parametrize('joint',[False,True])
+def test_only_versioned_joint_model_can_bind_a_new_base_runtime(tmp_path,joint):
+    from native_thermal_artifact import digest
+    args,files,candidate,settings=native_fixture(tmp_path)
+    candidate['runtime']['base_runtime']['code_revision']='c'*64
+    if joint:
+        candidate['schema']='earthship-provisional-thermal-candidate/v3'
+        candidate['fit']={'schema':'earthship-native-solar-provisional-fit/v2','model_rule':'earthship-native-joint-shade-dynamics/v3'}
+    candidate['runtime_sha256']=digest(candidate['runtime']);candidate['artifact_sha256']=digest(candidate,'artifact_sha256')
+    settings.update(runtime_sha256=candidate['runtime_sha256'],artifact_sha256=candidate['artifact_sha256'])
+    write(Path(settings['candidate_path']),encode(candidate));write(args['forecast_config'],encode(settings))
+    if not joint:
+        with pytest.raises(ValueError,match='original fitted base runtime'):api().stage_deployment(**args)
+    else:
+        api().stage_deployment(**args)
+        assert api().verify_stage(args['stage'])['protected_runtime_sources']==candidate['runtime']['base_runtime']['source_manifest']

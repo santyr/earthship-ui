@@ -158,7 +158,13 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
             baseline_candidate=_path(previous['candidate_path']);baseline_candidate_raw=_bytes(baseline_candidate,private=True)
             previous_model=json.loads(baseline_candidate_raw);base=previous_model['runtime']
             if previous.get('schema') in (NATIVE_CONFIG_SCHEMA,SERVING_CONFIG_SCHEMA):base=base['base_runtime']
-            if _encode(base)!=_encode(declared['runtime']['base_runtime']):
+            # A separately versioned, freshly admitted joint model necessarily
+            # binds its updated endpoint selector. Installed-only migrations
+            # still require their original fitted runtime unchanged.
+            joint=(declared['schema']=='earthship-provisional-thermal-candidate/v3' and
+                declared['fit'].get('schema')=='earthship-native-solar-provisional-fit/v2' and
+                declared['fit'].get('model_rule')=='earthship-native-joint-shade-dynamics/v3')
+            if _encode(base)!=_encode(declared['runtime']['base_runtime']) and not joint:
                 raise ValueError('native selection must preserve original fitted base runtime')
     _service_contract(service_raw,baseline)
     # Archive the immutable commit object, not the mutable index/worktree. A
