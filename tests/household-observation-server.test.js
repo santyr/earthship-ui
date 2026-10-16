@@ -81,3 +81,18 @@ it('serves the source-bound v3 assessment and refuses private or promoted qualif
   const denied=await fetch(`${base}/api/household-observation`);expect(denied.status).toBe(503);expect(await denied.text()).toBe('{"status":"unavailable"}');
  }
 });
+
+it('serves chronology only through its fixed GET route and withholds invalid nested evidence',async()=>{
+ const {default:summary}=await import('./fixtures/household-chronology.json');
+ const dir=await mkdtemp(join(tmpdir(),'household-chronology-'));await chmod(dir,0o700);disposals.push(()=>rm(dir,{recursive:true,force:true}));
+ const file=join(dir,'chronological-summary.json');await writeFile(file,JSON.stringify(summary),{mode:0o600});
+ let handler;householdObservationPlugin({chronologicalCachePath:file,now:()=>Date.parse(summary.generated_at)})
+  .configureServer({middlewares:{use(fn){handler=fn;}}});
+ const server=createServer((req,res)=>handler(req,res,()=>res.writeHead(404).end()));
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));disposals.push(()=>new Promise(resolve=>{server.close(resolve);server.closeAllConnections();}));
+ const url=`http://127.0.0.1:${server.address().port}/api/household-chronological-summary`;
+ expect((await fetch(url)).status).toBe(200);expect((await fetch(url,{method:'POST'})).status).toBe(405);
+ expect((await fetch(url+'?file=/private')).status).toBe(400);
+ const damaged=structuredClone(summary);damaged.version_groups[0].versions.models[0].raw='private';
+ await writeFile(file,JSON.stringify(damaged));const denied=await fetch(url);expect(denied.status).toBe(503);expect(await denied.text()).toBe('{"status":"unavailable"}');
+});

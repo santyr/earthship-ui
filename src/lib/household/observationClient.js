@@ -1,5 +1,6 @@
 import { OBSERVATION_MAX_BYTES } from './observation.js';
 
+export const loadChronologicalSummary = signal => load('/api/household-chronological-summary', signal);
 export const loadHouseholdObservation = signal => load('/api/household-observation', signal);
 export const loadEnergyObservation = signal => load('/api/household-energy-observation', signal);
 export const loadEnergyPerformance = signal => load('/api/household-energy-performance', signal);

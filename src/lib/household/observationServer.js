@@ -1,3 +1,4 @@
+import { parseChronologicalSummary } from './chronology.js';
 import { constants } from 'node:fs';
 import { open, realpath, stat, lstat } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
@@ -47,6 +48,7 @@ async function readObservation(path, nowMs, validate = parseHouseholdObservation
 /** Fixed file transport only: no receipt replay, model execution or command path. */
 export function householdObservationPlugin({
   cachePath = process.env.HOUSEHOLD_OBSERVATION_CACHE || resolve(homedir(), '.local/state/household-intel/observation.json'),
+  chronologicalCachePath = resolve(homedir(), '.local/state/household-intel/chronological-summary.json'),
   batteryCachePath = resolve(homedir(), '.local/state/household-intel/battery-performance.json'),
   energyCachePath = resolve(homedir(), '.local/state/household-intel/energy-observation.json'),
   energyPerformanceCachePath = resolve(homedir(), '.local/state/household-intel/energy-performance.json'),
@@ -59,6 +61,7 @@ export function householdObservationPlugin({
     let url;
     try { url = new URL(req.url || '/', 'http://localhost'); } catch { return next(); }
     const route = {
+      '/api/household-chronological-summary': [chronologicalCachePath, parseChronologicalSummary],
       '/api/household-observation': [cachePath, parseHouseholdObservation],
       '/api/household-captured-pv-performance': [capturedPvCachePath, parseCapturedPvPerformance],
       '/api/household-battery-performance': [batteryCachePath, parseBatteryPerformance],

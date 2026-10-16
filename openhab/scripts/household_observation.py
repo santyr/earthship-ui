@@ -257,8 +257,16 @@ def materialize(receipt_path,output_path,*,clock=lambda:datetime.now(timezone.ut
                     except FileExistsError:pass
             if created:os.unlink(temp,dir_fd=directory_fd)
         finally:os.close(directory_fd)
+    # Optional reporting consumes this successful replay, never a second model run.
+    chronology='unavailable'
+    try:
+        from household_chronology import retain_and_summarize
+        retain_and_summarize(record,view,directory=target.parent,generated_at=clock(),guard=publication_guard)
+        chronology='written'
+    except (OSError,ValueError):
+        pass
     return dict(status='observation_written',receipt_sha256=view['receipt_sha256'],snapshot_id=view['snapshot_id'],
-        observation_sha256=sha256(encoded).hexdigest(),planner_mode=view['planner_mode'],automatic_actuation=False)
+        observation_sha256=sha256(encoded).hexdigest(),planner_mode=view['planner_mode'],automatic_actuation=False,chronology_status=chronology)
 
 
 def main(argv=None):

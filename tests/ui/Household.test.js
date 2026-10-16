@@ -62,10 +62,10 @@ it('recalculates original expiry on polling and stops all requests after navigat
   vi.spyOn(Date, 'now').mockReturnValue(AT + 60_000);
   await vi.advanceTimersByTimeAsync(30_000);
   expect(container.textContent).toContain('Original plan expired');
-  expect(fetcher).toHaveBeenCalledTimes(6);
+  expect(fetcher).toHaveBeenCalledTimes(8);
   unmount();
   await vi.advanceTimersByTimeAsync(90_000);
-  expect(fetcher).toHaveBeenCalledTimes(6);
+  expect(fetcher).toHaveBeenCalledTimes(8);
 });
 
 it('expires the displayed plan independently of a slow network polling interval', async () => {
@@ -76,7 +76,7 @@ it('expires the displayed plan independently of a slow network polling interval'
   vi.spyOn(Date, 'now').mockReturnValue(AT + 60_000);
   await vi.advanceTimersByTimeAsync(1_000);
   expect(container.textContent).toContain('Original plan expired');
-  expect(fetcher).toHaveBeenCalledTimes(3);
+  expect(fetcher).toHaveBeenCalledTimes(4);
 });
 
 it('shows measured battery baseline errors and distinct empty horizons without requiring current planning', async () => {
@@ -146,4 +146,15 @@ it('shows twelve evidence gates for each intent while keeping every family unqua
  expect(region.textContent).toContain('Every intent family remains unqualified');
  expect(region.textContent).toContain('Original-plan evidence');
  expect(region.querySelector('button,form,input,select')).toBeNull();
+});
+
+it('shows chronological counts without claiming independent evidence or actuator permission',async()=>{
+ const {default:summary}=await import('../fixtures/household-chronology.json');
+ vi.spyOn(Date,'now').mockReturnValue(Date.parse(summary.generated_at));
+ vi.stubGlobal('fetch',async url=>new Response(JSON.stringify(url==='/api/household-chronological-summary'?summary:{status:'unavailable'})));
+ const {container,getByText}=render(HouseholdObservation);
+ await waitFor(()=>expect(getByText('3 original decisions')).toBeTruthy());
+ expect(container.textContent).toContain('2 Denver origin days');expect(container.textContent).toContain('2 non-overlapping forecast windows');
+ expect(container.textContent).toContain('Statistical independence and action benefits remain unqualified');
+ expect(container.querySelector('button, form, input, select')).toBeNull();
 });

@@ -9079,7 +9079,12 @@
         "duplicate_obsolete_role_assertion_removed": true,
         "production_source_changed": false,
         "new_deployment_required": false,
-        "fresh_complete_hosted_ci_verified": false
+        "fresh_complete_hosted_ci_verified": false,
+        "verified_green_runs": {
+          "CI": 38923317977,
+          "Forecast ML hardening": 38923317789,
+          "Thermal delivery qualification": 38923317765
+        }
       }
     },
     "per_intent_qualification_assessment": {
@@ -9795,6 +9800,29 @@
       "owner_physical_safety_qualified": false,
       "future_active_request_path_qualified": false,
       "release_authorized": false,
+      "full_goal_complete": false
+    },
+    "chronological_shadow_summary": {
+      "status": "implemented_pending_review_and_deployment",
+      "design_approved": true,
+      "document": "docs/operations/2026-10-16-chronological-shadow-summary.md",
+      "sampling": "distinct_original_replayed_plans",
+      "window_days": 7,
+      "separate_counts": [
+        "raw_decisions",
+        "denver_origin_days",
+        "non_overlapping_forecast_windows"
+      ],
+      "version_groups_separate": true,
+      "family_absence_is_not_exposure": true,
+      "statistical_independence_assessed": false,
+      "release_authorized": false,
+      "automatic_actuation": false,
+      "backend_affected_tests_passed": 68,
+      "frontend_tests_passed": 2550,
+      "fit_executed": false,
+      "extra_forecast_executed": false,
+      "resource_limits_changed": false,
       "full_goal_complete": false
     }
   },

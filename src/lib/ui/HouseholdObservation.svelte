@@ -1,13 +1,16 @@
 <script>
+  import { parseChronologicalSummary } from '../household/chronology.js';
   import { onMount } from 'svelte';
   import Tile from './Tile.svelte';
   import {QUALIFICATION_GATES,QUALIFICATION_FAMILIES} from '../household/qualification.js';
   import { parseHouseholdObservation } from '../household/observation.js';
-  import { loadHouseholdObservation, loadBatteryPerformance, loadCapturedPvPerformance } from '../household/observationClient.js';
+  import { loadHouseholdObservation, loadChronologicalSummary, loadBatteryPerformance, loadCapturedPvPerformance } from '../household/observationClient.js';
 
   import { parseCapturedPvPerformance } from '../household/capturedPvPerformance.js';
   import { parseBatteryPerformance } from '../household/batteryPerformance.js';
 
+  let chronologyRaw = $state(null);
+  const chronology = $derived(parseChronologicalSummary(chronologyRaw, { nowMs }));
   let capturedPvRaw = $state(null);
   const capturedPv = $derived(parseCapturedPvPerformance(capturedPvRaw, { nowMs }));
   let batteryRaw = $state(null);
@@ -27,12 +30,13 @@
       const current = new AbortController(); controller = current;
       deadline = setTimeout(() => current.abort(), 10_000);
       const results = await Promise.allSettled([
-        loadHouseholdObservation(current.signal), loadBatteryPerformance(current.signal), loadCapturedPvPerformance(current.signal),
+        loadHouseholdObservation(current.signal), loadBatteryPerformance(current.signal), loadCapturedPvPerformance(current.signal), loadChronologicalSummary(current.signal),
       ]);
       if (!stopped && controller === current) {
         raw = results[0].status === 'fulfilled' ? results[0].value : null;
         batteryRaw = results[1].status === 'fulfilled' ? results[1].value : null;
         capturedPvRaw = results[2].status === 'fulfilled' ? results[2].value : null;
+        chronologyRaw = results[3].status === 'fulfilled' ? results[3].value : null;
         nowMs = Date.now(); clearTimeout(deadline);
       }
     }
@@ -82,6 +86,38 @@
       <p>Verified observation unavailable</p>
       <p>Suggested action, model identities, effects and policy comparison are unavailable.</p>
     {/if}
+  </Tile>
+  <Tile label="Chronological shadow evidence">
+    {#if chronology}
+      {#if chronology.expired}<p class="notice">Chronological summary is stale</p>{/if}
+      <p>{chronology.counts.raw_decisions} original decisions</p>
+      <p>{chronology.counts.origin_days} Denver origin days · {chronology.counts.non_overlapping_windows} non-overlapping forecast windows</p>
+      <p>Last seven days, collected prospectively after original-plan replay. Reverification adds no decision. Windows use each original forecast horizon.</p>
+      <p>Planner available at issue: {chronology.counts.planner_available} / {chronology.counts.raw_decisions}. Decisions with unavailable source evidence: {chronology.counts.decisions_with_unavailable_sources}.</p>
+      <div class="source-table"><table>
+        <thead><tr><th>Intent family</th><th>Decisions</th><th>Days</th><th>Windows</th><th>Proposals</th><th>Hard blocked</th><th>Unknown blocked</th><th>Shadow selected</th></tr></thead>
+        <tbody>{#each QUALIFICATION_FAMILIES as [kind, , label]}
+          {@const counts = chronology.families[kind]}
+          <tr><td>{label}</td><td>{counts.raw_decisions}</td><td>{counts.origin_days}</td><td>{counts.non_overlapping_windows}</td><td>{counts.proposals}</td><td>{counts.hard_blocked}</td><td>{counts.unknown_blocked}</td><td>{counts.selected}</td></tr>
+        {/each}</tbody>
+      </table></div>
+      <p>Exact original greywater gate comparisons: {chronology.policy_comparisons.matching_block} matching blocks, {chronology.policy_comparisons.different_gate_result} different results, {chronology.policy_comparisons.unknown} unknown.</p>
+      <p>Statistical independence and action benefits remain unqualified. Counts grant no release or actuator permission.</p>
+      <p>Missing evidence: {chronology.missing_evidence.map(words).join(', ')}.</p>
+      <details><summary>{chronology.version_groups.length} software/model version groups</summary>
+        <p>Mixed versions remain separate; totals describe collection volume.</p>
+        {#each chronology.version_groups as group (group.version_id)}
+          <p>{group.counts.raw_decisions} decisions · {group.counts.origin_days} days · {group.counts.non_overlapping_windows} windows · {words(group.versions.planner_version)}</p>
+          <dl class="identities"><dt>Version group</dt><dd>{group.version_id}</dd>
+            <dt>Software runtime</dt><dd>{group.versions.runtime_sha256}</dd><dt>Registry</dt><dd>{group.versions.registry_sha256}</dd><dt>Configuration</dt><dd>{group.versions.config_sha256}</dd>
+            {#each group.versions.models as model}<dt>{words(model.domain)} model / runtime</dt><dd>{model.artifact_sha256 ?? 'unavailable'} / {model.runtime_sha256 ?? 'unavailable'}</dd>{/each}
+          </dl>
+          {#each QUALIFICATION_FAMILIES as [kind, , label]}<p>{label}: {group.families[kind].raw_decisions} decisions, {group.families[kind].proposals} proposals, {group.families[kind].hard_blocked} hard blocked.</p>{/each}
+        {/each}
+      </details>
+      {#if chronology.last_decision_at}<p>Latest original decision: {date(chronology.last_decision_at)}.</p>{/if}
+      <p>Report updated {date(chronology.generated_at)}.</p>
+    {:else}<p>Chronological summary unavailable</p>{/if}
   </Tile>
   <Tile label="Battery forecast accuracy">
     {#if battery}
