@@ -1,0 +1,27 @@
+# Private rendering required. Local same-host gateway; no public UDP listener.
+[backend]
+type="basic_station"
+[backend.basic_station]
+bind="127.0.0.1:3001"
+tls_cert="/run/tls/server.crt"
+tls_key="/run/tls/server.key"
+ca_cert="/run/tls/gateway-ca.crt"
+region="US915"
+frequency_min=902000000
+frequency_max=928000000
+[[backend.basic_station.concentrators]]
+[backend.basic_station.concentrators.multi_sf]
+frequencies=[903900000,904100000,904300000,904500000,904700000,904900000,905100000,905300000]
+[backend.basic_station.concentrators.lora_std]
+frequency=904600000
+bandwidth=500000
+spreading_factor=8
+[integration.mqtt]
+event_topic_template="us915_1/gateway/{{ .GatewayID }}/event/{{ .EventType }}"
+state_topic_template="us915_1/gateway/{{ .GatewayID }}/state/{{ .StateType }}"
+command_topic_template="us915_1/gateway/{{ .GatewayID }}/command/#"
+[integration.mqtt.auth.generic]
+servers=["tcp://127.0.0.1:1883"]
+username="$GATEWAY_MQTT_USERNAME"
+password="$GATEWAY_MQTT_PASSWORD"
+qos=1

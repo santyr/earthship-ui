@@ -1,0 +1,272 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "earthship-observation/v1",
+  "type": "object",
+  "required": [
+    "schema",
+    "sensor_id",
+    "device_id",
+    "transport",
+    "observation_type",
+    "value",
+    "unit",
+    "observed_at",
+    "received_at",
+    "valid_until",
+    "timestamp_basis",
+    "source_identity",
+    "provenance",
+    "quality",
+    "synthetic"
+  ],
+  "properties": {
+    "schema": {
+      "const": "earthship-observation/v1"
+    },
+    "observation_type": {
+      "enum": [
+        "air_temperature",
+        "co2",
+        "contact_state",
+        "equipment_temperature",
+        "illuminance",
+        "leak",
+        "line_pressure",
+        "motion",
+        "pump_runtime",
+        "relative_humidity",
+        "soil_conductivity",
+        "soil_moisture",
+        "soil_moisture_raw",
+        "soil_temperature",
+        "tamper",
+        "water_counter",
+        "water_depth",
+        "water_flow"
+      ]
+    },
+    "quality": {
+      "enum": [
+        "qualified",
+        "synthetic",
+        "unqualified"
+      ]
+    },
+    "synthetic": {
+      "type": "boolean"
+    },
+    "observed_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "valid_until": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "raw_sha256",
+        "source_epoch",
+        "hardware_epoch"
+      ]
+    },
+    "timestamp_basis": {
+      "enum": [
+        "device_clock",
+        "network_reception",
+        "provider_receipt",
+        "unknown"
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "observation_type": {
+          "const": "contact_state"
+        },
+        "unit": {
+          "const": "state"
+        }
+      }
+    },
+    {
+      "properties": {
+        "observation_type": {
+          "const": "tamper"
+        },
+        "unit": {
+          "const": "boolean"
+        }
+      }
+    },
+    {
+      "properties": {
+        "observation_type": {
+          "const": "leak"
+        },
+        "unit": {
+          "const": "boolean"
+        }
+      }
+    },
+    {
+      "properties": {
+        "observation_type": {
+          "const": "motion"
+        },
+        "unit": {
+          "const": "boolean"
+        }
+      }
+    },
+    {
+      "properties": {
+        "observation_type": {
+          "const": "air_temperature"
+        },
+        "unit": {
+          "const": "degC"
+        }
+      }
+    },
+    {
+      "properties": {
+        "observation_type": {
+          "const": "relative_humidity"
+        },
+        "unit": {
+          "const": "percent"
+        }
+      }
+    },
+    {
+      "properties": {
+        "observation_type": {
+          "const": "water_depth"
+        },
+        "unit": {
+          "const": "m"
+        }
+      }
+    },
+    {
+      "properties": {
+        "observation_type": {
+          "const": "water_flow"
+        },
+        "unit": {
+          "const": "L/min"
+        }
+      }
+    },
+    {
+      "properties": {
+        "observation_type": {
+          "const": "water_counter"
+        },
+        "unit": {
+          "const": "L"
+        }
+      }
+    },
+    {
+      "properties": {
+        "observation_type": {
+          "const": "line_pressure"
+        },
+        "unit": {
+          "const": "kPa"
+        }
+      }
+    },
+    {
+      "properties": {
+        "observation_type": {
+          "const": "pump_runtime"
+        },
+        "unit": {
+          "const": "s"
+        }
+      }
+    },
+    {
+      "properties": {
+        "observation_type": {
+          "const": "equipment_temperature"
+        },
+        "unit": {
+          "const": "degC"
+        }
+      }
+    },
+    {
+      "properties": {
+        "observation_type": {
+          "const": "soil_moisture_raw"
+        },
+        "unit": {
+          "const": "raw"
+        }
+      }
+    },
+    {
+      "properties": {
+        "observation_type": {
+          "const": "soil_moisture"
+        },
+        "unit": {
+          "const": "percent"
+        }
+      }
+    },
+    {
+      "properties": {
+        "observation_type": {
+          "const": "soil_temperature"
+        },
+        "unit": {
+          "const": "degC"
+        }
+      }
+    },
+    {
+      "properties": {
+        "observation_type": {
+          "const": "soil_conductivity"
+        },
+        "unit": {
+          "const": "mS/cm"
+        }
+      }
+    },
+    {
+      "properties": {
+        "observation_type": {
+          "const": "illuminance"
+        },
+        "unit": {
+          "const": "lux"
+        }
+      }
+    },
+    {
+      "properties": {
+        "observation_type": {
+          "const": "co2"
+        },
+        "unit": {
+          "const": "ppm"
+        }
+      }
+    }
+  ]
+}

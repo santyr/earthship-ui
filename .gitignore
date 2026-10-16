@@ -21,3 +21,9 @@ __pycache__/
 *.pyc
 test-results/
 playwright-report/
+
+# Sensor commissioning secrets, generated config and local journal
+node_modules
+deploy/lorawan/private/
+*.sqlite
+*.sqlite-*

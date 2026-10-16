@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "earthship-sensor-registry/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "environment",
+    "application_id",
+    "devices"
+  ],
+  "properties": {
+    "schema": {
+      "const": "earthship-sensor-registry/v1"
+    },
+    "environment": {
+      "enum": [
+        "production",
+        "simulation"
+      ]
+    },
+    "application_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "gateways": {
+      "type": "array",
+      "maxItems": 16
+    },
+    "devices": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sensor_id",
+          "device_id",
+          "name",
+          "location",
+          "zone",
+          "device_type",
+          "decoder",
+          "hardware_epoch",
+          "radio_verified",
+          "state_stale_seconds",
+          "communication_stale_seconds",
+          "offline_seconds",
+          "battery_low_percent",
+          "battery_low_volts"
+        ],
+        "properties": {
+          "battery_low_percent": {},
+          "battery_low_volts": {},
+          "calibration": {},
+          "capabilities": {},
+          "communication_stale_seconds": {},
+          "decoder": {
+            "enum": [
+              "dragino_ds03a_lb/v1",
+              "dragino_lds02/v1",
+              "milesight_ws301/v1",
+              null
+            ]
+          },
+          "device_id": {},
+          "device_type": {},
+          "enabled": {
+            "type": "boolean"
+          },
+          "firmware": {},
+          "hardware_epoch": {},
+          "location": {},
+          "manufacturer": {},
+          "model": {},
+          "name": {},
+          "observation_types": {
+            "type": "array",
+            "uniqueItems": true,
+            "minItems": 1,
+            "items": {
+              "enum": [
+                "air_temperature",
+                "co2",
+                "contact_state",
+                "equipment_temperature",
+                "illuminance",
+                "leak",
+                "line_pressure",
+                "motion",
+                "pump_runtime",
+                "relative_humidity",
+                "soil_conductivity",
+                "soil_moisture",
+                "soil_moisture_raw",
+                "soil_temperature",
+                "tamper",
+                "water_counter",
+                "water_depth",
+                "water_flow"
+              ]
+            }
+          },
+          "offline_seconds": {},
+          "protocol": {},
+          "radio_verified": {
+            "type": "boolean"
+          },
+          "relationships": {},
+          "security_policy": {},
+          "sensor_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,47}$"
+          },
+          "source_verified": {
+            "type": "boolean"
+          },
+          "state_stale_seconds": {},
+          "transport": {
+            "enum": [
+              "lorawan",
+              "openhab",
+              "rtl_sdr",
+              "simulation",
+              "wired",
+              "zigbee"
+            ]
+          },
+          "units": {
+            "type": "object"
+          },
+          "zone": {}
+        }
+      }
+    }
+  }
+}

@@ -10,6 +10,7 @@
     { name: 'energy', label: 'Energy' },
     { name: 'weather', label: 'Weather', icon: '☁' },
     { name: 'earthship', label: 'Earthship', icon: '◆' },
+    { name: 'ventilation', label: 'Sensors', icon: '▧' },
     { name: 'shades', label: 'Shades', icon: '▤' },
     { name: 'controls', label: 'Controls', icon: '⏻' },
     { name: 'household', label: 'Household', icon: '◇' },

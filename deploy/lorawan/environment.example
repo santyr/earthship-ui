@@ -1,0 +1,7 @@
+# No live credentials here. Set private JSON files using the runbook.
+LOCAL_UID=1000
+LOCAL_GID=1000
+# Hardware profile only; qualify and pin the RAK image digest before activation.
+RAK_USB_DEVICE=/dev/earthship-lora
+GATEWAY_EUI=replace_with_concentrator_eui
+RAK_BASICSTATION_IMAGE=replace_with_qualified_image_at_sha256
