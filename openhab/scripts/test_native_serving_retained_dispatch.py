@@ -11,11 +11,11 @@ def test_native_opportunities_preserve_current_and_rotate_explicit_retained_stag
     assert callable(choose),'retained native scheduling is missing'
     historical=[{'stage':'/private/old-a','deployment_sha256':'a'*64},{'stage':'/private/old-b','deployment_sha256':'b'*64}]
     dispatch={'current':'current','historical':historical}
-    targets=[choose(dispatch,datetime(2026,10,13,18,minute,10,tzinfo=timezone.utc)) for minute in (1,16,21,36)]
+    targets=[choose(dispatch,datetime(2026,10,13,18,minute,10,tzinfo=timezone.utc)) for minute in (1,6,11,16)]
     assert 'current' in targets
     assert {t['stage'] for t in targets if t!='current'}=={h['stage'] for h in historical}
     assert choose({'current':'current','historical':[]},datetime(2026,10,13,18,1,0,tzinfo=timezone.utc))=='current'
-    with pytest.raises(ValueError):choose(dispatch,datetime(2026,10,13,18,6,10,tzinfo=timezone.utc))
+    with pytest.raises(ValueError):choose(dispatch,datetime(2026,10,13,18,2,10,tzinfo=timezone.utc))
 
 
 def test_retained_native_exec_uses_its_own_external_pin_and_source_closure(tmp_path,monkeypatch):
@@ -34,9 +34,9 @@ def test_retained_native_exec_uses_its_own_external_pin_and_source_closure(tmp_p
         return {'schema':'earthship-household-cycle-deployment/v3','source_manifest':{'openhab/scripts/household_forecast_score.py':sha256(script.read_bytes()).hexdigest()}}
     monkeypatch.setattr(deploy,'verify_stage',verify);seen=[]
     monkeypatch.setattr(os,'execve',lambda executable,args,environment:seen.append((executable,args,environment)))
-    execute(selection)
+    execute(selection,deadline=321.)
     executable,args,environment=seen[0]
-    assert args==[executable,'-P',str(Path(coordinator.__file__).resolve()),'--worker-script',str(script),'--worker-deployment-sha256',selection['deployment_sha256'],'--config',str(config),'--stage',str(stage),'--retained-native']
+    assert args==[executable,'-P',str(Path(coordinator.__file__).resolve()),'--worker-script',str(script),'--worker-deployment-sha256',selection['deployment_sha256'],'--config',str(config),'--stage',str(stage),'--retained-native','--worker-deadline-monotonic','321.0']
     assert environment['PYTHONPATH'].startswith(str(stage/'sources/openhab/scripts')+':')
     manifest.write_bytes(b'{ }')
     with pytest.raises(ValueError):execute(selection)

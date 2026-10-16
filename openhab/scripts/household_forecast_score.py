@@ -113,6 +113,21 @@ def production_report_replay(scores):
     return _production_report_reuse.wrap_report(scores)
 
 
+RETAINED_COORDINATOR_SHA256 = 'ad51742741bf894f212a318f393d857398299bc1e96af614eaa6f6aee294bf72'
+
+
+def production_retained_runner():
+    """Load this release's verified operational runner with archived imports."""
+    import importlib.util
+    from hashlib import sha256
+    path=Path(__file__).resolve().with_name('household_retained_native_score.py')
+    if sha256(_policy_source_bytes(path)).hexdigest()!=RETAINED_COORDINATOR_SHA256:
+        raise ValueError('retained coordinator source differs')
+    spec=importlib.util.spec_from_file_location('_earthship_retained_native_score',path)
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    return module
+
+
 @contextmanager
 def production_score_policy():
     """Explicitly use current admission for an archived scoring invocation only."""
@@ -242,7 +257,7 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
                 archived['model_verification']['helper']['sha256']==binding['model_verification']['helper']['sha256'])
             if not compatible or target not in dispatch['historical'][-31:]:
                 if verifier(stage)!=binding:raise ValueError('staged historical score selection changed before dispatch')
-                return execute_retained_native_score(target)
+                return execute_retained_native_score(target,deadline=deadline)
             # Compatible owned history is re-read below and scored with its
             # original model association, without restarting the lifetime.
 
@@ -400,8 +415,14 @@ def failure_site(error):
     return dict(source=relative,line=trace.tb_lineno)
 
 
-def run_retained_worker(script,config,*,stage,deployment_sha256,retained_native):
-    """Use archived code/dependencies, with this release's error reporting only."""
+def run_retained_worker(script,config,*,stage,deployment_sha256,retained_native,
+        deadline=None,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic):
+    """Keep archived numerics; use current operational policy and native clocks."""
+    import math
+    started=monotonic()
+    if not math.isfinite(started):raise ValueError('score lifetime elapsed')
+    stop=started+SCORE_LIFETIME_SECONDS if deadline is None else min(deadline,started+SCORE_LIFETIME_SECONDS)
+    if not math.isfinite(stop) or started>=stop:raise ValueError('score lifetime elapsed')
     import runpy
     from hashlib import sha256
     import household_cycle_deploy as deploy
@@ -421,6 +442,24 @@ def run_retained_worker(script,config,*,stage,deployment_sha256,retained_native)
     original=deploy._bytes(script)
     if sha256(original).hexdigest()!=record['source_manifest'].get(source):
         raise ValueError('retained worker source changed')
+    if retained_native:
+        runner=production_retained_runner()
+        own_path=Path(__file__).resolve();own=own_path.read_bytes()
+        helper=own_path.with_name('household_retained_native_score.py')
+        def source_guard():
+            if (own_path.read_bytes()!=own or deploy._bytes(script)!=original or read_manifest()!=manifest or
+                    sha256(_policy_source_bytes(helper)).hexdigest()!=RETAINED_COORDINATOR_SHA256):
+                raise ValueError('retained worker changed during execution')
+        def verify_archive():
+            if deploy.verify_stage(stage,expected_deployment_sha256=deployment_sha256)!=record:
+                raise ValueError('retained worker dependency context changed')
+            source_guard()
+        with production_score_policy():
+            result=runner.run(config,stage=stage,deployment_sha256=deployment_sha256,deadline=stop,
+                resource_preflight=production_resource_preflight,
+                pressure_factory=lambda:SampledScorePressure(production_pressure_monitor(),monotonic=monotonic),
+                source_guard=source_guard,verify_archive=verify_archive,clock=clock,monotonic=monotonic)
+        source_guard();return result
     namespace=runpy.run_path(str(script),run_name='retained_score_worker')
     if deploy._bytes(script)!=original or read_manifest()!=manifest:
         raise ValueError('retained worker changed before execution')
@@ -448,13 +487,14 @@ def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config',required=True,type=Path);parser.add_argument('--stage',type=Path);parser.add_argument('--deployment-sha256');parser.add_argument('--retained-native',action='store_true')
     parser.add_argument('--worker-script',type=Path);parser.add_argument('--worker-deployment-sha256')
+    parser.add_argument('--worker-deadline-monotonic',type=float)
     args=parser.parse_args(argv)
     try:
         selected={} if args.deployment_sha256 is None else dict(deployment_sha256=args.deployment_sha256)
         if args.retained_native:selected['retained_native']=True
         if args.worker_script is not None:
             result=run_retained_worker(args.worker_script,args.config,stage=args.stage,
-                deployment_sha256=args.worker_deployment_sha256,retained_native=args.retained_native)
+                deployment_sha256=args.worker_deployment_sha256,retained_native=args.retained_native,deadline=args.worker_deadline_monotonic)
         else:
             result=run(args.config,stage=args.stage,**selected)
     except BlockingIOError:print(json.dumps(dict(status='busy',fit_executed=False,automatic_actuation=False)));return 75
@@ -568,7 +608,7 @@ def native_score_selection(dispatch,at):
 
 
 
-def execute_retained_native_score(selection):
+def execute_retained_native_score(selection,*,deadline=None):
     import os
     from hashlib import sha256
     from household.codec import loads
@@ -587,6 +627,7 @@ def execute_retained_native_score(selection):
         raise ValueError('retained native executing source changed')
     command=['/usr/bin/python3','-P',str(Path(__file__).resolve()),'--worker-script',str(script),
         '--worker-deployment-sha256',pin,'--config',str(config),'--stage',str(stage),'--retained-native']
+    if deadline is not None:command.extend(['--worker-deadline-monotonic',repr(deadline)])
     environment=dict(os.environ,PYTHONPATH=str(stage/'sources/openhab/scripts')+':/home/sat/Solar_PV/analytics/src')
     os.execve(command[0],command,environment)
 

@@ -70,7 +70,8 @@ def test_selected_compatible_history_outside_envelope_executes_its_retained_work
     monkeypatch.setattr(admission,'load_serving_selection',lambda actual,**kw:str(actual))
     monkeypatch.setattr(admission,'read_serving_model',lambda *a,**kw:model)
     executed=[]
-    def retained(selected):
+    def retained(selected,*,deadline):
+        assert deadline==220.
         executed.append(selected);return dict(status='waiting',scored=0,automatic_actuation=False)
     def in_process(settings,*,guard,clock,queue,serving_model,historical_selections):
         assert historical_selections==tuple(r['stage'] for r in refs[-31:])

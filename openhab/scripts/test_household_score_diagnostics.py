@@ -37,8 +37,8 @@ def archive(tmp_path,monkeypatch,body):
     return stage,script,sha256(manifest.read_bytes()).hexdigest()
 
 
-@pytest.mark.parametrize('native',[False,True])
-def test_retained_worker_runs_original_function_with_its_original_stage(tmp_path,monkeypatch,native):
+def test_retained_legacy_worker_runs_original_function_with_its_original_stage(tmp_path,monkeypatch):
+    native=False
     stage,script,pin=archive(tmp_path,monkeypatch,"def run(config, **kwargs):\n return dict(status='waiting',config=str(config),stage=str(kwargs['stage']),native=kwargs.get('retained_native',False),pin=kwargs.get('deployment_sha256'))\n")
     result=score.run_retained_worker(script,tmp_path/'config.json',stage=stage,deployment_sha256=pin,retained_native=native)
     assert result==dict(status='waiting',config=str(tmp_path/'config.json'),stage=str(stage),native=native,pin=pin if native else None)
@@ -141,5 +141,25 @@ def test_retained_entrypoint_own_policy_loader_uses_current_admission(tmp_path,m
     stage,script,pin=archive(tmp_path,monkeypatch,body)
     calls=[]
     monkeypatch.setattr(score,'production_resource_preflight',lambda:calls.append('current'))
-    assert score.run_retained_worker(script,tmp_path/'config',stage=stage,deployment_sha256=pin,retained_native=True)==dict(status='waiting')
+    assert score.run_retained_worker(script,tmp_path/'config',stage=stage,deployment_sha256=pin,retained_native=False)==dict(status='waiting')
     assert calls==['current','current']
+
+
+def test_retained_native_worker_uses_current_orchestration_with_original_archive(tmp_path,monkeypatch):
+    stage,script,pin=archive(tmp_path,monkeypatch,"def run(*args, **kwargs):\n raise ValueError('obsolete fifty-second coordinator executed')\n")
+    import types
+    def current(config,*,stage,deployment_sha256,deadline,resource_preflight,pressure_factory,source_guard,verify_archive,clock,monotonic):
+        assert deployment_sha256==pin and deadline==120. and stage==script.parents[3]
+        resource_preflight();source_guard();verify_archive()
+        return dict(status='waiting',automatic_actuation=False)
+    monkeypatch.setattr(score,'production_retained_runner',lambda:types.SimpleNamespace(run=current))
+    assert score.run_retained_worker(script,tmp_path/'config',stage=stage,deployment_sha256=pin,
+        retained_native=True,monotonic=lambda:0.)==dict(status='waiting',automatic_actuation=False)
+
+
+def test_current_retained_helper_source_drift_refuses_before_archive_runs(tmp_path,monkeypatch):
+    stage,script,pin=archive(tmp_path,monkeypatch,"def run(*args, **kwargs):\n raise AssertionError('archive must not execute')\n")
+    helper=tmp_path/'household_retained_native_score.py';helper.write_text("raise AssertionError('unverified helper executed')\n");helper.chmod(0o600)
+    monkeypatch.setattr(score,'__file__',str(tmp_path/'household_forecast_score.py'))
+    with pytest.raises(ValueError,match='retained coordinator source differs'):
+        score.run_retained_worker(script,tmp_path/'config',stage=stage,deployment_sha256=pin,retained_native=True)

@@ -136,7 +136,16 @@ energy absolute error is0.000255102kWh for the hourly profile versus
 AC PV/storage,1.030273 for constant battery power, and0 for hold-SoC.
 Therefore this single observation does not show overall dominance or establish
 independent-day skill, calibrated usable capacity or action effects. Longer
-learned-load horizons are still collecting. These are the existing scheduled
-scorer's curated results, not a manual forecast, fit or independently replayed
-outcome claim. The captured-PV report still has zero learned-load pairs at this
-checkpoint; its eligibility/progress remains a separate check.
+learned-load horizons are still collecting. These were initially observed in
+the existing scheduled scorer's curated report.
+At 2026-10-16T14:21:41Z, the exact deployed file-only CLI independently replayed
+the complete retained outcome and its original profile, energy forecast and plan
+with network access forbidden. The result matches the full saved score exactly;
+all five original input/sample files remain byte-identical. Original issue:
+2026-10-16T13:00:15Z; outcome receipt:
+`9f5ee0690e87ed2f80ca9616358a7253ef1ca4e433b2c9c9f5a6d95e1b9d80c9`.
+This upgrades the arithmetic/provenance evidence, without adding observations or
+establishing general skill. No fitting, new forecast, live query or publication
+ran. Private proof: `native-score-progress-20261016/profiled-outcome-replay-proof.json`
+under the common-cycle evidence directory. Captured-PV eligibility/progress is
+separate; see [the retained-scoring diagnosis](2026-10-16-retained-scoring-diagnosis.md).

@@ -26,7 +26,7 @@ def compatible_fixture(tmp_path,monkeypatch,helper='a'*64):
 
 def test_same_runtime_and_helper_use_current_worker_with_owned_history(tmp_path,monkeypatch):
     c,config,stage,calls,model,now,history,archived=compatible_fixture(tmp_path,monkeypatch)
-    monkeypatch.setattr(c,'execute_retained_native_score',lambda *_:pytest.fail('compatible history restarted the old worker'))
+    monkeypatch.setattr(c,'execute_retained_native_score',lambda *_,**kw:pytest.fail('compatible history restarted the old worker'))
     def score(settings,*,guard,clock,queue,serving_model,historical_selections):
         assert serving_model is model and historical_selections==(archived,);guard();return {'status':'waiting'}
     monkeypatch.setattr(c,'score_with_report',score)
@@ -35,7 +35,7 @@ def test_same_runtime_and_helper_use_current_worker_with_owned_history(tmp_path,
 
 def test_changed_helper_keeps_exact_retained_worker(tmp_path,monkeypatch):
     c,config,stage,calls,model,now,history,archived=compatible_fixture(tmp_path,monkeypatch,helper='c'*64)
-    seen=[];monkeypatch.setattr(c,'execute_retained_native_score',lambda selected:seen.append(selected) or {'status':'waiting'})
+    seen=[];monkeypatch.setattr(c,'execute_retained_native_score',lambda selected,**kw:seen.append(selected) or {'status':'waiting'})
     monkeypatch.setattr(c,'score_with_report',lambda *_a,**_k:pytest.fail('incompatible helper loaded into current worker'))
     assert c.run(config,stage=stage,deployment_sha256='a'*64,clock=lambda:now,monotonic=lambda:100)['status']=='waiting'
     assert seen==[history] and 'locked' not in calls

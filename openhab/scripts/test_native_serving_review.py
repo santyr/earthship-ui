@@ -9,7 +9,7 @@ def test_admissible_configured_slots_cover_current_and_retained(tmp_path,monkeyp
     coordinator,config,stage,calls,model,now,dispatch=fixture(tmp_path,monkeypatch,2)
     historical={'stage':str(tmp_path/'older'),'deployment_sha256':'b'*64}
     dispatch['historical']=[historical];seen=[]
-    monkeypatch.setattr(coordinator,'execute_retained_native_score',lambda selection:seen.append('history') or {'status':'waiting'})
+    monkeypatch.setattr(coordinator,'execute_retained_native_score',lambda selection,**kw:seen.append('history') or {'status':'waiting'})
     monkeypatch.setattr(coordinator,'score_with_report',lambda *a,**k:seen.append('current') or {'status':'waiting'})
     # A different-runtime archive is never admitted into the current process.
     import household_cycle_deploy as deploy
