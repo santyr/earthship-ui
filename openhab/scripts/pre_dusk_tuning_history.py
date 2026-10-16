@@ -19,6 +19,10 @@ NUMERIC_ITEM = 'Predicted_SoC_Trough_PreDusk'
 ALLOWED_ITEMS = frozenset((MORNING_ITEM, PRE_DUSK_ITEM))
 TRANSPORT_ITEMS = ALLOWED_ITEMS | {NUMERIC_ITEM}
 MAX_ROWS = 8
+# Resource budgets for finding an original everyChange anchor. Absence or
+# overflow withholds qualification; these are not forecast freshness limits.
+MAX_NUMERIC_LOOKBACK_DAYS = 31
+MAX_NUMERIC_LOOKBACK_ROWS = 64
 MAX_STATE_BYTES = 1024
 MAX_RESPONSE_BYTES = 32768
 
@@ -141,9 +145,31 @@ def read_numeric_day(get, *, day):
         raise IssueHistoryUnavailable('local date and authenticated GET required')
     start = datetime.combine(day, time.min, ZONE).astimezone(timezone.utc)
     end = datetime.combine(day + timedelta(days=1), time.min, ZONE).astimezone(timezone.utc)
+    return _read_numeric_range(get, start=start, end=end, max_rows=MAX_ROWS)
+
+
+def read_numeric_before_day(get, *, day):
+    """Find the last original numeric change before a day within a read budget.
+
+    No boundary interpolation or current Item state is used. An old numeric
+    anchor is meaningful only with a separately qualified fresh issue receipt
+    and an empty same-day change history; it is never a fresh source sample.
+    """
+    if not isinstance(day, date) or isinstance(day, datetime) or not callable(get):
+        raise IssueHistoryUnavailable('local date and authenticated GET required')
+    start = datetime.combine(day - timedelta(days=MAX_NUMERIC_LOOKBACK_DAYS),
+                             time.min, ZONE).astimezone(timezone.utc)
+    end = datetime.combine(day, time.min, ZONE).astimezone(timezone.utc)
+    rows = _read_numeric_range(get, start=start, end=end,
+                               max_rows=MAX_NUMERIC_LOOKBACK_ROWS)
+    return rows[-1] if rows else None
+
+
+def _read_numeric_range(get, *, start, end, max_rows):
     query = urlencode({'serviceId': 'jdbc',
                        'starttime': start.isoformat().replace('+00:00', 'Z'),
-                       'endtime': end.isoformat().replace('+00:00', 'Z')})
+                       'endtime': end.isoformat().replace('+00:00', 'Z'),
+                       'boundary': 'false'})
     try:
         payload = get(f'/persistence/items/{NUMERIC_ITEM}?{query}')
         count = payload.get('datapoints') if isinstance(payload, dict) else None
@@ -151,7 +177,7 @@ def read_numeric_day(get, *, day):
             count = int(count)
         if (not isinstance(payload, dict) or payload.get('name') != NUMERIC_ITEM
                 or type(count) is not int or not isinstance(payload.get('data'), list)
-                or count != len(payload['data']) or len(payload['data']) > MAX_ROWS):
+                or count != len(payload['data']) or len(payload['data']) > max_rows):
             raise ValueError('numeric archive metadata invalid')
         result = []
         previous = None

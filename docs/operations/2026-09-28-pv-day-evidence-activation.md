@@ -1,5 +1,44 @@
 # MPPT60 daily-PV evidence: observational live activation
 
+## October 6 natural startup and stale-input recovery evidence
+
+A restricted SELECT-only, REPEATABLE READ census at fixed
+**2026-10-06T15:08:05.181687Z** parses **16,177** original receipts from the
+September28 activation through the partial October6 day. Original rows remain
+ordered and unchanged; each local-day query retains the strict 5,000-row bound.
+The current live collector script exactly matches the checked-in source,
+SHA-256 `7874d2de4630aef3fa6ec9449dc1345812be7228581181103d7fbc581071806e`.
+Two fixed-cutoff census/fault reports match byte-for-byte.
+
+The only `source_unavailable` row is the new epoch's sequence1 at October2
+13:25:35.237Z, followed by sequence2 `input_unavailable`, then sequence3 valid
+at 13:25:41.047Z with a new acquisition at 13:25:41.043Z. The unchanged current
+OpenHAB invocation entered active at 13:25:20.495957Z, PID1696. This is temporal
+startup correspondence, not evidence of a separate physical Thing fault or a
+restart qualification of today's later configuration layout.
+
+On October5, sequence5888's last valid observation expires at **10:29:07.979Z**.
+Sequence5889 becomes unavailable with `input_stale` at **10:29:10.942Z** and
+has null Wh/acquisition/expiry fields. Sequence5890 becomes valid at
+**10:29:14.551Z** only after a new **10:29:14.550Z** acquisition, in the same
+epoch and without a sequence gap. The **6.571-second observation gap** remains
+unqualified; the unchanged zero counter is not used as fresh evidence across it.
+This verifies one natural stale-input recovery in the original stream. It does
+not identify the poll delay's cause or close the independent Thing-fault gate.
+
+Offline replay reproduces all original receipt counts/transitions and both
+recovery windows. The first row export was empty because the diagnostic append
+was missing; that export was rejected before sealing. The corrected full archive
+is independently parsed and checked against all16,177 census rows. All30 producer/
+observation Vitest tests and29 strict reader Python tests pass. Sealed private
+capsule: `/home/sat/.local/state/thermal-intel/qualification-receipts/ml-pv-fault-census-20261006-zo6v3dii/`,
+15 files plus manifest, mode0600 within mode0700 directories. It retains the
+original ordered row archive, bounded recovery windows, exact-repeat reports,
+source pins and offline replay. No fault was induced, service restarted, source
+label inferred, calibration opened, model trained or household command sent.
+Physical Thing-fault, future retention/holdout and coefficient-release gates
+remain open; the calibration release flag is unchanged.
+
 ## First complete native day — assessed September 30
 
 September 29 qualified through the exact restricted Item 655 reader: 10.396

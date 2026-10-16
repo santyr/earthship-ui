@@ -1,0 +1,16 @@
+// Preserve the existing source, polling, channel identity and read-only snapshot.
+// Install only after the managed Thing has been withdrawn.
+Thing http:url:weatherTemperatureEvidence "Weather temperature receipt evidence" [
+    authMode="BASIC",
+    baseURL="http://127.0.0.1:5000/temperature_evidence",
+    bufferSize=16384,
+    commandMethod="GET",
+    delay=0,
+    ignoreSSLErrors=false,
+    refresh=30,
+    stateMethod="GET",
+    timeout=3000
+] {
+    Channels:
+        Type string : snapshot "Complete temperature evidence snapshot" [ mode="READONLY" ]
+}

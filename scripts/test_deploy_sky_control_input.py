@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 import copy
 import importlib.util
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -193,3 +194,79 @@ def test_final_source_drift_cannot_be_reported_as_success(transaction):
     with pytest.raises(RuntimeError,match='unowned sky file'): tx.to_file()
     assert config.target.read_bytes()==b'unowned changed action'
     assert [m for m,_ in calls]==['DELETE']
+
+
+def test_explicit_isolated_provider_never_uses_default_client(transaction,monkeypatch):
+    tx,config,original,calls,_,_,_=transaction
+    provider=SimpleNamespace(rule_or_none=release.engine.rule_or_none,
+                             request=release.engine.request,wait_rule=release.engine.wait_rule,
+                             oh=SimpleNamespace(get=release.engine.oh.get))
+    for name in ('rule_or_none','request','wait_rule'):
+        monkeypatch.setattr(release.engine,name,lambda *_: pytest.fail('default client used'))
+    monkeypatch.setattr(release.engine.oh,'get',lambda *_: pytest.fail('default client used'))
+    isolated=release.Transaction(original,tx.receipt,tx.guard,config=config,provider=provider)
+    isolated.apply()
+    assert [m for m,_ in calls]==['DELETE','POST','DELETE']
+
+
+def test_cross_filesystem_recovery_refused_before_provider_mutation(transaction,monkeypatch):
+    tx,config,_,calls,_,_,_=transaction
+    real_stat=Path.stat
+    def stat(path,*args,**kwargs):
+        result=real_stat(path,*args,**kwargs)
+        return SimpleNamespace(st_dev=result.st_dev+1) if path==tx.receipt else result
+    monkeypatch.setattr(Path,'stat',stat)
+    with pytest.raises(RuntimeError,match='same filesystem'):
+        tx.apply()
+    assert calls==[] and not config.target.exists()
+
+
+def test_same_byte_replacement_during_publication_is_never_adopted(transaction,monkeypatch):
+    tx,config,_,_,_,_,_=transaction
+    real_link=release.os.link
+    def racing_link(staged,target):
+        real_link(staged,target)
+        replacement=config.target.with_suffix('.racing')
+        replacement.write_bytes(config.target.read_bytes())
+        replacement.replace(config.target)
+    monkeypatch.setattr(release.os,'link',racing_link)
+    tx.install_exclusive()
+    with pytest.raises(RuntimeError,match='unowned sky file'):
+        tx.verify_owned()
+    assert config.target.read_bytes()==config.source.read_bytes()
+
+
+def test_withdrawal_race_refuses_completion_before_chmod_or_managed_restore(transaction,monkeypatch):
+    tx,config,_,calls,_,_,_=transaction
+    tx.to_file()
+    real_rename=Path.rename
+    def racing_rename(path,target):
+        if path==config.target:
+            replacement=path.with_suffix('.racing')
+            replacement.write_bytes(path.read_bytes())
+            replacement.chmod(0o644)
+            replacement.replace(path)
+        return real_rename(path,target)
+    monkeypatch.setattr(Path,'rename',racing_rename)
+    with pytest.raises(RuntimeError,match='unowned sky file'):
+        tx.to_managed()
+    moved=tx.receipt/'withdrawn-1.js'
+    assert moved.stat().st_mode & 0o777 == 0o644
+    assert moved.read_bytes()==config.source.read_bytes()
+    assert [m for m,_ in calls]==['DELETE']
+
+
+def test_apply_never_retries_managed_restore_after_withdrawal_ownership_loss(transaction,monkeypatch):
+    tx,config,_,calls,_,_,_=transaction
+    real_rename=Path.rename
+    def racing_rename(path,target):
+        if path==config.target:
+            replacement=path.with_suffix('.racing')
+            replacement.write_bytes(path.read_bytes())
+            replacement.replace(path)
+        return real_rename(path,target)
+    monkeypatch.setattr(Path,'rename',racing_rename)
+    with pytest.raises(RuntimeError,match='unowned sky file'):
+        tx.apply()
+    assert [m for m,_ in calls]==['DELETE']
+    assert (tx.receipt/'withdrawn-1.js').read_bytes()==config.source.read_bytes()

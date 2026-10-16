@@ -1,5 +1,43 @@
 # Energy supporting-source qualification — October 1
 
+
+## October 5 natural October 4 aggregate and UI revision verified
+
+The existing daily aggregate ran **00:20:56–00:21:00 MDT**, and the separate
+AC writer **00:41:56–00:42:00 MDT**. Both actual user-unit invocations are
+terminal/inactive, PID zero, exit zero. No job was manually started.
+Two independent restricted reads select the same completed October 4 revisions
+at fixed SQL selection time **13:50:39Z**; the later live UI observation retains
+its separate **13:55:56.935392Z** publication clock. Original producer handles,
+selected snapshots and published payload all agree across the repeated checks.
+
+Power snapshot **15** has **21/21 source-quality records `ok`** under their
+respective policies. Its canonical payload digest matches v4 UI provenance:
+`3e9948148cfb1438e4fe17e6f9f6150c6aa95250f0f994d3c05ccac33bd78583`.
+The observed September 20–October 4 period contains 15 days, no missing dates,
+and **2.5642570273 EFC**. Qualified power integration reports October 4 PV
+**6.1231032514 kWh**. This integration is separate from the MPPT native
+PV-day-counter outcome of 6.126 kWh used for original forecast scoring.
+
+Separate AC revision **14** reports **4.9854674719 kWh**, **99.9921516%**
+coverage, with digest
+`ba8246a4ee9b6cc83266a17955216cb21d203fcdff9ecccf6f2ea21b9085b350`.
+Both exact revision IDs, digests, computation clocks and observed values match
+`Energy_Analytics_JSON`. Unqualified load/balance fields remain withheld and
+the UI correctly remains `degraded`. Per-source `ok` does not imply zero gaps,
+complete radiation coverage or a fully qualified aggregate energy balance.
+
+Private reports `oct4-energy-delivery.json` and
+`oct4-energy-delivery-repeat.json` retain the original snapshots, UI payload and
+terminal invocation identities under
+`/home/sat/.local/state/thermal-intel/qualification-receipts/20261005-morning/`.
+First report SHA-256:
+`be8de95c5f4ead7eb7bddc946126ba374465e9f2efddf25eb081c05a083dce69`.
+Their actual assessment clocks differ; their native evidence agrees exactly.
+This qualifies another naturally completed source day, without a SQL write,
+aggregate rewrite, publication request, notification or control action.
+
+
 ## October 4 natural aggregate and UI revision verified
 
 The original daily timer ran at 00:20:56–00:21:00 MDT and exited zero with

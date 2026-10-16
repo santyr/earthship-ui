@@ -1,5 +1,43 @@
 # Thermal endpoint-selector efficiency — September 27
 
+
+## October 4 first natural new-artifact publication verified
+
+The original two-hour timer triggered at **13:58:03.554650Z**; invocation
+`d735e6cf9b164e40ba254b9001345dae` started at 13:58:03.563752Z and exited
+zero at **13:58:07.539001Z**. This closes the new-artifact natural publisher
+continuity gate recorded below. No worker or timer was manually started.
+
+The accepted `a4ea9f4a0ddb11a54d881cb8d83ded73b57836122778a44c65e3c0bfd3ed01df`
+artifact, immutable capture `20261004T135805Z-f1a07fc92fcd4d74.json.gz`, live
+`Thermal_Model_JSON` Item and exactly one original JDBC row agree. Decision
+and publication clocks are **13:58:05.252516Z / 13:58:07.496424Z**; JDBC
+stored the row at **13:58:07.496Z**. Output SHA-256:
+`f1a07fc92fcd4d744fc63d1aa1a53452bfc0c537cf410cb6eaaacc258f25205f`.
+
+Installed-runtime exact replay passes under the explicit full revision
+`15267d7af9323d7c23dc14d6b3c5526515195474ab983e004b101c66e656cb8c`.
+The accepted artifact digest is independently reconstructed from its typed
+payload; native radiation and all three source-bound temperature receipts are
+valid at decision/publication. Radiation decoded at **13:57:38Z** and expired
+at **13:59:38Z**. The existing `validate_delivery()` checks bind successful
+terminal service state, precise D-Bus timer/service clocks, original capture,
+Item equality and a bounded original JDBC query. Invocation, runtime hash and
+live Item remain identical through **14:16:12.659192Z** verification.
+
+Reproduce exact output replay with:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/replay-thermal-forcing.py \
+  --runtime-root /home/sat/openhab/scripts \
+  --capture /home/sat/.local/state/thermal-intel/forcing-captures/2026-10/20261004T135805Z-f1a07fc92fcd4d74.json.gz \
+  --expected-runtime-revision 15267d7af9323d7c23dc14d6b3c5526515195474ab983e004b101c66e656cb8c
+```
+
+The 72-point publication remains **shadow / low confidence**. This verifies
+original delivery and replay, not accuracy, independent outcome windows,
+confirmed-action evaluation, winter behavior or operational graduation.
+
 ## October 4 natural optimized training verified
 
 The original timer's invocation `24237cadfa43441da7db987649ea17b9` ran

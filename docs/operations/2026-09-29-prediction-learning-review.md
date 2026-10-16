@@ -1,5 +1,221 @@
 # Prediction learning review — September 29, 2026
 
+## October 5 fourth original PV/charge/night comparison completed
+
+The [18:16:05Z assessment](2026-10-05-matured-outcomes.md) closes October 4's
+canonical overnight target with **85%** minimum and **99.9885950%** qualified
+coverage from 887 native receipts. Original morning **69%** and pre-dusk
+**74%** errors are **−16** and **−11 percentage points**, respectively.
+Exact original receipt/weather/atomic inputs and native PV 6.126 kWh agree;
+two independent restricted reads produce identical reports and original night
+row archives. Four complete source-qualified joint days now exist, including
+two reported-full days. The pending statements below record earlier clocks.
+Calibration, seasonal and causal action-outcome gates remain open.
+
+## October 5 completed October 4 original PV and sunset comparison
+
+Two restricted source reads at fixed **2026-10-05T13:30:00Z** qualify the
+October 4 native PV calendar day and agree exactly. Original public receipt,
+private raw-weather digest/capture clock and atomic SoC origin match the already
+qualified sunset comparison below. The original 06:40 MDT issue is retained;
+today's updated coefficients and forecast are not substituted into it.
+
+| Quantity | Original forecast | Qualified outcome | Signed error |
+| --- | --- | --- | --- |
+| Native PV harvest | 6.780 kWh | 6.126 kWh | +0.654 kWh (+10.675808%) |
+| Sunset SoC | 93.386% | 98% | -4.614 percentage points |
+
+Native Item 655 contributes **1,998** original receipts with **99.9612986%**
+coverage over October 4 06:00Z through October 5 06:00Z. Original radiation is
+18.77 MJ/m2 (published 5.214 kWh/m2), gain 1.3, resource 6.778 kWh, direct
+demand 5.403 kWh, charge deficit 2.803 kWh and combined demand 8.206 kWh.
+These are retained as-issued diagnostics; resource is the limiting branch.
+There is no new gain/direct-demand fit or exploratory recalculation.
+
+The first reported-full observation remains October 4 16:04:16.538195Z;
+its independent charge source coverage is 99.9855%. Four source-qualified
+PV/charge days now exist, including two reported-full days. Only three have
+completed joint overnight outcomes: October 4's original morning 69% and late
+74% trough predictions still wait for the October 5 **11:00 Mountain / 17:00Z**
+closing window. The fourth full joint comparison remains pending.
+
+Ordered original native PV row digest:
+`2e8ea3dc2e99ceb0fe5e47e3a9e73c7c3b09f4e5208aec5bbe540df674c4e42a`.
+Canonical source-bound report SHA-256:
+`cefb6dd66d33f46053c2c7051fa728f11413efe39c67c9fbe4fc3ce622fb9c65`.
+Reports `oct4-pv.json` and `oct4-pv-repeat.json` are durably private under
+`/home/sat/.local/state/thermal-intel/qualification-receipts/20261005-morning/`.
+No forecast, filter, threshold, state, notification, journal or control changed.
+
+## October 4 original sunset forecast qualified after natural close
+
+The real October 4 sunset at **October 5 00:40:34.220Z** has closed. A
+restricted native assessment at 00:41:01.651098Z and its later independent
+repeat agree on the charge-target values, source coverage and original digest.
+A separate 00:49:50Z audit validates the original private weather capture against
+its public receipt and the exact atomic SoC origin. These are observations and
+an as-issued comparison; no new candidate, fit, forecast or control was run.
+
+| Quantity | Original issue or qualified outcome |
+| --- | --- |
+| Original weather capture | October 4 12:40:57.822554Z |
+| Original forecast issue | October 4 12:40:57.827890Z |
+| Distinct atomic SoC assessment | October 4 12:40:57.840Z, 87% |
+| Public receipt persisted | October 4 12:40:57.970Z |
+| Original sunset SoC estimate | 93.386% |
+| Native sunset SoC | 98% |
+| Signed sunset error | -4.614 percentage points |
+| First reported 100% | October 4 16:04:16.538195Z (10:04 MDT) |
+| Charge-day coverage | 99.9855% |
+
+The original 6.78 kWh PV forecast and 69% morning trough remain unscored for
+October 4: their full-day and overnight windows have not closed. The independently
+qualified original pre-dusk forecast is 74%; its outcome also waits until
+October 5 11:00 Mountain. No later outcome became a predictor input.
+
+The private record's full-state SHA remains `44aba271...`, matching the already
+recorded October 4 17:35Z audit before this sunset target closed. `read_as_of`
+validates weather input SHA
+`41dc2160f7f23c28d12cd3af0b8d0ca497f02516685057bd64b458aca3459096`
+and its capture clock against the public original receipt. The exact atomic
+input digest is
+`ad686a3f171952a754905cfea7eeb92379774b0fc48399cbac9b1891aa8d329f`.
+Repeated native charge target digest remains
+`e7769e2332d2fcfd218940e2751f57d6a07ce05a0cf13327e608683eab50bb9f`.
+Private reports `oct4-sunset-original-qualified.json` and
+`oct4-charge-outcome-repeat.json` are durably retained alongside the first
+charge receipt under
+`/home/sat/.local/state/thermal-intel/qualification-receipts/pre-dusk-unchanged-20261004/`.
+
+This is the **second reported-full day** with qualified original inputs. The
+four such charge days comprise two no-full days and two reported-full days;
+only three currently have the completed joint PV/charge/night outcomes.
+The additional negative sunset error does not establish causal load attribution,
+calibration, seasonal skill or enough independent cases to fit full-charge
+scheduling. Keep the existing forecast and thresholds until their learning gates
+are actually met.
+
+## October 4 original October 3 PV, charge and overnight join
+
+Two independent restricted reads at fixed assessment
+**2026-10-04T17:35:59Z** verify the original October 3 issue, public prediction
+receipt, private raw-weather capture, atomic SoC input and native MPPT day.
+The original issue is **12:40:58.396244Z**, after the archived weather capture
+at **12:40:58.391135Z**. The distinct atomic SoC assessment remains
+**12:40:58.411Z**, with 87% SoC; none of these clocks is backdated.
+
+| Quantity | Original forecast/estimate | Qualified outcome | Signed error |
+| --- | --- | --- | --- |
+| Daily native PV harvest | 7.130 kWh | 6.309 kWh | +0.821 kWh (+13.013156%) |
+| Sunset SoC | 95.010% | 99% | -3.990 percentage points |
+| Canonical overnight trough | 69% | 86% | -17 percentage points |
+
+Native PV Item mapping **655** has **2,038** original receipts and
+**99.9459201%** source coverage over the October 3 Mountain calendar day.
+The original forecast radiation is **19.74 MJ/m²** (5.483333 kWh/m²).
+Published as-issued diagnostics retain gain 1.3, resource 7.128 kWh, direct
+demand 5.403 kWh, charge deficit 2.803 kWh and combined demand 8.206 kWh;
+resource is the limiting branch. These rounded original diagnostics are not
+recomputed using today's learned coefficients.
+
+The existing qualified charge receipt binds the same issue/atomic source:
+first reported 100% at **16:00:58.575454Z** (10:00 MDT), 99% at the original
+sunset and 99.982747% charge-day coverage. Reported-full timing remains an
+observation, not the exact physical completion instant. Original input
+qualification now covers **three** days: September 30 and October 1 remain
+right-censored no-full days; October 3 is the first reported-full day.
+
+The previously explored gain/direct-demand pair **2.45/4.1** gives a
+retrospective **6.90 kWh** using the original radiation and retained published
+charge deficit: +0.591 kWh. Here the demand branch limits it, whereas that
+same pair overpredicted October 1 by about 61%. This mixed chronological
+behavior does not support a blanket gain increase, a fitted full-charge
+scheduler, or a promoted joint model. No new forecast issue, refit, model
+coefficient, state, action label, notification or household control changed.
+The larger October 3 miss is the original overnight proxy; the join does not
+establish physical or causal load attribution or an AC-to-DC conversion.
+
+Weather input SHA-256:
+`e32239c47921c3a7285b4768be06116dba0b628474d2721c5d6c1d1fc6e786ea`.
+Atomic SoC input digest:
+`c8755608e6c60a9cda92f215bb813d14b55e278c199cf2102536ad6c7119b19b`.
+Ordered native PV row tuple digest (timestamp ISO string, original value):
+`4c7ffc87acef3bbdc640f4b04b05b3d170345e2712b4a55f23773db1b5dba000`.
+Both full canonical joint reports have SHA-256
+`d21ed28a32b0a6082f75f564c1636400e2e57b9987f141b60c1f39e9ba40485b`.
+They are retained at `/tmp/earthship-oct3-joint-source-audit.json` and its
+`-repeat.json` counterpart. The pure native `qualify_pv_day` uses a bounded
+SELECT-only REPEATABLE READ snapshot, 2-second statement and 1-second lock
+limits, original rows without repair, and the restricted energy reader.
+The existing archive `read_as_of` requires the private digest/capture clock
+and matches the public receipt. Current state SHA-256 remains `44aba271...`
+across both read-only audits. Original charge and overnight proofs retain
+their separate exact digests in the sections below.
+
+
+## October 4 frozen October 3 overnight comparison qualified
+
+The canonical October 3 **20:00 to October 4 11:00 MDT** window is now
+complete. Restricted native reads at **17:22:56.375488Z** and
+**17:24:19.001895Z** qualify an actual trough of **86%**, with
+**99.9893741%** canonical coverage. The same original late issue, atomic
+source digest, morning link, three ending dates and 4326.279574-second
+sunset-relative lead from the frozen section below remain exact.
+
+| Prediction | Frozen estimate | Signed error against 86% |
+| --- | --- | --- |
+| Original morning issue | 69% | -17 percentage points |
+| Original live pre-dusk issue | 74% | -12 percentage points |
+| Frozen phase comparison | 82% | -4 percentage points |
+| Frozen sunset comparison | 83% | -3 percentage points |
+
+This closes the completed-night scoring gate for October 3. Across the four
+qualified live pre-dusk nights (September 29, September 30, October 1 and
+October 3), MAE is **5.00 points**, versus **20.75** for their original morning
+issues. All pre-dusk misses remain nonpositive. The 82% and 83% alternatives
+are the pre-outcome frozen comparisons, not extra original production issues
+or independent nights. A single night does not establish seasonal skill,
+action benefit or permission to change the live estimator.
+
+### Exact frozen-prefix replay
+
+The unchanged benchmark source still matches
+`cc3c92322f23a34d4b84fc1db84dd6f5ee1ddc91f173e73c9e577206e3c9a563`.
+Its ordinary sunset-only reads start at sunset minus 120 seconds. The frozen
+sunset calculation instead reused the earlier phase-profile observation
+prefix. Consequently its ordinary regenerated digests differ even though
+all three drop values and the resulting 83% are unchanged. Those ordinary
+digests were not accepted as replacements for the frozen evidence.
+
+A read-only replay calls the unchanged `sunset_soc_profile.measure` with each
+original prior sunset/persistence clock, bank epoch and original morning
+`as_of=2026-10-03T12:40:58.396244Z`. Read each native prefix from
+`min(sunset - 4326.279574 seconds, canonical_window.start) - 120 seconds`
+through the original canonical window end, using the restricted
+`energy_power_reader`, REPEATABLE READ, a 2-second statement limit and 10,001
+row limit. All three reconstructed sunset digests exactly match the frozen
+`4e1ce21a...`, `cb71d50e...` and `6096972a...` values below. All three phase
+digests also match directly. No current outcome is admitted as a predictor
+input; no source, database row, policy, threshold, notification or control changed.
+
+Full receipts:
+`/tmp/earthship-oct3-frozen-overnight-qualified.json` and
+`/tmp/earthship-oct3-frozen-overnight-qualified-repeat.json`.
+Their only differences are the top-level assessment clock, charge-assessment
+clock and target-phase assessment clock. Removing exactly those three explicit
+clock fields yields identical reports with canonical SHA-256
+`532967f762c9a2cc8ad7c0c5525bd98b57dd4e444dae1eb4b6eb7a2cefd4fa15`.
+The first full canonical report SHA-256 is
+`d989fdacbab75c8d75c3bde2264f188d160c204358b90e4aa8802b4af1798de6`;
+the second canonical report hash is `b0a3a4a8a0bb9e2cdede969f90c2e19f117aa8ca8a736a3832bba5c4ecad7095`.
+Canonical native outcome digest:
+`d86f076910c0c0a8d6952f29b37405e8246af5926002f33493ea41e4f41aabd2`.
+Current learned-state SHA-256 remains
+`44aba2710926998a2d710c8220f252fa5f6e3493af4a483ad0d27a1f67d842aa`
+across these read-only repeats; this later full-file state is not substituted
+for the original frozen issue or its input clocks.
+
+
 This is an origin-aware design review, not a new control or model release.
 Keep `forecast-intel`'s 06:40 as-issued record, the separate display-only
 pre-dusk issue, and the qualified Energy/Thermal evidence boundaries intact.

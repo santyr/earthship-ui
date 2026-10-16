@@ -5,6 +5,159 @@ work to move the model out of shadow on September20,2026. This is part of the
 broad Earthship/OpenHAB goal, not an indefinite optional follow-up. Do not rush
 the evidence gates or equate a working shadow publisher with completion.
 
+## October 5 offline error diagnosis completed
+
+[The frozen offline diagnosis](2026-10-05-thermal-offline-error-diagnosis.md)
+replays 19/19 original captures exactly twice, scores 56 mature pairs by artifact,
+and produces byte-identical corrected results. It confirms that the installed
+three-regime solar model discards outdoor shading when indoor shading closes;
+all three captured artifacts then increase modeled solar air gain. It also
+confirms raw observed wall versus filtered forecast mass semantics in the plot.
+Observed outdoor replacement worsens all seven matched October 4 six-hour cases;
+night residuals and mixed parameter sensitivities reject a universal bias fix.
+Independent native-observer parity passes 3,420 points and 88 latest-state checks.
+
+The October 5 fit's first original one-hour outcome is now qualified: model/
+cycle/persistence signed errors **+0.584/−0.360/−0.540 F**, with original interval
+coverage and one window. This is separate from older cohorts and from diagnostic
+hindsight. The report records next accuracy priorities and a private hashed
+capsule; the model remains shadow and no coefficient, vent scenario, training,
+publisher, production restart, action label or household control was changed.
+
+## October 5 new-fit delivery complete; first daily and 48-hour outcomes
+
+The first naturally scheduled publication of accepted file `acf1d315...`
+passes exact capture/artifact/runtime/source-expiry/timer/Item/JDBC checks.
+It decides at **14:05:58.184291Z**, publishes at 14:06:00.449779Z and stores
+at 14:06:00.450Z. Two original-output replays agree under `e32fdb8b...`, also
+this artifact's training revision. The captured artifact identity is
+`bad329e1...`; first prospective one-hour scoring waits until **15:05Z**.
+The earlier training and new-artifact delivery gates are both now complete.
+
+Separately, four repeated native audits at **14:06:14Z** qualify the older
+cohorts' 14:00Z targets. The `a4ea9f4a...` first daily forecast has
++0.067 F error versus +0.180/+0.540 F cycle/persistence; the `d9163729...`
+first 48-hour forecast has +0.943 F error versus -0.900/0.000 F.
+Both original intervals cover their targets, with one independent window per
+longer horizon. The newer cohort's six/twelve-hour non-overlap now has 4/2
+windows and retains the earlier interval miss. These are original cohort
+results, not measurements of the new October 5 fit or seasonal/action skill.
+
+[Exact original clocks, cohort metrics and private proofs](2026-09-30-forecast-input-capture.md#october-5-first-daily-and-48-hour-targets-new-fit-natural-delivery)
+close delivery and add first longer-horizon outcomes without changing the
+historical daily baseline deficit, interval-calibration deficit, zero genuine
+confirmed-action targets or null graduation thresholds. The model remains
+shadow; no graduation, notification or household control is introduced.
+
+## October 5 natural training and matured original cohort
+
+The scheduled trainer invocation `853e7f8e4453482cb390b2bd9bf9195c` starts at
+**12:50:56Z** and exits zero at **13:16:05Z**, wall time 25m09s and recorded
+CPU time 25m04.619s. The actual handle is terminal/inactive with PID zero.
+No job was manually started. Accepted file SHA is
+`acf1d315ef3a0ce1ec8ece8b74216afcf841f34c6f8e5a25986c8b7b567f6946`;
+backtest report SHA is
+`6656af71a4b1e57c60d377a354340ab1fb7f52ca424805fca5a6456799a9d279`.
+The new artifact correctly records installed training revision `e32fdb8b...`,
+created/trained-through **12:50:57.027920Z**, with a 400-day raw window from
+August 31, 2025. Physical dynamics, behavior parameters and dataset manifest
+all change; the fit uses 78,838 pairs. This is a real new fit, while first
+natural publication of this particular accepted artifact remains pending.
+
+The coherent installed validator accepts the artifact/report pair. Historical
+24-hour air metrics still contain 119 matched comparisons, with model/cycle/
+persistence MAE **2.17855/1.83416/1.68989 F**. Interval coverage is **0.81356**
+against nominal 0.9, with 118 interval-scored cases. These daily metrics are
+unchanged from the prior artifact even though its final fitted parameters
+change. Confirmed-action training rows, evaluation targets and disjoint folds
+remain zero; shadow-only remains true and graduation thresholds remain null.
+The natural confirmation poll has no new question/receipt: one question/one
+receipt, zero automatic questions/corrections. This does not establish a
+confirmed action's physical outcome or authorize source/control changes.
+
+The separately [matured original October 4 artifact cohort](2026-09-30-forecast-input-capture.md#october-5-morning-original-october-4-artifact-cohort)
+now has 12/9/6 short/six-hour/twelve-hour pairs and 12/3/1 non-overlapping
+windows. Model/cycle/persistence MAE is 0.5237/0.4950/1.0200 F at one hour,
+1.4488/3.2800/6.4200 F at six hours, and 1.0087/4.1100/7.7700 F at twelve
+hours. Short skill still trails the cycle baseline, with only two issue dates;
+longer independent/seasonal/action evidence remains limited. These forecasts
+belong to `a4ea9f4a...`, not the new October 5 fit. No cross-artifact pooling or
+graduation is justified. Native and accepted-model proofs are private in
+`/home/sat/.local/state/thermal-intel/qualification-receipts/20261005-morning/`.
+
+## October 4 evening cohort completion and natural new-runtime delivery
+
+[Natural delivery under the installed November-default runtime](2026-10-04-november-vent-default.md#october-4-evening-natural-delivery-verified-october-5-utc)
+now verifies precise timer/service clocks, original capture/current Item/JDBC,
+source expiry and exact selected-runtime replay. This closes post-install
+continuity, while the future November boundary remains an observation gate.
+
+The [settled evening audit](2026-09-30-forecast-input-capture.md#october-4-evening-settled-short-six-hour-and-complete-daily-cohorts)
+finishes all six older daily targets: model/cycle/persistence MAE is
+**2.2828/1.1100/0.5400 F**, with interval coverage 5/6 and only one independent
+window. The newer artifact's fifth short target loses to both baselines,
+raising five-window MAE to **0.5804/0.5400/1.3320 F**, still one issue day.
+Its three overlapping six-hour pairs have MAE **1.9673/3.9600/8.7000 F** and
+coverage 2/3. The third is a +5.234 F error, with actual 0.027 F below its
+original interval. Exact replay passes; no interval widening, vent sensitivity,
+coefficient change, fabricated label or release was introduced. Independent
+long-horizon/seasonal evidence, confirmed actions and reviewed graduation
+thresholds remain unmet.
+
+## October 4 fourth short outcome and current graduation audit
+
+The [fourth settled original short forecast](2026-09-30-forecast-input-capture.md#october-4-fourth-settled-short-outcome-qualified)
+adds another independent one-hour window at the 21:00Z target. Model/cycle/
+persistence MAE is now **0.2497/0.5850/1.5300 F** across four windows, all on
+one issue day. Repeated audits agree; the first six-hour result is unchanged.
+
+A fresh read-only accepted-artifact/report audit under installed `e32fdb8b...`
+confirms unchanged graduation blockers. The 119 historical 24-hour comparisons
+have model/persistence/cycle MAE **2.17855/1.68989/1.83416 F**, with interval
+coverage **0.81356** against nominal 0.9. Confirmed training rows, evaluation
+targets and disjoint folds remain zero; `shadow_only` is true and graduation
+thresholds remain unapproved. This audit does not replace prospective scores.
+Aggregate-only recurring collection still has one question, one receipt, one
+terminal prompt and zero automatic questions/corrections. No synthetic label,
+manual question, model refit or operational release was introduced.
+
+## October 4 first six-hour acceptance evidence
+
+The [first new-artifact six-hour outcome](2026-09-30-forecast-input-capture.md#october-4-first-new-artifact-six-hour-and-fourth-daily-outcome-qualified)
+now qualifies at 20:06:09Z. Model/cycle/persistence MAE is
+0.020/5.040/11.340 F for one independent window, still one issue day.
+Yesterday's fourth daily pair improves its overlapping cohort MAE to
+2.6197/1.2150/0.5850 F, but the earlier interval miss and only one independent
+daily window remain. This closes an additional outcome-qualification step,
+not the full graduation requirement. No extra ventilation calculation or
+live model change was made.
+
+The operator additionally directed a no-venting forecast default from November 1,
+2026 midnight Mountain, **until they change it**. The [forecast-only policy is
+installed and qualified](2026-10-04-november-vent-default.md). It is an explicit
+assumption, not a confirmed physical state, historical label or equipment command.
+Original forecast replay remains exact; natural new-runtime delivery and actual
+November observations remain separate evidence gates.
+
+## October 4 acceptance evidence update
+
+The latest [original daily and short outcome qualification](2026-09-30-forecast-input-capture.md#october-4-third-daily-miss-and-third-short-outcome-qualified)
+keeps artifacts separate and freezes assessment at 19:56:48Z. Today's artifact
+has three non-overlapping short windows on one day, model/cycle/persistence
+MAE 0.2867/0.6000/1.5600 F. Yesterday's third daily target has a -7.750 F
+model error outside its original interval; its three overlapping daily pairs
+have MAE 3.4273/1.3200/0.5400 F and interval coverage 2/3. Only one independent
+daily window remains, so neither pooled results nor the strong short pair
+establish long-horizon or seasonal acceptance.
+
+The failed original daily output replays exactly under the verified installed
+runtime. Separate closed-vent and warmer-outdoor sensitivity runs leave
+-6.132/-7.030 F error; the legacy held-shade overlay remains rejected. Continue
+chronological, artifact-specific qualification and independently confirmed
+physical-state/action evidence before refitting or advisory integration.
+Graduation remains incomplete; no acceptance threshold, model, interval,
+action label, live gate or control was changed.
+
 ## Current evidence, September20
 
 The latest [October 2 late-evening independent-window comparison](2026-09-30-forecast-input-capture.md#october-2-late-evening-independent-window-solar-rejection)

@@ -129,3 +129,29 @@ def test_healthy_consumer_requires_original_payload_after_restart():
                     {**actual, 'editable': False},
                     {**actual, 'status': {'status': 'UNINITIALIZED', 'statusDetail': 'NONE'}}):
         assert q._healthy_control(lambda *_: (200, damaged), original) is None
+
+
+@pytest.mark.parametrize('kind,restart,control',[
+    ('season',True,True),('sky',False,True),('sky',True,False)])
+def test_protected_transaction_requires_complete_isolated_scope(monkeypatch,kind,restart,control):
+    monkeypatch.setattr(q.runtime.oh,'get',lambda *_: pytest.fail('unexpected production read'))
+    with pytest.raises(RuntimeError,match='protected sky transaction requires'):
+        q.main(kind,restart=restart,sky_control=control,protected_transaction=True)
+
+
+def test_managed_payload_keeps_optional_metadata_for_exact_transaction(baseline):
+    _, managed, _, _ = baseline
+    original = {**managed, 'visibility': 'HIDDEN', 'configuration': {'original': True}}
+    assert q.managed_payload(original) == {k: v for k, v in original.items() if k != 'editable'}
+
+
+def test_exact_control_payload_retains_actual_managed_metadata(monkeypatch):
+    original = {'uid': q.sky_control_probe.UID, 'visibility': 'VISIBLE',
+                'configuration': {'retained': 1}, 'status': {'status': 'IDLE'}}
+    def pinned(live, source, **kwargs):
+        assert live == original and source == b'canonical'
+        assert kwargs == {'consumer_revision': 'durable-recovery'}
+        return {'uid': live['uid']}
+    monkeypatch.setattr(q.sky_control_probe, 'control_payload', pinned)
+    assert q.exact_control_payload(original, b'canonical') == {
+        'uid': original['uid'], 'visibility': 'VISIBLE', 'configuration': {'retained': 1}}

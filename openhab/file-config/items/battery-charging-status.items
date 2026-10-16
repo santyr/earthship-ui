@@ -1,0 +1,3 @@
+// Prepared migration candidate. Do not install alongside the managed Item.
+// Preserve the existing display writer and JDBC identity 154.
+Switch BatteryChargingStatus "BatteryChargingStatus"

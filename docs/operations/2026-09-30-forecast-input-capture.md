@@ -1,5 +1,549 @@
 # Exact morning weather-input archive
 
+
+## October 5 first daily and 48-hour targets; new-fit natural delivery
+
+At fixed assessment **2026-10-05T14:06:14Z**, two capture-strict audits per
+artifact agree exactly. Their original **14:00Z** targets have passed the
+five-minute maturity lag. The October 4 and October 3 cohorts remain separate,
+and neither includes the new October 5 accepted model.
+
+| Original issue UTC | Artifact | Horizon | Model error F | Cycle error F | Persistence error F |
+| --- | --- | ---: | ---: | ---: | ---: |
+| October 4 13:58:05.252516 | `a4ea9f4a...` | 24 h | +0.067 | +0.180 | +0.540 |
+| October 3 13:39:05.222543 | `d9163729...` | 48 h | +0.943 | -0.900 | 0.000 |
+| October 5 02:17:05.996562 | `a4ea9f4a...` | 12 h | -0.811 | +3.600 | +7.560 |
+| October 5 08:04:05.255241 | `a4ea9f4a...` | 6 h | -0.806 | +1.260 | +2.700 |
+
+All four original intervals cover their native targets. The first daily pair
+beats both matched baselines; the older 48-hour pair loses to both. Each longer
+horizon still has only **one independent window**. The original outdoor
+forecast errors for those daily/48-hour pairs are +5.14/+7.14 F, retained as
+diagnostics rather than retrospectively corrected forcing or action attribution.
+
+The `a4ea9f4a...` cohort now has 12/10/7/1 matured 1/6/12/24-hour pairs,
+with 12/4/2/1 non-overlapping windows. Six-hour matched model/cycle/persistence
+MAE is **1.3845/3.0780/6.0480 F**; selected-window MAE is
+**0.8783/2.8350/5.7150 F**. Twelve-hour matched MAE is
+**0.9804/4.0371/7.7400 F**; selected-window MAE is
+**1.3190/3.5100/7.4700 F**. Six/twelve-hour interval coverage is 9/10 and 7/7.
+Short skill remains unchanged at 0.5237/0.4950/1.0200 F. The earlier six-hour
+interval miss is preserved. Eleven daily and all twelve 48-hour targets in this
+cohort remain future at assessment; five older 48-hour targets remain future.
+
+Canonical native report SHA-256 values:
+
+- `a4ea9f4a...`: `9f593dc67144da33d4da45e09d4803dbffe97cb8227dd05fa4a0ebd2f9c21826`
+- `d9163729...`: `af050a50e18af82d39e97addc09f574e3e156dc670cb9811afda5deea8e86453`
+
+The four original reports and added-pair summary with `20261005T140614Z`
+filenames are durably private under
+`/home/sat/.local/state/thermal-intel/qualification-receipts/20261005-morning/`.
+No artifact pooling, model correction, interval widening or new vent calculation.
+
+The new October 5 fit's **first natural publication** separately passes.
+Timer trigger is **14:05:56.968573Z**, decision **14:05:58.184291Z**,
+publication **14:06:00.449779Z**, and original JDBC storage **14:06:00.450Z**.
+Service invocation `a81d3e1d84ec4ecf8a779df6bc6c5801` exits zero at
+14:06:00.491620Z. Current accepted file SHA remains `acf1d315...`; its captured
+validated artifact identity is
+`bad329e1299847957b261975e8f6140985050c2604356e623ba8d381cccb0f09`.
+These are different digest scopes, not competing artifact identities.
+
+The immutable capture is `20261005T140558Z-84677b99eb80217f.json.gz`,
+output SHA `84677b99eb80217f0eaa02601645257c31bc1abc1b747ee11677276b4c242a6c`.
+Two exact original-output replays agree under installed `e32fdb8b...`, which
+also matches this artifact's training revision. Original radiation is decoded
+at 14:05:37Z and expires at 14:07:37Z; publication occurs inside its native
+120-second validity interval. All three temperature sources are valid at
+original decision and publication. Current Item, exact original JDBC row,
+immutable capture, accepted artifact and terminal timer-bound handle agree;
+no job was manually triggered. Private proof
+`natural-publication-20261005T140558Z.json` has SHA-256
+`ced0fbe7ae871f68fbca26eeeefaac07fcd9d0133be3afe015fe7c39c9c5ed20`.
+This closes new-fit delivery; its first one-hour outcome is only eligible at
+**15:05Z**, not at this delivery checkpoint. Seasonal, action and predictive
+release gates remain open.
+
+
+
+## October 5 morning original October 4 artifact cohort
+
+At fixed assessment **2026-10-05T13:29:43Z**, two capture-strict native audits
+agree exactly for the twelve original `a4ea9f4a...` issues between October 4
+13:00Z and October 5 13:00Z. This includes the verified 00:01Z post-install
+publication and later natural issues through 12:05:58Z. Every pair retains its
+exact original forcing capture and artifact; the newly trained October 5 model
+is excluded. Source-qualified indoor/outdoor reads each use one batch for the
+21 distinct target times. Targets become eligible only after their original
+five-minute maturity lag.
+
+| Horizon | Mature overlapping pairs | Model MAE F | Cycle MAE F | Persistence MAE F | Original interval coverage |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1 h | 12 | 0.5237 | 0.4950 | 1.0200 | 12/12 |
+| 6 h | 9 | 1.4488 | 3.2800 | 6.4200 | 8/9 |
+| 12 h | 6 | 1.0087 | 4.1100 | 7.7700 | 6/6 |
+
+Non-overlapping selection within each horizon retains **12/3/1** windows:
+
+| Horizon | Selected windows | Model / cycle / persistence MAE F |
+| --- | ---: | --- |
+| 1 h | 12 | 0.5237 / 0.4950 / 1.0200 |
+| 6 h | 3 | 0.9023 / 3.3600 / 6.7200 |
+| 12 h | 1 | 1.8270 / 3.4200 / 7.3800 |
+
+The twelve short issues span two Mountain issue dates. The model wins against
+the recent-cycle baseline in five short pairs and loses seven, so short skill
+still does not beat both baselines. All three selected six-hour windows beat
+both baselines; one selected twelve-hour window is still weak independent-day
+support. Do not sum windows across horizons as independent observations or
+infer seasonal/action skill. The original six-hour 0.027 F interval miss remains
+excluded from coverage; no interval widening or new ventilation calculation.
+
+Seven new short, six new six-hour and six new twelve-hour outcomes are added.
+The first twelve-hour target at **02:00Z** has +1.827 F model error versus
+-3.420 F cycle and -7.380 F persistence. The first post-install 00:01Z capture's
+01:00Z, 06:00Z and 12:00Z targets have model errors -0.752/-2.127/-1.386 F.
+All twelve daily and 48-hour targets in this cohort remain future at assessment.
+The earliest original daily target becomes eligible at **14:05Z**; the older
+October 3 artifact's first 48-hour target has that same maturity checkpoint.
+Artifacts remain separate even when their native target time is shared.
+
+Private native reports `a4-matured.json` and `a4-matured-repeat.json`, plus the
+exact added-pair summary, are durably retained under
+`/home/sat/.local/state/thermal-intel/qualification-receipts/20261005-morning/`.
+Full canonical report SHA-256:
+`c78e290b6f6c7e918c2577b8d8b719bdce894aa73af311fd385e14bc11c323ff`.
+No new issue, refit, model promotion, notification or physical control was run.
+
+## October 4 evening settled short, six-hour and complete daily cohorts
+
+At frozen assessment **2026-10-05T00:05:40Z** (October 4 18:05:40 MDT), all
+midnight UTC targets have passed the five-minute maturity lag. Two independent
+capture-strict native audits per artifact agree. Bounds retain the six original
+October 3 issues and five October 4 issues through 22:00Z; the new 00:01Z
+publication is excluded, and no artifacts are pooled.
+
+| Original issue UTC | Artifact | Near horizon | Target UTC | Model error | Cycle error | Persistence error |
+| --- | --- | ---: | --- | ---: | ---: | ---: |
+| October 3 21:53:55.878437 | `d9163729...` | 24 h | October 4 22:00 | +0.322 F | +0.180 F | +0.180 F |
+| October 3 23:54:05.315134 | `d9163729...` | 24 h | October 5 00:00 | +2.896 F | +1.620 F | +0.720 F |
+| October 4 22:00:58.876561 | `a4ea9f4a...` | 1 h | October 4 23:00 | +1.903 F | +0.360 F | +0.540 F |
+| October 4 15:59:04.788916 | `a4ea9f4a...` | 6 h | October 4 22:00 | +0.648 F | -5.760 F | -11.340 F |
+| October 4 18:00:04.759666 | `a4ea9f4a...` | 6 h | October 5 00:00 | +5.234 F | -1.080 F | -3.420 F |
+
+The first four additions are covered by their original intervals. The last
+six-hour prediction is **84.214 F**, interval **79.007–89.421 F**, against
+qualified actual **78.980 F**: below the lower bound by 0.027 F. Strict original
+coverage is false; no rounding allowance or retrospective interval widening
+was introduced. Outdoor forecast errors for these additions are respectively
+-6.260/-0.220/+2.700/-2.360/+1.880 F. Opposite-signed errors remain distinct;
+no additional ventilation calculation or model adjustment was performed.
+
+| Artifact and horizon | Mature pairs | Model MAE | Cycle MAE | Persistence MAE | Original interval coverage |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| October 3 `d9163729...`, 24 h | 6 | 2.2828 F | 1.1100 F | 0.5400 F | 5/6 |
+| October 4 `a4ea9f4a...`, 1 h | 5 | 0.5804 F | 0.5400 F | 1.3320 F | 5/5 |
+| October 4 `a4ea9f4a...`, 6 h | 3 | 1.9673 F | 3.9600 F | 8.7000 F | 2/3 |
+
+All five short windows are non-overlapping, still one issue day; the fifth
+loses to both baselines and reverses the aggregate model-versus-cycle ordering.
+The three six-hour predictions overlap and retain one independent selected
+window, **0.020/5.040/11.340 F** model/cycle/persistence. The older daily cohort
+also retains one independent window, **0.486/1.620/0.540 F**. All its six daily
+targets are now scored; its six 48-hour targets remain future. The newer
+artifact's 12/24/48-hour outcomes remain future at this assessment.
+
+The new six-hour miss replays exactly in two independent processes under
+installed `e32fdb8b...`, original output SHA
+`edb6cc605b07177837d41560178ed21e42a11a069220493b71b7ccce67f9891a`.
+Canonical replay-report SHA is
+`d26d608453fdb4855c699fe29b757c770127706fdd146f33d7e793c5ad959b47`.
+The private `/tmp/earthship-a4-third-six-hour-miss-replay.json` and `-repeat`
+peer retain the original proof. This establishes reproduction, not cause.
+
+Repeated native reports have canonical SHA-256:
+
+- October 3 cohort: `3c16374c2ed2196208744c91c7c63cb665618b575a1e67ff78d094d2efa0d796`.
+- October 4 cohort: `5eaf780c9882d298afd79697c71d472638035235dd7dc150c4c675d1e333ce74`.
+
+Private receipt prefixes are `/tmp/earthship-d916-20261005T000540Z` and
+`/tmp/earthship-a4-20261005T000540Z`, each with original and repeat mature
+reports. Every pair's artifact identity is checked explicitly. The older
+cohort verifies six captures and two indoor/outdoor batches with 21 targets;
+the newer verifies five captures and one batch per stream with eight targets.
+The model remains shadow-only; no action evidence or graduation is claimed.
+
+
+## October 4 fourth settled short outcome qualified
+
+At frozen assessment **2026-10-04T21:26:07Z**, two independent capture-strict
+read-only audits agree on the bounded October 4 artifact cohort. The original
+**20:00:58.555231Z** issue now qualifies against its **21:00Z** native target,
+with model/cycle/persistence signed errors **-0.139/-0.540/-1.440 F**.
+All seven prior same-clock cycles qualify, the original 10.414 F interval
+covers the observation, and the outdoor forecast error is -1.620 F.
+
+The four one-hour windows are all non-overlapping and remain one issue day:
+model/cycle/persistence MAE is **0.2497/0.5850/1.5300 F**. The model wins three
+pairs against both baselines and loses the first. Its first six-hour result
+remains unchanged; longer unelapsed targets remain withheld. There is no new
+24-hour result at this assessment, and no model, interval, control threshold,
+action label or release gate was changed.
+
+Each audit verifies four original captures and uses one indoor and one outdoor
+batch with five targets per stream. Every scored pair is explicitly checked
+against artifact `a4ea9f4a0ddb11a54d881cb8d83ded73b57836122778a44c65e3c0bfd3ed01df`;
+`--artifact-id` alone is not a publication filter. Repeated-report canonical
+SHA-256 is `9517e31f27ca1bfe69bd35dab52152ac920672a2f185f0154d9d5d7ddb90e51f`.
+Private receipts are `/tmp/earthship-a4-2125-matured.json` and its `-repeat`
+peer. The scorer uses installed coherent runtime `e32fdb8b...`, while original
+publication/training metadata correctly retain `15267d7a...`.
+
+The next new six-hour/daily target is 22:00Z, eligible only after its five-minute
+maturity lag. Short performance on one issue day does not prove long-horizon,
+seasonal, interval or independently confirmed-action skill.
+
+
+## October 4 first new-artifact six-hour and fourth daily outcome qualified
+
+At frozen assessment **2026-10-04T20:06:09Z**, the 20:00Z native outcome has
+passed the required five-minute maturity lag. Two independent read-only audits
+per artifact agree. Original publication bounds and per-pair artifact identity
+checks preserve the separate October 3 and October 4 cohorts.
+
+| Original issue UTC | Artifact | Near horizon | Target UTC | Model signed error | Cycle signed error | Persistence signed error |
+| --- | --- | ---: | --- | ---: | ---: | ---: |
+| October 4 13:58:05.252516 | `a4ea9f4a...` | 6 hours | October 4 20:00 | -0.020 F | -5.040 F | -11.340 F |
+| October 3 19:53:38.161057 | `d9163729...` | 24 hours | October 4 20:00 | -0.197 F | -0.900 F | +0.720 F |
+
+Both original captures, indoor/outdoor observations and seven prior same-clock
+cycles qualify. Outdoor forcing errors are -0.420/-4.220 F respectively.
+Today's first six-hour pair beats both baselines, with its original 10.414 F
+interval covering the actual. It is one independent window on one issue day;
+low confidence, seasonal/action evidence and graduation gates remain.
+Its existing three non-overlapping short windows remain unchanged. Two other
+six-hour targets and all 12/24/48-hour targets of this bounded cohort remain
+future at this assessment.
+
+Yesterday's four overlapping daily pairs now have model/cycle/persistence MAE
+**2.6197/1.2150/0.5850 F** and interval coverage **3/4**. The new pair wins,
+but the earlier -7.750 F interval miss remains in the cohort. Mean daily error
+still exceeds both baselines. Greedy non-overlap still selects only the original
+first daily window, with MAE 0.486/1.620/0.540 F; this additional overlapping
+pair does not increase independent-day support. Two daily targets remain
+future, at 22:00Z and October 5 00:00Z; all six 48-hour targets remain future.
+
+Canonical repeated-report SHA-256 values:
+
+- October 3 cohort: `4a90255519d9d9d644f9c99902dc9e021c9cd5326a5018b8940fe5a408fa7e35`.
+- October 4 cohort: `85a069aceac583bd615931f8f69d15f268c8bfd5682b9a747f47c0bdf1e420ed`.
+
+Receipts are `/tmp/earthship-d916-2005-matured.json` and
+`/tmp/earthship-a4-2005-matured.json`, each with an identical `-repeat.json`
+counterpart (0600). Reproduce using the preceding bounded cohort commands,
+horizons 1/6/12/24/48 and fixed assessment 20:06:09Z. No additional venting
+sensitivity run, model calculation, coefficient, action label, publication,
+notification, schedule, live gate or household control was added or changed.
+
+
+
+## October 4 third daily miss and third short outcome qualified
+
+At frozen assessment **2026-10-04T19:56:48Z**, two independent native reads
+agree for each separately bounded artifact cohort. Every scored pair retains
+its original artifact identity, qualified private forcing capture and native
+indoor/outdoor receipts. The 1/6/12-hour October 3 results are unchanged.
+
+| Artifact and near horizon | Mature pairs | Model MAE | Seven-cycle MAE | Persistence MAE |
+| --- | ---: | ---: | ---: | ---: |
+| October 3 `d9163729...`, 24 hours | 3 | 3.4273 F | 1.3200 F | 0.5400 F |
+| October 4 `a4ea9f4a...`, 1 hour | 3 | 0.2867 F | 0.6000 F | 1.5600 F |
+
+The third October 3 daily issue, **17:53:37.617985Z**, targets October 4
+**18:00Z**. Original prediction is **67.810 F**, interval
+**62.603–73.017 F**, and qualified actual is **75.560 F**. Model/cycle/
+persistence signed errors are **-7.750/-1.260/-0.360 F**. The actual is above
+the original interval: daily interval coverage is now **2/3**, and the model
+loses to both baselines on this pair. The cycle reader excludes one candidate
+that was not strictly historical at issue time and selects lags 2–8 instead.
+This pair overlaps the first daily window; the single selected independent
+window remains model/cycle/persistence MAE **0.486/1.620/0.540 F**. Three daily
+and all six 48-hour targets remain future at this fixed assessment.
+
+The third October 4 short issue, **18:00:04.759666Z**, targets **19:00Z**.
+Model/cycle/persistence signed errors are **-0.004/-0.540/-1.800 F**, with
+outdoor forecast error -1.620 F. All three short windows are non-overlapping,
+but remain one issue day, low confidence and 10.414 F-wide intervals. No
+6/12/24/48-hour target of this new artifact is mature at the cutoff. A good
+short result does not cancel the older artifact's daily miss or prove
+independent-day, interval, seasonal or action skill.
+
+### Original daily miss replay
+
+The failed daily capture
+`20261003T175337Z-4e1729cc5ab6ba22.json.gz` replays exactly as issued under
+verified installed runtime
+`15267d7af9323d7c23dc14d6b3c5526515195474ab983e004b101c66e656cb8c`.
+Its output SHA-256 remains
+`4e1729cc5ab6ba22560847452957aa1b0ce28522d88dc90187566b96fac5a3b3`.
+Two independent replay processes agree. This validates reproduction under the
+current optimized runtime; it does not identify the physical cause of error.
+
+Independent in-memory sensitivity runs leave original inputs and artifacts
+intact. Assuming vents closed raises the exact daily target by **1.618 F**,
+leaving error **-6.132 F**. A separate uniform +3 F outdoor-input hypothesis
+raises it **0.720 F**, leaving error **-7.030 F**, with the selected schedule unchanged.
+Neither explains the full miss. The observed outdoor forecast error at this
+target is -6.720 F, but that single endpoint does not establish a uniform
+forcing error over the entire original trajectory. Do not combine these
+hypotheses, promote offsets, assert observed ventilation or create labels.
+The prior held-shade overlay remains rejected with this legacy solar basis;
+its modeled warming is not a repair for the newly observed error.
+
+Canonical repeated-report SHA-256 values:
+
+- October 3 cohort: `61fb03fac13cfa910ddb763be8d7a1fd5b7d57e4a38f4b3fbae374996604a918`.
+- October 4 cohort: `2fbee6ff7621f1b3d0410b9d07c7f7455ae4d7e2d2ead84698ce5a5c5eebae15`.
+- Exact replay/sensitivities: `4ca662ab61c6974fda45b7cea6b53b2b889d18e24c3ed7cd42345055cbb42d9c`.
+
+Receipts are `/tmp/earthship-d916-1958-matured.json`,
+`/tmp/earthship-a4-1958-matured.json` and
+`/tmp/earthship-d916-daily-miss-replay.json`, each with an identical
+`-repeat.json` counterpart (0600). Capture-strict native audits use horizons
+1/6/12/24/48, seven prior cycles and fixed assessment 19:56:48Z. The October 3
+publication bounds are 13:00Z–October 4 00:00Z; October 4 bounds are
+13:00–19:00Z. `--artifact-id` is not a row filter, so every pair's artifact is
+checked explicitly. The October 3 audit uses six capture checks and eighteen
+indoor/outdoor targets; October 4 uses three captures and three targets.
+
+No live model, coefficient, artifact, action label, source gate, publication,
+notification, schedule or household control changed. Thermal graduation remains
+open, with this new daily interval failure part of its acceptance evidence.
+
+
+## October 4 complete matured horizons for the October 3 artifact
+
+At fixed assessment **2026-10-04T17:43:01Z**, two independent native reads
+agree on the six original post-training `d9163729...` issues from October 3
+13:39 through 23:54Z. All six original forcing captures qualify. All declared
+1/6/12-hour targets are complete; two daily targets qualify and four remain
+future outcomes at this cutoff.
+
+| Near horizon | Mature pairs | Model MAE | Seven-cycle MAE | Persistence MAE |
+| --- | ---: | ---: | ---: | ---: |
+| 1 hour | 6 | 0.8028 F | 0.9600 F | 1.7700 F |
+| 6 hours | 6 | 1.4795 F | 4.6800 F | 8.3400 F |
+| 12 hours | 6 | 1.0598 F | 4.5300 F | 8.2500 F |
+| 24 hours | 2 | 1.2660 F | 1.3500 F | 0.6300 F |
+
+Declared greedy non-overlap selection is applied separately within this exact
+artifact cohort:
+
+| Near horizon | Non-overlapping pairs | Model MAE | Seven-cycle MAE | Persistence MAE |
+| --- | ---: | ---: | ---: | ---: |
+| 1 hour | 6 | 0.8028 F | 0.9600 F | 1.7700 F |
+| 6 hours | 2 | 0.9110 F | 5.9400 F | 10.5300 F |
+| 12 hours | 1 | 1.8880 F | 4.1400 F | 8.2800 F |
+| 24 hours | 1 | 0.4860 F | 1.6200 F | 0.5400 F |
+
+The two six-hour selections are the original **13:39:05.222543Z** and
+**21:53:55.878437Z** issues, targeting October 3 20:00Z and October 4 04:00Z.
+The 12/24-hour selection retains the first 13:39 issue. Overlap removal does
+not create independent issue days; this entire cohort remains one issue day.
+Targets are the original hourly points within the existing half-hour horizon
+tolerance, not newly interpolated exact elapsed-hour outcomes.
+
+The model improves against both matched baselines in the 1/6/12-hour cohort
+means. Daily mean error still exceeds persistence; the single selected daily
+pair's 0.054 F improvement is unchanged. All publications remain low confidence,
+with broad roughly 10.414 F intervals. Independent-day/seasonal, calibrated
+interval and genuine confirmed-action skill remain unproved; no graduation
+threshold, coefficient, forcing correction, action label, message or control
+changed. Today's `a4ea9f4a...` artifact stays separate.
+
+The initial whole-day inspection also contained seven earlier predecessor
+issues. `--artifact-id` selects the readiness target but does not filter every
+row. The final report below uses the actual post-training time bounds and
+checks every pair's artifact identity; its overall and artifact-specific groups
+are identical. Do not use pooled whole-day or global non-overlap metrics as
+this artifact's proof.
+
+Canonical report SHA-256:
+`8565d605d93215a5693f706bad9c3c060843e4c7d5c714b70d1ab4c654e9091a`.
+Receipts: `/tmp/earthship-d916-artifact-only-horizons.json` and its
+`-repeat.json` counterpart. The audit shares six capture checks and seventeen
+unique native indoor/outdoor targets in two batches per stream. Reproduce with:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/audit-thermal-shadow-publications.py \
+  --runtime-root /home/sat/openhab/scripts \
+  --since 2026-10-03T13:00:00Z --until 2026-10-04T00:00:00Z \
+  --assessed-at 2026-10-04T17:43:01Z \
+  --require-capture --horizons 1 6 12 24 --include-pairs --recent-cycles \
+  --artifact-id d9163729bcc75e38e147c33eb76c863b9e125179abc92088352192d5bc6d3be9
+```
+
+
+## October 4 second short outcome for the new artifact
+
+At frozen assessment **2026-10-04T17:27:05Z**, independent native reads agree
+for both original `a4ea9f4a...` short forecasts. The newly settled
+**15:59:04.788916Z** issue targets **17:00Z**. Its original forcing capture,
+indoor/outdoor observations and seven prior same-local-clock cycles qualify.
+
+| Original target UTC | Model signed error | Cycle signed error | Persistence signed error | Outdoor forcing error |
+| --- | --- | --- | --- | --- |
+| October 4 15:00 | +0.508 F | -0.360 F | -0.360 F | -2.620 F |
+| October 4 17:00 | +0.348 F | -0.900 F | -2.520 F | -5.320 F |
+
+The second pair beats both baselines. Combined model/cycle/persistence MAE
+is **0.428/0.630/1.440 F**, with one win and one loss against each baseline.
+Both windows are non-overlapping under the declared issue/target policy,
+but still belong to one day. This improves the short-horizon evidence for
+this artifact without establishing independent-day, long-horizon, seasonal,
+action or operational graduation skill. Low confidence and 10.414 F intervals
+remain; both intervals cover their targets, without proving calibration.
+October 3's `d9163729...` cohort stays separate. No model, correction, label,
+notification, source gate or household control changed.
+
+Canonical repeated-report SHA-256:
+`b4bda1db88d96cbacdf65d15641eb825cbc544587c0befabd7044281135d331c`.
+Second-pair cycle evidence:
+`f26623fb1743629449327bd82cde53fd4197b1fd36977e9e19eca95524bb9402`;
+selected lags are 1–7. Full receipts are
+`/tmp/earthship-a4-two-short-outcomes.json` and its `-repeat.json` counterpart.
+Reproduce the unchanged original-input calculation with:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/audit-thermal-shadow-publications.py \
+  --runtime-root /home/sat/openhab/scripts \
+  --since 2026-10-04T13:00:00Z --until 2026-10-04T16:00:00Z \
+  --assessed-at 2026-10-04T17:27:05Z \
+  --require-capture --horizons 1 --include-pairs --recent-cycles \
+  --artifact-id a4ea9f4a0ddb11a54d881cb8d83ded73b57836122778a44c65e3c0bfd3ed01df
+```
+
+
+## October 4 second settled daily outcome for the October 3 artifact
+
+At frozen assessment **2026-10-04T16:14:41Z**, two independent native reads
+produce identical capture-strict reports for the original `d9163729...`
+daily forecasts. The newly settled **October 3 15:40:07.386987Z** issue
+targets **October 4 16:00Z**. Original input capture, indoor/outdoor receipts
+and seven strictly historical cycles qualify.
+
+| Original target UTC | Model signed error | Cycle signed error | Persistence signed error | Outdoor forcing error |
+| --- | --- | --- | --- | --- |
+| October 4 14:00 | -0.486 F | -1.620 F | -0.540 F | -0.160 F |
+| October 4 16:00 | -2.046 F | -1.080 F | -0.720 F | -6.820 F |
+
+The second pair loses to persistence by **1.326 F** and recent cycles by
+**0.966 F**. Across both pairs, model/cycle/persistence MAE is
+**1.266/1.350/0.630 F**: the model slightly beats cycles overall but loses
+to persistence. Both original windows overlap; the declared greedy
+non-overlap policy retains only the first pair, not two independent days.
+Its 0.054 F improvement over persistence remains insufficient seasonal
+or confirmed-action evidence. Both low-confidence 10.414 F intervals cover
+the observations, without proving interval calibration.
+
+This cohort stays separate from October 4's `a4ea9f4a...` artifact. The
+second pair's cold outdoor forcing and cold indoor residual do not establish
+causal attribution. No refit, historical forcing correction, action label,
+notification, graduation threshold or household control changed.
+
+Canonical report SHA-256:
+`3f1846c34199abbb26aa85b49a628e12cc0924e86a489129f97511b7de0cf30e`.
+Second-pair cycle evidence SHA-256:
+`b04e34c00b61f83a9d6921db006a481fc7e7a722e81b6ebd9b4c984bd0eedecd`.
+Both comparators select lags 2–8, excluding the immediately prior overlapping
+cycle as not strictly historical. The audit verifies two original captures,
+uses one indoor/outdoor batch each and 28 prior-cycle points in 28 batches.
+Receipts are `/tmp/earthship-d916-two-daily-outcomes.json` and its
+`-repeat.json` counterpart. Reproduce with:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/audit-thermal-shadow-publications.py \
+  --runtime-root /home/sat/openhab/scripts \
+  --since 2026-10-03T13:00:00Z --until 2026-10-03T16:00:00Z \
+  --assessed-at 2026-10-04T16:14:41Z \
+  --require-capture --horizons 24 --include-pairs --recent-cycles \
+  --artifact-id d9163729bcc75e38e147c33eb76c863b9e125179abc92088352192d5bc6d3be9
+```
+
+
+
+## October 4 first settled outcome for the new artifact
+
+At fixed assessment **2026-10-04T15:34:35Z**, two independent native read-only
+runs produce the same report for today's `a4ea9f4a...` artifact. Its original
+**13:58:05.252516Z** issue targets **15:00Z** at the declared one-hour horizon;
+the original forcing capture, indoor/outdoor observations and seven strictly
+prior same-local-clock cycles all qualify.
+
+| Predictor | Signed error | Absolute error |
+| --- | --- | --- |
+| Original model | +0.508 F | 0.508 F |
+| Original persistence | -0.360 F | 0.360 F |
+| Seven-cycle comparator | -0.360 F | 0.360 F |
+
+The model loses to both matched baselines by **0.148 F**. This is one
+non-overlapping short-horizon window from one day, kept separate from the
+October 3 `d9163729...` artifact. The original outdoor forcing is **2.620 F
+cold**; that does not independently explain the model's warm residual.
+The 10.414 F interval covers the observation, without proving calibration.
+Low confidence, missing confirmed-action outcomes and absent operational
+graduation thresholds remain explicit blockers. No coefficient, model,
+training label, notification, source gate or household control changed.
+
+Canonical report SHA-256:
+`410198dbf6be6e38e709311c2ffef21e9f89b0bdd472d6b1fe664ced35198115`.
+Cycle evidence SHA-256:
+`1e85c5c74edfab08fc9f130e5bb57e5107b0471a3e05198420bf07f3c47cba7f`;
+selected lags are 1–7. The bounded audit uses one capture verification, one
+indoor and one outdoor target batch, plus fourteen cycle targets in seven
+small batches. Reproduce the unchanged original forecast comparison with:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/audit-thermal-shadow-publications.py \
+  --runtime-root /home/sat/openhab/scripts \
+  --since 2026-10-04T13:00:00Z --until 2026-10-04T14:00:00Z \
+  --assessed-at 2026-10-04T15:34:35Z \
+  --require-capture --horizons 1 --include-pairs --recent-cycles \
+  --artifact-id a4ea9f4a0ddb11a54d881cb8d83ded73b57836122778a44c65e3c0bfd3ed01df
+```
+
+## October 4 first settled daily outcome for the October 3 artifact
+
+At frozen assessment **2026-10-04T14:28:33.428642Z**, two independent live
+reads of the existing capture-strict scorer produce identical reports for the
+first original `d9163729...` near-24-hour publication. The original issue
+**October 3 13:39:05.222543Z** targets **October 4 14:00Z**. Its original
+capture, native indoor/outdoor outcome receipts and seven strictly prior
+qualified cycles all verify. Model/cycle/persistence signed errors are
+**-0.486 / -1.620 / -0.540 F**; outdoor forecast error is **-0.160 F**.
+
+The model beats both matched comparators here, but its absolute improvement
+against persistence is only **0.054 F**. This is one independent daily outcome
+for this artifact, with low confidence and a **10.414 F** interval. It does
+not overturn the earlier artifacts' baseline losses or establish seasonal,
+action or interval-calibration skill. Today's `a4ea9f4a...` artifact remains a
+separate cohort. No refit, correction, training label, notification or control.
+
+Canonical report SHA-256: `b678bee989a20ff83e23e3b73126860ce4afc9106d9ab846130108b9ff43db2e`.
+Recent-cycle evidence: `25c843928d8fedcc821dbc97a7c4ce07d983f80154734925f3f1c8b1320ac4a9`.
+The repeat uses the following exact original-input command, with one capture
+verification, one indoor/outdoor batch each and fourteen prior-cycle targets:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/audit-thermal-shadow-publications.py \
+  --runtime-root /home/sat/openhab/scripts \
+  --since 2026-10-03T13:00:00Z --until 2026-10-03T14:00:00Z \
+  --assessed-at 2026-10-04T14:28:33.428642Z \
+  --require-capture --horizons 24 --include-pairs --recent-cycles \
+  --artifact-id d9163729bcc75e38e147c33eb76c863b9e125179abc92088352192d5bc6d3be9
+```
+
 ## October 4 newly settled twelve-hour original-artifact outcomes
 
 At fixed assessment `2026-10-04T13:18:46Z`, the existing capture-strict audit

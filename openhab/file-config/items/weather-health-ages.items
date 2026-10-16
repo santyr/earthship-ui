@@ -1,0 +1,9 @@
+// Staged observational candidates; preserve the existing managed Group.
+Number WeatherData_WH31E_AgeSeconds "WH31E age" (gWeatherHealth) {
+  channel="http:url:weatherHealth:wh31eAgeSeconds",
+  stateDescription=" " [ pattern="%.0f s" ]
+}
+Number WeatherData_WH32B_AgeSeconds "Indoor console age" (gWeatherHealth) {
+  channel="http:url:weatherHealth:wh32bAgeSeconds",
+  stateDescription=" " [ pattern="%.0f s" ]
+}

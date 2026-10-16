@@ -1,0 +1,13 @@
+panel,artifact,metric,diagnostic,n,original_value,diagnostic_value
+Oct 4 artifact: matched 6-hour errors,a4ea9f4a,MAE F,oracle_outdoor,7,1.420286,2.153
+Oct 4 artifact: matched 6-hour errors,a4ea9f4a,MAE F,oracle_mass,8,1.405375,1.332375
+Oct 4 artifact: matched 6-hour errors,a4ea9f4a,MAE F,oracle_solar_proxy,7,1.420286,1.365571
+Oct 3 artifact: matched 24-hour errors,d9163729,MAE F,oracle_outdoor,6,2.282833,2.616167
+Oct 3 artifact: matched 24-hour errors,d9163729,MAE F,oracle_solar_proxy,6,2.282833,3.710167
+Compound-shade feature response,d9163729,solar air increment F/5min,both shades at same forcing,1,3.6578945877380105e-14,0.4411677326187876
+Compound-shade feature response,a4ea9f4a,solar air increment F/5min,both shades at same forcing,1,2.1541357371399095e-11,0.4786227433074178
+Compound-shade feature response,bad329e1,solar air increment F/5min,both shades at same forcing,1,1.8506106651956472e-11,0.2739976897103946
+One-step indoor residual,d9163729,mean residual F/5min,day,983,0.000298,
+One-step indoor residual,d9163729,mean residual F/5min,night,1037,-0.057749,
+One-step indoor residual,a4ea9f4a,mean residual F/5min,day,431,0.05093,
+One-step indoor residual,a4ea9f4a,mean residual F/5min,night,940,-0.046998,

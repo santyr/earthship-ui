@@ -71,12 +71,13 @@ handoff, actual managed rollback exercise and exact Item-176 history checks.
 Its natural writer and October 2 production restart checks pass, including
 the unchanged original 217-row Item-176 history prefix. Retain the private backup; see the
 [Item cutover receipt](../../docs/operations/2026-09-29-season-countdown-item-candidate.md).
-`automation/js/sky-condition-calculator.js` is a **staged, uninstalled**
-candidate. The initially successful live file handoff was rolled back after
-`SkyCondition` was identified as a greywater control input. The original
-managed rule is again the sole production provider; a control-input migration
-needs protected-control restart/rollback qualification. See the
-[sky rollback receipt](../../docs/operations/2026-09-29-sky-condition-rule-file-candidate.md).
+`automation/js/sky-condition-calculator.js` is **live, verified file-owned**
+after the approved October 4 protected-input handoff. Its actual file -> exact
+original managed rollback -> final file round trip, sole provider, unchanged
+pump consumer/definitions/history and natural file-writer/JDBC evaluation pass.
+Production whole-JVM recovery remains separate; the earlier September 29 rollback
+is historical. The one-shot apply gate is reclosed. See the
+[sky handoff receipt](../../docs/operations/2026-09-29-sky-condition-rule-file-candidate.md).
 The rolling `temp-highlow-24h` Earthship display writer is verified
 file-owned in `automation/js/temperature-highlow-24h.js` after exact
 consumer review, isolated provider/rollback rehearsal and guarded live
@@ -103,11 +104,74 @@ byte-for-byte; 528 JavaScript parity cases and isolated file loading/full-JVM
 restart/managed rollback pass. Both original JDBC prefixes (Items 31/154), all
 41 unrelated rule definitions and OpenHAB PID 1696 are unchanged. The adapter's
 apply gate remains off. This preserves display semantics, not source freshness
-authority. A source-attributed natural changed output and production whole-JVM
-recovery remain separate gates; retain the private original backup. See the
+authority. October 4 native icon and charging-status changes now pass exact
+file-writer/JDBC qualification. Production whole-JVM recovery remains open;
+retain the private original backup. See the
 [candidate receipt](../../docs/operations/2026-10-03-battery-icon-rule-file-candidate.md).
 
 ## Staged migration and rollback
+
+`items/weather-health-group.items` is a staged, uninstalled plain Group
+candidate for `gWeatherHealth`. Its isolated stopped transfer, full restart,
+original managed rollback and final file round trip preserve all six members:
+two managed eligibility inputs and four file-owned observers (ages and sky
+diagnostics), including their metadata and the two unchanged age links.
+The diagnostic/Group rehearsal preserves 1,672,266 original history rows;
+the fresh current-layout bootstrap preserves 1,672,372 original rows.
+The current diagnostic/Group rehearsal and fresh four-file-member bootstrap
+pass, with 4,235 unique test passes across the full run and startup regression.
+REST Group deletion removes member references, so the production handoff needs
+the qualified cold path and host authentication. Production ownership remains
+managed; see the [candidate receipt](../../docs/operations/2026-10-05-weather-health-group-candidate.md).
+
+
+`items/battery-charging-status.items` is **live, verified file-owned** for the
+unlinked `BatteryChargingStatus` Switch after the October 5 attended original
+managed/file/managed/file round trip. Its exact descriptor, recovered OFF state,
+sole display writer and all 97,347 original Item-154 rows are preserved. Exact
+native fault/delayed-JDBC/cold-JVM qualification and independent reviews pass;
+4,159 repository tests and fresh 60-case focused checks pass. The transport
+release gate is closed. Four natural source-attributed ON/OFF transitions and
+their native JDBC rows now qualify changed-output continuity, preserving the
+entire original prefix. Production restart remains open; retain the private
+original recovery point.
+See the [handoff receipt](../../docs/operations/2026-10-05-battery-charging-status-item.md).
+
+`items/sky-diagnostics.items` is live and file-owned for the unlinked diagnostic
+String and LastEval DateTime, with exact original formatting and IDs 541/540.
+The unchanged sky rule publishes natural rows; its primary outputs and managed
+eligibility inputs are preserved. See the
+[diagnostic receipt](../../docs/operations/2026-10-05-sky-diagnostic-items.md).
+
+`items/weather-health-ages.items` is live and verified file-owned for the WH31E
+and indoor-console age Items, links and state-description metadata. Plain
+Number semantics, `%.0f s` formatting, `gWeatherHealth` membership and original
+JDBC IDs 532/534 are preserved. The Group and protected health/outdoor-age
+inputs remain managed. Native hot/cold/managed-rollback qualification and the
+attended handoff preserve all six original history prefixes. See the
+[age Item receipt](../../docs/operations/2026-10-05-weather-health-age-items.md).
+
+`automation/js/south-planter-fan.js` is the new live, file-owned
+`hex_south_planter_fan` rule. It commands only outlet 1: ON at fresh source-bound
+SoC >=98% during valid daylight, OFF after dark, below 98% or on invalid battery
+or sun telemetry. The existing daylight/sunset bounds and fresh positive
+elevation are required. Native device readback
+confirms its first natural ON at 99%; isolated restart/fail-closed/withdrawal
+checks pass. Outlet 2's pump owner is unchanged. See the
+[fan receipt](../../docs/operations/2026-10-05-south-planter-fan.md).
+
+
+The October 5 observational batch is now live and verified file-owned:
+`items/moon-display-readings.items` contains the remaining 25 Moon display
+Items and their exact 25 links; `things/weather-temperature-evidence.things`
+contains the existing read-only HTTP snapshot Thing. Actual file/managed/file
+rollback, all 26 original JDBC prefixes, natural dynamic Moon updates and
+native temperature publication pass. Isolated full-JVM recovery passes;
+production restart and the stable Moon readings' next calendar changes remain
+separate gates. The temperature Item/link and all household rule definitions
+retain their original providers. See the
+[batch receipt](../../docs/operations/2026-10-05-moon-weather-file-migration.md).
+
 
 `things/astro-moon.things` is **live, verified file-owned** after the attended
 October 3 hot handoff. The operator accepted exactly 39 metadata-only binding
@@ -318,3 +382,19 @@ The harness uses installed jars, never the running OpenHAB process or REST write
 See `docs/operations/2026-09-20-persistence-provider-qualification.md` for the
 isolated and live receipts. Continue observing the natural forecast publisher
 and independent power writer; do not fill or silently score the collection gap.
+
+## Sun calendar display candidate — October 5 (historical)
+
+The [eight season/eclipse display Items](../../docs/operations/2026-10-05-sun-calendar-items.md)
+have exact file candidates in `items/sun-calendar.items`. Native provider
+managed/file/cold/managed-rollback/final-file and separate synthetic JDBC recovery
+pass. All 6,994 original production rows and 58 existing source pins are preserved;
+production remains managed and the candidate is uninstalled. Sun elevation and
+daylight-start/sunset control inputs remain outside this batch. Attended transport
+and actual live rollback are pending; no file-ownership rows are added yet.
+
+October6 current checkpoint: all eight Sun calendar Items/links above are now
+file-owned after actual original-managed rollback and final transfer. Their
+6,994 original rows and latest JDBC values are independently verified. Current
+installed source paths total59. The operator then stopped migration and directed
+work to machine learning; the prior58-source restart baseline is unrefreshed.

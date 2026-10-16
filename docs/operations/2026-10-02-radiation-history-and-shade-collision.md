@@ -1,5 +1,33 @@
 # Radiation history, shade collision and Office Hallway display
 
+## October 5 completed October 4 v2 day is partial
+
+Two restricted day-reader snapshots agree: October 4 has **86,168.088074 of
+86,400 seconds covered**, **2,856** original rows and one **231.911926-second**
+gap. Reasons are `coverage_gap`, `source_fault`, and `unavailable`.
+`irradiance_wh_m2` remains null, so this is not a second complete clean day.
+The covered-period proxy is 4,193.477133 Wh/m2, with a 731.33 W/m2 high;
+that partial exposure is not a whole-day total, calibrated irradiance or PV kWh.
+
+Original sequence 10979 is valid from decoder **October 5 00:16:49Z** through
+00:18:49Z. JDBC stores its original valid receipt at 00:17:10.910827Z and the
+`expired` barrier at **00:19:10.911677Z**, retaining sequence 10979 and raising
+the cumulative fault count from zero to one. Sequence 10980 resumes at decoder
+00:20:33Z, persisted **00:20:40.911926Z**, in the same receiver epoch. The strict
+fault timeline therefore conservatively excludes 00:16:49Z through that first
+recovered persistence time. This proves a native expiry episode; it does not
+identify the physical cause of the missing decoded packets.
+
+History SHA-256:
+`36ec0f11d970f6c4bf83899e0cdbf61477701d735d290e312e8a51de43ad9f5a`.
+Day report SHA-256:
+`cbb574e48a17ccd6cfdea9e5eea784ef87b5876e60751d99b90dbd3c946c8260`.
+Private `oct4-radiation-day.json` and original gap records are durably retained
+under `/home/sat/.local/state/thermal-intel/qualification-receipts/20261005-morning/`.
+October 3 remains the first fully qualified v2 day. No numeric carry, synthetic
+zero, backfill, expiry relaxation, learning activation or restart was used.
+Further complete clean v2 days and later production JVM continuity remain open.
+
 ## October 4 first complete qualified v2 radiation day
 
 A bounded SELECT-only replay of October 3, assessed after local midnight,

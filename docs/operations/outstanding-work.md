@@ -1,5 +1,701 @@
 # Outstanding Earthship and OpenHAB work
 
+## October 6 ML source-recovery evidence
+
+The [native PV census](2026-09-28-pv-day-evidence-activation.md#october-6-natural-startup-and-stale-input-recovery-evidence)
+verifies16,177 original receipts, exact fixed-cutoff repeats and natural startup/
+stale-input recovery. The6.571-second observation gap stays unqualified. The only
+source-unavailable event occurs at startup, so the independent Thing-fault gate
+remains open. All59 existing producer/reader tests pass and the full original
+archive replays offline. Calibration stays closed; the offline predictor design
+response is still required before that new code work. Migration remains deferred.
+
+## October 6 energy-model diagnosis
+
+The [ML checkpoint](2026-10-06-machine-learning-focus.md#pv-sunset-and-pre-dusk-model-diagnosis)
+now reproduces five qualified pre-dusk cases: existing phase-matched comparison
+MAE2.4 SoC points versus original6.2 (sunset-only2.2). One September case worsens,
+so the small retrospective comparison is not a release or seasonal-skill claim.
+Four original PV/sunset joins show gain alone cannot fix the opposing October3/4
+misses at fixed demand; only three have original raw-weather archives for an
+hourly-input fit. All44 retained profile calculations replay offline; all141
+existing tests pass. The bounded offline phase-predictor design prompt is pending;
+no production model or control changes. Migration/restart remain deferred.
+
+## October 6 ML algorithm comparison
+
+The [ML checkpoint](2026-10-06-machine-learning-focus.md#outdoor-weather-algorithm-comparison)
+now runs the existing archived-raw outdoor residual experiment with ten training
+and five held-out days, unchanged September29 split and fixed ridge strength.
+All four fitted corrections lose to raw MAE: raw2.187°F, bias3.374, season3.204,
+daylight2.387, combined2.341. Independent source reads and offline assembly/fit
+replay agree; all24 existing tests pass. This rejects these corrections for this
+small retrospective cohort; it does not score current production Kalman or
+establish prospective/seasonal skill. No coefficients or operational paths change.
+Migration and restart work remain deferred under the operator's ML focus.
+
+## October 6 ML accuracy assessment
+
+The [ML-focused checkpoint](2026-10-06-machine-learning-focus.md) verifies today's
+natural training exit 0 and audits original October5 forecasts separately. Twelve
+short pairs have model/recent-cycle/persistence MAE 0.9102/0.42/1.02°F; nine 6h pairs
+have 2.1463/3.02/6.28°F; six 12h pairs have 1.9267/3.72/7.35°F. Original-source repeated
+reports match exactly. Selected 6/12h windows still span only one Mountain issue day;
+daily/48h targets remain immature at 13:35:09Z. Today's accepted artifact's historical
+daily model still loses to both baselines, and confirmed-action fit counters remain 0.
+Current coefficients retain the compound-shade defect. The existing corrected solar
+candidate is coupled to opening states absent from the journal; proposed next work
+isolates the solar correction while preserving ventilation handling. No model or
+control changes are released. The operator's migration stop remains in effect.
+
+At 14:20:00Z the first original October5 daily target matures: model/cycle/
+persistence absolute errors are 1.373/3.060/2.520°F, from one selected window.
+Today's separate accepted artifact naturally reaches the Item and JDBC history
+at 08:11 MDT with exact installed-runtime replay and valid original inputs.
+A cutoff-bound journal projection supports only the both-closed confirmed shade
+regime (90.349 held-state hours); the other three have no jointly confirmed
+intervals. These are not qualified training hours or historical decision knowledge.
+The proposed solar-only candidate therefore also needs independent label support;
+no new candidate design or release is approved by an unanswered track prompt.
+
+## October 6 operator focus: machine learning
+
+The operator stopped migration work and directed efforts to machine learning.
+The already-completed Sun eight-Item/link round trip is recorded in the
+[transfer receipt](2026-10-05-sun-calendar-items.md#october-6-live-transfer-and-change-of-focus).
+All6,994 original rows and current JDBC values are verified; source paths now59,
+PID1696 unchanged. The previous58-source/44-prefix restart baseline was not
+refreshed after this focus change and must be refreshed before later qualification.
+Further migration and restart work is deferred. Prioritize the thermal structural
+solar-feature issue, chronological held-out skill, model outcomes and source-bound
+PV/charge/night learning. Keep existing November no-venting policy and genuine
+labels intact; device acceptance remains signed off.
+
+## October 5 Sun calendar display batch qualified in isolation
+
+The [eight season/eclipse display Items](2026-10-05-sun-calendar-items.md) now have
+exact canonical candidates and closed Item/link mutation guards. Native provider
+managed/file/cold/managed-rollback/final-file phases and isolated synthetic JDBC
+rollback/reload/restart pass; every owned fixture is removed. The full run passes
+4,256 tests and the later header regression separately, for 4,257 unique passing
+tests (10 skips, 91 subtests). At 03:16:15Z October 6, production readback verifies
+all 6,994 original history rows, 58 source pins, exact definitions and PID1696.
+All eight production Items/links remain managed and the candidate is uninstalled.
+The exact attended transport and live rollback are next. Sun elevation/daylight
+control inputs remain managed. Production restart still requires host authentication.
+
+## October 5 sky diagnostic Items transferred to files
+
+The [diagnostic String and LastEval DateTime](2026-10-05-sky-diagnostic-items.md)
+and their metadata are now file-owned and unlinked. The unchanged sky rule
+publishes natural JDBC rows under original IDs 541/540. Its primary outputs
+remain identical when diagnostics are absent; protected inputs stay managed.
+The attended handoff preserves all 1,672,289 original rows and 57 prior source
+pins, making 58 source paths. Native diagnostic and resulting four-file-member
+Group transfer/restart/rollback pass, plus a fresh current-layout bootstrap.
+Verification covers 4,235 unique passes across the full run and one added
+startup regression (10 skips, 91 subtests), with 76 focused checks passing.
+The restart baseline now covers 58 sources, 44 original prefixes and 95 parsed
+JSONDB documents. Production Group transfer/restart remain pending host
+authentication; PID 1696 is unchanged.
+
+## October 5 weather-health Group refreshed for current member providers
+
+The [Group candidate](2026-10-05-weather-health-group-candidate.md#october-5-current-mixed-provider-qualification)
+now preserves four managed members and the two file-owned age members. Its
+closed stopped-copy guard rejects duplicates and unsupported provider mixes;
+all 55 Group/age guards and 4,214 unique tests pass across the full run and
+two added preflight regressions (10 skips, 91 subtests).
+Five distinct isolated JVM phases preserve all
+six IDs and 1,672,046 original history rows, both age links/metadata providers,
+all 57 installed sources and every production definition. Both owned fixtures
+are removed and production PID 1696 is unchanged. The Group remains managed
+and uninstalled; its real cold transfer still requires host authentication.
+
+## October 5 weather-health age Items transferred to files
+
+The [two age Items](2026-10-05-weather-health-age-items.md) and their links and
+state-description metadata are now file-owned with live numeric states. IDs
+532/534, plain Number semantics, exact formatting and group membership are
+preserved. The Group and protected health/outdoor-age inputs remain managed.
+Native hot/cold/managed-rollback qualification passes all six history prefixes;
+the actual handoff preserves all 1,671,800 original rows, unrelated definitions
+except two recorded pre-mutation binding freshness advances, the prior 56
+sources and PID 1696. Source paths now total 57.
+Verification covers 4,203 unique passing tests across the full run and isolated
+signer follow-up, with ten standard skips remaining. Natural changed JDBC rows are verified for each age Item, and persisted managed
+Item/link/metadata records are absent. The refreshed private restart baseline
+now pins 57 sources and 42 original history prefixes; all sources match its
+archive and 95 JSONDB documents parse. Production restart still requires host
+authentication; no household command occurred.
+
+## October 5 south planter fan restricted to daylight
+
+The operator-required [daylight restriction](2026-10-05-south-planter-fan.md#october-5-daylight-restriction)
+is hot-loaded and verified file-owned IDLE with nine exact triggers. It requires
+fresh SoC >=98%, the original battery gates, fresh positive sun elevation and
+current time inside the existing daylight-start/sunset bounds; every dark,
+missing, stale or invalid case selects OFF. Native isolated boundary/expiry/
+cold-JVM/withdrawal tests and independent review pass, along with 32 focused
+checks and 4,175 repository tests. At 00:28Z October 6 (18:28 MDT October 5),
+the physical fan is ON at native SoC 98% and positive elevation. All 1,876
+current history rows, unrelated definitions, 55 other installed source files
+and PID 1696 are preserved. Two observed Open-Meteo timestamp advances are
+recorded explicitly. A natural fresh-97% threshold OFF at 18:33 MDT has its
+native row, and a physical below-horizon OFF pose at 18:38 is verified. Since
+SoC is already below 98%, a uniquely daylight-caused live stop at >=98% remains
+unobserved; isolated refusal is qualified. Whole-JVM recovery remains open.
+The [refreshed private restart baseline](2026-10-05-production-restart-attempt.md#daylight-rule-baseline-refresh)
+now pins the qualified daylight source and retains all 40 original history
+prefixes. No service restart or other household command was issued.
+
+## October 5 charging-status natural output/JDBC gate closed
+
+The [natural writer receipt](2026-10-05-battery-charging-status-item.md#october-5-natural-changed-output-and-history-qualified)
+at 23:25Z verifies four source-attributed ON/OFF transitions and corresponding
+native Item-154 rows. All 97,347 original rows remain byte-identical; the total
+is now 97,351. Descriptor, file inode, source bytes, sole provider, writer and
+56 installed-source pins are preserved. The only broader registry differences
+are two explicitly retained Open-Meteo `last-updated` timestamp advances. The
+14-file private capsule is sealed. Natural changed-output continuity is closed;
+production restart and general protected-control recovery remain open.
+
+## October 5 fifth short thermal target reverses the small earlier lead
+
+[Two identical original-source audits](2026-10-05-matured-outcomes.md#october-5-fifth-short-target-for-the-new-fit)
+at 23:08:33Z verify the original 22:08Z issue's 23:00Z target: native 81.14°F,
+model/cycle/persistence errors +2.611/+1.260/+1.620°F. Five short pairs now have
+MAE 0.9636/0.7200/1.6560°F and model/cycle wins 2–3. All six earlier horizon pairs
+and five original publications remain unchanged. Original outdoor forcing is
+5.360°F warm at the target; the coincidence does not identify a cause. The
+17-file native/capture/prior-cycle capsule is sealed. Low-confidence,
+independent-day, seasonal and action gates remain open. The second six-hour
+result is unchanged; no model or control was changed.
+
+The renewed [approved restart attempt](2026-10-05-production-restart-attempt.md)
+at 23:07:59Z waited for the actual 15-minute pump cycle to end and verified both
+physical pump outlets OFF, healthy telemetry, 27 complete feeder entries and
+all 56 installed source pins. Host authentication again refused the command;
+PID 1696, source hashes and disabled-rule states remain intact, with no new
+runtime errors. Production restart remains open.
+
+## October 5 weather-health Group cold transfer qualified in isolation
+
+The [staged Group candidate](2026-10-05-weather-health-group-candidate.md)
+passes native managed/file/restart/managed/final-file phases, preserving all six
+member states, definitions/providers, references and original history prefixes.
+Sixteen guards and the frozen 4,175-test repository suite pass; independent
+review is clear. All allocated fixtures are removed and production
+definitions, installed sources and PID 1696 are unchanged. The Group has no
+JDBC identity. REST deletion would remove member references, so actual file
+ownership remains pending the authenticated cold path. No live ownership entry
+is added; the household restart and complete migration remain open.
+
+## October 5 second six-hour thermal pair verified
+
+[Repeated original-source audits](2026-10-05-matured-outcomes.md#october-5-second-six-hour-pair-for-the-new-fit)
+at 22:35:44Z verify the original 16:05Z issue's 22:00Z target: native 82.76°F,
+model/cycle/persistence errors −0.995/−7.200/−12.600°F. The full six-hour cohort
+has two pairs and MAE 0.926/6.660/12.510°F; the overlapping second pair is excluded
+from the single selected non-overlapping window. All five earlier pairs and
+four earlier publications remain unchanged. Native observations, original
+capture and seven prior-cycle grids are retained; low-confidence, independent-day,
+seasonal and action gates stay open. No production model or control changed.
+
+## October 5 fourth short thermal target verified
+
+[Two identical original-source audits](2026-10-05-matured-outcomes.md#october-5-fourth-short-target-for-the-new-fit)
+at 21:18:08Z verify the original 20:07Z issue's 21:00Z target: native 81.68°F,
+model/cycle/persistence errors −0.493/−0.720/−1.440°F. Four short pairs now have
+MAE 0.5518/0.5850/1.6650°F, a small 0.0333°F model lead over the cycle baseline
+with pairwise wins 2–2. All earlier pairs and publications are unchanged;
+original capture, native observations and seven prior-cycle grids are retained.
+Low confidence, one issue day, seasonal/action and operational gates remain
+open. The first six-hour result is unchanged; no production model or control
+changed. The charging-status ownership/recovery record is locally integrated
+as `1482018`, with 74 focused checks passing; production restart still requires
+host authentication and genuine changed-output/JDBC remains open.
+
+## October 5 approved restart attempted; host authentication required
+
+The [restart attempt and refreshed recovery receipt](2026-10-05-production-restart-attempt.md)
+at 21:12:38Z returned `sudo: a password is required`; no restart occurred and
+PID 1696 remains active. The current private baseline contains 56 declared file
+sources, 40 JDBC history prefixes and validated current configuration/userdata/
+add-on archives. At 21:13:16Z all source hashes and disabled-rule states match,
+battery telemetry is healthy, pumps are OFF and no new runtime errors appear.
+Approval already exists; the operator must authenticate the systemd command.
+Production restart and genuine changed-output gates remain open.
+
+## October 5 charging-status Item migrated to files
+
+The [attended one-Item handoff](2026-10-05-battery-charging-status-item.md#october-5-attended-live-handoff)
+now passes actual file -> original managed -> final file ownership, recovered
+OFF, exact source/inode and every original Item-154 history row. All unrelated
+definitions/sources, disabled-rule states and PID 1696 are unchanged; the display
+writer is enabled and healthy with no new errors. One verified file ownership
+entry is added; the native inventory is clean with 354 managed Items remaining.
+A genuine changed writer/JDBC output and the authenticated household restart
+remain separate gates. Private native recovery/evidence is retained and the
+one-shot release is closed. The full migration remains incomplete.
+
+## October 5 first new-fit six-hour outcome qualified
+
+[Two identical audits](2026-10-05-matured-outcomes.md#october-5-first-six-hour-outcome-for-the-new-fit)
+at 20:36Z qualify the original 14:05Z issue's 20:00Z target: model error −0.857 F
+versus cycle −6.120 F and persistence −12.420 F. This is one six-hour window;
+three short pairs still trail the cycle baseline on MAE. Native observations,
+literal original forecasts and seven-prior-cycle grids reproduce independently,
+and all earlier pairs are unchanged. Low-confidence, independent-day,
+seasonal and action gates remain open; no production model or control changed.
+
+## October 5 exact charging-status transport qualified in isolation
+
+The [closed charging-status transport](2026-10-05-battery-charging-status-item.md#exact-transport-and-cold-native-jvm-qualification)
+now passes the native provider round trip, five accepted-write timeout cases,
+genuine writer ON with delayed JDBC, and isolated cold-JVM restoration. Actual
+native testing exposed a cross-filesystem recovery defect; review exposed an
+asynchronous withdrawal stall. Both have failing regressions followed by fixes;
+independent review is clear, 37 transport cases and 4,159 repository tests pass.
+All 97,347 original rows and the later fixture-native update survive. Owned
+test containers/socket are removed; private source/history/proof capsules are
+sealed. At that isolated-qualification checkpoint the production Item remained
+managed; its later attended file handoff is recorded above. The release gate stays
+closed and production restart still needs host authentication. No household
+control changed.
+
+## October 5 fourth joint night and additional thermal horizons qualified
+
+[Repeated original-source assessments](2026-10-05-matured-outcomes.md) at
+18:16:05Z close October 4's overnight target: minimum 85%, 99.9885950% coverage,
+887 native receipts, original morning/pre-dusk errors −16/−11 points. Four
+PV/charge/night joins now exist, two reported-full. The new thermal fit has two
+one-hour outcomes: model MAE 0.4045°F versus cycle 0.1800°F; longer horizons
+remain pending. Older cohorts are assessed separately, including October 4's
+three daily pairs (model/cycle MAE 1.4777/0.2400°F) and October 3's 48-hour
+interval miss of −7.112°F. All four reports repeat exactly; private native rows,
+source pins and digests are retained. No production model or control changed.
+Restart authentication, seasonal evidence and action-outcome gates remain open.
+
+## October 5 south planter fan automatic rule enabled
+
+The operator-requested [fan rule](2026-10-05-south-planter-fan.md) is live and
+file-owned: outlet 1 ON at fresh SoC >=98%, OFF below 98% or on invalid battery
+telemetry. At 17:49:00Z, a natural source-bound 99% evaluation commanded ON;
+read-only TP-Link device query confirms actual fan ON. Outlet 2's protected
+pump owner is unchanged. Native isolated threshold/fail-closed/full-JVM restart
+and withdrawal checks pass, independent review is clear and seven focused
+tests pass. Item 46's 1,875 original history rows and all existing definitions
+are preserved. Natural live OFF transitions and production restart recovery
+remain follow-up gates; private original recovery evidence is retained.
+
+
+## October 5 Moon display and temperature evidence migrated to files
+
+The [attended batch](2026-10-05-moon-weather-file-migration.md) transfers 25 Moon
+Items, their 25 links and one read-only temperature evidence HTTP Thing. Actual
+original managed rollback and final file ownership pass for both batches;
+26 original JDBC histories/identities are intact. Eight dynamic Moon readings
+have native post-transfer events and rows; temperature JSON publication matches
+native JDBC under its unchanged source epoch. Isolated provider/JDBC/full-JVM
+recovery and independent review pass; 90 focused tests pass. Registry inventory
+has zero structural issues: 355 managed Items, 78 Things, 35 rules and 219 links
+remain. Source and 51 ownership declarations are tracked, with private recovery
+points retained. OpenHAB PID 1696 and all rule definitions remain unchanged.
+Production whole-JVM recovery and the 17 stable Moon readings' next natural
+calendar/sign changes remain separate gates. Protected controls and Goat-owned
+resources remain outside this batch; the full migration is still incomplete.
+
+
+
+## October 5 offline error diagnosis completed
+
+[The frozen offline diagnosis](2026-10-05-thermal-offline-error-diagnosis.md)
+replays 19/19 original captures exactly twice, scores 56 mature pairs by artifact,
+and produces byte-identical corrected results. It confirms that the installed
+three-regime solar model discards outdoor shading when indoor shading closes;
+all three captured artifacts then increase modeled solar air gain. It also
+confirms raw observed wall versus filtered forecast mass semantics in the plot.
+Observed outdoor replacement worsens all seven matched October 4 six-hour cases;
+night residuals and mixed parameter sensitivities reject a universal bias fix.
+Independent native-observer parity passes 3,420 points and 88 latest-state checks.
+
+The October 5 fit's first original one-hour outcome is now qualified: model/
+cycle/persistence signed errors **+0.584/−0.360/−0.540 F**, with original interval
+coverage and one window. This is separate from older cohorts and from diagnostic
+hindsight. The report records next accuracy priorities and a private hashed
+capsule; the model remains shadow and no coefficient, vent scenario, training,
+publisher, production restart, action label or household control was changed.
+
+## October 5 new-fit delivery and first longer-horizon outcomes qualified
+
+The new October 5 accepted fit now passes its first natural publication at
+**14:05:58Z**: original accepted/capture/runtime/source-expiry/timer/Item/JDBC
+identities agree, with two exact replays. Its training and delivery gates are
+complete. First prospective one-hour scoring waits until **15:05Z**.
+
+Four repeated native audits separately qualify older original forecasts at
+**14:06:14Z**. The October 4 artifact's first daily target has +0.067 F model
+error versus +0.180/+0.540 F cycle/persistence; the October 3 artifact's first
+48-hour target has +0.943 F versus -0.900/0.000 F. Original intervals cover
+both. Each still has one independent longer-horizon window. New six/twelve-hour
+outcomes increase the October 4 cohort to 4/2 non-overlapping windows; its short
+skill still trails the cycle baseline and its earlier interval miss remains.
+See [original outcomes and natural new-fit delivery proof](2026-09-30-forecast-input-capture.md#october-5-first-daily-and-48-hour-targets-new-fit-natural-delivery).
+No artifact pooling, interval widening, new vent calculation, label or control.
+The full goal still needs genuine independent/seasonal/action evidence,
+hardware commissioning and the later planned production restart.
+
+
+
+## October 5 supporting-Energy day and original PV join
+
+Two restricted snapshot reads verify naturally completed October 4 power
+revision 15 and separate AC revision 14 against exact v4 UI provenance. All
+21 source-quality checks pass their individual policies. The 15-day observed
+period has 2.5642570273 EFC and no missing dates; October 4 AC is
+4.9854674719 kWh at 99.9921516% coverage. Unqualified balance fields remain
+withheld and UI status remains degraded. Original producer handles are terminal
+with exit zero. See [native aggregate and publication proof](2026-10-01-energy-supporting-source-qualification.md#october-5-natural-october-4-aggregate-and-ui-revision-verified).
+The source-bound forecast join now has four qualified PV/charge days, two
+reported-full days and three completed joint overnight days; the fourth night
+still waits until October 5 11:00 Mountain. Neither physical prediction skill
+nor full energy-accounting quality is inferred from source-policy success.
+
+
+
+## October 5 morning evidence and remaining operator needs
+
+The scheduled trainer completed naturally at **13:16:05Z**, exit zero, in
+25m09s. Its accepted artifact is now `acf1d315...`, trained under installed
+revision `e32fdb8b...`; physical and behavior parameters change. Historical
+24-hour error still trails both baselines, interval coverage remains below its
+nominal level, and confirmed-action training/evaluation counts remain zero.
+First natural publication of this particular new artifact remains pending.
+See [training and graduation gates](thermal-model-graduation.md#october-5-natural-training-and-matured-original-cohort).
+
+Two exact original-capture audits at **13:29:43Z** score the prior `a4ea9f4a...`
+cohort separately: 12/9/6 matured short/six-hour/twelve-hour pairs, retaining
+12/3/1 non-overlapping windows. Six- and twelve-hour errors beat their matched
+baselines; short error still trails the cycle baseline. The first daily target
+and the older artifact's first 48-hour target become eligible at **14:05Z**.
+See [original cohort and independent-window limits](2026-09-30-forecast-input-capture.md#october-5-morning-original-october-4-artifact-cohort).
+
+October 4 PV is now source-qualified: **6.780 kWh forecast versus 6.126 kWh
+actual**, error +0.654 kWh, with 99.9613% native coverage. Four qualified PV/
+charge days exist, but only three completed joint overnight days; the October 4
+night still closes at **11:00 Mountain / 17:00Z**. See
+[original PV and sunset comparison](2026-09-29-prediction-learning-review.md#october-5-completed-october-4-original-pv-and-sunset-comparison).
+
+The separate radiation-v2 day is partial: one native expiry episode creates a
+**231.911926-second** gap. October 3 remains the only fully qualified clean v2
+day; no missing exposure is filled or expiry relaxed. See
+[original fault and day coverage](2026-10-02-radiation-history-and-shade-collision.md#october-5-completed-october-4-v2-day-is-partial).
+All morning native reports and terminal-job/count proofs are private under
+`/home/sat/.local/state/thermal-intel/qualification-receipts/20261005-morning/`.
+
+**No additional operator decision is needed now** for credentials, private
+staging, device acceptance or the November policy: those instructions are
+settled. The no-venting forecast default starts November 1, 2026 midnight
+Mountain and lasts **until the operator changes it**. Later operator-dependent
+work is actual shade-hardware commissioning, genuine confirmation of actions
+when performed, and an agreed production restart window once its reviewable
+procedure is ready. Observational maturity, independent/seasonal samples and
+qualified history remain evidence gates; deferred scope stays deferred. The
+full goal remains incomplete. No job, control, notification or restart was
+manually triggered for this checkpoint.
+
+
+
+## October 4 original sunset error and current forecast-history upper bound
+
+The original October 4 morning estimate now qualifies against the closed
+sunset target: **93.386% estimated versus 98% native SoC**, error **-4.614
+points**. Exact public/private weather and atomic SoC origins pass; the repeated
+native target digest and earlier frozen state SHA remain unchanged. This is the
+second input-qualified reported-full charge day. Full-day PV and overnight
+windows remain pending, so there are still only three completed joint days.
+See [original inputs and qualified sunset comparison](2026-09-29-prediction-learning-review.md#october-4-original-sunset-forecast-qualified-after-natural-close).
+
+Task 19's September 5 count of nine issue dates was historical. A restricted
+SELECT-only snapshot at **October 5 00:51:08Z** now contains **616,740** archived
+forecast rows across **38 distinct Mountain issue dates**, August 20 through
+October 4, preserving the August 28–September 4 capture gap. This is an upper
+bound on potentially paired days, **not 38 qualified outcome pairs**. Even that
+upper bound is below the roughly 90-day prerequisite; no analog or GBM model is
+trained or promoted. The private count proof is
+`/home/sat/.local/state/thermal-intel/qualification-receipts/forecast-history-20261005/raw-issue-date-upper-bound.json`.
+
+At **00:55:32Z**, the actual user units are loaded: publication and recurring
+collection timers are active, while publisher, trainer and collector services
+are terminal/inactive with exit zero and PID zero. The natural 18:53 MDT
+Primal poll is complete; counts remain one question/one receipt, zero automatic
+questions/corrections, and one ingested/one refused inbox record. No new
+confirmed-action training evidence exists. OpenHAB remains PID 1696 from the
+October 2 start, so the later planned production restart gate remains open.
+Private authoritative-unit/count proof:
+`/home/sat/.local/state/thermal-intel/qualification-receipts/outstanding-checkpoint-20261005T0055Z/runtime-gates.json`.
+This is a terminal-job/future-evidence checkpoint, not a running-job wait or a
+claim of full goal completion. No job, notification, control or restart was
+manually triggered.
+
+## October 4 unchanged pre-dusk issue qualified
+
+The original 23:30Z issue predicts 74%, repeating October 3's value. The
+change-only numeric history therefore has no October 4 row. The read-only
+checker now verifies the fresh issue against the last original matching numeric
+change and exact atomic SoC source, retaining the actual October 3 timestamp
+and explicit unchanged-value provenance. Two native reports agree; a separate
+read-only live browser check verifies the October 4 dated 74% label. The night
+outcome is still pending until October 5 11:00 Mountain; the four completed
+comparisons remain the scored evidence. After actual sunset, the October 4
+charge-only profile separately qualifies: 87% at the original morning origin,
+reported 100% at 10:04 MDT, and 98% at sunset, with 99.9855% source coverage.
+Its full-day PV and overnight targets remain pending. See
+[bug, evidence contract and bounded qualification](2026-10-04-pre-dusk-unchanged-qualification.md).
+
+## October 4 evening natural runtime delivery and complete daily cohort
+
+The naturally scheduled 18:01 MDT publication passes original timer/service,
+capture/Item/JDBC, source-expiry and exact-replay checks under `e32fdb8b...`.
+This closes post-install delivery continuity for the November vent default;
+actual November behavior still needs its original observations. See
+[native delivery proof](2026-10-04-november-vent-default.md#october-4-evening-natural-delivery-verified-october-5-utc).
+
+Two native audits per artifact now score all six older daily targets, with
+model/cycle/persistence MAE 2.2828/1.1100/0.5400 F and interval coverage 5/6.
+The newer fifth short target loses to both baselines; five-window MAE is
+0.5804/0.5400/1.3320 F. Its third six-hour target has +5.234 F error and misses
+the original interval. Exact original replay passes twice. No further vent
+calculation, model promotion, label or operational control was introduced.
+[Artifact-specific outcomes and remaining independent-window limits](2026-09-30-forecast-input-capture.md#october-4-evening-settled-short-six-hour-and-complete-daily-cohorts)
+remain the basis for the full goal; predictive graduation is still unproven.
+
+
+## October 4 fourth short forecast qualified; graduation still unproven
+
+The original 20:00:58Z forecast qualifies against its 21:00Z native target,
+with model/cycle/persistence errors -0.139/-0.540/-1.440 F. Two capture-strict
+read-only audits agree. Four non-overlapping short windows now have MAE
+0.2497/0.5850/1.5300 F, still on one issue day. A fresh accepted-model audit
+confirms that historical daily error still loses to both baselines and confirmed
+action training/evaluation/disjoint-fold counts remain zero. Recurring Primal
+collection has no new automatic question or action receipt. See
+[original outcome and next maturity checkpoint](2026-09-30-forecast-input-capture.md#october-4-fourth-settled-short-outcome-qualified).
+The full goal remains open: actual independent/seasonal observations, genuine
+confirmed actions, hardware evidence and the later planned production restart
+are still required. Credentials, device signoffs and November policy duration
+need no additional operator decision.
+
+
+## October 4 November vent default implemented
+
+The operator clarified that the no-venting forecast default applies **until they
+change it**. It is installed with a November 1, 2026 midnight Mountain boundary
+(06:00Z), separate from journal modes, shade policy and historical action labels.
+The 14 boundary/capture regressions pass against the installed runtime, and
+original October forecast replay remains exact. The source transaction retained
+all model/report files, other runtime files, OpenHAB PID and original timer
+deadline. No publisher, training job or equipment action was started. See
+[implementation, validation and private recovery receipts](2026-10-04-november-vent-default.md).
+The ending-rule decision, implementation and natural new-runtime delivery
+verification are complete. Actual November behavior still needs original
+observations. No further operator decision is needed for this default.
+
+
+## October 4 tablet and laptop physical signoff complete
+
+The operator confirmed: "Tablet and laptop are signed off as good."
+`DEVICE-M9-SIGNOFF` and `DEVICE-LAPTOP-SIGNOFF` in the canonical QA matrix
+are now `verified-live`, with the operator's October 4 physical signoff recorded
+alongside their existing automated geometry evidence. Neither UI device signoff
+remains an outstanding task or completion blocker. This closes the UI-device
+acceptance gates; equipment commissioning and production recovery retain their
+own requirements.
+
+
+
+## October 4 first new-artifact six-hour outcome qualified
+
+The original 13:58Z `a4ea9f4a...` prediction now qualifies at 20:00Z:
+model/cycle/persistence signed error is -0.020/-5.040/-11.340 F. Its first
+independent six-hour window beats both baselines, still on one day.
+Yesterday's fourth daily prediction qualifies at the same target with errors
+-0.197/-0.900/+0.720 F. Its four overlapping daily-pair MAE is now
+2.6197/1.2150/0.5850 F and interval coverage 3/4, retaining the earlier large
+miss and only one independent daily window. Four original-input native audits
+agree. No further vent sensitivity or live model change was made. See
+[exact issues, target maturity and remaining gates](2026-09-30-forecast-input-capture.md#october-4-first-new-artifact-six-hour-and-fourth-daily-outcome-qualified).
+
+
+
+## October 4 third daily and short thermal outcomes qualified
+
+The original October 3 17:53Z daily forecast now pairs with its October 4
+18:00Z target: model/cycle/persistence signed error is -7.750/-1.260/-0.360 F,
+with actual 75.560 F outside the published 62.603–73.017 F interval. The
+three overlapping daily pairs now have MAE 3.4273/1.3200/0.5400 F; only one
+independent daily window remains. Exact replay passes, while separate closed-
+vent and +3 F outdoor sensitivities leave substantial error; no fix is promoted.
+Today's third original short target at 19:00Z scores -0.004/-0.540/-1.800 F,
+bringing its three non-overlapping short-pair MAE to 0.2867/0.6000/1.5600 F,
+still one day. Four independent native audit processes and two exact replay
+processes agree within their cohorts. See [original clocks, interval failure
+and diagnosis](2026-09-30-forecast-input-capture.md#october-4-third-daily-miss-and-third-short-outcome-qualified).
+
+
+## October 4 OpenHAB credential rotation removed from scope
+
+The operator removed OpenHAB credential rotation from the requirements and
+plan and directed reuse of the existing private `Hex` token. Rotation is no
+longer an outstanding task or completion gate. The canonical QA row and its
+required-ID contract were removed, and the former rotation procedure was
+replaced by the [credential reuse decision](2026-10-04-openhab-credential-reuse.md).
+
+
+## October 4 complete matured October 3 thermal cohort verified
+
+Six original `d9163729...` issues now qualify at every matured 1/6/12-hour
+target. Matched model/cycle/persistence MAE is 0.8028/0.9600/1.7700 F at one
+hour, 1.4795/4.6800/8.3400 F at six hours and 1.0598/4.5300/8.2500 F at twelve
+hours. Artifact-specific non-overlap leaves 6/2/1 windows, still one issue day.
+The two daily outcomes remain 1.266/1.350/0.630 F; four daily targets are not
+yet due at 17:43:01Z. Independent native reports agree. No cross-artifact pooling,
+model correction or graduation. See [complete cohort, overlap rules and receipt](2026-09-30-forecast-input-capture.md#october-4-complete-matured-horizons-for-the-october-3-artifact).
+
+
+## October 4 third original-input-qualified charge/PV day joined
+
+October 3's original 7.13 kWh forecast now pairs with a qualified native PV
+outcome of 6.309 kWh (2,038 receipts, 99.9459201% coverage). The original
+public/private weather and atomic SoC origins verify in two identical reads.
+Together with its existing reported-full charge and 86% overnight trough,
+this completes the original daily join: dusk error -3.99 points, morning
+trough error -17 points. Three charge days now have strict paired origins,
+with only one reported-full day; no coefficient or scheduler promotion.
+See [exact original inputs, native row proof and remaining joint-model limits](2026-09-29-prediction-learning-review.md#october-4-original-october-3-pv-charge-and-overnight-join).
+
+
+## October 4 second new-artifact short outcome qualified
+
+Today's original 15:59Z short forecast now qualifies at 17:00Z, with
+model/cycle/persistence absolute error 0.348/0.900/2.520 F. Both independent
+original-input reads agree. The `a4ea9f4a...` artifact's two non-overlapping
+short windows have MAE 0.428/0.630/1.440 F, still from one day. Longer-horizon,
+independent-day/seasonal/action and operational-graduation gates remain open.
+See [original capture and repeated native outcome proof](2026-09-30-forecast-input-capture.md#october-4-second-short-outcome-for-the-new-artifact).
+
+
+## October 4 original overnight comparison scored
+
+The October 3 canonical overnight target is complete and qualified at 86% SoC.
+Original morning/live pre-dusk/frozen phase/frozen sunset estimates are
+69/74/82/83%, with errors -17/-12/-4/-3 points. Both repeated restricted reads
+verify all six frozen prior-profile digests; the sunset-only replay preserves
+the original phase-bounded prefix rather than replacing its digest. Four live
+pre-dusk nights now have MAE 5.00 points versus 20.75 for morning. No estimator,
+threshold, message, action label or control change is promoted. See
+[original frozen-input replay and native outcome proof](2026-09-29-prediction-learning-review.md#october-4-frozen-october-3-overnight-comparison-qualified).
+
+
+## October 4 second daily thermal outcome verified
+
+The original October 3 15:40Z daily forecast now qualifies at its October 4
+16:00Z target. Model/cycle/persistence absolute error is 2.046/1.080/0.720 F.
+Two independent original-input audits agree. The October 3 artifact's two
+daily pairs have MAE 1.266/1.350/0.630 F but overlapping windows leave one
+independent daily comparison. Today's artifact remains separate; thermal
+models remain shadow with seasonal/action/graduation gates open. See
+[original clocks, cycle exclusions and reproducible receipt](2026-09-30-forecast-input-capture.md#october-4-second-settled-daily-outcome-for-the-october-3-artifact).
+
+
+
+
+
+## October 4 new-artifact first short outcome and current gate reconciliation
+
+The first settled `a4ea9f4a...` prediction now qualifies at the frozen 15:34:35Z
+cutoff. Two read-only reports agree: model/cycle/persistence absolute errors
+are **0.508/0.360/0.360 F**. The new artifact loses to both baselines on this
+one independent short window; retain low-confidence/shadow/action/seasonal
+gates and keep older artifacts separate. See [original clocks, baseline proof
+and repeat command](2026-09-30-forecast-input-capture.md#october-4-first-settled-outcome-for-the-new-artifact).
+
+The current priority table now reflects completed October 4 natural training,
+new-artifact delivery, supporting-Energy publication and clean v2 radiation-day
+qualification. Those historical next actions must not be rerun. The extrema
+candidate's old provisional note now points to its already completed October 2
+production restart receipt, confirmed by the current exact source/provider and
+actual JVM start. Newly migrated Sky/BatteryIcon/Moon-Thing and native radiation
+restart gates retain their separate outstanding scope; no restart is authorized
+by this reconciliation. October 3 completed-night scoring still waits until
+October 4 **11:00 MDT plus settling**; hardware and winter signoffs remain open.
+
+## October 4 natural battery charging gate closed
+
+The file-owned battery display writer naturally changed charging OFF/ON/OFF/ON
+at 08:03:30, 08:04:30 and 08:09:30 MDT. Each original changed event names the
+actual file source, with matching new original JDBC charging/icon rows and
+unchanged source, provider, cron and identities 31/154. This closes the separate
+natural charging-status gate; production whole-JVM recovery still requires its
+own attended window. See [exact receipts and fixed history query](2026-10-03-battery-icon-rule-file-candidate.md#october-4-natural-charging-status-transitions-verified).
+
+## October 4 approved sky live handoff complete
+
+The operator-approved exact file/managed/file transaction passes in the native
+cooldown after the original east-pump cycle naturally completed at 09:21 MDT.
+Independent readback verifies unique file ownership, all five triggers, exact
+source/inode, original managed rollback receipt, repaired consumer, all unrelated
+definitions/sources, original PID 1696 and fixed October 3 JDBC prefixes and
+identities. Both pump Items are OFF; disk release gates remain false.
+
+The genuine 09:22:55 MDT LastEval changed event explicitly names the installed
+file writer, with matching new original LastEval/Diagnostic JDBC rows. Ownership
+was declared only afterward; the final live inventory has zero issues, with
+35 managed/seven non-managed rules. The corrected pinned-environment complete
+Python suite passes **4,052 tests**, 10 explicitly gated integration skips and
+91 passing subtests; all 201 focused dependency/signer cases pass. No production
+restart, forced cycle, manual invocation or synthetic Item update occurred.
+See [retained recovery point, exact proofs and remaining scope](2026-09-29-sky-condition-rule-file-candidate.md#october-4-approved-live-handoff-and-natural-evaluation-verified).
+Production whole-JVM recovery and physical signoff remain separate gates.
+
+## October 4 exact sky transaction isolated qualification complete
+
+The final reviewed `5d3791fc...` transaction now passes actual exclusive
+file/managed/file publication, injected readback-failure rollback, complete
+metadata restoration, full isolated JVM replacement and post-restart owned
+rollback. All three phases pass missing/expired SoC and stale-comms refusal,
+unlinked positive control and safety OFF; the container/volumes are removed.
+All **105** affected Python cases pass. Independent review drove tested fixes
+for inode adoption and unsafe automatic restore after ownership loss.
+
+Production continuity still matches the exact original definitions/fixed-day
+histories and PID 1696; ownership inventory has zero issues. The specific and
+generic release gates remain false. Read-only protected preflight still refuses
+the expired cooldown; specific fresh release authority/physical attendance and
+at least fifteen minutes of protected timing remain before migration. See
+[qualified pins, exact scope and repeat command](2026-09-29-sky-condition-rule-file-candidate.md#october-4-exact-protected-transaction-qualified-in-isolation).
+
+## October 4 first daily outcome for the October 3 artifact scored
+
+The first original `d9163729...` 24-hour outcome now qualifies at the frozen
+14:28:33Z cutoff; two native read-only audits agree. Model/cycle/persistence
+absolute errors are **0.486/1.620/0.540 F**, giving one independent daily
+window for this artifact. Keep artifacts separate and shadow gates unchanged;
+its 0.054 F improvement over persistence does not prove calibrated or seasonal
+skill. See [original issue, target and repeat command](2026-09-30-forecast-input-capture.md#october-4-first-settled-daily-outcome-for-the-october-3-artifact).
+
+## October 4 new-artifact natural publisher continuity complete
+
+The original 07:58 MDT timer-bound shadow invocation exited zero. Its first
+`a4ea9f4a...` accepted-artifact capture, live Item, single original JDBC row,
+source-expiry checks and exact installed-runtime replay agree; repeat reads
+retain the same invocation, source hash and output. This closes the new
+artifact's natural publication gate following today's successful optimized
+training. It remains shadow / low confidence, with independent outcomes and
+confirmed-action evaluation still required. See
+[original clocks, output identity and replay command](2026-09-27-thermal-selector-efficiency.md#october-4-first-natural-new-artifact-publication-verified).
+
 ## October 4 protected sky transaction implemented, not released
 
 The dedicated default-off handoff candidate now implements exact
@@ -892,7 +1588,7 @@ prediction and is not proof of a causal radiation or airflow correction.
 Three remaining targets are not yet due. See
 [October 2 outcomes](2026-09-30-forecast-input-capture.md#october-2-natural-training-and-newly-mature-12-hour-outcomes).
 
-## Current execution queue — October 1
+## October 1 execution checkpoint (historical)
 
 October 1 approved-release checkpoint: the battery estimator is now live at
 exact source `8b0e6533...` after operator approval, physical attendance and both
@@ -1043,16 +1739,25 @@ sensitivity helps but leaves residual error; a uniform lower-outdoor hypothesis
 worsens it. No correction, action label or graduation is promoted. See
 [new targets, diagnostics and recovery scope](2026-09-30-forecast-input-capture.md#october-3-0945z--additional-overnight-targets-and-current-runtime-replay).
 
+## Current execution queue — October 5, 23:25Z
+
+The rows below incorporate current source inventory, completed original outcomes
+and recorded operator decisions. Earlier dated checkpoints preserve their original
+clocks and preconditions. This is a priority index, not a full completion claim.
+
 | Track | Current verified state | Next required work |
 | --- | --- | --- |
-| Charge/PV/trough tuning | Seven observational charge profiles are retained, but only September 30/October 1 pass shared original-publication/private-input/native-clock qualification; both are no-full/censored. Original October 1 PV is 6.58 versus qualified 6.697 kWh, but estimated dusk SoC is 74.458 versus actual 87%. Native AC timing is qualified separately, not equated to DC demand. The larger exploratory PV gain overpredicts October 1 by about 61%. | Score chronological joint PV/charge/afternoon/overnight candidates as original evidence accumulates. Retain no-full censoring; do not train full-charge timing from these two outcomes, backdate companions or promote a short-window fit. |
-| Pre-dusk estimate | Three qualified completed comparisons: September 29 actual/pre-dusk/morning 81/81/53%; September 30 65/64/47%; October 1 72/65/52%. MAE is 2.67 points pre-dusk versus 22 morning; all pre-dusk misses are nonpositive. October 2 correctly withheld after DNS failure. October 3's natural 17:30 issue now qualifies at 74%, native SoC 100%, with original morning/atomic clocks, numeric/receipt JDBC equality and actual single-label Lenovo display. | Score October 3 after the actual October 4 completed-night closing window, then continue original-issue held-out analysis. Three scored nights are not seasonal graduation. Do not manufacture a missing issue, force an early job or repeat the completed Primal trial. |
+| UI device acceptance | The operator signed off the tablet and laptop as good on October 4. Both canonical physical-device QA rows are verified-live alongside existing automated geometry evidence. | Complete; do not request these same physical signoffs again. |
+| Charge/PV/trough tuning | Four complete original-source PV/charge/night joins: September 30, October 1, October 3 and October 4; two no-full/censored and two reported-full days. October 4 PV is 6.780 versus native 6.126 kWh, dusk 93.386% versus 98%, and morning/pre-dusk trough 69/74% versus 85%; native night coverage is 99.9885950%. [Closed original outcomes](2026-10-05-matured-outcomes.md). | Continue chronological original-issue analysis as new days close. Four joint days do not qualify full-charge scheduling, causal load attribution or seasonal calibration. October 4 outcome scoring is complete. |
+| Pre-dusk estimate | Five completed original comparisons: September 29 actual/pre-dusk/morning 81/81/53%; September 30 65/64/47%; October 1 72/65/52%; October 3 86/74/69%; October 4 85/74/69%. October 2 was correctly withheld after DNS failure. The last unchanged 74% issue retains exact original numeric/atomic provenance. [Latest qualification](2026-10-05-matured-outcomes.md). | Continue held-out analysis and remaining-daylight/overnight-load design using original input clocks. Five nights do not close seasonal graduation; do not fabricate missing issues or repeat completed provisioning/trials. |
 | Thermal collection | Exact v2 journal retains 11 action/5 receipt/4 mode rows. The signed Primal shade-closure trial, original-cipher recovery and cold journal replay pass. Approved v4 recurring user units are live: maximum one recommendation follow-up per Mountain day, five-minute completion-based inbox polls and Hex-only relay authentication. nos.lol and Primal are readable; Damus AUTH fails because of its server's unconfigured serviceUrl. Generic source gates remain false; household controls remain off. | Observe a naturally eligible recommendation/question/authenticated reply and verify original evidence before model consumption. Resolve or monitor the external Damus failure without weakening routes or using the operator key. Chat reports and relay ACKs are not labels; do not repeat completed provisioning or activation approvals. |
-| Thermal skill and efficiency | October 3 natural training took 26m04s, peak 365.15 MiB and zero swap. At the settled 21:06Z cutoff, today's model/cycle/persistence MAE is 0.430/0.990/1.935 F for four one-hour pairs and 1.742/6.300/12.780 F for one six-hour pair. Its predecessor loses to recent cycles on aggregate one-hour error and to persistence over four overlapping daily pairs; only one daily window is independent. Exact-parity prefix bookkeeping, glazing-row reuse and deferred endpoint materialization are deployed. Runtime is `15267d7a...`, original accepted training `cd77cd16...`; models and production shrinkage are unchanged. All 326 distinct affected dynamics/pipeline cases, compatible/cold regressions, actual rollback/reinstall and original replay pass. The natural 21:53:54Z publisher passes source expiry, Item/JDBC/capture and explicit new-runtime replay with no retry. | Verify October 4's trainer under the new runtime. Require chronological held-out improvement, independent-day support and genuine shade/window/skylight/action evidence before graduation. Keep artifacts separate; do not promote blanket weather/solar corrections, infer whole-run speedup from isolated fits, or confuse delivery/recovery with model skill. |
+| Thermal skill and efficiency | October 5 training and exact natural delivery are complete under installed revision e32fdb8b. At 23:08:33Z five original short targets have model/cycle/persistence MAE 0.9636/0.7200/1.6560 F, with model/cycle wins 2–3. The new 23:00Z target has errors +2.611/+1.260/+1.620 F, reversing the earlier four-pair cohort's small model lead. Original outdoor forcing is +5.360 F warm at that target; causation is unproven. All six earlier pairs and five original publications are unchanged, with repeated native reads, literal forecasts and seven prior-cycle grids retained. [Fifth short target](2026-10-05-matured-outcomes.md#october-5-fifth-short-target-for-the-new-fit). The earlier 20-publication/65-pair multi-artifact snapshot retains its 18:16Z clock. Confirmed-action qualification remains absent. | Follow the [offline structural diagnosis](2026-10-05-thermal-offline-error-diagnosis.md); require chronological baseline improvement, independent-day/seasonal support and genuine confirmed actions. The full six-hour cohort remains two pairs with MAE 0.926/6.660/12.510 F and only one selected non-overlapping window on one issue day; 12/24/48-hour targets remain immature. [Second six-hour pair](2026-10-05-matured-outcomes.md#october-5-second-six-hour-pair-for-the-new-fit). Do not rerun training/delivery, pool artifacts or promote hindsight diagnostics. |
+| November vent default | Installed October 4 at 21:21:09Z: no-venting forecast default from November 1, 2026 midnight Mountain (06:00Z), until the operator changes it. Fourteen boundary/capture regressions pass against installed runtime `e32fdb8b...`; original October outputs replay exactly. Shade policy, journal modes and historical action labels retain their meaning. [Evidence and recovery](2026-10-04-november-vent-default.md). | Natural new-runtime delivery now verifies at October 5 00:01Z. Observe actual November boundary behavior; the duration decision and implementation are complete, with no additional operator approval needed. |
 | Battery-runtime freshness | The observation-preserving collector and exact corrected estimator `8b0e6533...` are live. The October 1 attended update, private backup, independent source/trigger readback, 104 strict native-field checks and natural changed outputs/JDBC pass; apply gate is closed. | Continue observing actual charging/shallow transitions and source faults without forced outages. Do not equate source qualification or prior night parity with universal physical prediction accuracy. |
-| Source/day quality and ownership | Four temperature streams remain source-bound; sensor 223 belongs to Office Hallway. `gForecast` and Moon readings/links are file-owned; exact rollback/history/natural-source/restart gates pass. October 3 17:05Z read-only inventory has zero issues: 380 Items/79 Things/37 rules remain managed, with 65 Items/7 Things file-owned. | Qualify complete, clean source days and continue individually qualified migration. Do not repeat the completed Moon or `gForecast` restart checks or infer general protected-control authority. |
-| Supporting Energy quality | The operator accepted actual-binding fault/JVM qualification instead of deliberate household outages. The receipt-bound combined switch/BMS-aux user drop-in is deployed and effective argv/readback pass; its source pin covers 136 current inputs/18 configurations. October 2 preserves partial sources and withheld switch totals; separate qualified AC-v4 is unchanged. | Verify the October 4 approximately 00:21 MDT natural aggregate and subsequent UI publication. Preserve partial days and warnings; do not force a partial-day run, request the accepted decision again or rewrite history. |
-| Radiation collection | Natural v2 station-206 capture/file-owned history is live at Item 664 with unchanged decoder-based 120-second expiry. Cumulative faults preserve between-poll invalid/expiry evidence. The strict SELECT-only point/window/DST-day reader is implemented; a real short v2 window qualifies, while v1 diagnostic totals stay withheld. Isolated HTTP-fault/JVM restore and restricted SQL tests pass; old history and read-only grants are unchanged. October 2 remains partial. | Assess the first possible complete clean v2 day (October 3) after October 4 midnight and its closing receipt. Qualify production JVM continuity and integrate only evidence-gated learning. Never backfill or relabel old v1, held numeric radiation or the unrelated latest-only exporter as clean v2 evidence. |
+| Source/day quality and ownership | October 5 20:58Z live inventory has zero structural issues: 354 managed/91 non-managed Items, 78/8 Things, 35/8 rules and 219/49 links. Twenty-five additional Moon Items/links and the temperature evidence HTTP Thing are file-owned, with actual managed rollback, original history and native publication checks. Sky, BatteryIcon and the new fan writers are file-owned; earlier October 2 restart receipts retain their original scopes. [Moon/weather handoff](2026-10-05-moon-weather-file-migration.md). | Complete the approved production restart qualification after host authentication while continuing individually qualified observational migrations under the attended policy. Stable Moon calendar/sign changes remain natural gates. BatteryChargingStatus's closed exact transport now passes native round trip, all five lost-write acknowledgements, genuine writer ON with delayed JDBC, and isolated cold-JVM recovery. Cross-filesystem and asynchronous-withdrawal defects are corrected; independent source review, 4,159 repository tests and a fresh managed/OFF read-only production preflight pass. [Exact transport evidence](2026-10-05-battery-charging-status-item.md#exact-transport-and-cold-native-jvm-qualification). Its attended live managed/file round trip is now verified: file-owned OFF, all original 97,347 rows and protected definitions/PID intact, writer enabled and source release closed. Four natural source-attributed ON/OFF transitions and native JDBC rows now close changed-output continuity: all 97,347 original rows remain intact, with 97,351 total at 23:25Z. Exactly two Open-Meteo binding `last-updated` timestamps advance; all other definitions/links and all 56 source pins match. [Natural output receipt](2026-10-05-battery-charging-status-item.md#october-5-natural-changed-output-and-history-qualified). Production restart remains open; private managed recovery checkpoints are retained. All 16 Goat-owned structural candidates remain excluded. Full migration and protected-control recovery remain incomplete. |
+| Production restart qualification | Operator approval and the [refreshed restart capsule](2026-10-05-production-restart-attempt.md) retain private conf/userdata/add-ons archives, 56 installed-source pins and 40 exact history-prefix backups. The renewed authorized attempt at 23:07:59Z again returned `sudo: a password is required`. The actual 15-minute pump cycle had finished; both physical pump outlets were OFF, all 27 feeder ledger entries complete and battery telemetry healthy. After refusal, all 56 source hashes and disabled rules remain intact, with no new runtime errors. OpenHAB remains PID 1696 from October 2. | Host operator must authenticate the restart, then qualify new JVM health, exact definitions/providers/source pins, original history and fresh native telemetry before closing any production restart gate. Approval is already recorded; do not request it again or bypass host authentication policy. |
+| Supporting Energy quality | The approved combined switch/BMS-aux drop-in is deployed. October 5 natural aggregate and AC units exited zero. October 4 power snapshot 15 has 21/21 source-quality rows ok under their own policies, digest `3e994814...`, matched to v4 UI provenance. Observed EFC is 2.5642570273 over fifteen days with no missing dates. Separate AC revision 14 has 4.9854674719 kWh at 99.9921516% coverage and matches the UI. Unqualified meters and aggregate energy balances remain withheld; UI status stays degraded. [Native completed day and delivery](2026-10-01-energy-supporting-source-qualification.md#october-5-natural-october-4-aggregate-and-ui-revision-verified). | Continue complete-day source monitoring and preserve partial/degraded energy-accounting status. The natural aggregate/publication gate is complete; do not request the accepted qualification decision again or force another run. |
+| Radiation collection | Native v2 station-206 collection and file-owned Item 664 history are live, with original decoder-based 120-second expiry, cumulative fault barriers and strict SELECT-only readers. October 3 is the first complete qualified day: 86,400 seconds covered, zero gaps. October 2 remains partial; October 4 also remains partial, with 86,168.088074 seconds covered and one original 231.911926-second expiry gap. Isolated HTTP-fault/JVM restoration and restricted SQL checks pass. [Native October 4 fault trace](2026-10-02-radiation-history-and-shade-collision.md#october-5-completed-october-4-v2-day-is-partial). | Qualify later production JVM continuity and further clean native days; integrate only separately approved evidence-gated learning. The first complete-day gate is finished. Never backfill gaps, legacy v1 or held numeric history as clean v2 evidence. |
 | Shades and recovery | 26 preview slots and zone controls are live: Kitchen 1–8, Living Room 9–17, Bathroom 18–21, Bedroom 22–26. Bedroom/Bathroom have no direct temperature source and preview is not motor evidence. Same-host recovery rehearsals are qualified only for their stated scopes. | Commission actual hardware/reporting when available. Voice-provider commissioning remains research; off-host backups are explicitly deferred, not silently completed. |
 
 October 3's natural training is now terminal: exit zero after 26m04s,
@@ -5275,7 +5980,7 @@ remain in Git.
 | Task 96: energy forecast snapshot ingestion | September 5 repaired capture service succeeded, storing 1,446 v2 rows with genuine issue time 2026-09-05T13:45:29Z. Live analytics forecast now current. Both existing timers restored active. | Completed. Preserve the August 27–September 5 capture gap; no fabricated historical origins. |
 | Task 18: Bandit thresholds | Deferred per its explicit prerequisite instruction. Immutable decision/result capture and completed-night assessment are live. Read-only September 23 verification found two naturally measured, frozen nights (September 20–21), with 99.98%+ qualified SoC coverage and a live seven-night diagnostic of 4.0 percentage points from two samples; see [receipt](2026-09-23-natural-trough-outcomes.md). Both outcomes explicitly forbid bandit eligibility and do not assess action attribution. | First natural assessment is verified. Next qualify action confirmation, delivery/compliance attribution, and a bounded reward/tuning design before any threshold change. Forecast residuals alone are not advisory benefit or DM utility. Keep current 95/92/90 F advisory and 30% DM thresholds unchanged. |
 | Task 16: forecast ML v3 | Conformal trough/PV intervals remain unpublished; legacy seven-error buffers are not qualified interval samples. October 3 read-only original-advisory/native-outcome pairing verifies six next-day lows: raw MAE 7.870 F, original corrected MAE 1.750833 F, signed corrected bias +0.597167 F; all six corrections improve error, with three cold and three warm residuals. See the [original-correction watch](2026-09-29-prediction-learning-review.md#october-3-original-low-temperature-correction-watch). | Accumulate distinct qualified original-issue/outcome samples and demonstrate chronological interval coverage before publication. The generic raw-MAE under-correction concern is narrowed to the later warm residuals, not evidence for a larger global bias. Continue lead/regime-specific checks; do not retrospectively apply today's correction, manufacture missing days or equate advisory-input accuracy with all UI delivery. |
-| Task 19: analog ensembles and hourly GBM | Pending reminder expects approximately 90 days of forecast/actual pairs and October 19 checkpoint. Snapshot ingestion was repaired September 5; current history has nine distinct local issue dates. | Accumulate and verify usable paired history; approve and validate models against held-out baselines. Do not substitute calendar age for valid coverage. |
+| Task 19: analog ensembles and hourly GBM | Pending reminder expects approximately 90 days of forecast/actual pairs and October 19 checkpoint. Snapshot ingestion was repaired September 5. October 5 00:51Z SELECT-only read now verifies 616,740 rows across 38 distinct Mountain issue dates (August 20–October 4), retaining the August 28–September 4 gap. This is a raw upper bound, not qualified paired days. | Accumulate and verify usable paired history; approve and validate models against held-out baselines. Do not substitute calendar age for valid coverage. |
 | Task 21: live winter timezone verification | Pending November MST verification; summer checks cannot satisfy its explicit requirement. | Inspect actual winter data after transition, including sunny/cloudy boundary cases and calibration attribution. |
 | Task 22: rain/wind learned corrections | Task description explicitly defers rain and requires a wind consumer, scoring, and renewed approval. | Resolve deferred scope with operator; satisfy outcome/scoring prerequisites before implementing learned gains. |
 

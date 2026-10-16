@@ -151,9 +151,11 @@ def healthy_off():
 
 
 class Transaction:
-    def __init__(self, original, receipt, guard, *, config=CONFIG):
+    def __init__(self, original, receipt, guard, *, config=CONFIG, provider=None):
         self.original,self.receipt,self.guard,self.config = original,Path(receipt),guard,config
+        self.provider=engine if provider is None else provider
         self.owned_identity=None
+        self.ownership_lost=False
         self.withdrawals=0
         self.mutated=False
 
@@ -161,12 +163,17 @@ class Transaction:
         return (engine.managed_rule_ok(current,self.original)
                 and all(current.get(k)==self.original.get(k) for k in RULE_FIELDS))
 
-    def verify_owned(self):
-        info=self.config.target.lstat()
-        engine.require(stat.S_ISREG(info.st_mode) and not self.config.target.is_symlink()
-                       and (info.st_dev,info.st_ino)==self.owned_identity
-                       and engine.digest(self.config.target.read_bytes())==self.config.source_sha,
-                       'unowned sky file; refuse withdrawal or completion')
+    def verify_owned(self, path=None):
+        path=self.config.target if path is None else path
+        try:
+            info=path.lstat()
+            engine.require(stat.S_ISREG(info.st_mode) and not path.is_symlink()
+                           and (info.st_dev,info.st_ino)==self.owned_identity
+                           and engine.digest(path.read_bytes())==self.config.source_sha,
+                           'unowned sky file; refuse withdrawal or completion')
+        except (OSError, RuntimeError):
+            self.ownership_lost=True
+            raise
 
     def install_exclusive(self):
         source=self.config.source.read_bytes()
@@ -177,8 +184,8 @@ class Transaction:
             os.fchmod(fd,0o644)
             with os.fdopen(fd,'wb') as stream:
                 stream.write(source); stream.flush(); os.fsync(stream.fileno())
+                info=os.fstat(stream.fileno())
             os.link(staged,self.config.target)  # Atomic publish; never overwrite a racing file.
-            info=self.config.target.lstat()
             self.owned_identity=(info.st_dev,info.st_ino)
         finally:
             staged.unlink()
@@ -189,28 +196,33 @@ class Transaction:
         target=self.receipt/f'withdrawn-{self.withdrawals}.js'
         engine.require(not target.exists() and not target.is_symlink(), 'private withdrawal target exists')
         self.config.target.rename(target)
+        self.verify_owned(target)
         os.chmod(target,0o600)
 
     def to_file(self):
+        engine.require(not self.ownership_lost, 'unowned sky file; recovery requires inspection')
+        engine.require(self.config.target.parent.stat().st_dev == self.receipt.stat().st_dev,
+                       'watched file and private recovery must share the same filesystem')
         self.guard()
-        engine.require(self.managed_original(engine.rule_or_none(self.config))
+        engine.require(self.managed_original(self.provider.rule_or_none(self.config))
                        and not self.config.target.exists() and not self.config.target.is_symlink(),
                        'exact managed preimage and absent sky file required')
         self.mutated=True
-        engine.require(engine.request('DELETE','/rules/'+self.config.uid) in (200,204),
+        engine.require(self.provider.request('DELETE','/rules/'+self.config.uid) in (200,204),
                        'managed sky withdrawal refused')
-        engine.wait_rule(lambda r:r is None,self.config)
+        self.provider.wait_rule(lambda r:r is None,self.config)
         self.guard()
         self.install_exclusive()
-        engine.wait_rule(lambda r:engine.file_rule_ok(r,self.config),self.config)
+        self.provider.wait_rule(lambda r:engine.file_rule_ok(r,self.config),self.config)
         self.guard()
         self.verify_owned()
-        engine.require(sum(r.get('uid')==self.config.uid for r in engine.oh.get('/rules'))==1,
+        engine.require(sum(r.get('uid')==self.config.uid for r in self.provider.oh.get('/rules'))==1,
                        'sky provider is not unique')
 
     def to_managed(self):
+        engine.require(not self.ownership_lost, 'unowned sky file; recovery requires inspection')
         self.guard()
-        current=engine.rule_or_none(self.config)
+        current=self.provider.rule_or_none(self.config)
         if self.managed_original(current):
             engine.require(not self.config.target.exists() and not self.config.target.is_symlink(),
                            'managed/file overlap; refuse rollback')
@@ -219,12 +231,12 @@ class Transaction:
             engine.require(current is None or current.get('editable') is False,
                            'unexpected managed owner; refuse rollback')
             self.withdraw_owned()
-            engine.wait_rule(lambda r:r is None,self.config)
-        engine.require(engine.rule_or_none(self.config) is None, 'unknown sky owner; refuse rollback')
+            self.provider.wait_rule(lambda r:r is None,self.config)
+        engine.require(self.provider.rule_or_none(self.config) is None, 'unknown sky owner; refuse rollback')
         self.guard()
         payload={k:self.original[k] for k in RULE_FIELDS if k in self.original}
-        engine.require(engine.request('POST','/rules',payload)==201, 'managed sky restore refused')
-        engine.wait_rule(self.managed_original,self.config)
+        engine.require(self.provider.request('POST','/rules',payload)==201, 'managed sky restore refused')
+        self.provider.wait_rule(self.managed_original,self.config)
         self.guard()
 
     def apply(self):

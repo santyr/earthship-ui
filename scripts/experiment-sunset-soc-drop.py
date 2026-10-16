@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT/'openhab/scripts'), '/home/sat/Solar_PV/analytics/src']
 from advisory_windows import trough_window
 from sunset_soc_profile import measure, charge_profile, pre_dusk_phase_profile
-from pre_dusk_tuning_history import _unique_object, read_day_issues, MORNING_ITEM, IssueHistoryUnavailable
+from pre_dusk_tuning_history import _unique_object, read_day_issues, MORNING_ITEM, IssueHistoryUnavailable, local_get
 
 ZONE = ZoneInfo('America/Denver')
 
@@ -224,6 +224,8 @@ def main():
     now = datetime.now(timezone.utc)
     import forecast_intel
     import openhab_sanity_check as oh
+    # All receipt/numeric archive reads share the bounded local transport.
+    archive_get = lambda path: local_get(path, token=oh.token())
     from earthship_energy.db import parse_openhab_jdbc_config
     from earthship_energy.materialize import load_epoch_config
     from earthship_energy.reader import fetch_freshness_observations
@@ -280,7 +282,7 @@ def main():
                 # Reuse the existing bounded authenticated original-JDBC REST
                 # reader, not an admin credential or a new database grant.
                 try:
-                    receipts = read_day_issues(oh.get, item=MORNING_ITEM, day=day)
+                    receipts = read_day_issues(archive_get, item=MORNING_ITEM, day=day)
                 except IssueHistoryUnavailable:
                     counts['original_issue_unavailable'] += 1; continue
                 matched = []
@@ -385,7 +387,7 @@ def main():
                             options='-c default_transaction_read_only=on -c statement_timeout=2000'), late)
                     try:
                         verified, original_morning, late = _qualified_with_receipts(
-                            oh.get, original_source, day=day, now=now)
+                            archive_get, original_source, day=day, now=now)
                         if verified['status'] != 'qualified_natural_issue' or original_morning != matched[0]:
                             raise ValueError('original late/morning pair unavailable')
                         comparison = pre_dusk_counterfactual(record, profiles, late)
