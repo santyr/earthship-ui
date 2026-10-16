@@ -67,3 +67,17 @@ it('serves the compatible policy observation version without permitting private 
   const denied=await endpoint(()=>{const r=policyObservation();r.policy_comparison.comparisons[0].raw='private';return r;});
   const bad=await fetch(`${denied}/api/household-observation`);expect(bad.status).toBe(503);expect(await bad.json()).toEqual({status:'unavailable'});
 });
+
+it('serves the source-bound v3 assessment and refuses private or promoted qualification',async()=>{
+ const {qualificationObservation}=await import('./fixtures/household-qualification.js');
+ const good=await endpoint(()=>qualificationObservation());const response=await fetch(`${good}/api/household-observation`);
+ expect(response.status).toBe(200);expect((await response.json()).qualification_report.status).toBe('not_qualified');
+ for(const damage of ['private','promoted','wrong_family']){
+  const base=await endpoint(()=>{const v=qualificationObservation();
+   if(damage==='private')v.qualification_report.families[0].gates[0].raw='/private/input';
+   if(damage==='promoted')v.qualification_report.release_authorized=true;
+   if(damage==='wrong_family')v.qualification_report.families[1].proposal_count=1;
+   return v;});
+  const denied=await fetch(`${base}/api/household-observation`);expect(denied.status).toBe(503);expect(await denied.text()).toBe('{"status":"unavailable"}');
+ }
+});

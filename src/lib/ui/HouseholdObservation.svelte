@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import Tile from './Tile.svelte';
+  import {QUALIFICATION_GATES,QUALIFICATION_FAMILIES} from '../household/qualification.js';
   import { parseHouseholdObservation } from '../household/observation.js';
   import { loadHouseholdObservation, loadBatteryPerformance, loadCapturedPvPerformance } from '../household/observationClient.js';
 
@@ -126,6 +127,27 @@
       <p>Report updated {date(capturedPv.generated_at)}. Potential array yield remains unscored. These provisional comparisons do not establish calibration or action benefits.</p>
     {:else}<p>Captured-PV accuracy report unavailable</p>{/if}
   </Tile>
+  {#if view?.qualification_report}
+    <Tile label="Intent qualification">
+      <section aria-label="Intent qualification">
+        <p>Every intent family remains unqualified. Request translation stays disabled.</p>
+        <p>Original-plan evidence informs a separate release review. Action eligibility remains unknown.</p>
+        {#if view.expired}<p class="notice">Original plan expired; its evidence is historical.</p>{/if}
+        {#each view.qualification_report.families as family, i (family.intent_type)}
+          <details>
+            <summary>{QUALIFICATION_FAMILIES[i][2]} · not qualified</summary>
+            <p>{family.proposal_count} original proposals · owner {family.owner ?? 'unavailable'}.</p>
+            <div class="source-table"><table>
+              <thead><tr><th>Release gate</th><th>Evidence</th><th>Reason</th></tr></thead>
+              <tbody>{#each family.gates as gate, j (gate.id)}
+                <tr><td>{QUALIFICATION_GATES[j][1]}</td><td>{gate.evidence_status === 'observed' ? 'Observed in original' : 'Unavailable'}</td><td>{words(gate.reason)}</td></tr>
+              {/each}</tbody>
+            </table></div>
+          </details>
+        {/each}
+      </section>
+    </Tile>
+  {/if}
   {#if view}
     <Tile label="Models and original identities">
       {#each view.model_identities as model (model.domain)}

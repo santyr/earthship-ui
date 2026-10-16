@@ -45,6 +45,42 @@ def _policy_comparison(coordination,proposals,decision):
     return value
 
 
+
+def _qualification_report(view,registry):
+    """Evidence observed in this replay; no gate or intent is graduated here.
+
+    Called only after complete pipeline rederivation. Separate outcome,
+    uncertainty, owner and release audits are not part of an as-issued plan.
+    """
+    from household.planning import CAPABILITIES
+    missing=(('independent_windows','intent_windows_not_qualified'),
+        ('input_stability','input_sensitivity_not_qualified'),
+        ('model_error_uncertainty','action_model_error_not_qualified'),
+        ('baseline_comparison','policy_performance_not_qualified'),
+        ('reason_codes','operator_interpretation_not_qualified'),
+        ('no_planner_rollback','separate_release_rollback_not_qualified'),
+        ('no_provider_write_path','protected_write_audit_not_bound'),
+        ('owner_safety_recheck','owner_physical_safety_not_qualified'))
+    families=[]
+    def gate(key,observed,reason):
+        return dict(id=key,evidence_status='observed' if observed else 'unavailable',reason=reason)
+    for kind,capability_id in CAPABILITIES.items():
+        capability=registry['capabilities'].get(capability_id)
+        proposals=[row for row in view['proposals'] if row['type']==kind]
+        unknown=[row for row in proposals if any(check['status']=='unknown' for check in row['hard_checks'])]
+        if any(row['selected'] for row in unknown):raise ValueError('unknown original checks cannot authorize a proposal')
+        gates=[gate('deterministic_replay',True,'original_plan_replayed'),
+            gate('evidence_contracts',capability is not None,'original_source_contracts_replayed' if capability is not None else 'registered_capability_unavailable'),
+            gate('hard_constraints',bool(proposals),'original_family_checks_replayed' if proposals else 'no_family_proposal'),
+            gate('unknown_fails_closed',bool(unknown),'unknown_checks_blocked_in_original' if unknown else 'unknown_case_not_observed')]
+        gates.extend(gate(key,False,reason) for key,reason in missing)
+        families.append(dict(intent_type=kind,capability_id=capability_id,owner=None if capability is None else capability['ownerRule'],
+            proposal_count=len(proposals),status='not_qualified',release_authorized=False,gates=gates))
+    return dict(schema='earthship-household-intent-qualification/v1',scope='original_plan_evidence',status='not_qualified',
+        receipt_sha256=view['receipt_sha256'],snapshot_id=view['snapshot_id'],decision_at=view['decision_at'],
+        release_authorized=False,automatic_actuation=False,families=families)
+
+
 def observe_pipeline(receipt,*,runtime_manifest,thermal_runtime,observed_at):
     observed=utc(observed_at)
     original=replay_pipeline(receipt,runtime_manifest=runtime_manifest,thermal_runtime=thermal_runtime)
@@ -92,7 +128,8 @@ def observe_pipeline(receipt,*,runtime_manifest,thermal_runtime,observed_at):
         proposals=proposals,source_quality=sources,confidence='unavailable',effects_qualified=False,
         policy_comparison=dict(status='unavailable',reason=_reason(plan['baseline_reasons']['current_owner_policy'])))
     if inputs['coordination']['schema']=='earthship-shadow-coordination/v3':
-        view.update(schema='earthship-household-observation/v2',policy_comparison=_policy_comparison(inputs['coordination'],proposals,decision))
+        view.update(schema='earthship-household-observation/v3',policy_comparison=_policy_comparison(inputs['coordination'],proposals,decision))
+        view['qualification_report']=_qualification_report(view,inputs['registry'])
     if len(canonical(view))>MAX_BYTES:raise ValueError('bounded public observation required')
     return view
 
@@ -136,7 +173,8 @@ def _existing_view(path):
     try:raw,metadata=_private_file(path,MAX_BYTES)
     except FileNotFoundError:return None
     value=loads(raw)
-    if not isinstance(value,dict) or set(value)!=PUBLIC_FIELDS or value['schema'] not in ('earthship-household-observation/v1','earthship-household-observation/v2'):
+    fields=PUBLIC_FIELDS|({'qualification_report'} if value.get('schema')=='earthship-household-observation/v3' else set()) if isinstance(value,dict) else set()
+    if not isinstance(value,dict) or set(value)!=fields or value['schema'] not in ('earthship-household-observation/v1','earthship-household-observation/v2','earthship-household-observation/v3'):
         raise ValueError('existing target is not an observation cache')
     return raw,metadata
 

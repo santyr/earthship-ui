@@ -135,3 +135,15 @@ it('expires the displayed owner observation at its original clock independently 
   vi.spyOn(Date,'now').mockReturnValue(AT+120000);await vi.advanceTimersByTimeAsync(1000);
   expect(container.textContent).toContain('Owner policy observation is stale');
 });
+
+it('shows twelve evidence gates for each intent while keeping every family unqualified',async()=>{
+ const {qualificationObservation}=await import('../fixtures/household-qualification.js');serve(qualificationObservation());
+ const {container,getByText}=render(HouseholdObservation);
+ await waitFor(()=>expect(getByText('Intent qualification')).toBeTruthy());
+ const region=container.querySelector('section[aria-label="Intent qualification"]');
+ expect(region.querySelectorAll('details')).toHaveLength(4);
+ expect(region.querySelectorAll('tbody tr')).toHaveLength(48);
+ expect(region.textContent).toContain('Every intent family remains unqualified');
+ expect(region.textContent).toContain('Original-plan evidence');
+ expect(region.querySelector('button,form,input,select')).toBeNull();
+});

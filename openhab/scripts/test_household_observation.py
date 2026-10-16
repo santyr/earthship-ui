@@ -197,7 +197,7 @@ def policy_record(reason='after_dark', **changes):
 @pytest.mark.parametrize('reason,gate',[('after_dark','curfew_allowed'),('cooldown_wait','cooldown_ready'),('cycle_active','owner_idle')])
 def test_retained_explicit_owner_block_matches_only_its_shadow_gate(reason,gate):
     record=policy_record(reason);before=json.dumps(record,sort_keys=True);view=observe(record)
-    assert view['schema']=='earthship-household-observation/v2'
+    assert view['schema']=='earthship-household-observation/v3'
     comparison=view['policy_comparison']
     assert comparison['schema']=='earthship-household-policy-block-comparison/v1'
     assert comparison['status']=='observed_block' and comparison['gate']==gate
@@ -270,7 +270,7 @@ def test_private_materializer_upgrades_a_known_cache_and_preserves_issued_origin
     source.write_bytes(canonical(record));before=source.read_bytes()
     api().materialize(source,target,clock=lambda:NOW)
     view=json.loads(target.read_bytes())
-    assert view['schema']=='earthship-household-observation/v2'
+    assert view['schema']=='earthship-household-observation/v3'
     assert view['policy_comparison']['comparisons'][0]['status']=='matching_block'
     assert source.read_bytes()==before and target.stat().st_nlink==1
     assert 'rule_before' not in target.read_text() and 'policy_source' not in target.read_text()
