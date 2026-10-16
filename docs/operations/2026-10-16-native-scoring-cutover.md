@@ -45,3 +45,24 @@ inside it. No model selection limit was widened. The review had no Critical
 or Minor findings. All 107 final affected cases pass in 19.04 seconds; an
 additional 59 owned install/family/daily lifecycle regressions pass in 12.35
 seconds. No repeated review pass was needed.
+
+Source `a9ee9b2` activated at 2026-10-16T13:31:43.842014Z as deployment
+`6eec3bf274528a73e07bb271d7dc99233a77c2099bc314d25927454f361aaec2`.
+The complete thermal artifact `284139ee`, including original model admission,
+was reused unchanged; no fitting or qualification probe ran. Effective
+readback at 13:32:17Z verified all five owned definitions, three active timers,
+both score calendars, shared resource limits and provisional model/forecast
+HTTP 200 responses. The idle daily source checkout advanced to this commit;
+its unit bytes are unchanged.
+
+The normal current-model score started automatically at 13:31:43Z after timer
+restoration and completed successfully at 13:32:09Z. The next ordinary native
+history opportunity is 13:36Z. The legacy-pressure repair was not deployed:
+scheduled legacy execution has been retired instead.
+
+The first normal post-cutover forecast published provisionally at13:35:15Z.
+The normal13:36 native-history opportunity then completed successfully at
+13:36:26Z. Current native scoring, history scoring and forecast continuity are
+therefore verified after the cutover, without manual invocations. Retiring
+legacy execution does not qualify learned-load skill, physical effects or
+actuator release; the full PR#3 objective remains incomplete.
