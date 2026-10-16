@@ -107,3 +107,13 @@ malformed non-null last-target data could compare equal to the absence of a
 measured target. The correction requires exactly null for all-empty reports;
 nonempty reports still require the exact valid latest timestamp. Parser and real
 HTTP regressions reproduce the original issue and reject nested private bytes.
+
+UI source `032b12c` deployed at
+2026-10-16T01:05:45.464635+00:00. Only four matching frontend files changed in the
+live checkout; unrelated overlays remain preserved. Vite loaded the endpoint
+without an explicit service restart. The fixed GET returns HTTP 200 with the
+actual scheduled report, and laptop (1280×800) and tablet (1340×800) render all
+eight lead/scenario rows beneath existing content, without outer overflow,
+page errors or mutation requests. Report expiry continues to use the original
+producer clock. This verifies presentation and transport, not scientific skill
+or completion of the full architectural program.

@@ -68,7 +68,7 @@
     {
       "phase": "9",
       "requirement": "Read-only operator observability",
-      "current_evidence": "Earthship observations and the battery accuracy table render below existing content on laptop/tablet. Sourcebbe4b65 is deployed as336004b58f7478fdedaa716214d00c369cfe96bb9942487611d034d226dd3d89; all5 owned definitions, both score calendars, shared caps and HTTP endpoints pass effective readback. Normal06:50MDT training completed06:51:50 with provisional188a42a8 trained through2026-10-15T06:00Z. Normal13:20:15UTC forecast/household receipt succeeds and replays identically through pure/exact-stageCLI. Public battery GET returns the exact fresh curated cache; real laptop/tablet rendering was verified with9one-hour/5six-hour pairs, and the latest report has10one-hour/5six-hour pairs. The independent13:18:20 slot completed waiting before the first new-stage original existed; the normal13:28:20UTC opportunity completed in5seconds and refreshed the report at13:28:24UTC with10one-hour/6six-hour pairs. Full physical/action outcomes and architecture remain incomplete. Source a9eb290 is now the effective owned ML generation, retaining the full188a42a8 model and all32 historical stages; normal14:30:15UTC forecast/flow observation and offline replay pass. The flow sidecar is private and does not add a public UI data contract. Source522241e is deployed asb5a73ec3 with unchanged188a42a8; five owned unit files, all timers, both score calendars, shared limits and HTTP200 endpoints read back correctly. The new PV/storage receipt remains private; its public UI and matched PV accuracy report are not yet implemented. Sourcea539742 deploys the public24h solar/storage chart below existing Earthship content; actual16:50:15UTC issue,exact staged replay and laptop/tablet layouts are verified. First matched-accuracy report pending maturity. First actual matchedSoCtable nowverifiedlaptop/tablet withoutpageerrors,writeattempts oroverflow;6/12/24hremaincollecting. Sourcec71f14e deploys the separately versioned hourly AC-demand profile, unchanged-v1 storage comparison, retained matched load/SoC outcomes and read-only Earthship panel. All owned definitions/timers and actual laptop/tablet collecting states verify. No production fitting or forecast was manually triggered; first load training remains scheduled2026-10-16at06:50MDT. Live learned-load numerics and skill remain unqualified.",
+      "current_evidence": "Earthship observations and the battery accuracy table render below existing content on laptop/tablet. Sourcebbe4b65 is deployed as336004b58f7478fdedaa716214d00c369cfe96bb9942487611d034d226dd3d89; all5 owned definitions, both score calendars, shared caps and HTTP endpoints pass effective readback. Normal06:50MDT training completed06:51:50 with provisional188a42a8 trained through2026-10-15T06:00Z. Normal13:20:15UTC forecast/household receipt succeeds and replays identically through pure/exact-stageCLI. Public battery GET returns the exact fresh curated cache; real laptop/tablet rendering was verified with9one-hour/5six-hour pairs, and the latest report has10one-hour/5six-hour pairs. The independent13:18:20 slot completed waiting before the first new-stage original existed; the normal13:28:20UTC opportunity completed in5seconds and refreshed the report at13:28:24UTC with10one-hour/6six-hour pairs. Full physical/action outcomes and architecture remain incomplete. Source a9eb290 is now the effective owned ML generation, retaining the full188a42a8 model and all32 historical stages; normal14:30:15UTC forecast/flow observation and offline replay pass. The flow sidecar is private and does not add a public UI data contract. Source522241e is deployed asb5a73ec3 with unchanged188a42a8; five owned unit files, all timers, both score calendars, shared limits and HTTP200 endpoints read back correctly. The new PV/storage receipt remains private; its public UI and matched PV accuracy report are not yet implemented. Sourcea539742 deploys the public24h solar/storage chart below existing Earthship content; actual16:50:15UTC issue,exact staged replay and laptop/tablet layouts are verified. First matched-accuracy report pending maturity. First actual matchedSoCtable nowverifiedlaptop/tablet withoutpageerrors,writeattempts oroverflow;6/12/24hremaincollecting. Sourcec71f14e deploys the separately versioned hourly AC-demand profile, unchanged-v1 storage comparison, retained matched load/SoC outcomes and read-only Earthship panel. All owned definitions/timers and actual laptop/tablet collecting states verify. No production fitting or forecast was manually triggered; first load training remains scheduled2026-10-16at06:50MDT. Live learned-load numerics and skill remain unqualified. Source032b12c now deploys the approved captured-controller-PV accuracy table beneath existing Earthship content. Fixed curated GET, actual report admission, laptop/tablet layouts and8 separate lead/model rows verify;2489frontend tests/build pass. Coverage threshold, paired persistence skill, empty reports, independent origin days and original freshness remain explicit. The one Important empty-report latest-target finding is corrected with parser/HTTP regressions. No model, score, schedule, permission or actuator change.",
       "complete": false
     },
     {
@@ -8752,6 +8752,48 @@
       "new_forecast_triggered": false,
       "automatic_actuation": false,
       "full_goal_complete": false
+    },
+    "captured_pv_operator_table": {
+      "source_commit": "032b12c3c40c613155dd559557b6aada3fb66547",
+      "deployed_at": "2026-10-16T01:05:45.464635+00:00",
+      "approved_design": true,
+      "fixed_endpoint": "/api/household-captured-pv-performance",
+      "backend_unchanged": true,
+      "frontend_tests_passed": 2489,
+      "focused_tests_included": 34,
+      "production_build_passed": true,
+      "review": {
+        "critical": 0,
+        "important": 1,
+        "resolved": true,
+        "correction_passes": 1
+      },
+      "live_cache_endpoint_status": 200,
+      "report_sha256": "f69a50bc30d3d0ab3d16d2a231feefa930821e0e71a4e52b9b01b3c79f1d022c",
+      "viewports": [
+        {
+          "label": "laptop",
+          "width": 1280,
+          "height": 800,
+          "rows": 8,
+          "errors": 0,
+          "mutations": 0,
+          "below_existing_content": true
+        },
+        {
+          "label": "tablet",
+          "width": 1340,
+          "height": 800,
+          "rows": 8,
+          "errors": 0,
+          "mutations": 0,
+          "below_existing_content": true
+        }
+      ],
+      "potential_yield_unscored": true,
+      "model_fit_or_manual_forecast_triggered": false,
+      "automatic_actuation": false,
+      "document": "docs/operations/2026-10-15-captured-pv-outcomes.md"
     }
   },
   "astro_efficiency_audit": {
@@ -8906,5 +8948,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-15T23:59:23.109306+00:00"
+  "updated_at": "2026-10-16T01:06:59.500330+00:00"
 }
