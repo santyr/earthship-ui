@@ -67,3 +67,9 @@ it('accepts the explicitly versioned four-regime model with exterior shades remo
 it('continues refusing removed-shade state under the installed-only rule',()=>{
   const value=payload();value.forecast.origin_actions.outdoor_shade_present=0;expect(parse(value).state).toBe('unavailable');
 });
+
+ it('accepts the separately versioned irradiance model with outdoor shades removed',()=>{
+  const value=payload();value.forecast.model_rule='earthship-native-irradiance-shade-dynamics/v4';value.forecast.origin_actions.outdoor_shade_present=0;
+  const result=parse(value);
+  expect(result.state).toBe('ready');
+ });

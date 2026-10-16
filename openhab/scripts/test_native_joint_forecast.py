@@ -20,7 +20,7 @@ def issued(tmp_path,joint_originals,monkeypatch):
 def test_removed_shade_forecast_replays_with_vent_and_explicit_unlearned_priors(tmp_path,joint_originals,monkeypatch):
     capture,runtime=issued(tmp_path,joint_originals,monkeypatch);out=capture['output'];payload=api.publication(capture)
     assert out['origin_actions']['outdoor_shade_present']==0 and out['origin_actions']['vent_open']==1
-    assert out['model_rule']=='earthship-native-joint-shade-dynamics/v3'
+    assert out['model_rule']==capture['candidate']['fit']['model_rule']
     assert out['advice']==[] and out['automatic_actuation'] is False
     assert any('65%' in r and 'prior' in r.lower() for r in payload['reasons'])
     assert api.validate_capture(capture,runtime=runtime,expected_artifact_sha256=capture['candidate']['artifact_sha256'],expected_capture_sha256=capture['capture_sha256'])==capture

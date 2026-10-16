@@ -31,7 +31,7 @@ export function validateProvisionalPublication(payload, { exactObject, finiteNum
   if (native) { numericFields.add('model_rule'); numericFields.add('geometry_series_sha256'); }
   const numeric = exactObject(payload.forecast, numericFields);
   if (native) {
-    if (!['earthship-native-installed-shade-dynamics/v2','earthship-native-joint-shade-dynamics/v3'].includes(numeric.model_rule)) throw new TypeError('unsupported native model rule');
+    if (!['earthship-native-installed-shade-dynamics/v2','earthship-native-joint-shade-dynamics/v3','earthship-native-irradiance-shade-dynamics/v4'].includes(numeric.model_rule)) throw new TypeError('unsupported native model rule');
     sha(numeric.geometry_series_sha256);
   }
   if (numeric.schema !== `earthship-provisional-thermal-forecast/v${native ? 2 : 1}` || numeric.status !== 'provisional' || numeric.confidence !== 'low' || numeric.graduated !== false || numeric.automatic_actuation !== false
@@ -39,7 +39,7 @@ export function validateProvisionalPublication(payload, { exactObject, finiteNum
       || numeric.artifact_sha256 !== model.artifactSha256 || numeric.runtime_sha256 !== model.runtimeSha256) throw new TypeError('provisional numeric source changed');
   exactObject(numeric.initial, fields('air_f','mass_f','outdoor_f'));Object.values(numeric.initial).forEach(physical);
   const actions = exactObject(numeric.origin_actions, fields('indoor_shade_closed','outdoor_shade_present','vent_open','vent_provenance','mode','action_knowledge'));
-  if (!(native && numeric.model_rule === 'earthship-native-joint-shade-dynamics/v3' ? [0,1].includes(actions.outdoor_shade_present) : actions.outdoor_shade_present === 1) || ![0,1].includes(actions.indoor_shade_closed) || ![0,1].includes(actions.vent_open) || actions.action_knowledge !== 'as_of_snapshot_not_outcome_confirmation'
+  if (!(native && ['earthship-native-joint-shade-dynamics/v3','earthship-native-irradiance-shade-dynamics/v4'].includes(numeric.model_rule) ? [0,1].includes(actions.outdoor_shade_present) : actions.outdoor_shade_present === 1) || ![0,1].includes(actions.indoor_shade_closed) || ![0,1].includes(actions.vent_open) || actions.action_knowledge !== 'as_of_snapshot_not_outcome_confirmation'
       || !['warm','spring','fall_charge','winter','unknown'].includes(actions.mode) || typeof actions.vent_provenance !== 'string' || !actions.vent_provenance.length || actions.vent_provenance.length > 80) throw new TypeError('unsupported provisional actions');
   if (!Number.isInteger(numeric.horizon_hours) || numeric.horizon_hours < 1 || numeric.horizon_hours > 72 || !Array.isArray(numeric.trajectory) || numeric.trajectory.length !== numeric.horizon_hours) throw new TypeError('complete provisional trajectory required');
   const trajectory = numeric.trajectory.map((point,index) => {

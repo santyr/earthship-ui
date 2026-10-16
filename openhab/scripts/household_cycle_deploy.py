@@ -115,11 +115,11 @@ def _verify_native_originals(info):
 
 
 def _joint_model(candidate):
-    from native_thermal_artifact import JOINT_SCHEMA
-    from native_joint_shade import RULE
-    fit=candidate.get('fit')
-    return (candidate.get('schema')==JOINT_SCHEMA and isinstance(fit,dict) and
-        fit.get('schema')=='earthship-native-solar-provisional-fit/v2' and fit.get('model_rule')==RULE)
+    from native_thermal_artifact import JOINT_SCHEMA,IRRADIANCE_SCHEMA,fit_profile
+    try:profile=fit_profile(candidate.get('fit'))
+    except ValueError:return False
+    return (profile['joint'] and candidate.get('schema')==(IRRADIANCE_SCHEMA if profile['irradiance'] else JOINT_SCHEMA)
+        and candidate['fit'].get('model_rule')==profile['rule'])
 
 
 def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha256,observation_cache,service_file,code_revision,service_forecast_config=None,model_receipt_path=None,model_receipt_sha256=None,score_dispatch_path=None,score_dispatch_sha256=None):
@@ -144,7 +144,7 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
     elif any(value is not None for value in (model_receipt_path,model_receipt_sha256,score_dispatch_path,score_dispatch_sha256)):
         raise ValueError('receipt inputs require explicit serving configuration')
     candidate=_path(settings['candidate_path']);candidate_raw=_bytes(candidate,private=True)
-    declared=json.loads(candidate_raw);native=settings.get('schema') in (NATIVE_CONFIG_SCHEMA,SERVING_CONFIG_SCHEMA) or declared.get('schema') in ('earthship-provisional-thermal-candidate/v2','earthship-provisional-thermal-candidate/v3')
+    declared=json.loads(candidate_raw);native=settings.get('schema') in (NATIVE_CONFIG_SCHEMA,SERVING_CONFIG_SCHEMA) or declared.get('schema') in ('earthship-provisional-thermal-candidate/v2','earthship-provisional-thermal-candidate/v3','earthship-provisional-thermal-candidate/v4')
     protected,native_info=_native_header(declared,settings) if native else (declared['runtime']['source_manifest'],None)
     baseline_candidate=None;baseline_candidate_raw=None
     parameter_raw=_bytes(parameters,private=True);service_raw=_bytes(service)

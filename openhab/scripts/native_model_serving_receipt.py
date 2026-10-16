@@ -212,7 +212,7 @@ def _check_receipt(receipt, candidate, selected, originals, runtime, helper, ass
     from native_thermal_inputs import solar_feature_contract
     profile=artifacts.fit_profile(fit)
     if (set(fit) != profile['fields'] or
-            fit['model_rule'] != profile['rule'] or fit['solar_feature'] != solar_feature_contract() or
+            fit['model_rule'] != profile['rule'] or fit['solar_feature'] != profile['solar_feature']() or
             fit['graduated'] is not False or fit['release_authorized'] is not False or
             fit['as_issued_forecast'] is not False or receipt['model_rule'] != profile['rule'] or
             receipt['sensor_epochs'] != fit['sensor_epochs'] or

@@ -93,7 +93,7 @@ def _original(value):
         code_revision=model['snapshot']['code_revision'],config_revision=identity(policy),**policy)
     if canonical(snapshot.to_dict())!=canonical(model['snapshot']):
         raise ValueError('prepared snapshot differs from original sensor evidence')
-    actions=_origin_actions(capture['inputs']['action_snapshot'],issue,allow_removed=capture['output'].get('model_rule')=='earthship-native-joint-shade-dynamics/v3')
+    actions=_origin_actions(capture['inputs']['action_snapshot'],issue,allow_removed=capture['output'].get('model_rule') in ('earthship-native-joint-shade-dynamics/v3','earthship-native-irradiance-shade-dynamics/v4'))
     if canonical(actions)!=canonical(model['actions']):raise ValueError('original operator context differs')
     forcings=_forecast_forcing(capture['inputs']['forecast'],issue,available,actions)
     if canonical([asdict(row) for row in forcings])!=canonical(model['forcings']):raise ValueError('original weather forcing differs')

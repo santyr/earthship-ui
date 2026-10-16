@@ -33,9 +33,10 @@ def _points(data, start, end, guard, *, joint=False):
     return tuple(points), support
 
 
-def _prepare(points, data, *, deadline, guard, joint=False):
+def _prepare(points, data, *, deadline, guard, joint=False, irradiance=False):
     from native_joint_shade import normalize_forcings as joint_normalize
-    normalizer=joint_normalize if joint else normalize_forcings
+    from native_irradiance_shade import normalize_forcings as irradiance_normalize
+    normalizer=irradiance_normalize if irradiance else joint_normalize if joint else normalize_forcings
     groups = defaultdict(list)
     def check(): guard(); _check_deadline(deadline)
     for point in points:
@@ -67,16 +68,18 @@ def _prepare(points, data, *, deadline, guard, joint=False):
     return tuple(batches)
 
 
-def prepare_native_batches(data, *, training_start, training_end, deadline, guard, joint=False):
+def prepare_native_batches(data, *, training_start, training_end, deadline, guard, joint=False, irradiance=False):
     guard(); _check_deadline(deadline)
     points, _ = _points(data, training_start, training_end, guard, joint=joint)
-    return _prepare(points, data, deadline=deadline, guard=guard, joint=joint)
+    return _prepare(points, data, deadline=deadline, guard=guard, joint=joint, irradiance=irradiance)
 
 
 def fit_native_development(data, *, expected_dataset_sha256, training_start, training_end,
-                           guard, initial=DEFAULT_PRIOR, timeout_seconds=60, joint=False):
+                           guard, initial=DEFAULT_PRIOR, timeout_seconds=60, joint=False, irradiance=False):
     import native_joint_shade as j
-    model_type=j.NativeJointShadeDynamics if joint else NativeInstalledShadeDynamics
+    import native_irradiance_shade as ir
+    if irradiance and not joint:raise ValueError('irradiance requires explicit joint shade regimes')
+    model_type=ir.NativeIrradianceShadeDynamics if irradiance else j.NativeJointShadeDynamics if joint else NativeInstalledShadeDynamics
     objective_function=j.objective if joint else _objective
     constraint_function=j.constraints if joint else _constraints
     low,high=(j.LOWER,j.UPPER) if joint else (LOWER,UPPER)
@@ -93,7 +96,7 @@ def fit_native_development(data, *, expected_dataset_sha256, training_start, tra
         raise ValueError('original native training dataset pin required')
     original = model_type(initial, geometry=data.geometry, expected_series_sha256=data.geometry.sha256)
     points, support = _points(data, training_start, training_end, check, joint=joint)
-    batches = _prepare(points, data, deadline=deadline, guard=guard, joint=joint)
+    batches = _prepare(points, data, deadline=deadline, guard=guard, joint=joint, irradiance=irradiance)
     for point in points:
         check(); original.rollout(origin_at=point.origin.at, air_f=point.origin.air_f,
             mass_f=point.origin.mass_f, forcings=point.forcings, guard=check)
@@ -120,7 +123,7 @@ def fit_native_development(data, *, expected_dataset_sha256, training_start, tra
     for point in points:
         check(); model.rollout(origin_at=point.origin.at, air_f=point.origin.air_f,
             mass_f=point.origin.mass_f, forcings=point.forcings, guard=check)
-    result=dict(schema='earthship-native-solar-provisional-fit/v2' if joint else SCHEMA, model_rule=j.RULE if joint else RULE, solar_feature=solar_feature_contract(),
+    result=dict(schema='earthship-native-solar-provisional-fit/v3' if irradiance else 'earthship-native-solar-provisional-fit/v2' if joint else SCHEMA, model_rule=ir.RULE if irradiance else j.RULE if joint else RULE, solar_feature=ir.solar_feature_contract() if irradiance else solar_feature_contract(),
         dataset_sha256=data.sha256, geometry_series_sha256=data.geometry.sha256,
         source_snapshot_sha256=data.development.source_snapshot_sha256, sensor_epochs=dict(data.development.sensor_epochs),
         training_start=_utc(training_start).isoformat(), training_end=_utc(training_end).isoformat(),
