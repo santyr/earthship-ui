@@ -144,9 +144,12 @@ def select_development_endpoints(data, *, horizon_hours, start, end, joint=False
     days = set()
     for origin in sorted(data.samples, key=lambda row: row.at):
         date = origin.at.astimezone(DENVER).date()
+        # A regime change on an already selected day needs its own measured
+        # endpoint. Original installed-only selection remains one per day.
+        selection_key=(date,origin.indoor_shade_closed,origin.outdoor_shade_present) if joint else date
         target_at = origin.at + duration
         target = samples.get(target_at)
-        if (date in days or not start <= origin.at < target_at < end or
+        if (selection_key in days or not start <= origin.at < target_at < end or
                 target is None or not origin.passive_fit_allowed or
                 not target.passive_fit_allowed or origin.outdoor_shade_present not in ((0,1) if joint else (1,)) or
                 target.outdoor_shade_present != origin.outdoor_shade_present or
@@ -169,5 +172,5 @@ def select_development_endpoints(data, *, horizon_hours, start, end, joint=False
             origin.indoor_shade_closed, origin.outdoor_shade_present, origin.vent_open) for row in prefix)
         selected.append(DevelopmentEndpoint(origin, target, forcings,
                                              data.source_snapshot_sha256))
-        days.add(date)
+        days.add(selection_key)
     return tuple(selected)

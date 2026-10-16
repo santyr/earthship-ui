@@ -65,3 +65,20 @@ def test_unused_daylight_samples_do_not_upgrade_endpoints_without_solar_forcing(
     assert support['endpoint_count']==1 and support['daylight_sample_count']>0
     assert support['status']=='prior_only'
     assert support['solar_endpoint_count']==0
+
+
+def test_joint_fit_selects_a_new_shade_regime_on_the_same_local_day():
+    from datetime import timedelta,datetime
+    from test_native_thermal_inputs import recapture
+    record=snapshot(future_action=('outdoor_shade','removed'),steps=40)
+    event=next(e for e in record['events'] if e['state']=='removed')
+    at=(START+timedelta(minutes=90)).isoformat()
+    event['effective_at']=event['received_at']=at
+    record=recapture(record);end=datetime.fromisoformat(record['end'])
+    data=build(record,assessed=end+timedelta(seconds=3))
+    points=select_native_endpoints(data,horizon_hours=1,start=START,end=end,joint=True)
+    assert {p.origin.outdoor_shade_present for p in points}=={0,1}
+    assert len(points)==2
+    assert all(all(r.outdoor_shade_present==p.origin.outdoor_shade_present for r in p.forcings) for p in points)
+    # The original installed-only selector keeps its original one-per-day rule.
+    assert len(select_native_endpoints(data,horizon_hours=1,start=START,end=end))==1
