@@ -66,3 +66,26 @@ The normal13:36 native-history opportunity then completed successfully at
 therefore verified after the cutover, without manual invocations. Retiring
 legacy execution does not qualify learned-load skill, physical effects or
 actuator release; the full PR#3 objective remains incomplete.
+
+
+## Hosted CI assertion follow-up
+
+The completed full backend job for deployed-correction headcbb0f6f
+([run38918858993](https://github.com/santyr/earthship-ui/actions/runs/38918858993))
+passes6261 tests and91 subtests, skips24, and fails only two assertions that
+still require a scheduled legacy slot. The oldera24f31f run had one additional
+retained-slot example failure, already corrected by1a3d5d8.
+
+Both remaining stale assertions were reproduced against the current approved
+native-only coordinator before test changes. The dispatch expectation now
+requires current/history/battery slots and explicitly excludes a legacy role.
+The score-window file's duplicate obsolete role check is removed; its work-budget,
+old-family compatibility, atomic installed timeout/schedule and effective-family
+checks remain. All31 focused dispatch, window, capacity, current-worker and
+nonrenewing-deadline tests pass in2.27seconds. No production source, scheduler,
+model, resource policy or owner behavior changed, and no deployment is needed.
+
+This repairs verification of the approved cutover rather than restoring legacy
+production work. A fresh full hosted CI result, including subsequent operational
+tooling steps, remains required before claiming all checks pass. The chronological
+shadow-summary design and full PR #3 qualification are still pending.

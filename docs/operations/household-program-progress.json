@@ -9060,6 +9060,26 @@
         "status": "provisional",
         "generatedAt": "2026-10-16T13:35:15+00:00",
         "automaticActuation": false
+      },
+      "hosted_ci_assertion_followup": {
+        "document": "docs/operations/2026-10-16-native-scoring-cutover.md",
+        "completed_run_id": 38918858993,
+        "completed_run_commit": "cbb0f6feec0d3d9aded729721c3add831e83d790",
+        "full_backend_passed": 6261,
+        "full_backend_skipped": 24,
+        "full_backend_subtests_passed": 91,
+        "full_backend_failed_stale_assertions": 2,
+        "failures": [
+          "openhab/scripts/test_native_serving_dispatch.py::test_legacy_backlog_keeps_explicit_scheduled_opportunities",
+          "openhab/scripts/test_native_serving_score_window.py::test_one_full_window_per_cycle_rotates_native_and_legacy"
+        ],
+        "remaining_failures_are_stale_legacy_slot_assertions": true,
+        "focused_corrected_tests_passed": 31,
+        "focused_seconds": 2.27,
+        "duplicate_obsolete_role_assertion_removed": true,
+        "production_source_changed": false,
+        "new_deployment_required": false,
+        "fresh_complete_hosted_ci_verified": false
       }
     },
     "per_intent_qualification_assessment": {
@@ -9930,5 +9950,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-16T15:11:38.498995+00:00"
+  "updated_at": "2026-10-16T15:20:12.926069+00:00"
 }

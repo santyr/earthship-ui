@@ -7,12 +7,13 @@ import pytest
 from test_installed_shade_score_inputs import settings
 
 
-def test_legacy_backlog_keeps_explicit_scheduled_opportunities():
+def test_native_only_slots_leave_legacy_backlog_unscheduled():
     import household_forecast_score as coordinator
     selector=getattr(coordinator,'score_role',None)
     assert callable(selector),'explicit score slot selector is missing'
     roles=[selector(datetime(2026,10,13,18,minute,10,tzinfo=timezone.utc)) for minute in range(10)]
-    assert tuple(i for i in range(10) if roles[i]=='legacy')==(6,)
+    assert 'legacy' not in roles
+    assert tuple(i for i in range(10) if roles[i]=='historical')==(6,)
     assert tuple(i for i in range(10) if roles[i]=='current')==(1,)
     assert tuple(i for i in range(10) if roles[i]=='battery')==(8,)
     assert roles.count('reserved')==7

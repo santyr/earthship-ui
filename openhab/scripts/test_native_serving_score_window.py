@@ -1,5 +1,4 @@
 """A useful scoring window stays bounded and leaves preparation clear."""
-from datetime import datetime, timezone
 import pytest
 from test_native_serving_score_driver import fixture
 
@@ -19,13 +18,6 @@ def test_score_can_finish_measured_work_but_cannot_renew_its_budget(tmp_path, mo
     else:
         with pytest.raises(ValueError, match='score lifetime'):
             c.run(config, stage=stage, deployment_sha256='a'*64, clock=lambda:now, monotonic=lambda:ticks[0])
-
-
-def test_one_full_window_per_cycle_rotates_native_and_legacy():
-    import household_forecast_score as c
-    roles = [c.score_role(datetime(2026,10,14,18,m,0,tzinfo=timezone.utc)) for m in range(10)]
-    assert roles[1] == 'current' and roles[6] == 'legacy'
-    assert roles[8]=='battery' and roles.count('reserved') == 7
 
 
 def test_verified_family_preserves_old_policy_and_spaces_new_work(tmp_path):
