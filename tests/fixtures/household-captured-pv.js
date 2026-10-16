@@ -23,3 +23,9 @@ export function capturedPvPerformance() {
     rmse_skill: -.5, last_target_at: report.last_target_at };
   return report;
 }
+export function emptyCapturedPvPerformance() {
+  const r = capturedPvPerformance();
+  r.by_horizon['1'].models.constant_load_pv = { ...r.by_horizon['6'].models.constant_load_pv };
+  r.unique_origin_days = 0; r.last_target_at = null;
+  return r;
+}

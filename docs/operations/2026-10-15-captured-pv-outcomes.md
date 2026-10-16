@@ -97,7 +97,13 @@ at its original expiry. Transport failure shows unavailable. Potential array
 yield remains unscored. The table remains below existing Earthship content and
 contains no controls.
 
-All 2,487 frontend tests pass, including 32 focused parser, transport and rendered
+All 2,489 frontend tests pass, including 34 focused parser, transport and rendered
 panel cases; the production build succeeds. An actual naturally issued producer
 report is admitted by the new parser. This presentation change does not alter
 models, scoring, training schedules, database permissions or physical authority.
+
+The single final review found one Important empty-report admission issue:
+malformed non-null last-target data could compare equal to the absence of a
+measured target. The correction requires exactly null for all-empty reports;
+nonempty reports still require the exact valid latest timestamp. Parser and real
+HTTP regressions reproduce the original issue and reject nested private bytes.

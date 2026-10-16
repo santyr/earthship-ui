@@ -37,3 +37,11 @@ it('withholds malformed, private or unsafe captured-PV cache files', async () =>
   await rm(path); await symlink(link, path);
   expect((await fetch(url)).status).toBe(503);
 });
+it('never returns private data hidden in an empty report latest-target field', async () => {
+  const { emptyCapturedPvPerformance } = await import('./fixtures/household-captured-pv.js');
+  const { path, url } = await serve(), row = emptyCapturedPvPerformance();
+  row.last_target_at = { private_path: '/never-expose', raw_receipt: {} };
+  await writeFile(path, JSON.stringify(row));
+  const response = await fetch(url); expect(response.status).toBe(503);
+  expect(await response.json()).toEqual({ status: 'unavailable' });
+});

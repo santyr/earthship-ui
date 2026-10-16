@@ -58,7 +58,7 @@ export function parseCapturedPvPerformance(raw, { nowMs = Date.now() } = {}) {
       }
     }
     if (v.unique_origin_days < maxDays || v.unique_origin_days > sumDays
-      || (v.last_target_at === null ? latest !== null : time(v.last_target_at) !== latest)) return null;
+      || (latest === null ? v.last_target_at !== null : time(v.last_target_at) !== latest)) return null;
     return { ...v, expired: nowMs >= until };
   } catch { return null; }
 }

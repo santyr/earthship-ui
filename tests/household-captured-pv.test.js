@@ -41,3 +41,11 @@ it('rejects duplicate keys, oversized transport and nonfinite numeric values', (
   expect(parseCapturedPvPerformance(raw + ' '.repeat(32768), { nowMs })).toBeNull();
   expect(parseCapturedPvPerformance(raw.replace('"mae_kwh":0.3', '"mae_kwh":1e999'), { nowMs })).toBeNull();
 });
+it('admits an empty report only with a null latest target, rejecting nested private data and invalid clocks', async () => {
+  const { emptyCapturedPvPerformance } = await import('./fixtures/household-captured-pv.js');
+  expect(parse(emptyCapturedPvPerformance())).not.toBeNull();
+  for (const invalid of [{ private_path: '/never-expose', raw_receipt: {} }, ['/private'], 'invalid-time', 0]) {
+    const r = emptyCapturedPvPerformance(); r.last_target_at = invalid;
+    expect(parse(r)).toBeNull();
+  }
+});
