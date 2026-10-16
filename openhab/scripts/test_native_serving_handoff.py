@@ -67,3 +67,38 @@ def test_receipt_partial_file_install_restores_original_owned_overrides(tmp_path
     assert (root/'thermal-provisional-forecast.service.d/zzzz-household-cycle.conf').read_bytes()==old_forecast
     assert (root/'thermal-provisional-score.service.d/zzzz-household-score.conf').read_bytes()==old_score
     assert not (root/'thermal-native-geometry-prepare.service').exists()
+
+
+@pytest.mark.parametrize('joint',[False,True])
+def test_runtime_migration_handoff_preserves_old_contract_but_accepts_joint_receipt_family(tmp_path,monkeypatch,joint):
+    deploy,handoff,args,previous,family,output,pin,_,_=fixture(tmp_path,monkeypatch)
+    settings=json.loads(args['forecast_config'].read_bytes());candidate_path=Path(settings['candidate_path'])
+    original_bytes=deploy._bytes;original_verify=deploy.verify_stage
+    def owned_bytes(path,**kwargs):
+        raw=original_bytes(path,**kwargs)
+        if Path(path)==candidate_path:
+            model=json.loads(raw);model['runtime']['base_runtime']['code_revision']='c'*64
+            if joint:
+                model['schema']='earthship-provisional-thermal-candidate/v3'
+                model['fit']={'schema':'earthship-native-solar-provisional-fit/v2','model_rule':'earthship-native-joint-shade-dynamics/v3'}
+            return json.dumps(model).encode()
+        return raw
+    def verified_stage(path,**kwargs):
+        record=original_verify(path,**kwargs)
+        if Path(path)==args['stage']:
+            record['protected_runtime_sources']={**record['protected_runtime_sources'],'new-versioned-selector.py':'d'*64}
+        return record
+    # Package/admission is covered separately. Here supply already verified
+    # differing runtime headers to exercise the complete handoff boundary.
+    monkeypatch.setattr(deploy,'verify_stage',verified_stage)
+    # Restrict the substituted bytes to the direct candidate reads in handoff.
+    import inspect
+    def scoped_bytes(path,**kwargs):
+        if inspect.currentframe().f_back.f_code.co_name=='_assemble':return owned_bytes(path,**kwargs)
+        return original_bytes(path,**kwargs)
+    monkeypatch.setattr(deploy,'_bytes',scoped_bytes)
+    if not joint:
+        with pytest.raises(ValueError):handoff.prepare(family,previous_forecast_stage=previous,previous_score_stage=previous,output=output,guard=lambda:None)
+    else:
+        handoff.prepare(family,previous_forecast_stage=previous,previous_score_stage=previous,output=output,guard=lambda:None)
+        assert handoff.verify(output,guard=lambda:None)['automatic_actuation'] is False

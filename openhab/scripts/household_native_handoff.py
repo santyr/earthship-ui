@@ -67,7 +67,7 @@ def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard,previo
     cycles=[json.loads(deploy._bytes(path/'cycle.json',private=True)) for path in (stage,forecast,score)]
     current,old_forecast,old_score=records
     stripped=lambda cycle:{k:v for k,v in cycle.items() if k not in ('evidence_directory','forecast_config')}
-    if (any(record['service_file']!=current['service_file'] or record['protected_runtime_sources']!=current['protected_runtime_sources'] for record in records[1:]) or
+    if (any(record['service_file']!=current['service_file'] for record in records[1:]) or
         any(stripped(cycle)!=stripped(cycles[0]) for cycle in cycles[1:]) or cycles[1]['forecast_config']!=cycles[2]['forecast_config']):
         raise ValueError('same owned forecast inputs, cache and fitted sources required')
     configs=[deploy._path(cycle['forecast_config']) for cycle in cycles]
@@ -77,7 +77,10 @@ def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard,previo
         raise ValueError('native selection cannot change source endpoints, credentials or shared lock')
     new_model=json.loads(deploy._bytes(settings[0]['candidate_path'],private=True))
     old_model=json.loads(deploy._bytes(settings[1]['candidate_path'],private=True))
-    if new_model['runtime']['base_runtime']!=old_model['runtime'].get('base_runtime',old_model['runtime']):
+    joint=serving and deploy._joint_model(new_model)
+    if (not joint and any(record['protected_runtime_sources']!=current['protected_runtime_sources'] for record in records[1:])):
+        raise ValueError('same original fitted sources required for installed-only handoff')
+    if not joint and new_model['runtime']['base_runtime']!=old_model['runtime'].get('base_runtime',old_model['runtime']):
         raise ValueError('complete original fitted runtime must be preserved')
     service=deploy._path(current['service_file']);base=service.parent
     if service.name!='thermal-provisional-forecast.service':raise ValueError('fixed owned forecast service required')

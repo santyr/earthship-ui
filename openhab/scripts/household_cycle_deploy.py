@@ -114,6 +114,14 @@ def _verify_native_originals(info):
             raise ValueError('retained native original differs')
 
 
+def _joint_model(candidate):
+    from native_thermal_artifact import JOINT_SCHEMA
+    from native_joint_shade import RULE
+    fit=candidate.get('fit')
+    return (candidate.get('schema')==JOINT_SCHEMA and isinstance(fit,dict) and
+        fit.get('schema')=='earthship-native-solar-provisional-fit/v2' and fit.get('model_rule')==RULE)
+
+
 def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha256,observation_cache,service_file,code_revision,service_forecast_config=None,model_receipt_path=None,model_receipt_sha256=None,score_dispatch_path=None,score_dispatch_sha256=None):
     repo,stage,config,parameters,cache,service=map(_path,(repo_root,stage,forecast_config,parameters,observation_cache,service_file))
     if re.fullmatch('[a-f0-9]{40}',code_revision or '') is None or re.fullmatch('[a-f0-9]{64}',parameters_sha256 or '') is None:
@@ -161,9 +169,7 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
             # A separately versioned, freshly admitted joint model necessarily
             # binds its updated endpoint selector. Installed-only migrations
             # still require their original fitted runtime unchanged.
-            joint=(declared['schema']=='earthship-provisional-thermal-candidate/v3' and
-                declared['fit'].get('schema')=='earthship-native-solar-provisional-fit/v2' and
-                declared['fit'].get('model_rule')=='earthship-native-joint-shade-dynamics/v3')
+            joint=_joint_model(declared)
             if _encode(base)!=_encode(declared['runtime']['base_runtime']) and not joint:
                 raise ValueError('native selection must preserve original fitted base runtime')
     _service_contract(service_raw,baseline)
