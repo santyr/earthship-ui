@@ -30,8 +30,8 @@ def test_new_timer_role_preserves_thermal_slots_and_uses_only_its_extra_opportun
     from datetime import datetime,timezone
     roles={m:c.score_role(datetime(2026,10,15,12,m,20,tzinfo=timezone.utc)) for m in range(20)}
     assert [m for m,r in roles.items() if r=='current']==[1,11]
-    assert [m for m,r in roles.items() if r=='historical']==[16]
-    assert [m for m,r in roles.items() if r=='legacy']==[6]
+    assert [m for m,r in roles.items() if r=='historical']==[6,16]
+    assert [m for m,r in roles.items() if r=='legacy']==[]
     assert [m for m,r in roles.items() if r=='battery']==[8,18]
 
 

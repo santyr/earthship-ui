@@ -17,7 +17,7 @@ def test_daily_cadence_keeps_current_fresh_without_more_jobs():
     assert len(roles['battery'])==144
     assert all(minute%10==8 for minute in roles['battery'])
     assert len(roles['current'])==144
-    assert len(roles['historical'])==len(roles['legacy'])==72
+    assert len(roles['historical'])==144 and roles['legacy']==[]
     assert all(b-a==10 for a,b in zip(roles['current'],roles['current'][1:]))
     assert set(selected)=={row['stage'] for row in history}
     assert sorted(roles['current']+roles['historical']+roles['legacy'])==list(range(1,24*60,5))
@@ -34,10 +34,24 @@ def test_history_slot_without_history_refreshes_current_report():
 def test_family_records_new_roles_without_changing_old_family_or_timer(tmp_path,monkeypatch):
     import household_native_family as family
     from test_native_serving_upgrade import fixture
+    monkeypatch.setattr(family,'_native_only_scores',lambda stage:False,raising=False)
     monkeypatch.setattr(family,'_extended_score_window',lambda stage:True)
     monkeypatch.setattr(family,'_frequent_current_scores',lambda stage:stage.name=='new-stage')
     deploy,handoff,new,kwargs,targets,old=fixture(tmp_path,monkeypatch)
     assert family.verify(old,guard=lambda:None)['score_slot_roles']==dict(current=[1],legacy=[6],period_minutes=10)
     assert family.verify(new,guard=lambda:None)['score_slot_roles']==dict(current=[1,11],historical=[16],legacy=[6],period_minutes=20)
+    assert (new/'score-timer.conf').read_bytes()==(old/'score-timer.conf').read_bytes()
+    handoff.prepare(new,**kwargs)
+
+
+def test_native_cutover_records_roles_without_changing_archived_family_or_timer(tmp_path,monkeypatch):
+    import household_native_family as family
+    from test_native_serving_upgrade import fixture
+    monkeypatch.setattr(family,'_native_only_scores',lambda stage:stage.name=='new-stage',raising=False)
+    monkeypatch.setattr(family,'_extended_score_window',lambda stage:True)
+    monkeypatch.setattr(family,'_frequent_current_scores',lambda stage:True)
+    deploy,handoff,new,kwargs,targets,old=fixture(tmp_path,monkeypatch)
+    assert family.verify(old,guard=lambda:None)['score_slot_roles']==dict(current=[1,11],historical=[16],legacy=[6],period_minutes=20)
+    assert family.verify(new,guard=lambda:None)['score_slot_roles']==dict(current=[1,11],historical=[6,16],period_minutes=20)
     assert (new/'score-timer.conf').read_bytes()==(old/'score-timer.conf').read_bytes()
     handoff.prepare(new,**kwargs)

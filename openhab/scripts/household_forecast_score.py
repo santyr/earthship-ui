@@ -11,6 +11,7 @@ from contextlib import contextmanager
 SCORE_LIFETIME_SECONDS = 120
 SCORE_CPU_QUOTA = '100%'
 SCORE_CURRENT_PERIOD_MINUTES = 10
+SCORE_HISTORY_PERIOD_MINUTES = 10
 BATTERY_SCORE_PERIOD_MINUTES = 10
 BATTERY_SCORE_OFFSET_MINUTE = 8
 BATTERY_SCORE_OFFSET_SECOND = 20
@@ -232,10 +233,6 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
             return run_battery_slot(config,original=original,settings=settings,stage=stage,binding=binding,dispatch=dispatch,
                 verifier=verifier,deadline=deadline,issue=issue,clock=clock,monotonic=monotonic)
         if role=='reserved':return dict(status='waiting',scored=0,pending_reason='forecast_slot_reserved',automatic_actuation=False)
-        if role=='legacy':
-            selection_guard()
-            if verifier(stage)!=binding:raise ValueError('staged score selection changed before dispatch')
-            return execute_legacy_score(dispatch['legacy'])
         target='current' if retained_native else native_score_selection(dispatch,now)
         if target!='current':
             selection_guard()
@@ -476,8 +473,7 @@ def score_role(at):
     at=_instant(at)
     if at.minute%10==BATTERY_SCORE_OFFSET_MINUTE:return 'battery'
     if at.minute%10==1:return 'current'
-    if at.minute%20==6:return 'legacy'
-    if at.minute%20==16:return 'historical'
+    if at.minute%10==6:return 'historical'
     return 'reserved'
 
 
@@ -565,9 +561,9 @@ def native_score_selection(dispatch,at):
     if role not in ('current','historical'):raise ValueError('explicit native scoring opportunity required')
     historical=dispatch['historical']
     if role=='current' or not historical:return 'current'
-    # Current feedback every ten minutes stays inside the 15-minute report TTL;
-    # the alternate background slots rotate explicit history every twenty.
-    slot=int(at.timestamp())//1200
+    # Current feedback retains its ten-minute cadence. Former legacy slots
+    # now rotate native history without adding jobs or widening inference.
+    slot=int(at.timestamp())//(60*SCORE_HISTORY_PERIOD_MINUTES)
     return historical[slot%len(historical)]
 
 

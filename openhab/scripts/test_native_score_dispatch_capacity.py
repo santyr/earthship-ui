@@ -27,7 +27,7 @@ def test_dispatch_roundtrip_retains_every_explicit_stage(tmp_path,monkeypatch,co
     assert output.stat().st_size<=131072
     # Every retained worker remains independently scheduled, including entries
     # outside the current process's original 31-model inference envelope.
-    selected={score.native_score_selection({'historical':references},at=datetime(2026,10,15,0,16,tzinfo=timezone.utc)+timedelta(minutes=20*i))['stage'] for i in range(count)}
+    selected={score.native_score_selection({'historical':references},at=datetime(2026,10,15,0,6,tzinfo=timezone.utc)+timedelta(minutes=10*i))['stage'] for i in range(count)}
     assert selected=={r['stage'] for r in references}
 
 

@@ -54,14 +54,15 @@ def test_current_score_slot_reads_one_context_under_existing_lock(tmp_path,monke
     assert result['status']=='waiting' and calls.count('read_model')==1 and calls[-1]=='unlocked'
 
 
-def test_legacy_slot_executes_only_explicit_retained_worker(tmp_path,monkeypatch):
+def test_former_legacy_slot_runs_native_without_history(tmp_path,monkeypatch):
     coordinator,config,stage,calls,model,now,dispatch=fixture(tmp_path,monkeypatch,6)
-    monkeypatch.setattr(coordinator,'score_with_report',lambda *a,**k:pytest.fail('legacy slot ran active native worker'))
-    def execute(selection):
-        assert selection==dispatch['legacy'];calls.append('legacy_exec');return {'status':'waiting','scored':0,'automatic_actuation':False}
-    monkeypatch.setattr(coordinator,'execute_legacy_score',execute,raising=False)
+    monkeypatch.setattr(coordinator,'execute_legacy_score',lambda *a,**kw:pytest.fail('retired legacy worker executed'))
+    def scored(settings,*,guard,clock,queue,serving_model,historical_selections):
+        assert serving_model is model and historical_selections==()
+        guard();return dict(status='waiting',scored=0,automatic_actuation=False)
+    monkeypatch.setattr(coordinator,'score_with_report',scored)
     result=coordinator.run(config,stage=stage,deployment_sha256='a'*64,clock=lambda:now,monotonic=lambda:100)
-    assert result['status']=='waiting' and 'read_model' not in calls and calls[-1]=='legacy_exec'
+    assert result['status']=='waiting' and calls.count('read_model')==1
 
 
 def test_missing_external_pin_refuses_both_score_workers(tmp_path,monkeypatch):

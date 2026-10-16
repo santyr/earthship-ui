@@ -69,6 +69,13 @@ def _frequent_current_scores(stage):
     return b'\nSCORE_CURRENT_PERIOD_MINUTES = 10\n' in b'\n'+deploy._bytes(source)
 
 
+def _native_only_scores(stage):
+    # Sealed earlier families retain their original legacy routing metadata.
+    import household_cycle_deploy as deploy
+    source=stage/'sources/openhab/scripts/household_forecast_score.py'
+    return b'\nSCORE_HISTORY_PERIOD_MINUTES = 10\n' in b'\n'+deploy._bytes(source)
+
+
 def _independent_battery_slot(stage):
     import household_cycle_deploy as deploy
     scripts=stage/'sources/openhab/scripts';raw=b'\n'+deploy._bytes(scripts/'household_forecast_score.py')
@@ -169,6 +176,8 @@ def _metadata(stage,libraries,original,actual,record,files):
             if _frequent_current_scores(stage):
                 result['score_slot_roles']=dict(current=[1,11],historical=[16],legacy=[6],period_minutes=20)
                 result['schedule']['score_role_period_seconds']=1200
+            if _native_only_scores(stage):
+                result['score_slot_roles']=dict(current=[1,11],historical=[6,16],period_minutes=20)
             if _independent_battery_slot(stage):
                 result['score_slot_roles']['battery']=[8,18]
                 result['schedule'].update(battery_score_offsets_seconds=[500],battery_score_period_seconds=600,
