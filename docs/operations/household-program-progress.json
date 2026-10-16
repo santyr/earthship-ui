@@ -9945,7 +9945,7 @@
       "source_expiry_preserved": true
     },
     "thermal_four_regime_shades": {
-      "status": "implemented_pending_review_fit_and_deployment",
+      "status": "deployed_normal_cycle_and_live_ui_verified",
       "design_approved": true,
       "document": "docs/operations/2026-10-16-four-regime-thermal-shades.md",
       "nominal_shade_rejection_fraction": 0.65,
@@ -9962,7 +9962,7 @@
       "model_rule": "earthship-native-joint-shade-dynamics/v3",
       "backend_broad_passed": 870,
       "backend_broad_skipped": 1,
-      "backend_final_focused_passed": 48,
+      "backend_final_focused_passed": 49,
       "frontend_passed": 2577,
       "build_passed": true,
       "old_implementations_preserved": true,
@@ -9970,7 +9970,80 @@
       "automatic_actuation": false,
       "action_advice_enabled": false,
       "resource_policy_changed": false,
-      "full_goal_complete": false
+      "full_goal_complete": false,
+      "source_commit": "ecc05d4a7ce7df702e4e8e83386ae13a251ed670",
+      "deployment_sha256": "9d8fb9e0c44fe9bd09092f4efbd9d9de3c90cd056099aabb14f99c4e84919d41",
+      "artifact_sha256": "a48b0274d16b039d7f27537e7b576fab257769fe0953c95ff8034d06741faca8",
+      "activated_at": "2026-10-16T20:16:54.460812+00:00",
+      "training_end": "2026-10-16T06:00:00+00:00",
+      "regime_support": {
+        "both_closed": {
+          "daylight_sample_count": 576,
+          "endpoint_count": 27,
+          "solar_endpoint_count": 17,
+          "status": "observed_unqualified"
+        },
+        "indoor_only": {
+          "daylight_sample_count": 0,
+          "endpoint_count": 0,
+          "solar_endpoint_count": 0,
+          "status": "prior_only"
+        },
+        "outdoor_only": {
+          "daylight_sample_count": 0,
+          "endpoint_count": 0,
+          "solar_endpoint_count": 0,
+          "status": "prior_only"
+        },
+        "unshaded": {
+          "daylight_sample_count": 0,
+          "endpoint_count": 0,
+          "solar_endpoint_count": 0,
+          "status": "prior_only"
+        }
+      },
+      "conditioning_rank": 8,
+      "parameter_count": 14,
+      "packaging_tests_passed": 80,
+      "handoff_tests_passed": 77,
+      "final_review": {
+        "commit": "cc7728f45f2e6e865e8a7e022aec8a1c9c1ecdd1",
+        "important_findings": 1,
+        "corrected": "5d79e9e",
+        "re_reviewed": false
+      },
+      "full_admission_passed": true,
+      "handoff_preflight_passed": true,
+      "owned_files_verified": 5,
+      "timers_active": 3,
+      "daily_source_advanced": true,
+      "daily_unit_unchanged": true,
+      "ui_unrelated_overlays_preserved": 161,
+      "normal_issue_at": "2026-10-16T20:20:15+00:00",
+      "normal_household_decision_at": "2026-10-16T20:20:27.173462+00:00",
+      "normal_origin_actions": {
+        "action_knowledge": "as_of_snapshot_not_outcome_confirmation",
+        "indoor_shade_closed": 1.0,
+        "mode": "warm",
+        "outdoor_shade_present": 0.0,
+        "vent_open": 1.0,
+        "vent_provenance": "manual_dm"
+      },
+      "normal_forecast_status": "provisional",
+      "normal_forecast_advice_empty": true,
+      "live_ui": {
+        "cases": 2,
+        "states": [
+          "ready",
+          "ready"
+        ],
+        "errors": 0,
+        "mutations": 0,
+        "outer_overflow": false,
+        "nominal_prior_visible": true
+      },
+      "training_data_refreshed": false,
+      "first_fit_reused_retained_measurements": true
     }
   },
   "astro_efficiency_audit": {
