@@ -11,13 +11,16 @@ from test_household_observation import observe,materializer_fixture
 
 
 def api():return importlib.import_module('household_chronology')
-def sample(at=NOW,hours=24):
+def shifted(at=NOW,hours=24):
     record=pipeline();view=observe(record)
     # Summary fixtures move original clocks together; no replay is bypassed in production.
     record=deepcopy(record);record['inputs']['now']=at.isoformat();record['inputs']['config']['horizon_hours']=hours
     record['receipt_sha256']=identity({k:v for k,v in record.items() if k!='receipt_sha256'})
     view.update(receipt_sha256=record['receipt_sha256'],decision_at=at.isoformat(),snapshot_as_of=at.isoformat(),valid_until=(at+timedelta(minutes=5)).isoformat())
-    return api().admit(record,view)
+    return record,view
+
+
+def sample(at=NOW,hours=24):return api().admit(*shifted(at,hours))
 
 
 def test_counts_deduplicate_originals_and_do_not_count_dense_decisions_as_windows():
@@ -109,3 +112,30 @@ def test_malformed_retained_structure_is_optional_not_a_cycle_failure(tmp_path):
     malformed['admission_sha256']=identity({k:v for k,v in malformed.items() if k!='admission_sha256'})
     (retained.parent/('d'*64+'.json')).write_bytes(canonical(malformed));(retained.parent/('d'*64+'.json')).chmod(0o600)
     assert materialize(source,target,clock=lambda:NOW+timedelta(minutes=1))['chronology_status']=='unavailable'
+
+
+def test_seven_elapsed_days_includes_all_nine_denver_dates_at_spring_forward(tmp_path):
+    from datetime import datetime,timezone
+    from zoneinfo import ZoneInfo
+    generated=datetime(2026,3,15,6,30,tzinfo=timezone.utc)
+    rows=[sample(datetime(2026,3,8,6,45,tzinfo=timezone.utc))]
+    rows.extend(sample(datetime(2026,3,d,18,tzinfo=timezone.utc)) for d in range(8,15))
+    current=shifted(generated);rows.append(api().admit(*current))
+    root=tmp_path/'private';root.mkdir(mode=0o700);store=root/'chronological-admissions';store.mkdir(mode=0o700)
+    for row in rows:
+        folder=store/instant(row['decision_at']).astimezone(ZoneInfo('America/Denver')).date().isoformat();folder.mkdir(mode=0o700,exist_ok=True)
+        path=folder/(row['receipt_sha256']+'.json');path.write_bytes(canonical(row));path.chmod(0o600)
+    report=api().retain_and_summarize(*current,directory=root,generated_at=generated,guard=lambda:None)
+    assert report['counts']['raw_decisions']==9 and report['counts']['origin_days']==9
+
+
+def test_deeply_nested_optional_history_keeps_previous_report_and_success_result(tmp_path):
+    source,target,_=materializer_fixture(tmp_path)
+    from household_observation import materialize
+    materialize(source,target,clock=lambda:NOW)
+    report=target.parent/'chronological-summary.json';before=report.read_bytes()
+    retained=next((target.parent/'chronological-admissions').glob('*/*.json'))
+    extra=retained.parent/('e'*64+'.json');extra.write_bytes(b'['*10000+b']'*10000);extra.chmod(0o600)
+    result=materialize(source,target,clock=lambda:NOW+timedelta(minutes=1))
+    assert result['status']=='observation_written' and result['chronology_status']=='unavailable'
+    assert report.read_bytes()==before and target.exists()

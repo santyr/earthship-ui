@@ -9803,7 +9803,7 @@
       "full_goal_complete": false
     },
     "chronological_shadow_summary": {
-      "status": "implemented_pending_review_and_deployment",
+      "status": "reviewed_pending_deployment",
       "design_approved": true,
       "document": "docs/operations/2026-10-16-chronological-shadow-summary.md",
       "sampling": "distinct_original_replayed_plans",
@@ -9818,12 +9818,28 @@
       "statistical_independence_assessed": false,
       "release_authorized": false,
       "automatic_actuation": false,
-      "backend_affected_tests_passed": 68,
-      "frontend_tests_passed": 2550,
+      "backend_affected_tests_passed": 85,
+      "frontend_tests_passed": 2551,
       "fit_executed": false,
       "extra_forecast_executed": false,
       "resource_limits_changed": false,
-      "full_goal_complete": false
+      "full_goal_complete": false,
+      "build_passed": true,
+      "review": {
+        "critical": 0,
+        "important": 2,
+        "minor": 0,
+        "important_corrected": 2,
+        "correction_passes": 1,
+        "re_review": false
+      },
+      "scale_check": {
+        "synthetic_only": true,
+        "admissions": 2016,
+        "seconds": 0.316298112,
+        "source_guard_calls": 12,
+        "public_bytes": 3651
+      }
     }
   },
   "astro_efficiency_audit": {

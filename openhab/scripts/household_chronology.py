@@ -143,7 +143,7 @@ def _publish(path,value,guard):
 
 
 def retain_and_summarize(record,view,*,directory,generated_at,guard):
-    """Single scheduled writer; eight bounded day directories, no history replay."""
+    """Single scheduled writer; at most nine local dates, no history replay."""
     from household_observation import _directory,_private_file
     root=Path(directory);_directory(root);generated=utc(generated_at);admission=admit(record,view)
     day=instant(admission['decision_at']).astimezone(ZoneInfo('America/Denver')).date()
@@ -162,7 +162,10 @@ def retain_and_summarize(record,view,*,directory,generated_at,guard):
         finally:temp.unlink(missing_ok=True)
     elif previous[0]!=encoded:raise ValueError('original admission changed')
     rows=[];today=generated.astimezone(ZoneInfo('America/Denver')).date()
-    for offset in range(8):
+    first=(generated-timedelta(days=7)).astimezone(ZoneInfo('America/Denver')).date()
+    days=(today-first).days+1
+    if not 1<=days<=9:raise ValueError('bounded local date window required')
+    for offset in range(days):
         folder=store/(today-timedelta(days=offset)).isoformat()
         if not folder.exists():continue
         guard();before=_directory(folder)

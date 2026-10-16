@@ -11,7 +11,7 @@ const digest=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
 const count=v=>Number.isInteger(v)&&v>=0&&v<=32768;
 const time=v=>typeof v==='string'&&v.length<=64&&/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/.test(v)?parseSourceTimestamp(v,Number.MAX_SAFE_INTEGER):null;
 function counts(v,family=false){
- if(!shape(v,COUNT_FIELDS)||!Object.values(v).every(count)||v.raw_decisions>4096||v.origin_days>Math.min(8,v.raw_decisions)
+ if(!shape(v,COUNT_FIELDS)||!Object.values(v).every(count)||v.raw_decisions>4096||v.origin_days>Math.min(9,v.raw_decisions)
   ||v.non_overlapping_windows>Math.min(29,v.raw_decisions)||v.planner_available>v.raw_decisions
   ||v.decisions_with_unavailable_sources>v.raw_decisions||v.proposals>8*v.raw_decisions
   ||v.selected+v.hard_blocked>v.proposals||v.unknown_blocked>v.hard_blocked)return false;

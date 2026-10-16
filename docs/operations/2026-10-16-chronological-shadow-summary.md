@@ -4,7 +4,7 @@ Approved scope: retain source-bound summaries after the existing scheduled origi
 
 The observer retains one immutable private admission per original receipt. It pins the original document, replayed snapshot, normalized as-issued observation, original decision/expiry, forecast horizon, software runtime, registry, configuration and model identities. Normalizing verification time and presentation expiry prevents later verification from creating another decision or renewing its original clocks. A conflicting or corrupt retained admission refuses the new report; the previous report expires normally.
 
-The rolling report covers seven elapsed days, with Denver origin dates. Eight fixed day directories bound reads across local-date and daylight-saving boundaries; a maximum of 4,096 admissions, 16 distinct version groups and 32 KiB public output prevents unbounded work per cycle. Admissions remain private retained evidence; the rolling report is bounded independently. The report counts:
+The rolling report covers seven elapsed days, with Denver origin dates. Bucket dates derive from the exact UTC window endpoints, with at most nine Denver dates across spring-forward; a maximum of 4,096 admissions, 16 distinct version groups and 32 KiB public output prevents unbounded work per cycle. Admissions remain private retained evidence; the rolling report is bounded independently. The report counts:
 
 - distinct original replayed decisions;
 - distinct Denver origin days;
@@ -21,6 +21,6 @@ Collection and reporting occur after the existing verified observation is succes
 
 ## Verification
 
-Backend feature and adjacent observer/qualification/cycle tests: 68 passed. Full frontend suite: 2,550 passed. These include duplicate receipt identity, original expiry, empty families, mixed horizons, version separation, retained corruption, malformed history, unsafe directory aliases, exact policy comparisons, strict public parsing and fixed GET transport. Build and single final review are recorded with the deployment evidence below when completed.
+Initial backend feature and adjacent observer/qualification/cycle tests: 68 passed; driver compatibility: 15 passed. Initial full frontend suite: 2,550 passed. These include duplicate receipt identity, original expiry, empty families, mixed horizons, version separation, retained corruption, malformed history, unsafe directory aliases, exact policy comparisons, strict public parsing and fixed GET transport. The build passed with the existing large-chunk warning. A synthetic 2,016-admission cost check took 0.316 seconds, 12 source-boundary checks and 3,651 public bytes; this is resource evidence, not outcome qualification. The single final review identified two Important issues: spring-forward can span nine local dates, and deeply nested malformed JSON can raise `RecursionError`. Both were reproduced with failing tests and corrected in one pass; reporting recursion now remains an optional refusal. No second review was requested. Final affected backend tests: **85 passed**. Full frontend suite after corrections: **2,551 passed**. Final build passed. Deployment evidence follows below.
 
 Full PR#3 remains incomplete; counts alone do not satisfy its chronological qualification or release gates.

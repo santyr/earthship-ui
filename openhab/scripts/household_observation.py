@@ -263,7 +263,7 @@ def materialize(receipt_path,output_path,*,clock=lambda:datetime.now(timezone.ut
         from household_chronology import retain_and_summarize
         retain_and_summarize(record,view,directory=target.parent,generated_at=clock(),guard=publication_guard)
         chronology='written'
-    except (OSError,ValueError):
+    except (OSError,ValueError,RecursionError):
         pass
     return dict(status='observation_written',receipt_sha256=view['receipt_sha256'],snapshot_id=view['snapshot_id'],
         observation_sha256=sha256(encoded).hexdigest(),planner_mode=view['planner_mode'],automatic_actuation=False,chronology_status=chronology)

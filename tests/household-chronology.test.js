@@ -20,3 +20,7 @@ it.each(['private','promote','counts','groups','family','time','duplicate','mode
  if(damage==='duplicate'){const raw=JSON.stringify(r).replace('{','{"schema":"private",');expect(parseChronologicalSummary(raw,{nowMs:AT})).toBeNull();return;}
  expect(parse(r)).toBeNull();
 });
+it('accepts nine Denver origin dates within seven elapsed days across spring-forward',async()=>{
+ const {default:r}=await import('./fixtures/household-chronology-dst.json');
+ const parsed=parse(r,Date.parse(r.generated_at));expect(parsed).not.toBeNull();expect(parsed.counts.origin_days).toBe(9);
+});
