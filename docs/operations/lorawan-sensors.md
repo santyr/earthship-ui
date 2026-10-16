@@ -1,8 +1,10 @@
 # Distributed sensor operations and commissioning
 
-Status: hardware-independent implementation for review. **No production service,
-OpenHAB configuration, broker policy or database has been installed or changed.**
-Physical commissioning and each production cutover require explicit authorization.
+Status: hardware-independent software qualified October13,2026. The owner
+authorized production activation and migrations on October16; the software
+backend is now active. See the [activation receipt](2026-10-16-sensor-production-activation.md)
+for exact deployed resources, verification and rollback. Physical commissioning
+remains pending. PR #30 remains open and unmerged.
 
 ## Architecture and ownership
 
@@ -225,7 +227,8 @@ an unobserved gap to manufacture a complete interval.
 
 ## Production staging and authorization
 
-Do not run production profiles yet. Before requesting activation, prepare:
+For a fresh deployment, obtain authorization before activating production profiles.
+The ThinkCentre cutover is recorded separately; these are the prerequisites:
 
 1. Private broker ACL/account additions for ChirpStack, one gateway bridge,
    read-only OpenHAB, and ingest. ChirpStack publishes application events and
