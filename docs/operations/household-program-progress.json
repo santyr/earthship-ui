@@ -9905,7 +9905,7 @@
       "source_bound_action_parameters": true,
       "original_intent_clocks_retained": true,
       "shared_read_only_poll": true,
-      "backend_tests_passed": 89,
+      "backend_tests_passed": 138,
       "frontend_tests_passed": 2575,
       "build_passed": true,
       "synthetic_browser_cases": 10,
@@ -9919,7 +9919,10 @@
       "single_review_complete": true,
       "important_review_findings_corrected": 2,
       "correction_passes": 1,
-      "minor_expired_climate_history_deferred": true
+      "minor_expired_climate_history_deferred": true,
+      "manifest_integration_corrected": true,
+      "manifest_limit": 128,
+      "actual_measured_manifest_entries": 65
     }
   },
   "astro_efficiency_audit": {
