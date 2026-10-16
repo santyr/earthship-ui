@@ -117,3 +117,39 @@ eight lead/scenario rows beneath existing content, without outer overflow,
 page errors or mutation requests. Report expiry continues to use the original
 producer clock. This verifies presentation and transport, not scientific skill
 or completion of the full architectural program.
+
+
+## First learned-load captured-PV outcome
+
+The normal2026-10-16T14:38:28Z opportunity scored the original13:00:15Z
+learned-load scenario at its one-hour lead. The raw power receipt covers
+3599.710seconds,99.9919percent of that hour. Actual controller DC energy is
+0.132509252kWh. Both the constant-AC and learned-AC scenarios predicted the same
+0.126115636kWh; current-PV persistence predicted0kWh. Their absolute errors are
+0.006393616kWh for either scenario and0.132509252kWh for persistence.
+
+The complete outcome receipt
+`f1f20378bcd8d2da93eeb869dc43996226cc23861369e91a240faf84f547b02b`
+replays identically through the exact currently deployed file-only CLI at
+14:56:05Z and again at15:00:45Z, using the original energy, plan, learned-load
+receipt and raw source packet. The second replay enforces network denial with
+a process-local Linux seccomp filter that refuses socket/connect syscalls. Network access was forbidden and all five original input/sample files
+stayed unchanged. Private proof is in
+`captured-pv-first-learned-20261016/exact-outcome-replay-proof.json` under the
+common-cycle evidence directory. No production job, forecast, fit or live query
+was manually started.
+
+This is one matched pair from one origin day, and the two scenarios have equal
+PV predictions on this pair. It verifies the learned-load PV feedback path, not
+an improvement due to the load model or general skill. In the larger separate
+constant-AC one-hour cohort,23 matched pairs have scenarioMAE0.120189kWh versus
+persistenceMAE0.095397kWh and RMSE skill-0.262313. Those results remain visible;
+the single learned-load result must not replace the broader comparison.
+
+The earlier14:28 opportunity deferred because the newest reference was
+unavailable. That transient pause recovered on the ordinary14:38 opportunity,
+without a producer patch or resampling the original. The newest-reference
+admission behavior can still defer scoring during a later gap; it is not
+currently evidence of a permanently missing learned-PV score. Physical
+calibration, independent-day skill, action effects and full PR #3 remain
+unqualified.

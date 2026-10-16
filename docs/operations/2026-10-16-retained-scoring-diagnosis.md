@@ -49,8 +49,8 @@ this earlier horizon advances. The next normal08:28:20MDT opportunity is the
 expected opportunity for the learned origin if admission and source coverage
 succeed; that expectation was not a completed score or a guaranteed schedule.
 The actual08:28 opportunity returned `captured_PV_scenario_or_reference_unavailable`
-for the newest scenario, while the learned-load AC/SoC report refreshed. The PV
-report therefore remains at14:18:31Z. The first learned-PV original is still
+for the newest scenario, while the learned-load AC/SoC report refreshed. At that14:28checkpoint the PV
+report remained at14:18:31Z. The first learned-PV original is still
 retained, but a subsequent unavailable current reference is an additional
 producer admission obstacle. The queue ordering alone does not explain this
 later publication gap; resolving that separate fallback behavior is not part
@@ -145,3 +145,18 @@ replace that evidence. Current-model/other natural jobs and post-activation
 publication observations are recorded separately. Full PR #3 qualification,
 physical/action effects and owner integration remain incomplete. Actuator
 requests stay disabled.
+
+
+The normal14:38:28UTC opportunity subsequently scored the retained first
+learned-PV origin; the14:38:30 report has one qualified learned-load one-hour
+pair. Exact deployed file-only replay verifies the full raw-source outcome at
+14:56:05Z. The transient newest-reference deferral recovered without a producer
+change. Both load scenarios have equal PV predictions on this pair, so it does
+not establish a learned-load improvement. See the captured-PV outcomes document.
+
+Post-activation normal publication14:50:15UTC remains provisional with the
+unchanged284139ee model. Its14:50:27UTC assessment retains four unqualified
+families and48 gates. The current-model scoring job14:51:00-14:51:31UTC exits0.
+No manual production probe was used. The oldest archive's18:06UTC natural
+selection remains pending; these current-model observations do not substitute
+for that historical-worker measurement.
