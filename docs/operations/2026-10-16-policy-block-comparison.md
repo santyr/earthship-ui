@@ -71,5 +71,9 @@ from its original TrainingHeadroom guard, as it had before this activation.
 That slot is distinct from current native and battery scoring. The normal
 06:48:20 battery opportunity completed successfully; this observational change
 does not fix or conceal the legacy refusal. The normal 06:50 daily refresh
-started without an agent trigger; its outcome is tracked separately. Broader
+started without an agent trigger. It prepared the first learned AC profile
+`31bab20b`, trained through 2026-10-16T06:00Z; the thermal refresh was still
+running at this readback. The separate 06:51 native thermal scoring opportunity
+withheld at its deadline at 06:53; this also remains open and is not a policy
+comparison failure. Broader
 PR #3 qualification and physical action/performance requirements remain open.
