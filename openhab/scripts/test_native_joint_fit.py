@@ -53,3 +53,15 @@ def test_night_endpoints_do_not_claim_observed_solar_gain():
     points=select_native_endpoints(data,horizon_hours=1,start=START,end=END,joint=True)
     s=regime_support(data,points);assert s['unshaded']['endpoint_count']==1
     assert s['unshaded']['daylight_sample_count']==0 and s['unshaded']['status']=='prior_only'
+
+
+def test_unused_daylight_samples_do_not_upgrade_endpoints_without_solar_forcing():
+    from dataclasses import replace
+    from native_joint_shade import regime_support
+    data=build(snapshot(initial_outdoor='removed'))
+    points=select_native_endpoints(data,horizon_hours=1,start=START,end=END,joint=True)
+    points=tuple(replace(p,forcings=tuple(replace(r,radiation_wm2=0) for r in p.forcings)) for p in points)
+    support=regime_support(data,points)['unshaded']
+    assert support['endpoint_count']==1 and support['daylight_sample_count']>0
+    assert support['status']=='prior_only'
+    assert support['solar_endpoint_count']==0

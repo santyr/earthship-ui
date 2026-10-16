@@ -163,16 +163,22 @@ def regime_support(data,points,*,start=None,end=None):
     from thermal_model.graduation_policy import _utc as instant
     start=data.development.start if start is None else instant(start)
     end=data.development.end if end is None else instant(end)
-    result={key:dict(endpoint_count=0,daylight_sample_count=0,status='prior_only') for key in REGIMES.values()}
+    result={key:dict(endpoint_count=0,solar_endpoint_count=0,daylight_sample_count=0,status='prior_only') for key in REGIMES.values()}
     for point in points:
         key=REGIMES.get((point.origin.indoor_shade_closed,point.origin.outdoor_shade_present))
-        if key:result[key]['endpoint_count']+=1
+        if key:
+            result[key]['endpoint_count']+=1
+            # Coverage outside the selected fitting windows is inventory only.
+            # Use the exact model features to establish solar excitation.
+            normalized=normalize_forcings(origin_at=point.origin.at,forcings=point.forcings,geometry=data.geometry)
+            if any(any(value>0 for value in row[1:5]) for row in normalized):
+                result[key]['solar_endpoint_count']+=1
     for sample in data.development.samples:
         if not start<=sample.at<end:continue
         key=REGIMES.get((sample.indoor_shade_closed,sample.outdoor_shade_present))
         if key and sample.radiation_wm2>100 and not data.geometry.is_thermal_night(sample.at):result[key]['daylight_sample_count']+=1
     for row in result.values():
-        if row['endpoint_count'] and row['daylight_sample_count']:row['status']='observed_unqualified'
+        if row['solar_endpoint_count']:row['status']='observed_unqualified'
     return result
 
 
