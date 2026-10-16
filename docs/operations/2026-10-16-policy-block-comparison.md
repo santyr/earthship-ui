@@ -77,3 +77,23 @@ running at this readback. The separate 06:51 native thermal scoring opportunity
 withheld at its deadline at 06:53; this also remains open and is not a policy
 comparison failure. Broader
 PR #3 qualification and physical action/performance requirements remain open.
+
+The ordinary morning refresh subsequently completed at 06:54:07 MDT, after
+246 seconds, with effective family `8a167b9c` and new thermal artifact
+`284139ee`, trained through 2026-10-16T06:00Z. The learned AC artifact
+`31bab20b` covers all 24 hourly bins from 14 retained local days; every bin has
+at least 11 supporting days. Prediction intervals and physical calibration
+remain unqualified. This scheduled model update is separate from the earlier
+observer-only activation, which preserved the prior artifact.
+
+The first post-rollover forecast withdrew because the normal preparer returned
+busy while the rollout finished; its new geometry directory was empty. The
+06:58:05 scheduled preparer completed at 06:58:09. The normal 07:00:15 issue
+then restored provisional thermal publication and produced the first conditional
+learned-load PV/storage scenario, with retained receipt
+`b61e326248fb38e0bf7c4b9eab901833a97a700c776ccda4d62202e7261743b9`.
+Its original load artifact matches the morning result. The policy observation
+remains v2. Both laptop/tablet views pass after the rollover, without errors,
+mutations or outer overflow. No manual retry, forecast or fit was used. The
+legacy pressure refusal and native scoring deadline remain open; the full
+household program is not complete.
