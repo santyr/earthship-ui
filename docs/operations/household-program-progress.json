@@ -9943,6 +9943,34 @@
       "daily_unit_unchanged": true,
       "daily_service_started": false,
       "source_expiry_preserved": true
+    },
+    "thermal_four_regime_shades": {
+      "status": "implemented_pending_review_fit_and_deployment",
+      "design_approved": true,
+      "document": "docs/operations/2026-10-16-four-regime-thermal-shades.md",
+      "nominal_shade_rejection_fraction": 0.65,
+      "transmission_prior": 0.35,
+      "outdoor_zones": [
+        "kitchen",
+        "living_room",
+        "bedroom_bathroom"
+      ],
+      "all_outdoor_shades_removed": true,
+      "expected_reinstallation": "mid-to-late May 2027; operator confirmation required",
+      "automatic_reinstallation": false,
+      "vent_open_effective_at": "2026-10-16T19:20:00+00:00",
+      "model_rule": "earthship-native-joint-shade-dynamics/v3",
+      "backend_broad_passed": 870,
+      "backend_broad_skipped": 1,
+      "backend_final_focused_passed": 48,
+      "frontend_passed": 2577,
+      "build_passed": true,
+      "old_implementations_preserved": true,
+      "unobserved_solar_gains_prior_only": true,
+      "automatic_actuation": false,
+      "action_advice_enabled": false,
+      "resource_policy_changed": false,
+      "full_goal_complete": false
     }
   },
   "astro_efficiency_audit": {

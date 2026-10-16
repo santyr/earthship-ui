@@ -358,7 +358,7 @@ def reconcile_source_report(entries,*,runtime,artifact_sha256,assessed_at,check_
         return result
 
 
-SERVING_RECEIPT_SOURCE_SHA256='94d85e37afc79e08cf9de93ba937b2ba845acc7111c0a23e483b186d8ff9a57e'
+SERVING_RECEIPT_SOURCE_SHA256='0a62922ff3e0c7e79db7c92e1c519c42a8ff7d32f82baf8c82393e8d243d923a'
 
 
 

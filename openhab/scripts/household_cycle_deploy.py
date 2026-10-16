@@ -15,6 +15,7 @@ NATIVE_WORKER='openhab/scripts/astro_geometry_worker.py'
 JAVA_SOURCE='scripts/java/NativeSolarGeometry.java'
 LOAD_TOPOLOGY_SOURCE='openhab/household-energy-topology.json'
 PV_SOURCES=('openhab/household-pv-system.json','openhab/household-solar-horizon.json')
+MODEL_CONTEXT=('openhab/thermal-shade-context.json',)
 MAX_BYTES=2*1024*1024
 
 
@@ -80,9 +81,9 @@ NATIVE_DEPLOYMENT_FIELDS={'native_runtime_sources','native_originals','artifact_
 
 
 def _native_header(candidate,settings):
-    from native_thermal_artifact import SCHEMA,FIELDS,validate_native_runtime,digest,LIMITS
+    from native_thermal_artifact import SCHEMAS,FIELDS,validate_native_runtime,digest,LIMITS
     from thermal_model.provisional_live import FIELDS as CONFIG_FIELDS
-    if (not isinstance(candidate,dict) or set(candidate)!=FIELDS or candidate['schema']!=SCHEMA or
+    if (not isinstance(candidate,dict) or set(candidate)!=FIELDS or candidate['schema'] not in SCHEMAS or
         set(settings)!=CONFIG_FIELDS|{'artifact_sha256','runtime_sha256','geometry_directory'}|({'model_receipt_path','model_receipt_sha256'} if settings.get('schema')==SERVING_CONFIG_SCHEMA else set()) or
         settings['schema'] not in (NATIVE_CONFIG_SCHEMA,SERVING_CONFIG_SCHEMA)):
         raise ValueError('explicit closed native candidate and configuration required')
@@ -135,7 +136,7 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
     elif any(value is not None for value in (model_receipt_path,model_receipt_sha256,score_dispatch_path,score_dispatch_sha256)):
         raise ValueError('receipt inputs require explicit serving configuration')
     candidate=_path(settings['candidate_path']);candidate_raw=_bytes(candidate,private=True)
-    declared=json.loads(candidate_raw);native=settings.get('schema') in (NATIVE_CONFIG_SCHEMA,SERVING_CONFIG_SCHEMA) or declared.get('schema')=='earthship-provisional-thermal-candidate/v2'
+    declared=json.loads(candidate_raw);native=settings.get('schema') in (NATIVE_CONFIG_SCHEMA,SERVING_CONFIG_SCHEMA) or declared.get('schema') in ('earthship-provisional-thermal-candidate/v2','earthship-provisional-thermal-candidate/v3')
     protected,native_info=_native_header(declared,settings) if native else (declared['runtime']['source_manifest'],None)
     baseline_candidate=None;baseline_candidate_raw=None
     parameter_raw=_bytes(parameters,private=True);service_raw=_bytes(service)
@@ -163,14 +164,14 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
     # Archive the immutable commit object, not the mutable index/worktree. A
     # concurrent edit after the cleanliness check cannot acquire this identity.
     import io,tarfile
-    extra_paths=[name for name in (JAVA_SOURCE,LOAD_TOPOLOGY_SOURCE,*PV_SOURCES)
+    extra_paths=[name for name in (JAVA_SOURCE,LOAD_TOPOLOGY_SOURCE,*PV_SOURCES,*MODEL_CONTEXT)
         if _git(repo,'ls-tree','--name-only',code_revision,'--',name).strip()]
     archived=_git(repo,'archive','--format=tar',code_revision,'--','openhab/scripts',*REGISTRY,*extra_paths)
     if len(archived)>32*1024*1024:raise ValueError('bounded committed source archive required')
     sources={}
     with tarfile.open(fileobj=io.BytesIO(archived),mode='r:') as archive:
         for member in archive:
-            wanted=(member.name in (*REGISTRY,JAVA_SOURCE,LOAD_TOPOLOGY_SOURCE,*PV_SOURCES) or member.name.startswith('openhab/scripts/') and member.name.endswith('.py') and not Path(member.name).name.startswith('test_'))
+            wanted=(member.name in (*REGISTRY,JAVA_SOURCE,LOAD_TOPOLOGY_SOURCE,*PV_SOURCES,*MODEL_CONTEXT) or member.name.startswith('openhab/scripts/') and member.name.endswith('.py') and not Path(member.name).name.startswith('test_'))
             if not wanted:continue
             if member.name in sources or not member.isfile() or member.size>MAX_BYTES:raise ValueError('unique committed regular source required')
             sources[member.name]=archive.extractfile(member).read(MAX_BYTES+1)

@@ -123,7 +123,7 @@ def build_development_inputs(record, *, expected_snapshot_sha256,
                              frozen.start, frozen.end, captured, pin)
 
 
-def select_development_endpoints(data, *, horizon_hours, start, end):
+def select_development_endpoints(data, *, horizon_hours, start, end, joint=False):
     """Choose at most one eligible origin per Denver date for one horizon.
 
     Dates are a sampling convention, not a claim of independent evidence.
@@ -148,8 +148,8 @@ def select_development_endpoints(data, *, horizon_hours, start, end):
         target = samples.get(target_at)
         if (date in days or not start <= origin.at < target_at < end or
                 target is None or not origin.passive_fit_allowed or
-                not target.passive_fit_allowed or origin.outdoor_shade_present != 1 or
-                target.outdoor_shade_present != 1 or
+                not target.passive_fit_allowed or origin.outdoor_shade_present not in ((0,1) if joint else (1,)) or
+                target.outdoor_shade_present != origin.outdoor_shade_present or
                 origin.indoor_shade_closed is None or
                 not 0 <= origin.indoor_shade_closed <= 1 or
                 origin.vent_open is None or not 0 <= origin.vent_open <= 2):
@@ -162,11 +162,11 @@ def select_development_endpoints(data, *, horizon_hours, start, end):
         prefix = tuple(weather.get(origin.at + STEP * index)
                        for index in range(1, horizon_hours * 12 + 1))
         if any(row is None or not row.passive_fit_allowed or
-               row.outdoor_shade_present != 1 for row in prefix):
+               row.outdoor_shade_present != origin.outdoor_shade_present for row in prefix):
             continue
         forcings = tuple(InstalledShadeForcing(
             row.at, row.outdoor_f, row.radiation_wm2,
-            origin.indoor_shade_closed, 1., origin.vent_open) for row in prefix)
+            origin.indoor_shade_closed, origin.outdoor_shade_present, origin.vent_open) for row in prefix)
         selected.append(DevelopmentEndpoint(origin, target, forcings,
                                              data.source_snapshot_sha256))
         days.add(date)
