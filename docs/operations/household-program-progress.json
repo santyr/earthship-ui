@@ -26,7 +26,7 @@
     {
       "phase": "2B",
       "requirement": "Capability registry, Item roles, correlated v2 contracts and owner migrations",
-      "current_evidence": "Descriptive registry merged. Pure correlated v2 request/result/reason definitions have 32 passing tests and review approval; legacy v1 owners are unchanged. Owner migrations are incomplete. Source177a8a1 corrects the greywater descriptor to its observed installed two-pump policy, protects East and South outputs and uses the actual source-bound SoC receipt.406 Python and32 JavaScript checks pass; final review found no issues. All three live owner definitions re-read unchanged after ML-only activation. Natural00:35:15UTC receipt contains both protected pumps and correctSoCsource; pure and exact-stageCLI replay identical; physical-state facts, qualified policy baselines and v2 owner migrations remain incomplete.",
+      "current_evidence": "Descriptive registry merged. Pure correlated v2 request/result/reason definitions have 32 passing tests and review approval; legacy v1 owners are unchanged. Owner migrations are incomplete. Source177a8a1 corrects the greywater descriptor to its observed installed two-pump policy, protects East and South outputs and uses the actual source-bound SoC receipt.406 Python and32 JavaScript checks pass; final review found no issues. All three live owner definitions re-read unchanged after ML-only activation. Natural00:35:15UTC receipt contains both protected pumps and correctSoCsource; pure and exact-stageCLI replay identical; physical-state facts, qualified policy baselines and v2 owner migrations remain incomplete. The2026-10-16 installed-shadow authority audit binds actual deployment/UI sources and serving mode, verifies528 offline proxy denials for all6registered protected actuators/legacy/results and confirms3liveowner scripts/triggers match reviewed mirrors viaGETonly.48backend/62frontend tests pass. This is current shadow-path evidence; physical owner qualification, future active-request release and public original-plan qualification flags remain unchanged.",
       "complete": false
     },
     {
@@ -74,7 +74,7 @@
     {
       "phase": "10",
       "requirement": "Per-intent release qualification",
-      "current_evidence": "notqualified Source5e20b24 deploys the approved read-only twelve-gate per-intent evidence assessment. Natural2026-10-16T14:05:27UTC v3 receipt5fe5dc1e contains four families/48criteria and replays identically through the exact deployed CLI; actual laptop/tablet layouts pass with no actions, overflow, errors or mutations.2539frontend and92backend/integration tests/build pass; one final review has no findings. Original-plan evidence is explicitly scoped; independent outcomes, uncertainty, policy skill, operator interpretation, release rollback/write audit and physical owner qualification remain unavailable. Every family stays not_qualified/release_authorizedfalse; phase10 and full-program completion remain false.",
+      "current_evidence": "notqualified Source5e20b24 deploys the approved read-only twelve-gate per-intent evidence assessment. Natural2026-10-16T14:05:27UTC v3 receipt5fe5dc1e contains four families/48criteria and replays identically through the exact deployed CLI; actual laptop/tablet layouts pass with no actions, overflow, errors or mutations.2539frontend and92backend/integration tests/build pass; one final review has no findings. Original-plan evidence is explicitly scoped; independent outcomes, uncertainty, policy skill, operator interpretation, release rollback/write audit and physical owner qualification remain unavailable. Every family stays not_qualified/release_authorizedfalse; phase10 and full-program completion remain false. The2026-10-16 installed-shadow authority audit binds actual deployment/UI sources and serving mode, verifies528 offline proxy denials for all6registered protected actuators/legacy/results and confirms3liveowner scripts/triggers match reviewed mirrors viaGETonly.48backend/62frontend tests pass. This is current shadow-path evidence; physical owner qualification, future active-request release and public original-plan qualification flags remain unchanged.",
       "complete": false
     },
     {
@@ -9682,6 +9682,100 @@
       "earlier_current_reference_deferral_recovered": true,
       "producer_patch_required_for_observed_recovery": false,
       "network_enforcement": "linux_seccomp_socket_and_connect_denial"
+    },
+    "installed_shadow_authority_path_audit": {
+      "document": "docs/operations/2026-10-16-shadow-authority-path-audit.md",
+      "assessed_at": "2026-10-16T15:09:38.563114+00:00",
+      "scope": "installed_shadow_planner_and_same_origin_vite_dev_proxy",
+      "deployment_sha256": "097e4f75c22ea2b4652cf55710b6334b900afa0dc54a77e6721558d7dfc3910f",
+      "deployment_commit": "1a3d5d87ddb93cbb4b551d72459db772d0fe56a4",
+      "registry_id": "7b27669b47624c39eb9cba4b376a19899ce069d0d39d5ad9139bf8730f00cd2d",
+      "backend_sources": {
+        "openhab/scripts/household/intents.py": "8329f9055ebbdbc0e2864acb1599091427855f647bdabef9eaad9a648c5dd654",
+        "openhab/scripts/household/pipeline.py": "c4e7f0162432433a4da06af04d88944a4d7d3da4b62740d84ca70c6ba765326d",
+        "openhab/scripts/household/planning.py": "7918b6e1e7b03884ecfa274c4214e5ace3c16e2bf3f83ff24e45b13bbc91ddc1",
+        "openhab/scripts/household/capabilities.py": "54f7f9fb321dd49b4dd88fbde29fa9dea367e1ebd9d6921aed67285c2517a85c",
+        "openhab/scripts/household_cycle.py": "94d95e54b005e9fa3e0ffe677c6904e795548299856b064bd626e05f9edafa9f",
+        "openhab/scripts/household_observation.py": "0159354f8562b4abc3c5df9657711c50dcd173949752d0f3d26b318891ae0512",
+        "openhab/scripts/native_thermal_live.py": "33fbf63bdef51627ad3c4a79462366e77c250bd1dbfbad0555e5c793d920b855",
+        "openhab/scripts/thermal_model/installed_shade_live_inputs.py": "c38aebd214b5baf7005e85b90e70f82b6d58a9c36ccac3c361f8b5dde8aa3f61",
+        "openhab/scripts/thermal_model/installed_shade_published_origin.py": "b8100a4811963efbee8b1647d1c9f1adb7df9c17882e88e97868fb2463485ae3"
+      },
+      "browser_sources": {
+        "vite.config.js": "1cfedffb77d6a9e9cda90e22c7a10243e83076eab849911e9fe62cae74fd8337",
+        "src/lib/controls/catalog.js": "dde1ab4d0420a8874b0e3f64d73d004ce1574b2d12694deb38a4e4711a74d2a8",
+        "src/lib/controls/requestClient.js": "e223fa641e74466fafade6483342154afd408b16aa0d1494add567134bb65951",
+        "src/lib/openhab/proxyPolicy.js": "45667c9f4b546b76217570479a45be0a9a18f45b96502f2070c59ac69ad4f7c9",
+        "src/lib/openhab/client.js": "c58537ae8e302c09563d70a1209a41a711e9286d7bb7b57dd39ba7a5c9026f9b",
+        "src/lib/config.js": "a6961eb46914b011ca5d2e852e93f699df2b6da48944ffec5bdf7e3efcfb7aed",
+        "src/lib/household/observationClient.js": "d9d6ce8a9260479f976e916a6027276f233d94eb096c053d0aef2640a7bd445e",
+        "src/lib/household/observationServer.js": "0aa6a44c49ce8ba5cef300542ac4e5cf8c604fee7c1ee4236d7894a275c42035",
+        "src/lib/household/observation.js": "6ca898493d97405fd2dd5b7198cae7d0eabca8b01160ab75f4edecce9fa33347",
+        "src/lib/household/qualification.js": "74d3f7801ee04af919d074c4bccfb511787baeb69b73d893372205ec15557fad",
+        "src/lib/ui/HouseholdObservation.svelte": "bd38f43eace88dc53d2692f997f4f1ebcbaa1d39e3f4163ef4ec28096c2f7b0c"
+      },
+      "same_origin_proxy": true,
+      "browser_token_present": false,
+      "live_release_mode": "safe-compat",
+      "planner_translation_refused": true,
+      "telemetry_writable_items": [
+        "Thermal_Model_JSON",
+        "Thermal_OriginalForecast_JSON"
+      ],
+      "protected_actuator_count": 6,
+      "manual_request_channels": 4,
+      "legacy_override_direct_write_denied": true,
+      "offline_proxy_denial_cases": 528,
+      "all_live_owner_sources_match_reviewed_mirrors": true,
+      "all_live_owner_ingresses_match_registry": true,
+      "owners": [
+        {
+          "owner": "88bd9ec4de",
+          "source": "openhab/rules/feeder-owner.js",
+          "live_script_sha256": "730053e0f3245cb83461e3fe6e3b05d49c8b508631e8cdb4a889c8be8d915978",
+          "reviewed_source_sha256": "730053e0f3245cb83461e3fe6e3b05d49c8b508631e8cdb4a889c8be8d915978",
+          "exact_script_matches_reviewed_source": true,
+          "command_triggers": [
+            "GoatFeeder_ManualRequest"
+          ],
+          "expected_ingresses_match": true,
+          "physical_safety_qualified": false
+        },
+        {
+          "owner": "hex_southoutlet_cycle",
+          "source": "openhab/rules/southoutlet-cycle-installed.js",
+          "live_script_sha256": "4c34780e544d80af8eb36d047a949fa30e0198bb50fa57650285052db3c52d9b",
+          "reviewed_source_sha256": "4c34780e544d80af8eb36d047a949fa30e0198bb50fa57650285052db3c52d9b",
+          "exact_script_matches_reviewed_source": true,
+          "command_triggers": [
+            "SouthOutlet_ManualRequest"
+          ],
+          "expected_ingresses_match": true,
+          "physical_safety_qualified": false
+        },
+        {
+          "owner": "hex_night_load_override",
+          "source": "openhab/rules/night-load-owner.js",
+          "live_script_sha256": "e7aed419e81f6772ef26cb48e788e6eef33b47ebb1cd27d664425a772831d793",
+          "reviewed_source_sha256": "e7aed419e81f6772ef26cb48e788e6eef33b47ebb1cd27d664425a772831d793",
+          "exact_script_matches_reviewed_source": true,
+          "command_triggers": [
+            "NightLoadDevice_Request",
+            "NightLoadOverride_Request",
+            "OverrideSwitch"
+          ],
+          "expected_ingresses_match": true,
+          "physical_safety_qualified": false
+        }
+      ],
+      "backend_tests_passed": 48,
+      "frontend_tests_passed": 62,
+      "live_writes": false,
+      "resource_limits_changed": false,
+      "owner_physical_safety_qualified": false,
+      "future_active_request_path_qualified": false,
+      "release_authorized": false,
+      "full_goal_complete": false
     }
   },
   "astro_efficiency_audit": {
@@ -9836,5 +9930,5 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-16T14:59:10.772324+00:00"
+  "updated_at": "2026-10-16T15:11:38.498995+00:00"
 }
