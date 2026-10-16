@@ -1,5 +1,7 @@
 # Four-regime native thermal model — October 16, 2026
 
+This initial rollout was superseded later on October 16 by the [hallway-high correction](2026-10-16-hallway-high-diagnosis.md), after its shade prior produced unrealistic temperatures. The numerical and delivery evidence below describes that initial rollout.
+
 The operator approved a provisional model update after removing all outdoor shades. The nominal outdoor shade-cloth rejection rating is **65%**; 35% transmission is an initial solar-gain prior, not measured attenuation of the building. Reinstallation is expected in **mid-to-late May 2027** and requires confirmation. No calendar-driven state change is scheduled.
 
 The outdoor zones are Kitchen, Living Room and a combined Bedroom/Bathroom. The source-controlled catalog is `openhab/thermal-shade-context.json`. All three are currently removed. The existing journal records outdoor removal as known at 2026-10-16T19:11:49.057358Z (exact physical removal time was not supplied), event `51083bd6fffd418ddb759133`. Venting opened at 13:20 MDT / 19:20Z, event `3b0ee50b924c500c1a11e9fb`. No window/skylight position, zone area weight or future closure is inferred.
