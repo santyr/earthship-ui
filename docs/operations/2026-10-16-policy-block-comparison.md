@@ -42,4 +42,34 @@ after-dark block maps to curfew, with no greywater proposal at that issue. Both
 original files and the original unavailable baseline scores remain unchanged;
 the actual generated view also passes the browser contract parser. This is
 private replay evidence, not a new production forecast or live publication.
-Deployment and natural-publication verification follow separately.
+The broad backend regression run passed all 1,697 cases. One immutable final
+review found no Critical, Important or Minor issues; no correction pass was
+needed. All 72 base and 12 native fitted-source hashes and protected release
+helpers remain unchanged.
+
+UI reader source `46a6543` deployed at 2026-10-16T12:43:43Z. The ML-only
+family activated at 12:46:42Z as deployment
+`80a17b455f81afa3b803f4b308b1d4a9776956f605ccbc1ddc9d129556582bb9`,
+reusing the complete thermal artifact `188a42a8`. All five owned definitions,
+three timers, both scoring calendars and public HTTP endpoints passed effective
+readback. The idle daily source checkout advanced to the same reviewed commit;
+its unit bytes remain unchanged. No production fit, qualification probe or new
+forecast was manually triggered.
+
+The first natural v2 issue at 2026-10-16T12:50:27.134933Z retained receipt
+`bb4bcf9bf0c76d2f362bd8d43e76bbe21433ffbac20237a2261163df526bef73`.
+It records the original after-dark owner block and curfew gate, with no
+original greywater proposal to compare. Its policy evaluation and original
+12:52:00Z expiry remain visible. Exact deployed CLI replay reproduced the
+comparison identically and left the issued original unchanged. Real laptop
+1280x800 and tablet 1340x800 rendering verified the section below existing
+content, explicit unknown eligibility/benefits, no outer overflow, no page
+errors and no mutation requests.
+
+A retained legacy scoring opportunity at 06:46 MDT refused `memory_pressure`
+from its original TrainingHeadroom guard, as it had before this activation.
+That slot is distinct from current native and battery scoring. The normal
+06:48:20 battery opportunity completed successfully; this observational change
+does not fix or conceal the legacy refusal. The normal 06:50 daily refresh
+started without an agent trigger; its outcome is tracked separately. Broader
+PR #3 qualification and physical action/performance requirements remain open.
