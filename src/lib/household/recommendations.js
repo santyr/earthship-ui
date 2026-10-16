@@ -36,17 +36,12 @@ export function climatePreview(raw,scope,nowMs=Date.now()){
  const published=JSON.parse(raw),sourceExpiry=published.validUntil??published.release?.expiresAt??null;
  const ventClose=published.schedule?.candidate?.ventCloseAt??null;
  const rows=[];
- if(scope==='ventilation'&&result.ventWindow){
+ if(scope==='ventilation'&&result.ventWindow&&published.schedule?.candidate?.ventOpenAt&&ventClose){
   rows.push({id:'vent-window',action:`Candidate ventilation window: ${result.ventWindow}`,status:expired||(ventClose&&nowMs>=Date.parse(ventClose))?'Expired':result.mode==='advisory_active'&&result.actionConfidence==='confirmed'?'Model suggestion':'Blocked',
    reasons:result.reasons.map(reasonText),blockers:result.actionConfidence==='confirmed'?[]:['Thermal action advice is unqualified'],confidence:result.confidence,
    createdAt:new Date(result.generatedAtMs).toISOString(),expiresAt:ventClose,sourceExpiresAt:sourceExpiry,effectsQualified:false});
  }
- if(scope==='shades')for(const point of result.trajectory??[])for(const kind of point.actions??[]){
-  const labels={indoor_shade_open:'Open indoor shades',indoor_shade_close:'Close indoor shades',outdoor_shade_installed:'Install outdoor shades',outdoor_shade_removed:'Remove outdoor shades'};
-  if(!labels[kind])continue;
-  rows.push({id:`${kind}-${point.atMs}`,action:labels[kind],status:expired||nowMs>=point.atMs?'Expired':result.mode==='advisory_active'&&result.actionConfidence==='confirmed'?'Model suggestion':'Blocked',
-   reasons:result.reasons.map(reasonText),blockers:result.actionConfidence==='confirmed'?[]:['Shade action advice is unqualified'],confidence:result.confidence,
-   createdAt:new Date(result.generatedAtMs).toISOString(),scheduledAt:new Date(point.atMs).toISOString(),expiresAt:null,sourceExpiresAt:sourceExpiry,effectsQualified:false});
- }
+ // Trajectory markers may describe the baseline and are rounded into hourly buckets.
+ // Shade advice needs an explicit candidate action/timing contract.
  return rows.length?{state:rows.every(r=>r.status==='Expired')?'expired':'available',rows,current:rows.some(r=>r.status!=='Expired'),automaticActuation:false}:empty('unavailable');
 }

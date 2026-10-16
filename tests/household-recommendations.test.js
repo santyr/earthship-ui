@@ -42,9 +42,18 @@ it('displays an explicit published thermal candidate, with original timing and u
  expect(r.rows[0].status).toBe('Blocked');expect(r.rows[0].action).toContain('Candidate ventilation window');
  expect(r.rows[0].expiresAt).toBe(raw.schedule.candidate.ventCloseAt);
  raw.forecast.trajectory[1].actions=['indoor_shade_open'];
- expect(climatePreview(JSON.stringify(raw),'shades',Date.parse(raw.generatedAt)).rows[0].action).toBe('Open indoor shades');
+ expect(climatePreview(JSON.stringify(raw),'shades',Date.parse(raw.generatedAt)).rows).toEqual([]);
+ raw.schedule.candidate=null;raw.schedule.effect=null;
+ expect(climatePreview(JSON.stringify(raw),'shades',Date.parse(raw.generatedAt)).rows).toEqual([]);
 });
 it('keeps policy suggestions beside their own control rather than a different load',()=>{
  const v=parse(recommendationObservation());expect(recommendationPreview(v,'night-policy',AT).rows[0].action).toBe('Night-load override: OFF');
  expect(recommendationPreview(v,'devices',AT).rows).toEqual([]);
+});
+
+it('does not fabricate a ventilation window for an explicit closed-vent candidate',async()=>{
+ const {default:base}=await import('./fixtures/thermal-shadow-v1-available.json');const raw=structuredClone(base);
+ raw.schedule.candidate={ventOpenAt:null,ventCloseAt:null};
+ raw.schedule.effect={morningMassDeltaF:-1.5,hallwayPeakDeltaF:-0.75};
+ expect(climatePreview(JSON.stringify(raw),'ventilation',Date.parse(raw.generatedAt)).rows).toEqual([]);
 });
