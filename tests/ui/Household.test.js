@@ -62,10 +62,10 @@ it('recalculates original expiry on polling and stops all requests after navigat
   vi.spyOn(Date, 'now').mockReturnValue(AT + 60_000);
   await vi.advanceTimersByTimeAsync(30_000);
   expect(container.textContent).toContain('Original plan expired');
-  expect(fetcher).toHaveBeenCalledTimes(4);
+  expect(fetcher).toHaveBeenCalledTimes(6);
   unmount();
   await vi.advanceTimersByTimeAsync(90_000);
-  expect(fetcher).toHaveBeenCalledTimes(4);
+  expect(fetcher).toHaveBeenCalledTimes(6);
 });
 
 it('expires the displayed plan independently of a slow network polling interval', async () => {
@@ -76,7 +76,7 @@ it('expires the displayed plan independently of a slow network polling interval'
   vi.spyOn(Date, 'now').mockReturnValue(AT + 60_000);
   await vi.advanceTimersByTimeAsync(1_000);
   expect(container.textContent).toContain('Original plan expired');
-  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(fetcher).toHaveBeenCalledTimes(3);
 });
 
 it('shows measured battery baseline errors and distinct empty horizons without requiring current planning', async () => {
@@ -89,4 +89,35 @@ it('shows measured battery baseline errors and distinct empty horizons without r
   expect(container.textContent).toContain('percentage points'); expect(container.textContent).toContain('Collecting');
   expect(container.textContent).toContain('Assumes current battery power continues');
   expect(container.querySelector('button, form, input, select')).toBeNull();
+});
+
+async function serveCapturedPv(row) {
+  vi.spyOn(Date, 'now').mockReturnValue(AT);
+  vi.stubGlobal('fetch', async url => new Response(JSON.stringify(url === '/api/household-captured-pv-performance' ? row : { status: 'unavailable' })));
+}
+it('renders captured-controller PV paired errors and uncollected learned horizons independently of planning', async () => {
+  const { capturedPvPerformance } = await import('../fixtures/household-captured-pv.js');
+  await serveCapturedPv(capturedPvPerformance());
+  const { container, getByText } = render(HouseholdObservation);
+  await waitFor(() => expect(getByText('Captured-PV forecast accuracy')).toBeTruthy());
+  await waitFor(() => expect(container.textContent).toContain('0.300'));
+  expect(container.textContent).toContain('0.200'); expect(container.textContent).toContain('-50.0%');
+  expect(container.textContent).toContain('99%'); expect(container.textContent).toContain('same observed intervals');
+  expect(container.textContent).toContain('Controller DC output'); expect(container.textContent).toContain('Potential array yield remains unscored');
+  expect(container.textContent).toContain('Learned AC load'); expect(container.textContent).toContain('Collecting');
+  expect(container.querySelector('button, form, input, select')).toBeNull();
+});
+it('marks captured-PV stale on the display clock and withholds malformed accuracy', async () => {
+  const { capturedPvPerformance } = await import('../fixtures/household-captured-pv.js');
+  await serveCapturedPv(capturedPvPerformance()); vi.useFakeTimers();
+  const { container } = render(HouseholdObservation); await vi.advanceTimersByTimeAsync(1);
+  expect(container.textContent).toContain('0.300');
+  vi.spyOn(Date, 'now').mockReturnValue(AT + 31 * 60000); await vi.advanceTimersByTimeAsync(1000);
+  expect(container.textContent).toContain('Captured-PV accuracy report is stale');
+});
+it('does not expose malformed captured-PV fields or claim accuracy from an unavailable report', async () => {
+  await serveCapturedPv({ private_path: '/do-not-display', automatic_actuation: true });
+  const { container, getByText } = render(HouseholdObservation);
+  await waitFor(() => expect(getByText('Captured-PV accuracy report unavailable')).toBeTruthy());
+  expect(container.textContent).not.toContain('/do-not-display');
 });

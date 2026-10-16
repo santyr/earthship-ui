@@ -2,10 +2,13 @@
   import { onMount } from 'svelte';
   import Tile from './Tile.svelte';
   import { parseHouseholdObservation } from '../household/observation.js';
-  import { loadHouseholdObservation, loadBatteryPerformance } from '../household/observationClient.js';
+  import { loadHouseholdObservation, loadBatteryPerformance, loadCapturedPvPerformance } from '../household/observationClient.js';
 
+  import { parseCapturedPvPerformance } from '../household/capturedPvPerformance.js';
   import { parseBatteryPerformance } from '../household/batteryPerformance.js';
 
+  let capturedPvRaw = $state(null);
+  const capturedPv = $derived(parseCapturedPvPerformance(capturedPvRaw, { nowMs }));
   let batteryRaw = $state(null);
   const battery = $derived(parseBatteryPerformance(batteryRaw, { nowMs }));
   let raw = $state(null), nowMs = $state(Date.now());
@@ -23,11 +26,12 @@
       const current = new AbortController(); controller = current;
       deadline = setTimeout(() => current.abort(), 10_000);
       const results = await Promise.allSettled([
-        loadHouseholdObservation(current.signal), loadBatteryPerformance(current.signal),
+        loadHouseholdObservation(current.signal), loadBatteryPerformance(current.signal), loadCapturedPvPerformance(current.signal),
       ]);
       if (!stopped && controller === current) {
         raw = results[0].status === 'fulfilled' ? results[0].value : null;
         batteryRaw = results[1].status === 'fulfilled' ? results[1].value : null;
+        capturedPvRaw = results[2].status === 'fulfilled' ? results[2].value : null;
         nowMs = Date.now(); clearTimeout(deadline);
       }
     }
@@ -81,6 +85,31 @@
       {#if battery.next_mature_at}<p>Next pending assessment: {date(battery.next_mature_at)}.</p>{/if}
       <p>Report updated {date(battery.generated_at)}. These comparisons do not establish action benefits.</p>
     {:else}<p>Battery accuracy report unavailable</p>{/if}
+  </Tile>
+  <Tile label="Captured-PV forecast accuracy">
+    {#if capturedPv}
+      {#if capturedPv.expired}<p class="notice">Captured-PV accuracy report is stale</p>{/if}
+      <p>Controller DC output after charging acceptance. Errors in kWh for the hour ending at each lead; lower is better.</p>
+      <div class="source-table">
+        <table><thead><tr><th>Lead</th><th>Scenario</th><th>Model MAE</th><th>Persistence MAE</th><th>RMSE skill</th><th>Pairs / mature</th><th>Origin days</th></tr></thead>
+          <tbody>{#each ['1', '6', '12', '24'] as hours}
+            {#each [['constant_load_pv', 'Constant AC load'], ['profiled_load_pv', 'Learned AC load']] as [key, label]}
+              {@const row = capturedPv.by_horizon[hours].models[key]}
+              <tr><td>{hours}h</td><td>{label}</td><td>{row.count ? row.mae_kwh.toFixed(3) : 'Collecting'}</td>
+                <td>{row.count ? row.persistence_mae_kwh.toFixed(3) : 'Collecting'}</td>
+                <td>{row.count && row.rmse_skill !== null ? `${(row.rmse_skill * 100).toFixed(1)}%` : 'Unavailable'}</td>
+                <td>{row.count} / {row.attempted_count}</td><td>{row.unique_origin_days}</td></tr>
+            {/each}
+          {/each}</tbody>
+        </table>
+      </div>
+      <p>Only hours with at least 99% qualified coverage are scored. Each model and its current-PV persistence reference use the same observed intervals and paired samples.</p>
+      <p>Positive RMSE skill beats persistence; negative skill is worse. Skill is unavailable when the reference error is zero.</p>
+      <p>First qualified original per UTC hour over seven days; {capturedPv.unique_origin_days} independent origin days. Dense readings are not independent experiments.</p>
+      <p>Last measured hour ends: {capturedPv.last_target_at ? date(capturedPv.last_target_at) : 'Collecting'}.</p>
+      {#if capturedPv.next_mature_at}<p>Next pending assessment: {date(capturedPv.next_mature_at)}.</p>{/if}
+      <p>Report updated {date(capturedPv.generated_at)}. Potential array yield remains unscored. These provisional comparisons do not establish calibration or action benefits.</p>
+    {:else}<p>Captured-PV accuracy report unavailable</p>{/if}
   </Tile>
   {#if view}
     <Tile label="Models and original identities">

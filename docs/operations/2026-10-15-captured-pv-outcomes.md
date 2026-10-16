@@ -76,3 +76,28 @@ persistence predicted 2.474801 kWh over that same
 duration. Exact activated CLI replay matches the full saved score, and all
 external original files remain unchanged. This is one origin/day, not established
 general skill. The learned-load model remains on its ordinary morning schedule.
+
+
+The operator also approved a read-only accuracy table in the existing Earthship
+monitoring panel. The fixed GET `/api/household-captured-pv-performance` serves
+only the curated `captured-pv-performance.json`, using the existing owned,
+private, bounded cache transport. Query parameters and mutation methods are
+refused. Schema validation rejects extra fields, duplicate keys, incompatible
+meter scope, nonfinite or inconsistent metrics, invalid clocks and authority
+flags. No raw source packets or private receipt paths are exposed.
+
+The table separates constant-AC and learned-AC captured-PV scenarios at each
+1/6/12/24-hour lead, showing paired model/persistence MAE in kWh, RMSE skill,
+qualified-pair versus mature counts, and independent Denver origin days. Empty
+metrics remain collecting; zero baseline error leaves skill unavailable. Only
+hours with at least 99 percent qualified coverage enter the metrics, and both
+predictions use the same observed intervals. The original report update and
+last measured target remain visible; the display clock marks the report stale
+at its original expiry. Transport failure shows unavailable. Potential array
+yield remains unscored. The table remains below existing Earthship content and
+contains no controls.
+
+All 2,487 frontend tests pass, including 32 focused parser, transport and rendered
+panel cases; the production build succeeds. An actual naturally issued producer
+report is admitted by the new parser. This presentation change does not alter
+models, scoring, training schedules, database permissions or physical authority.

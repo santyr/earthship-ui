@@ -3,6 +3,7 @@ import { open, realpath, stat, lstat } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { OBSERVATION_MAX_BYTES, parseHouseholdObservation } from './observation.js';
+import { parseCapturedPvPerformance } from './capturedPvPerformance.js';
 import { parseBatteryPerformance } from './batteryPerformance.js';
 import { parseEnergyObservation, parseEnergyPerformance } from './energyObservation.js';
 import { parseProfiledObservation, parseProfiledPerformance } from './profiledObservation.js';
@@ -51,6 +52,7 @@ export function householdObservationPlugin({
   energyPerformanceCachePath = resolve(homedir(), '.local/state/household-intel/energy-performance.json'),
   profiledCachePath = resolve(homedir(), '.local/state/household-intel/profiled-energy-observation.json'),
   profiledPerformanceCachePath = resolve(homedir(), '.local/state/household-intel/profiled-energy-performance.json'),
+  capturedPvCachePath = resolve(homedir(), '.local/state/household-intel/captured-pv-performance.json'),
   now = Date.now,
 } = {}) {
   const attach = server => { server.middlewares.use(async (req, res, next) => {
@@ -58,6 +60,7 @@ export function householdObservationPlugin({
     try { url = new URL(req.url || '/', 'http://localhost'); } catch { return next(); }
     const route = {
       '/api/household-observation': [cachePath, parseHouseholdObservation],
+      '/api/household-captured-pv-performance': [capturedPvCachePath, parseCapturedPvPerformance],
       '/api/household-battery-performance': [batteryCachePath, parseBatteryPerformance],
       '/api/household-energy-observation': [energyCachePath, parseEnergyObservation],
       '/api/household-energy-performance': [energyPerformanceCachePath, parseEnergyPerformance],

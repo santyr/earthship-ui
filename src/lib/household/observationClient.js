@@ -5,6 +5,7 @@ export const loadEnergyObservation = signal => load('/api/household-energy-obser
 export const loadEnergyPerformance = signal => load('/api/household-energy-performance', signal);
 export const loadProfiledObservation = signal => load('/api/household-profiled-energy-observation', signal);
 export const loadProfiledPerformance = signal => load('/api/household-profiled-energy-performance', signal);
+export const loadCapturedPvPerformance = signal => load('/api/household-captured-pv-performance', signal);
 export const loadBatteryPerformance = signal => load('/api/household-battery-performance', signal);
 
 async function load(path, signal) {
