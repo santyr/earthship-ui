@@ -4,11 +4,15 @@
   import { onMount } from 'svelte';
   import Tile from './Tile.svelte';
   import {QUALIFICATION_GATES,QUALIFICATION_FAMILIES} from '../household/qualification.js';
+  import {isAutomatedIntent} from '../household/recommendations.js';
   import { parseHouseholdObservation } from '../household/observation.js';
   import { loadChronologicalSummary, loadBatteryPerformance, loadCapturedPvPerformance } from '../household/observationClient.js';
 
   import { parseCapturedPvPerformance } from '../household/capturedPvPerformance.js';
   import { parseBatteryPerformance } from '../household/batteryPerformance.js';
+
+  const automatedFamilies=QUALIFICATION_FAMILIES.filter(([kind])=>isAutomatedIntent(kind));
+  const familyLabels=Object.fromEntries(automatedFamilies.map(([kind,,label])=>[kind,label]));
 
   let chronologyRaw = $state(null);
   const chronology = $derived(parseChronologicalSummary(chronologyRaw, { nowMs }));
@@ -18,7 +22,8 @@
   const battery = $derived(parseBatteryPerformance(batteryRaw, { nowMs }));
   const raw = $derived($householdObservationRaw), nowMs = $derived($recommendationClock);
   const view = $derived(parseHouseholdObservation(raw, { nowMs }));
-  const selected = $derived(view?.proposals.filter(item => item.selected) ?? []);
+  const proposals=$derived(view?.proposals.filter(item=>isAutomatedIntent(item.type))??[]);
+  const selected = $derived(proposals.filter(item => item.selected));
   const words = value => value == null ? 'unknown' : value.replaceAll('_', ' ');
   const date = value => new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/Denver', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit',
@@ -95,7 +100,7 @@
       <p>Planner available at issue: {chronology.counts.planner_available} / {chronology.counts.raw_decisions}. Decisions with unavailable source evidence: {chronology.counts.decisions_with_unavailable_sources}.</p>
       <div class="source-table"><table>
         <thead><tr><th>Intent family</th><th>Decisions</th><th>Days</th><th>Windows</th><th>Proposals</th><th>Hard blocked</th><th>Unknown blocked</th><th>Shadow selected</th></tr></thead>
-        <tbody>{#each QUALIFICATION_FAMILIES as [kind, , label]}
+        <tbody>{#each automatedFamilies as [kind, , label]}
           {@const counts = chronology.families[kind]}
           <tr><td>{label}</td><td>{counts.raw_decisions}</td><td>{counts.origin_days}</td><td>{counts.non_overlapping_windows}</td><td>{counts.proposals}</td><td>{counts.hard_blocked}</td><td>{counts.unknown_blocked}</td><td>{counts.selected}</td></tr>
         {/each}</tbody>
@@ -111,7 +116,7 @@
             <dt>Software runtime</dt><dd>{group.versions.runtime_sha256}</dd><dt>Registry</dt><dd>{group.versions.registry_sha256}</dd><dt>Configuration</dt><dd>{group.versions.config_sha256}</dd>
             {#each group.versions.models as model}<dt>{words(model.domain)} model / runtime</dt><dd>{model.artifact_sha256 ?? 'unavailable'} / {model.runtime_sha256 ?? 'unavailable'}</dd>{/each}
           </dl>
-          {#each QUALIFICATION_FAMILIES as [kind, , label]}<p>{label}: {group.families[kind].raw_decisions} decisions, {group.families[kind].proposals} proposals, {group.families[kind].hard_blocked} hard blocked.</p>{/each}
+          {#each automatedFamilies as [kind, , label]}<p>{label}: {group.families[kind].raw_decisions} decisions, {group.families[kind].proposals} proposals, {group.families[kind].hard_blocked} hard blocked.</p>{/each}
         {/each}
       </details>
       {#if chronology.last_decision_at}<p>Latest original decision: {date(chronology.last_decision_at)}.</p>{/if}
@@ -165,12 +170,12 @@
   {#if view?.qualification_report}
     <Tile label="Intent qualification">
       <section aria-label="Intent qualification">
-        <p>Every intent family remains unqualified. Request translation stays disabled.</p>
+        <p>Automated intent families remain unqualified. Request translation stays disabled.</p>
         <p>Original-plan evidence informs a separate release review. Action eligibility remains unknown.</p>
         {#if view.expired}<p class="notice">Original plan expired; its evidence is historical.</p>{/if}
-        {#each view.qualification_report.families as family, i (family.intent_type)}
+        {#each view.qualification_report.families.filter(f=>isAutomatedIntent(f.intent_type)) as family (family.intent_type)}
           <details>
-            <summary>{QUALIFICATION_FAMILIES[i][2]} · not qualified</summary>
+            <summary>{familyLabels[family.intent_type]} · not qualified</summary>
             <p>{family.proposal_count} original proposals · owner {family.owner ?? 'unavailable'}.</p>
             <div class="source-table"><table>
               <thead><tr><th>Release gate</th><th>Evidence</th><th>Reason</th></tr></thead>
@@ -198,8 +203,8 @@
       <p>Verified {date(view.verified_at)} · original source and intent expiry retained</p>
     </Tile>
     <Tile label="Shadow proposals and hard constraints">
-      {#if !view.proposals.length}<p>No optional proposals generated. No qualified action effects available.</p>{/if}
-      {#each view.proposals as proposal (proposal.intent_id)}
+      {#if !proposals.length}<p>No optional proposals generated. No qualified action effects available.</p>{/if}
+      {#each proposals as proposal (proposal.intent_id)}
         <article>
           <h2>{proposal.type}</h2>
           <p>Shadow proposal · {proposal.selected ? 'selected' : 'not selected'} · Confidence: {proposal.confidence}</p>

@@ -1,6 +1,5 @@
 <script>
   import { onDestroy, onMount } from 'svelte';
-  import RecommendationPreview from './RecommendationPreview.svelte';
   import Tile from './Tile.svelte';
   import {
     advanceGoatFeederTracker,
@@ -117,7 +116,6 @@
     {/if}
     <span class="goat-feeding-text" title={feedingText}>{feedingText}</span>
   </div>
-  <RecommendationPreview group="feeding" tiny />
 </Tile>
 
 <style>
