@@ -5,7 +5,7 @@
   import {householdObservationRaw,recommendationClock} from '../household/recommendationState.js';
   let {group, tiny=false}=$props();
   const id=$props.id();
-  const names={'night-policy':'Night-load override',devices:'Load devices',greywater:'Greywater',loads:'Household loads',feeding:'Feeding',ventilation:'Ventilation',shades:'Shades'};
+  const names={'night-policy':'Night-load override',devices:'Load devices',greywater:'Greywater',loads:'Household loads',ventilation:'Ventilation',shades:'Shades'};
   const name=$derived(names[group]??'Model');
   const climate=$derived(group==='ventilation'||group==='shades');
   const model=$derived(climate?climatePreview($items.Thermal_Model_JSON,group,$recommendationClock)
@@ -15,6 +15,7 @@
   const summary=$derived(model.rows.length?model.rows.map(r=>`${r.status} · ${r.action}`).join('; '):emptyText);
   const date=value=>value?new Intl.DateTimeFormat('en-US',{timeZone:'America/Denver',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',second:'2-digit'}).format(Date.parse(value)):'Not provided';
 </script>
+{#if group!=='feeding'}
 <section class="recommendation" class:tiny aria-label={`${name} recommendations`} data-recommendation-group={group}>
   <div class="preview-line">
     <span class="label">{tiny?'Preview':`${name} · preview only`}</span>
@@ -43,6 +44,7 @@
     <button type="button" popovertarget={id} popovertargetaction="hide">Close details</button>
   </div>
 </section>
+{/if}
 <style>
   .recommendation { min-width:0; padding:.28rem 0; }
   .preview-line { display:flex; align-items:center; flex-wrap:wrap; gap:.18rem .4rem; min-width:0; }

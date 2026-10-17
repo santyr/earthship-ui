@@ -114,7 +114,8 @@
     "No live owner migration without separate qualification",
     "No fabricated water state",
     "No new recovery work",
-    "Keep combined development and production demand within host headroom; more resources are authorized. Resource profiles are operational settings, not a permanent CPU20percent requirement. Shared coordination is installed for development and production; the natural October15 daily fit completed06:50\u201306:51:50MDT with original headroom safeguards."
+    "Keep combined development and production demand within host headroom; more resources are authorized. Resource profiles are operational settings, not a permanent CPU20percent requirement. Shared coordination is installed for development and production; the natural October15 daily fit completed06:50\u201306:51:50MDT with original headroom safeguards.",
+    "Feeder triggerings are manual or Lightning-payment driven only; exclude them from Earthship-UI automated recommendations, household optimization and prospective actuation qualification until the operator changes this scope."
   ],
   "proofs": {
     "foundation": {
@@ -9943,6 +9944,24 @@
       "daily_unit_unchanged": true,
       "daily_service_started": false,
       "source_expiry_preserved": true
+    },
+    "feeder_manual_lightning_scope": {
+      "status": "deployed_live_ui_verified",
+      "document": "docs/operations/2026-10-17-feeder-control-scope.md",
+      "manual_or_lightning_only": true,
+      "feeder_suggestions_enabled": false,
+      "backend_changed": false,
+      "historical_contracts_preserved": true,
+      "focused_tests_passed": 100,
+      "automatic_actuation": false,
+      "full_goal_complete": false,
+      "ui_source_commit": "23100679a3ecf52af5affb48f462edefd0f68ec5",
+      "live_browser_cases": 4,
+      "browser_errors": 0,
+      "browser_mutations": 0,
+      "unrelated_overlays_preserved": 158,
+      "service_restarted": false,
+      "build_passed": true
     }
   },
   "astro_efficiency_audit": {

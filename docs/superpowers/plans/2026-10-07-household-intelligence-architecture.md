@@ -6,6 +6,16 @@
 **Depends on:** completion of PR #2 forecast-ML hardening / thermal identifiability work  
 **WeatherNext:** may be integrated later as a weather-forcing source, but this plan does not require or unblock WeatherNext deployment.
 
+## Feeder scope decision — October 17, 2026
+
+Feeder triggerings are exclusively manual or automated by Lightning payments.
+Earthship-UI household/ML planning must not propose, optimize, recommend or
+qualify feeder triggerings for automated actuation. Feeding counters and status
+remain observational. Existing manual/payment owner contracts and historical
+receipt parsing may remain; their presence does not make feeding an automated
+household-planning capability. This scope decision supersedes broader feeder
+references elsewhere in this plan and remains in force until the operator changes it.
+
 ## 1. Goal
 
 Evolve the Earthship project from a collection of strong domain-specific sensing,
