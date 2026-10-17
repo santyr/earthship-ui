@@ -203,7 +203,7 @@
       <p>Verified {date(view.verified_at)} · original source and intent expiry retained</p>
     </Tile>
     <Tile label="Shadow proposals and hard constraints">
-      {#if !proposals.length}<p>No optional proposals generated. No qualified action effects available.</p>{/if}
+      {#if !proposals.length}<p>No automated proposals to display. No qualified action effects available.</p>{/if}
       {#each proposals as proposal (proposal.intent_id)}
         <article>
           <h2>{proposal.type}</h2>

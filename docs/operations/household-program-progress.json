@@ -9946,7 +9946,7 @@
       "source_expiry_preserved": true
     },
     "feeder_manual_lightning_scope": {
-      "status": "implemented_pending_live_ui",
+      "status": "deployed_live_ui_verified",
       "document": "docs/operations/2026-10-17-feeder-control-scope.md",
       "manual_or_lightning_only": true,
       "feeder_suggestions_enabled": false,
@@ -9954,7 +9954,14 @@
       "historical_contracts_preserved": true,
       "focused_tests_passed": 100,
       "automatic_actuation": false,
-      "full_goal_complete": false
+      "full_goal_complete": false,
+      "ui_source_commit": "23100679a3ecf52af5affb48f462edefd0f68ec5",
+      "live_browser_cases": 4,
+      "browser_errors": 0,
+      "browser_mutations": 0,
+      "unrelated_overlays_preserved": 158,
+      "service_restarted": false,
+      "build_passed": true
     }
   },
   "astro_efficiency_audit": {
