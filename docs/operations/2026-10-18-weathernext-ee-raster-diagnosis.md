@@ -2,7 +2,9 @@
 
 Date: 2026-10-18. Project: `earthship-weather-research`. Principal: `weathernext-reader@earthship-weather-research.iam.gserviceaccount.com`. These are bounded read-only diagnostics, with no production forecast changes or paid fallback.
 
-## Verified result
+> **Latest status:** A matching service-account mean reduction succeeded at 18:07Z. Native-projection extraction still fails. See the dated update below; earlier failures are retained as historical evidence.
+
+## Earlier verified result
 
 Project configuration returns `REGISTERED_NOT_COMMERCIALLY`; own-permissions testing confirms `earthengine.computations.create`, `earthengine.assets.get`, `earthengine.config.get`, `serviceusage.services.use` and `resourcemanager.projects.get`. The operator applied a project Owner grant; the agent changed no IAM. This fixes the former project access denial, but does not establish that Owner is needed. The intended narrower roles remain Earth Engine Resource Viewer and Service Usage Consumer.
 
@@ -69,3 +71,14 @@ Official query/property reference: [WeatherNext on Earth Engine](https://develop
 ## New-source verification at 15:54Z
 
 A metadata check after the next publication discovered initialization `2026-10-18T08:00:00Z`, image `202610180800_202610180900`, rather than retrying the previously failing 07Z image. One bounded native station-temperature point read still returned HTTP 500: request `d8be8a75-0d81-4605-865e-f9b321881592`, computation `Q6BBS2ZSHVXYMWUXPNWH2E64`. It used 991,384 bytes / 6 requests including SDK bootstrap, 5.058 seconds and 61,068 KiB peak RSS. No real forecast snapshot or prospective evidence was accepted. This new-source result strengthens the support reproduction; it does not establish Google's internal cause.
+
+
+## Successful account comparison and remaining query failure (18:07–18:10Z)
+
+This update supersedes the earlier statement that all WeatherNext raster reads fail. The operator ran the fixed 08Z image / 09Z target query in Code Editor under their approved personal Google account and reported `station_head_temperature_2m_mean: 277.13543701171875` (3.985437 degrees C). At 18:07:25Z the agent ran the identical mean reduction using the existing service-account credential, project, site, band and 5000m scale. It returned HTTP 200 and exactly the same value. The agent changed no code, credential, IAM or registration setting to obtain this success. The reason earlier equivalent reductions failed is not established; this is not proof of a specific Google fix or account propagation delay.
+
+A same-session comparison then returned the same temperature from both direct-image and filtered-collection mean reductions. Filtered source metadata also succeeded. In contrast, direct-image and filtered-collection native-projection `getRegion` still returned HTTP 500. Native-projection sampling and first-value reduction also failed, including when the measured EPSG:4326 affine transform was supplied explicitly. A one-hour six-variable call through the unchanged collector stopped at its first station-grid native extraction, before querying the gridded variables. Its failure does not establish whether those other variables succeed.
+
+The current observed blocker is the collector's native-projection extraction path, not an established lack of service-account dataset approval. No further project privilege or credential change is justified by these results. The documented-scale mean query provides a working comparison path; adapting acquisition must preserve the approved source, spatial semantics, original evidence, target/byte/deadline bounds and missing-value behavior. Full-horizon acquisition and downstream qualification remain unverified; no collector was scheduled and no production value was published.
+
+The successful service-account test took 4.737 seconds, transferred 991,063 bytes including SDK bootstrap and peaked at 60,472 KiB RSS. The subsequent query-shape comparison took 5.539 seconds. All diagnostics used the unchanged shared 256MiB / 24-task / 90-second admission. Private exact results are `approved-account-comparison.json`, `native-six-variable-probe.json`, `native-query-shape-isolation.json`, `native-cell-reduction-alternatives.json` and `explicit-native-transform-isolation.json` in the existing execution evidence directory. The personal-account result is operator-reported; the service-account result and query comparisons were observed directly by the agent.
