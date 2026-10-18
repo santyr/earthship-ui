@@ -74,12 +74,8 @@ def validate_target(target):
     return target
 
 
-def temperature_targets(snapshot,*,issued_at):
-    """Build all future hourly targets once per original issue, rechecking originals.
-
-    `issued_at` is the retained household decision, not the provider init time.
-    Historical/backfilled snapshots are never promoted to prospective features.
-    """
+def prospective_snapshot(snapshot,*,issued_at):
+    """Revalidate the original native rows and availability for one decision."""
     from .weathernext_ee import parse_collection_response
     issued_at=utc(issued_at)
     if not isinstance(snapshot,dict):raise ValueError('original snapshot required')
@@ -103,6 +99,15 @@ def temperature_targets(snapshot,*,issued_at):
     order=lambda row:(row['variable'],row['statistic'],instant(row['valid_at']))
     if canonical(sorted(rebuilt,key=order))!=canonical(sorted(body['points'],key=order)):
         raise ValueError('normalized points differ from retained original rows')
+    return body|{'snapshot_sha256':snapshot_digest}
+
+
+def temperature_targets(snapshot,*,issued_at):
+    """Build future targets from a retained, prospectively available issue."""
+    issued_at=utc(issued_at)
+    body=prospective_snapshot(snapshot,issued_at=issued_at)
+    initialized=instant(body['initialized_at']);snapshot_digest=body['snapshot_sha256']
+    site=Site(**body['site']);rebuilt=body['points']
     rows={}
     for point in rebuilt:
         if point['variable']=='station_head_temperature_2m' and instant(point['valid_at'])>issued_at:

@@ -27,3 +27,18 @@ Real browser inspection found the comparison button positioned against the page 
 - Full live-root UI suite: 2,217 passed and 11 failed in five files. An isolated copy with only this feature removed reproduced exactly the same 11 failure names; no additional failure names were introduced. Those failures concern `alert-staleness`, `home-card-state` (six Astro/season/daylight expectations), `Earthship` thermal-card order, `SeasonCountdown` and `ThermalModelCard` (two presentation expectations). This is not a green full-root suite and is not a production-cutover qualification claim.
 
 Natural collector execution was already verified at 18:35Z. The 18:40Z shadow trigger still used local-only recording. The first **natural published** shadow trigger remains pending; manual service success is not that evidence. Existing 30-day acquisition, 14-day normal local-model shadow and training/holdout/required-variable gates remain incomplete. Household production forecasts still use the incumbent. Complete Open-Meteo removal remains part of the attended production cutover, not this comparison rollout. Recovery/restart rehearsals remain deferred.
+
+
+The 11 live-root failures reproduced on the isolated pre-feature baseline were:
+
+- `alert-staleness`: subscribes only to two update topics and never renders their duplicate values.
+- `home-card-state`: counts browser-local calendar days to the 2026 autumn equinox.
+- `home-card-state`: uses singular and event-day seasonal wording.
+- `home-card-state`: counts local calendar days across daylight-saving changes.
+- `home-card-state`: rolls from the December solstice to the next spring equinox.
+- `home-card-state`: declines dates outside the supported astronomical approximation.
+- `home-card-state`: rounds daylight to whole minutes before carrying into hours.
+- `Earthship`: adds the shadow model beside existing displays without changing advisory or zone order.
+- `SeasonCountdown`: advances its local-date label after midnight without a reload.
+- `ThermalModelCard`: labels modeled values, candidate timing, confidence, and age without promising action.
+- `ThermalModelCard`: renders unavailable without exposing forecast or candidate copy as advice.

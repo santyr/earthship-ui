@@ -148,3 +148,40 @@ def test_null_oversize_duplicate_and_missing_carry_refuse():
         with pytest.raises(RainDayHistoryUnavailable):
             read(connection)
         assert connection.closed
+
+
+def test_optional_source_capture_preserves_exact_qualified_rows_and_policy():
+    connection = Connection()
+    captured = []
+    start, end = bounds()
+    result = fetch_qualified_rain_day(
+        lambda: connection, local_date=DAY, policy=POLICY, cutover=start,
+        as_of=end + timedelta(seconds=120),
+        source_capture=lambda **source: captured.append(source))
+    assert result['rain_in'] == 0.1
+    assert len(captured) == 1
+    assert captured[0]['observations'] == tuple([connection.carry, *connection.rows])
+    assert captured[0]['policy'] is POLICY
+    assert captured[0]['cutover'] == start
+    assert connection.closed
+
+
+def test_source_capture_never_reports_unqualified_rows_and_errors_still_close():
+    start, end = bounds()
+    captured = []
+    invalid = Connection(missing_carry=True)
+    with pytest.raises(RainDayHistoryUnavailable):
+        fetch_qualified_rain_day(
+            lambda: invalid, local_date=DAY, policy=POLICY, cutover=start,
+            as_of=end + timedelta(seconds=120),
+            source_capture=lambda **source: captured.append(source))
+    assert captured == []
+    assert invalid.closed
+    connection = Connection()
+    def failed_capture(**_source):
+        raise RuntimeError('private capture unavailable')
+    with pytest.raises(RainDayHistoryUnavailable):
+        fetch_qualified_rain_day(
+            lambda: connection, local_date=DAY, policy=POLICY, cutover=start,
+            as_of=end + timedelta(seconds=120), source_capture=failed_capture)
+    assert connection.closed
