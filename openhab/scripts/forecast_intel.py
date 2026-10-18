@@ -1097,7 +1097,12 @@ def _adjusted_temperature(value, correction):
 
 def build_forecast_payloads(snapshot, pv_per_day, now, temperature_adjustment=None,
                             hourly_model=None):
-    """Return legacy payloads plus corrected detail v2 from one snapshot."""
+    """Return forecast payloads from the explicitly supplied provider source."""
+    from weather_learning.provider import ProviderSnapshot,forecast_payloads
+    if isinstance(snapshot,ProviderSnapshot):
+        if pv_per_day or temperature_adjustment is not None or hourly_model is not None:
+            raise ValueError('Google provider cannot inherit incumbent PV or correction state')
+        return forecast_payloads(snapshot,now=now)
     model = _hourly_model_snapshot(hourly_model)
     adjustment = normalize_temperature_adjustment(temperature_adjustment, model)
     high_correction = adjustment["highCorrectionF"]
