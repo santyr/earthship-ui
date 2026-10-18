@@ -39,3 +39,10 @@ Google GCS layout/cost policy: https://developers.google.com/weathernext/guides/
 Google Earth Engine collections/properties: https://developers.google.com/weathernext/guides/earth-engine
 
 Google noncommercial tiers: https://developers.google.com/earth-engine/guides/noncommercial_tiers
+
+
+## Latest project-permission check (14:46Z)
+
+The operator enabled Cloud Resource Manager, then reported completing the exact noncommercial reverification and granting `roles/earthengine.viewer` and `roles/serviceusage.serviceUsageConsumer` to the reader. After more than seven minutes, the read-only own-permissions check still returned HTTP 200 with no granted permissions among `earthengine.computations.create`, `earthengine.assets.get`, `earthengine.config.get`, `serviceusage.services.use` and `resourcemanager.projects.get`. The fresh EE configuration GET at 2026-10-18T14:46:29Z returned HTTP 403 `Permission 'earthengine.config.get' denied`.
+
+This verifies an effective access denial, not its administrative cause or registration status. The operator has been asked to check the exact principal on the **project IAM** page: https://console.cloud.google.com/iam-admin/iam?project=earthship-weather-research. Service-account resource permissions are a different surface. The agent made no IAM changes. No further point query or scheduler activation is justified until this check succeeds.

@@ -1,4 +1,4 @@
-**Execution update (2026-10-18):** Operator authorized the exclusive WeatherNext migration. Dataset access and a real GCS cell read are verified; bounded noncommercial Earth Engine retrieval is approved after measuring global-chunk transfer cost. The operator enabled the Earth Engine API; live verification now reports the project is not registered, and the operator reports a generic registration error. The original dated baseline below is historical; current evidence and remaining gates are in `docs/operations/weathernext-readiness.md`.
+**Execution update (2026-10-18):** Operator authorized execution and clarified a clean restart of weather-related ML: WeatherNext 3 is the sole external forecast source; qualified local measurements remain training/scoring truth. At production cutover, completely remove Open-Meteo integration and provider-specific learning state from OpenHAB and Earthship UI. No post-cutover capture-only service or fallback. See `docs/operations/openmeteo-retirement.md` for the reset/removal contract and `docs/operations/weathernext-readiness.md` for verified status. Google GCS access works; Earth Engine still denies the reader effective project permissions after the operator-reported setup.
 
 # WeatherNext 3 exclusive forecast migration — design
 
@@ -31,7 +31,7 @@ weather   energy    thermal
 actuals   actuals   actuals
 ```
 
-Open-Meteo is the incumbent **qualification control** during migration only. It remains operational until WeatherNext ingestion, provenance, local adaptation, solar-energy use, and required weather variables pass their gates. Once those gates pass, production forecast generation moves to WeatherNext and Open-Meteo is retired from normal acquisition and learning.
+Open-Meteo is the incumbent **qualification control** during migration only. It remains operational until WeatherNext ingestion, provenance, local adaptation, solar-energy use, and required weather variables pass their gates. Once those gates pass, production forecast generation moves to WeatherNext and Open-Meteo acquisition, integration code/configuration and provider-specific learning state are removed as part of that cutover.
 
 The post-cutover system does **not** silently fall back to Open-Meteo. If WeatherNext is unavailable or stale, the system reports a degraded forecast, retains the last still-eligible WeatherNext issue according to freshness policy, and continues using live local measurements for current-state logic. A different external fallback would require a separate design and explicit provenance.
 
@@ -141,7 +141,9 @@ The first production candidate should remain simple enough to diagnose. The mode
 2. WeatherNext with provider-specific bounded bias correction;
 3. regularized local residual model using WeatherNext distribution/features plus qualified local innovations available by issue time.
 
-Open-Meteo correction state is never applied to WeatherNext. During the comparison period, Open-Meteo remains a separate baseline only.
+Start weather-related ML from scratch in a separate WeatherNext namespace. Training inputs are WeatherNext 3 forecasts and qualified local measurements; local station, irradiance, rain and relevant household outcomes remain the ground truth. No Open-Meteo forecast, feature, fitted weight, bias/Kalman seed, pending training target or learned error history may initialize or train the new weather model. Start with raw WeatherNext and an explicit untrained correction state until Google/local pairs support fitting.
+
+Open-Meteo may remain a separate pre-cutover evaluation control; its scores and forecasts never enter candidate fitting, preprocessing, hyperparameter selection or online correction. Weather-dependent downstream learned components also need a provenance audit and fresh Google/local fitting before promotion. An old fixed PV/thermal artifact may be used for a pre-cutover forcing comparison only; that experiment does not qualify its old weather-trained coefficients for the new model. Physical specifications, local sensor histories, household actions and independently learned non-weather behavior retain their identities and existing qualification rules. Full reset details are in `docs/operations/openmeteo-retirement.md`.
 
 Candidate features may include:
 
@@ -202,7 +204,7 @@ Introduce a normalized provider snapshot consumed by `forecast_intel.py` (or a f
 The cutover must preserve:
 
 - existing OpenHAB Item names and UI contract where practical;
-- existing local temperature-learning semantics, reset/migration rules made explicit;
+- qualified local observation semantics, with fresh WeatherNext-only weather-model state and provenance;
 - PV/energy calibration gates;
 - current notification policy;
 - source-qualified evidence recording;
@@ -224,16 +226,16 @@ This behavior is easier to reason about and keeps ML provenance clean.
 
 ## 13. Open-Meteo retirement
 
-Once all required current consumers have qualified WeatherNext replacements:
+At the production cutover, all required consumers must have a qualified WeatherNext replacement or be explicitly removed/marked unavailable. Complete the prepared removal patch in the same attended cutover:
 
-1. stop Open-Meteo from influencing forecasts or learned corrections;
-2. run a defined stability interval with WeatherNext authoritative while Open-Meteo remains capture-only if desired for final diagnostics;
-3. disable Open-Meteo acquisition;
-4. remove its OpenHAB Thing/channels and provider-specific runtime code in a separate cleanup patch;
-5. preserve historical Open-Meteo forecast/evaluation data as immutable research history;
-6. remove temporary comparison UI after its evidentiary purpose ends, retaining concise forecast-health/model-skill views.
+1. stop Open-Meteo acquisition and learning writers before activating fresh WeatherNext state;
+2. remove the binding, Bridge/Things/channels/links, provider-specific Item definitions, rules/jobs, endpoint callers and deployment/ownership references from OpenHAB and the active Earthship UI project;
+3. start weather learning from raw WeatherNext with qualified local measurements, or a separately fitted artifact whose complete training lineage contains only those sources;
+4. detach old Open-Meteo state, pending targets, correction seeds and fitted weather-dependent artifacts from all production readers; do not merge their scores into WeatherNext skill;
+5. remove temporary incumbent comparison UI and mark unsupported fields unavailable rather than retain an Open-Meteo dependency;
+6. verify the cutover runtime has no Open-Meteo requests, capture-only jobs, installed binding, live links or automatic fallback.
 
-Do not delete historical provider identity or rewrite old records into WeatherNext format.
+Stage and review the removal beforehand; do not remove the incumbent before the replacement is ready. Historical records remain truthfully provider-labeled in Git or a private, detached research archive. Preserving history is not permission to ship executable Open-Meteo integration or use its data in new ML. A manual return to a pinned pre-cutover revision remains distinct from an installed runtime fallback. Recovery rehearsal remains deferred per operator instruction.
 
 ## 14. Definition of done
 
@@ -244,8 +246,8 @@ The migration is complete when:
 - required temperature, solar, precipitation, and other current forecast consumers have passed declared qualification gates;
 - the local adaptation model has prospective evidence and reproducible artifacts;
 - WeatherNext is the production external forecast source;
-- Open-Meteo is absent from normal acquisition, prediction, and learning;
+- Open-Meteo integrations are removed from OpenHAB and the active Earthship UI project at cutover, and new weather ML contains only WeatherNext/local-measurement lineage;
 - provider outage produces explicit degraded behavior rather than hidden fallback;
 - existing safety, PV, thermal, and notification gates remain intact;
-- rollback can restore the last Open-Meteo production revision during the defined migration rollback window;
+- a pinned pre-cutover revision is recorded for a deliberate manual rollback; no dormant Open-Meteo runtime is retained;
 - an engineering closure report records what improved, what did not, and which evidence supports retirement.
