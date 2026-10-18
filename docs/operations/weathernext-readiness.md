@@ -94,3 +94,12 @@ The evaluator enforces chronological train/embargo/holdout boundaries, retains t
 This increment is offline implementation, not a fitted site model or a completed Task 5. Reports remain `SHADOW_ONLY` and explicitly list prospective acquisition, complete training/holdout days, shadow inference, qualified regimes and required-variable gates as missing release evidence. Live-source reports, real model fitting, scheduled training/inference, comparison UI and cutover remain unfinished. No synthetic fixture is counted as household evidence.
 
 Verification: all 91 focused WeatherNext/SDK/learning tests pass; 138 relevant unchanged local source-reader/runtime regressions pass. A synthetic-only batch of 1,920 training and 383 holdout pairs took 0.247s to fit and 0.092s to evaluate, with 36,868 KiB peak RSS under the unchanged shared launcher. This is computational evidence, not site forecast skill. Independent review's three Important findings were reproduced and fixed in one test-backed pass; no production activation occurred.
+
+
+## Prospective worker and comparison implementation (2026-10-18)
+
+The [shadow runtime](weathernext-shadow-runtime.md) now retains original inference issues, fits separate weekly Google/local candidates from qualified native receipts, advances model pointers atomically and publishes only three bounded shadow Items. The conditional Weather comparison dialog enforces coherent generations and explicit stale/unavailable/model-untrained states. New services/timers and unlinked Item definitions remain uninstalled.
+
+Pre-review verification: 107 pinned Python tests and all 2,584 frontend tests across 170 files pass; the UI build and six unit templates verify. The full frontend run used a single worker thread in the existing shared 1 GiB/64-task budget after the fork pool failed at startup; no host limit was raised. Build output retains the existing large icon-chunk warning. This is implementation evidence, not a real fitted site model, release qualification or deployed UI.
+
+At 15:54Z a source-metadata check discovered a new 08Z WeatherNext run. Exactly one bounded point retry against that changed run still returned Google HTTP 500 (5.058s, 991,384 bytes, 61,068 KiB peak RSS). The failed 07Z computation was not repeated. No snapshot was accepted and no scheduler was enabled.

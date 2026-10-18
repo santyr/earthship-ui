@@ -82,6 +82,7 @@
   import OhIcon from '../lib/ui/OhIcon.svelte';
   import HourlyStrip from '../lib/ui/HourlyStrip.svelte';
   import DailyForecast from '../lib/ui/DailyForecast.svelte';
+  import ForecastComparison from '../lib/ui/ForecastComparison.svelte';
   import { colors } from '../lib/ui/tokens.js';
   import { skyIconColor } from '../lib/ui/wmo.js';
   import { items, connection, num, fmt } from '../lib/openhab';
@@ -272,6 +273,9 @@
   <div class="cell daily-cell">
     <Tile label="10-Day Forecast" accent={colors.forecast}>
       <DailyForecast days={forecastDays} variant="weather" onselect={selectForecastDay} />
+      {#if hasItem('Forecast_Provider_Status_JSON') || hasItem('Forecast_Comparison_JSON') || hasItem('Forecast_Local_Shadow_JSON')}
+        <ForecastComparison statusRaw={$items.Forecast_Provider_Status_JSON} comparisonRaw={$items.Forecast_Comparison_JSON} localRaw={$items.Forecast_Local_Shadow_JSON} nowMs={wallClock} connected={$connection === 'live'} />
+      {/if}
     </Tile>
   </div>
 
@@ -325,6 +329,7 @@
 </div>
 
 <style>
+  .daily-cell { position: relative; }
   .weather-grid {
     block-size: 100%;
     min-width: 0;

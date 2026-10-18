@@ -25,3 +25,6 @@ requests==2.34.2
 typing_extensions==4.16.0
 uritemplate==4.2.0
 urllib3==2.8.0
+
+# Existing native local-temperature reader; verified runtime driver version.
+psycopg2-binary==2.9.10

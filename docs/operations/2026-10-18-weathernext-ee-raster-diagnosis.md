@@ -62,3 +62,8 @@ Private originals and traces are retained under `.superpowers/sdd/weathernext-ac
 Keep the collector uninstalled/disabled. Continue independent local implementation. Retry one bounded native point after a Google fix or another concrete dataset/access change; only a successful real point followed by measured 360-hour collection can justify scheduling. Do not poll identical failing computations or switch backends automatically.
 
 Official query/property reference: [WeatherNext on Earth Engine](https://developers.google.com/weathernext/guides/earth-engine). Native extraction interface: [getRegion](https://developers.google.com/earth-engine/apidocs/ee-imagecollection-getregion).
+
+
+## New-source verification at 15:54Z
+
+A metadata check after the next publication discovered initialization `2026-10-18T08:00:00Z`, image `202610180800_202610180900`, rather than retrying the previously failing 07Z image. One bounded native station-temperature point read still returned HTTP 500: request `d8be8a75-0d81-4605-865e-f9b321881592`, computation `Q6BBS2ZSHVXYMWUXPNWH2E64`. It used 991,384 bytes / 6 requests including SDK bootstrap, 5.058 seconds and 61,068 KiB peak RSS. No real forecast snapshot or prospective evidence was accepted. This new-source result strengthens the support reproduction; it does not establish Google's internal cause.
