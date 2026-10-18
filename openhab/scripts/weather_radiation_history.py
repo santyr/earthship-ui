@@ -95,23 +95,27 @@ def fetch_radiation_grid(connection_factory, *, targets, assessed_at, cutover, p
         raise RadiationHistoryUnavailable('radiation history unavailable') from None
 
 
-def fetch_radiation_window(connection_factory, *, start, end, assessed_at, cutover, policy):
+def fetch_radiation_window(connection_factory, *, start, end, assessed_at, cutover, policy, source_capture=None):
+    """Optional original capture runs only for a clean native exposure window."""
     try:
-        if not isinstance(policy, RadiationPolicy):
+        if not isinstance(policy, RadiationPolicy) or source_capture is not None and not callable(source_capture):
             raise ValueError('explicit radiation policy required')
         start, end = _utc(start), _utc(end)
         history = start - timedelta(seconds=policy.validity_seconds)
         kwargs = dict(start=start, end=end, assessed_at=assessed_at, history_start=history, cutover=cutover, policy=policy)
         select_radiation_window([], **kwargs)  # Validate before opening PostgreSQL.
         fetch_end = min(_utc(assessed_at), end + timedelta(seconds=policy.validity_seconds))
-        result = select_radiation_window(_fetch(connection_factory, history, fetch_end), **kwargs)
+        observations = _fetch(connection_factory, history, fetch_end)
+        result = select_radiation_window(observations, **kwargs)
+        if source_capture is not None and result['status'] == 'ok':
+            source_capture(**kwargs, observations=tuple(observations))
         return {**result, 'source_item': ITEM, 'source_cutover': _utc(cutover).isoformat()}
     except Exception:
         raise RadiationHistoryUnavailable('radiation history unavailable') from None
 
 
 def fetch_radiation_day(connection_factory, *, local_date, as_of, cutover, policy,
-                        site_timezone='America/Denver'):
+                        site_timezone='America/Denver', source_capture=None):
     try:
         if not isinstance(local_date, date) or isinstance(local_date, datetime):
             raise ValueError('local date required')
@@ -119,7 +123,7 @@ def fetch_radiation_day(connection_factory, *, local_date, as_of, cutover, polic
         start = datetime.combine(local_date, time.min, zone).astimezone(timezone.utc)
         end = datetime.combine(local_date + timedelta(days=1), time.min, zone).astimezone(timezone.utc)
         result = fetch_radiation_window(connection_factory, start=start, end=end,
-            assessed_at=as_of, cutover=cutover, policy=policy)
+            assessed_at=as_of, cutover=cutover, policy=policy, source_capture=source_capture)
         return {**result, 'local_date': local_date.isoformat(), 'site_timezone': site_timezone}
     except Exception:
         raise RadiationHistoryUnavailable('radiation history unavailable') from None

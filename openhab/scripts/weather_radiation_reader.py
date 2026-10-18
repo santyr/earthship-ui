@@ -279,7 +279,8 @@ def select_radiation_window(rows, *, start, end, assessed_at, history_start, cut
         *(e['validUntil'] for _, e, _ in timeline if e is not None and start < e['validUntil'] < end),
         *(e['radioDecodedAt'] for _, e, _ in timeline if e is not None and start < e['radioDecodedAt'] < end),
         *(at for at, _, _ in uncertainty_events if start < at < end)})
-    covered = integral = gap = max_gap = 0.0
+    covered_microseconds = 0
+    integral = gap = max_gap = 0.0
     gaps = index = 0
     evidence = None
     reasons = set()
@@ -309,7 +310,9 @@ def select_radiation_window(rows, *, start, end, assessed_at, history_start, cut
                  and not uncertain)
         duration = (right - left).total_seconds()
         if valid:
-            covered += duration
+            elapsed = right - left
+            covered_microseconds += ((elapsed.days * 86400 + elapsed.seconds) * 1000000
+                                     + elapsed.microseconds)
             integral += evidence['irradianceWm2'] * duration / 3600
             high = evidence['irradianceWm2'] if high is None else max(high, evidence['irradianceWm2'])
             low = evidence['irradianceWm2'] if low is None else min(low, evidence['irradianceWm2'])
@@ -322,12 +325,17 @@ def select_radiation_window(rows, *, start, end, assessed_at, history_start, cut
             gap += duration
             max_gap = max(max_gap, gap)
     total = (end - start).total_seconds()
-    if covered != total:
+    elapsed = end - start
+    total_microseconds = ((elapsed.days * 86400 + elapsed.seconds) * 1000000
+                          + elapsed.microseconds)
+    covered = covered_microseconds / 1000000
+    fully_covered = covered_microseconds == total_microseconds
+    if not fully_covered:
         reasons.add('coverage_gap')
-    clean = covered == total and not reasons
+    clean = fully_covered and not reasons
     return dict(status='ok' if clean else 'partial', reasons=sorted(reasons),
         covered_seconds=covered, total_seconds=total, gap_count=gaps, maximum_gap_seconds=max_gap,
-        fully_covered=covered == total, irradiance_wh_m2=integral if clean else None,
+        fully_covered=fully_covered, irradiance_wh_m2=integral if clean else None,
         covered_irradiance_wh_m2=integral, observed_high_w_m2=high, observed_low_w_m2=low,
         time_basis='radio_decode_utc', integral_basis='persisted_sample_and_hold_lux_proxy',
         source_rows=len(normalized), history_sha256=sha256(json.dumps(
