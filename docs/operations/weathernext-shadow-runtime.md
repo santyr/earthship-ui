@@ -1,6 +1,6 @@
 # WeatherNext prospective shadow runtime
 
-Implementation date: 2026-10-18. The [private backend activation](2026-10-18-weathernext-shadow-activation.md) and [comparison activation](2026-10-18-weathernext-comparison-activation.md) are installed from tested commit f5775f8: hourly collection, hourly retained shadow inference/publication and separate weekly candidate training. Three unlinked file-owned Items and the live Weather comparison UI are active. The first fresh Google/local candidate has one qualified pair, SHADOW_ONLY status and no validation; prospective skill/reliability remain unqualified. Household production forecasts, notifications and actuators are unchanged. Natural published timer verification remains pending.
+Implementation date: 2026-10-18. The [private backend](2026-10-18-weathernext-shadow-activation.md) uses tested commit f5775f8; the separate [comparison activation](2026-10-18-weathernext-comparison-activation.md) adds the narrow live UI patch and Item publication: hourly collection, hourly retained shadow inference/publication and separate weekly candidate training. Three unlinked file-owned Items and the live Weather comparison UI are active. The first fresh Google/local candidate has one qualified pair, SHADOW_ONLY status and no validation; prospective skill/reliability remain unqualified. Household production forecasts, notifications and actuators are unchanged. The 19:40:31Z natural published trigger is verified against its retained issue and all three live Item states.
 
 ## Data and state flow
 
@@ -38,7 +38,7 @@ The service templates read private `~/.config/earthship-weather/runtime.env`, no
 
 Reuse the installed qualified reader/policy; do not create a new authority or request broader database grants. Credentials remain in private configuration and are never included in Item payloads or CLI error output.
 
-The proposed order is collector at :35, shadow at :40 and weekly candidate training Sunday 06:50. The backend-only deployment now passes native point/full-horizon capture, immutable-source and installed-run checks; its three timers are active. The three unlinked Items are installed, ownership is verified, and the local-recording override was removed. Explicit publication and live browser checks pass; a natural matching published shadow trigger still needs verification. Natural timer execution is tracked separately from manual service qualification. Recovery rehearsals remain deferred.
+The proposed order is collector at :35, shadow at :40 and weekly candidate training Sunday 06:50. The backend-only deployment now passes native point/full-horizon capture, immutable-source and installed-run checks; its three timers are active. The three unlinked Items are installed, ownership is verified, and the local-recording override was removed. Explicit publication and live browser checks pass; the first natural matching published trigger also passed at 19:40:31Z, with identical retained/live generations. Natural timer execution is tracked separately from manual service qualification. Recovery rehearsals remain deferred.
 
 ## Remaining work
 
