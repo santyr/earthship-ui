@@ -42,6 +42,10 @@ Inspected on branch `feat/weathernext-migration-20261018`, foundation revision `
 
 The existing adapter has no qualified precipitation-probability, WMO-code, UV or AQI mapping. Their absence cannot keep Open-Meteo installed after cutover. A separately qualified Google source is possible only with its own documented access/contract; no new subscription or service is implied by this decision. Local current-weather sensors remain available.
 
+## Live inventory update (2026-10-18)
+
+The [read-only removal audit](2026-10-18-openmeteo-retirement-audit.md) and [machine-readable inventory](2026-10-18-openmeteo-retirement-inventory.json) supplement the earlier source table with the actual custom binding JAR, three live Things/twelve links, the root-only AQI evidence producer/receipt, loaded forecast consumers and current source overlays. Catalog removal alone would miss the custom JAR. This update prepares removal; no integration or learned state has been removed.
+
 ## Release order and acceptance
 
 1. Finish real WeatherNext retrieval and required consumer qualification. Prepare and review the removal/reset patch while the incumbent still serves production.
