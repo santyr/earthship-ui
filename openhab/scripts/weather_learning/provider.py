@@ -112,7 +112,8 @@ def load_production_forecast(archive,*,decision_at,required_horizon,site,require
         # Reuse the complete original-capsule/unit rederivation. This checks all
         # normalized variables, even when only temperature is requested.
         temperature_targets(snapshot,issued_at=decision)
-        points=[row for row in snapshot['points'] if row['statistic']=='mean' and decision<instant(row['valid_at'])<=last]
+        means=[row for row in snapshot['points'] if row['statistic']=='mean']
+        points=[row for row in means if decision<instant(row['valid_at'])<=last]
         values={}
         for row in points:values.setdefault(instant(row['valid_at']),{})[row['variable']]=row['value']
         hours=[]
@@ -133,7 +134,7 @@ def load_production_forecast(archive,*,decision_at,required_horizon,site,require
                 body['solar_context_reason']='UNAVAILABLE_OR_INCOMPATIBLE'
         body.update(status='AVAILABLE',reason=None,source=source,
             issue_sha256=identity(dict(snapshot_sha256=source['snapshot_sha256'],issued_at=decision.isoformat())),
-            hours=hours,days=_daily(points,days,zone))
+            hours=hours,days=_daily(means,days,zone))
         return _freeze(body)
     except (ValueError,KeyError,TypeError,OverflowError):
         body=_body(decision,required_horizon,site,required_variables);body['reason']='INVALID_SOURCE'

@@ -139,6 +139,7 @@
     if (forecastDetail.status === 'ready') {
       return hourlyForecastFromDetail(forecastDetail, { nowMs: wallClock });
     }
+    if (!forecastDetail.legacyFallbackAllowed) return [];
     try {
       const raw = $items.Forecast_Hourly_JSON;
       if (!raw || raw === 'NULL' || raw === 'UNDEF') return [];
@@ -157,7 +158,7 @@
   // ---- 10-day controls with null-safe legacy fallback ---------------------
   const legacyForecast = $derived(parseLegacyDailyForecast($items.Forecast_Daily_JSON));
   const forecastDays = $derived(
-    forecastDetail.status === 'stale' ? []
+    forecastDetail.status === 'stale' || (forecastDetail.status !== 'ready' && !forecastDetail.legacyFallbackAllowed) ? []
       : forecastDetail.days.length > 0
         ? forecastDaysFromToday(forecastDetail, { nowMs: wallClock }) : legacyForecast
   );
@@ -263,6 +264,8 @@
       <div class="hourly-wrap">
         {#if forecastDetail.status === 'stale'}
           <div class="forecast-unavailable" role="status">Forecast stale</div>
+        {:else if forecastDetail.status !== 'ready' && !forecastDetail.legacyFallbackAllowed}
+          <div class="forecast-unavailable" role="status">Forecast unavailable</div>
         {:else}
           <HourlyStrip hours={forecastHourly} height={96} />
         {/if}

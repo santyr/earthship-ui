@@ -38,3 +38,7 @@ The provider's synthetic tests cover original-source mismatch, wrong site, stale
 ## Serving preparation update — October 18
 
 [Actual Google/native Astro payload preparation](2026-10-18-weathernext-serving-preparation.md) now verifies 337 source targets, ten UI days, native daylight, explicit three-view withdrawal and real-parser compatibility without production writes. Tests: 156 WeatherNext, 150 existing forecast/Astro and 2,589 frontend cases pass; UI build passes. Full qualified publication, fitted-model integration, required numeric consumers, complete removal and release intervals remain unfinished.
+
+## Publication mechanics update — October 18
+
+[Commit-last publication mechanics](2026-10-18-weathernext-publication-mechanics.md) now cover three JSON views and eight retained numeric Items, readback verification and complete best-effort withdrawal after any failure. Home/Weather suppress stale legacy arrays behind a parsed Google withdrawal. A complete-day aggregation error was corrected without backdating issues. Tests: 167 WeatherNext, 150 existing forecast/Astro and 2,591 frontend cases pass; build passes. These mechanics have only been exercised against injected stores; the qualified release worker, shared-lock/ownership admission, retained attempt evidence and required native energy/thermal consumer translation are still needed before any production selection.

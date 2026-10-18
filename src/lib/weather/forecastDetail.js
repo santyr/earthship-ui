@@ -11,10 +11,11 @@ const SENTINELS = new Set(['', 'NULL', 'UNDEF']);
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const OFFSET_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
-function unavailable(reason) {
+function unavailable(reason, legacyFallbackAllowed = true) {
   return Object.freeze({
     status: 'unavailable',
     reason,
+    legacyFallbackAllowed,
     generatedAtMs: null,
     timezone: HOUSEHOLD_TIMEZONE,
     days: Object.freeze([]),
@@ -125,8 +126,10 @@ export function parseForecast10Day(raw, { nowMs = Date.now() } = {}) {
   if (new TextEncoder().encode(raw).length > FORECAST_DETAIL_MAX_BYTES) {
     return unavailable('forecast detail exceeds size limit');
   }
+  let legacyFallbackAllowed = true;
   try {
     const parsed = JSON.parse(raw);
+    legacyFallbackAllowed = parsed?.provider !== 'weathernext3';
     if (![1, 2].includes(parsed?.version)) {
       throw new TypeError('unsupported forecast detail version');
     }
@@ -146,9 +149,9 @@ export function parseForecast10Day(raw, { nowMs = Date.now() } = {}) {
       if (parsed.days.length || parsed.source !== null || parsed.issueSha256 !== null) {
         throw new TypeError('unavailable WeatherNext forecast carries predictions');
       }
-      return unavailable('WeatherNext forecast unavailable');
+      return unavailable('WeatherNext forecast unavailable', false);
     }
-    if (!parsed.days.length) return unavailable('forecast days missing');
+    if (!parsed.days.length) return unavailable('forecast days missing', legacyFallbackAllowed);
     const days = parsed.days.map(normalizeDay);
     const seen = new Set();
     for (let index = 0; index < days.length; index += 1) {
@@ -161,13 +164,14 @@ export function parseForecast10Day(raw, { nowMs = Date.now() } = {}) {
     return Object.freeze({
       status: nowMs - generatedAtMs > FORECAST_DETAIL_STALE_MS ? 'stale' : 'ready',
       reason: '',
+      legacyFallbackAllowed,
       generatedAtMs,
       timezone: parsed.timezone,
       temperatureAdjustment,
       days: Object.freeze(days),
     });
   } catch (error) {
-    return unavailable(error?.message || 'forecast detail invalid');
+    return unavailable(error?.message || 'forecast detail invalid', legacyFallbackAllowed);
   }
 }
 

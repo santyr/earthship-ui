@@ -402,7 +402,7 @@
   const solarTodayForecast = $derived(todayPvForecastKwh(forecastDetail, { nowMs: wallClock }));
   const legacyForecast = $derived(parseLegacyDailyForecast($items.Forecast_Daily_JSON));
   const forecastDays = $derived(
-    forecastDetail.status === 'stale' ? []
+    forecastDetail.status === 'stale' || (forecastDetail.status !== 'ready' && !forecastDetail.legacyFallbackAllowed) ? []
       : forecastDetail.days.length > 0
         ? forecastDaysFromToday(forecastDetail, { nowMs: wallClock }) : legacyForecast
   );

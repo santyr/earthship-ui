@@ -189,6 +189,17 @@ class ProviderTests(unittest.TestCase):
         expected=json.loads((root/'tests/fixtures/weathernext-serving-v1.json').read_text())
         self.assertEqual(actual,expected)
 
+    def test_current_day_summary_uses_complete_original_native_day_without_backdating_issue(self):
+        self.archive.store_snapshot(full_snapshot())
+        self.now=T+timedelta(hours=20)
+        provider=self.load();value=provider.to_dict()
+        today=next(day for day in value['days'] if day['date']=='2026-01-01')
+        self.assertEqual(today['high_f'],50)
+        self.assertEqual(today['low_f'],50)
+        self.assertAlmostEqual(today['precip_sum_in'],24/25.4)
+        self.assertEqual(value['decision_at'],self.now.isoformat())
+        self.assertTrue(all(datetime.fromisoformat(h['at'])>self.now for h in value['hours']))
+
     def test_caller_horizon_and_variable_contract_are_bounded(self):
         for horizon in (timedelta(0),timedelta(hours=337),1):
             with self.subTest(horizon=horizon),self.assertRaises(ValueError):
