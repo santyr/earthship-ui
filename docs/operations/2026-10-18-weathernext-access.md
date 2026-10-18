@@ -2,7 +2,13 @@
 
 Date: 2026-10-18. Project: `earthship-weather-research`. Reader: `weathernext-reader@earthship-weather-research.iam.gserviceaccount.com`. Operator supplied access approval and installed the private credential outside Git.
 
-## Verified connection
+## Current status (reverified 2026-10-18T23:36Z)
+
+Earth Engine access is working with the existing service account. The registration, permission and raster failures recorded below are historical; they do not call for further IAM grants, personal-account authentication or API enablement. The [API compatibility report](2026-10-18-weathernext-api-compatibility.md) explains the corrected storage OAuth scope and source-clock handling, the successful full-horizon captures, and the current documentation audit.
+
+A fresh bounded native-cell CLI probe completed at 23:36:42Z: `PROBE_PASSED`, run `ee:2026-10-18T16:00:00+00:00`, one point, 5.8 seconds, 991,572 bytes, six requests, 61,524 KiB peak RSS, verified noncommercial registration. It published nothing and did not archive a training snapshot. All 175 pinned WeatherNext regression tests passed in 6.087 seconds. Read-only systemd inspection found active ingest/shadow timers and successful last service exits. This verifies acquisition, not completed provider cutover or predictive qualification.
+
+## Initial connection evidence
 
 The credential belongs to the intended service account/project, is owned by the worker user, has mode 600, and its containing directory has mode 700. OAuth authentication and statistics-bucket listing returned success. Metadata and a real native temperature cell were read successfully without a requester billing project or billing header. Credentials and extracted forecasts were not committed or served to browsers.
 
@@ -12,7 +18,7 @@ The first 0.05-degree temperature chunk exceeded the diagnostic 64 MiB compresse
 
 Private diagnostic artifacts: `.superpowers/sdd/weathernext-access-20261018/`; no secrets are included in this report.
 
-## Proposed bounded Earth Engine retrieval
+## Approved bounded Earth Engine retrieval
 
 The existing migration design explicitly calls for a separately reviewed noncommercial Earth Engine design when GCS point extraction is impractical. Proposed change: retain WeatherNext statistics, independent provenance, archive and normalization contracts, but perform native-cell extraction through Earth Engine in the existing dedicated project.
 
@@ -24,9 +30,9 @@ The existing migration design explicitly calls for a separately reviewed noncomm
 - Keep the existing host shared-resource admission and one collector lock. Archive compact point records locally, outside Git and browser assets.
 - Keep production on the incumbent until required variable/horizon and prospective comparison gates pass. All new actuation remains disabled.
 
-Operator approved this bounded Earth Engine design in chat on 2026-10-18. Project registration and actual access still require verification. Paid access remains prohibited.
+Operator approved this bounded Earth Engine design in chat on 2026-10-18. Registration and actual access were subsequently verified as recorded in the current status above. Paid access remains prohibited.
 
-## Earth Engine preflight
+## Historical Earth Engine preflight
 
 The read-only project configuration request on 2026-10-18 returned HTTP 403 with reason `SERVICE_DISABLED` for Earth Engine. OAuth authentication succeeded. The operator subsequently enabled the API. A second configuration GET at 14:15:13Z returned `Project earthship-weather-research is not registered to use Earth Engine.` The operator reports a generic console registration error. No computation, registration, IAM or billing change was performed by the agent. The alternate official registration route is https://code.earthengine.google.com/register?project=earthship-weather-research; account owner permissions and the actual failed registration response must be checked before diagnosing its cause.
 
@@ -41,14 +47,14 @@ Google Earth Engine collections/properties: https://developers.google.com/weathe
 Google noncommercial tiers: https://developers.google.com/earth-engine/guides/noncommercial_tiers
 
 
-## Latest project-permission check (14:46Z)
+## Historical project-permission check (14:46Z)
 
 The operator enabled Cloud Resource Manager, then reported completing the exact noncommercial reverification and granting `roles/earthengine.viewer` and `roles/serviceusage.serviceUsageConsumer` to the reader. After more than seven minutes, the read-only own-permissions check still returned HTTP 200 with no granted permissions among `earthengine.computations.create`, `earthengine.assets.get`, `earthengine.config.get`, `serviceusage.services.use` and `resourcemanager.projects.get`. The fresh EE configuration GET at 2026-10-18T14:46:29Z returned HTTP 403 `Permission 'earthengine.config.get' denied`.
 
 This verifies an effective access denial, not its administrative cause or registration status. The operator has been asked to check the exact principal on the **project IAM** page: https://console.cloud.google.com/iam-admin/iam?project=earthship-weather-research. Service-account resource permissions are a different surface. The agent made no IAM changes. No further point query or scheduler activation is justified until this check succeeds.
 
 
-## IAM/registration resolved; raster access still fails (14:54Z onward)
+## Historical IAM resolution and raster failures (14:54Z onward)
 
 After the operator added the exact reader principal with Owner on project IAM, all five requested permissions became effective. Configuration GET at 2026-10-18T14:54:00Z returned HTTP 200 and `REGISTERED_NOT_COMMERCIALLY`. The earlier empty permission results are historical. The reader need not be given further privileges to investigate the observed failure.
 
