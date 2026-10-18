@@ -26,9 +26,9 @@ The existing qualified PV reader accepted all three sampled days (coverage 99.96
 | Irradiance | `weather_radiation_history`, `household.measured_weather` | 9 complete qualified days in October 3–17; lux-derived proxy, not a physical radiometer | Solar-forcing comparison, fixed-model PV/thermal attribution |
 | Rainfall | `weather_rain_history` | 10 accepted days in the 28-day audit; other days withheld | Forecast precipitation outcomes |
 | MPPT harvested PV | `pv_day_history` | 18 accepted days in the 28-day audit | Existing PV calibration and outcomes |
-| Battery/AC load | `household_battery_source`, `household_ac_load_window` | Original epoch-bound readers identified; range/count pending | Evening SoC, overnight trough, charge/no-full outcomes |
+| Battery/AC load | `household_battery_source`, `household_ac_load_window` | 7 measured current-epoch nights (October 10–16 prediction dates); 327/336 eligible AC hours, October 4–17, partitioned across 5 receiver epochs | Evening SoC, overnight trough, charge/no-full outcomes |
 | Indoor temperature | `weather_temperature_history` native role streams | Bedroom/indoor/north_wall current epochs audited; no full 24-hour days in October 3–17; shorter qualified thermal windows retain existing rules | Fixed-artifact thermal attribution |
-| Operator actions/shades | `thermal_model.action_history`, `thermal_model.shade_observations` | Existing event readers identified; range/count pending | Known action context; no action effects inferred |
+| Operator actions/shades | `thermal_model.action_history`, `thermal_model.shade_observations` | 19 action events, 4 mode events, 13 receipts; 14 origin-aware snapshots selected; continuous/per-zone observation not established | Known action context; no action effects inferred |
 | Original incumbent issues | Existing forecast/thermal original captures | 129 validated original capture files, October 1–18, 18 capture dates; pre-cutover controls only, excluded from new fitting | Paired chronological comparison |
 | Prospective WeatherNext issues | New private content-addressed archive | 0 scheduled issues so far | Future comparison evidence |
 
@@ -80,7 +80,7 @@ Independent review found and fixed a native-projection argument mismatch, a sche
 Deferred minor limitations: archive validation binds point digests to retained originals but does not independently rederive every normalized point from those originals; the current reader/parser owns that validation. `AccessPolicy.max_attempts` and `max_pixels` are reserved configuration bounds, not independent active transport controls; actual retry count is zero and acquisition uses a fixed single-point query with strict response/target bounds. Neither limitation authorizes production cutover.
 
 
-The radiation/indoor audit at 14:39:05Z accepted 9 complete radiation days from October 3–17 using the existing reviewed radiation-v2 cutover (October 2 at 20:00:09.206165Z). The measured signal is a lux-derived proxy. Three indoor streams had no complete current-epoch 24-hour days in that sample; the existing thermal trainer can use shorter qualified windows, so this audit adds no daily-coverage requirement and makes no claim that thermal training is unavailable. Source receipts/refusals are private in `radiation-indoor-audit.json`. Operator-action range inventory remains pending; no new database access or permissions were introduced.
+The radiation/indoor audit at 14:39:05Z accepted 9 complete radiation days from October 3–17 using the existing reviewed radiation-v2 cutover (October 2 at 20:00:09.206165Z). The measured signal is a lux-derived proxy. Three indoor streams had no complete current-epoch 24-hour days in that sample; the existing thermal trainer can use shorter qualified windows, so this audit adds no daily-coverage requirement and makes no claim that thermal training is unavailable. Source receipts/refusals are private in `radiation-indoor-audit.json`. The later [energy/action audit](2026-10-18-weathernext-energy-action-evidence.md) completes the sampled battery/load and action-range inventory using existing credentials and unchanged policies; no new database grants were introduced.
 
 
 ## Fresh local-learning implementation (2026-10-18)
@@ -103,3 +103,8 @@ The [shadow runtime](weathernext-shadow-runtime.md) now retains original inferen
 Pre-review verification: 107 pinned Python tests and all 2,584 frontend tests across 170 files pass; the UI build and six unit templates verify. The full frontend run used a single worker thread in the existing shared 1 GiB/64-task budget after the fork pool failed at startup; no host limit was raised. Build output retains the existing large icon-chunk warning. This is implementation evidence, not a real fitted site model, release qualification or deployed UI.
 
 At 15:54Z a source-metadata check discovered a new 08Z WeatherNext run. Exactly one bounded point retry against that changed run still returned Google HTTP 500 (5.058s, 991,384 bytes, 61,068 KiB peak RSS). The failed 07Z computation was not repeated. No snapshot was accepted and no scheduler was enabled.
+
+
+## Energy and action inventory update (2026-10-18, 16:24Z)
+
+The [bounded read-only energy/action audit](2026-10-18-weathernext-energy-action-evidence.md) found seven measured 15-hour battery nights for prediction dates October 10–16; twenty older requested packets were refused and October 17 remained pending until its window ends at 11:00 AM MDT. Of 336 AC-output hours across October 4–17, 327 meet the existing 99% coverage threshold with a single receiver epoch per hour; five receiver cohorts remain explicit. Existing v1 action-history selection succeeded for fourteen morning origins using the runtime EnvironmentFile credential missed by the earlier audit. No model was fitted, no grants or policies changed, and none of these counts establish WeatherNext skill or complete per-zone action coverage.
