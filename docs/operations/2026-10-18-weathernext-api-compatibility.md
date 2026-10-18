@@ -37,3 +37,26 @@ The original snapshot is private in the execution evidence directory's `live-arc
 - [Dissemination schedule](https://developers.google.com/weathernext/guides/dissemination).
 - [0.1-degree catalogue and bands](https://developers.google.com/earth-engine/datasets/catalog/projects_gcp-public-data-weathernext_assets_weathernext_3_0_0_0p1deg).
 - [0.05-degree catalogue and bands](https://developers.google.com/earth-engine/datasets/catalog/projects_gcp-public-data-weathernext_assets_weathernext_3_0_0_0p05deg).
+
+
+## Follow-up online contract audit
+
+Reread on 2026-10-18 in response to the operator's concern that the implementation predates API access. This pass compared the current official Earth Engine guide, both downloaded official notebooks, both collection catalogues, dissemination schedule, service-account/scopes documentation and `ImageCollection.getRegion` API reference against the current reader, normalizer, collector and retained real responses. The two corrections above are already implemented; this audit does not represent a second deployment or new cloud request.
+
+| Assumption | Documentation and actual implementation | Disposition |
+|---|---|---|
+| Authentication | External GCS-backed assets require a storage scope in addition to Earth Engine. The installed loader requests `earthengine` and `devstorage.read_only`. | Corrected; no additional IAM grant or personal-account token needed. |
+| Forecast clock | Official notebooks use `end_time` for targets. The general guide calls `system:time_start` valid time, while retained live rows report initialization time. | Preserve original clock, validate row/metadata equality, derive target from cross-checked `end_time` and lead hour. Do not use `filterDate` to select forecast target time. |
+| Spatial extraction | The notebooks demonstrate regional covering-grid reductions. `getRegion` officially supports a point and an explicit Projection; adding a metre scale resizes that projection. | Keep the actual native projection/cell and returned coordinates. Approximate 5000/10000-metre queries need not reproduce that cell and are not a replacement contract. |
+| Collections and bands | The 0.05-degree collection provides station temperature/dewpoint; the 0.1-degree collection supplies solar, rain, wind, cloud and pressure statistics. | Correct grid assignment; fixed named statistical bands, no raw-ensemble download or spatial averaging of quantiles. |
+| Units and intervals | Catalogues specify Kelvin, hourly solar energy in J/m², hourly precipitation in metres, pressure in Pa and cloud fraction. | Existing conversions and complete trailing-hour daily sums agree; missing intervals stay unavailable and daily quantiles are not sums of hourly quantiles. |
+| Run horizon and delivery | Main 00/06/12/18Z runs have 360-hour horizons; interim runs have 48. Dissemination occurs hours after initialization and can be delayed. | Full-horizon discovery requires the requested lead hour; acquisition/decision availability remains separately recorded. A new initialization timestamp is not proof that data was already available. |
+| Precipitation heads | Three distinct hourly rain products are documented and observed. | All three are now retained separately; product selection still requires paired local outcomes. |
+
+The official notebook bytes were retained privately for reproducibility: 0.1-degree SHA256 `1762f318c422a5e88a125d4ecc725671211f3b7a12b487e4b4e7f86e748499e7`; 0.05-degree SHA256 `16290b9564f1e9b0f4f01669f99d776d4abcecfdfc18172d523f848dc410df52`. No notebook outputs or extracted forecasts were added to the repository.
+
+Fresh verification: **128 tests passed in 3.467 seconds** using the pinned Earth Engine environment and existing shared job admission. The first invocation supplied a relative executable path and was refused before tests started; using the required absolute path resolved that invocation error without changing resource safeguards. The installed `weathernext_ee.py`, `normalize.py` and `worker.py` independently match the reviewed branch bytes. Read-only systemd checks report successful last collector/shadow runs and active timers. The previously retained real installed capture contains 360 hours / 12 bands / 4,320 points, including 360 values for each rain head; see the [rain capture evidence](2026-10-18-weathernext-rain-candidates.md).
+
+**Decision:** retain the bounded native-cell Earth Engine acquisition architecture with its corrected scopes and clock parser. No further retrieval refactor is justified by this documentation comparison. This is not approval of every downstream consumer: fresh Google/local learning, required-variable and downstream qualification, production-provider integration and complete Open-Meteo retirement remain unfinished under the existing migration plan. Successful API access and passing regression tests do not establish local predictive skill.
+
+Additional API reference: [ImageCollection.getRegion](https://developers.google.com/earth-engine/apidocs/ee-imagecollection-getregion).
