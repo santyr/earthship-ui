@@ -14,6 +14,12 @@ All three products supplied 360 native hourly values. Original-source rederivati
 
 New tests first failed for the omitted product mappings/capture and absent daily aggregation. All **128 pinned WeatherNext tests** then passed in **3.177 seconds**, covering separate units/identities, missing/invalid data, actual collector request selection, DST totals, no cross-product filling and no quantile summation.
 
+## Installed capture upgrade
+
+At 18:47Z the private backend source/revision settings advanced atomically to tested commit `f5775f8132a35b177ba503d6fc605e1b9d94df47`. All 1,102 packaged files were independently checked against their Git blob identities before activation. Existing archive/issue clocks and identities, credentials, unit definitions, timer states, no-publication override and resource limits were preserved.
+
+The installed collector retained **4,320 points** at **18:47:33.952364Z**, digest `5511f70b50c76f296faad2f319277350b9988e543d97000e28c8e342c690c0e8`, in **8.698 seconds / 1,272,037 bytes / 7 requests / 75,048 KiB peak RSS**. Each precipitation product has 360 rows. The installed shadow worker then retained a `READY` issue from that exact snapshot and source commit, generation `d9ec2cace2f51f960b353aa9714dc7c8f5dc279afcc952ab4e84902a22bb69a6`, with publication/actuation disabled and the candidate still untrained. No production provider or model-selection behavior changed.
+
 ## Comparison rule before outcomes
 
 Compare all three products on identical complete local days, using a retained original Google issue available before the day starts and the existing source-qualified local rain-counter reader. Freeze the issue-selection rule before evaluating outcomes; later/reissued forecasts cannot replace an earlier original decision. Retain sensor epochs, native grid, original source/outcome identities, source availability and gauge boundary uncertainty. Partition sensor epochs rather than pooling them.

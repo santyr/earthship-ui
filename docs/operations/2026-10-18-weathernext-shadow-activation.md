@@ -1,6 +1,6 @@
 # WeatherNext private shadow activation
 
-Observed 2026-10-18. Deployment source is reviewed commit `f0680630bbdab3beaf5d6270c1dbb87c7e7143ee` on PR #35. The [API compatibility correction](2026-10-18-weathernext-api-compatibility.md) fixed the missing read-only backing-storage OAuth scope and retained source initialization clock separately from forecast target time.
+Observed 2026-10-18. Initial deployment source was reviewed commit `f0680630bbdab3beaf5d6270c1dbb87c7e7143ee` on PR #35; the current private backend source is tested commit `f5775f8132a35b177ba503d6fc605e1b9d94df47`, as recorded in the rain-candidate upgrade below. The [API compatibility correction](2026-10-18-weathernext-api-compatibility.md) fixed the missing read-only backing-storage OAuth scope and retained source initialization clock separately from forecast target time.
 
 ## Installed state
 
@@ -33,3 +33,7 @@ The first natural collector trigger fired at **12:35:11 MDT (18:35:11Z)** and ad
 This is the beginning of prospective acquisition, not production cutover. The plan's acquisition interval, qualified training/holdout data, local-model shadow duration, solar/rain/PV/thermal qualification, finished production integration, shadow Item/UI rollout, complete Open-Meteo removal and post-cutover outcomes remain incomplete. No weather-dependent legacy fitted state is imported into Google/local training. No model or forecast grants actuator authority, and no new notification path is enabled.
 
 To stop these additions while retaining their original evidence, disable only the three new timers and stop any currently active matching services. This does not change the incumbent production units. Backup/recovery finishing work remains deferred.
+
+## Rain-candidate source upgrade (18:47Z)
+
+The active private code root is now `/home/sat/.local/share/earthship-weather/releases/f5775f8132a35b177ba503d6fc605e1b9d94df47`. Its 1,102 packaged files match their Git blob identities and are read-only. Existing credential/state paths, all unit definitions and active timers, the publication-free override and resource bounds are unchanged. The [rain-candidate report](2026-10-18-weathernext-rain-candidates.md) records the successful installed 4,320-point capture and matching shadow issue. The older release and its original observations remain preserved; qualification and full production cutover are still incomplete.
