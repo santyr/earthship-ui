@@ -105,7 +105,7 @@ def test_shared_lock_implementation_is_in_declared_prediction_closure():
     root=Path(cli.__file__).resolve().parent
     name=Path(inspect.getsourcefile(cli.SharedScoreLock)).resolve().relative_to(root).as_posix()
     assert name in RUNTIME_PATHS and name in RAW_RUNTIME_PATHS
-    assert len(RAW_RUNTIME_PATHS)==64
+    assert len(RAW_RUNTIME_PATHS)==75
 
 
 def test_pinned_shared_guard_locks_without_scoring_cli_available(tmp_path):

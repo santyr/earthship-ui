@@ -37,3 +37,10 @@ The installed newer irradiance/shade model family must be preserved when porting
 Prepare the final combined Google-only removal/source closure before fitting real release artifacts, because subsequent code retirement changes the runtime binding again. Preserve the strict fit/runtime checks. Complete fresh Google/local weather-dependent fitting, required variable/regime/outcome evidence, qualification intervals, release/ownership/lock integration, retained publication attempts and final whole-branch review. Apply complete Open-Meteo removal in the attended cutover; no dormant fallback or capture-only integration may remain. Recovery finishing stays deferred.
 
 Production schedules, installed model/artifacts, current UI source, notification behavior and equipment authority are unchanged.
+
+
+## CI follow-up: complete runtime archives
+
+The full Forecast ML job exposed three stale exact file-count assertions and a separate archive-writer capacity still limited to 64 ordered revision paths. The current Google-expanded raw closure has 75 paths and the complete provisional closure has 83. Capture already allowed a bounded 96 entries; runtime archiving now uses that same constant, while closures of 64 or more still require the executed observer to be explicitly listed. Per-file/total byte bounds, interpreter hashes, private ownership, complete membership and all process resource limits remain unchanged.
+
+The four CI failures reproduced locally; an additional 96-entry test failed before correction. All 48 archive/publication/registration/lock regressions then passed in 3.49 seconds, including actual full archive round-trip, 97-entry refusal and missing-observer refusal at 64/75/83/96 entries. A fresh real-runtime synthetic-fit/candidate round-trip also passed in 0.75 seconds, retaining old-fit rejection. Finally, the exact CI Solar_PV dependency (24d2e8984810cb596fe9792768510a356786f709), rather than the host's newer checkout, passed all **73 Google-native input/selection and archive-related tests in 17.59 seconds**. Full remote CI must finish before merge; the failed earlier job is not presented as green.

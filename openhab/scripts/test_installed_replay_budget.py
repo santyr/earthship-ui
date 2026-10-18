@@ -90,9 +90,20 @@ def test_legacy_preparation_requires_executed_budget_helper_in_its_runtime(monke
     assert publication.prepare_installed_qualification(path).source_ready is False
 
 
-def test_64_declared_files_cannot_add_an_unlisted_observer(monkeypatch,tmp_path):
+@pytest.mark.parametrize('count',[64,75,83,96])
+def test_large_declared_closure_cannot_add_an_unlisted_observer(monkeypatch,tmp_path,count):
     from thermal_model import origin_capture,runtime_bundle
-    paths=['thermal_intel.py',*[f'file_{index}.py' for index in range(63)]]
+    paths=['thermal_intel.py',*[f'file_{index}.py' for index in range(count-1)]]
     monkeypatch.setattr(origin_capture,'_source_bytes',lambda *a,**kw:pytest.fail('oversized observer closure opened source'))
     with pytest.raises(ValueError):origin_capture.build_runtime_binding(tmp_path,paths)
     with pytest.raises(ValueError):runtime_bundle._revision(paths,{name:b'x' for name in paths})
+
+
+def test_runtime_archive_uses_the_same_bounded_source_capacity_as_origin_capture():
+    from thermal_model import origin_capture,runtime_bundle
+    maximum=origin_capture.MAX_RUNTIME_SOURCES
+    paths=['thermal_intel.py','thermal_model/origin_capture.py',*[f'file_{i}.py' for i in range(maximum-2)]]
+    sources={name:b'# retained source bytes\n' for name in paths}
+    assert len(runtime_bundle._revision(paths,sources))==64
+    paths.append('overflow.py');sources['overflow.py']=b'# extra dependency\n'
+    with pytest.raises(ValueError):runtime_bundle._revision(paths,sources)
