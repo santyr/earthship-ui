@@ -109,9 +109,11 @@ class ShadowStore:
         start,end=map(utc,(start,end))
         if not start<end or end-start>timedelta(days=366):raise ValueError('bounded training issue range required')
         with self._connect() as db:
-            rows=db.execute('SELECT digest FROM (SELECT digest,issued,ROW_NUMBER() OVER (PARTITION BY local_day ORDER BY issued,digest) AS n FROM issues WHERE issued>=? AND issued<? AND completed<=? AND epoch=?) WHERE n=1 ORDER BY issued LIMIT 367',
-                (start.isoformat(),end.isoformat(),end.isoformat(),sensor_epoch)).fetchall()
-        if len(rows)>366:raise ValueError('training day count exceeds bound')
+            # Rank before the rolling lower bound so a partial oldest date
+            # cannot substitute a later issue. A 366-day interval can touch 367
+            # local dates; retain the latest 366 original daily decisions.
+            rows=db.execute('SELECT digest FROM (SELECT digest,issued FROM (SELECT digest,issued,ROW_NUMBER() OVER (PARTITION BY local_day ORDER BY issued,digest) AS n FROM issues WHERE issued<? AND completed<=? AND epoch=?) WHERE n=1 AND issued>=? ORDER BY issued DESC LIMIT 366) ORDER BY issued',
+                (end.isoformat(),end.isoformat(),sensor_epoch,start.isoformat())).fetchall()
         result=[]
         for (name,) in rows:
             digest(name);value=_read(self.root/'issues'/(name+'.json'),256*1024)

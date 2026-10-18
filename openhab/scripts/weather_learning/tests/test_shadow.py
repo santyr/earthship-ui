@@ -1,5 +1,5 @@
 from copy import deepcopy
-from datetime import timedelta
+from datetime import datetime,timedelta
 import importlib,pathlib,tempfile,unittest
 from unittest.mock import patch
 from learning_fixtures import T,SITE,EPOCH,REVISION,native_snapshot,receipt,pair
@@ -31,6 +31,36 @@ class ShadowTests(unittest.TestCase):
         issues=self.state.training_issues(T-timedelta(days=1),T+timedelta(days=1),sensor_epoch=EPOCH)
         self.assertEqual(len(issues),1)
         self.assertEqual(issues[0]['payload']['generation'],report['generation'])
+
+    def shifted_issue(self,report,offset):
+        value=deepcopy(report)
+        for name in ('generatedAt','decisionAt'):
+            value[name]=(datetime.fromisoformat(value[name])+offset).isoformat()
+        for name in ('initializedAt','firstSeenAt','ingestedAt'):
+            value['source'][name]=(datetime.fromisoformat(value['source'][name])+offset).isoformat()
+        for row in value['hours']:
+            row['at']=(datetime.fromisoformat(row['at'])+offset).isoformat()
+        value.pop('generation')
+        value=self.p.seal_payload(value)
+        self.state.retain_issue(value,sensor_epoch=EPOCH,code_revision=REVISION)
+        return value
+
+    def test_partial_oldest_day_cannot_substitute_a_later_daily_issue(self):
+        report=self.run_shadow()
+        self.shifted_issue(report,timedelta(hours=1))
+        issues=self.state.training_issues(self.now+timedelta(minutes=30),self.now+timedelta(days=1),sensor_epoch=EPOCH)
+        self.assertEqual(issues,[])
+
+    def test_maximum_rolling_window_selects_latest_366_original_dates(self):
+        report=self.run_shadow()
+        self.shifted_issue(report,timedelta(hours=3))
+        for day in range(1,367):
+            self.shifted_issue(report,timedelta(days=day,hours=1))
+        end=self.now+timedelta(days=366,hours=2)
+        issues=self.state.training_issues(end-timedelta(days=366),end,sensor_epoch=EPOCH)
+        self.assertEqual(len(issues),366)
+        self.assertEqual(issues[0]['payload']['decisionAt'],(self.now+timedelta(days=1,hours=1)).isoformat())
+        self.assertEqual(issues[-1]['payload']['decisionAt'],(self.now+timedelta(days=366,hours=1)).isoformat())
 
     def test_inference_uses_pinned_model_without_running_fitting(self):
         model=fit_bias([pair(-2)],cutoff=T-timedelta(days=1),code_revision=REVISION)

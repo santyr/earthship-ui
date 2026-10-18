@@ -59,6 +59,8 @@ Private originals and traces are retained under `.superpowers/sdd/weathernext-ac
 
 ## Next action
 
+Confirm whether the reader service account was included in the original WeatherNext dataset-access request. Project IAM and noncommercial Earth Engine registration are now verified; those checks and public statistics-bucket access do not establish this reader’s separate dataset entitlement. This is an unresolved question, not a diagnosed cause of HTTP 500. Do not grant further project privileges to test it.
+
 Keep the collector uninstalled/disabled. Continue independent local implementation. Retry one bounded native point after a Google fix or another concrete dataset/access change; only a successful real point followed by measured 360-hour collection can justify scheduling. Do not poll identical failing computations or switch backends automatically.
 
 Official query/property reference: [WeatherNext on Earth Engine](https://developers.google.com/weathernext/guides/earth-engine). Native extraction interface: [getRegion](https://developers.google.com/earth-engine/apidocs/ee-imagecollection-getregion).
