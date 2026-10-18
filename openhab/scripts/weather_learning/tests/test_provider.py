@@ -2,24 +2,12 @@
 from datetime import datetime,timedelta,timezone
 import importlib,pathlib,sqlite3,tempfile,unittest
 from unittest.mock import patch
-from learning_fixtures import T,SITE,native_snapshot
+from learning_fixtures import T,SITE,native_snapshot,full_snapshot
 from weather_learning.archive import Archive
 from weather_learning.config import COLLECTIONS
 from weather_learning.weathernext_ee import parse_collection_response,make_snapshot
 
 
-def full_snapshot(init=T,hours=80):
-    collections=[]
-    for collection,bands,values in [
-        (COLLECTIONS['station'],['station_head_temperature_2m_mean'],[283.15]),
-        (COLLECTIONS['gridded'],['surface_solar_radiation_downwards_1hr_mean','total_sky_direct_solar_radiation_at_surface_1hr_mean','total_precipitation_1hr_mean','wind_speed_10m_mean','total_cloud_cover_mean'],[360000,180000,.001,1,.5])]:
-        raw={'metadata':[],'region':[['id','longitude','latitude','time',*bands]]}
-        for hour in range(1,hours+1):
-            valid=init+timedelta(hours=hour)
-            raw['metadata'].append({'system:index':f'fixture{hour}','start_time':init.isoformat(),'end_time':valid.isoformat(),'forecast_hour':hour,'ingestion_time_utc':init.timestamp()+900})
-            raw['region'].append([f'fixture{hour}',-105.75,38.35,valid.timestamp()*1000,*values])
-        collections.append(parse_collection_response(raw,collection=collection,bands=bands,site=SITE,initialized_at=init,horizon=hours))
-    return make_snapshot(collections,site=SITE,initialized_at=init,first_seen_at=init+timedelta(minutes=20),completed_at=init+timedelta(minutes=21))
 
 
 class ProviderTests(unittest.TestCase):

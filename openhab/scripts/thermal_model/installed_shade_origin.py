@@ -88,13 +88,20 @@ def _origin_actions(snapshot, issue):
 
 def _forecast_forcing(forecast, issue, available, actions):
     verify_origin_forecast_receipts(forecast)
-    fields = {'schema', 'source', 'origin', 'horizon_hours', 'issued_at', 'captured_at', 'rows_sha256', 'rows', 'metric_receipts'}
-    if not isinstance(forecast, dict) or set(forecast) != fields or forecast['source'] != SOURCE:
-        raise ValueError('original existing-provider forecast required')
-    hours = forecast['horizon_hours']; _, targets = _window(issue, hours)
-    issued, captured = _utc(forecast['issued_at']), _utc(forecast['captured_at'])
-    if (_utc(forecast['origin']) != issue or not issue-MAX_ISSUE_AGE <= issued <= captured <= available <= issue):
-        raise ValueError('weather forecast unavailable or stale at origin')
+    google=forecast['source']=='weathernext3'
+    hours=forecast['horizon_hours'];_,targets=_window(issue,hours)
+    issued,captured=map(_utc,(forecast['issued_at'],forecast['captured_at']))
+    if google:
+        from weather_learning.native_forecast import FIELDS as google_fields
+        from .solar import SITE_LATITUDE,SITE_LONGITUDE
+        if (set(forecast)!=google_fields or forecast['site']!=dict(latitude=SITE_LATITUDE,longitude=SITE_LONGITUDE,timezone='America/Denver') or
+                _utc(forecast['origin'])!=issue or not captured<=_utc(forecast['available_by'])<=available<=issue):
+            raise ValueError('original Google forcing unavailable or site differs')
+    else:
+        fields={'schema','source','origin','horizon_hours','issued_at','captured_at','rows_sha256','rows','metric_receipts'}
+        if (set(forecast)!=fields or forecast['source']!=SOURCE or _utc(forecast['origin'])!=issue or
+                not issue-MAX_ISSUE_AGE<=issued<=captured<=available<=issue):
+            raise ValueError('original existing-provider forecast unavailable or stale at origin')
     _sha(forecast['rows_sha256'])
     rows = forecast['rows']
     if not isinstance(rows, list) or len(rows) != len(targets): raise ValueError('original hourly weather bracket incomplete')
@@ -103,8 +110,9 @@ def _forecast_forcing(forecast, issue, available, actions):
         if not isinstance(row, dict) or set(row) != {'at', 'tempF', 'radiationWm2', 'windMph', 'weatherCode'} or _utc(row['at']) != target:
             raise ValueError('original hourly weather grid differs')
         outside, radiation = _number(row['tempF']), _number(row['radiationWm2'])
-        wind, code = _number(row['windMph']), _number(row['weatherCode'])
-        if not -40 <= outside <= 140 or not 0 <= radiation <= 1600 or wind < 0 or not 0 <= code <= 99:
+        wind=_number(row['windMph'])
+        code_valid=(row['weatherCode'] is None) if google else (0<=_number(row['weatherCode'])<=99)
+        if not -40 <= outside <= 140 or not 0 <= radiation <= 1600 or wind < 0 or not code_valid:
             raise ValueError('original weather outside physical bounds')
         hourly.append((target, outside, radiation))
     result = []; index = 0

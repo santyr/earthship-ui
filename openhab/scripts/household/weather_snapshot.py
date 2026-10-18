@@ -5,7 +5,7 @@ from datetime import timedelta
 from .codec import canonical,loads,identity
 from .snapshot import HouseholdSnapshot
 from .model_snapshot import ModelSnapshot,MAX_SOURCE_BYTES
-from .weather_context import PreparedWeatherContext,project_weather,MAX_BYTES
+from .weather_context import PreparedWeatherContext,project_weather,MAX_BYTES,MAX_GOOGLE_BYTES
 from .control_contracts import instant
 
 CONTEXT_SCHEMA='earthship-household-weather-source-context/v1'
@@ -46,6 +46,10 @@ def _render(source,weather,revision):
         'forecast_wind_trajectory':([dict(at=row['at'],wind_mph=row['windMph']) for row in projection['hourly_forecast']],'mph_trajectory'),
         'forecast_weather_codes':([dict(at=row['at'],weather_code=row['weatherCode']) for row in projection['hourly_forecast']],'code_trajectory')}
     for role,(value,unit) in fields.items():domain[role]=_row(role,value,unit,weather)
+    if forecast['source']=='weathernext3':
+        row=domain['forecast_weather_codes'];reason='unsupported_forecast_weather_code'
+        row.update(value=None,reason=reason);row['evidence'].update(quality='unavailable',reason=reason)
+
     if 'solar_geometry' in projection:
         domain['solar_geometry']=_geometry_row(projection['solar_geometry'],capture=capture,weather_sha256=projection['weather_context_sha256'])
     doc['domains']['thermal']['shade_state']=_row('shade_state',dict(indoor_closed=actions['indoor_shade_closed'],outdoor_present=actions['outdoor_shade_present'],actuator_position=None),'state',weather,operator=True)
@@ -63,7 +67,7 @@ class WeatherSnapshot(ModelSnapshot):
     def __post_init__(self):
         HouseholdSnapshot.__post_init__(self)
         if not isinstance(self.original_source,bytes) or len(self.original_source)>MAX_SOURCE_BYTES:raise ValueError('bounded original source required')
-        if not isinstance(self.original_weather,bytes) or len(self.original_weather)>MAX_BYTES:raise ValueError('bounded original weather required')
+        if not isinstance(self.original_weather,bytes) or len(self.original_weather)>MAX_GOOGLE_BYTES:raise ValueError('bounded original weather required')
         doc=loads(self.content)
         if doc.get('schema')!='earthship-household-snapshot/v4' or doc.get('planner_authority')!='none':raise ValueError('original weather snapshot required')
         weather=PreparedWeatherContext(self.original_weather)

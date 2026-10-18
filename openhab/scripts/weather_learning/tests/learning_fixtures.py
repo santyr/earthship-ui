@@ -30,3 +30,17 @@ def pair(day=0,mean_c=10,actual_c=12,epoch=EPOCH,hour=2):
     target=temperature_targets(snapshot,issued_at=issued)[-1]
     outcome=local_temperature_outcome(receipt(target.target_at,actual_c,epoch),target_at=target.target_at,assessed_at=target.target_at+timedelta(minutes=1),sensor_epoch=epoch)
     return training_pair(target,outcome)
+
+
+def full_snapshot(init=T,hours=80):
+    collections=[]
+    for collection,bands,values in [
+        (COLLECTIONS['station'],['station_head_temperature_2m_mean'],[283.15]),
+        (COLLECTIONS['gridded'],['surface_solar_radiation_downwards_1hr_mean','total_sky_direct_solar_radiation_at_surface_1hr_mean','total_precipitation_1hr_mean','wind_speed_10m_mean','total_cloud_cover_mean'],[360000,180000,.001,1,.5])]:
+        raw={'metadata':[],'region':[['id','longitude','latitude','time',*bands]]}
+        for hour in range(1,hours+1):
+            valid=init+timedelta(hours=hour)
+            raw['metadata'].append({'system:index':f'fixture{hour}','start_time':init.isoformat(),'end_time':valid.isoformat(),'forecast_hour':hour,'ingestion_time_utc':init.timestamp()+900})
+            raw['region'].append([f'fixture{hour}',-105.75,38.35,valid.timestamp()*1000,*values])
+        collections.append(parse_collection_response(raw,collection=collection,bands=bands,site=SITE,initialized_at=init,horizon=hours))
+    return make_snapshot(collections,site=SITE,initialized_at=init,first_seen_at=init+timedelta(minutes=20),completed_at=init+timedelta(minutes=21))

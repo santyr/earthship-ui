@@ -14,6 +14,8 @@ from thermal_model.provisional_forecast import CAPTURE_FIELDS,CAPTURE_SCHEMA,dig
 from thermal_model.installed_shade_origin import _forecast_forcing,_origin_actions
 
 MAX_BYTES=262144
+MAX_GOOGLE_BYTES=524288
+GOOGLE_SCHEMA='earthship-household-prepared-weather/v4'
 MAX_ORIGINAL_BYTES=2*1024*1024
 ORIGINAL_FIELDS={'encoding','uncompressed_bytes','uncompressed_sha256','data'}
 FIELDS={'schema','original_capture','prepared_thermal','weather_sha256'}
@@ -27,11 +29,15 @@ def _encode_original(original):
         data=base64.b64encode(zlib.compress(raw,9)).decode('ascii'))
 
 
-def _decode_original(value):
+def _context_limit(value):
+    return MAX_GOOGLE_BYTES if isinstance(value,dict) and value.get('schema')==GOOGLE_SCHEMA else MAX_BYTES
+
+
+def _decode_original(value,*,maximum=MAX_BYTES):
     try:
         if (not isinstance(value,dict) or set(value)!=ORIGINAL_FIELDS or value['encoding']!='zlib-base64-v1' or
             type(value['uncompressed_bytes']) is not int or not 1<=value['uncompressed_bytes']<=MAX_ORIGINAL_BYTES or
-            not isinstance(value['data'],str) or len(value['data'])>MAX_BYTES):raise ValueError()
+            not isinstance(value['data'],str) or len(value['data'])>maximum):raise ValueError()
         packed=base64.b64decode(value['data'],validate=True)
         if base64.b64encode(packed).decode('ascii')!=value['data']:raise ValueError()
         decoder=zlib.decompressobj();raw=decoder.decompress(packed,value['uncompressed_bytes']+1)
@@ -45,12 +51,12 @@ def _decode_original(value):
 
 
 def _original(value):
-    if not isinstance(value,dict) or set(value)!=FIELDS or value['schema'] not in ('earthship-household-prepared-weather/v1','earthship-household-prepared-weather/v2','earthship-household-prepared-weather/v3'):
+    if not isinstance(value,dict) or set(value)!=FIELDS or value['schema'] not in ('earthship-household-prepared-weather/v1','earthship-household-prepared-weather/v2','earthship-household-prepared-weather/v3',GOOGLE_SCHEMA):
         raise ValueError('closed original weather context required')
     if identity({key:item for key,item in value.items() if key!='weather_sha256'})!=value['weather_sha256']:
         raise ValueError('sealed original weather context differs')
-    prepared=PreparedProjection(canonical(value['prepared_thermal']));model=prepared.to_dict();capture=_decode_original(value['original_capture'])
-    native=value['schema'] in ('earthship-household-prepared-weather/v2','earthship-household-prepared-weather/v3')
+    prepared=PreparedProjection(canonical(value['prepared_thermal']));model=prepared.to_dict();capture=_decode_original(value['original_capture'],maximum=_context_limit(value))
+    native=value['schema'] in ('earthship-household-prepared-weather/v2','earthship-household-prepared-weather/v3',GOOGLE_SCHEMA)
     fields,schema=CAPTURE_FIELDS,CAPTURE_SCHEMA
     if native:
         from native_thermal_forecast import CAPTURE_FIELDS as fields,CAPTURE_SCHEMA as schema
@@ -65,6 +71,8 @@ def _original(value):
         instant(model['snapshot']['as_of'])!=issue or instant(model['snapshot']['created_at'])!=published or
         capture['candidate']['artifact_sha256']!=model['artifact_sha256'] or capture['candidate']['runtime_sha256']!=model['runtime_sha256']):
         raise ValueError('original weather/model origin differs')
+    if (capture['inputs']['forecast']['source']=='weathernext3')!=(value['schema']==GOOGLE_SCHEMA):
+        raise ValueError('Google originals require their own private context version')
     candidate=capture['candidate']
     if native and (canonical(model['executing_runtime']['thermal_runtime'])!=canonical(candidate['runtime']) or
             canonical(model['geometry'])!=canonical(capture['geometry']) or
@@ -106,13 +114,16 @@ class PreparedWeatherContext:
     content:bytes
 
     def __post_init__(self):
-        if not isinstance(self.content,bytes) or len(self.content)>MAX_BYTES:raise ValueError('bounded immutable weather context required')
-        _original(loads(self.content))
+        if not isinstance(self.content,bytes) or len(self.content)>MAX_GOOGLE_BYTES:raise ValueError('bounded immutable weather context required')
+        value=loads(self.content)
+        if len(self.content)>_context_limit(value):raise ValueError('bounded immutable weather context required')
+        _original(value)
 
     def to_dict(self):return loads(self.content)
 
     @property
-    def original_capture(self):return _decode_original(self.to_dict()['original_capture'])
+    def original_capture(self):
+        value=self.to_dict();return _decode_original(value['original_capture'],maximum=_context_limit(value))
 
     @property
     def prepared(self):return PreparedProjection(canonical(self.to_dict()['prepared_thermal']))
@@ -147,8 +158,8 @@ def prepare_cycle_contexts(capture,*,code_revision):
 
 def project_weather(context):
     if not isinstance(context,PreparedWeatherContext):raise ValueError('frozen original weather context required')
-    value=context.to_dict();capture=_decode_original(value['original_capture']);model=value['prepared_thermal'];forecast=capture['inputs']['forecast']
-    native=value['schema'] in ('earthship-household-prepared-weather/v2','earthship-household-prepared-weather/v3')
+    value=context.to_dict();capture=_decode_original(value['original_capture'],maximum=_context_limit(value));model=value['prepared_thermal'];forecast=capture['inputs']['forecast']
+    native=value['schema'] in ('earthship-household-prepared-weather/v2','earthship-household-prepared-weather/v3',GOOGLE_SCHEMA)
     result=dict(schema='earthship-household-weather-projection/v'+value['schema'].rsplit('/v',1)[1],weather_context_sha256=value['weather_sha256'],
         original_capture_sha256=capture['capture_sha256'],weather_rows_sha256=forecast['rows_sha256'],
         provider_issued_at=forecast['issued_at'],provider_captured_at=forecast['captured_at'],origin=model['issue'],
@@ -156,8 +167,11 @@ def project_weather(context):
         hourly_forecast=forecast['rows'],origin_states=model['actions'],confidence='not_assessed',input_qualification='not_assessed',
         original_weather_receipts_verified=True,unknown_observations=list(UNKNOWN_OBSERVATIONS),
         action_effects_qualified=False,automatic_actuation=False)
+    if forecast['source']=='weathernext3':
+        result.update(provider='weathernext3',weather_snapshot_sha256=forecast['snapshot_sha256'],
+            weather_forecast_sha256=forecast['forecast_sha256'])
     if native:result.update(geometry_series_sha256=model['geometry_series_sha256'],model_rule=model['model_rule'])
-    if value['schema']=='earthship-household-prepared-weather/v3':
+    if value['schema'] in ('earthship-household-prepared-weather/v3',GOOGLE_SCHEMA):
         # PreparedWeatherContext already validates the complete original series,
         # native output, exact forcing grid and availability. Expose those same
         # frozen bytes; do not rerun astronomy or infer measured daylight/radiation.
@@ -181,7 +195,7 @@ def prepare_native_weather_context(capture,*,prepared_thermal,runtime,expected_a
     capture,runtime=map(deepcopy,(capture,runtime))
     original=validate_capture(capture,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
         expected_capture_sha256=expected_capture_sha256,check_budget=check_budget)
-    value=dict(schema='earthship-household-prepared-weather/v3',original_capture=_encode_original(original),prepared_thermal=prepared_thermal.to_dict())
+    value=dict(schema=GOOGLE_SCHEMA if original['inputs']['forecast']['source']=='weathernext3' else 'earthship-household-prepared-weather/v3',original_capture=_encode_original(original),prepared_thermal=prepared_thermal.to_dict())
     value['weather_sha256']=identity(value);result=PreparedWeatherContext(canonical(value));check_budget();return result
 
 
@@ -190,7 +204,7 @@ def prepare_native_cycle_contexts(capture,*,code_revision,runtime,expected_artif
     original,runtime=map(deepcopy,(capture,runtime))
     thermal=prepare_native_projection(original,code_revision=code_revision,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
         expected_capture_sha256=expected_capture_sha256,check_budget=check_budget)
-    value=dict(schema='earthship-household-prepared-weather/v3',original_capture=_encode_original(original),prepared_thermal=thermal.to_dict())
+    value=dict(schema=GOOGLE_SCHEMA if original['inputs']['forecast']['source']=='weathernext3' else 'earthship-household-prepared-weather/v3',original_capture=_encode_original(original),prepared_thermal=thermal.to_dict())
     value['weather_sha256']=identity(value);weather=PreparedWeatherContext(canonical(value));check_budget();return thermal,weather
 
 
@@ -201,6 +215,6 @@ def prepare_serving_native_cycle_contexts(capture,model,*,code_revision,expected
     original=deepcopy(capture)
     thermal=prepare_serving_native_projection(original,model,code_revision=code_revision,
         expected_capture_sha256=expected_capture_sha256,check_budget=check_budget)
-    value=dict(schema='earthship-household-prepared-weather/v3',original_capture=_encode_original(original),prepared_thermal=thermal.to_dict())
+    value=dict(schema=GOOGLE_SCHEMA if original['inputs']['forecast']['source']=='weathernext3' else 'earthship-household-prepared-weather/v3',original_capture=_encode_original(original),prepared_thermal=thermal.to_dict())
     value['weather_sha256']=identity(value);weather=PreparedWeatherContext(canonical(value));check_budget()
     return thermal,weather

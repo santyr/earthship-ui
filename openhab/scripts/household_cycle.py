@@ -99,7 +99,7 @@ def derive_cycle(*,originals,capture,receipts,thermal,weather,parameter_record,r
         instant=_instant
         if (not isinstance(thermal,PreparedProjection) or not isinstance(weather,PreparedWeatherContext) or
             thermal.to_dict()['schema']!='earthship-household-prepared-thermal/v2' or
-            weather.to_dict()['schema'] not in ('earthship-household-prepared-weather/v2','earthship-household-prepared-weather/v3')):
+            weather.to_dict()['schema'] not in ('earthship-household-prepared-weather/v2','earthship-household-prepared-weather/v3','earthship-household-prepared-weather/v4')):
             raise ValueError('native issue requires separately prepared native models')
     elif capture.get('schema')=='earthship-provisional-thermal-origin/v1':
         from thermal_model.provisional_score import validate_delivery

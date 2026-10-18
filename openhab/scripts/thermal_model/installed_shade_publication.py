@@ -91,6 +91,11 @@ RELEASE_SCHEMA='earthship-installed-shade-release/v1'
 CALIBRATED_RAW_SCHEMA='earthship-installed-shade-publication/v2'
 CALIBRATED_RAW_RELEASE_SCHEMA='earthship-installed-shade-release/v2'
 RAW_RUNTIME_PATHS=RUNTIME_PATHS|frozenset({
+    'weather_learning/__init__.py','weather_learning/native_forecast.py','weather_learning/native_backend.py',
+    'weather_learning/config.py','weather_learning/contracts.py','weather_learning/features.py',
+    'weather_learning/normalize.py','weather_learning/weathernext_ee.py','weather_learning/transport.py',
+    'weather_learning/archive.py','weather_learning/evidence.py',
+
     'weather_temperature_sources.py','forecast_input_capture.py','forecast_temperature_origin.py',
     'thermal_model/installed_shade_raw_score_sources.py',
     'thermal_model/installed_shade_score_inputs.py','thermal_model/installed_shade_score_collection.py',

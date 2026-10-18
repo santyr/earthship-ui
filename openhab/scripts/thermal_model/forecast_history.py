@@ -147,6 +147,10 @@ def _fetch_origin_forecast(connection_factory, *, origin, horizon_hours, retain_
 
 def verify_origin_forecast_receipts(forecast):
     """Reconstruct the original metric/capture-clock archive digest, no SQL."""
+    if isinstance(forecast,dict) and forecast.get('source')=='weathernext3':
+        from weather_learning.native_forecast import validate_native_forecast
+        return validate_native_forecast(forecast)
+
     from .forcing_capture import _canonical
     from .graduation_policy import _utc as clock
     fields={'schema','source','issued_at','captured_at','origin','horizon_hours',

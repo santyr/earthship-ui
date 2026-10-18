@@ -118,15 +118,18 @@ class TelemetryTransport:
 
 
 class LiveBackend:
-    def __init__(self,settings,*,shared_lock_guard=None):
+    def __init__(self,settings,*,shared_lock_guard=None,forecast_reader=None):
         if not callable(shared_lock_guard):raise ValueError('held shared publication guard required')
         shared_lock_guard()
         self.settings=deepcopy(settings);self.budget=ReadBudget(85,max_requests=24,guard=shared_lock_guard)
-        self.hashes={name:sha256(_owned_bytes(Path(settings[name]),16384)).hexdigest() for name in SOURCE_PATHS}
+        if forecast_reader is not None and not callable(forecast_reader):raise ValueError('explicit forecast reader required')
+        self.forecast_reader=forecast_reader
+        source_paths=SOURCE_PATHS if forecast_reader is None else SOURCE_PATHS-{'forecast_dsn_file'}
+        self.hashes={name:sha256(_owned_bytes(Path(settings[name]),16384)).hexdigest() for name in source_paths}
         self.token=_owned_bytes(Path(settings['token_file']),4096).decode().strip()
         self.transport=TelemetryTransport(base=settings['openhab_base'],token_reader=lambda:self.token,budget=self.budget)
         self.journal_dsn=bounded_journal_dsn(_owned_bytes(Path(settings['journal_dsn_file']),4096).decode().strip())
-        self.forecast_dsn=bounded_journal_dsn(_owned_bytes(Path(settings['forecast_dsn_file']),4096).decode().strip())
+        self.forecast_dsn=None if forecast_reader is not None else bounded_journal_dsn(_owned_bytes(Path(settings['forecast_dsn_file']),4096).decode().strip())
         from thermal_temperature_runtime import _configured_sensor_epochs
         self.env=dict(THERMAL_TEMP_POLICY=settings['native_policy'],THERMAL_TEMP_DB_CONFIG=settings['native_db_config'])
         self.epochs=_configured_sensor_epochs(self.env)
@@ -158,13 +161,17 @@ class LiveBackend:
         try:return self._collect(issue=issue,known_at=known_at)
         except psycopg2.Error:raise ValueError('bounded original database source unavailable') from None
     def _collect(self,*,issue,known_at):
-        from .forecast_history import fetch_pending_origin_forecast_with_receipts
         from .action_history import fetch_origin_actions
         from thermal_temperature_runtime import shadow_temperatures_v2
         from .dataset import latent_mass_from_series
         known_at,issue=map(_utc,(known_at,issue))
         if not timedelta(0)<issue-known_at<=timedelta(seconds=60) or known_at>_clock():raise ValueError('bounded actual pre-issue collection clock required')
-        forecast=fetch_pending_origin_forecast_with_receipts(lambda:self._connect(self.forecast_dsn),origin=issue,horizon_hours=24,available_by=known_at)
+        reader=getattr(self,'forecast_reader',None)
+        if reader is None:
+            from .forecast_history import fetch_pending_origin_forecast_with_receipts
+            forecast=fetch_pending_origin_forecast_with_receipts(lambda:self._connect(self.forecast_dsn),origin=issue,horizon_hours=24,available_by=known_at)
+        else:
+            forecast=reader(issue=issue,available_by=known_at,horizon_hours=24)
         if forecast is None:raise ValueError('original archived weather unavailable')
         saved=[]
         selected=shadow_temperatures_v2(known_at,self._temperature_grid,sensor_epochs=self.epochs,origin_observer=saved.append)
