@@ -1,0 +1,16 @@
+[Unit]
+Description=Earthship WeatherNext private shadow acquisition
+Documentation=https://developers.google.com/weathernext/guides/earth-engine
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=%h/.config/earthship-weather/runtime.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 ${EARTHSHIP_WEATHER_CODE_ROOT}/scripts/run-household-job.py --production --collection --minimum-mib 256 --preferred-mib 512 --tasks 48 --seconds 120 -- ${EARTHSHIP_WEATHER_PYTHON} ${EARTHSHIP_WEATHER_CODE_ROOT}/openhab/scripts/weathernext_ingest.py --collect --archive ${EARTHSHIP_WEATHER_ARCHIVE}
+TimeoutStartSec=150
+Restart=no
+UMask=0077
+StandardOutput=journal
+StandardError=journal

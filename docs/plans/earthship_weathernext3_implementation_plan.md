@@ -1,3 +1,5 @@
+**Execution update (2026-10-18):** Operator authorized the exclusive WeatherNext migration. Dataset access and a real GCS cell read are verified; bounded noncommercial Earth Engine retrieval is approved after measuring global-chunk transfer cost. The operator enabled the Earth Engine API; live verification now reports the project is not registered, and the operator reports a generic registration error. The original dated baseline below is historical; current evidence and remaining gates are in `docs/operations/weathernext-readiness.md`.
+
 # WeatherNext 3 Local Adaptation Implementation Plan
 
 > **For agentic workers:** Use `superpowers:executing-plans` for inline execution or `superpowers:subagent-driven-development` where independent workers are available. Execute the reviewed tasks sequentially with test-first changes. Checkboxes below are work to be performed, not completed work.

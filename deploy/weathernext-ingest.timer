@@ -1,0 +1,11 @@
+[Unit]
+Description=Earthship WeatherNext prospective shadow capture
+
+[Timer]
+OnCalendar=*-*-* *:35:00
+RandomizedDelaySec=120
+Persistent=true
+Unit=weathernext-ingest.service
+
+[Install]
+WantedBy=timers.target
