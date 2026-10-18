@@ -162,7 +162,10 @@ def production_score_policy():
 
 
 def score_with_report(settings,*,guard,clock=lambda:datetime.now(timezone.utc),queue=False,serving_model=None,historical_selections=()):
-    if settings.get('schema')=='earthship-provisional-thermal-live-config/v3':
+    import native_thermal_live as native
+    SERVING_SCHEMAS=getattr(native,'SERVING_SCHEMAS',(native.SERVING_SCHEMA,))
+    LIVE_SCHEMAS=getattr(native,'LIVE_SCHEMAS',(native.LIVE_SCHEMA,))
+    if settings.get('schema') in SERVING_SCHEMAS:
         from native_thermal_live import score_jobs
         if serving_model is None:raise ValueError('owned serving score context required')
         from household_native_score_queries import RecentCycleWindowReader
@@ -176,7 +179,7 @@ def score_with_report(settings,*,guard,clock=lambda:datetime.now(timezone.utc),q
         reader=RecentCycleWindowReader(config,shared_lock_guard=guard)
         guard();return score_jobs(settings,guard=guard,reader=reader,serving_model=serving_model,historical_selections=historical_selections)
     if serving_model is not None or historical_selections:raise ValueError('receipt context requires explicit serving profile')
-    if settings.get('schema')=='earthship-provisional-thermal-live-config/v2':
+    if settings.get('schema') in LIVE_SCHEMAS:
         from native_thermal_live import score_jobs
         guard()
         return score_jobs(settings,guard=guard)
@@ -214,10 +217,13 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
     config=Path(config).absolute();original=_private_file(config,8192)
     from household.codec import loads
     declared=loads(original[0])
-    if isinstance(declared,dict) and declared.get('schema') in ('earthship-provisional-thermal-live-config/v2','earthship-provisional-thermal-live-config/v3'):
+    import native_thermal_live as native
+    NATIVE_SCHEMAS=getattr(native,'NATIVE_SCHEMAS',(native.LIVE_SCHEMA,native.SERVING_SCHEMA))
+    SERVING_SCHEMAS=getattr(native,'SERVING_SCHEMAS',(native.SERVING_SCHEMA,))
+    if isinstance(declared,dict) and declared.get('schema') in NATIVE_SCHEMAS:
         from native_thermal_live import load_settings
     settings=load_settings(config)
-    receipt_profile=settings.get('schema')=='earthship-provisional-thermal-live-config/v3'
+    receipt_profile=settings.get('schema') in SERVING_SCHEMAS
     if retained_native and not receipt_profile:raise ValueError('retained native execution requires explicit serving profile')
     if receipt_profile and (stage is None or deployment_sha256 is None):raise ValueError('external serving score stage pin required')
     own=Path(__file__).read_bytes();now=clock();issue=_next_issue(now)
@@ -262,7 +268,7 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
             # original model association, without restarting the lifetime.
 
     with SharedScoreLock(settings['shared_lock']) as lock:
-        if settings.get('schema') in ('earthship-provisional-thermal-live-config/v2','earthship-provisional-thermal-live-config/v3'):
+        if settings.get('schema') in NATIVE_SCHEMAS:
             from native_inference_pressure import NativeInferenceHeadroom
             pressure=NativeInferenceHeadroom();pressure.preflight()
             pressure=SampledScorePressure(pressure,monotonic=monotonic)

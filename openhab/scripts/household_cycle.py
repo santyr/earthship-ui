@@ -427,9 +427,13 @@ class LazyForecastBackend:
         from thermal_model.provisional_live import backend_settings,delivery_directory,CompressedSourceLiveBackend
         if self.parent is not None:raise ValueError('one original issue per backend required')
         self.guard()
-        settings=backend_settings(self.settings)
-        settings['evidence_directory']=str(delivery_directory(self.settings,issue))
-        self.parent=CompressedSourceLiveBackend(settings,shared_lock_guard=self.guard)
+        from native_thermal_live import GOOGLE_SCHEMAS,make_forecast_backend
+        if self.settings.get('schema') in GOOGLE_SCHEMAS:
+            self.parent=make_forecast_backend(self.settings,evidence_directory=delivery_directory(self.settings,issue),guard=self.guard)
+        else:
+            settings=backend_settings(self.settings)
+            settings['evidence_directory']=str(delivery_directory(self.settings,issue))
+            self.parent=CompressedSourceLiveBackend(settings,shared_lock_guard=self.guard)
         return self.parent.collect(issue=issue,known_at=known_at)
 
 
@@ -463,8 +467,9 @@ def _run_cycle(config_path,*,code_revision,forecast_config=None,stage=None,deplo
     if forecast_config is None:forecast_config=load_cycle_settings(config_path)['forecast_config']
     forecast_path=Path(forecast_config).absolute();forecast_original=_private_file(forecast_path,8192)
     original_settings=loads(forecast_original[0])
-    receipt_profile=isinstance(original_settings,dict) and original_settings.get('schema')=='earthship-provisional-thermal-live-config/v3'
-    native_profile=isinstance(original_settings,dict) and original_settings.get('schema') in ('earthship-provisional-thermal-live-config/v2','earthship-provisional-thermal-live-config/v3')
+    from native_thermal_live import NATIVE_SCHEMAS,SERVING_SCHEMAS
+    receipt_profile=isinstance(original_settings,dict) and original_settings.get('schema') in SERVING_SCHEMAS
+    native_profile=isinstance(original_settings,dict) and original_settings.get('schema') in NATIVE_SCHEMAS
     if native_profile:
         from household_cycle_resources import publication_resource_preflight
         publication_resource_preflight()

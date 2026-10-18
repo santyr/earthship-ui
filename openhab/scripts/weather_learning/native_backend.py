@@ -23,3 +23,21 @@ def make_native_backend(settings,*,archive,site,shared_lock_guard):
         shared_lock_guard()
         return result
     return CompressedSourceLiveBackend(deepcopy(settings),shared_lock_guard=shared_lock_guard,forecast_reader=read)
+
+
+SOURCE_SCHEMA='earthship-weathernext-native-source/v1'
+
+
+def native_source(value,*,withdraw=False):
+    """Closed pinned site/archive selection, without forecast database access."""
+    from pathlib import Path
+    from thermal_model.forcing_capture import _private_directory
+    if (not isinstance(value,dict) or set(value)!={'schema','archive_directory','site'} or
+            value['schema']!=SOURCE_SCHEMA or not isinstance(value['site'],dict) or
+            set(value['site'])!={'latitude','longitude','timezone'}):
+        raise ValueError('closed Google weather source required')
+    site=Site(**value['site']);root=Path(value['archive_directory'])
+    if not root.is_absolute() or root.resolve()!=root:raise ValueError('resolved Google archive required')
+    _private_directory(root.parent)
+    if not withdraw:_private_directory(root)
+    return root,site

@@ -1,0 +1,36 @@
+# Native Google configuration and execution selection
+
+Observed October 18, 2026. This completes another Task 8 preparation increment; production provider selection and the full migration remain unfinished.
+
+## Explicit source selection
+
+Two closed configurations select Google native inputs:
+
+- `earthship-weathernext-thermal-live-config/v1` uses complete candidate validation.
+- `earthship-weathernext-thermal-live-config/v2` uses the existing externally pinned model-verification receipt.
+
+Both replace `forecast_dsn_file` with `weather_source`. This source has exactly `schema=earthship-weathernext-native-source/v1`, `archive_directory` and `site` (latitude, longitude, IANA timezone). Extra fields, incumbent forecast credentials, malformed sites and archive aliases refuse. Existing token, local measurement/journal configuration, shared lock, model/runtime identity, evidence directory, geometry and native measurement cutover fields keep their validation. Receipt serving still requires its pinned receipt and externally selected deployment stage.
+
+The native publisher and household lazy collector now construct the archive-only backend for either Google profile. Preparation, current and retained scoring, monitoring and deployment staging recognize the same profiles. A Google publisher refuses incumbent weather inputs before any telemetry write. Missing Google data never selects the old forecast database. Current operational scoring retains support for older immutable native archives that have only their original schema constants; archived numerical functions and hashes remain unchanged.
+
+Inference opens the existing archive and SQLite index read-only. It cannot create directories/schema, chmod the collector's index or store snapshots; a missing archive refuses without initialization. Unit tests verify that even a direct SQLite delete fails and opening/reading preserves the original index bytes, modification time and mode. The collector remains the writer. Withdrawal configuration remains loadable without an archive, candidate or prepared geometry.
+
+## Staging and fitting boundaries
+
+Immutable deployment staging recognizes both Google profiles and retains receipt/dispatch pins. It permits replacing the forecast credential with the explicit archive source, while unrelated credentials, lock and base URL remain pinned. Google release preparation may have a new committed numerical source closure, as required by fresh fitting and retirement; an ordinary incumbent model switch still requires the exact original base runtime. All new committed source bytes, original dependencies and candidate/runtime identities remain checked. Staging is separate from model qualification and service handoff.
+
+These package/routing tests use synthetic model metadata where stated. They do not establish predictive skill, reuse permission for incumbent weights, or release authority. Actual fresh fitting must use the final Google-only source closure. Preserve the installed newer irradiance/shade model family when porting the release; an older checkout fixture is not a replacement model.
+
+## Actual private source check
+
+A copy of the actual installed private configuration was translated to the Google receipt-serving profile and loaded from a private preparation directory. The installed configuration and all existing model/receipt files were left unchanged. Backend construction and forecast selection used actual private local-source configuration paths and a real retained Google snapshot. SQL connections and network connection creation were forbidden during this check. No model admission, collection of new household telemetry, API request, forecast publication or service change occurred.
+
+Preparation began **2026-10-18T22:46:44.730458+00:00** and completed **2026-10-18T22:46:45.443919+00:00**, using cutoff 2026-10-18T22:46:44.730458+00:00 and target origin 2026-10-18T22:50:15+00:00. It selected **26 bracket rows** in **0.713 seconds / 96360 KiB peak RSS**. This is `SOURCE_SELECTION_PREPARATION_ONLY`, not an as-issued production forecast.
+
+Private immutable receipt: `658f9d2049c0db2688de0e6da9181c4dba9603bdc482a4cc584bdb03765c727f`. Retained Google snapshot: `8cc3a3d8a7267f441c2ed828bf641e8b8630a6077f383f0521ce65427cca9ece`. Originals and translated private configuration remain outside Git and browser assets. The old model was deliberately not admitted under the changed source/configuration.
+
+## Verification and remaining work
+
+Fifteen focused Google configuration/routing/source tests cover both profiles, field/path damage, read-only SQLite access, lazy collection, original Google publication, owned receipt preparation/driver/score routing, older archived scoring, and differing-source Google staging with an incumbent negative control. The complete relevant native preparation/publication/deployment/scoring set passed **115 tests in 18.89 seconds**. The pinned WeatherNext suite passed **175 tests in 6.142 seconds**. Native input/runtime/household weather/physical energy regressions passed **140 tests in 55.87 seconds**. The final staging-only fix was followed by the complete 115-test relevant set; no numerical/model code changed. Tests run in an immutable Git export, without changing live or working source permissions.
+
+Real installation, final Google-only code/configuration removal, fresh weather-dependent Google/local fitting, variable/regime/outcome and prospective interval qualification, production release ownership and retained publication attempts, natural publication and final whole-branch review remain required. The existing production service still selects its incumbent configuration. No resource policy, actuator/notification authority or recovery scope changed.

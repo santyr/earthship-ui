@@ -1,7 +1,7 @@
 """Private content-addressed originals and transactional eligibility index."""
 from datetime import datetime,timedelta,timezone
 from hashlib import sha256
-import json,os,pathlib,sqlite3,tempfile
+import json,os,pathlib,sqlite3,tempfile,stat
 from contextlib import contextmanager
 from .contracts import canonical,identity,instant,validate_snapshot
 
@@ -18,14 +18,31 @@ class Archive:
             db.execute('CREATE TABLE IF NOT EXISTS snapshots (digest TEXT PRIMARY KEY, initialized TEXT NOT NULL, first_seen TEXT NOT NULL, completed TEXT NOT NULL, historical INTEGER NOT NULL)')
         os.chmod(self.db,0o600)
 
+    @classmethod
+    def open_readonly(cls,root):
+        """Open the collector's existing index without creating or changing it."""
+        value=cls.__new__(cls);value.root=pathlib.Path(root)
+        if not value.root.is_absolute() or value.root.resolve()!=value.root:
+            raise ValueError('resolved private archive required')
+        value.objects=value.root/'objects';value.db=value.root/'index.sqlite3';value.readonly=True
+        for path,directory in ((value.root,True),(value.objects,True),(value.db,False)):
+            info=path.lstat()
+            if (info.st_uid!=os.getuid() or info.st_mode&0o077 or
+                    not (stat.S_ISDIR(info.st_mode) if directory else stat.S_ISREG(info.st_mode))):
+                raise ValueError('owned private read-only archive required')
+        with value._connect() as db:db.execute('SELECT digest FROM snapshots LIMIT 0')
+        return value
+
     @contextmanager
     def _connect(self):
-        connection=sqlite3.connect(self.db,timeout=2)
+        readonly=getattr(self,'readonly',False)
+        connection=sqlite3.connect(self.db.as_uri()+'?mode=ro' if readonly else self.db,timeout=2,uri=readonly)
         try:
             with connection:yield connection
         finally:connection.close()
 
     def store_snapshot(self,snapshot):
+        if getattr(self,'readonly',False):raise ValueError('read-only archive cannot store snapshots')
         # Validation and canonical copy precede any mutation of archive state.
         raw=canonical(validate_snapshot(snapshot));value=json.loads(raw);name=sha256(raw).hexdigest()
         destination=self.objects/(name+'.json')

@@ -76,6 +76,8 @@ def _service_contract(raw,config):
 
 NATIVE_CONFIG_SCHEMA='earthship-provisional-thermal-live-config/v2'
 SERVING_CONFIG_SCHEMA='earthship-provisional-thermal-live-config/v3'
+from native_thermal_live import NATIVE_SCHEMAS,SERVING_SCHEMAS,GOOGLE_SCHEMAS,configuration_fields
+
 NATIVE_DEPLOYMENT_FIELDS={'native_runtime_sources','native_originals','artifact_sha256','runtime_sha256'}
 
 
@@ -83,8 +85,8 @@ def _native_header(candidate,settings):
     from native_thermal_artifact import SCHEMA,FIELDS,validate_native_runtime,digest,LIMITS
     from thermal_model.provisional_live import FIELDS as CONFIG_FIELDS
     if (not isinstance(candidate,dict) or set(candidate)!=FIELDS or candidate['schema']!=SCHEMA or
-        set(settings)!=CONFIG_FIELDS|{'artifact_sha256','runtime_sha256','geometry_directory'}|({'model_receipt_path','model_receipt_sha256'} if settings.get('schema')==SERVING_CONFIG_SCHEMA else set()) or
-        settings['schema'] not in (NATIVE_CONFIG_SCHEMA,SERVING_CONFIG_SCHEMA)):
+        set(settings)!=configuration_fields(settings.get('schema')) or
+        settings['schema'] not in NATIVE_SCHEMAS):
         raise ValueError('explicit closed native candidate and configuration required')
     runtime=validate_native_runtime(candidate['runtime'])
     if (candidate['artifact_sha256']!=settings['artifact_sha256'] or
@@ -121,7 +123,7 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
         raise ValueError('clean exact committed source required')
     _directory(cache.parent)
     config_raw=_bytes(config,private=True);settings=json.loads(config_raw)
-    serving=settings.get('schema')==SERVING_CONFIG_SCHEMA
+    serving=settings.get('schema') in SERVING_SCHEMAS
     serving_refs={}
     if serving:
         for role,path,pin in (('receipt',model_receipt_path,model_receipt_sha256),('dispatch',score_dispatch_path,score_dispatch_sha256)):
@@ -135,7 +137,7 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
     elif any(value is not None for value in (model_receipt_path,model_receipt_sha256,score_dispatch_path,score_dispatch_sha256)):
         raise ValueError('receipt inputs require explicit serving configuration')
     candidate=_path(settings['candidate_path']);candidate_raw=_bytes(candidate,private=True)
-    declared=json.loads(candidate_raw);native=settings.get('schema') in (NATIVE_CONFIG_SCHEMA,SERVING_CONFIG_SCHEMA) or declared.get('schema')=='earthship-provisional-thermal-candidate/v2'
+    declared=json.loads(candidate_raw);native=settings.get('schema') in NATIVE_SCHEMAS or declared.get('schema')=='earthship-provisional-thermal-candidate/v2'
     protected,native_info=_native_header(declared,settings) if native else (declared['runtime']['source_manifest'],None)
     baseline_candidate=None;baseline_candidate_raw=None
     parameter_raw=_bytes(parameters,private=True);service_raw=_bytes(service)
@@ -145,19 +147,20 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
     if baseline!=config:
         previous=json.loads(baseline_raw)
         allowed={'candidate_path'} if not native else {'schema','candidate_path','artifact_sha256','runtime_sha256','geometry_directory','evidence_directory'}|({'model_receipt_path','model_receipt_sha256'} if serving else set())
+        if settings.get('schema') in GOOGLE_SCHEMAS:allowed=allowed|{'forecast_dsn_file','weather_source'}
         if (not isinstance(settings,dict) or not isinstance(previous,dict) or
             {k:v for k,v in settings.items() if k not in allowed}!={k:v for k,v in previous.items() if k not in allowed} or
             settings.get('candidate_path')==previous.get('candidate_path')):
             raise ValueError('only explicit model selection may change from the original service configuration')
         if native:
             from thermal_model.provisional_live import FIELDS as CONFIG_FIELDS,SCHEMA as LEGACY_SCHEMA
-            previous_fields=CONFIG_FIELDS if previous.get('schema')==LEGACY_SCHEMA else CONFIG_FIELDS|{'artifact_sha256','runtime_sha256','geometry_directory'}|({'model_receipt_path','model_receipt_sha256'} if previous.get('schema')==SERVING_CONFIG_SCHEMA else set())
-            if previous.get('schema') not in (LEGACY_SCHEMA,NATIVE_CONFIG_SCHEMA,SERVING_CONFIG_SCHEMA) or set(previous)!=previous_fields:
+            previous_fields=CONFIG_FIELDS if previous.get('schema')==LEGACY_SCHEMA else configuration_fields(previous.get('schema'))
+            if previous.get('schema') not in (LEGACY_SCHEMA,)+NATIVE_SCHEMAS or set(previous)!=previous_fields:
                 raise ValueError('closed original baseline configuration required')
             baseline_candidate=_path(previous['candidate_path']);baseline_candidate_raw=_bytes(baseline_candidate,private=True)
             previous_model=json.loads(baseline_candidate_raw);base=previous_model['runtime']
-            if previous.get('schema') in (NATIVE_CONFIG_SCHEMA,SERVING_CONFIG_SCHEMA):base=base['base_runtime']
-            if _encode(base)!=_encode(declared['runtime']['base_runtime']):
+            if previous.get('schema') in NATIVE_SCHEMAS:base=base['base_runtime']
+            if settings.get('schema') not in GOOGLE_SCHEMAS and _encode(base)!=_encode(declared['runtime']['base_runtime']):
                 raise ValueError('native selection must preserve original fitted base runtime')
     _service_contract(service_raw,baseline)
     # Archive the immutable commit object, not the mutable index/worktree. A
@@ -282,7 +285,7 @@ def verify_stage(stage,*,expected_deployment_sha256=None):
         helper=record['model_verification']['helper']
         if helper['path']!=str(root/'openhab/scripts/native_model_serving_receipt.py') or sources.get('openhab/scripts/native_model_serving_receipt.py')!=helper['sha256']:
             raise ValueError('complete serving helper source closure required')
-        if settings['schema']!=SERVING_CONFIG_SCHEMA or settings['model_receipt_path']!=record['model_verification']['receipt']['path'] or settings['model_receipt_sha256']!=record['model_verification']['receipt']['sha256']:
+        if settings['schema'] not in SERVING_SCHEMAS or settings['model_receipt_path']!=record['model_verification']['receipt']['path'] or settings['model_receipt_sha256']!=record['model_verification']['receipt']['sha256']:
             raise ValueError('explicit serving profile receipt differs')
     return record
 

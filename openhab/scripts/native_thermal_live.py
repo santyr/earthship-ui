@@ -75,6 +75,12 @@ from thermal_model.origin_capture import _temperatures
 
 LIVE_SCHEMA='earthship-provisional-thermal-live-config/v2'
 SERVING_SCHEMA='earthship-provisional-thermal-live-config/v3'
+GOOGLE_LIVE_SCHEMA='earthship-weathernext-thermal-live-config/v1'
+GOOGLE_SERVING_SCHEMA='earthship-weathernext-thermal-live-config/v2'
+GOOGLE_SCHEMAS=(GOOGLE_LIVE_SCHEMA,GOOGLE_SERVING_SCHEMA)
+LIVE_SCHEMAS=(LIVE_SCHEMA,GOOGLE_LIVE_SCHEMA)
+SERVING_SCHEMAS=(SERVING_SCHEMA,GOOGLE_SERVING_SCHEMA)
+NATIVE_SCHEMAS=LIVE_SCHEMAS+SERVING_SCHEMAS
 SOURCE='openhab/scripts/native_thermal_live.py'
 
 RESOURCE_SOURCE_SHA256='092dab2595bb8f8478fd0519118e1e277ab8aa61d887d5ff2fc38d4ea7717f70'
@@ -125,8 +131,8 @@ def publish_cycle(settings,*,guard,geometry=None,backend=None,serving_model=None
     from thermal_model.policy_registration import _read_private
     from astro_geometry_series import NativeGeometrySeries
     settings=deepcopy(settings)
-    receipt_profile=settings.get('schema')==SERVING_SCHEMA
-    if (settings.get('schema') not in (LIVE_SCHEMA,SERVING_SCHEMA) or
+    receipt_profile=settings.get('schema') in SERVING_SCHEMAS
+    if (settings.get('schema') not in NATIVE_SCHEMAS or
         receipt_profile!=(serving_model is not None) or
         (geometry is not None and type(geometry) is not NativeGeometrySeries)):
         raise ValueError('explicit native settings and prepared geometry required')
@@ -165,9 +171,10 @@ def publish_cycle(settings,*,guard,geometry=None,backend=None,serving_model=None
             raise ValueError('native geometry unavailable before input collection')
         archive=delivery_directory(settings,issue)
         if backend is None:
-            translated=backend_settings(settings);translated['evidence_directory']=str(archive)
-            backend=CompressedSourceLiveBackend(translated,shared_lock_guard=within_deadline)
+            backend=make_forecast_backend(settings,evidence_directory=archive,guard=within_deadline)
         inputs=backend.collect(issue=issue,known_at=known);available=_clock()
+        if settings.get('schema') in GOOGLE_SCHEMAS and inputs.get('forecast',{}).get('source')!='weathernext3':
+            raise ValueError('explicit Google weather inputs required')
         if available>issue:raise ValueError('original native sources arrived after issue')
         while _clock()<issue:
             within_deadline();sleep(min(.1,max(0,(issue-_clock()).total_seconds())))
@@ -248,8 +255,36 @@ GEOMETRY_FIELDS={'schema','issued_at','artifact_sha256','runtime_sha256','geomet
 GEOMETRY_MAX=4*1024*1024+65536
 
 
+def configuration_fields(schema):
+    from thermal_model.provisional_live import FIELDS
+    if schema not in NATIVE_SCHEMAS:raise ValueError('explicit native configuration schema required')
+    fields=FIELDS|{'artifact_sha256','runtime_sha256','geometry_directory'}
+    if schema in GOOGLE_SCHEMAS:fields=(fields-{'forecast_dsn_file'})|{'weather_source'}
+    if schema in SERVING_SCHEMAS:fields=fields|{'model_receipt_path','model_receipt_sha256'}
+    return fields
+
+
+def make_forecast_backend(settings,*,evidence_directory,guard):
+    """The configured native source is authoritative; never switch on failure."""
+    guard()
+    if settings.get('schema') in GOOGLE_SCHEMAS:
+        from weather_learning.native_backend import native_source,make_native_backend,SCHEMA
+        from weather_learning.archive import Archive
+        from thermal_model.provisional_live import SOURCE_FIELDS
+        root,site=native_source(settings['weather_source'])
+        translated={key:settings[key] for key in SOURCE_FIELDS-{'candidate_path','forecast_dsn_file'}}
+        translated.update(schema=SCHEMA,release_inputs_path=settings['candidate_path'],
+            openhab_base=settings['openhab_base'],evidence_directory=str(evidence_directory))
+        backend=make_native_backend(translated,archive=Archive.open_readonly(root),site=site,shared_lock_guard=guard)
+    else:
+        if settings.get('schema') not in NATIVE_SCHEMAS:raise ValueError('explicit native source selection required')
+        translated=backend_settings(settings);translated['evidence_directory']=str(evidence_directory)
+        backend=CompressedSourceLiveBackend(translated,shared_lock_guard=guard)
+    guard();return backend
+
+
 def load_settings(path,*,withdraw=False):
-    """Explicit private v2 selection; v1 configurations retain their own loader."""
+    """Closed native source/model selection; legacy v1 has its own loader."""
     from thermal_model.provisional_live import FIELDS,SOURCE_FIELDS
     from thermal_model.forcing_capture import _private_directory
     from thermal_model.policy_registration import _read_private
@@ -258,13 +293,18 @@ def load_settings(path,*,withdraw=False):
     path=Path(path);_private_directory(path.parent)
     if len(_owned_bytes(path,8192))>8192:raise ValueError('bounded native configuration required')
     value=_read_private(path)
-    serving=isinstance(value,dict) and value.get('schema')==SERVING_SCHEMA
-    if (not isinstance(value,dict) or set(value)!=FIELDS|{'artifact_sha256','runtime_sha256','geometry_directory'}|({'model_receipt_path','model_receipt_sha256'} if serving else set()) or
-        value['schema'] not in (LIVE_SCHEMA,SERVING_SCHEMA) or value['openhab_base'] not in BASES):
+    serving=isinstance(value,dict) and value.get('schema') in SERVING_SCHEMAS
+    google=isinstance(value,dict) and value.get('schema') in GOOGLE_SCHEMAS
+    if (not isinstance(value,dict) or set(value)!=configuration_fields(value.get('schema')) or
+        value['schema'] not in NATIVE_SCHEMAS or value['openhab_base'] not in BASES):
         raise ValueError('closed native production configuration required')
     _sha(value['artifact_sha256']);_sha(value['runtime_sha256']);_instant(value['native_cutover'])
     if serving:_sha(value['model_receipt_sha256'])
-    for key in SOURCE_FIELDS|{'evidence_directory','shared_lock','geometry_directory'}|({'model_receipt_path'} if serving else set()):
+    if google:
+        from weather_learning.native_backend import native_source
+        native_source(value['weather_source'],withdraw=withdraw)
+    source_fields=SOURCE_FIELDS-{'forecast_dsn_file'} if google else SOURCE_FIELDS
+    for key in source_fields|{'evidence_directory','shared_lock','geometry_directory'}|({'model_receipt_path'} if serving else set()):
         target=Path(value[key])
         if not target.is_absolute() or target.resolve()!=target:raise ValueError('resolved native source required')
         _private_directory(target.parent)
@@ -319,8 +359,8 @@ def prepare_geometry(settings,*,issue,library_paths,guard,serving_model=None):
     from thermal_model.rollback import _rename_new
     from thermal_model.replay_budget import capture_source_reads
     settings=deepcopy(settings);issue=_instant(issue);path=geometry_path(settings,issue);started=_clock()
-    receipt_profile=settings.get('schema')==SERVING_SCHEMA
-    if (settings.get('schema') not in (LIVE_SCHEMA,SERVING_SCHEMA) or receipt_profile!=(serving_model is not None) or
+    receipt_profile=settings.get('schema') in SERVING_SCHEMAS
+    if (settings.get('schema') not in NATIVE_SCHEMAS or receipt_profile!=(serving_model is not None) or
             not timedelta(seconds=20)<issue-started<=timedelta(minutes=5)):
         raise ValueError('bounded earlier native preparation window required')
     deadline=monotonic()+75
@@ -446,7 +486,7 @@ def refresh_report(settings,*,runtime,artifact_sha256,now,guard,serving_model=No
             assessed_at=now,check_budget=guard)
         serving_model.verify_bindings(assessed_at=now,guard=guard)
     else:
-        if settings.get('schema')==SERVING_SCHEMA:raise ValueError('owned serving report context required')
+        if settings.get('schema') in SERVING_SCHEMAS:raise ValueError('owned serving report context required')
         report=reconcile_source_report(entries,runtime=runtime,artifact_sha256=artifact_sha256,assessed_at=now,check_budget=guard)
     guard();_write_native_report(root,report,guard);return report
 
@@ -468,8 +508,8 @@ def score_jobs(settings,*,guard,reader=None,max_jobs=1,serving_model=None,histor
         guard();seconds=deadline-monotonic()
         if seconds<=0:raise ValueError('native scoring deadline exceeded')
         return seconds
-    receipt_profile=settings.get('schema')==SERVING_SCHEMA
-    if settings.get('schema') not in (LIVE_SCHEMA,SERVING_SCHEMA):raise ValueError('explicit native scoring selection required')
+    receipt_profile=settings.get('schema') in SERVING_SCHEMAS
+    if settings.get('schema') not in NATIVE_SCHEMAS:raise ValueError('explicit native scoring selection required')
     if receipt_profile:
         if type(historical_selections) is not tuple or len(historical_selections)>31:raise ValueError('bounded owned historical score selections required')
         _serving_settings(serving_model,settings,assessed_at=now,guard=remaining)

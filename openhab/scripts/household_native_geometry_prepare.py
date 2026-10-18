@@ -107,7 +107,8 @@ def _run(config,libraries,*,stage=None,deployment_sha256=None,clock=lambda:datet
     config,libraries=map(lambda path:Path(path).absolute(),(config,libraries))
     source=Path(__file__).resolve();originals=_SourceGuard(config,libraries,source)
     settings=load_settings(config);paths=_library_paths(originals.original_libraries[0])
-    receipt_profile=settings.get('schema')=='earthship-provisional-thermal-live-config/v3'
+    from native_thermal_live import SERVING_SCHEMAS
+    receipt_profile=settings.get('schema') in SERVING_SCHEMAS
     if receipt_profile and (stage is None or deployment_sha256 is None):
         raise ValueError('external receipt-serving preparation selection required')
     now=clock();issue=_next_issue(now)

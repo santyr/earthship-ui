@@ -32,7 +32,7 @@ Final checks: **175 pinned WeatherNext tests passed in 5.777 seconds** and **140
 
 ## Remaining release work
 
-The installed newer irradiance/shade model family must be preserved when porting these interfaces into the final immutable deployment. Current numerical fixtures do not authorize replacing it with an older model. The native live/serving configuration and worker still need deliberate Google selection and removal of their legacy forecast-credential requirement; creating a backend factory alone is not an installed selector.
+The installed newer irradiance/shade model family must be preserved when porting these interfaces into the final immutable deployment. Current numerical fixtures do not authorize replacing it with an older model. The subsequent [native source-selection increment](2026-10-18-weathernext-native-selection.md) wires explicit Google configuration through native preparation/publication/scoring and staging without a legacy forecast credential. It remains uninstalled; the backend alone and the staged selector are not production activation.
 
 Prepare the final combined Google-only removal/source closure before fitting real release artifacts, because subsequent code retirement changes the runtime binding again. Preserve the strict fit/runtime checks. Complete fresh Google/local weather-dependent fitting, required variable/regime/outcome evidence, qualification intervals, release/ownership/lock integration, retained publication attempts and final whole-branch review. Apply complete Open-Meteo removal in the attended cutover; no dormant fallback or capture-only integration may remain. Recovery finishing stays deferred.
 
