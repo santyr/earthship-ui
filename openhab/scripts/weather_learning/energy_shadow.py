@@ -144,3 +144,107 @@ def compare_rain_products(forecasts,outcomes):
         decisions=[dict(local_date=r['local_date'],site_timezone=r['site_timezone'],issued_at=r['issued_at'],forecast_sha256=r['forecast_sha256']) for _,r in sorted(decisions.items())],
         automatic_actuation=False)
     return body|{'report_sha256':identity(body)}
+
+
+def compare_fixed_energy(reference,*,plan_receipt,google_snapshot,assessed_at,profiled_reference=None,clock=lambda:datetime.now(timezone.utc)):
+    """Replay a retained physical array/storage control, changing only weather.
+
+    Execute with the original numerical runtime on sys.path. Its current full
+    manifest must match the retained receipts; never pass a saved manifest as
+    though it were the executing source. This temporary pre-cutover attribution
+    adapter cannot fit a model, select a production provider or operate equipment.
+    """
+    from household_energy_forecast import forecast_runtime_manifest,replay_energy_forecast,_storage
+    from household.model_snapshot import restore_snapshot
+    from household.weather_context import project_weather
+    from household_pv_model import integrate_array
+    from household_solar_horizon import horizon_configuration
+    from hashlib import sha256
+    from pathlib import Path
+    def attribution_manifest():
+        directory=Path(__file__).resolve().parent
+        names=('energy_shadow.py','features.py','contracts.py','config.py','normalize.py','weathernext_ee.py','evidence.py')
+        return {'weather_learning/'+name:sha256((directory/name).read_bytes()).hexdigest() for name in names}
+    assessed_at=utc(assessed_at)
+    attribution_runtime=attribution_manifest()
+    runtime=forecast_runtime_manifest()
+    reference=replay_energy_forecast(reference,plan_receipt=plan_receipt,runtime_manifest=runtime)
+    reference_at=instant(reference['inputs']['assessed_at'])
+    if assessed_at<reference_at:raise ValueError('comparison precedes original control availability')
+    profiled=None;profiled_runtime=load_runtime=None
+    if profiled_reference is not None:
+        from household_profiled_forecast import profiled_runtime_manifest,replay_profiled_forecast
+        from household_ac_load_artifact import runtime_manifest as load_runtime_manifest
+        profiled_runtime=profiled_runtime_manifest()
+        load_runtime={} if profiled_reference['inputs']['load_source'] is None else load_runtime_manifest()
+        profiled=replay_profiled_forecast(profiled_reference,energy_receipt=reference,plan_receipt=plan_receipt,
+            runtime_manifest=profiled_runtime,energy_runtime_manifest=runtime,load_runtime_manifest=load_runtime)
+        if assessed_at<instant(profiled['inputs']['assessed_at']):raise ValueError('comparison precedes original load-profile availability')
+    original=reference['output'];pv=original['array_pv'];origin=instant(pv['origin'])
+    snapshot=restore_snapshot(plan_receipt['inputs']['snapshot'],plan_receipt['inputs']['source_contexts'])
+    context=project_weather(snapshot.weather)
+    body=dict(schema='earthship-weathernext-fixed-energy-attribution/v1',qualification='SHADOW_ONLY',
+        status='UNAVAILABLE',reason=None,origin=origin.isoformat(),assessed_at=assessed_at.isoformat(),
+        original_energy_sha256=identity(reference),original_plan_sha256=identity(plan_receipt),
+        fixed_runtime_sha256=identity(runtime),attribution_source_manifest=attribution_runtime,geometry_series_sha256=context.get('geometry_series_sha256'),
+        original_profiled_sha256=None if profiled is None else identity(profiled),
+        fixed_profiled_runtime_sha256=None if profiled_runtime is None else identity(profiled_runtime),
+        fixed_load_runtime_sha256=None if load_runtime is None else identity(load_runtime),
+        control=dict(provider='openmeteo',array_pv=pv,nominal_storage=original['nominal_storage'],profiled=None if profiled is None else profiled['output']),google=None,
+        changed_inputs=['hourly_ghi','hourly_station_temperature','hourly_wind'],native_direct_radiation_used=False,
+        model_rule='original_fixed_Erbs_array_and_constant_AC_nominal_storage',weather_weights_imported=False,
+        comparison_scope='fixed_model_weather_forcing_attribution_only',
+        outcomes=dict(score_status='NOT_SCORED',measured_available_pv_kwh=None,measured_captured_pv_kwh=None,
+            measured_evening_soc_pct=None,measured_overnight_trough_soc_pct=None,measured_full_charge=None),
+        prospective_ending_hours={},physical_calibration_qualified=False,automatic_actuation=False)
+    if pv['status']!='projected_provisional_array_potential':
+        body['reason']='ORIGINAL_ARRAY_CONTROL_UNAVAILABLE'
+    else:
+        try:
+            google=prospective_snapshot(google_snapshot,issued_at=origin)
+            geometry=context['solar_geometry'];site=geometry['site']
+            if (google['site']['latitude'],google['site']['longitude'],google['site']['timezone'])!=(site['latitude'],site['longitude'],geometry['timezone']):
+                raise ValueError('authoritative energy/Google site differs')
+            index={(p['variable'],instant(p['valid_at'])):p['value'] for p in google['points'] if p['statistic']=='mean'}
+            rows=[]
+            for original_row in context['hourly_forecast']:
+                at=instant(original_row['at']);values=[]
+                for variable in ('surface_solar_radiation_downwards_1hr','station_head_temperature_2m','wind_speed_10m'):
+                    value=index.get((variable,at))
+                    if value is None:raise ValueError('complete Google GHI/temperature/wind required')
+                    values.append(value)
+                ghi,temp_c,wind_ms=values
+                rows.append(dict(at=at.isoformat(),radiationWm2=ghi,tempF=temp_c*9/5+32,windMph=wind_ms/.44704))
+            horizon,reason=horizon_configuration(reference['inputs']['horizon_source'],origin=origin,site=site,timezone_name=geometry['timezone'])
+            if horizon is None:raise ValueError('same original horizon profile required')
+            replacement=integrate_array(array=pv['array'],assumptions=pv['assumptions'],hourly_forecast=rows,
+                positions=geometry['positions'],origin=origin,horizon_hours=context['horizon_hours'],timezone_name=geometry['timezone'],
+                horizon_profile=horizon['profile'])
+            replacement.update(status='projected_provisional_array_potential',reason=None)
+            storage=_storage(snapshot,replacement,original['current_flows'],reference['inputs']['topology_source'],reference_at)
+            profiled_storage=None
+            if profiled is not None:
+                fixed=profiled['output'];profiled_storage=dict(status=fixed['status'],reason=fixed['reason'],profiled_storage=None,
+                    load_forecast_sha256=None if fixed['load_forecast'] is None else fixed['load_forecast']['forecast_sha256'])
+                if fixed['status']=='conditional_nominal_simulation':
+                    from household_profiled_storage import simulate_profiled_storage
+                    initial=original['nominal_storage']
+                    profiled_storage['profiled_storage']=simulate_profiled_storage(steps=replacement['steps'],
+                        initial_soc_pct=initial['initial_soc_pct'],nominal_bank_kwh=initial['nominal_bank_kwh'],load_forecast=fixed['load_forecast'])
+            body.update(status='COMPARED',google=dict(provider='weathernext3',array_pv=replacement,nominal_storage=storage,profiled=profiled_storage),
+                google_snapshot_sha256=google['snapshot_sha256'],google_initialized_at=google['initialized_at'],
+                google_available_at=google['ingestion_completed_at'],
+                retained_context_sha256=context['weather_context_sha256'])
+        except (ValueError,KeyError,TypeError,OverflowError):
+            body['reason']='GOOGLE_FORCING_UNAVAILABLE_OR_INCOMPATIBLE'
+    if forecast_runtime_manifest()!=runtime or attribution_manifest()!=attribution_runtime:
+        raise ValueError('fixed numerical or attribution source changed during comparison')
+    if profiled is not None and (profiled_runtime_manifest()!=profiled_runtime or ({} if profiled['inputs']['load_source'] is None else load_runtime_manifest())!=load_runtime):
+        raise ValueError('fixed profiled/load source changed during comparison')
+    completed=utc(clock())
+    if completed<assessed_at:raise ValueError('comparison completion precedes assessment')
+    body['completed_at']=completed.isoformat()
+    if body['status']=='COMPARED':
+        for hour in range(1,context['horizon_hours']+1):
+            body['prospective_ending_hours'][str(hour)]=completed<=origin+timedelta(hours=hour-1)
+    return body|{'report_sha256':identity(body)}

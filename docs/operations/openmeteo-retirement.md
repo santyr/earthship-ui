@@ -57,3 +57,8 @@ The [read-only removal audit](2026-10-18-openmeteo-retirement-audit.md) and [mac
 Historical documentation and Git records may name the retired provider. They are not an active integration. A deliberate manual rollback uses a pinned earlier revision; the running deployment must not retain a selectable Open-Meteo provider.
 
 Current status: removal/reset is planned, not deployed. See [readiness](weathernext-readiness.md) and the [execution plan](../superpowers/plans/2026-10-05-weathernext-exclusive-forecast.md).
+
+
+### Additional pre-cutover attribution dependency — October 18
+
+`weather_learning.energy_shadow.compare_fixed_energy` and `test_weathernext_fixed_energy.py` are temporary incumbent-control analysis. They replay original household plan/energy/profiled receipts under their original source closure to isolate Google weather forcing. Before complete retirement, archive/detach this adapter and its incumbent replay tests outside the active project; do not leave a dormant comparison collector or provider fallback. The rain/Google-only functions in the same module have separate ownership and need not be removed with this adapter. Retain original private report/provider/source identities as historical evidence. This prepares removal only; it does not authorize cutover or claim the dependency inventory is complete.
