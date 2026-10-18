@@ -1,6 +1,6 @@
 # WeatherNext cutover preparation
 
-Status: **not deployed; release gates unmet**. The Google-only provider adapter is implemented for offline integration, but production still uses its incumbent worker. See [readiness](weathernext-readiness.md), [source-access diagnosis](2026-10-18-weathernext-ee-raster-diagnosis.md), [the migration plan](../superpowers/plans/2026-10-05-weathernext-exclusive-forecast.md) and [the binding reset/removal contract](openmeteo-retirement.md).
+Status: **production provider not deployed; release gates unmet**. Collector and shadow schedules are deployed. The Google-only provider adapter is implemented for offline integration, but production still uses its incumbent worker. See [readiness](weathernext-readiness.md), [resolved API findings](2026-10-18-weathernext-api-compatibility.md), [the migration plan](../superpowers/plans/2026-10-05-weathernext-exclusive-forecast.md) and [the binding reset/removal contract](openmeteo-retirement.md).
 
 ## Prepared provider boundary
 
@@ -10,16 +10,16 @@ The immutable provider snapshot records its original snapshot/run, issue identit
 
 The typed path in `forecast_intel.build_forecast_payloads` accepts this object without entering the incumbent state/seed path. It refuses supplied incumbent PV predictions or temperature corrections. Existing dictionary callers retain their existing behavior. This is preparation, not a runtime provider selector: no current scheduled caller constructs the new object and no unit or Item has been switched.
 
-Raw Google temperatures can be represented by the existing version-1 detail contract, which declares no temperature correction, with added provider/source/issue/model identity. Unsupported precipitation probabilities, weather codes and daylight remain null; PV remains null until separately qualified Google/local downstream integration exists. No legacy model seed is invoked. A fitted Google/local candidate still needs its own validated serving integration before it may be presented as trained.
+Raw Google temperatures can be represented by the existing version-1 detail contract, which declares no temperature correction, with added provider/source/issue/model identity. Unsupported precipitation probabilities and weather codes remain null; PV remains null until separately qualified Google/local downstream integration exists. Hourly daylight uses an optional, source-qualified native Astro schedule; absent or incompatible Astro remains null. No legacy model seed is invoked. A fitted Google/local candidate still needs its own validated serving integration before it may be presented as trained.
 
 GHI/direct solar retain native trailing-hour interval semantics. Daily accumulation requires every local-day interval, including 23/25-hour DST days; temperature extrema require every instantaneous local-day hour. Partial first/last days remain unavailable. Availability is distinct from release qualification and daily source coverage is distinct from a fully prospective outcome window.
 
 ## Work required before the attended release
 
-1. Resolve the real WeatherNext raster failure and establish the reader's dataset entitlement. Verify one successful native point, then measure the full 360-hour, required-variable capture under existing shared host admission. Metadata and synthetic fixtures cannot replace this proof.
+1. Access and full native collection were verified on October 18 after the documented scope/clock corrections; retain those original proofs and continue prospective collection. Successful extraction does not replace the required acquisition/skill intervals.
 2. Verify a pinned deployment stage, existing private configuration and original-source retention. Activate only the bounded collector/shadow schedules that have passed their live checks. Record natural publications and the actual source/model/runtime identities.
 3. Complete the plan's prospective acquisition, Google/local training, untouched evaluation and normal shadow-inference intervals. Qualify solar/rain and weather-dependent PV/thermal consumers on actual paired evidence. Fixed incumbent-artifact attribution is a comparison experiment, not permission to inherit its fitted weights. Preserve qualified local measurements, physical configuration and independent non-weather learning.
-4. Finish the actual production publisher/provider selection and fresh Google/local fitted-model integration. Define explicit withdrawal/unavailable behavior for forecast Items; an unavailable adapter must not leave a stale forecast presented as current. Connect native Astro daylight through its validated context. Resolve or remove unsupported AQI/UV/probability/weather-code dependencies; do not invent substitutes.
+4. Finish the actual production publisher/provider selection and fresh Google/local fitted-model integration. The [serving preparation](2026-10-18-weathernext-serving-preparation.md) now defines explicit withdrawal bytes for all three forecast JSON views and native Astro daylight. Finish operational partial-write/retry handling and deliberate replacement/withdrawal of every remaining numeric consumer; prepared bytes are not an installed publisher. Resolve or remove unsupported AQI/UV/probability/weather-code dependencies; do not invent substitutes.
 5. Prepare and review one complete removal/reset patch. Refresh [the source/live removal inventory](2026-10-18-openmeteo-retirement-audit.md), including current root overlays, the custom binding JAR, AQI evidence producer/receipt, installed overrides, dynamic state and transitive consumers. The inventory is candidate coverage, not a final no-integration proof.
 6. Verify the repository's complete CI/test/build checks, private state preimages and pinned pre-cutover revision. Recovery rehearsals and a broader backup project remain deferred.
 
@@ -34,3 +34,7 @@ Verify natural publication, source and model identities, UI null/stale behavior,
 ## Current implementation checks
 
 The provider's synthetic tests cover original-source mismatch, wrong site, stale/late/missing source, serving/learning identity, immutability, fresh namespace, refusal of incumbent corrections/PV, both DST transitions, null values and the existing detail-size limit at maximum horizon. The actual frontend parser is checked with Python-produced synthetic detail payloads. Existing forecast characterization tests cover the unchanged dictionary path. None of these tests qualifies real source availability, forecast skill, a production publisher, reset/removal, operational startup or a live cutover.
+
+## Serving preparation update — October 18
+
+[Actual Google/native Astro payload preparation](2026-10-18-weathernext-serving-preparation.md) now verifies 337 source targets, ten UI days, native daylight, explicit three-view withdrawal and real-parser compatibility without production writes. Tests: 156 WeatherNext, 150 existing forecast/Astro and 2,589 frontend cases pass; UI build passes. Full qualified publication, fitted-model integration, required numeric consumers, complete removal and release intervals remain unfinished.

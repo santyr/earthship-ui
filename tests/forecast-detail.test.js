@@ -1,3 +1,4 @@
+import googleServing from './fixtures/weathernext-serving-v1.json';
 import { describe, expect, it } from 'vitest';
 import {
   FORECAST_DETAIL_MAX_BYTES,
@@ -324,4 +325,37 @@ describe('ten-day forecast contract', () => {
       }),
     ]);
   });
+});
+
+describe('Google production withdrawal', () => {
+  const nowMs = Date.parse('2026-07-18T12:01:00-06:00');
+  const unavailableGoogle = {
+    version: 1, generatedAt: '2026-07-18T12:00:00-06:00', timezone: 'America/Denver',
+    provider: 'weathernext3', providerStatus: 'UNAVAILABLE', providerReason: 'NO_ELIGIBLE_SOURCE',
+    source: null, issueSha256: null, days: [],
+  };
+  it('shows a fresh explicit source withdrawal as unavailable instead of ready', () => {
+    const parsed = parseForecast10Day(JSON.stringify(unavailableGoogle), { nowMs });
+    expect(parsed.status).toBe('unavailable');
+    expect(parsed.reason).toBe('WeatherNext forecast unavailable');
+    expect(parsed.days).toEqual([]);
+  });
+  it('does not present any empty forecast as a ready forecast', () => {
+    expect(parseForecast10Day(payload([]), { nowMs }).status).toBe('unavailable');
+  });
+  it('rejects a contradictory Google unavailable payload carrying old forecast rows', () => {
+    const raw = { ...unavailableGoogle, days: [day('2026-07-18', 'Today')] };
+    expect(parseForecast10Day(JSON.stringify(raw), { nowMs }).status).toBe('unavailable');
+  });
+});
+
+
+it('reads actual Python-produced Google publication bytes and native daylight flags', () => {
+  const detail = googleServing.Forecast_10Day_JSON;
+  const parsed = parseForecast10Day(JSON.stringify(detail), { nowMs: Date.parse('2026-01-01T00:31:00Z') });
+  expect(parsed.status).toBe('ready');
+  expect(parsed.temperatureAdjustment).toBeNull();
+  expect(parsed.days[0].hours.map((row) => row.tempF)).toEqual([50, 50, 50]);
+  expect(parsed.days[0].hours.map((row) => row.isDay)).toEqual([true, false, false]);
+  expect(parsed.days[0].hours.every((row) => row.precipPct === null && row.weatherCode === null)).toBe(true);
 });

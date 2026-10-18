@@ -142,6 +142,13 @@ export function parseForecast10Day(raw, { nowMs = Date.now() } = {}) {
     if (!Array.isArray(parsed.days) || parsed.days.length > 10) {
       throw new TypeError('forecast days must contain at most ten entries');
     }
+    if (parsed.provider === 'weathernext3' && parsed.providerStatus === 'UNAVAILABLE') {
+      if (parsed.days.length || parsed.source !== null || parsed.issueSha256 !== null) {
+        throw new TypeError('unavailable WeatherNext forecast carries predictions');
+      }
+      return unavailable('WeatherNext forecast unavailable');
+    }
+    if (!parsed.days.length) return unavailable('forecast days missing');
     const days = parsed.days.map(normalizeDay);
     const seen = new Set();
     for (let index = 0; index < days.length; index += 1) {

@@ -42,6 +42,7 @@ def _body(decision,required_horizon,site,variables):
         timezone=site.timezone,required_variables=sorted(variables),status='UNAVAILABLE',reason='NO_ELIGIBLE_SOURCE',
         source=None,issue_sha256=None,learning_namespace='weathernext3-temperature-v1',
         model=dict(status='UNTRAINED',sha256=None,parent_artifacts=[]),hours=[],days=[],
+        solar_context=None,solar_context_reason='NOT_PROVIDED',
         release_authorized=False,automatic_actuation=False)
 
 
@@ -75,7 +76,20 @@ def _daily(points,days,zone):
     return result
 
 
-def load_production_forecast(archive,*,decision_at,required_horizon,site,required_variables=REQUIRED):
+def _solar_schedule(source,*,decision,site):
+    """Retain exact validated native daylight; no local astronomical substitute."""
+    from astro_forecast_context import validate
+    if not isinstance(source,dict) or set(source)!={'raw','available_at'}:
+        raise ValueError('original Astro state and availability required')
+    available=utc(source['available_at'])
+    if available>decision:raise ValueError('Astro state unavailable at decision')
+    checked=validate(source['raw'],origin=decision,latitude=site.latitude,longitude=site.longitude,timezone_name=site.timezone)
+    if instant(checked['recordedAt'])>available:raise ValueError('Astro acquisition precedes its original source')
+    return dict(sourceSha256=checked['sourceSha256'],recordedAt=checked['recordedAt'],availableAt=available.isoformat(),
+        days=json.loads(source['raw'])['days'])
+
+
+def load_production_forecast(archive,*,decision_at,required_horizon,site,required_variables=REQUIRED,astro_source=None):
     """Prepare a read-only source for future production integration.
 
     A missing/stale/incomplete Google source is UNAVAILABLE. A malformed selected
@@ -111,6 +125,12 @@ def load_production_forecast(archive,*,decision_at,required_horizon,site,require
         zone=ZoneInfo(site.timezone);days=sorted({instant(row['at']).astimezone(zone).date().isoformat() for row in hours})
         source=dict(snapshot_sha256=snapshot['snapshot_sha256'],run_id=snapshot['run_id'],initialized_at=snapshot['initialized_at'],
             first_seen_at=snapshot['first_seen_at'],ingestion_completed_at=snapshot['ingestion_completed_at'])
+        if astro_source is not None:
+            try:
+                body['solar_context']=_solar_schedule(astro_source,decision=decision,site=site)
+                body['solar_context_reason']=None
+            except (ValueError,KeyError,TypeError,OverflowError):
+                body['solar_context_reason']='UNAVAILABLE_OR_INCOMPATIBLE'
         body.update(status='AVAILABLE',reason=None,source=source,
             issue_sha256=identity(dict(snapshot_sha256=source['snapshot_sha256'],issued_at=decision.isoformat())),
             hours=hours,days=_daily(points,days,zone))
@@ -128,26 +148,51 @@ def forecast_payloads(provider,*,now):
 
     Version 1 declares no temperature correction. Fitted Google/local candidates
     require their own validated integration; no incumbent adjustment is accepted.
+    Unavailable source produces empty arrays and an explicit unavailable detail,
+    so the future publisher can withdraw old values instead of retaining them.
     """
     if not isinstance(provider,ProviderSnapshot):raise ValueError('original prepared provider required')
     value=provider.to_dict();now=utc(now)
-    if value['status']!='AVAILABLE' or now!=instant(value['decision_at']):raise ValueError('available provider at its exact original decision required')
+    if now!=instant(value['decision_at']):raise ValueError('provider at its exact original decision required')
     zone=ZoneInfo(value['timezone']);today=now.astimezone(zone).date();grouped={row['date']:[] for row in value['days'][:10]}
+    solar=value['solar_context'];solar_days={} if solar is None else {row['day']:row for row in solar['days']}
+    def is_day(at):
+        row=solar_days.get(at.astimezone(zone).date().isoformat())
+        return None if row is None else instant(row['daylightStartAt'])<=at<instant(row['sunsetAt'])
+
     for row in value['hours']:
         at=instant(row['at']);key=at.astimezone(zone).date().isoformat()
-        if key in grouped:grouped[key].append(dict(at=at.astimezone(zone).isoformat(),isDay=None,tempF=row['temp_f'],
+        if key in grouped:grouped[key].append(dict(at=at.astimezone(zone).isoformat(),isDay=is_day(at),tempF=row['temp_f'],
             precipPct=None,precipIn=row['precip_in'],radiationWm2=row['radiation_wm2'],windMph=row['wind_mph'],weatherCode=None))
     days=[]
     for row in value['days'][:10]:
         day=date.fromisoformat(row['date']);label='Today' if day==today else day.strftime('%a')
         days.append(dict(date=row['date'],label=label,summary=dict(highF=row['high_f'],lowF=row['low_f'],precipPct=None,
-            precipSumIn=row['precip_sum_in'],weatherCode=None,pvKwh=None),hours=grouped[row['date']]))
+            precipSumIn=row['precip_sum_in'],weatherCode=None,pvKwh=None,
+            daylightSeconds=None if row['date'] not in solar_days else solar_days[row['date']]['daylightSeconds']),hours=grouped[row['date']]))
     detail=dict(version=1,generatedAt=now.astimezone(zone).isoformat(),timezone=zone.key,provider='weathernext3',
-        providerSnapshotSha256=value['provider_snapshot_sha256'],source=value['source'],issueSha256=value['issue_sha256'],
+        providerSnapshotSha256=value['provider_snapshot_sha256'],providerStatus=value['status'],providerReason=value['reason'],
+        source=value['source'],issueSha256=value['issue_sha256'],
+        solarSource=dict(status='UNAVAILABLE' if solar is None else 'AVAILABLE',reason=value['solar_context_reason'],
+            sourceSha256=None if solar is None else solar['sourceSha256'],recordedAt=None if solar is None else solar['recordedAt'],
+            availableAt=None if solar is None else solar['availableAt']),
         learningNamespace=value['learning_namespace'],model=value['model'],releaseAuthorized=False,days=days)
     def rounded(number):return None if number is None else round(number)
-    hourly=[dict(at=row['at'],isDay=None,h=instant(row['at']).astimezone(zone).strftime('%-I%p').lower(),t=rounded(row['temp_f']),
+    hourly=[dict(at=row['at'],isDay=is_day(instant(row['at'])),h=instant(row['at']).astimezone(zone).strftime('%-I%p').lower(),t=rounded(row['temp_f']),
         p=None,a=row['precip_in'],r=rounded(row['radiation_wm2']),w=None) for row in value['hours'][:14]]
     daily=[dict(d=row['label'],hi=rounded(row['summary']['highF']),lo=rounded(row['summary']['lowF']),p=None,
         a=row['summary']['precipSumIn'],w=None,pv=None) for row in days[:7]]
     return hourly,daily,detail
+
+
+def publication_states(provider,*,now):
+    """Preflight all three existing Item states, including explicit withdrawal.
+
+    This prepares bytes only. Production authorization, scheduling and state
+    writes belong to the attended cutover, not this inactive provider adapter.
+    """
+    payloads=forecast_payloads(provider,now=now)
+    result={item:canonical(payload).decode() for item,payload in zip(
+        ('Forecast_Hourly_JSON','Forecast_Daily_JSON','Forecast_10Day_JSON'),payloads)}
+    if any(len(raw.encode())>=65536 for raw in result.values()):raise ValueError('forecast Item byte limit exceeded')
+    return result

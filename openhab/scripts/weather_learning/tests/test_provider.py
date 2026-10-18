@@ -117,11 +117,16 @@ class ProviderTests(unittest.TestCase):
         _,_,detail=fi.build_forecast_payloads(provider,[],self.now)
         self.assertLessEqual(len(fi.serialize_detail(detail).encode()),fi.DETAIL_MAX_BYTES)
 
-    def test_unavailable_or_different_decision_cannot_generate_payloads(self):
+    def test_unavailable_withdraws_and_different_decision_still_refuses(self):
         import forecast_intel as fi
         unavailable=self.load()
-        with patch.object(fi,'hourly_model_seed',side_effect=AssertionError('legacy seeding')),self.assertRaises(ValueError):
-            fi.build_forecast_payloads(unavailable,[],self.now)
+        with patch.object(fi,'hourly_model_seed',side_effect=AssertionError('legacy seeding')):
+            hourly,daily,detail=fi.build_forecast_payloads(unavailable,[],self.now)
+        self.assertEqual((hourly,daily,detail['days']),([],[],[]))
+        self.assertEqual(detail['providerStatus'],'UNAVAILABLE')
+        self.assertEqual(detail['providerReason'],'NO_ELIGIBLE_SOURCE')
+        self.assertIsNone(detail['source'])
+        self.assertEqual(detail['learningNamespace'],'weathernext3-temperature-v1')
         self.archive.store_snapshot(full_snapshot())
         with self.assertRaises(ValueError):fi.build_forecast_payloads(self.load(),[],self.now+timedelta(seconds=1))
 
@@ -133,6 +138,56 @@ class ProviderTests(unittest.TestCase):
                 self.assertEqual(value['reason'],'ARCHIVE_UNAVAILABLE')
                 self.assertEqual(value['hours'],[]);self.assertEqual(value['days'],[])
                 self.assertIsNone(value['source']);self.assertFalse(value['release_authorized'])
+
+    def test_withdrawal_serializes_all_existing_forecast_items_without_fetch_or_seed(self):
+        import json
+        import forecast_intel as fi
+        provider=self.load()
+        with patch('urllib.request.urlopen',side_effect=AssertionError('external fallback')),patch.object(fi,'hourly_model_seed',side_effect=AssertionError('old learning')):
+            updates=self.p.publication_states(provider,now=self.now)
+        self.assertEqual(set(updates),{'Forecast_Hourly_JSON','Forecast_Daily_JSON','Forecast_10Day_JSON'})
+        self.assertEqual(json.loads(updates['Forecast_Hourly_JSON']),[])
+        self.assertEqual(json.loads(updates['Forecast_Daily_JSON']),[])
+        self.assertEqual(json.loads(updates['Forecast_10Day_JSON'])['providerStatus'],'UNAVAILABLE')
+
+    def test_native_astro_drives_daylight_without_weather_code_or_probability_substitutes(self):
+        from astro_serving_fixtures import astro_source
+        self.archive.store_snapshot(full_snapshot())
+        source=astro_source(self.now)
+        provider=self.p.load_production_forecast(self.archive,decision_at=self.now,required_horizon=timedelta(hours=48),site=SITE,astro_source=source)
+        hourly,daily,detail=self.p.forecast_payloads(provider,now=self.now)
+        self.assertTrue(hourly[0]['isDay'])  # December 31, 18:00 Mountain.
+        self.assertFalse(hourly[1]['isDay'])  # Exact native sunset at 19:00.
+        next_day=next(d for d in detail['days'] if d['date']=='2026-01-01')
+        self.assertEqual(next_day['summary']['daylightSeconds'],43200)
+        self.assertFalse(next(h for h in next_day['hours'] if 'T06:00:' in h['at'])['isDay'])
+        self.assertTrue(next(h for h in next_day['hours'] if 'T07:00:' in h['at'])['isDay'])
+        self.assertEqual(detail['solarSource']['status'],'AVAILABLE')
+        self.assertEqual(detail['solarSource']['availableAt'],source['available_at'].isoformat())
+        self.assertIsNone(hourly[0]['w']);self.assertIsNone(hourly[0]['p']);self.assertIsNone(daily[0]['pv'])
+
+    def test_unavailable_astro_never_invents_daylight_or_discards_google_weather(self):
+        from astro_serving_fixtures import astro_source
+        self.archive.store_snapshot(full_snapshot())
+        for damage in ('future','expired','site','version','duplicate'):
+            with self.subTest(damage=damage):
+                source=astro_source(self.now,damage=damage)
+                provider=self.p.load_production_forecast(self.archive,decision_at=self.now,required_horizon=timedelta(hours=48),site=SITE,astro_source=source)
+                self.assertEqual(provider.to_dict()['status'],'AVAILABLE')
+                hourly,_,detail=self.p.forecast_payloads(provider,now=self.now)
+                self.assertTrue(all(h['isDay'] is None for h in hourly))
+                self.assertEqual(detail['solarSource']['status'],'UNAVAILABLE')
+                self.assertIsNone(detail['solarSource']['sourceSha256'])
+
+    def test_python_publication_matches_cross_language_ui_fixture(self):
+        import json
+        from astro_serving_fixtures import astro_source
+        self.archive.store_snapshot(full_snapshot())
+        provider=self.p.load_production_forecast(self.archive,decision_at=self.now,required_horizon=timedelta(hours=2),site=SITE,astro_source=astro_source(self.now))
+        actual={item:json.loads(raw) for item,raw in self.p.publication_states(provider,now=self.now).items()}
+        root=pathlib.Path(__file__).resolve().parents[4]
+        expected=json.loads((root/'tests/fixtures/weathernext-serving-v1.json').read_text())
+        self.assertEqual(actual,expected)
 
     def test_caller_horizon_and_variable_contract_are_bounded(self):
         for horizon in (timedelta(0),timedelta(hours=337),1):
