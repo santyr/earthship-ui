@@ -64,6 +64,27 @@ class EvaluationTests(unittest.TestCase):
         report=self.e.evaluate(self.model,self.holdout[:1],self.policy,prior_outcomes=[pair(11,actual_c=40).outcome])
         self.assertIsNone(report['scores']['persistence'])
 
+    def test_conflicting_persistence_availability_is_refused_in_both_orders(self):
+        prior=pair(9,actual_c=11).outcome
+        issue=self.holdout[0].forecast.issued_at
+        late=replace(prior,available_at=issue+timedelta(minutes=1),assessed_at=issue+timedelta(minutes=2))
+        for records in ([prior,late],[late,prior]):
+            with self.subTest(records=records),self.assertRaises(ValueError):
+                self.e.evaluate(self.model,self.holdout[:1],self.policy,prior_outcomes=records)
+
+    def test_report_identity_binds_used_persistence_receipt_and_clocks(self):
+        prior=pair(9,actual_c=11).outcome
+        first=self.e.evaluate(self.model,self.holdout[:1],self.policy,prior_outcomes=[prior])
+        changed=self.e.evaluate(self.model,self.holdout[:1],self.policy,prior_outcomes=[replace(prior,receipt_digest='e'*64)])
+        repeated=self.e.evaluate(self.model,self.holdout[:1],self.policy,prior_outcomes=[prior,prior])
+        self.assertEqual(first['scores']['persistence'],changed['scores']['persistence'])
+        self.assertNotEqual(first['report_sha256'],changed['report_sha256'])
+        self.assertEqual(first['report_sha256'],repeated['report_sha256'])
+        selected=first['persistence_manifest'][0]
+        self.assertEqual(selected['receipt_sha256'],prior.receipt_digest)
+        self.assertEqual(selected['source_available_at'],prior.available_at.isoformat())
+        self.assertEqual(selected['issued_at'],self.holdout[0].forecast.issued_at.isoformat())
+
     def test_horizon_and_regime_gaps_are_explicit(self):
         report=self.e.evaluate(self.model,self.holdout+[pair(10,hour=48)],self.policy,regimes_by_day={'2026-01-10':('cloudy',)})
         self.assertEqual(set(report['by_horizon']),{'0-24h','24-72h'})

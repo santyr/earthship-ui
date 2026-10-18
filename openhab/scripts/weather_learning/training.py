@@ -10,30 +10,11 @@ from zoneinfo import ZoneInfo
 
 from .contracts import canonical,digest,finite,identity,instant
 from .evidence import utc
-from .features import FEATURE_NAMES,feature_vector,training_pair,validate_target
+from .features import FEATURE_NAMES,feature_vector,training_pair,validate_target,unique_pairs
 
 FIELDS={'schema','provider','algorithm','grid_digest','sensor_epoch','site_timezone','code_revision','cutoff','training_start','training_end',
     'sample_count','target_dates','training_manifest','feature_names','feature_centers','feature_scales','coefficients',
     'intercept_c','max_correction_c','ridge','qualification','artifact_sha256'}
-
-
-def _pairs(pairs,cutoff):
-    if not isinstance(pairs,(list,tuple)) or len(pairs)>20000:raise ValueError('bounded original training pairs required')
-    selected={};outcomes={};cohort=None
-    for pair in pairs:
-        pair=training_pair(pair.forecast,pair.outcome)
-        if pair.outcome.available_at>cutoff:raise ValueError('future outcome cannot enter fitting')
-        if cohort is not None and pair.cohort!=cohort:raise ValueError('training grid/sensor epochs cannot be pooled')
-        cohort=pair.cohort
-        key=(pair.forecast.issued_at,pair.forecast.target_at)
-        previous=selected.get(key)
-        if previous is not None and previous.pair_digest!=pair.pair_digest:raise ValueError('conflicting forecast/outcome pair')
-        previous=outcomes.get(pair.outcome.target_at)
-        if previous is not None and (previous.receipt_digest,previous.value_c,previous.available_at)!=(pair.outcome.receipt_digest,pair.outcome.value_c,pair.outcome.available_at):raise ValueError('conflicting local target evidence')
-        outcomes[pair.outcome.target_at]=pair.outcome;selected[key]=pair
-    result=sorted(selected.values(),key=lambda pair:(pair.outcome.target_at,pair.forecast.issued_at,pair.pair_digest))
-    if result and cutoff-result[0].outcome.target_at>timedelta(days=366):raise ValueError('training interval exceeds one year')
-    return result
 
 
 def _artifact(pairs,*,cutoff,code_revision,max_correction_c,algorithm,ridge):
@@ -41,7 +22,7 @@ def _artifact(pairs,*,cutoff,code_revision,max_correction_c,algorithm,ridge):
     if not isinstance(code_revision,str) or not re.fullmatch('[0-9a-f]{40}',code_revision):raise ValueError('immutable code revision required')
     if not finite(max_correction_c) or not 0<max_correction_c<=20:raise ValueError('finite bounded correction required')
     if not finite(ridge) or ridge<0:raise ValueError('finite nonnegative regularization required')
-    pairs=_pairs(pairs,cutoff)
+    pairs=unique_pairs(pairs,cutoff)
     manifest=[dict(pair_sha256=pair.pair_digest,snapshot_sha256=pair.forecast.snapshot_digest,issue_sha256=pair.forecast.issue_digest,
                    outcome_sha256=pair.outcome.receipt_digest,target_at=pair.outcome.target_at.isoformat(),issued_at=pair.forecast.issued_at.isoformat()) for pair in pairs]
     days={pair.outcome.target_at.astimezone(ZoneInfo(pair.forecast.site_timezone)).date() for pair in pairs}

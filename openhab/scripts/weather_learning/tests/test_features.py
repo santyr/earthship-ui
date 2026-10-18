@@ -61,6 +61,17 @@ class FeatureTests(unittest.TestCase):
         sample=pair()
         self.assertAlmostEqual(self.f.recent_innovation([sample]*10,issued_at=T+timedelta(days=1),cohort=sample.cohort),2)
 
+    def test_recent_innovations_refuse_conflicting_forecasts_and_outcomes(self):
+        from dataclasses import replace
+        base=pair()
+        conflict_forecast=pair(mean_c=11)
+        other=pair(actual_c=13)
+        conflict_outcome=replace(other,forecast=replace(other.forecast,issued_at=other.forecast.issued_at+timedelta(minutes=15),issue_digest='d'*64))
+        for conflict in (conflict_forecast,conflict_outcome):
+            for rows in ([base,conflict],[conflict,base]):
+                with self.subTest(rows=[r.pair_digest for r in rows]),self.assertRaises(ValueError):
+                    self.f.recent_innovation(rows,issued_at=T+timedelta(days=1),cohort=base.cohort)
+
     def test_missing_quantile_withholds_residual_features_without_filling_zero(self):
         raw=native_snapshot();raw['points']=[p for p in raw['points'] if p['statistic']!='p10']
         # Original capsule must agree too; this is a genuinely absent product.

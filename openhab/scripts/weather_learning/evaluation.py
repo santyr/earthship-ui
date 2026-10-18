@@ -12,8 +12,8 @@ from zoneinfo import ZoneInfo
 
 from .contracts import digest,finite,identity,instant
 from .evidence import utc
-from .features import TemperatureOutcome,training_pair
-from .training import _pairs,TemperaturePredictor
+from .features import TemperatureOutcome,training_pair,unique_pairs
+from .training import TemperaturePredictor
 
 REGIMES=('clear','cloudy','large_diurnal','cold_front','precipitation')
 
@@ -65,7 +65,7 @@ def chronological_split(pairs,policy):
     _policy(policy)
     if not isinstance(pairs,(list,tuple)) or len(pairs)>20000:raise ValueError('bounded pairs required')
     for pair in pairs:training_pair(pair.forecast,pair.outcome)
-    pairs=_pairs(pairs,max((pair.outcome.available_at for pair in pairs),default=policy.holdout_end))
+    pairs=unique_pairs(pairs,max((pair.outcome.available_at for pair in pairs),default=policy.holdout_end))
     train=[];holdout=[]
     for pair in pairs:
         if pair.outcome.available_at<=policy.train_end:train.append(pair)
@@ -112,7 +112,7 @@ def _outcomes(records):
         sensor_epoch_id(record.sensor_epoch);digest(record.receipt_digest)
         key=(record.sensor_epoch,record.target_at)
         prior=unique.get(key)
-        if prior is not None and (prior.value_c,prior.receipt_digest)!=(record.value_c,record.receipt_digest):
+        if prior is not None and (prior.value_c,prior.receipt_digest,prior.available_at)!=(record.value_c,record.receipt_digest,record.available_at):
             raise ValueError('conflicting local persistence outcome')
         unique[key]=record
     return tuple(unique.values())
@@ -126,7 +126,7 @@ def _horizon(forecast):
 def evaluate(model,holdout,policy,*,incumbent=(),prior_outcomes=(),regimes_by_day=None):
     frozen_policy=_policy(policy);predictor=TemperaturePredictor(model)
     if instant(model['cutoff'])>utc(policy.train_end):raise ValueError('model fit crosses declared train boundary')
-    holdout=_pairs(holdout,utc(policy.holdout_end))
+    holdout=unique_pairs(holdout,utc(policy.holdout_end))
     if any(not policy.holdout_start<=pair.forecast.issued_at or pair.outcome.target_at>=policy.holdout_end for pair in holdout):
         raise ValueError('only declared holdout issues/targets may be evaluated')
     incumbent=_incumbent(incumbent)
@@ -146,7 +146,7 @@ def evaluate(model,holdout,policy,*,incumbent=(),prior_outcomes=(),regimes_by_da
     for target,records in incumbent_index.items():
         records.sort(key=lambda record:record.issued_at)
         incumbent_index[target]=([record.issued_at for record in records],records)
-    all_scores={name:[] for name in ('raw','candidate','persistence')};horizons={};regimes={};comparison={'candidate':[],'incumbent':[]};originals=set()
+    all_scores={name:[] for name in ('raw','candidate','persistence')};horizons={};regimes={};comparison={'candidate':[],'incumbent':[]};originals=set();persistence_manifest=[]
     for pair in holdout:
         forecast,outcome=pair.forecast,pair.outcome
         day=outcome.target_at.astimezone(ZoneInfo(forecast.site_timezone)).date().isoformat()
@@ -157,7 +157,11 @@ def evaluate(model,holdout,policy,*,incumbent=(),prior_outcomes=(),regimes_by_da
         last=bisect_right(times,forecast.issued_at)
         for index in range(last-1,first-1,-1):
             if records[index].available_at<=forecast.issued_at:
-                scores['persistence']=records[index].value_c-outcome.value_c
+                source=records[index]
+                scores['persistence']=source.value_c-outcome.value_c
+                persistence_manifest.append(dict(pair_sha256=pair.pair_digest,issued_at=forecast.issued_at.isoformat(),
+                    target_at=forecast.target_at.isoformat(),receipt_sha256=source.receipt_digest,sensor_epoch=source.sensor_epoch,
+                    source_target_at=source.target_at.isoformat(),source_available_at=source.available_at.isoformat(),value_c=source.value_c))
                 break
         times,records=incumbent_index.get(forecast.target_at,([],[]))
         index=bisect_right(times,forecast.issued_at)-1
@@ -181,7 +185,7 @@ def evaluate(model,holdout,policy,*,incumbent=(),prior_outcomes=(),regimes_by_da
         by_horizon={key:{name:_metrics(rows) for name,rows in group.items()} for key,group in sorted(horizons.items())},
         by_regime={key:{name:_metrics(rows) for name,rows in group.items()} for key,group in sorted(regimes.items())},
         regime_annotation_status='diagnostic_only',missing_regimes=sorted(set(REGIMES)-set(regimes)),paired_incumbent_comparison=paired,
-        pair_manifest=[pair.pair_digest for pair in holdout],incumbent_originals=sorted(originals),
+        pair_manifest=[pair.pair_digest for pair in holdout],incumbent_originals=sorted(originals),persistence_manifest=persistence_manifest,
         missing_release_evidence=['prospective_acquisition','complete_training_days','untouched_holdout_days','prospective_shadow_inference','qualified_weather_regimes','required_variable_gates'],
         automatic_actuation=False)
     return report|{'report_sha256':identity(report)}

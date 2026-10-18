@@ -145,6 +145,25 @@ def training_pair(forecast,outcome):
     return TrainingPair(forecast,outcome)
 
 
+def unique_pairs(pairs,cutoff):
+    if not isinstance(pairs,(list,tuple)) or len(pairs)>20000:raise ValueError('bounded original training pairs required')
+    selected={};outcomes={};cohort=None
+    for pair in pairs:
+        pair=training_pair(pair.forecast,pair.outcome)
+        if pair.outcome.available_at>cutoff:raise ValueError('future outcome cannot enter fitting')
+        if cohort is not None and pair.cohort!=cohort:raise ValueError('training grid/sensor epochs cannot be pooled')
+        cohort=pair.cohort
+        key=(pair.forecast.issued_at,pair.forecast.target_at)
+        previous=selected.get(key)
+        if previous is not None and previous.pair_digest!=pair.pair_digest:raise ValueError('conflicting forecast/outcome pair')
+        previous=outcomes.get(pair.outcome.target_at)
+        if previous is not None and (previous.receipt_digest,previous.value_c,previous.available_at)!=(pair.outcome.receipt_digest,pair.outcome.value_c,pair.outcome.available_at):raise ValueError('conflicting local target evidence')
+        outcomes[pair.outcome.target_at]=pair.outcome;selected[key]=pair
+    result=sorted(selected.values(),key=lambda pair:(pair.outcome.target_at,pair.forecast.issued_at,pair.pair_digest))
+    if result and cutoff-result[0].outcome.target_at>timedelta(days=366):raise ValueError('training interval exceeds one year')
+    return result
+
+
 def feature_vector(target):
     validate_target(target)
     if target.spread_c is None:raise ValueError('residual model requires native quantile spread')
@@ -160,11 +179,14 @@ def recent_innovation(pairs,*,issued_at,cohort,hours=72):
     issued_at=utc(issued_at)
     if not isinstance(pairs,(list,tuple)) or len(pairs)>20000 or type(hours) is not int or not 1<=hours<=168:
         raise ValueError('bounded prior innovations required')
-    selected={}
+    selected={};candidates=[]
     for pair in pairs:
         pair=training_pair(pair.forecast,pair.outcome)
         at=pair.outcome.target_at
         if pair.cohort!=cohort or not issued_at-timedelta(hours=hours)<=at<issued_at or pair.outcome.available_at>issued_at:continue
+        candidates.append(pair)
+    for pair in unique_pairs(candidates,issued_at):
+        at=pair.outcome.target_at
         previous=selected.get(at)
         if previous is None or pair.forecast.issued_at>previous.forecast.issued_at:selected[at]=pair
     if not selected:return None
