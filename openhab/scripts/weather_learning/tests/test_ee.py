@@ -34,6 +34,13 @@ class EEParsingTests(unittest.TestCase):
   for clock,row_clock in ((T.timestamp()*1000,T.timestamp()*1000+1),(T.timestamp()*1000+1,T.timestamp()*1000+1),(float('nan'),T.timestamp()*1000)):
    raw=response();raw['metadata'][0]['system:time_start']=clock;raw['region'][1][3]=row_clock
    with self.subTest(clock=clock),self.assertRaises(ValueError):self.parse(raw)
+ def test_gridded_rain_products_retain_separate_original_values(self):
+  raw=response();bands=['total_precipitation_1hr_mean','imerg_tp_1hr_mean','experimental_tp_1hr_mean']
+  raw['region']=[['id','longitude','latitude','time',*bands],['image1',-105.8,38.4,1792285200000,.001,.002,.003]]
+  source,points=parse_collection_response(raw,collection=COLLECTIONS['gridded'],bands=bands,site=S,initialized_at=T,horizon=1)
+  self.assertEqual([row['variable'] for row in points],['total_precipitation_1hr','imerg_tp_1hr','experimental_tp_1hr'])
+  self.assertEqual([row['value'] for row in points],[1.,2.,3.])
+  self.assertEqual(source['payload']['region'][1][-3:],[.001,.002,.003])
  def test_other_collection_or_global_download_refused(self):
   with self.assertRaises(ValueError):parse_collection_response(response(),collection='projects/other/assets/foo',bands=('station_head_temperature_2m_mean',),site=S,initialized_at=T,horizon=1)
  def test_source_availability_and_initialization_remain_separate(self):

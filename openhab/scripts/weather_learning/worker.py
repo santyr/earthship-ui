@@ -7,7 +7,8 @@ from .contracts import identity,validate_snapshot
 DEFAULT_BANDS={
  'station':('station_head_temperature_2m_mean','station_head_temperature_2m_p10','station_head_temperature_2m_p90','station_head_dewpoint_temperature_2m_mean'),
  'gridded':('surface_solar_radiation_downwards_1hr_mean','total_sky_direct_solar_radiation_at_surface_1hr_mean',
-            'total_precipitation_1hr_mean','wind_speed_10m_mean','total_cloud_cover_mean','mean_sea_level_pressure_mean'),
+            'total_precipitation_1hr_mean','imerg_tp_1hr_mean','experimental_tp_1hr_mean',
+            'wind_speed_10m_mean','total_cloud_cover_mean','mean_sea_level_pressure_mean'),
 }
 
 @contextmanager

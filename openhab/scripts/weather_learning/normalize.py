@@ -14,6 +14,8 @@ VARIABLES={
  'surface_solar_radiation_downwards_1hr':('J m**-2','W m-2',1/3600.,0.,3600),
  'total_sky_direct_solar_radiation_at_surface_1hr':('J m**-2','W m-2',1/3600.,0.,3600),
  'total_precipitation_1hr':('m','mm',1000.,0.,3600),
+ 'imerg_tp_1hr':('m','mm',1000.,0.,3600),
+ 'experimental_tp_1hr':('m','mm',1000.,0.,3600),
  'mean_sea_level_pressure':('Pa','hPa',.01,0.,0),
  'total_cloud_cover':('(0 - 1)','percent',100.,0.,0),
  'wind_speed_10m':('m s**-1','m s-1',1.,0.,0),
@@ -48,11 +50,9 @@ def nearest_cell(latitudes,longitudes,site):
     return lat,lon
 
 
-def daily_solar_energy(points,local_date,timezone_name,*,variable='surface_solar_radiation_downwards_1hr'):
-    """kWh/m2 from a complete mean series; missing intervals remain unavailable."""
+def _daily_interval_sum(points,local_date,timezone_name,*,variable,native_unit,normalized_unit):
+    """Sum one named product's complete trailing hourly native intervals."""
     if not isinstance(local_date,date) or isinstance(local_date,datetime):raise ValueError('local date required')
-    if variable not in ('surface_solar_radiation_downwards_1hr','total_sky_direct_solar_radiation_at_surface_1hr'):
-        raise ValueError('explicit solar field required')
     if not isinstance(points,(list,tuple)) or len(points)>360*128:raise ValueError('bounded point series required')
     zone=ZoneInfo(timezone_name)
     start=datetime.combine(local_date,time.min,zone).astimezone(timezone.utc)
@@ -63,9 +63,9 @@ def daily_solar_energy(points,local_date,timezone_name,*,variable='surface_solar
         if row['statistic']!='mean':raise ValueError('daily marginal quantile summation is unsupported')
         at=instant(row['valid_at'])
         if not start<at<=end:continue
-        if row['period_seconds']!=3600 or row['raw_unit']!='J m**-2' or row['unit']!='W m-2':
-            raise ValueError('one-hour native solar interval required')
-        if at in selected:raise ValueError('duplicate solar interval refused')
+        if row['period_seconds']!=3600 or row['raw_unit']!=native_unit or row['unit']!=normalized_unit:
+            raise ValueError('one-hour native product interval required')
+        if at in selected:raise ValueError('duplicate product interval refused')
         selected[at]=row['raw_value']
     at=start+timedelta(hours=1);energy=0.
     while at<=end:
@@ -73,4 +73,20 @@ def daily_solar_energy(points,local_date,timezone_name,*,variable='surface_solar
         if value is None:return None
         if not finite(value) or value<0:raise ValueError('finite nonnegative solar accumulation required')
         energy+=value;at+=timedelta(hours=1)
-    return energy/3600000.
+    return energy
+
+
+def daily_solar_energy(points,local_date,timezone_name,*,variable='surface_solar_radiation_downwards_1hr'):
+    """kWh/m2 from a complete mean series; missing intervals remain unavailable."""
+    if variable not in ('surface_solar_radiation_downwards_1hr','total_sky_direct_solar_radiation_at_surface_1hr'):
+        raise ValueError('explicit solar field required')
+    energy=_daily_interval_sum(points,local_date,timezone_name,variable=variable,native_unit='J m**-2',normalized_unit='W m-2')
+    return None if energy is None else energy/3600000.
+
+
+def daily_rain_depth(points,local_date,timezone_name,*,variable='total_precipitation_1hr'):
+    """Millimetres for one complete mean precipitation product; never pool heads."""
+    if variable not in ('total_precipitation_1hr','imerg_tp_1hr','experimental_tp_1hr'):
+        raise ValueError('explicit precipitation product required')
+    depth=_daily_interval_sum(points,local_date,timezone_name,variable=variable,native_unit='m',normalized_unit='mm')
+    return None if depth is None else depth*1000.

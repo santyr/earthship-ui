@@ -16,6 +16,11 @@ class WorkerTests(unittest.TestCase):
  def test_collect_retains_original_before_success(self):
   result=collect_once(self.reader,self.archive,probe=False,horizon=1,free_bytes=10**9)
   self.assertEqual(result['status'],'ARCHIVED');self.assertEqual(self.archive.read(result['snapshot_sha256'])['provider'],'weathernext3')
+ def test_scheduled_capture_requests_all_rain_products_for_later_selection(self):
+  collect_once(self.reader,self.archive,probe=False,horizon=1,free_bytes=10**9)
+  selected=self.reader.fetch_points.call_args.kwargs['bands_by_grid']['gridded']
+  for required in ('total_precipitation_1hr_mean','imerg_tp_1hr_mean','experimental_tp_1hr_mean'):
+   with self.subTest(required=required):self.assertIn(required,selected)
  def test_disk_refusal_does_not_query_upstream(self):
   with self.assertRaises(ValueError):collect_once(self.reader,self.archive,free_bytes=0)
   self.reader.initialize.assert_not_called()
