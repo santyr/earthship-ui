@@ -1,6 +1,6 @@
 # WeatherNext prospective shadow runtime
 
-Implementation date: 2026-10-18. This runtime is implemented and tested locally, **not installed or enabled**. The [live API correction](2026-10-18-weathernext-api-compatibility.md) now proves real native extraction and a measured 360-hour capture; scheduling still requires installed-state verification. No household production forecast, notification or actuator behavior changed.
+Implementation date: 2026-10-18. The [private backend activation](2026-10-18-weathernext-shadow-activation.md) is now installed from reviewed commit f068063, with bounded hourly collection, local-only hourly issue recording and separate weekly candidate training enabled. Real native 360-hour capture and installed manual runs pass. Shadow Item/UI publication is still disabled, and prospective skill/reliability remain unqualified. Household production forecasts, notifications and actuators are unchanged.
 
 ## Data and state flow
 
@@ -26,7 +26,7 @@ The optional incumbent capture reads the existing corrected `Forecast_10Day_JSON
 
 `local_forecast_shadow.py` defaults to local shadow recording; `--publish` is explicit. `local_forecast_train.py` defaults to dry-run fitting; `--apply` explicitly installs a validated private candidate. `--algorithm residual` selects the regularized candidate; bias is the initial default. Both use the existing shared RAM admission/CPU/memory/swap/task/deadline launcher when scheduled.
 
-The disabled service templates read the existing private `~/.config/earthship-weather/runtime.env`. Deployment must supply:
+The service templates read private `~/.config/earthship-weather/runtime.env`, now installed for the backend-only activation. Deployment supplies:
 
 - `EARTHSHIP_WEATHER_CODE_ROOT`: isolated immutable deployment source directory.
 - `EARTHSHIP_WEATHER_PYTHON`: tested isolated Python executable.
@@ -38,7 +38,7 @@ The disabled service templates read the existing private `~/.config/earthship-we
 
 Reuse the installed qualified reader/policy; do not create a new authority or request broader database grants. Credentials remain in private configuration and are never included in Item payloads or CLI error output.
 
-The proposed order is collector at :35, shadow at :40 and weekly candidate training Sunday 06:50. Units are templates only. Before activation, require a real successful native point and measured 360-hour capture, verify the pinned stage/environment, install and inspect the three unlinked Items, update ownership only after actual verification, then verify a natural shadow publication. The native acquisition prerequisite now passes; verify the immutable installed source, private configuration and natural execution before claiming a schedule is active. Recovery rehearsals remain deferred.
+The proposed order is collector at :35, shadow at :40 and weekly candidate training Sunday 06:50. The backend-only deployment now passes native point/full-horizon capture, immutable-source and installed-run checks; its three timers are active. Its local-recording override omits publication. Before enabling UI publication, install and inspect the three unlinked Items, update ownership after actual verification, remove only that publication override, and verify a natural matching shadow publication. Natural timer execution is tracked separately from manual service qualification. Recovery rehearsals remain deferred.
 
 ## Remaining work
 
