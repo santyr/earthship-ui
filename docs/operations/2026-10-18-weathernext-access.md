@@ -46,3 +46,10 @@ Google noncommercial tiers: https://developers.google.com/earth-engine/guides/no
 The operator enabled Cloud Resource Manager, then reported completing the exact noncommercial reverification and granting `roles/earthengine.viewer` and `roles/serviceusage.serviceUsageConsumer` to the reader. After more than seven minutes, the read-only own-permissions check still returned HTTP 200 with no granted permissions among `earthengine.computations.create`, `earthengine.assets.get`, `earthengine.config.get`, `serviceusage.services.use` and `resourcemanager.projects.get`. The fresh EE configuration GET at 2026-10-18T14:46:29Z returned HTTP 403 `Permission 'earthengine.config.get' denied`.
 
 This verifies an effective access denial, not its administrative cause or registration status. The operator has been asked to check the exact principal on the **project IAM** page: https://console.cloud.google.com/iam-admin/iam?project=earthship-weather-research. Service-account resource permissions are a different surface. The agent made no IAM changes. No further point query or scheduler activation is justified until this check succeeds.
+
+
+## IAM/registration resolved; raster access still fails (14:54Z onward)
+
+After the operator added the exact reader principal with Owner on project IAM, all five requested permissions became effective. Configuration GET at 2026-10-18T14:54:00Z returned HTTP 200 and `REGISTERED_NOT_COMMERCIALLY`. The earlier empty permission results are historical. The reader need not be given further privileges to investigate the observed failure.
+
+The next live CLI probe reached WeatherNext computation but returned an EE internal error. Native metadata and a constant raster control succeed; WeatherNext raster reads fail across both grids and two runs. See [the bounded diagnosis and Google support handoff](2026-10-18-weathernext-ee-raster-diagnosis.md). No successful EE snapshot, full 360-hour measurement or scheduler activation is claimed. No paid backend/fallback was enabled.
