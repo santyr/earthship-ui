@@ -2,7 +2,7 @@
 
 Date: 2026-10-18. Project: `earthship-weather-research`. Principal: `weathernext-reader@earthship-weather-research.iam.gserviceaccount.com`. These are bounded read-only diagnostics, with no production forecast changes or paid fallback.
 
-> **Latest status:** A matching service-account mean reduction succeeded at 18:07Z. Native-projection extraction still fails. See the dated update below; earlier failures are retained as historical evidence.
+> **Superseded at 18:20Z:** The missing read-only backing-storage OAuth scope and a source-clock parser mismatch are corrected. A real native 360-hour capture succeeded. See [the live API compatibility report](2026-10-18-weathernext-api-compatibility.md). This document retains the earlier failures and intermediate diagnoses as historical evidence.
 
 ## Earlier verified result
 

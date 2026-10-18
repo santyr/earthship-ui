@@ -24,6 +24,16 @@ class EEParsingTests(unittest.TestCase):
    if change=='wrong_valid':raw['region'][1][3]+=3600000
    if change=='wrong_cell':raw['region'][1][1]=0
    with self.subTest(change=change),self.assertRaises(ValueError):self.parse(raw)
+ def test_source_initialization_clock_does_not_replace_forecast_target(self):
+  raw=response();raw['metadata'][0]['system:time_start']=T.timestamp()*1000
+  raw['region'][1][3]=T.timestamp()*1000
+  source,points=self.parse(raw)
+  self.assertEqual(points[0]['valid_at'],'2026-10-18T01:00:00+00:00')
+  self.assertEqual(source['payload']['region'][1][3],1792281600000)
+ def test_reported_source_clock_must_match_row_and_known_run_or_target(self):
+  for clock,row_clock in ((T.timestamp()*1000,T.timestamp()*1000+1),(T.timestamp()*1000+1,T.timestamp()*1000+1),(float('nan'),T.timestamp()*1000)):
+   raw=response();raw['metadata'][0]['system:time_start']=clock;raw['region'][1][3]=row_clock
+   with self.subTest(clock=clock),self.assertRaises(ValueError):self.parse(raw)
  def test_other_collection_or_global_download_refused(self):
   with self.assertRaises(ValueError):parse_collection_response(response(),collection='projects/other/assets/foo',bands=('station_head_temperature_2m_mean',),site=S,initialized_at=T,horizon=1)
  def test_source_availability_and_initialization_remain_separate(self):
@@ -79,3 +89,31 @@ class NativeProjectionTests(unittest.TestCase):
    Dictionary=lambda d:SimpleNamespace(getInfo=lambda:d))
   result=reader.fetch_points(run={'start_time':T.isoformat()},bands_by_grid={'station':('station_head_temperature_2m_mean',)},horizon=1)
   self.assertEqual(result['points'][0]['value'],0)
+
+@unittest.skipUnless(importlib.util.find_spec('ee'),'requires isolated pinned Earth Engine environment')
+class WorkerCredentialScopesTests(unittest.TestCase):
+ def test_signed_worker_request_can_read_external_raster_storage(self):
+  import base64,tempfile
+  from pathlib import Path
+  from urllib.parse import parse_qs
+  from cryptography.hazmat.primitives.asymmetric import rsa
+  from cryptography.hazmat.primitives import serialization
+  from weather_learning.config import PROJECT,READER
+  from weather_learning.weathernext_ee import load_credentials
+  # Generate disposable key material in memory; no real credential fixture.
+  key=rsa.generate_private_key(public_exponent=65537,key_size=2048)
+  encoded=key.private_bytes(serialization.Encoding.PEM,serialization.PrivateFormat.PKCS8,serialization.NoEncryption()).decode()
+  with tempfile.TemporaryDirectory() as directory:
+   path=Path(directory)/'worker.json'
+   path.write_text(json.dumps(dict(type='service_account',project_id=PROJECT,client_email=READER,token_uri='https://oauth2.googleapis.com/token',private_key=encoded)))
+   path.chmod(0o600)
+   credentials=load_credentials(path)
+   def exchange(url,method,body,headers,**kwargs):
+    assertion=parse_qs(body.decode())['assertion'][0]
+    payload=assertion.split('.')[1];claims=json.loads(base64.urlsafe_b64decode(payload+'='*(-len(payload)%4)))
+    self.assertEqual(set(claims['scope'].split()),{'https://www.googleapis.com/auth/earthengine','https://www.googleapis.com/auth/devstorage.read_only'})
+    self.assertEqual(claims['iss'],READER)
+    from types import SimpleNamespace
+    return SimpleNamespace(status=200,data=json.dumps({'access_token':str(id(self)),'expires_in':3600,'token_type':'Bearer'}).encode())
+   credentials.refresh(exchange)
+   self.assertIsNone(credentials.quota_project_id)

@@ -1,6 +1,6 @@
 # WeatherNext prospective shadow runtime
 
-Implementation date: 2026-10-18. This runtime is implemented and tested locally, **not installed or enabled**. Real WeatherNext raster extraction and full-horizon measurement remain blocked by Google HTTP 500. No household production forecast, notification or actuator behavior changed.
+Implementation date: 2026-10-18. This runtime is implemented and tested locally, **not installed or enabled**. The [live API correction](2026-10-18-weathernext-api-compatibility.md) now proves real native extraction and a measured 360-hour capture; scheduling still requires installed-state verification. No household production forecast, notification or actuator behavior changed.
 
 ## Data and state flow
 
@@ -38,7 +38,7 @@ The disabled service templates read the existing private `~/.config/earthship-we
 
 Reuse the installed qualified reader/policy; do not create a new authority or request broader database grants. Credentials remain in private configuration and are never included in Item payloads or CLI error output.
 
-The proposed order is collector at :35, shadow at :40 and weekly candidate training Sunday 06:50. Units are templates only. Before activation, require a real successful native point and measured 360-hour capture, verify the pinned stage/environment, install and inspect the three unlinked Items, update ownership only after actual verification, then verify a natural shadow publication. Do not enable schedules against the currently failing Google raster path. Recovery rehearsals remain deferred.
+The proposed order is collector at :35, shadow at :40 and weekly candidate training Sunday 06:50. Units are templates only. Before activation, require a real successful native point and measured 360-hour capture, verify the pinned stage/environment, install and inspect the three unlinked Items, update ownership only after actual verification, then verify a natural shadow publication. The native acquisition prerequisite now passes; verify the immutable installed source, private configuration and natural execution before claiming a schedule is active. Recovery rehearsals remain deferred.
 
 ## Remaining work
 
