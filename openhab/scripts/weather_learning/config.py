@@ -23,7 +23,7 @@ class AccessPolicy:
     noncommercial_verified:bool=False
     max_bytes:int=8*1024*1024
     max_targets:int=360
-    max_seconds:int=120
+    max_seconds:int=75
     max_attempts:int=2
     max_pixels:int=16
 

@@ -49,7 +49,7 @@ Production forecasts, correction state, thermal/PV coefficients, notification po
 
 ## Implementation increment (2026-10-18)
 
-Implemented the explicit site/cost policy, restricted Earth Engine HTTP transport, bounded native-cell reader/parser, probe/default-shadow CLI, single collector lock, immutable source-bound archive/index, freshness/horizon checks, and frozen unit/interval normalization. The isolated dependency environment is pinned in `requirements-weathernext.txt`. Forty-nine focused tests pass in that environment; the service/timer templates pass systemd verification. They are not installed or enabled. The CLI currently refuses service on the unregistered project, with no source/archive or production publication. Live EE schema/SDK graph behavior and full 360-hour transfer/memory/latency remain unverified until registration succeeds.
+Implemented the explicit site/cost policy, restricted Earth Engine HTTP transport, bounded native-cell reader/parser, probe/default-shadow CLI, single collector lock, immutable source-bound archive/index, freshness/horizon checks, and frozen unit/interval normalization. The isolated dependency environment is pinned in `requirements-weathernext.txt`. Fifty-two focused tests pass in that environment; the service/timer templates pass systemd verification. They are not installed or enabled. The CLI currently refuses service on the unregistered project, with no source/archive or production publication. Live EE schema/SDK graph behavior and full 360-hour transfer/memory/latency remain unverified until registration succeeds.
 
 The scheduler template uses the existing shared job-admission launcher, with no resource-policy changes. It performs shadow collection only and has no OpenHAB publisher, actuator or notification function. The archive refuses after 16 GiB / 10,000 objects or inadequate disk headroom rather than silently deleting retained evidence.
 
@@ -64,3 +64,9 @@ Latest raw-storage audit (14:12Z; raw snapshots are not qualified windows):
 | Inverter AC evidence | 2026-09-23 20:55:12 | 2026-10-18 14:12:03 | 411,943 |
 
 The incumbent `forecast-intel/weather-inputs` directory contains 129 files totaling 91,004 bytes. Their issue/availability eligibility still needs validation; file count is not a scored sample count.
+
+The completed 28-day audit (September 20–October 17, assessed October 18 at 14:21Z) accepted **7 complete current-epoch outdoor-temperature days** (October 11–17), **18 PV days**, and **10 rain days** using the existing production-qualified readers. Other sampled days were withheld; the audit does not merge earlier receipt formats into the current hardware epoch. Per-variable accepted date lists and refusal reasons are retained privately in `source-audit-28days.json`.
+
+Independent review found and fixed a native-projection argument mismatch, a scheduler/collection-admission profile mismatch, and the absence of an interrupting total response deadline. Each was reproduced before its fix. The scheduler now uses the existing collection profile (256 MiB preferred/minimum, 24 tasks, 90 seconds); acquisition has a 75-second total interrupting budget plus the unchanged outer host safeguards. A separate CI job runs the pinned SDK tests without cloud credentials.
+
+Deferred minor limitations: archive validation binds point digests to retained originals but does not independently rederive every normalized point from those originals; the current reader/parser owns that validation. `AccessPolicy.max_attempts` and `max_pixels` are reserved configuration bounds, not independent active transport controls; actual retry count is zero and acquisition uses a fixed single-point query with strict response/target bounds. Neither limitation authorizes production cutover.

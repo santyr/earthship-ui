@@ -100,6 +100,9 @@ class EarthEngineReader:
         self.transport=BoundedTransport(policy);self.ready=False;self.ee=None
 
     def initialize(self):
+        with self.transport.deadline():self._initialize()
+
+    def _initialize(self):
         from google.auth.transport.requests import Request
         credentials=load_credentials(self.credential_path)
         request=Request(session=self.transport.session)
@@ -142,7 +145,7 @@ class EarthEngineReader:
             images=(ee.ImageCollection(collection).filter(ee.Filter.eq('start_time',run['start_time']))
                 .filter(ee.Filter.gte('forecast_hour',1)).filter(ee.Filter.lte('forecast_hour',horizon)).sort('forecast_hour').limit(horizon+1))
             projection=ee.Image(images.first()).select([bands[0]]).projection()
-            region=images.select(list(bands)).getRegion(ee.Geometry.Point([self.site.longitude,self.site.latitude]),crs=projection,crsTransform=projection.transform())
+            region=images.select(list(bands)).getRegion(ee.Geometry.Point([self.site.longitude,self.site.latitude]),crs=projection)
             metadata=images.toList(horizon+1).map(lambda image:ee.Image(image).toDictionary(['system:index','start_time','end_time','forecast_hour','ingestion_time_utc']))
             raw=ee.Dictionary(dict(metadata=metadata,region=region)).getInfo()
             results.append(parse_collection_response(raw,collection=collection,bands=bands,site=self.site,initialized_at=initialized,horizon=horizon))

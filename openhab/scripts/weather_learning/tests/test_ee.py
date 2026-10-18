@@ -49,3 +49,33 @@ class SDKInitializationTests(unittest.TestCase):
   credential=Mock();credential.token='synthetic-'+str(id(self))
   with patch('weather_learning.weathernext_ee.load_credentials',return_value=credential),patch('ee.Initialize') as initialize:
    reader.initialize();initialize.assert_called_once();self.assertTrue(reader.ready)
+
+@unittest.skipUnless(importlib.util.find_spec('ee'),'requires isolated pinned Earth Engine environment')
+class NativeProjectionTests(unittest.TestCase):
+ def test_query_preserves_native_projection_without_wkt_as_affine_transform(self):
+  import ee,inspect
+  from types import SimpleNamespace
+  projection=SimpleNamespace(transform=lambda:'GEOGCS[WKT is a string]')
+  signature=inspect.signature(ee.ImageCollection.getRegion)
+  class Image:
+   def select(self,*args):return self
+   def projection(self):return projection
+  class Collection:
+   def filter(self,*args):return self
+   def sort(self,*args):return self
+   def limit(self,*args):return self
+   def first(self):return Image()
+   def select(self,*args):return self
+   def toList(self,*args):return SimpleNamespace(map=lambda f:response()['metadata'])
+   def getRegion(self,*args,**kwargs):
+    bound=signature.bind(self,*args,**kwargs);bound.apply_defaults()
+    if bound.arguments['crs'] is not projection or bound.arguments['crsTransform'] is not None:
+     raise ValueError('native projection must retain its existing affine transform')
+    return response()['region']
+  reader=EarthEngineReader(policy=AccessPolicy(backend='earthengine',noncommercial_verified=True),site=S,credential_path='/unused',clock=lambda:T+timedelta(minutes=20))
+  reader.ready=True
+  reader.ee=SimpleNamespace(ImageCollection=lambda _:Collection(),Image=lambda x:x,
+   Geometry=SimpleNamespace(Point=lambda x:tuple(x)),Filter=SimpleNamespace(eq=lambda *a:None,gte=lambda *a:None,lte=lambda *a:None),
+   Dictionary=lambda d:SimpleNamespace(getInfo=lambda:d))
+  result=reader.fetch_points(run={'start_time':T.isoformat()},bands_by_grid={'station':('station_head_temperature_2m_mean',)},horizon=1)
+  self.assertEqual(result['points'][0]['value'],0)
