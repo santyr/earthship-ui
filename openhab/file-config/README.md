@@ -398,3 +398,8 @@ file-owned after actual original-managed rollback and final transfer. Their
 6,994 original rows and latest JDBC values are independently verified. Current
 installed source paths total59. The operator then stopped migration and directed
 work to machine learning; the prior58-source restart baseline is unrefreshed.
+
+
+## WeatherNext comparison Items — October 18
+
+The three String Items in `items/forecast-provider-shadow.items` are now installed and file-owned, with no groups or channel links. Ownership was appended after actual hot-load/state readback; this does not claim restart/recovery qualification. Only `local-forecast-shadow.service` publishes their identical sealed shadow generation. The live Weather comparison and first one-pair candidate remain unqualified and have no equipment authority. See the [activation record](../../docs/operations/2026-10-18-weathernext-comparison-activation.md).

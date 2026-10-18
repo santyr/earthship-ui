@@ -377,6 +377,7 @@
   }
   .daily-cell {
     grid-area: daily;
+    position: relative;
   }
   .wind-cell {
     grid-area: wind;

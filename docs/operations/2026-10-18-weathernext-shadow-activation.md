@@ -1,3 +1,5 @@
+**Later update:** [Comparison publication and first candidate](2026-10-18-weathernext-comparison-activation.md) supersede this initial local-only publication setting. The initial deployment evidence below remains historical.
+
 # WeatherNext private shadow activation
 
 Observed 2026-10-18. Initial deployment source was reviewed commit `f0680630bbdab3beaf5d6270c1dbb87c7e7143ee` on PR #35; the current private backend source is tested commit `f5775f8132a35b177ba503d6fc605e1b9d94df47`, as recorded in the rain-candidate upgrade below. The [API compatibility correction](2026-10-18-weathernext-api-compatibility.md) fixed the missing read-only backing-storage OAuth scope and retained source initialization clock separately from forecast target time.

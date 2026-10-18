@@ -1324,6 +1324,33 @@
       "provider": "file", "migration": "observational",
       "source": "items/astro-circadian-temperature.items",
       "destination": "/etc/openhab/items/astro-circadian-temperature.items"
+    },
+    {
+      "kind": "item",
+      "id": "Forecast_Provider_Status_JSON",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/forecast-provider-shadow.items",
+      "destination": "/etc/openhab/items/forecast-provider-shadow.items",
+      "state_writer": "local-forecast-shadow.service"
+    },
+    {
+      "kind": "item",
+      "id": "Forecast_Comparison_JSON",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/forecast-provider-shadow.items",
+      "destination": "/etc/openhab/items/forecast-provider-shadow.items",
+      "state_writer": "local-forecast-shadow.service"
+    },
+    {
+      "kind": "item",
+      "id": "Forecast_Local_Shadow_JSON",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/forecast-provider-shadow.items",
+      "destination": "/etc/openhab/items/forecast-provider-shadow.items",
+      "state_writer": "local-forecast-shadow.service"
     }
   ]
 }
