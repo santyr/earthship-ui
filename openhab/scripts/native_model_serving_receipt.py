@@ -193,7 +193,7 @@ def _check_receipt(receipt, candidate, selected, originals, runtime, helper, ass
             artifacts.digest(receipt, 'receipt_sha256') != _sha(receipt['receipt_sha256']) or
             receipt['release_authorized'] is not False):
         raise ValueError('closed original model verification receipt required')
-    if (set(candidate) != artifacts.FIELDS or candidate['schema'] != artifacts.SCHEMA or
+    if (set(candidate) != artifacts.FIELDS or candidate['schema'] not in artifacts.SCHEMAS or
             artifacts.digest(candidate, 'artifact_sha256') != selected['artifact_sha256'] or
             candidate['artifact_sha256'] != selected['artifact_sha256'] or
             candidate['runtime_sha256'] != selected['runtime_sha256'] or
@@ -209,21 +209,20 @@ def _check_receipt(receipt, candidate, selected, originals, runtime, helper, ass
                 source_sha256=runtime['native_source_manifest']['openhab/scripts/native_thermal_artifact.py'])):
         raise ValueError('original verified model dependencies differ')
     fit = candidate['fit']
-    from native_thermal_model import RULE
     from native_thermal_inputs import solar_feature_contract
-    from thermal_model.installed_shade_dynamics import LOWER, UPPER
-    if (set(fit) != artifacts.FIT_FIELDS or fit['schema'] != artifacts.FIT_SCHEMA or
-            fit['model_rule'] != RULE or fit['solar_feature'] != solar_feature_contract() or
+    profile=artifacts.fit_profile(fit)
+    if (set(fit) != profile['fields'] or
+            fit['model_rule'] != profile['rule'] or fit['solar_feature'] != profile['solar_feature']() or
             fit['graduated'] is not False or fit['release_authorized'] is not False or
-            fit['as_issued_forecast'] is not False or receipt['model_rule'] != RULE or
+            fit['as_issued_forecast'] is not False or receipt['model_rule'] != profile['rule'] or
             receipt['sensor_epochs'] != fit['sensor_epochs'] or
             receipt['fit_sha256'] != sha256(_canonical(fit)).hexdigest()):
         raise ValueError('original verified fit contract differs')
     for key in ('coefficients', 'initial_coefficients'):
         values = fit[key]
-        if (not isinstance(values, list) or len(values) != 10 or
+        if (not isinstance(values, list) or len(values) != profile['count'] or
                 any(type(x) not in (int, float) or not math.isfinite(x) or not low <= x <= high
-                    for x, low, high in zip(values, LOWER, UPPER))):
+                    for x, low, high in zip(values, profile['lower'], profile['upper']))):
             raise ValueError('verified physical coefficients required')
     if not _utc(candidate['created_at']) <= _utc(receipt['verified_at']) <= _utc(assessed_at):
         raise ValueError('verified model admission chronology differs')

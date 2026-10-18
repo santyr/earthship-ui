@@ -101,10 +101,18 @@ def _resource_preflight():
 
 
 
+def _configured_model(settings,candidate):
+    if settings.get('schema') in GOOGLE_SCHEMAS:
+        from native_thermal_artifact import IRRADIANCE_SCHEMA
+        if candidate.get('schema')!=IRRADIANCE_SCHEMA:
+            raise ValueError('Google production requires the preserved irradiance model family')
+
+
 def _serving_settings(model,settings,*,assessed_at,guard):
     from native_model_serving_receipt import _require_model
     from native_thermal_artifact import _read
     _require_model(model)
+    _configured_model(settings,model.candidate)
     model.verify_bindings(assessed_at=assessed_at,guard=guard)
     selected=json.loads(model._selection._encoded)
     stage=Path(selected['stage'])
@@ -157,6 +165,7 @@ def publish_cycle(settings,*,guard,geometry=None,backend=None,serving_model=None
         else:
             candidate=read_native_candidate(candidate_path,assessed_at=now,runtime=runtime,
                 expected_artifact_sha256=expected_artifact,guard=within_deadline)
+        _configured_model(settings,candidate)
         if geometry is None:geometry=read_geometry(settings,issue=issue,guard=within_deadline)
         # Allow the measured parent acquisition plus the household collector to
         # finish before issue. Original source freshness checks still apply.
@@ -382,6 +391,7 @@ def prepare_geometry(settings,*,issue,library_paths,guard,serving_model=None):
         else:
             candidate=read_native_candidate(Path(settings['candidate_path']),assessed_at=started,runtime=runtime,
                 expected_artifact_sha256=settings['artifact_sha256'],guard=check)
+        _configured_model(settings,candidate)
         ref=candidate['originals']['geometry'];raw,training=_read(ref['path'],LIMITS['geometry'])
         if sha256(raw).hexdigest()!=ref['sha256']:raise ValueError('original fitted native geometry changed')
         native_runtime=training['native_runtime'];source=training['caches'][0]['source'];site=source['site'];zone=training['request']['timezone']
@@ -526,6 +536,7 @@ def score_jobs(settings,*,guard,reader=None,max_jobs=1,serving_model=None,histor
         if receipt_profile:candidate=serving_model.candidate
         else:candidate=read_native_candidate(Path(settings['candidate_path']),assessed_at=now,runtime=runtime,
             expected_artifact_sha256=settings['artifact_sha256'],guard=remaining)
+        _configured_model(settings,candidate)
         folder=_phase_directory(root,'scores',now)
         if reader is None:
             config={key:settings[key] for key in ('token_file','native_db_config','native_policy','openhab_base')}
@@ -678,7 +689,7 @@ def _retain_native_gap(folder,job,delivery,delivery_path,capture,*,horizon,targe
     return value
 
 
-SERVING_RECEIPT_SOURCE_SHA256='94d85e37afc79e08cf9de93ba937b2ba845acc7111c0a23e483b186d8ff9a57e'
+SERVING_RECEIPT_SOURCE_SHA256='11121a94a4501c7af520b9df54ec879a3c75edadc87a0d15afd279bf83bbf58e'
 
 
 def serving_delivery_model(delivery_path,delivery,*,current_model,historical_selections,assessed_at,guard):

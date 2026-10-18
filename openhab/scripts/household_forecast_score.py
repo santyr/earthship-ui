@@ -19,7 +19,7 @@ PUBLICATION_POLICY_SHA256 = 'e7a330a82886605ef80f418f818bf2da90a2e419aa3264d7d98
 _production_policy = None
 PUBLICATION_MONITOR_SHA256 = '43cef34e31bc9b82a9d416f97bf9e15f255ebe95b873409089478e41e40fd9f9'
 _production_monitor = None
-REPORT_REPLAY_HELPER_SHA256 = '64488307c1d882d9663433acbbf155fc403e0008444352d2d6fb91457fc21fca'
+REPORT_REPLAY_HELPER_SHA256 = 'cb83f94a8f0e21d83fa14a61248584d532b48728c83e3b0a005536cc8d3f2d8e'
 _production_report_reuse = None
 
 
@@ -113,7 +113,7 @@ def production_report_replay(scores):
     return _production_report_reuse.wrap_report(scores)
 
 
-RETAINED_COORDINATOR_SHA256 = 'ad51742741bf894f212a318f393d857398299bc1e96af614eaa6f6aee294bf72'
+RETAINED_COORDINATOR_SHA256 = 'ddd862fcd5f964504ab80954e284e97befbbaedfef1a1f2c39dd4c7b962d2a28'
 
 
 def production_retained_runner():

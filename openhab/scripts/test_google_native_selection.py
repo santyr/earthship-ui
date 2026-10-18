@@ -18,6 +18,36 @@ def source(root):
         site=dict(latitude=SITE.latitude,longitude=SITE.longitude,timezone=SITE.timezone))
 
 
+def irradiance_package_candidate(args,settings):
+    """Package-only metadata fixture; never a numerical/model qualification."""
+    import subprocess
+    from hashlib import sha256
+    import native_thermal_artifact as artifacts
+    repo=args['repo_root']
+    from thermal_model.provisional_live import RUNTIME_PATHS
+    # Exercise the complete expanded production inventory, not a tiny fake base.
+    for name in sorted(RUNTIME_PATHS):
+        path=repo/'openhab/scripts'/name
+        if not path.exists():path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(b'# source inventory fixture\n');path.chmod(0o644)
+    for name in sorted(artifacts.JOINT_SOURCES|artifacts.IRRADIANCE_SOURCES):
+        path=repo/name;path.parent.mkdir(parents=True,exist_ok=True)
+        path.write_bytes(b'{}\n' if name.endswith('.json') else b'# package-only source fixture\n');path.chmod(0o644)
+    subprocess.run(['git','-C',str(repo),'add','.'],check=True,capture_output=True)
+    subprocess.run(['git','-C',str(repo),'-c','user.name=Test','-c','user.email=test@example.invalid','commit','-qm','preserved family fixture'],check=True,capture_output=True)
+    args['code_revision']=subprocess.check_output(['git','-C',str(repo),'rev-parse','HEAD'],text=True).strip()
+    path=Path(settings['candidate_path']);candidate=json.loads(path.read_bytes())
+    candidate['schema']=artifacts.IRRADIANCE_SCHEMA
+    runtime=candidate['runtime']
+    runtime['base_runtime']['source_manifest']={name:sha256((repo/'openhab/scripts'/name).read_bytes()).hexdigest() for name in RUNTIME_PATHS}
+    runtime['base_runtime']['observer_revision']=runtime['base_runtime']['source_manifest']['thermal_model/origin_capture.py']
+    runtime['native_source_manifest'].update({name:sha256((repo/name).read_bytes()).hexdigest() for name in artifacts.JOINT_SOURCES|artifacts.IRRADIANCE_SOURCES})
+    runtime['native_code_revision']=artifacts.digest(runtime['native_source_manifest'])
+    candidate['runtime_sha256']=artifacts.digest(runtime);candidate['artifact_sha256']=artifacts.digest(candidate,'artifact_sha256')
+    path.write_text(json.dumps(candidate))
+    settings.update(artifact_sha256=candidate['artifact_sha256'],runtime_sha256=candidate['runtime_sha256'])
+    return candidate
+
+
 @pytest.mark.parametrize('schema',[GOOGLE_LIVE,GOOGLE_SERVING])
 def test_closed_google_settings_replace_old_forecast_credential(tmp_path,monkeypatch,originals,schema):
     from test_native_future_geometry import settings_file
@@ -119,7 +149,11 @@ def test_google_publication_retains_original_source_and_rejects_incumbent_inputs
     from test_native_thermal_live_publication import fixture
     from weather_learning.native_forecast import make_native_forecast
     live,settings,backend,clock,candidate,geometry,runtime=fixture(tmp_path,monkeypatch,originals)
-    settings['schema']=GOOGLE_LIVE
+    from test_google_irradiance_model import fresh_candidate
+    candidate,runtime,_=fresh_candidate(tmp_path/'preserved-fit',monkeypatch)
+    settings.update(schema=GOOGLE_LIVE,candidate_path=str(tmp_path/'preserved-fit'/(candidate['artifact_sha256']+'.native-provisional-candidate-v4.json')),
+        artifact_sha256=candidate['artifact_sha256'],runtime_sha256=candidate['runtime_sha256'])
+    monkeypatch.setattr(live,'current_runtime',lambda **kw:deepcopy(runtime))
     original_collect=backend.collect
     def collect(**kw):
         inputs=original_collect(**kw)
@@ -158,6 +192,7 @@ def test_google_native_deployment_seals_source_selection_without_old_secret(tmp_
     from test_native_household_deploy import native_fixture,api,write,encode
     args,files,candidate,settings=native_fixture(tmp_path)
     settings.pop('forecast_dsn_file');settings.update(schema=GOOGLE_LIVE,weather_source=source(Archive(tmp_path/'google').root))
+    candidate=irradiance_package_candidate(args,settings)
     write(args['forecast_config'],encode(settings))
     before=args['service_file'].read_bytes()
     result=api().stage_deployment(**args)
@@ -165,6 +200,11 @@ def test_google_native_deployment_seals_source_selection_without_old_secret(tmp_
     record=api().verify_stage(args['stage'])
     assert record['runtime_sha256']==candidate['runtime_sha256']
     assert args['service_file'].read_bytes()==before
+    assert len(record['protected_runtime_sources'])==83
+    shade=args['stage']/'sources/openhab/thermal-shade-context.json'
+    assert shade.is_file() and 'openhab/thermal-shade-context.json' in record['native_runtime_sources']
+    shade.write_bytes(b'{"changed_after_fit":true}')
+    with pytest.raises(ValueError):api().verify_stage(args['stage'])
     # Staging source bytes is not a production handoff or permission to reuse
     # these synthetic fixture weights. Runtime/model qualification is separate.
 
@@ -174,6 +214,7 @@ def test_google_receipt_deployment_keeps_receipt_and_dispatch_pins(tmp_path,monk
     from test_household_cycle_deploy import write,encode
     deploy,args,settings,helper,libraries=fixture(tmp_path,monkeypatch)
     settings.pop('forecast_dsn_file');settings.update(schema=GOOGLE_SERVING,weather_source=source(Archive(tmp_path/'google').root))
+    irradiance_package_candidate(args,settings)
     write(args['forecast_config'],encode(settings))
     from hashlib import sha256
     deploy.stage_deployment(**args)
@@ -212,6 +253,7 @@ def test_fresh_google_release_may_have_new_source_closure_while_incumbent_switch
     write(old_model,encode(previous))
     if google:
         settings.pop('forecast_dsn_file');settings.update(schema=GOOGLE_LIVE,weather_source=source(Archive(tmp_path/'google').root))
+        candidate=irradiance_package_candidate(args,settings)
         write(args['forecast_config'],encode(settings))
         assert api().stage_deployment(**args)['status']=='deployment_staged'
         record=api().verify_stage(args['stage'])

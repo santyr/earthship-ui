@@ -50,7 +50,7 @@ def prepare_candidate(bundle, inputs, *, expected_runtime_revision, assessed_at)
     return PreparedCandidate(_canonical(bundle['artifact']), _utc(assessed_at))
 
 
-def _origin_actions(snapshot, issue):
+def _origin_actions(snapshot, issue, *, allow_removed=False):
     if not isinstance(snapshot, dict): raise ValueError('original origin action snapshot required')
     value = deepcopy(snapshot)
     if not isinstance(value.get('actions'), dict): raise ValueError('original action map required')
@@ -64,7 +64,7 @@ def _origin_actions(snapshot, issue):
     _validate_actions(value, issue)
     known = value['actions']
     outdoor = known.get('outdoor_shade'); indoor = known.get('indoor_shade'); vent = known.get('vent'); heat = known.get('kiva')
-    if outdoor is None or outdoor['state'] not in ('installed', 'present'):
+    if outdoor is None or outdoor['state'] not in (('installed','present','removed','absent') if allow_removed else ('installed','present')):
         raise ValueError('origin outside installed-outdoor-shade domain')
     if indoor is None or indoor['state'] not in ('open', 'closed'):
         raise ValueError('origin indoor shade state unavailable')
@@ -82,7 +82,7 @@ def _origin_actions(snapshot, issue):
     if mode not in ('warm', 'spring', 'fall_charge', 'winter', 'unknown'):
         raise ValueError('origin mode state unsupported')
     return dict(indoor_shade_closed=float(indoor['state'] == 'closed'),
-        outdoor_shade_present=1., vent_open=vent_value, vent_provenance=vent_provenance,
+        outdoor_shade_present=float(outdoor['state'] in ('installed','present')), vent_open=vent_value, vent_provenance=vent_provenance,
         mode=mode, action_knowledge='as_of_snapshot_not_outcome_confirmation')
 
 

@@ -11,8 +11,11 @@ from pathlib import Path
 from contextlib import contextmanager
 from contextvars import ContextVar
 
-SUPPORTED_SOURCE_SHA256='2e4abc7c8f655bcc5f7ff839b9750816f56f08b02bd516e10c8b8c2c6aaa6dab'
-SUPPORTED_MODEL_HELPER_SHA256='94d85e37afc79e08cf9de93ba937b2ba845acc7111c0a23e483b186d8ff9a57e'
+SUPPORTED_SOURCE_SHA256='60cd7a67a914ef8d996390f60e9be398475f9a1ef08c5da011d7d279a0db0608'
+PRIOR_SOURCE_SHA256='2e4abc7c8f655bcc5f7ff839b9750816f56f08b02bd516e10c8b8c2c6aaa6dab'
+INSTALLED_SOURCE_SHA256='40199b757ec35cd80c1aa8eb857fd1e272c0242f13122b30e76d9b2e9c92b9f6'
+SUPPORTED_MODEL_HELPER_SHA256='11121a94a4501c7af520b9df54ec879a3c75edadc87a0d15afd279bf83bbf58e'
+PRIOR_MODEL_HELPER_SHA256='94d85e37afc79e08cf9de93ba937b2ba845acc7111c0a23e483b186d8ff9a57e'
 _model_frame=ContextVar('household_report_model_bindings',default=None)
 
 
@@ -21,7 +24,7 @@ def _supported(scores,report,reader):
     if any(Path(function.__code__.co_filename).resolve()!=path for function in (report,reader)):
         return False
     with path.open('rb') as source:raw=source.read(262145)
-    return len(raw)<=262144 and sha256(raw).hexdigest()==SUPPORTED_SOURCE_SHA256
+    return len(raw)<=262144 and sha256(raw).hexdigest() in (SUPPORTED_SOURCE_SHA256,PRIOR_SOURCE_SHA256,INSTALLED_SOURCE_SHA256)
 
 
 
@@ -41,11 +44,12 @@ def _model_reads(scores,assessed_at):
     hooked=False
     try:
         path=Path(serving.__file__).resolve()
-        if (assessed_at is None or getattr(scores,'SERVING_RECEIPT_SOURCE_SHA256',None)!=SUPPORTED_MODEL_HELPER_SHA256 or
+        expected=getattr(scores,'SERVING_RECEIPT_SOURCE_SHA256',None)
+        if (assessed_at is None or expected not in (SUPPORTED_MODEL_HELPER_SHA256,PRIOR_MODEL_HELPER_SHA256) or
                 Path(original.__code__.co_filename).resolve()!=path):
             yield;return
         with path.open('rb') as source:raw=source.read(262145)
-        if len(raw)>262144 or sha256(raw).hexdigest()!=SUPPORTED_MODEL_HELPER_SHA256:
+        if len(raw)>262144 or sha256(raw).hexdigest()!=expected:
             yield;return
         report_at=serving._utc(assessed_at)
         def read(selection,*,assessed_at,guard):

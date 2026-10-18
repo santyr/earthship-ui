@@ -5,6 +5,9 @@ import math
 import json
 from astro_geometry import _instant
 from native_thermal_model import RULE
+from native_joint_shade import RULE as JOINT_RULE
+from native_irradiance_shade import RULE as IRRADIANCE_RULE
+MODEL_RULES=(RULE,JOINT_RULE,IRRADIANCE_RULE)
 from native_thermal_forecast import validate_capture,publication,digest
 from thermal_model.forcing_capture import _canonical
 from thermal_model.graduation_policy import _sha
@@ -68,7 +71,7 @@ def _score(capture,receipts,outcome,*,runtime,expected_artifact_sha256,expected_
     if _instant(model['at'])!=target:raise ValueError('original native score target differs')
     recent_f=_recent(recent)
     predictions=dict(model=model['air_f'],persistence=capture['output']['initial']['air_f'],recent_cycle=recent_f)
-    pair=dict(schema=SCHEMA,model_rule=RULE,geometry_series_sha256=capture['geometry_series_sha256'],
+    pair=dict(schema=SCHEMA,model_rule=capture['output']['model_rule'],geometry_series_sha256=capture['geometry_series_sha256'],
         artifact_sha256=capture['candidate']['artifact_sha256'],runtime_sha256=capture['candidate']['runtime_sha256'],capture_sha256=capture['capture_sha256'],
         issued_at=issue.isoformat(),target_at=target.isoformat(),assessed_at=assessed.isoformat(),horizon_hours=horizon_hours,outcome=outcome,
         predictions=predictions,errors={key:None if value is None else value-actual for key,value in predictions.items()},recent_cycle=recent,
@@ -87,7 +90,7 @@ def _statistical_view(pair):
 
 def validate_pair(pair,*,expected_pair_sha256):
     pair=deepcopy(pair)
-    if (not isinstance(pair,dict) or set(pair)!=FIELDS or pair['schema']!=SCHEMA or pair['model_rule']!=RULE or
+    if (not isinstance(pair,dict) or set(pair)!=FIELDS or pair['schema']!=SCHEMA or pair['model_rule'] not in MODEL_RULES or
             pair['pair_sha256']!=_sha(expected_pair_sha256) or digest(pair,'pair_sha256')!=pair['pair_sha256']):
         raise ValueError('closed original native scored-pair identity required')
     for key in ('artifact_sha256','runtime_sha256','capture_sha256','geometry_series_sha256'):_sha(pair[key])
@@ -109,6 +112,7 @@ def summarize(pairs,*,artifact_sha256=None):
     selected=next(iter(revisions),None) if artifact_sha256 is None else _sha(artifact_sha256)
     chosen=[pair for pair in values if pair['artifact_sha256']==selected]
     if len({pair['runtime_sha256'] for pair in chosen})>1:raise ValueError('native model runtime changed within score cohort')
+    if len({pair['model_rule'] for pair in chosen})>1:raise ValueError('native model rule changed within score cohort')
     return arithmetic.summarize([_statistical_view(pair) for pair in chosen],artifact_sha256=selected)
 
 
@@ -358,7 +362,7 @@ def reconcile_source_report(entries,*,runtime,artifact_sha256,assessed_at,check_
         return result
 
 
-SERVING_RECEIPT_SOURCE_SHA256='94d85e37afc79e08cf9de93ba937b2ba845acc7111c0a23e483b186d8ff9a57e'
+SERVING_RECEIPT_SOURCE_SHA256='11121a94a4501c7af520b9df54ec879a3c75edadc87a0d15afd279bf83bbf58e'
 
 
 

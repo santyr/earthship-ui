@@ -29,6 +29,11 @@ from thermal_model.installed_shade_dynamics import LOWER, UPPER
 from thermal_model.actions import DENVER
 
 SCHEMA = 'earthship-provisional-thermal-candidate/v2'
+JOINT_SCHEMA = 'earthship-provisional-thermal-candidate/v3'
+IRRADIANCE_SCHEMA='earthship-provisional-thermal-candidate/v4'
+SCHEMAS={SCHEMA,JOINT_SCHEMA,IRRADIANCE_SCHEMA}
+IRRADIANCE_SOURCES={'openhab/scripts/native_irradiance_shade.py'}
+JOINT_SOURCES={'openhab/scripts/native_joint_shade.py','openhab/thermal-shade-context.json'}
 RUNTIME_SCHEMA = 'earthship-native-thermal-runtime-binding/v1'
 FIT_EVIDENCE_SCHEMA = 'earthship-native-development-fit-evidence/v2'
 ROOT = Path(__file__).resolve().parents[2]
@@ -57,7 +62,7 @@ def validate_native_runtime(value):
         raise ValueError('closed native model runtime required')
     _runtime(value['base_runtime'])
     sources = value['native_source_manifest']
-    if (not isinstance(sources, dict) or not REQUIRED_SOURCES <= set(sources) <= REQUIRED_SOURCES | OPTIONAL_SOURCES or
+    if (not isinstance(sources, dict) or not REQUIRED_SOURCES <= set(sources) <= REQUIRED_SOURCES | OPTIONAL_SOURCES | JOINT_SOURCES | IRRADIANCE_SOURCES or
             digest(sources) != _sha(value['native_code_revision'])):
         raise ValueError('complete original native source closure required')
     for identity in sources.values(): _sha(identity)
@@ -66,7 +71,7 @@ def validate_native_runtime(value):
 
 def current_native_runtime(*, guard=lambda: None):
     guard(); base = current_base_runtime(); guard()
-    names = REQUIRED_SOURCES | {name for name in OPTIONAL_SOURCES if (ROOT/name).exists()}
+    names = REQUIRED_SOURCES | {name for name in OPTIONAL_SOURCES | JOINT_SOURCES | IRRADIANCE_SOURCES if (ROOT/name).exists()}
     sources = {}
     for name in sorted(names):
         guard(); sources[name] = sha256(_source_bytes(ROOT/name, maximum=2000000)).hexdigest()
@@ -92,10 +97,10 @@ def _read(path, maximum):
     return raw, value
 
 
-def _fit_environment(fitted, current):
+def _fit_environment(fitted, current, *, joint=False, irradiance=False):
     fitted = validate_native_runtime(fitted); current = validate_native_runtime(current)
     if (_canonical(fitted['base_runtime']) != _canonical(current['base_runtime']) or
-            any(fitted['native_source_manifest'][name] != current['native_source_manifest'][name] for name in REQUIRED_SOURCES)):
+            any(fitted['native_source_manifest'][name] != current['native_source_manifest'][name] for name in REQUIRED_SOURCES | (JOINT_SOURCES if joint else set()) | (IRRADIANCE_SOURCES if irradiance else set()))):
         raise ValueError('native fit environment/source closure differs')
 
 
@@ -106,50 +111,76 @@ def _references(paths):
             for role, path in paths.items()}
 
 
+def fit_profile(fit):
+    if not isinstance(fit,dict):raise ValueError('explicit original fit object required')
+    if fit.get('schema')==FIT_SCHEMA:
+        return dict(joint=False,fields=FIT_FIELDS,rule=RULE,model=NativeInstalledShadeDynamics,lower=LOWER,upper=UPPER,objective=_objective,count=10,irradiance=False,solar_feature=solar_feature_contract)
+    if fit.get('schema') in ('earthship-native-solar-provisional-fit/v2','earthship-native-solar-provisional-fit/v3'):
+        import native_joint_shade as j
+        import native_irradiance_shade as ir
+        irradiance=fit['schema']=='earthship-native-solar-provisional-fit/v3'
+        return dict(joint=True,fields=FIT_FIELDS|{'shade_context','regime_support'},rule=ir.RULE if irradiance else j.RULE,
+            model=ir.NativeIrradianceShadeDynamics if irradiance else j.NativeJointShadeDynamics,
+            lower=j.LOWER,upper=j.UPPER,objective=j.objective,count=14,irradiance=irradiance,
+            solar_feature=ir.solar_feature_contract if irradiance else solar_feature_contract)
+    raise ValueError('unsupported native fitting profile')
+
+
 def _statistics(fit, data, guard):
+    profile=fit_profile(fit);joint=profile['joint']
+    model_type=profile['model'];objective=profile['objective']
     deadline = time.monotonic()+85
     def check():
         guard()
         if time.monotonic() > deadline: raise ValueError('native artifact replay budget expired')
-    points, support = _points(data, fit['training_start'], fit['training_end'], check)
+    points, support = _points(data, fit['training_start'], fit['training_end'], check, joint=joint)
     if (support != fit['horizon_support'] or len(points) != fit['endpoint_count'] or
             len({p.origin.at.astimezone(DENVER).date() for p in points}) != fit['independent_origin_dates']):
         raise ValueError('native fit support differs from original endpoints')
     batches = prepare_native_batches(data, training_start=fit['training_start'],
-        training_end=fit['training_end'], deadline=deadline, guard=check)
-    initial, _, sensitivity = _objective(fit['initial_coefficients'], batches, deadline=deadline)
-    final, _, _ = _objective(fit['coefficients'], batches, deadline=deadline)
+        training_end=fit['training_end'], deadline=deadline, guard=check, joint=joint, irradiance=profile['irradiance'])
+    initial, _, sensitivity = objective(fit['initial_coefficients'], batches, deadline=deadline)
+    final, _, _ = objective(fit['coefficients'], batches, deadline=deadline)
     if (not math.isclose(initial, fit['initial_objective'], rel_tol=1e-9, abs_tol=1e-9) or
             not math.isclose(final, fit['final_objective'], rel_tol=1e-9, abs_tol=1e-9)):
         raise ValueError('native fit losses differ from original endpoint predictions')
-    scaled = sensitivity*(np.asarray(UPPER)-np.asarray(LOWER))
+    scaled = sensitivity*(np.asarray(profile['upper'])-np.asarray(profile['lower']))
     rank = int(np.linalg.matrix_rank(scaled))
     if rank != fit['conditioning_rank']: raise ValueError('native fit sensitivity rank differs')
-    if rank == 10:
+    if rank == profile['count']:
         singular = np.linalg.svd(scaled, compute_uv=False)
         if not math.isclose(float(singular[0]/singular[-1]), fit['normalized_condition_number'], rel_tol=1e-9, abs_tol=1e-9):
             raise ValueError('native fit conditioning differs')
     for name in ('initial_coefficients', 'coefficients'):
-        model = NativeInstalledShadeDynamics(tuple(fit[name]), geometry=data.geometry,
+        model = model_type(tuple(fit[name]), geometry=data.geometry,
                                             expected_series_sha256=data.geometry.sha256)
         for point in points:
             check(); model.rollout(origin_at=point.origin.at, air_f=point.origin.air_f,
                 mass_f=point.origin.mass_f, forcings=point.forcings, guard=check)
+    if joint:
+        import native_joint_shade as j
+        if _canonical(fit['regime_support'])!=_canonical(j.regime_support(data,points,start=fit['training_start'],end=fit['training_end'])):
+            raise ValueError('joint regime support differs from original measurements/endpoints')
     check()
 
 
 def validate_native_candidate(value, *, assessed_at, runtime, expected_artifact_sha256, guard=lambda: None):
     try:
         guard(); runtime = validate_native_runtime(runtime)
-        if (not isinstance(value, dict) or set(value) != FIELDS or value['schema'] != SCHEMA or
+        if (not isinstance(value, dict) or set(value) != FIELDS or value['schema'] not in SCHEMAS or
                 value['artifact_sha256'] != _sha(expected_artifact_sha256) or
                 digest(value, 'artifact_sha256') != value['artifact_sha256'] or
                 _canonical(validate_native_runtime(value['runtime'])) != _canonical(runtime) or
                 digest(runtime) != _sha(value['runtime_sha256'])):
             raise ValueError('original native candidate/runtime identity required')
         fit = value['fit']
-        if (not isinstance(fit, dict) or set(fit) != FIT_FIELDS or fit['schema'] != FIT_SCHEMA or
-                fit['model_rule'] != RULE or _canonical(fit['solar_feature']) != _canonical(solar_feature_contract()) or
+        profile=fit_profile(fit);joint=profile['joint']
+        if value['schema']!=(IRRADIANCE_SCHEMA if profile['irradiance'] else JOINT_SCHEMA if joint else SCHEMA):raise ValueError('native candidate profile version differs')
+        if joint:
+            import native_joint_shade as j
+            if not JOINT_SOURCES<=set(runtime['native_source_manifest']) or _canonical(fit['shade_context'])!=_canonical(j.shade_contract()):raise ValueError('original joint source/context required')
+        if (not isinstance(fit, dict) or set(fit) != profile['fields'] or
+                fit['model_rule'] != profile['rule'] or _canonical(fit['solar_feature']) != _canonical(profile['solar_feature']()) or
                 fit['as_issued_forecast'] is not False or fit['release_authorized'] is not False):
             raise ValueError('closed native provisional learning contract required')
         for key in ('dataset_sha256', 'geometry_series_sha256'): _sha(fit[key])
@@ -170,15 +201,17 @@ def validate_native_candidate(value, *, assessed_at, runtime, expected_artifact_
             runtime=base, runtime_sha256=digest(base), snapshot_path=str(paths['snapshot']),
             snapshot_file_sha256=refs['snapshot']['sha256'], fit={key:fit[key] for key in BASE_FIT_FIELDS})
         legacy['artifact_sha256'] = candidate_digest(legacy)
-        validate_candidate(legacy, assessed_at=assessed_at, runtime=base); guard()
+        if joint:j.validate_fit_metadata(fit,created_at=value['created_at'],assessed_at=assessed_at)
+        else:validate_candidate(legacy, assessed_at=assessed_at, runtime=base)
+        guard()
         evidence = original['fit_evidence']
         if (not isinstance(evidence, dict) or set(evidence) != EVIDENCE_FIELDS or
-                evidence['schema'] != FIT_EVIDENCE_SCHEMA or evidence['release_authorized'] is not False or
+                evidence['schema'] != ('earthship-native-development-fit-evidence/v4' if profile['irradiance'] else 'earthship-native-development-fit-evidence/v3' if joint else FIT_EVIDENCE_SCHEMA) or evidence['release_authorized'] is not False or
                 evidence['production_model_changed'] is not False or
                 re.fullmatch('[0-9a-f]{40}', evidence['code_revision']) is None or
                 _canonical(evidence['fit']) != _canonical(fit)):
             raise ValueError('original runtime-bound fitting evidence required')
-        _fit_environment(evidence['fit_runtime'], runtime)
+        _fit_environment(evidence['fit_runtime'], runtime, joint=joint, irradiance=profile['irradiance'])
         record = read_training_inputs_v2(paths['snapshot']); guard()
         if record['snapshot_sha256'] != fit['source_snapshot_sha256']:
             raise ValueError('native model source snapshot differs')
@@ -205,7 +238,8 @@ def validate_native_candidate(value, *, assessed_at, runtime, expected_artifact_
 def build_native_candidate(*, originals, runtime, created_at, guard=lambda: None):
     refs = _references(originals)
     fit = _read(originals['fit_evidence'], LIMITS['fit_evidence'])[1]['fit']
-    value = dict(schema=SCHEMA, created_at=_utc(created_at).isoformat(),
+    profile=fit_profile(fit)
+    value = dict(schema=IRRADIANCE_SCHEMA if profile['irradiance'] else JOINT_SCHEMA if profile['joint'] else SCHEMA, created_at=_utc(created_at).isoformat(),
         runtime=validate_native_runtime(runtime), runtime_sha256=digest(runtime), originals=refs, fit=deepcopy(fit))
     value['artifact_sha256'] = digest(value, 'artifact_sha256')
     return validate_native_candidate(value, assessed_at=created_at, runtime=runtime,
@@ -215,7 +249,7 @@ def build_native_candidate(*, originals, runtime, created_at, guard=lambda: None
 def write_native_candidate(directory, value, *, assessed_at, runtime, expected_artifact_sha256, guard=lambda: None):
     value = validate_native_candidate(value, assessed_at=assessed_at, runtime=runtime,
         expected_artifact_sha256=expected_artifact_sha256, guard=guard)
-    return _persist(_private_directory(Path(directory)), value, value['artifact_sha256'], '.native-provisional-candidate-v2.json')
+    return _persist(_private_directory(Path(directory)), value, value['artifact_sha256'], '.native-provisional-candidate-v4.json' if value['schema']==IRRADIANCE_SCHEMA else '.native-provisional-candidate-v3.json' if value['schema']==JOINT_SCHEMA else '.native-provisional-candidate-v2.json')
 
 
 def read_native_candidate(path, *, assessed_at, runtime, expected_artifact_sha256, guard=lambda: None):
