@@ -108,3 +108,10 @@ At 15:54Z a source-metadata check discovered a new 08Z WeatherNext run. Exactly 
 ## Energy and action inventory update (2026-10-18, 16:24Z)
 
 The [bounded read-only energy/action audit](2026-10-18-weathernext-energy-action-evidence.md) found seven measured 15-hour battery nights for prediction dates October 10–16; twenty older requested packets were refused and October 17 remained pending until its window ends at 11:00 AM MDT. Of 336 AC-output hours across October 4–17, 327 meet the existing 99% coverage threshold with a single receiver epoch per hour; five receiver cohorts remain explicit. Existing v1 action-history selection succeeded for fourteen morning origins using the runtime EnvironmentFile credential missed by the earlier audit. No model was fitted, no grants or policies changed, and none of these counts establish WeatherNext skill or complete per-zone action coverage.
+
+
+## Inactive production-boundary preparation (2026-10-18)
+
+The [prepared provider boundary](weathernext-cutover.md) now maps a validated original Google source into existing nullable raw forecast contracts without loading incumbent state or invoking its seeds. It shares the Google/local learning issue identity, begins in a separate untrained namespace, rejects incumbent corrections/PV inputs, preserves partial-day and DST interval semantics, and returns explicit unavailability on source or archive failure. It is not selected by any production schedule. New-model serving, native Astro daylight, production publication/withdrawal and complete removal remain unfinished.
+
+Verification: 120 pinned WeatherNext tests and 117 existing forecast characterization tests pass. Three Python-produced synthetic payloads, including the maximum horizon and both DST transitions, pass the actual frontend parser. Independent review's SQLite error-contract finding was reproduced and fixed; no real source or forecast-skill qualification follows from these checks.

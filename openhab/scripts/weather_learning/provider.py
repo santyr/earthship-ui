@@ -4,7 +4,7 @@ Original sources are rederived before conversion. No network fallback, legacy
 state, Kalman seeding, fitting, publication or equipment operation lives here.
 """
 from datetime import date,datetime,time,timedelta,timezone
-import json
+import json,sqlite3
 from zoneinfo import ZoneInfo
 
 from .config import Site
@@ -118,7 +118,7 @@ def load_production_forecast(archive,*,decision_at,required_horizon,site,require
     except (ValueError,KeyError,TypeError,OverflowError):
         body=_body(decision,required_horizon,site,required_variables);body['reason']='INVALID_SOURCE'
         return _freeze(body)
-    except OSError:
+    except (OSError,sqlite3.Error):
         body=_body(decision,required_horizon,site,required_variables);body['reason']='ARCHIVE_UNAVAILABLE'
         return _freeze(body)
 

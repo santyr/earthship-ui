@@ -1,6 +1,6 @@
 """Synthetic provider contract tests; no site skill or live Google evidence."""
 from datetime import datetime,timedelta,timezone
-import importlib,pathlib,tempfile,unittest
+import importlib,pathlib,sqlite3,tempfile,unittest
 from unittest.mock import patch
 from learning_fixtures import T,SITE,native_snapshot
 from weather_learning.archive import Archive
@@ -124,6 +124,15 @@ class ProviderTests(unittest.TestCase):
             fi.build_forecast_payloads(unavailable,[],self.now)
         self.archive.store_snapshot(full_snapshot())
         with self.assertRaises(ValueError):fi.build_forecast_payloads(self.load(),[],self.now+timedelta(seconds=1))
+
+    def test_archive_contention_and_corruption_are_unavailable_without_fallback(self):
+        for failure in (sqlite3.OperationalError('database is locked'),sqlite3.DatabaseError('database disk image is malformed')):
+            with self.subTest(failure=type(failure).__name__),patch.object(self.archive,'eligible_snapshot',side_effect=failure),patch('urllib.request.urlopen',side_effect=AssertionError('external fallback')):
+                value=self.load().to_dict()
+                self.assertEqual(value['status'],'UNAVAILABLE')
+                self.assertEqual(value['reason'],'ARCHIVE_UNAVAILABLE')
+                self.assertEqual(value['hours'],[]);self.assertEqual(value['days'],[])
+                self.assertIsNone(value['source']);self.assertFalse(value['release_authorized'])
 
     def test_caller_horizon_and_variable_contract_are_bounded(self):
         for horizon in (timedelta(0),timedelta(hours=337),1):
