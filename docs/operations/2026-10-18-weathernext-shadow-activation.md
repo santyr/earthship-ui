@@ -26,7 +26,7 @@ Installed unit bytes match the reviewed templates. The sole service override, `l
 - The real 337-target shadow payload also passed the actual frontend parser. The inactive six-variable provider returned `AVAILABLE` for 337 hourly targets / 15 local dates, with `release_authorized=false` and `automatic_actuation=false`.
 - Independent review found no Critical, Important or Minor issue in the live-API correction; the reviewer reran all 123 pinned tests and checked source-clock variants through downstream features. Exact-increment default Gitleaks scan and GitGuardian both pass.
 
-Manual installed runs and active timers are verified. Natural timer-triggered collection/inference remain pending their next actual invocation; enabled/waiting timer state alone is not reported as a completed scheduled acquisition. Local source/install receipts and live timer observations are retained privately in the execution evidence directory.
+The first natural collector trigger fired at **12:35:11 MDT (18:35:11Z)** and added snapshot `580fa8cb9f5dd0d5fc5328a4745abe2b303014992bfde01b993fcdddaf35aad2`, completed **18:35:19.439478Z**. It retained **3,600 points** in **8.008 seconds**, transferred **1,255,580 bytes / 7 requests**, and peaked at **73,144 KiB RSS**. The service succeeded and the active timer advanced to its next trigger; the live archive held three immutable snapshots. Natural shadow-inference and weekly-training triggers remain pending; their manual installed runs pass. Local source/install receipts and live timer observations are retained privately in the execution evidence directory.
 
 ## Remaining qualification
 
