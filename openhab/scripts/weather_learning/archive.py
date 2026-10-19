@@ -19,18 +19,25 @@ class Archive:
         os.chmod(self.db,0o600)
 
     @classmethod
-    def open_readonly(cls,root):
-        """Open the collector's existing index without creating or changing it."""
+    def open_readonly(cls,root,*,allow_missing=False):
+        """Open an existing index; an optional absent source stays unavailable."""
+        if type(allow_missing) is not bool:raise ValueError('explicit missing-source policy required')
         value=cls.__new__(cls);value.root=pathlib.Path(root)
         if not value.root.is_absolute() or value.root.resolve()!=value.root:
             raise ValueError('resolved private archive required')
         value.objects=value.root/'objects';value.db=value.root/'index.sqlite3';value.readonly=True
-        for path,directory in ((value.root,True),(value.objects,True),(value.db,False)):
-            info=path.lstat()
-            if (info.st_uid!=os.getuid() or info.st_mode&0o077 or
-                    not (stat.S_ISDIR(info.st_mode) if directory else stat.S_ISREG(info.st_mode))):
-                raise ValueError('owned private read-only archive required')
-        with value._connect() as db:db.execute('SELECT digest FROM snapshots LIMIT 0')
+        value.missing=False
+        try:
+            for path,directory in ((value.root,True),(value.objects,True),(value.db,False)):
+                info=path.lstat()
+                if (info.st_uid!=os.getuid() or info.st_mode&0o077 or
+                        not (stat.S_ISDIR(info.st_mode) if directory else stat.S_ISREG(info.st_mode))):
+                    raise ValueError('owned private read-only archive required')
+        except FileNotFoundError:
+            if not allow_missing:raise
+            value.missing=True
+        if not value.missing:
+            with value._connect() as db:db.execute('SELECT digest FROM snapshots LIMIT 0')
         return value
 
     @contextmanager
@@ -78,6 +85,7 @@ class Archive:
             raise ValueError('aware serving clocks required')
         decision_at=decision_at.astimezone(timezone.utc);target_end=target_end.astimezone(timezone.utc)
         if not decision_at<target_end or not timedelta(0)<max_age<=timedelta(hours=24):raise ValueError('bounded freshness/horizon required')
+        if getattr(self,'missing',False):return None
         # Only indexed, completely committed objects may replace a previous issue.
         with self._connect() as db:
             rows=db.execute('SELECT digest FROM snapshots WHERE historical=0 AND first_seen<=? AND completed<=? AND initialized>=? ORDER BY initialized DESC,completed DESC,digest LIMIT 256',

@@ -4,7 +4,7 @@ Implementation date: 2026-10-18. Shadow inference and training in the [private b
 
 ## Prepared v2 release (not installed)
 
-The current migration source removes incumbent capture and comparison controls. It publishes only `earthship-weather-provider-shadow/v2`, retains `earthship-weather-shadow-issue/v2`, and shows raw WeatherNext versus the local candidate in a model/status dialog. Both inference and fitting select the fresh `google-local-v2` child under the configured shadow-state root. The installed f5775f8 release still uses v1 until producer, service and frontend are deployed together. Its original issues/models remain unchanged; v2 does not load them. The source retirement status is documented in [the removal contract](openmeteo-retirement.md).
+The current migration source removes incumbent capture and comparison controls. It publishes only `earthship-weather-provider-shadow/v2`, retains `earthship-weather-shadow-issue/v2`, and shows raw WeatherNext versus the local candidate in a model/status dialog. Both inference and fitting select the fresh `google-local-v2` child under the configured shadow-state root. They open the collector archive read-only; a missing source remains explicitly unavailable without creating collector history. The collector retains sole responsibility for archive initialization and writes. The installed f5775f8 release still uses v1 until producer, service and frontend are deployed together. Its original issues/models remain unchanged; v2 does not load them. The source retirement status is documented in [the removal contract](openmeteo-retirement.md).
 
 ## Collector source maintenance
 

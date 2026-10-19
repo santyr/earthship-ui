@@ -21,7 +21,7 @@ def _context(args):
     site=Site.from_openhab_config(oh_get(I18N_CONFIG_PATH))
     policy,epoch=_native_outdoor_policy(args.temperature_policy)
     # Never import a prior comparison cohort's issues or candidate pointer.
-    return Archive(args.archive),ShadowStore(pathlib.Path(args.state)/'google-local-v2'),site,policy,epoch
+    return Archive.open_readonly(args.archive,allow_missing=True),ShadowStore(pathlib.Path(args.state)/'google-local-v2'),site,policy,epoch
 
 
 def main_shadow(argv=None):

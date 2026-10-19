@@ -84,42 +84,71 @@ Original bytes, index and an aggregate contract check are private under the exec
 
 The documented multi-hour dissemination lag means initialization age and observed availability must remain distinct. Hourly solar fields remain energy in J/m², converted to mean W/m² by dividing by 3,600; hourly precipitation remains metres converted to millimetres. These behaviors already agree with the implementation. This successful collection does not establish prospective reliability or local predictive skill. Production-provider integration, fresh downstream Google/local learning, qualification and complete Open-Meteo retirement remain unfinished.
 
-## Latest online verification
+## Latest online verification — October 19
 
-The current official Earth Engine guide, both collection catalogues, both freshly
-downloaded official starter notebooks, model specifications, authentication and
-service-account guides, dissemination schedule and getRegion contract were
-compared with the migration branch. The downloaded notebook hashes still match
-those recorded above. No further acquisition architecture mismatch was found.
-The storage-scope and original-clock corrections above are already implemented.
+Reread Google's current Earth Engine guide, both collection catalogues,
+model specifications, authentication/service-account guides, dissemination
+schedule and `getRegion` reference. Downloaded and inspected both official starter
+notebooks again: their collection names and use of `start_time` / `end_time`
+agree with the corrected reader. Their SHA256 identities remain:
 
-Fresh verification passed **211 tests in 8.602 seconds** in the pinned Earth Engine
-environment through shared host admission, using an isolated source export.
-An initial invocation against the group-writable development checkout refused
-fifteen production-worker fixtures at the immutable-source guard; rerunning in
-the normalized export passed without changing source guards or checkout modes.
-These are package tests, not the full repository suite or release qualification.
+- 0.1-degree notebook: `1762f318c422a5e88a125d4ecc725671211f3b7a12b487e4b4e7f86e748499e7`.
+- 0.05-degree notebook: `16290b9564f1e9b0f4f01669f99d776d4abcecfdfc18172d523f848dc410df52`.
 
-The current parser independently reconstructed all **4,320 normalized points**
-from the original two-grid response, with exact snapshot identity
-15ea934badb24e36220540ff27ff00bfaa84a10614407af10a592897f3b870fb.
-All 720 original image clocks are initialization clocks; forecast targets remain
-independently checked against end_time and lead hour. This reconstruction made
-no cloud requests, archive changes or production writes.
+The earlier storage-scope and source-clock corrections are already implemented.
+Google's general guide still describes `system:time_start` as valid time, whereas
+retained live image metadata and point rows report initialization time. Keep the
+originals and independently validate targets as `end_time = start_time + lead`.
+The [getRegion contract](https://developers.google.com/earth-engine/apidocs/ee-imagecollection-getregion)
+supports an explicit native Projection; adding a metre scale rescales it.
+The regional example's 5000/10000-metre scales therefore do not require replacing
+our reproducible native-cell point query.
+
+Freshly reconstructed all **4,320 nonnull normalized points** from the two-grid
+original response in snapshot
+`032f47a82e2f645a9bc5dbc1ee0008adad6c6c5a81a28f9ae506233dbe48b8bb`.
+All original image clocks were initialization clocks. Reconstruction used only
+read-only retained originals, with **zero cloud requests or archive writes**.
+The [collector qualification](2026-10-19-weathernext-collector-timeout.md)
+separately records successful real service-account acquisition and a subsequent
+natural collector/shadow consumption sequence. This implementation is now backed
+by actual API responses; the original pre-access assumptions are not treated as
+verification.
 
 Google's [dissemination table](https://developers.google.com/weathernext/guides/dissemination)
 targets Earth Engine delivery at initialization plus **8 hours 10 minutes** for
 full runs and plus **7 hours 25 minutes** for interim runs, with possible further
 delays. Initialization age, upstream ingestion and local completion remain
-separate. Actual available data, rather than the nominal hourly initialization
-cadence, determines selection.
+separate. Actual available data determines selection. Collection/grid assignment,
+hourly energy and rain conversion, and 360-hour versus 48-hour horizons agree with
+the reviewed documentation.
 
-**Disposition:** retain the corrected native-cell Earth Engine reader. The
-remaining source refactor separates current native operational helpers from
-standalone legacy publishers; it does not replace a working acquisition path.
-See the [native source selection record](2026-10-18-weathernext-native-selection.md).
-Final provider/worker retirement, fresh Google/local release fitting, qualification
-and coordinated production cutover remain unfinished.
+A separate consumer-ownership defect was reproduced and fixed: the prepared v2
+shadow/training CLI used the collector's writable archive constructor. It now
+opens an existing archive through SQLite read-only mode. A missing source can
+still produce the existing explicit `NO_ELIGIBLE_SOURCE` unavailable publication
+without creating archive directories or a database. Invalid permissions,
+symlinks, corrupted databases and the native adapter's strict missing-source
+policy remain errors. Only the collector initializes and writes its archive.
+
+Both new regressions failed before the fix and passed afterward. Fresh
+verification passed **216 pinned WeatherNext tests in 8.716 seconds**, with all
+fourteen retired worker/evidence modules blocked during discovery/execution, and
+**36 affected native tests in 7.97 seconds** through shared resource admission.
+Tests used isolated export `bbda72eeca890d1c67b3eceb42fb26c6fc2bd6fc`.
+An initial package invocation from the group-writable checkout refused fifteen
+`ProductionWorkerTests` fixtures at the immutable-source guard; the isolated
+export passed without changing checkout permissions or weakening source guards.
+These checks do not constitute the full repository suite or release qualification.
+
+**Disposition:** retain the corrected native-cell Earth Engine reader. No further
+acquisition architecture rewrite is supported by this review. The consumer
+read-only fix is prepared source, not an installed v2 activation. Archive changes
+are protected native-source changes, so final release fitting must use the new
+source closure; existing receipts are not relabelled. Final provider/worker
+retirement, fresh Google/local fitting, qualification and coordinated production
+cutover remain unfinished. No service, timer, credentials, resource limits,
+production forecast or equipment authority changed during this review.
 
 
 ## Collector timeout correction — October 19

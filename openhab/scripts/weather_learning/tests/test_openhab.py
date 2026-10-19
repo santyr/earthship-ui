@@ -93,6 +93,8 @@ class OpenHABEntrypointTests(unittest.TestCase):
             model='Fineoffset-WH65B', sensor_id=206, minimum_f=-60, maximum_f=140,
             validity_seconds=120, sensor_epoch='00000000-0000-4000-8000-000000000001')}}))
         policy.chmod(0o600)
+        from weather_learning.archive import Archive
+        Archive(self.root / 'archive')  # Existing collector-owned source.
         previous = ShadowStore(self.root / 'state')
         cutoff = datetime(2026, 1, 1, tzinfo=timezone.utc)
         previous.install_model(fit_bias([], cutoff=cutoff, code_revision='a' * 40), fitted_at=cutoff)
@@ -109,6 +111,8 @@ class OpenHABEntrypointTests(unittest.TestCase):
             model='Fineoffset-WH65B', sensor_id=206, minimum_f=-60, maximum_f=140,
             validity_seconds=120, sensor_epoch='00000000-0000-4000-8000-000000000001')}}))
         policy.chmod(0o600)
+        from weather_learning.archive import Archive
+        Archive(self.root / 'archive')  # Collector owns initialization.
         output = StringIO()
         args = ['--archive', str(self.root / 'archive'), '--state', str(self.root / 'state'),
                 '--temperature-policy', str(policy), '--code-revision', 'a' * 40, '--publish']
@@ -143,3 +147,43 @@ class OpenHABEntrypointTests(unittest.TestCase):
         self.assertEqual(value['elapsed_seconds'], 20.)
         self.assertNotIn('upstream diagnostic text must stay private', output.getvalue())
         self.assertNotIn(self.token, output.getvalue())
+
+
+    def test_shadow_context_cannot_mutate_the_collectors_existing_index(self):
+        import sqlite3
+        from hashlib import sha256
+        from types import SimpleNamespace
+        from weather_learning.archive import Archive
+        from weather_learning.cli import _context
+        policy = self.root / 'readonly-policy.json'
+        policy.write_text(json.dumps({'version': 2, 'streams': {'outdoor': dict(
+            model='Fineoffset-WH65B', sensor_id=206, minimum_f=-60, maximum_f=140,
+            validity_seconds=120, sensor_epoch='00000000-0000-4000-8000-000000000001')}}))
+        policy.chmod(0o600)
+        source = Archive(self.root / 'readonly-archive')
+        before = (sha256(source.db.read_bytes()).hexdigest(), source.db.stat().st_mtime_ns, source.db.stat().st_ctime_ns)
+        archive, _, _, _, _ = _context(SimpleNamespace(archive=str(source.root), state=str(self.root / 'readonly-state'), temperature_policy=str(policy)))
+        with self.assertRaises(sqlite3.OperationalError):
+            with archive._connect() as connection:connection.execute('DELETE FROM snapshots')
+        self.assertEqual(before, (sha256(source.db.read_bytes()).hexdigest(), source.db.stat().st_mtime_ns, source.db.stat().st_ctime_ns))
+
+    def test_missing_shadow_source_is_unavailable_without_initializing_history(self):
+        from weather_learning.cli import main_shadow
+        policy = self.root / 'missing-policy.json'
+        policy.write_text(json.dumps({'version': 2, 'streams': {'outdoor': dict(
+            model='Fineoffset-WH65B', sensor_id=206, minimum_f=-60, maximum_f=140,
+            validity_seconds=120, sensor_epoch='00000000-0000-4000-8000-000000000001')}}))
+        policy.chmod(0o600)
+        missing = self.root / 'missing-source'
+        output = StringIO()
+        with redirect_stdout(output):
+            result = main_shadow(['--archive', str(missing), '--state', str(self.root / 'missing-state'),
+                '--temperature-policy', str(policy), '--code-revision', 'a' * 40, '--publish'])
+        self.assertEqual(result, 0, output.getvalue())
+        self.assertEqual(json.loads(output.getvalue())['status'], 'UNAVAILABLE')
+        self.assertFalse(missing.exists(), 'observer initialized collector-owned history')
+        states = [json.loads(body) for method, _, _, body in self.requests if method == 'PUT']
+        self.assertEqual(len(states), 3)
+        self.assertTrue(all(value == states[0] for value in states))
+        self.assertEqual(states[0]['reason'], 'NO_ELIGIBLE_SOURCE')
+        self.assertFalse(states[0]['automaticActuation'])
