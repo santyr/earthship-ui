@@ -257,6 +257,9 @@ class PublicationScheduleRecoveryTests(unittest.TestCase):
         config.read(pathlib.Path(__file__).resolve().parents[4]/'deploy/weathernext-publish.service')
         self.assertEqual(config['Service']['Restart'],'on-failure')
         self.assertEqual(config['Service']['RestartSec'],'60s')
-        self.assertEqual(config['Unit']['StartLimitIntervalSec'],'300')
+        self.assertEqual(config['Unit']['StartLimitIntervalSec'],'900')
+        # A rate window must contain slow failures as well as immediate lock refusals.
+        latest_fourth_start=3*(int(config['Service']['TimeoutStartSec'])+int(config['Service']['RestartSec'].removesuffix('s')))
+        self.assertGreater(int(config['Unit']['StartLimitIntervalSec']),latest_fourth_start)
         self.assertEqual(config['Unit']['StartLimitBurst'],'3')
         self.assertEqual(config['Service']['TimeoutStartSec'],'110')

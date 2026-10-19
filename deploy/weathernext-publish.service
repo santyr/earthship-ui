@@ -3,7 +3,7 @@ Description=Earthship reviewed WeatherNext forecast publication
 Documentation=https://developers.google.com/weathernext/guides/earth-engine
 After=network-online.target weathernext-ingest.service
 Wants=network-online.target
-StartLimitIntervalSec=300
+StartLimitIntervalSec=900
 StartLimitBurst=3
 
 [Service]
