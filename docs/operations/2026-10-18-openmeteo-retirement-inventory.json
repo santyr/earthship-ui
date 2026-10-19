@@ -13583,7 +13583,10 @@
       "scripts/migrate-openmeteo-things.py",
       "scripts/rehearse-openmeteo-file-provider.py",
       "scripts/openmeteo_config.py",
-      "scripts/test_openmeteo_config.py"
+      "scripts/test_openmeteo_config.py",
+      "scripts/openhab-aqi.mjs",
+      "tests/openhab/aqi-migration.test.js",
+      "tests/aqi-consumption.test.js"
     ],
     "removed_apis": [
       "weather_learning.energy_shadow.compare_fixed_energy",
@@ -13598,12 +13601,23 @@
     "shadow_issue_schema": "earthship-weather-shadow-issue/v2",
     "fresh_shadow_state_child": "google-local-v2",
     "historical_evidence_rewritten": false,
-    "remaining": "Legacy worker/SQL receipt branch, OpenHAB definitions, remaining Item/JDBC tooling, AQI consumers and coordinated attended cutover remain unfinished.",
+    "remaining": "Legacy worker/SQL receipt branch, OpenHAB binding/definitions, remaining Item/JDBC tooling and root-only AQI producer/receipt consumers, plus coordinated attended cutover remain unfinished.",
     "neutral_tool_helpers": [
       "scripts/openhab_private_files.py",
       "scripts/HexThingsParse.java"
     ],
     "evaluation_report_schema": "earthship-weathernext-temperature-evaluation/v2",
-    "additional_preimage_revision": "efdf0019c9976b91395f421cf3dd75b7b66b7619"
+    "additional_preimage_revision": "efdf0019c9976b91395f421cf3dd75b7b66b7619",
+    "removed_frontend_surfaces": [
+      "modeled AQI Weather tile",
+      "modeled AQI Home chip",
+      "AQI classification/color helpers",
+      "global modeled AQI alerts and priority"
+    ],
+    "aqi_preimage_revision": "48a42b3793db4fd9ae73adbd21b04784462adf91",
+    "preserved_observations": [
+      "qualified local measurements",
+      "physical station current UV"
+    ]
   }
 }

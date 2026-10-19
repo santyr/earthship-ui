@@ -1165,7 +1165,7 @@ for (const target of TARGETS) {
     expect(geometry.outdoorSvg.right).toBeLessThanOrEqual(geometry.outdoorHost.right + 0.5);
     expect(geometry.outdoorSvg.bottom).toBeLessThanOrEqual(geometry.outdoorHost.bottom + 0.5);
 
-    expect(geometry.outdoor.chipItems).toHaveLength(2);
+    expect(geometry.outdoor.chipItems).toHaveLength(1);
     expect(geometry.windNeedleCount).toBe(1);
     expect(geometry.windHubCount).toBe(1);
     for (const cardinal of geometry.windCardinals) {
@@ -1178,7 +1178,8 @@ for (const target of TARGETS) {
     await expect(page.getByRole('group', { name: 'Power Flow', exact: true })).toBeAttached();
     await expect(page.getByRole('group', { name: 'Goat feedings: 2 feedings today', exact: true })).toBeVisible();
     await expect(page.locator('.goat-activation-icon')).toHaveCount(0);
-    await expect(page.locator('.sm-season')).toContainText(/(?:equinox|solstice)/);
+    // This fixture has no native season Items or freshness evidence.
+    await expect(page.locator('.sm-season')).toHaveText('Season unavailable');
     await expect(page.locator('.outdoor-spark svg path[stroke="#4caf50"]').first()).toBeVisible();
     await expect(page.locator('.indoor-spark svg')).toBeVisible();
     await expect(page.locator('.outdoor-hilo')).toHaveText('H 80° / L 53°');
@@ -1196,15 +1197,13 @@ for (const target of TARGETS) {
     await expect(page.locator('.outdoor-spark svg path[stroke="#f44336"]').first()).toBeVisible();
     await expect(page.getByRole('group', { name: 'Indoor', exact: true })).toBeAttached();
     await expect(page.getByRole('group', { name: 'Rain', exact: true })).toBeAttached();
-    await expect(page.getByText('AQI 42', { exact: true })).toBeVisible();
+    await expect(page.locator('.aqi-chip')).toHaveCount(0);
     await expect(page.locator('.compass-heading')).toHaveText('N · 0°');
     await expect(page.locator('.wind-meta')).toHaveText('gust 18 · max 18 mph');
     await expect(
       page.getByRole('img', { name: 'Wind direction N, 0 degrees, speed 11 mph', exact: true })
     ).toBeVisible();
     await expect(page.getByText('AQI 501', { exact: true })).toHaveCount(0);
-    await expect(page.locator('.aqi-chip')).toHaveCSS('color', 'rgb(248, 250, 252)');
-    await expect(page.locator('.aqi-chip')).toHaveCSS('border-top-color', 'rgb(34, 197, 94)');
     await expect(page.getByText('UV 0', { exact: true })).toHaveCSS('color', 'rgb(76, 175, 80)');
     await expect(page.locator('.rain-rate-chip')).toHaveCount(0);
     await expect(page.getByRole('group', { name: /^Greywater status idle\./i })).toBeAttached();
@@ -1387,8 +1386,6 @@ for (const target of TARGETS) {
     await expect(page.locator('.wind-meta')).toHaveText('gust 18 · max 18 mph');
     await expect(page.getByRole('group', { name: /^Greywater status unavailable\./i })).toBeAttached();
     await expect(page.locator('.gw-icon')).toHaveCSS('color', 'rgb(139, 147, 161)');
-    await expect(page.locator('.aqi-chip')).toHaveCSS('color', 'rgb(248, 250, 252)');
-    await expect(page.locator('.aqi-chip')).toHaveCSS('border-top-color', 'rgb(139, 147, 161)');
     await expect(page.getByText('UV —', { exact: true })).toHaveCSS('color', 'rgb(139, 147, 161)');
     await expect(page.locator('.rain-rate-chip')).toHaveText('RAIN 0.13 in/h');
     await expect(page.locator('.rain-rate-chip')).toHaveCSS('color', 'rgb(59, 130, 246)');
@@ -1426,7 +1423,7 @@ for (const target of TARGETS) {
     expectPrimaryChartHeights(geometry);
     expectHomeCardSeparation(geometry);
     expect(geometry.centeredBodies).toBe(14);
-    expect(geometry.outdoor.chipItems).toHaveLength(3);
+    expect(geometry.outdoor.chipItems).toHaveLength(2);
     expect(geometry.windNeedleCount).toBe(0);
     expect(geometry.windHubCount).toBe(0);
     expect(geometry.fonts.outdoor).toBeCloseTo(64, 1);

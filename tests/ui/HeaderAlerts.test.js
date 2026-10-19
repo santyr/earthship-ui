@@ -36,6 +36,17 @@ vi.mock('../../src/lib/openhab/index.js', async () => {
 import { connection, items } from '../../src/lib/openhab/index.js';
 import Header from '../../src/lib/ui/Header.svelte';
 
+function thermalWarningReceipt(now = Date.now()) {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Denver',
+    year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now);
+  const date = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  return JSON.stringify({ version: 1,
+    predictionDay: `${date.year}-${date.month}-${date.day}`,
+    issuedAt: new Date(now).toISOString(), pvTodayKwh: 3.3, curtailmentHoursToday: 0,
+    overnightTroughSocPct: 55,
+    thermalAdvisory: 'close_up_tomorrow|Close up for thermal storage' });
+}
+
 describe('Header alerts UI', () => {
   beforeEach(() => {
     mocks.navigate.mockReset();
@@ -65,7 +76,7 @@ describe('Header alerts UI', () => {
     connection.set('offline');
     items.update((value) => ({
       ...value,
-      Current_US_AQI: '119',
+      Forecast_Prediction_Receipt_JSON: thermalWarningReceipt(),
     }));
     render(Header);
 
@@ -76,7 +87,7 @@ describe('Header alerts UI', () => {
 
     const list = screen.getByRole('dialog', { name: 'Active alerts' });
     expect(list).toHaveTextContent('openHAB offline');
-    expect(list).toHaveTextContent('Modeled US AQI 119');
+    expect(list).toHaveTextContent('Close up for thermal storage');
     expect(list.querySelectorAll('[data-alert-list-item]')).toHaveLength(2);
   });
 
@@ -106,9 +117,9 @@ describe('Header alerts UI', () => {
     const assertive = container.querySelector('[aria-live="assertive"]');
     expect(assertive).toHaveTextContent('');
 
-    items.update((value) => ({ ...value, Current_US_AQI: '110' }));
+    items.update((value) => ({ ...value, Forecast_Prediction_Receipt_JSON: thermalWarningReceipt() }));
     await vi.waitFor(() => {
-      expect(container.querySelector('[aria-live="polite"]')).toHaveTextContent(/AQI 110/);
+      expect(container.querySelector('[aria-live="polite"]')).toHaveTextContent('Close up for thermal storage');
     });
     expect(assertive).toHaveTextContent('');
 

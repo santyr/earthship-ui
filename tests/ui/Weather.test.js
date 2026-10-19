@@ -57,7 +57,7 @@ function forecastDetail() {
   });
 }
 
-describe('Weather current AQI', () => {
+describe('Weather observations and forecasts', () => {
   beforeEach(() => {
     items.set({ ...BASE_ITEMS });
   });
@@ -68,29 +68,13 @@ describe('Weather current AQI', () => {
     vi.useRealTimers();
   });
 
-  it('ignores Forecast_AQI and names missing current AQI as unavailable', () => {
+  it('does not render retired modeled AQI even when old Item states remain', () => {
+    items.set({ ...BASE_ITEMS, Current_US_AQI: '501', Forecast_AQI: 'Hazardous',
+      AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature: '72' });
     const { container } = render(Weather);
-
-    expect(screen.getByText('Modeled US AQI')).toBeTruthy();
-    expect(screen.getByText('Unavailable')).toBeTruthy();
-    expect(container.querySelector('.aqi-body')?.getAttribute('data-source-item'))
-      .toBe('Current_US_AQI');
-    expect(container.querySelector('.aqi-body')?.textContent).not.toContain('REFRESH');
-  });
-
-  it('keeps a numeric Current_US_AQI above 500 visible and critical', () => {
-    items.set({
-      ...BASE_ITEMS,
-      Forecast_AQI: 'Good',
-      Current_US_AQI: '501',
-    });
-
-    const { container } = render(Weather);
-    const body = container.querySelector('.aqi-body');
-
-    expect(screen.getByText('501')).toBeTruthy();
-    expect(body?.getAttribute('data-aqi-status')).toBe('critical');
-    expect(body?.textContent).not.toContain('Good');
+    expect(screen.queryByText('Modeled US AQI')).toBeNull();
+    expect(container.querySelector('.aqi-body')).toBeNull();
+    expect(container.querySelector('.cur-temp')?.textContent).toContain('72');
   });
 
   it('renders all ten additive forecast days with the shared weather layout', () => {

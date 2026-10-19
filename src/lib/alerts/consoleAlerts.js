@@ -1,4 +1,3 @@
-import { adaptCurrentAqi } from '../ui/homeCardState.js';
 import { parsePredictionReceipt, parsePreDuskTroughReceipt, selectTroughForecast } from '../forecast/predictionReceipt.js';
 import { normalizedComms, normalizedDevicePresent } from './batteryHealth.js';
 import { freshCurrentSoc } from '../battery/currentSoc.js';
@@ -11,7 +10,6 @@ export const ALERT_PRIORITY = Object.freeze([
   'telemetry-stale',
   'thermal-close',
   'soc-trough',
-  'aqi-unhealthy',
   'thermal-vent',
   'control-outcome',
 ]);
@@ -188,16 +186,6 @@ export function projectConsoleAlerts({ connection = 'connecting', items = {}, st
       shortText: `Pre-dusk SoC estimate · ${rounded}%`,
       fullText: `Pre-dusk estimate of the overnight battery state-of-charge minimum is ${rounded}%.`, route: 'energy',
       dedupeKey: 'battery:predicted-trough', priorityKey: 'soc-trough',
-    }));
-  }
-
-  const currentAqi = adaptCurrentAqi(items.Current_US_AQI);
-  if (currentAqi.value !== null && currentAqi.value >= 101) {
-    const rounded = currentAqi.value;
-    alerts.push(baseAlert({
-      id: 'aqi-unhealthy', severity: 'warning', shortText: `AQI ${rounded}`,
-      fullText: `Modeled US AQI ${rounded} is unhealthy.`, route: 'weather',
-      dedupeKey: 'aqi:current-us', priorityKey: 'aqi-unhealthy',
     }));
   }
 

@@ -1,7 +1,8 @@
 // WMO weather-code -> icon/label mapping. Shared by any screen that renders
-// Open-Meteo forecast codes (Forecast_Hourly_JSON / Forecast_Daily_JSON):
+// optional source weather codes (Forecast_Hourly_JSON / Forecast_Daily_JSON):
 // the Home forecast strip (emoji, inline) and the Weather screen's hourly
-// strip + 7-day rows (mdi icon names, via OhIcon).
+// strip + daily rows (mdi icon names, via OhIcon). Missing source codes stay
+// unknown; an unavailable Google condition code must not imply clear weather.
 //
 // wmoIcon() returns a bare 'mdi:name' string — OhIcon accepts this directly
 // (it only strips a leading 'iconify:' prefix if present, so a raw

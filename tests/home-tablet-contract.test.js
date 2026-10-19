@@ -109,10 +109,6 @@ describe('Home tablet presentation contract', () => {
     expect(home).toContain('value={rainValue}');
     expect(home).toContain('footer={rainFooter}');
     expect(home).toMatch(/\.sm-row\s*\{[^}]*font-size:\s*0\.(?:8[2-9]|9)\d*rem/is);
-    expect(home).toContain('adaptCurrentAqi($items.Current_US_AQI)');
-    expect(home).toContain("currentAqi.value ?? '—'");
-    expect(home).toContain('color: {currentAqi.textColor}');
-    expect(home).toContain('border-color: {currentAqi.accent}');
   });
 
   it('uses six tablet-first sub-rows with equal primary instruments and right-side pairs', () => {

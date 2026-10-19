@@ -269,8 +269,7 @@ test('Weather current high and low use today, not the rolling 24-hour Items', as
 for (const target of TARGETS) {
   test(`Weather is fully bounded at ${target.name}`, async ({ page }, testInfo) => {
     await openFixture(page, 'weather', target);
-    await expect(page.getByText('Modeled US AQI')).toBeVisible();
-    await expect(page.getByText('Unavailable', { exact: true })).toBeVisible();
+    await expect(page.getByText('Modeled US AQI')).toHaveCount(0);
     await expectRouteBounded(page, 'weather');
     await expect(page.locator('.hs-chart svg, .hs-chart canvas')).toBeVisible();
 

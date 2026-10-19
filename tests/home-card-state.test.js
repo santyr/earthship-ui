@@ -2,18 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import {
-  HOME_AQI_COLORS,
-  HOME_AQI_TEXT_COLOR,
   HOME_STATE_COLORS,
   HOME_UV_COLORS,
   HOME_WIND_COLORS,
-  adaptCurrentAqi,
   advanceGoatFeederTracker,
   batteryDirectionState,
   batteryPowerFlowPresentation,
   batteryIcon,
   bitcoinStateColor,
-  aqiChipColor,
   createGoatFeederTracker,
   curtailmentColor,
   formatGoatFeedings,
@@ -255,82 +251,6 @@ describe('Home signed card state colors', () => {
 
   it.each([
     [null, HOME_STATE_COLORS.neutral],
-    ['UNDEF', HOME_STATE_COLORS.neutral],
-    [50, '#22c55e'],
-    [51, '#eab308'],
-    [100, '#eab308'],
-    [101, '#f97316'],
-    [150, '#f97316'],
-    [151, '#ef4444'],
-    [200, '#ef4444'],
-    [201, '#a855f7'],
-    [300, '#a855f7'],
-    [301, '#991b1b'],
-    [500, '#991b1b'],
-    [501, '#991b1b'],
-  ])('maps AQI %s to EPA color %s', (value, expected) => {
-    expect(aqiChipColor(value)).toBe(expected);
-  });
-
-  it.each([
-    [null],
-    [''],
-    ['NULL'],
-    ['UNDEF'],
-    ['REFRESH'],
-    ['42 AQI'],
-    ['1e'],
-    [-0.1],
-    ['-1'],
-  ])('treats invalid or negative current AQI %s as unavailable', (raw) => {
-    expect(adaptCurrentAqi(raw)).toEqual({
-      value: null,
-      band: 'Unavailable',
-      status: 'unavailable',
-      accent: HOME_AQI_COLORS.unavailable,
-      textColor: HOME_AQI_TEXT_COLOR,
-    });
-  });
-
-  it.each([
-    ['0', 0, 'Good', 'good', HOME_AQI_COLORS.good],
-    ['50.4', 50, 'Good', 'good', HOME_AQI_COLORS.good],
-    ['50.5', 51, 'Moderate', 'moderate', HOME_AQI_COLORS.moderate],
-    ['100.4', 100, 'Moderate', 'moderate', HOME_AQI_COLORS.moderate],
-    ['100.5', 101, 'Unhealthy for sensitive groups', 'unhealthy', HOME_AQI_COLORS.sensitive],
-    ['150.4', 150, 'Unhealthy for sensitive groups', 'unhealthy', HOME_AQI_COLORS.sensitive],
-    ['150.5', 151, 'Unhealthy', 'unhealthy', HOME_AQI_COLORS.unhealthy],
-    ['200.5', 201, 'Very unhealthy', 'critical', HOME_AQI_COLORS.veryUnhealthy],
-    ['300.5', 301, 'Hazardous', 'critical', HOME_AQI_COLORS.hazardous],
-    ['500.4', 500, 'Hazardous', 'critical', HOME_AQI_COLORS.hazardous],
-    ['500.5', 501, 'Beyond AQI / hazardous', 'critical', HOME_AQI_COLORS.beyond],
-  ])(
-    'rounds current AQI %s to %s before classifying it as %s',
-    (raw, value, band, status, accent) => {
-      expect(adaptCurrentAqi(raw)).toEqual({
-        value,
-        band,
-        status,
-        accent,
-        textColor: HOME_AQI_TEXT_COLOR,
-      });
-    },
-  );
-
-  it('keeps small AQI text readable while the separate accent carries the EPA band', () => {
-    const states = [0, 51, 101, 151, 201, 301, 501].map(adaptCurrentAqi);
-
-    expect(contrastRatio(HOME_AQI_TEXT_COLOR, '#202631')).toBeGreaterThanOrEqual(4.5);
-    expect(new Set(states.map((state) => state.textColor))).toEqual(new Set([HOME_AQI_TEXT_COLOR]));
-    expect(new Set(states.map((state) => state.accent)).size).toBeGreaterThan(1);
-    expect(states.at(-1)).toMatchObject({
-      accent: HOME_AQI_COLORS.beyond,
-      status: 'critical',
-    });
-  });
-
-  it.each([
-    [null, HOME_STATE_COLORS.neutral],
     [59.9, '#3498db'],
     [60, '#00bcd4'],
     [67.9, '#00bcd4'],
@@ -519,7 +439,6 @@ describe('Home signed card state colors', () => {
   it('uses independent Wind colors plus current UV and Indoor icon UI', () => {
     expect(home).toContain('AmbientWeatherWS2902A_UVIndex');
     expect(home).toContain('class="outdoor-chips"');
-    expect(home).toMatch(/class="aqi-chip"\s+class:unavailable=\{currentAqi\.value === null\}/);
     expect(home).toMatch(/class="wind-gust"\s+style="color: \{windGustColor\}"/);
     expect(home).toMatch(/class="wind-max"\s+style="color: \{windMaxColor\}"/);
     expect(home).toContain('icon="iconify:mdi:home-thermometer"');

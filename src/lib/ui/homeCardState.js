@@ -10,19 +10,6 @@ export const HOME_STATE_COLORS = Object.freeze({
   bitcoin: '#f7931a',
 });
 
-export const HOME_AQI_TEXT_COLOR = '#f8fafc';
-
-export const HOME_AQI_COLORS = Object.freeze({
-  unavailable: HOME_STATE_COLORS.neutral,
-  good: '#22c55e',
-  moderate: '#eab308',
-  sensitive: '#f97316',
-  unhealthy: '#ef4444',
-  veryUnhealthy: '#a855f7',
-  hazardous: '#991b1b',
-  beyond: '#991b1b',
-});
-
 export const HOME_WIND_COLORS = Object.freeze({
   neutral: HOME_STATE_COLORS.neutral,
   green: '#4caf50',
@@ -233,51 +220,6 @@ function baseOutdoorConditionIcon(value) {
   }
   if (/part(?:ly|ially)-cloudy/.test(normalized)) return 'iconify:mdi:weather-partly-cloudy';
   return 'iconify:mdi:weather-partly-cloudy';
-}
-
-const CURRENT_AQI_NUMBER = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
-
-function unavailableCurrentAqi() {
-  return {
-    value: null,
-    band: 'Unavailable',
-    status: 'unavailable',
-    accent: HOME_AQI_COLORS.unavailable,
-    textColor: HOME_AQI_TEXT_COLOR,
-  };
-}
-
-export function adaptCurrentAqi(raw) {
-  const text = typeof raw === 'number' ? String(raw) : typeof raw === 'string' ? raw.trim() : '';
-  if (!CURRENT_AQI_NUMBER.test(text)) return unavailableCurrentAqi();
-
-  const numeric = Number(text);
-  if (!Number.isFinite(numeric) || numeric < 0) return unavailableCurrentAqi();
-
-  const value = Math.round(numeric);
-  if (value <= 50) {
-    return { value, band: 'Good', status: 'good', accent: HOME_AQI_COLORS.good, textColor: HOME_AQI_TEXT_COLOR };
-  }
-  if (value <= 100) {
-    return { value, band: 'Moderate', status: 'moderate', accent: HOME_AQI_COLORS.moderate, textColor: HOME_AQI_TEXT_COLOR };
-  }
-  if (value <= 150) {
-    return { value, band: 'Unhealthy for sensitive groups', status: 'unhealthy', accent: HOME_AQI_COLORS.sensitive, textColor: HOME_AQI_TEXT_COLOR };
-  }
-  if (value <= 200) {
-    return { value, band: 'Unhealthy', status: 'unhealthy', accent: HOME_AQI_COLORS.unhealthy, textColor: HOME_AQI_TEXT_COLOR };
-  }
-  if (value <= 300) {
-    return { value, band: 'Very unhealthy', status: 'critical', accent: HOME_AQI_COLORS.veryUnhealthy, textColor: HOME_AQI_TEXT_COLOR };
-  }
-  if (value <= 500) {
-    return { value, band: 'Hazardous', status: 'critical', accent: HOME_AQI_COLORS.hazardous, textColor: HOME_AQI_TEXT_COLOR };
-  }
-  return { value, band: 'Beyond AQI / hazardous', status: 'critical', accent: HOME_AQI_COLORS.beyond, textColor: HOME_AQI_TEXT_COLOR };
-}
-
-export function aqiChipColor(value) {
-  return adaptCurrentAqi(value).accent;
 }
 
 const RAIN_HARVEST_GALLONS_PER_INCH = 3500 * 0.623 * 0.8;

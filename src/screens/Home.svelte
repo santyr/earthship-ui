@@ -28,7 +28,6 @@
   import { parsePredictionReceipt } from '../lib/forecast/predictionReceipt.js';
   import { estimateDailyLoadKWh } from '../lib/ui/dailyLoad.js';
   import {
-    adaptCurrentAqi,
     batteryPowerFlowPresentation,
     batteryDirectionState,
     batteryIcon as selectBatteryIcon,
@@ -322,7 +321,6 @@
     ...nativeCurrentSkyContext(astroContext),
   }));
   const outdoorIconColor = $derived(outdoorTemperatureIconColor(outdoorTemp));
-  const currentAqi = $derived(adaptCurrentAqi($items.Current_US_AQI));
   const uvIndex = $derived(num($items.AmbientWeatherWS2902A_UVIndex));
   const uvColor = $derived(uvIndexColor(uvIndex));
   const indoorTemp = $derived(num($items.AmbientWeatherWS2902A_IndoorSensor_Temperature));
@@ -571,12 +569,6 @@
             <span class="cond-icon"><OhIcon icon={outdoorConditionIcon} size="2rem" color={outdoorIconColor} /></span>
             <span class="big-temp">{fmt($items.AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature, '°')}</span>
             <div class="outdoor-chips">
-              <span
-                class="aqi-chip"
-                class:unavailable={currentAqi.value === null}
-                style="color: {currentAqi.textColor}; border-color: {currentAqi.accent}"
-                >AQI {currentAqi.value ?? '—'}</span
-              >
               <span class="uv-chip" style="color: {uvColor}">UV {fmt($items.AmbientWeatherWS2902A_UVIndex)}</span>
               {#if rainRateLabel}
                 <span class="rain-rate-chip" style="color: {colors.rain}; border-color: {colors.rain}">{rainRateLabel}</span>
@@ -1011,7 +1003,6 @@
     gap: 0.25rem;
     flex: 0 0 auto;
   }
-  .aqi-chip,
   .uv-chip,
   .rain-rate-chip {
     font-size: 0.7rem;
@@ -1021,12 +1012,6 @@
     padding: 0.2rem 0.6rem;
     text-align: center;
     white-space: nowrap;
-  }
-  .aqi-chip {
-    background: #202631;
-  }
-  .aqi-chip.unavailable {
-    color: #aab4c2;
   }
   .uv-chip,
   .rain-rate-chip {
