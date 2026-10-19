@@ -22,6 +22,8 @@ class ProductionWorkerTests(unittest.TestCase):
         self.lock=self.private('shared.lock',b'')
         self.token=self.private('openhab.env',('OPENHAB_TOKEN='+uuid.uuid4().hex+'\n').encode())
         self.items=self.root/'items';self.items.mkdir(mode=0o755)
+        # The native CLI tests leave a private umask; freeze this reviewed fixture.
+        self.items.chmod(0o755)
         self.definitions='\n'.join(kind+' '+name+' "Forecast"' for name,kind in self.api.ITEM_TYPES.items())+'\n'
         self.item=self.items/'forecast.items';self.item.write_text(self.definitions);self.item.chmod(0o644)
         self.units={unit:dict(Id=unit,LoadState='loaded',ActiveState='inactive',UnitFileState='disabled') for unit in self.api.INCUMBENT_UNITS}

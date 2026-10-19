@@ -177,3 +177,24 @@ Explicit Google-only native and receipt-serving configuration profiles now reach
 The migration source now preserves the installed fourteen-parameter irradiance/shade equations and source-bound validation. Google production profiles refuse older model families; scheduled fitting selects the preserved family, the full 83-source/context package verifies, and the UI accepts its removed-shade domain without granting authority. A retained real-data replay exactly matches all 288 forcing steps and 24 hourly rows; this uses old coefficients only for parity, not promotion. Final checks: 125 relevant Python, 175 WeatherNext and 2,598 frontend tests passed, plus UI build. See [model-family preservation evidence](2026-10-18-weathernext-irradiance-family.md). Final provider retirement/source closure and real fresh fitting remain ahead of cutover.
 
 The [complete 84-path source-retirement proposal](2026-10-19-provider-operator-retirement-review.md) supersedes the earlier operator-only scope. It is unapplied pending the owner decision following automatic review rejection; static patch checks are not implementation test results. Installed services and production ownership are unchanged.
+
+## Full-suite fixture correction — October 19
+
+Full CI run `39234557058` on `9aa3cb0` completed its OpenHAB Python step with
+6,456 passed, 27 skipped and these five failures in `ProductionWorkerTests`:
+
+- `test_default_is_readonly_even_with_synthetic_complete_review`
+- `test_explicit_publication_retains_admission_identity_before_writes`
+- `test_installed_items_may_belong_to_the_reviewed_directory_owner`
+- `test_masked_and_removed_incumbent_units_are_stopped`
+- `test_release_revocation_after_first_put_prevents_further_updates`
+
+All five independently reproduced with umask 077, as left by earlier native CLI
+tests. The fixture requested a 0755 directory using `mkdir`, but the process
+umask made it 0700 while the reviewed metadata still declared 0755. The fixture
+now sets its intended directory mode explicitly. Production permission/ownership
+checks are unchanged. The complete pinned WeatherNext package then passed
+**216 tests in 8.610 seconds under umask 077**, using normalized source export
+and existing shared resource admission. Current-head full CI, including the
+subsequent operational-tools step, still must complete; this scoped fix is not
+a whole-repository green claim or release qualification.
