@@ -53,10 +53,6 @@
       "source": "items/moon-phase-readings.items", "destination": "/etc/openhab/items/moon-phase-readings.items"
     },
     {
-      "kind": "thing", "id": "openmeteo:openmeteo:local", "provider": "file", "migration": "verified",
-      "source": "things/openmeteo.things", "destination": "/etc/openhab/things/openmeteo.things"
-    },
-    {
       "kind": "thing", "id": "exec:command:BTC_Price", "provider": "file", "migration": "verified",
       "source": "things/bitcoin-price.things", "destination": "/etc/openhab/things/bitcoin-price.things"
     },
@@ -65,58 +61,34 @@
       "source": "things/astro-moon.things", "destination": "/etc/openhab/things/astro-moon.things"
     },
     {
-      "kind": "thing", "id": "openmeteo:forecast:local:site", "provider": "file", "migration": "verified",
-      "source": "things/openmeteo.things", "destination": "/etc/openhab/things/openmeteo.things"
+      "kind": "item", "id": "Forecast_Temp", "provider": "file", "migration": "prepared",
+      "source": "items/forecast-weather.items", "destination": "/etc/openhab/items/forecast-weather.items",
+      "state_writer": "weather_learning.production_publish.publish_cycle"
     },
     {
-      "kind": "item", "id": "Forecast_Temp", "provider": "file", "migration": "verified",
-      "source": "items/openmeteo-forecast-temperature.items", "destination": "/etc/openhab/items/openmeteo-forecast-temperature.items",
-      "state_writer": "openmeteo:forecast:local:site:forecastHourly#temperature"
+      "kind": "item", "id": "Forecast_Daily_High", "provider": "file", "migration": "prepared",
+      "source": "items/forecast-weather.items", "destination": "/etc/openhab/items/forecast-weather.items",
+      "state_writer": "weather_learning.production_publish.publish_cycle"
     },
     {
-      "kind": "item", "id": "Forecast_Daily_High", "provider": "file", "migration": "verified",
-      "source": "items/openmeteo-forecast-temperature.items", "destination": "/etc/openhab/items/openmeteo-forecast-temperature.items",
-      "state_writer": "openmeteo:forecast:local:site:forecastDaily#temperature-max"
+      "kind": "item", "id": "Forecast_Daily_Low", "provider": "file", "migration": "prepared",
+      "source": "items/forecast-weather.items", "destination": "/etc/openhab/items/forecast-weather.items",
+      "state_writer": "weather_learning.production_publish.publish_cycle"
     },
     {
-      "kind": "item", "id": "Forecast_Daily_Low", "provider": "file", "migration": "verified",
-      "source": "items/openmeteo-forecast-temperature.items", "destination": "/etc/openhab/items/openmeteo-forecast-temperature.items",
-      "state_writer": "openmeteo:forecast:local:site:forecastDaily#temperature-min"
+      "kind": "item", "id": "Forecast_Cloudiness", "provider": "file", "migration": "prepared",
+      "source": "items/forecast-weather.items", "destination": "/etc/openhab/items/forecast-weather.items",
+      "state_writer": "weather_learning.production_publish.publish_cycle"
     },
     {
-      "kind": "item", "id": "Forecast_Cloudiness", "provider": "file", "migration": "verified",
-      "source": "items/openmeteo-forecast-meteorology.items", "destination": "/etc/openhab/items/openmeteo-forecast-meteorology.items",
-      "state_writer": "openmeteo:forecast:local:site:forecastHourly#cloudiness"
+      "kind": "item", "id": "Forecast_Radiation", "provider": "file", "migration": "prepared",
+      "source": "items/forecast-weather.items", "destination": "/etc/openhab/items/forecast-weather.items",
+      "state_writer": "weather_learning.production_publish.publish_cycle"
     },
     {
-      "kind": "item", "id": "Forecast_Radiation", "provider": "file", "migration": "verified",
-      "source": "items/openmeteo-forecast-meteorology.items", "destination": "/etc/openhab/items/openmeteo-forecast-meteorology.items",
-      "state_writer": "openmeteo:forecast:local:site:forecastHourly#shortwave-radiation"
-    },
-    {
-      "kind": "item", "id": "Forecast_PrecipProb", "provider": "file", "migration": "verified",
-      "source": "items/openmeteo-forecast-meteorology.items", "destination": "/etc/openhab/items/openmeteo-forecast-meteorology.items",
-      "state_writer": "openmeteo:forecast:local:site:forecastHourly#precipitation-probability"
-    },
-    {
-      "kind": "item", "id": "Forecast_Daily_PrecipSum", "provider": "file", "migration": "verified",
-      "source": "items/openmeteo-forecast-daily.items", "destination": "/etc/openhab/items/openmeteo-forecast-daily.items",
-      "state_writer": "openmeteo:forecast:local:site:forecastDaily#precipitation-sum"
-    },
-    {
-      "kind": "item", "id": "Forecast_Daily_PrecipProbMax", "provider": "file", "migration": "verified",
-      "source": "items/openmeteo-forecast-daily.items", "destination": "/etc/openhab/items/openmeteo-forecast-daily.items",
-      "state_writer": "openmeteo:forecast:local:site:forecastDaily#precipitation-probability-max"
-    },
-    {
-      "kind": "item", "id": "Forecast_Daily_WeatherCode", "provider": "file", "migration": "verified",
-      "source": "items/openmeteo-forecast-daily.items", "destination": "/etc/openhab/items/openmeteo-forecast-daily.items",
-      "state_writer": "openmeteo:forecast:local:site:forecastDaily#weather-code"
-    },
-    {
-      "kind": "item", "id": "Forecast_Daily_UVIndex", "provider": "file", "migration": "verified",
-      "source": "items/openmeteo-forecast-daily.items", "destination": "/etc/openhab/items/openmeteo-forecast-daily.items",
-      "state_writer": "openmeteo:forecast:local:site:forecastDaily#uv-index"
+      "kind": "item", "id": "Forecast_Daily_PrecipSum", "provider": "file", "migration": "prepared",
+      "source": "items/forecast-weather.items", "destination": "/etc/openhab/items/forecast-weather.items",
+      "state_writer": "weather_learning.production_publish.publish_cycle"
     },
     {
       "kind": "item", "id": "Forecast_Hourly_JSON", "provider": "file", "migration": "verified",
@@ -232,56 +204,6 @@
       "kind": "item", "id": "Thermal_Advisory", "provider": "file", "migration": "verified",
       "source": "items/thermal-advisory.items", "destination": "/etc/openhab/items/thermal-advisory.items",
       "state_writer": "forecast-intel.service"
-    },
-    {
-      "kind": "link", "id": "Forecast_Temp -> openmeteo:forecast:local:site:forecastHourly#temperature",
-      "provider": "file", "migration": "verified",
-      "source": "items/openmeteo-forecast-temperature.items", "destination": "/etc/openhab/items/openmeteo-forecast-temperature.items"
-    },
-    {
-      "kind": "link", "id": "Forecast_Daily_High -> openmeteo:forecast:local:site:forecastDaily#temperature-max",
-      "provider": "file", "migration": "verified",
-      "source": "items/openmeteo-forecast-temperature.items", "destination": "/etc/openhab/items/openmeteo-forecast-temperature.items"
-    },
-    {
-      "kind": "link", "id": "Forecast_Daily_Low -> openmeteo:forecast:local:site:forecastDaily#temperature-min",
-      "provider": "file", "migration": "verified",
-      "source": "items/openmeteo-forecast-temperature.items", "destination": "/etc/openhab/items/openmeteo-forecast-temperature.items"
-    },
-    {
-      "kind": "link", "id": "Forecast_Cloudiness -> openmeteo:forecast:local:site:forecastHourly#cloudiness",
-      "provider": "file", "migration": "verified",
-      "source": "items/openmeteo-forecast-meteorology.items", "destination": "/etc/openhab/items/openmeteo-forecast-meteorology.items"
-    },
-    {
-      "kind": "link", "id": "Forecast_Radiation -> openmeteo:forecast:local:site:forecastHourly#shortwave-radiation",
-      "provider": "file", "migration": "verified",
-      "source": "items/openmeteo-forecast-meteorology.items", "destination": "/etc/openhab/items/openmeteo-forecast-meteorology.items"
-    },
-    {
-      "kind": "link", "id": "Forecast_PrecipProb -> openmeteo:forecast:local:site:forecastHourly#precipitation-probability",
-      "provider": "file", "migration": "verified",
-      "source": "items/openmeteo-forecast-meteorology.items", "destination": "/etc/openhab/items/openmeteo-forecast-meteorology.items"
-    },
-    {
-      "kind": "link", "id": "Forecast_Daily_PrecipSum -> openmeteo:forecast:local:site:forecastDaily#precipitation-sum",
-      "provider": "file", "migration": "verified",
-      "source": "items/openmeteo-forecast-daily.items", "destination": "/etc/openhab/items/openmeteo-forecast-daily.items"
-    },
-    {
-      "kind": "link", "id": "Forecast_Daily_PrecipProbMax -> openmeteo:forecast:local:site:forecastDaily#precipitation-probability-max",
-      "provider": "file", "migration": "verified",
-      "source": "items/openmeteo-forecast-daily.items", "destination": "/etc/openhab/items/openmeteo-forecast-daily.items"
-    },
-    {
-      "kind": "link", "id": "Forecast_Daily_WeatherCode -> openmeteo:forecast:local:site:forecastDaily#weather-code",
-      "provider": "file", "migration": "verified",
-      "source": "items/openmeteo-forecast-daily.items", "destination": "/etc/openhab/items/openmeteo-forecast-daily.items"
-    },
-    {
-      "kind": "link", "id": "Forecast_Daily_UVIndex -> openmeteo:forecast:local:site:forecastDaily#uv-index",
-      "provider": "file", "migration": "verified",
-      "source": "items/openmeteo-forecast-daily.items", "destination": "/etc/openhab/items/openmeteo-forecast-daily.items"
     },
     {
       "kind": "persistence", "id": "jdbc", "provider": "file", "migration": "verified",

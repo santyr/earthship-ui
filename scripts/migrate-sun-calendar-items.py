@@ -17,7 +17,6 @@ b=d.batch
 ROOT=d.ROOT
 TARGET=Path('/etc/openhab/items/sun-calendar.items')
 BACKUP_ROOT=Path('/home/sat/.local/state/openhab-config-migration')
-FRESHNESS={'openmeteo:forecast:local:site'}
 s=importlib.util.spec_from_file_location('sun_history_reader',ROOT/'scripts/qualify-sky-diagnostic-items.py');q=importlib.util.module_from_spec(s);s.loader.exec_module(q);h=q.q
 
 
@@ -60,15 +59,8 @@ def normalized(snap):
 
 
 def compare(expected,actual):
- expected=deepcopy(expected);advances=[]
- for uid in FRESHNESS:
-  if uid not in expected['things']:continue
-  old=expected['things'][uid]['properties'].get('last-updated');new=actual['things'][uid]['properties'].get('last-updated')
-  if old!=new:
-   d.require(isinstance(old,str) and isinstance(new,str) and datetime.fromisoformat(new.replace('Z','+00:00'))>datetime.fromisoformat(old.replace('Z','+00:00')),'binding freshness regressed')
-   advances.append({'id':uid,'field':'properties.last-updated','before':old,'after':new});expected['things'][uid]['properties']['last-updated']=new
  d.require(expected==actual,'unapproved definition/provider drift')
- return advances
+ return []
 
 
 def sources():

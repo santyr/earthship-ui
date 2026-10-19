@@ -21,6 +21,21 @@ and cutover evidence remain in Git/operations history; do not reinstall those
 retired definitions. The running host retains its incumbent configuration until
 the coordinated WeatherNext cutover. See
 [the retirement contract](../../docs/operations/openmeteo-retirement.md).
+
+The prepared Google source uses six unlinked state targets in
+`items/forecast-weather.items`: current/hourly temperature, daily high/low,
+cloud cover, radiation and daily precipitation. Their explicit units are °F,
+%, W/m² and mm. These six ownership entries are **prepared**, not installed or
+verified Google writers. The old linked temperature/meteorology/daily files,
+weather Things and provider-specific migration/series probes are removed from
+this release source. Unsupported forecast probability, weather-code and UV
+Items are removed; physical station measurements remain. Keep `gForecast`,
+its persistence selectors and existing histories. Its provider transfer is
+already complete; do not rerun the obsolete cold/hot handoff tools. Install the
+new targets and remove old links/definitions only with the coordinated provider
+and consumer cutover. Do not merge this prepared manifest into the running
+installation as an inventory-only update.
+
 Three observational forecast JSON Items now share
 `items/forecast-json.items`; their isolated provider/JDBC/full-restart checks,
 live managed rollback and return, state preservation and unchanged history are

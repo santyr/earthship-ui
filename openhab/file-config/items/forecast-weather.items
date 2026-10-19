@@ -1,0 +1,8 @@
+// Prepared Google forecast state targets; install only in the coordinated
+// provider cutover. Preserve Item identities and gForecast history. No channels.
+Number:Temperature Forecast_Temp "Forecast Temperature" (gForecast) ["forecast"] { unit="°F" }
+Number:Temperature Forecast_Daily_High "Forecast Daily High" (gForecast) ["forecast"] { unit="°F" }
+Number:Temperature Forecast_Daily_Low "Forecast Daily Low" (gForecast) ["forecast"] { unit="°F" }
+Number:Dimensionless Forecast_Cloudiness "Forecast Cloud Cover" (gForecast) ["forecast"] { unit="%" }
+Number:Intensity Forecast_Radiation "Forecast Solar Radiation" (gForecast) ["forecast"] { unit="W/m²" }
+Number:Length Forecast_Daily_PrecipSum "Forecast Daily Precipitation" (gForecast) ["forecast"] { unit="mm" }

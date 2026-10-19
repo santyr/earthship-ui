@@ -86,6 +86,12 @@ class ProductionPublicationTests(unittest.TestCase):
         def read(item):return '10 °C' if item=='Forecast_Temp' else self.read(item)
         self.assertEqual(self.publish(read_state=read)['status'],'PUBLISHED')
 
+    def test_dimensionless_percentage_readback_accepts_only_equivalent_quantities(self):
+        self.assertTrue(self.api._same_state('Forecast_Cloudiness','25 %','0.25 one'))
+        self.assertTrue(self.api._same_state('Forecast_Cloudiness','25 %','0.25 1'))
+        self.assertFalse(self.api._same_state('Forecast_Cloudiness','25 %','25 one'))
+        self.assertFalse(self.api._same_state('Forecast_Cloudiness','25 %','0.25'))
+
     def test_wrong_readback_withdraws_rather_than_claiming_publication(self):
         def read(item):return '999 °F' if item=='Forecast_Temp' else self.read(item)
         result=self.publish(read_state=read)

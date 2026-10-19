@@ -115,3 +115,55 @@ The prepared OpenHAB configuration now removes both AQI Item files, their two ch
 The four dedicated Python AQI migration/qualification drivers and their candidate-only tests are removed. Shared metadata, file-stream and local HTTP/JDBC adapters now live in `openhab_qualification_fixture.py` and `openhab_qualification_jdbc.py`; ten callers use those neutral modules. All eight extracted function bodies match the `9b1423e` preimages byte-for-byte, preserving the existing APIs without copying AQI candidate defaults or running recovery work. The remaining legacy forecast qualifier keeps its own temporary binding path until that tool is retired; the new generic module has no external-provider binding selection.
 
 Fresh verification includes eight new adapter behavior tests, the combined affected caller/Astro contract suite (**310 tests in 1.06 seconds**), full frontend/file-ownership coverage (**2,554 tests in 168 files, 43.59 seconds**), the actual installed Thing grammar, and import-only checks for three callers without dedicated unit modules. No container, recovery rehearsal, provider transfer, live Item/Thing/JSONDB change, forecast publication, service restart or model change was performed. Original operational evidence remains private/Git-backed. Live AQI configuration and the root-only AQI evidence producer/receipt consumers must still be removed during the coordinated cutover.
+
+
+### Prepared source retirement — forecast definitions and remaining weather tools
+
+The prepared release replaces the three linked temperature/meteorology/daily
+Item files with `items/forecast-weather.items`: six unlinked state targets using
+explicit °F, %, W/m² and mm units. Their original names, physical Item types,
+labels, tags and `gForecast` membership are preserved. The six manifest entries
+are `migration: prepared`; they identify the tested publication function, not
+an installed or qualified Google writer. Two Things, ten channel links and four
+unsupported probability/weather-code/forecast-UV Items leave source ownership.
+All 162 unrelated ownership records remain identical. No physical station
+sensor, Group definition, JDBC selector or historical row is changed.
+
+Actual read-only registry inspection confirms `gForecast` is already file-owned
+(`editable:false`), consistent with its completed September 24 cutover. The
+obsolete cold/hot group handoff tools and their two dedicated test modules are
+removed. They depended on the retired linked native-series contract and custom
+binding; retaining them would preserve an executable old-provider integration.
+The nine remaining weather Item migration/provider/JDBC drivers, nine dedicated
+test modules and three orphaned Java native-series probes are likewise removed.
+Source preimages remain at `3674aff`; no recovery rehearsal was performed.
+
+The unrelated Bitcoin price qualifier uses the neutral
+`openhab_linked_item_qualification.py` engine. Its existing definition/channel,
+provider, label and presentation checks remain; an unconfigured engine refuses
+before reading the host. This extraction supplies no weather defaults or custom
+binding. The Sun handoff's old forecast-Thing refresh exception is removed;
+definition comparison now refuses any unexpected drift, retaining its existing
+API and unrelated invariants.
+
+The production publisher now accepts physically equivalent explicit cloud-cover
+readback (`25 %` equals `0.25 one` or `0.25 1`), while rejecting bare ambiguous
+fractions and non-equivalent quantities. A regression failed before that fix.
+Native OpenHAB **5.2.3** grammar accepts all six new Item identities and rejects
+malformed syntax. The complete WeatherNext package passes **182 tests in
+6.395 seconds**; the focused Bitcoin/linked-Item/Sun suite passes **32 tests in
+0.43 seconds**. This prepares source only: actual provider installation,
+exclusive writer admission, fresh models and qualified natural serving remain
+unfinished, and the live binding/Things/links/old Items remain in place until
+coordinated cutover.
+
+
+The broader affected Bitcoin/Sun/neutral-helper suite also passed **146 tests
+in 0.75 seconds**. Full frontend/file-config consumer coverage passed **2,554
+tests in 168 files, 43.64 seconds**. A search across scripts, backend scripts,
+tests, CI and deployment found no remaining executable caller of the removed
+drivers/probes or their definition-file names. The sole retired Thing UID in
+tools/tests is an intentional negative drift fixture. Four extracted helper
+function bodies match their preimages after the neutral alias substitution;
+the main body is unchanged after its new explicit-configuration admission.
+No browser rerun was needed for this increment: rendered UI code was unchanged.

@@ -1,8 +1,7 @@
-#!/usr/bin/env python3
-"""Rehearse the three forecast-temperature Item/link providers without live writes.
+"""Explicitly configured linked-Item qualification engine.
 
-The private restored registry stays in an owned networkless container, removed
-on exit. This checks definitions and rollback, not JDBC or future-series data.
+Importing this module has no host side effects. An unrelated caller supplies
+its exact source, container label, Item types/groups and channel identities.
 """
 import importlib.util
 import json
@@ -13,32 +12,28 @@ from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location(
-    'aqi_provider_rehearsal', ROOT / 'scripts/openhab_qualification_fixture.py')
-aqi = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(aqi)
+    'linked_item_fixture', ROOT / 'scripts/openhab_qualification_fixture.py')
+fixture = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(fixture)
 
-SOURCE = ROOT / 'openhab/file-config/items/openmeteo-forecast-temperature.items'
-CONTAINER_LABEL = 'hex.forecast.temperature.qualification'
-CHANNELS = {
-    'Forecast_Temp': 'openmeteo:forecast:local:site:forecastHourly#temperature',
-    'Forecast_Daily_High': 'openmeteo:forecast:local:site:forecastDaily#temperature-max',
-    'Forecast_Daily_Low': 'openmeteo:forecast:local:site:forecastDaily#temperature-min',
-}
-TYPES = {name: 'Number:Temperature' for name in CHANNELS}
-GROUPS = {name: ['gForecast'] for name in CHANNELS}
-BINDING = Path('/var/lib/openhab/marketplace/bundles/165191/com.obones.binding.openmeteo-0.5.0.jar')
-BINDING_TARGET = 'openmeteo.jar'
+SOURCE = None
+CONTAINER_LABEL = None
+CHANNELS = {}
+TYPES = {}
+GROUPS = {}
+BINDING = None
+BINDING_TARGET = 'qualification.jar'
 FILE_LABELS = {}
 FILE_PATTERNS = {}
 FIELDS = ('name', 'type', 'label', 'category', 'tags', 'groupNames')
 
 
 def definitions_match(container, header, originals, *, file_owned):
-    link_code, links = aqi.isolated_get(container, '/links', header)
+    link_code, links = fixture.isolated_get(container, '/links', header)
     if link_code != 200:
         return False
     for name, expected in originals.items():
-        code, item = aqi.isolated_get(container, '/items/' + name + '?metadata=.*', header)
+        code, item = fixture.isolated_get(container, '/items/' + name + '?metadata=.*', header)
         matches = [row for row in links if row.get('itemName') == name]
         if code != 200 or len(matches) != 1 or not isinstance(item, dict):
             return False
@@ -69,15 +64,15 @@ def wait(container, header, originals, *, file_owned, seconds=240):
 
 
 def absent(container, header):
-    code, links = aqi.isolated_get(container, '/links', header)
+    code, links = fixture.isolated_get(container, '/links', header)
     if code != 200 or any(row.get('itemName') in CHANNELS for row in links):
         return False
-    return all(aqi.isolated_get(container, '/items/' + name, header)[0] == 404
+    return all(fixture.isolated_get(container, '/items/' + name, header)[0] == 404
                for name in CHANNELS)
 
 
 def put(container, path, header, payload):
-    response = aqi.run(['docker', 'exec', '-i', container, 'curl', '-sS',
+    response = fixture.run(['docker', 'exec', '-i', container, 'curl', '-sS',
         '--max-time', '8', '-o', '/dev/null', '-w', '%{http_code}', '-X', 'PUT',
         '-H', '@/tmp/forecast-auth-header', '-H', 'Content-Type: application/json',
         '--data-binary', '@-', 'http://127.0.0.1:8080/rest' + path],
@@ -87,6 +82,10 @@ def put(container, path, header, payload):
 
 
 def main():
+    if (not isinstance(SOURCE, Path) or not isinstance(CONTAINER_LABEL, str)
+            or not CONTAINER_LABEL or not CHANNELS or set(CHANNELS) != set(TYPES)
+            or set(CHANNELS) != set(GROUPS)):
+        raise RuntimeError('explicit linked Item qualification scope required')
     source = SOURCE.read_bytes()
     for name, channel in CHANNELS.items():
         declaration = (f'{TYPES[name]} {name} ').encode()
@@ -94,9 +93,9 @@ def main():
             raise RuntimeError('prepared forecast Item source is not exact')
     originals = {}
     file_expected = {}
-    live_links = aqi.oh.get('/links')
+    live_links = fixture.oh.get('/links')
     for name, channel in CHANNELS.items():
-        item = aqi.oh.get('/items/' + name + '?metadata=.*')
+        item = fixture.oh.get('/items/' + name + '?metadata=.*')
         matches = [row for row in live_links if row.get('itemName') == name]
         if (item.get('editable') is not True
                 or item.get('type') != TYPES[name]
@@ -110,49 +109,49 @@ def main():
     marker = secrets.token_hex(8)
     container = None
     try:
-        container = aqi.run(['docker', 'run', '-d',
+        container = fixture.run(['docker', 'run', '-d',
             '--label', CONTAINER_LABEL + '=' + marker,
             '--network', 'none', '--hostname', 'localhost', '--cap-drop', 'ALL',
             '--pids-limit', '384', '--memory', '4g',
             '--tmpfs', '/tmp:rw,nosuid,nodev,size=128m',
             '-e', 'EXTRA_JAVA_OPTS=-Xmx768m -Duser.timezone=America/Denver',
-            '--entrypoint', '/bin/sh', aqi.IMAGE, '-c',
+            '--entrypoint', '/bin/sh', fixture.IMAGE, '-c',
             'while [ ! -f /openhab/conf/items/' + SOURCE.name + ' ]; do sleep 1; done; '
             'exec /openhab/start.sh server']).stdout.decode().strip()
-        owner = aqi.run(['docker', 'inspect', '--format',
+        owner = fixture.run(['docker', 'inspect', '--format',
             '{{index .Config.Labels "' + CONTAINER_LABEL + '"}}',
             container]).stdout.decode().strip()
         if owner != marker:
             raise RuntimeError('isolated container ownership mismatch')
         for scope in ('conf', 'userdata'):
-            aqi.restore(container, scope)
-        items = aqi.snapshot_registry('org.openhab.core.items.Item.json')
-        links = aqi.snapshot_registry('org.openhab.core.thing.link.ItemChannelLink.json')
+            fixture.restore(container, scope)
+        items = fixture.snapshot_registry('org.openhab.core.items.Item.json')
+        links = fixture.snapshot_registry('org.openhab.core.thing.link.ItemChannelLink.json')
         for name, channel in CHANNELS.items():
             link_id = name + ' -> ' + channel
             if name not in items or link_id not in links:
                 raise RuntimeError('restored registry lacks managed forecast original')
             del items[name]
             del links[link_id]
-        aqi.install_bytes(container, '/openhab/userdata/jsondb',
+        fixture.install_bytes(container, '/openhab/userdata/jsondb',
             'org.openhab.core.items.Item.json',
             json.dumps(items, separators=(',', ':')).encode())
-        aqi.install_bytes(container, '/openhab/userdata/jsondb',
+        fixture.install_bytes(container, '/openhab/userdata/jsondb',
             'org.openhab.core.thing.link.ItemChannelLink.json',
             json.dumps(links, separators=(',', ':')).encode())
         if BINDING is not None:
-            aqi.install_bytes(container, '/openhab/addons', BINDING_TARGET,
+            fixture.install_bytes(container, '/openhab/addons', BINDING_TARGET,
                               BINDING.read_bytes())
-        header = ('Authorization: Bearer ' + aqi.oh.token() + '\n').encode()
-        aqi.install_bytes(container, '/openhab/conf/items', SOURCE.name, source)
+        header = ('Authorization: Bearer ' + fixture.oh.token() + '\n').encode()
+        fixture.install_bytes(container, '/openhab/conf/items', SOURCE.name, source)
         if not wait(container, header, file_expected, file_owned=True):
             raise RuntimeError('file provider did not match all forecast Items/links')
         print('first_boot_exact_file_items_and_links=' + str(len(CHANNELS)), flush=True)
-        aqi.run(['docker', 'restart', container], timeout=90)
+        fixture.run(['docker', 'restart', container], timeout=90)
         if not wait(container, header, file_expected, file_owned=True):
             raise RuntimeError('full restart lost forecast Item/link definition')
         print('full_restart_exact_file_items_and_links=' + str(len(CHANNELS)), flush=True)
-        aqi.run(['docker', 'exec', container, 'rm',
+        fixture.run(['docker', 'exec', container, 'rm',
                  '/openhab/conf/items/' + SOURCE.name])
         deadline = time.monotonic() + 90
         while time.monotonic() < deadline:
@@ -161,11 +160,11 @@ def main():
             time.sleep(3)
         else:
             raise RuntimeError('file provider did not withdraw before rollback')
-        aqi.install_bytes(container, '/tmp', 'forecast-auth-header', header,
+        fixture.install_bytes(container, '/tmp', 'forecast-auth-header', header,
                           mode=0o600)
         for name, channel in CHANNELS.items():
             put(container, '/items/' + name, header,
-                aqi.managed_item_dto(originals[name]))
+                fixture.managed_item_dto(originals[name]))
             put(container, '/links/' + name + '/' + quote(channel, safe=''),
                 header, {'itemName': name, 'channelUID': channel,
                          'configuration': {}})
@@ -174,14 +173,10 @@ def main():
         print('managed_rollback_exact_items_and_links=' + str(len(CHANNELS)), flush=True)
     finally:
         if container is not None:
-            owner = aqi.run(['docker', 'inspect', '--format',
+            owner = fixture.run(['docker', 'inspect', '--format',
                 '{{index .Config.Labels "' + CONTAINER_LABEL + '"}}',
                 container], check=False).stdout.decode().strip()
             if owner == marker:
-                aqi.run(['docker', 'rm', '-f', '-v', container], timeout=90)
+                fixture.run(['docker', 'rm', '-f', '-v', container], timeout=90)
                 print('owned_isolated_container_removed=true', flush=True)
     print('status=passed; production_writes=0; jdbc_and_series_recovery=not_tested')
-
-
-if __name__ == '__main__':
-    main()

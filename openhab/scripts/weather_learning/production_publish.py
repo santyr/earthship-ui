@@ -54,6 +54,7 @@ def _same_state(item,expected,actual):
         if unit=='°F' and observed in ('°C','K'):got=(got-(273.15 if observed=='K' else 0))*9/5+32;observed='°F'
         if unit=='W/m²' and observed=='W/m^2':observed=unit
         if unit=='mm' and observed in ('in','in_i'):got*=25.4;observed='mm'
+        if unit=='%' and observed in ('one','1'):got*=100;observed='%'
         return unit==observed and math.isclose(want,got,rel_tol=1e-9,abs_tol=1e-9)
     except (ValueError,IndexError,OverflowError):return False
 

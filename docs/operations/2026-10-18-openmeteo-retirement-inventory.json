@@ -13598,7 +13598,39 @@
       "openhab/file-config/items/openmeteo-current-aqi.items",
       "openhab/file-config/items/openmeteo-forecast-aqi.items",
       "tests/openhab/openmeteo-current-aqi-item.test.js",
-      "tests/openhab/openmeteo-forecast-aqi-item.test.js"
+      "tests/openhab/openmeteo-forecast-aqi-item.test.js",
+      "openhab/file-config/items/openmeteo-forecast-daily.items",
+      "openhab/file-config/items/openmeteo-forecast-meteorology.items",
+      "openhab/file-config/items/openmeteo-forecast-temperature.items",
+      "openhab/file-config/things/openmeteo.things",
+      "scripts/HexForecastDailyProbe.java",
+      "scripts/HexForecastMeteorologyProbe.java",
+      "scripts/HexForecastTemperatureProbe.java",
+      "scripts/migrate-forecast-group-offline.py",
+      "scripts/migrate-openmeteo-forecast-daily-items.py",
+      "scripts/migrate-openmeteo-forecast-meteorology-items.py",
+      "scripts/migrate-openmeteo-forecast-temperature-items.py",
+      "scripts/qualify-forecast-group-hot-jdbc.py",
+      "scripts/qualify-forecast-group-hot-member-reload.py",
+      "scripts/qualify-forecast-group-offline.py",
+      "scripts/qualify-forecast-group-provider.py",
+      "scripts/qualify-openmeteo-forecast-daily-jdbc.py",
+      "scripts/qualify-openmeteo-forecast-daily-provider.py",
+      "scripts/qualify-openmeteo-forecast-meteorology-jdbc.py",
+      "scripts/qualify-openmeteo-forecast-meteorology-provider.py",
+      "scripts/qualify-openmeteo-forecast-temperature-jdbc.py",
+      "scripts/qualify-openmeteo-forecast-temperature-provider.py",
+      "scripts/test_migrate_forecast_group_offline.py",
+      "scripts/test_migrate_openmeteo_forecast_daily_items.py",
+      "scripts/test_migrate_openmeteo_forecast_meteorology_items.py",
+      "scripts/test_migrate_openmeteo_forecast_temperature_items.py",
+      "scripts/test_qualify_forecast_group_provider.py",
+      "scripts/test_qualify_openmeteo_forecast_daily_jdbc.py",
+      "scripts/test_qualify_openmeteo_forecast_daily_provider.py",
+      "scripts/test_qualify_openmeteo_forecast_meteorology_jdbc.py",
+      "scripts/test_qualify_openmeteo_forecast_meteorology_provider.py",
+      "scripts/test_qualify_openmeteo_forecast_temperature_jdbc.py",
+      "scripts/test_qualify_openmeteo_forecast_temperature_provider.py"
     ],
     "removed_apis": [
       "weather_learning.energy_shadow.compare_fixed_energy",
@@ -13613,7 +13645,7 @@
     "shadow_issue_schema": "earthship-weather-shadow-issue/v2",
     "fresh_shadow_state_child": "google-local-v2",
     "historical_evidence_rewritten": false,
-    "remaining": "Legacy weather worker/SQL receipt branch, weather forecast binding/definitions and remaining provider-specific tooling, root-only AQI producer/receipt consumers and coordinated attended cutover remain unfinished.",
+    "remaining": "Legacy weather worker/SQL receipt branch, root-only AQI producer/receipt consumers, qualified production publication worker and consumer/ownership integration, fresh downstream fitting/qualification and coordinated attended cutover remain unfinished. Live binding, Things/links and old Item definitions remain until cutover.",
     "neutral_tool_helpers": [
       "scripts/openhab_private_files.py",
       "scripts/HexThingsParse.java"
@@ -13633,11 +13665,28 @@
     ],
     "neutral_qualification_helpers": [
       "scripts/openhab_qualification_fixture.py",
-      "scripts/openhab_qualification_jdbc.py"
+      "scripts/openhab_qualification_jdbc.py",
+      "scripts/openhab_linked_item_qualification.py"
     ],
     "qualification_helper_body_parity_count": 8,
     "aqi_definition_preimage_revision": "9b1423e9e9bdfb467debedc2cd59a12fc623230b",
     "removed_air_quality_thing": "openmeteo:air-quality:local:aq",
-    "removed_air_quality_ownership_count": 5
+    "removed_air_quality_ownership_count": 5,
+    "forecast_definition_preimage_revision": "3674affae024c6676f8d81dbd91d25a674e11969",
+    "prepared_forecast_items": {
+      "source": "openhab/file-config/items/forecast-weather.items",
+      "ownership_status": "prepared",
+      "state_writer": "weather_learning.production_publish.publish_cycle",
+      "items": [
+        "Forecast_Temp",
+        "Forecast_Daily_High",
+        "Forecast_Daily_Low",
+        "Forecast_Cloudiness",
+        "Forecast_Radiation",
+        "Forecast_Daily_PrecipSum"
+      ],
+      "live_applied": false
+    },
+    "removed_weather_ownership_count": 16
   }
 }
