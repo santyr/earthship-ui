@@ -7,7 +7,7 @@ import pytest
 from thermal_model.forcing_capture import _canonical
 
 NOW=datetime(2026,10,9,20,tzinfo=timezone.utc)
-RAW_HELPERS={'weather_temperature_sources.py','forecast_input_capture.py','forecast_temperature_origin.py','thermal_model/installed_shade_raw_score_sources.py'}
+RAW_HELPERS={'weather_temperature_sources.py','weather_source_files.py','openhab_runtime_io.py','thermal_model/installed_shade_raw_score_sources.py'}
 
 
 def module():

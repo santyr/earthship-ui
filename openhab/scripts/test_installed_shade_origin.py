@@ -7,7 +7,7 @@ import thermal_temperature_runtime as temperatures
 from test_installed_shade_artifact import make_report, NOW, CODE
 from test_installed_shade_inputs import snapshot, EPOCHS
 from thermal_model.installed_shade_artifact import build_candidate_bundle, _digest
-from thermal_model.forecast_history import select_origin_forecast_with_receipts, _window
+from google_weather_fixtures import forecast as google_forecast
 
 ISSUE=NOW+timedelta(days=1)
 
@@ -27,6 +27,7 @@ def candidate():
             'thermal_model/installed_shade_dynamics.py':'b'*64,
             'thermal_model/installed_shade_artifact.py':'c'*64,
             'thermal_model/forecast_history.py':'f'*64})
+    runtime['source_manifest'].update({name:'b'*64 for name in module().RUNTIME_PATHS if name not in runtime['source_manifest']})
     inputs=snapshot(steps=864,rich_actions=True)
     bundle=build_candidate_bundle(inputs,make_report(inputs),code_revision=CODE,runtime_revision=_digest(runtime),created_at=NOW)
     return bundle,inputs,runtime
@@ -54,11 +55,7 @@ def actions(at):
 
 
 def weather(at,hours=24):
-    _,targets=_window(at,hours);records=[]
-    for index,target in enumerate(targets):
-        for metric,value in (('temperature_f',59+index/10),('radiation_wm2',100),('wind_mph',2),('weather_code',0)):
-            records.append((at-timedelta(hours=1),at-timedelta(minutes=20),target,metric,value))
-    return select_origin_forecast_with_receipts(records,origin=at,horizon_hours=hours)
+    return google_forecast(at,hours,temperature_f=59.,radiation_wm2=100.,temperature_step_f=.1)
 
 
 @pytest.fixture(scope='module')
@@ -76,7 +73,7 @@ def test_original_forecast_and_native_state_are_retained_and_predictions_replay(
     assert original['output']['prediction_intervals'] is None and original['output']['advice']==[]
     assert original['source_epochs']==EPOCHS
     assert original['output']['initial']['air_f']==74
-    assert original['forecast']['source']=='open_meteo_openhab'
+    assert original['forecast']['source']=='weathernext3'
 
 
 @pytest.mark.parametrize('damage',['future_weather','stale_weather','missing_weather','future_action','removed','heat','expired','phase','initial','runtime'])

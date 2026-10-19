@@ -5,7 +5,7 @@ import pytest
 
 def fixture(tmp_path,monkeypatch):
     api=importlib.import_module('household_cycle_pressure')
-    import thermal_installed_intel as installed
+    import thermal_model.serial_publication_caps as installed
     calls=[];monkeypatch.setattr(installed,'_resource_preflight',lambda:calls.append('preflight'))
     vmstat=tmp_path/'vmstat';events=tmp_path/'memory.events'
     vmstat.write_text('pswpin 100\npswpout 100\noom_kill 3\n')
@@ -36,7 +36,7 @@ def test_unknown_or_regressed_memory_counters_refuse(bad,tmp_path,monkeypatch):
 
 def test_original_publication_resource_and_pressure_refusal_propagates(tmp_path,monkeypatch):
     monitor,*_=fixture(tmp_path,monkeypatch)
-    import thermal_installed_intel as installed
+    import thermal_model.serial_publication_caps as installed
     def refused():raise ValueError('publication memory pressure unavailable')
     monkeypatch.setattr(installed,'_resource_preflight',refused)
     with pytest.raises(ValueError,match='publication memory pressure'):monitor.check()
@@ -53,7 +53,7 @@ def test_preflight_observes_quiet_interval_without_numerical_work(tmp_path,monke
 def default_fixture(tmp_path,monkeypatch):
     from pathlib import Path
     api=importlib.import_module('household_cycle_pressure')
-    import thermal_installed_intel as installed
+    import thermal_model.serial_publication_caps as installed
     monkeypatch.setattr(installed,'_resource_preflight',lambda:None)
     vmstat=tmp_path/'vmstat';vmstat.write_text('oom_kill 3\n')
     root=tmp_path/'cgroups';root.mkdir()

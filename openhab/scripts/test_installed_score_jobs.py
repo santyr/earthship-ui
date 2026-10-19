@@ -99,7 +99,7 @@ def test_queue_decodes_the_same_original_bytes_it_pins(tmp_path,monkeypatch):
 
 def test_queue_cli_routes_one_guarded_invocation_without_explicit_origin(tmp_path,monkeypatch,capsys):
     import thermal_installed_score as cli
-    import thermal_installed_intel as publication_cli
+    import thermal_model.serial_publication_caps as publication_cli
     from thermal_model import installed_shade_score_inputs as inputs
     m,queue,out,_,_=setup(tmp_path,monkeypatch);lock=tmp_path/'global-lock';lock.touch(mode=0o600)
     monkeypatch.setattr(publication_cli,'_resource_preflight',lambda:None)
@@ -117,7 +117,7 @@ def test_queue_cli_routes_one_guarded_invocation_without_explicit_origin(tmp_pat
     ['--collect','--batch'],['--queue','/private/queue']])
 def test_invalid_queue_cli_intent_refused_before_preflight(monkeypatch,extra):
     import thermal_installed_score as cli
-    import thermal_installed_intel as publication_cli
+    import thermal_model.serial_publication_caps as publication_cli
     monkeypatch.setattr(publication_cli,'_resource_preflight',lambda:pytest.fail('invalid intent reached resources'))
     with pytest.raises(SystemExit) as error:cli.main(['--config','/private/config',*extra])
     assert error.value.code==2

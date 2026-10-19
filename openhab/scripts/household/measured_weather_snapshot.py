@@ -4,7 +4,7 @@ from .codec import canonical,loads,identity
 from .control_contracts import instant
 from .snapshot import HouseholdSnapshot
 from .model_snapshot import MAX_SOURCE_BYTES
-from .weather_context import PreparedWeatherContext,MAX_BYTES as WEATHER_BYTES
+from .weather_context import PreparedWeatherContext,MAX_GOOGLE_BYTES as WEATHER_BYTES
 from .energy_configuration import PreparedEnergyConfiguration,MAX_BYTES as CONFIGURATION_BYTES
 from .energy_source_snapshot import EnergySourceSnapshot
 from .measured_weather import PreparedMeasuredWeather,project_measured_weather,MAX_BYTES,ROLES,_policy

@@ -41,44 +41,60 @@ def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard,previo
     serving=selected['schema']=='earthship-native-thermal-service-family/v2'
     upgrade=previous_family is not None
     if upgrade!=(previous_deployment_sha256 is not None):raise ValueError('paired previous family and external pin required')
-    old_family=None;old_selected=None
+    old_family=None;old_selected=None;reset=False
+    def previous_family_record():
+        if reset:
+            return family_api.verify_handoff_baseline(old_family,
+                expected_deployment_sha256=previous_deployment_sha256,guard=guard)
+        return family_api.verify(old_family,guard=guard)
     if upgrade:
-        old_family=deploy._directory(previous_family);old_selected=family_api.verify(old_family,guard=guard)
+        # Determine source transition only from the externally pinned original.
+        deploy.verify_handoff_baseline(forecast,expected_deployment_sha256=previous_deployment_sha256)
+        previous_cycle=json.loads(deploy._bytes(forecast/'cycle.json',private=True))
+        previous_settings=json.loads(deploy._bytes(previous_cycle['forecast_config'],private=True,maximum=8192))
+        reset=previous_settings.get('schema') not in deploy.GOOGLE_SCHEMAS
+        old_family=deploy._directory(previous_family);old_selected=previous_family_record()
         if (not serving or old_selected['schema']!='earthship-native-thermal-service-family/v2' or
                 old_selected['deployment_sha256']!=previous_deployment_sha256 or
                 forecast!=score or str(forecast)!=old_selected['stage'] or forecast==stage):
             raise ValueError('explicit previous owned receipt family pin required')
     def stage_record(path):
-        if upgrade and path==forecast:return deploy.verify_stage(path,expected_deployment_sha256=previous_deployment_sha256)
-        if path==stage and serving:return deploy.verify_stage(path,expected_deployment_sha256=selected['deployment_sha256'])
-        return deploy.verify_stage(path)
+        if upgrade and path==forecast:
+            verifier=deploy.verify_handoff_baseline if reset else deploy.verify_stage
+            return verifier(path,expected_deployment_sha256=previous_deployment_sha256)
+        if path==stage:return deploy.verify_stage(path,**({'expected_deployment_sha256':selected['deployment_sha256']} if serving else {}))
+        return deploy.verify_handoff_baseline(path)
     records=[stage_record(path) for path in (stage,forecast,score)]
     if serving:
         from household_forecast_score import read_score_dispatch
         dispatch=read_score_dispatch(stage,deployment_sha256=selected['deployment_sha256'],guard=guard)
-        if upgrade:
+        if reset:
+            if dispatch['historical']:raise ValueError('initial Google cohort requires an empty score history')
+        elif upgrade:
             previous_dispatch=read_score_dispatch(forecast,deployment_sha256=previous_deployment_sha256,guard=guard)
             required=[dict(stage=str(forecast),deployment_sha256=previous_deployment_sha256),*previous_dispatch['historical']]
-            if dispatch['legacy']!=previous_dispatch['legacy'] or any(row not in dispatch['historical'] for row in required):
-                raise ValueError('upgrade must retain original legacy and all native score backlogs')
-        elif (dispatch['legacy']['stage']!=str(score) or
-            dispatch['legacy']['deployment_sha256']!=sha256(deploy._bytes(score/'deployment.json',private=True)).hexdigest()):
-            raise ValueError('handoff must retain its explicitly selected legacy scorer')
+            if any(row not in dispatch['historical'] for row in required):
+                raise ValueError('upgrade must retain all Google native score backlogs')
     cycles=[json.loads(deploy._bytes(path/'cycle.json',private=True)) for path in (stage,forecast,score)]
     current,old_forecast,old_score=records
     stripped=lambda cycle:{k:v for k,v in cycle.items() if k not in ('evidence_directory','forecast_config')}
-    if (any(record['service_file']!=current['service_file'] or record['protected_runtime_sources']!=current['protected_runtime_sources'] for record in records[1:]) or
+    if (any(record['service_file']!=current['service_file'] for record in records[1:]) or
+        old_forecast['protected_runtime_sources']!=old_score['protected_runtime_sources'] or
         any(stripped(cycle)!=stripped(cycles[0]) for cycle in cycles[1:]) or cycles[1]['forecast_config']!=cycles[2]['forecast_config']):
-        raise ValueError('same owned forecast inputs, cache and fitted sources required')
+        raise ValueError('same owned forecast inputs, cache and previous fitted sources required')
     configs=[deploy._path(cycle['forecast_config']) for cycle in cycles]
     settings=[json.loads(deploy._bytes(path,private=True,maximum=8192)) for path in configs]
-    selection={'schema','candidate_path','evidence_directory','geometry_directory','artifact_sha256','runtime_sha256'}|({'model_receipt_path','model_receipt_sha256'} if serving else set())
+    if set(settings[1])!=deploy._baseline_configuration_fields(settings[1].get('schema')):
+        raise ValueError('closed original handoff baseline required')
+    selection={'schema','candidate_path','evidence_directory','geometry_directory','artifact_sha256','runtime_sha256',
+        'model_receipt_path','model_receipt_sha256'}
+    if settings[1].get('schema') not in deploy.GOOGLE_SCHEMAS:
+        selection|={'forecast_dsn_file','weather_source'}
     if {k:v for k,v in settings[0].items() if k not in selection}!={k:v for k,v in settings[1].items() if k not in selection}:
         raise ValueError('native selection cannot change source endpoints, credentials or shared lock')
-    new_model=json.loads(deploy._bytes(settings[0]['candidate_path'],private=True))
-    old_model=json.loads(deploy._bytes(settings[1]['candidate_path'],private=True))
-    if new_model['runtime']['base_runtime']!=old_model['runtime'].get('base_runtime',old_model['runtime']):
-        raise ValueError('complete original fitted runtime must be preserved')
+    # Each stage already pins its own originals and fitted source closure.
+    # A Google-only reset must not import or require the old model's runtime.
+    # All local source selections and the shared lock remain equal above.
     service=deploy._path(current['service_file']);base=service.parent
     if service.name!='thermal-provisional-forecast.service':raise ValueError('fixed owned forecast service required')
     score_service=base/'thermal-provisional-score.service'
@@ -148,7 +164,7 @@ def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard,previo
     if serving:record.update(schema='earthship-native-thermal-handoff/v2',model_verification=selected['model_verification'],score_dispatch=selected['score_dispatch'])
     if upgrade:
         previous_ref,_=_reference(old_family/'family.json',private=True)
-        if family_api.verify(old_family,guard=guard)!=old_selected:raise ValueError('previous native family changed')
+        if previous_family_record()!=old_selected:raise ValueError('previous native family changed')
         record.update(schema='earthship-native-thermal-handoff/v3',previous_family=previous_ref)
     if any(stage_record(path)!=old for path,old in zip((stage,forecast,score),records)):
         raise ValueError('handoff stage originals changed')

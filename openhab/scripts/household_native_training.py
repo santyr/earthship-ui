@@ -305,11 +305,11 @@ class NativeTraining:
         os.environ['EARTHSHIP_REMOTE_QUALIFICATION_FIT'] = '0'
         fit = fit_native_development(data, expected_dataset_sha256=data.sha256,
             training_start=data.development.start, training_end=data.development.end,
-            guard=self.guard, timeout_seconds=85)
+            guard=self.guard, timeout_seconds=85, joint=True, irradiance=True)
         if current_native_runtime(guard=self.guard) != runtime:
             raise ValueError('native fitted runtime changed during training')
         commit = subprocess.check_output(['git', '-C', str(self.repo), 'rev-parse', 'HEAD'], text=True).strip()
-        evidence = dict(schema='earthship-native-development-fit-evidence/v2',
+        evidence = dict(schema='earthship-native-development-fit-evidence/v4',
             created_at=datetime.now(timezone.utc).isoformat(), code_revision=commit, fit_runtime=runtime,
             fit=fit, release_authorized=False, production_model_changed=False)
         evidence_path = run / 'fit-evidence.json'
@@ -352,8 +352,7 @@ class NativeTraining:
         save(config, settings)
         save(run / 'geometry-libraries.json', libraries)
         historical = tuple([*old['historical'], {k: previous[k] for k in ('stage', 'deployment_sha256')}])
-        dispatch = prepare_score_dispatch(legacy_stage=Path(old['legacy']['stage']),
-            legacy_deployment_sha256=old['legacy']['deployment_sha256'], historical_selections=historical,
+        dispatch = prepare_score_dispatch(historical_selections=historical,
             output=run / 'score-dispatch.json', guard=self.guard)
         stage = run / 'final'
         deploy.stage_deployment(repo_root=self.repo, stage=stage, forecast_config=config,

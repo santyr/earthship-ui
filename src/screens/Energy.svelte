@@ -1,4 +1,7 @@
 <script>
+  import { energyForecastRaw, energyForecastClock } from '../lib/energy/forecastState.js';
+  import { energyForecastPresentation } from '../lib/energy/forecastPresentation.js';
+  const liveEnergyForecast = $derived(energyForecastPresentation($energyForecastRaw, { nowMs: $energyForecastClock }));
   import { onMount } from 'svelte';
   // Task 4.1 — Energy console: battery + solar + forecast story with
   // history charts. Reuses Home's dark instrument-panel aesthetic (Tile /
@@ -57,19 +60,21 @@
   const pvToday = $derived(num($items.MPPT60_EnergyFromPV_Today));
   const forecastDetail = $derived(parseForecast10Day($items.Forecast_10Day_JSON, { nowMs: analyticsNowMs }));
   const pvPredicted = $derived(predictionReceipt?.pvTodayKwh ?? null);
-  const pvPredictionText = $derived(pvForecastComparison(pvToday, pvPredicted));
+  const pvPredictionText = $derived(liveEnergyForecast ? `${liveEnergyForecast.potentialRemainingTodayKwh.toFixed(1)} kWh potential remaining today` : pvForecastComparison(pvToday, pvPredicted));
   const pvError = $derived(num($items.Forecast_PV_Error_7d));
-  const pvAccuracyBadge = $derived(pvError === null ? 'Forecast error unavailable' : `Forecast error ${Math.round(Math.abs(pvError))}%`);
+  const pvAccuracyBadge = $derived(liveEnergyForecast ? 'Potential estimate · uncalibrated' : pvError === null ? 'Forecast error unavailable' : `Forecast error ${Math.round(Math.abs(pvError))}%`);
 
   // ---- Curtailment ------------------------------------------------------
   const curtailHours = $derived(predictionReceipt?.curtailmentHoursToday ?? null);
   const curtailPct = $derived(curtailHours === null ? 0 : Math.max(0, Math.min(100, (curtailHours / 24) * 100)));
-  const curtailText = $derived(curtailHours === null ? '—' : `${curtailHours.toFixed(1)} h`);
+  const curtailText = $derived(curtailHours === null ? 'Unavailable' : `${curtailHours.toFixed(1)} h`);
 
   // ---- 7-day PV outlook -------------------------------------------------
   const pvOutlook = $derived.by(() => {
+    if (liveEnergyForecast) return liveEnergyForecast.periods;
     const days = pvForecastDaysFromToday(forecastDetail, { nowMs: analyticsNowMs })
       .map((day, index) => ({ label: index === 0 ? 'Today' : index === 1 ? 'Tomorrow' : day.label, pv: day.summary.pvKwh }));
+    if (!days.some(d => d.pv !== null)) return [];
     const maxPv = Math.max(1, ...days.map((d) => d.pv ?? 0));
     return days.map((d) => ({ ...d, pct: d.pv === null ? 0 : Math.max(2, (d.pv / maxPv) * 100) }));
   });
@@ -95,7 +100,7 @@
   <div class="cell hero-cell">
     <Tile label="Battery history" accent={socColor}>
       <div class="hero-body">
-        <div class="hero-chart"><HistoryChart series={socSeries} initialHours={24} refreshMs={30 * 60 * 1_000} /></div>
+        <div class="hero-chart"><HistoryChart series={socSeries} compact={true} initialHours={24} refreshMs={30 * 60 * 1_000} /></div>
         <div class="hero-footer">
           <span class="hero-soc" style="color: {socColor}">SoC {soc === null ? '—' : Math.round(soc) + '%'}</span>
           {#if preDuskEstimate}
@@ -118,11 +123,12 @@
             <span class="pv-unit">kWh today</span>
           </div>
           <div class="pv-sub">{pvPredictionText}</div>
-          <span class="pv-badge" title="Mean absolute percentage error of recent scored PV forecasts; not a prediction interval.">{pvAccuracyBadge}</span>
+          <span class="pv-badge" title={liveEnergyForecast ? 'Uncalibrated array potential; battery charging and household demand can limit captured energy.' : 'Mean absolute percentage error of recent scored PV forecasts; not a prediction interval.'}>{pvAccuracyBadge}</span>
         </div>
         <div class="pv-chart">
           <HistoryChart
             series={[{ name: 'MPPT60_PV_Power', color: colors.solar, label: 'PV Power' }]}
+            compact={true}
             initialHours={24}
           />
         </div>
@@ -151,10 +157,11 @@
   </div>
 
   <div class="cell outlook-cell">
-    <Tile label="7-Day PV Outlook" accent={colors.solar}>
-      <div class="outlook-body">
+    <Tile label={liveEnergyForecast ? 'PV Potential · Next 24 Hours' : '7-Day PV Outlook'} accent={colors.solar}>
+      <div class="outlook-layout">
+      <div class="outlook-body" style:grid-template-columns={`repeat(${liveEnergyForecast ? 8 : 7}, minmax(0, 1fr))`}>
         {#if pvOutlook.length === 0}
-          <div class="outlook-empty">—</div>
+          <div class="outlook-empty">PV forecast unavailable</div>
         {:else}
           {#each pvOutlook as d, i (i)}
             <div class="outlook-day">
@@ -166,6 +173,8 @@
             </div>
           {/each}
         {/if}
+      </div>
+      {#if liveEnergyForecast}<div class="outlook-note">3-hour potential energy · kWh · uncalibrated{liveEnergyForecast.captured24hKwh === null ? ' · capture estimate unavailable' : ` · ${liveEnergyForecast.captured24hKwh.toFixed(1)} kWh modeled capture`}</div>{/if}
       </div>
     </Tile>
   </div>
@@ -366,15 +375,18 @@
   }
 
   /* ---- 7-day PV outlook ---- */
+  .outlook-layout { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+  .outlook-note { flex: 0 0 auto; color: #94a3b8; font-size: .6rem; line-height: 1.2; margin-top: .3rem; }
   .outlook-body {
+    flex: 1;
+    min-height: 0;
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 0.5rem;
-    height: 100%;
-    align-items: end;
+    align-items: stretch;
   }
   .outlook-empty {
-    grid-column: span 7;
+    grid-column: 1 / -1;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -386,20 +398,20 @@
     flex-direction: column;
     align-items: center;
     gap: 0.25rem;
-    height: 100%;
+    min-height: 0;
   }
   .outlook-bar-track {
     flex: 1;
     width: 60%;
     display: flex;
     align-items: flex-end;
-    min-height: 2.5rem;
+    min-height: 1.25rem;
   }
   .outlook-bar-fill {
     width: 100%;
     background: #eab308;
     border-radius: 0.2rem 0.2rem 0 0;
-    min-height: 2px;
+    min-height: 0;
   }
   .outlook-label {
     font-size: 0.65rem;

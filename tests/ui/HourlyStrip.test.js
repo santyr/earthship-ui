@@ -123,3 +123,13 @@ describe('HourlyStrip', () => {
     expect(html).toContain('temp: 70°');
   });
 });
+
+
+it('renders Google cloud-derived icons and plots rainfall amounts instead of missing probabilities',async()=>{
+ const {container}=render(HourlyStrip,{hours:[{...baseHour,w:null,p:null,a:0.02,c:40,isDay:false}]});
+ await waitFor(()=>expect(mocks.chart.setOption).toHaveBeenCalled());
+ expect(container.querySelector('[data-condition-basis="cloud-cover"]')).toBeNull();
+ expect(container.querySelector('[data-condition-basis="precipitation-amount"]')).not.toBeNull();
+ const option=mocks.chart.setOption.mock.calls.at(-1)[0];expect(option.yAxis[1].max).not.toBe(100);
+ expect(option.series.find(s=>s.name==='Rainfall').data).toEqual([0.02]);
+});

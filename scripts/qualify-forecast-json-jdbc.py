@@ -18,7 +18,7 @@ import openhab_sanity_check as oh  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location(
-    'aqi_qualification', ROOT / 'scripts/qualify-openmeteo-aqi-jdbc.py')
+    'aqi_qualification', ROOT / 'scripts/openhab_qualification_jdbc.py')
 aqi = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(aqi)
 

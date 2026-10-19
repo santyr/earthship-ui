@@ -1,4 +1,5 @@
 """Native package metadata/source checks; numerical qualification is separate."""
+import thermal_model.native_operational_io as native_io
 import json,subprocess
 from pathlib import Path
 from hashlib import sha256
@@ -40,11 +41,20 @@ def native_fixture(tmp_path):
     write(baseline,encode(old))
     geom=baseline.parent/'native-geometry';geom.mkdir(mode=0o700)
     origins=baseline.parent/'native-origins';origins.mkdir(mode=0o700)
-    settings={**old,'schema':'earthship-provisional-thermal-live-config/v2','candidate_path':str(model),
+    settings={**old,'schema':'earthship-weathernext-thermal-live-config/v1','candidate_path':str(model),
         'artifact_sha256':candidate['artifact_sha256'],'runtime_sha256':candidate['runtime_sha256'],
         'geometry_directory':str(geom),'evidence_directory':str(origins)}
     config=baseline.parent/'native-config.json';write(config,encode(settings))
     args.update(forecast_config=config,service_forecast_config=baseline)
+    from test_google_native_selection import irradiance_package_candidate,source,GOOGLE_LIVE
+    from weather_learning.archive import Archive
+    settings.pop('forecast_dsn_file')
+    settings.update(schema=GOOGLE_LIVE,weather_source=source(Archive(tmp_path/'google').root))
+    # Package-only metadata; numerical qualification uses fresh_candidate.
+    candidate=irradiance_package_candidate(args,settings)
+    for name in set(candidate['runtime']['native_source_manifest'])|{'openhab/scripts/'+p for p in candidate['runtime']['base_runtime']['source_manifest']}:
+        files[name]=(repo/name).read_bytes()
+    write(config,encode(settings))
     return args,files,candidate,settings
 
 
@@ -106,17 +116,14 @@ def test_native_runtime_probe_uses_external_pins_and_original_pressure_guard(tmp
     args,files,candidate,settings=native_fixture(tmp_path);api().stage_deployment(**args)
     import native_thermal_live as native
     import native_thermal_artifact as artifact
-    import thermal_model.provisional_live as legacy
     import native_inference_pressure as pressure
-    import thermal_installed_intel as installed
+    import thermal_model.serial_publication_caps as installed
     import household_cycle_sources as collection
     from datetime import timedelta
     calls=[];m=api();stage=args['stage']
     monkeypatch.setattr(m,'__file__',str(stage/'sources/openhab/scripts/household_cycle_deploy.py'))
     monkeypatch.setattr(installed,'_resource_preflight',lambda:None)
-    monkeypatch.setattr(legacy,'_next_issue',lambda now:now+timedelta(minutes=5))
-    monkeypatch.setattr(legacy,'load_settings',lambda *a,**kw:pytest.fail('native runtime probe used legacy loader'))
-    monkeypatch.setattr(legacy,'current_runtime',lambda *a,**kw:pytest.fail('native runtime probe used legacy runtime'))
+    monkeypatch.setattr(native_io,'_next_issue',lambda now:now+timedelta(minutes=5))
     monkeypatch.setattr(native,'load_settings',lambda path:settings if Path(path)==args['forecast_config'] else pytest.fail('wrong native config'))
     class Headroom:
         def __init__(self,**kw):assert not kw
@@ -135,3 +142,21 @@ def test_native_runtime_probe_uses_external_pins_and_original_pressure_guard(tmp
     result=m.verify_runtime(stage)
     assert result['status']=='runtime_verified' and result['automatic_actuation'] is False
     assert 'preflight' in calls and 'pressure' in calls and calls.count('native_reader')==1
+
+
+@pytest.mark.parametrize('irradiance',[False,True])
+def test_google_stage_accepts_new_base_identity_only_with_preserved_irradiance_family(tmp_path,irradiance):
+    from native_thermal_artifact import digest
+    args,files,candidate,settings=native_fixture(tmp_path)
+    candidate['runtime']['base_runtime']['code_revision']='c'*64
+    if not irradiance:
+        candidate['schema']='earthship-provisional-thermal-candidate/v3'
+        candidate['fit']={'schema':'earthship-native-solar-provisional-fit/v2','model_rule':'earthship-native-joint-shade-dynamics/v3'}
+    candidate['runtime_sha256']=digest(candidate['runtime']);candidate['artifact_sha256']=digest(candidate,'artifact_sha256')
+    settings.update(runtime_sha256=candidate['runtime_sha256'],artifact_sha256=candidate['artifact_sha256'])
+    write(Path(settings['candidate_path']),encode(candidate));write(args['forecast_config'],encode(settings))
+    if not irradiance:
+        with pytest.raises(ValueError,match='Google production requires'):api().stage_deployment(**args)
+    else:
+        api().stage_deployment(**args)
+        assert api().verify_stage(args['stage'])['protected_runtime_sources']==candidate['runtime']['base_runtime']['source_manifest']

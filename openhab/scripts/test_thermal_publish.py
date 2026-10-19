@@ -98,43 +98,6 @@ def test_publish_propagates_ambiguous_transport_failure_without_retry():
     assert calls[0][0] == "Thermal_Model_JSON"
 
 
-def test_shadow_publish_keeps_valid_local_output_when_the_single_put_fails(
-    tmp_path, monkeypatch
-):
-    payload = valid_shadow_payload()
-    destination = tmp_path / "shadow.json"
-    calls = []
-
-    monkeypatch.setattr(thermal_intel.forecast_intel, "load_site_settings", lambda: {})
-    monkeypatch.setattr(thermal_intel, "_current_states", lambda now: {})
-    monkeypatch.setattr(thermal_intel.forecast_intel, "fetch_forecast", lambda: {})
-    monkeypatch.setattr(thermal_intel, "_forecast_rows", lambda snapshot, now: [])
-    monkeypatch.setattr(thermal_intel, "run_shadow", lambda **kwargs: deepcopy(payload))
-
-    def ambiguous(item, value):
-        calls.append((item, value))
-        raise RuntimeError("ambiguous OpenHAB response")
-
-    with pytest.raises(RuntimeError, match="ambiguous"):
-        thermal_intel._shadow(
-            SimpleNamespace(output=destination, publish=True),
-            NOW,
-            put_state=ambiguous,
-        )
-
-    assert len(calls) == 1
-    assert calls[0][0] == "Thermal_Model_JSON"
-    assert json.loads(destination.read_text()) == payload
-
-
-def test_shadow_publish_flag_is_explicit_and_defaults_off():
-    parser = thermal_intel._build_parser()
-
-    assert parser.parse_args(["shadow"]).publish is False
-    assert parser.parse_args(["shadow", "--publish"]).publish is True
-
-
-
 def _copy_runtime_manifest(destination):
     source_root = Path(thermal_intel.__file__).resolve().parent
     for relative in thermal_intel.RUNTIME_REVISION_PATHS:
@@ -147,7 +110,6 @@ def _copy_runtime_manifest(destination):
 def test_runtime_revision_manifest_is_exact_and_complete():
     assert thermal_intel.RUNTIME_REVISION_PATHS == (
         "thermal_intel.py",
-        "forecast_intel.py",
         "thermal_temperature_runtime.py",
         "thermal_radiation_runtime.py",
         "weather_radiation_reader.py",
@@ -185,7 +147,7 @@ def test_runtime_revision_changes_for_entrypoint_and_shared_helper(tmp_path):
     assert thermal_intel._runtime_manifest_revision(tmp_path) != original
 
     _copy_runtime_manifest(tmp_path)
-    shared = tmp_path / "forecast_intel.py"
+    shared = tmp_path / "thermal_model/pipeline.py"
     shared.write_bytes(shared.read_bytes() + b"\n# reviewed helper change\n")
     assert thermal_intel._runtime_manifest_revision(tmp_path) != original
 
@@ -213,30 +175,6 @@ def test_runtime_revision_ignores_unrelated_git_discovery(tmp_path):
 
 def test_runtime_revision_fails_closed_when_manifest_file_is_missing(tmp_path):
     _copy_runtime_manifest(tmp_path)
-    (tmp_path / "forecast_intel.py").unlink()
+    (tmp_path / "thermal_model/pipeline.py").unlink()
     with pytest.raises(RuntimeError, match="runtime revision file unavailable"):
         thermal_intel._runtime_manifest_revision(tmp_path)
-
-
-def test_shadow_cli_accepts_explicit_recovery_registry_without_changing_default():
-    parser = thermal_intel._build_parser()
-    default = parser.parse_args(['shadow'])
-    recovered = parser.parse_args(['shadow', '--model-directory', '/private/recovery/models'])
-    assert default.model_directory == thermal_intel.DEFAULT_STATE_DIRECTORY
-    assert recovered.model_directory == Path('/private/recovery/models')
-
-
-def test_shadow_uses_explicit_registry_for_recovery_prediction(tmp_path, monkeypatch):
-    payload = valid_shadow_payload(); registries = []
-    models = tmp_path/'models'; models.mkdir(mode=0o700)
-    monkeypatch.setattr(thermal_intel.forecast_intel, 'load_site_settings', lambda: None)
-    monkeypatch.setattr(thermal_intel, '_current_states', lambda _: {})
-    monkeypatch.setattr(thermal_intel.forecast_intel, 'fetch_forecast', lambda: {})
-    monkeypatch.setattr(thermal_intel, '_forecast_rows', lambda *_: [])
-    def predict(**kwargs):
-        registries.append(kwargs['registry'].directory)
-        return deepcopy(payload)
-    monkeypatch.setattr(thermal_intel, 'run_shadow', predict)
-    assert thermal_intel._shadow(SimpleNamespace(output=tmp_path/'fresh-shadow.json', publish=False,
-        model_directory=models), NOW) == 0
-    assert registries == [models]

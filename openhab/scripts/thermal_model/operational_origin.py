@@ -4,7 +4,8 @@ from datetime import datetime, timedelta, timezone
 from math import isfinite
 import re
 
-from .forecast_history import SOURCE, _utc, _window
+from .forecast_history import _utc, _window, verify_origin_forecast_receipts
+from weather_learning.contracts import instant as _forecast_clock
 from .schema import ACTION_KINDS, ACTION_KINDS_V2, SOURCE_WEIGHTS
 from .temperature_history import STREAMS, _validate_receipt
 
@@ -50,18 +51,23 @@ def assemble_origin(origin, *, horizon_hours, forecast_reader, temperature_reade
     forecast = forecast_reader(origin=at, horizon_hours=horizon_hours)
     if forecast is None:
         return {'status': 'unavailable', 'reason': 'forecast_unavailable', 'origin': at}
-    if (forecast['source'] != SOURCE or forecast['origin'] != at
-            or forecast['horizon_hours'] != horizon_hours
-            or forecast['issued_at'] > at or forecast['captured_at'] > at
-            or not isinstance(forecast.get('rows_sha256'), str)
-            or re.fullmatch('[0-9a-f]{64}', forecast['rows_sha256']) is None):
-        raise ValueError('forecast is not available at origin')
+    try:
+        available = (isinstance(forecast,dict) and forecast.get('source')=='weathernext3'
+            and _forecast_clock(forecast['origin'])==at and forecast['horizon_hours']==horizon_hours
+            and _forecast_clock(forecast['issued_at'])<=_forecast_clock(forecast['captured_at'])<=at
+            and isinstance(forecast.get('rows_sha256'),str)
+            and re.fullmatch('[0-9a-f]{64}',forecast['rows_sha256']) is not None)
+    except (ValueError,TypeError,KeyError):available=False
+    if not available:raise ValueError('forecast is not available at origin')
     rows = forecast.get('rows')
-    if (not isinstance(rows, list) or len(rows) != len(targets)
-            or any(not isinstance(row, dict) or row.get('at') != target
-                   or set(row) != {'at', 'tempF', 'radiationWm2', 'windMph', 'weatherCode'}
-                   for row, target in zip(rows, targets))):
-        raise ValueError('forecast hourly bracket is incomplete')
+    try:
+        complete = (isinstance(rows,list) and len(rows)==len(targets)
+            and all(isinstance(row,dict) and set(row)=={'at','tempF','radiationWm2','windMph','weatherCode'}
+                and _forecast_clock(row['at'])==target for row,target in zip(rows,targets)))
+    except (ValueError,TypeError,KeyError):complete=False
+    if not complete:raise ValueError('forecast hourly bracket is incomplete')
+    try:verify_origin_forecast_receipts(forecast)
+    except (ValueError,TypeError,KeyError):raise ValueError('forecast is not available at origin') from None
     current = {}
     receipts = {}
     for role, (stream, _, _) in STREAMS.items():

@@ -36,7 +36,7 @@ def collector_fixture(tmp_path,monkeypatch,*,metric_raw=None,load_topology_raw=N
     from uuid import UUID
     from household.codec import canonical
     from thermal_model.temperature_history import STREAMS,POLICY
-    from test_forecast_pre_dusk import NOW,evidence
+    from local_measurement_test_support import NOW, bms_evidence as evidence
     from test_pv_day_evidence import receipt
     from test_household_power_snapshot import source
     from test_weather_temperature_history import Connection
@@ -179,3 +179,17 @@ def test_cycle_reuses_one_bounded_transport_for_owner_and_measured_receipts(tmp_
     assert collector._owner_transport('Inverter_AC_Evidence_JSON',remaining=lambda:2.)=='direct-original-marker'
     assert collector._measured_http(kind='radiation',url=measured_weather_capture.SOURCES['radiation'][1],remaining=lambda:2.)=='{"state":"direct-original-marker"}'
     assert len(prepared)==1 and len(requests)==3
+
+
+def test_current_collector_never_reads_retired_daily_forecast_state(tmp_path,monkeypatch):
+    from datetime import timedelta
+    import household_snapshot
+    collector,_,_,_,now=collector_fixture(tmp_path,monkeypatch)
+    read=household_snapshot._read;attempts=[]
+    def inspect(path,*args,**kwargs):
+        if Path(path)==api().DAILY_STATE_PATH:
+            attempts.append(str(path))
+        return read(path,*args,**kwargs)
+    monkeypatch.setattr(household_snapshot,'_read',inspect)
+    collector(issue=now+timedelta(seconds=8),remaining=lambda:6.,guard=lambda:None)
+    assert attempts==[]

@@ -126,3 +126,52 @@ def test_grid_permission_error_sanitized_and_connection_closed():
         fetch_radiation_grid(lambda: c, targets=[AT], assessed_at=AT,
                              cutover=AT - timedelta(hours=1), policy=POLICY)
     assert c.closed
+
+
+def test_window_capture_keeps_original_receipts_after_native_qualification():
+    start, end = AT, AT + timedelta(hours=1)
+    rows = [(AT + timedelta(seconds=i), raw(i, sequence=n))
+            for n, i in enumerate(range(-180, 3661, 60), 1)]
+    c = fixture(); c.carry = rows[0]; c.rows = rows[1:]
+    captured = []
+    result = fetch_radiation_window(lambda: c, start=start, end=end,
+        assessed_at=end + timedelta(seconds=120), cutover=AT - timedelta(days=1),
+        policy=POLICY, source_capture=lambda **value: captured.append(value))
+    assert result['status'] == 'ok'
+    assert len(captured) == 1
+    assert captured[0]['observations'] == tuple(rows)
+    assert captured[0]['policy'] is POLICY
+    assert captured[0]['history_start'] == start - timedelta(seconds=120)
+    assert c.closed
+
+
+def test_partial_window_never_emits_a_qualified_source_capsule():
+    c = fixture(); c.carry = (AT - timedelta(seconds=180), raw(-180)); captured = []
+    result = fetch_radiation_window(lambda: c, start=AT, end=AT + timedelta(hours=1),
+        assessed_at=AT + timedelta(hours=2), cutover=AT - timedelta(days=1),
+        policy=POLICY, source_capture=lambda **value: captured.append(value))
+    assert result['status'] == 'partial' and result['irradiance_wh_m2'] is None
+    assert captured == [] and c.closed
+
+
+def test_daily_capture_forwards_original_window_and_capture_failure_is_sanitized():
+    day = AT.date(); start = datetime.combine(day, time.min, timezone.utc)
+    end = start + timedelta(days=1)
+    rows = [(start + timedelta(seconds=i), raw(
+                int((start + timedelta(seconds=i) - AT).total_seconds()), sequence=n))
+            for n, i in enumerate(range(-180, 86461, 60), 1)]
+    captured = []
+    c = fixture(); c.carry = rows[0]; c.rows = rows[1:]
+    result = fetch_radiation_day(lambda: c, local_date=day,
+        as_of=end + timedelta(seconds=120), cutover=start - timedelta(days=1),
+        policy=POLICY, site_timezone='UTC', source_capture=lambda **value: captured.append(value))
+    assert result['status'] == 'ok' and captured[0]['start'] == start
+    assert c.closed
+    c = fixture(); c.carry = rows[0]; c.rows = rows[1:]
+    def failed_capture(**_value):
+        raise ValueError('private capsule unavailable')
+    with pytest.raises(RadiationHistoryUnavailable, match='^radiation history unavailable$'):
+        fetch_radiation_day(lambda: c, local_date=day,
+            as_of=end + timedelta(seconds=120), cutover=start - timedelta(days=1),
+            policy=POLICY, site_timezone='UTC', source_capture=failed_capture)
+    assert c.closed

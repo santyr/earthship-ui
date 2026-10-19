@@ -12,7 +12,6 @@ spec.loader.exec_module(migration)
 
 migration.NAMES = (
     'Forecast_Tomorrow_High', 'Forecast_Tomorrow_Low',
-    'Forecast_Tomorrow_PrecipProb',
 )
 migration.ITEM_TYPE = 'Number'
 migration.SOURCE = ROOT / 'openhab/file-config/items/forecast-tomorrow.items'
@@ -20,7 +19,7 @@ migration.TARGET = Path('/etc/openhab/items/forecast-tomorrow.items')
 migration.TIMER = 'forecast-intel.timer'
 migration.SERVICE = 'forecast-intel.service'
 migration.BACKUP_PREFIX = 'forecast-tomorrow'
-RELEASE_READY = True  # Isolated provider/JDBC/rollback/restart proof passed.
+RELEASE_READY = False  # Changed Google-only batch requires the coordinated release.
 
 if __name__ == '__main__':
     if sys.argv[1:] not in (['--check'], ['--apply']):

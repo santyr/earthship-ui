@@ -1,4 +1,4 @@
-// Observational forecast payloads; forecast-json.service owns state publication.
+// Prepared Google forecast payloads; weathernext-publish.service owns state at cutover.
 String Forecast_Hourly_JSON "Hourly Forecast JSON" ["forecast-intel"]
 String Forecast_Daily_JSON "Daily Forecast JSON" ["forecast-intel"]
 String Forecast_10Day_JSON "10-Day Forecast Detail" <weather>

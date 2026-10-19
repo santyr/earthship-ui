@@ -1,0 +1,11 @@
+[Unit]
+Description=Earthship WeatherNext Google full-range and hourly interim capture
+
+[Timer]
+OnCalendar=*-*-* *:41:00
+RandomizedDelaySec=30
+Persistent=true
+Unit=weathernext-ingest.service
+
+[Install]
+WantedBy=timers.target

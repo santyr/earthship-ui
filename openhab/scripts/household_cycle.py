@@ -99,7 +99,7 @@ def derive_cycle(*,originals,capture,receipts,thermal,weather,parameter_record,r
         instant=_instant
         if (not isinstance(thermal,PreparedProjection) or not isinstance(weather,PreparedWeatherContext) or
             thermal.to_dict()['schema']!='earthship-household-prepared-thermal/v2' or
-            weather.to_dict()['schema'] not in ('earthship-household-prepared-weather/v2','earthship-household-prepared-weather/v3')):
+            weather.to_dict()['schema'] not in ('earthship-household-prepared-weather/v2','earthship-household-prepared-weather/v3','earthship-household-prepared-weather/v4')):
             raise ValueError('native issue requires separately prepared native models')
     elif capture.get('schema')=='earthship-provisional-thermal-origin/v1':
         from thermal_model.provisional_score import validate_delivery
@@ -141,7 +141,11 @@ def derive_cycle(*,originals,capture,receipts,thermal,weather,parameter_record,r
         weather_context=weather,energy_configuration=configuration,measured_weather=measured,code_revision=code_revision)
     body=snapshot.to_dict();soc=body['domains']['energy']['battery_soc']['value']
     energy=None
-    if daily_source_version:
+    if pv_version and capture['inputs']['forecast']['source']=='weathernext3':
+        from household.trajectory_energy import prepare_inputs
+        energy=prepare_inputs(snapshot=snapshot,system_source=originals['pv_system_source'],
+            topology_source=originals['load_topology_source'],horizon_source=originals['solar_horizon_source'])
+    elif daily_source_version:
         from household.daily_energy_source import daily_inputs,ZONE
         daily_source=originals['daily_energy_source']
         if daily_source is not None:
@@ -424,12 +428,12 @@ class LazyForecastBackend:
         return getattr(self.parent,name)
 
     def collect(self,*,issue,known_at):
-        from thermal_model.provisional_live import backend_settings,delivery_directory,CompressedSourceLiveBackend
+        from thermal_model.native_operational_io import delivery_directory
+        from native_thermal_live import GOOGLE_SCHEMAS,make_forecast_backend
+        if self.settings.get('schema') not in ('earthship-weathernext-thermal-live-config/v1','earthship-weathernext-thermal-live-config/v2'):raise ValueError('Google-only native forecast configuration required')
         if self.parent is not None:raise ValueError('one original issue per backend required')
         self.guard()
-        settings=backend_settings(self.settings)
-        settings['evidence_directory']=str(delivery_directory(self.settings,issue))
-        self.parent=CompressedSourceLiveBackend(settings,shared_lock_guard=self.guard)
+        self.parent=make_forecast_backend(self.settings,evidence_directory=delivery_directory(self.settings,issue),guard=self.guard)
         return self.parent.collect(issue=issue,known_at=known_at)
 
 
@@ -454,8 +458,6 @@ def _run_cycle(config_path,*,code_revision,forecast_config=None,stage=None,deplo
     from household_cycle_sources import load_cycle_settings,CycleSourceCollector
     from household_observation import _private_file,_directory
     from household_snapshot import _read
-    from thermal_installed_intel import _resource_preflight
-    from thermal_model.provisional_live import load_settings,publish_cycle,withdraw
     from thermal_model.capture_guard import SharedScoreLock
     from household_cycle_pressure import PublicationHeadroom
     os.environ['EARTHSHIP_QUALIFICATION_FIT']='0';os.environ['EARTHSHIP_REMOTE_QUALIFICATION_FIT']='0'
@@ -463,13 +465,12 @@ def _run_cycle(config_path,*,code_revision,forecast_config=None,stage=None,deplo
     if forecast_config is None:forecast_config=load_cycle_settings(config_path)['forecast_config']
     forecast_path=Path(forecast_config).absolute();forecast_original=_private_file(forecast_path,8192)
     original_settings=loads(forecast_original[0])
-    receipt_profile=isinstance(original_settings,dict) and original_settings.get('schema')=='earthship-provisional-thermal-live-config/v3'
-    native_profile=isinstance(original_settings,dict) and original_settings.get('schema') in ('earthship-provisional-thermal-live-config/v2','earthship-provisional-thermal-live-config/v3')
-    if native_profile:
-        from household_cycle_resources import publication_resource_preflight
-        publication_resource_preflight()
-        from native_thermal_live import load_settings,publish_cycle,withdraw,current_runtime
-    else:_resource_preflight()
+    from native_thermal_live import NATIVE_SCHEMAS,SERVING_SCHEMAS,load_settings,publish_cycle,withdraw,current_runtime
+    if not isinstance(original_settings,dict) or original_settings.get('schema') not in ('earthship-weathernext-thermal-live-config/v1','earthship-weathernext-thermal-live-config/v2'):
+        raise ValueError('Google-only native forecast configuration required')
+    receipt_profile=original_settings['schema'] in SERVING_SCHEMAS
+    from household_cycle_resources import publication_resource_preflight
+    publication_resource_preflight()
     settings=load_settings(forecast_path)
     if receipt_profile:
         from thermal_model.graduation_policy import _sha
@@ -482,8 +483,7 @@ def _run_cycle(config_path,*,code_revision,forecast_config=None,stage=None,deplo
         monitor=PublicationHeadroom()
         # Native serving needs the warm slot for acquisition. Kernel isolation
         # is already active; check RAM/pressure now and throughout the cycle.
-        if native_profile:monitor.check()
-        else:monitor.preflight()
+        monitor.check()
         def forecast_guard():
             lock.verify();monitor.check()
             if _private_file(forecast_path,8192)!=forecast_original:
@@ -518,7 +518,7 @@ def _run_cycle(config_path,*,code_revision,forecast_config=None,stage=None,deplo
             if not ready:raise ValueError('household source preparation unavailable')
             return collector(**request)
         observer_guard=guard if ready else forecast_guard
-        backend=ObservingBackend(LazyForecastBackend(settings,guard=forecast_guard),collector=collect,guard=observer_guard,near_issue=native_profile)
+        backend=ObservingBackend(LazyForecastBackend(settings,guard=forecast_guard),collector=collect,guard=observer_guard,near_issue=True)
         serving_model=None
         try:
             if receipt_profile:
@@ -541,7 +541,7 @@ def _run_cycle(config_path,*,code_revision,forecast_config=None,stage=None,deplo
             result['observation']=dict(status='observation_unavailable',reason='source_preparation_unavailable',automatic_actuation=False)
             return result
         try:
-            native_pins={} if not native_profile else dict(runtime=current_runtime(guard=forecast_guard),
+            native_pins=dict(runtime=current_runtime(guard=forecast_guard),
                 expected_artifact_sha256=settings['artifact_sha256'],expected_capture_sha256=published['capture_sha256'])
             if receipt_profile:native_pins['serving_model']=serving_model
             result['observation']=complete_cycle(publication=published,collection=backend.collection,parameter_record=parameters,

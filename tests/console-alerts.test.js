@@ -97,13 +97,7 @@ describe('console alert projection', () => {
       'connection-offline',
       'telemetry-stale:outdoor-temperature',
       'soc-trough',
-      'aqi-unhealthy',
     ]);
-    expect(alerts.find((alert) => alert.id === 'aqi-unhealthy')).toMatchObject({
-      route: 'weather',
-      dedupeKey: 'aqi:current-us',
-      shortText: 'AQI 119',
-    });
     expect(alerts.every((alert) => !alert.fullText.includes('501'))).toBe(true);
   });
 
@@ -159,7 +153,7 @@ describe('console alert projection', () => {
     }
   });
 
-  it('maps thermal codes, predicted trough thresholds, AQI, and control outcomes exactly', async () => {
+  it('maps thermal codes, predicted trough thresholds and control outcomes exactly', async () => {
     const { projectConsoleAlerts } = await loadSubject();
     const warning = projectConsoleAlerts({
       connection: 'live',
@@ -194,7 +188,6 @@ describe('console alert projection', () => {
     expect(warning.alerts.map((alert) => alert.id)).toEqual([
       'thermal-close',
       'soc-trough',
-      'aqi-unhealthy',
       'control-outcome:living1',
     ]);
     expect(warning.alerts.find((alert) => alert.id === 'soc-trough')?.severity).toBe('warning');
@@ -243,37 +236,13 @@ describe('console alert projection', () => {
     }
   });
 
-  it('uses the shared rounded current-AQI classification for alert thresholds', async () => {
+  it('ignores retired AQI Item states rather than issuing unsupported warnings', async () => {
     const { projectConsoleAlerts } = await loadSubject();
-
-    for (const raw of ['-1', 'REFRESH', '42 AQI', '100.4']) {
-      const result = projectConsoleAlerts({
-        connection: 'live',
-        items: { ...healthyItems, Current_US_AQI: raw },
-        now: 100_000,
-      });
-      expect(result.alerts.find((alert) => alert.id === 'aqi-unhealthy'), raw).toBeUndefined();
+    for (const raw of ['0', '101', '501', 'REFRESH', 'Hazardous']) {
+      const result = projectConsoleAlerts({ connection: 'live',
+        items: { ...healthyItems, Current_US_AQI: raw, Forecast_AQI: raw }, now: 100_000 });
+      expect(result.alerts, raw).toEqual([]);
     }
-
-    const roundedIntoAlert = projectConsoleAlerts({
-      connection: 'live',
-      items: { ...healthyItems, Current_US_AQI: '100.5' },
-      now: 100_000,
-    });
-    expect(roundedIntoAlert.alerts.find((alert) => alert.id === 'aqi-unhealthy')).toMatchObject({
-      shortText: 'AQI 101',
-      fullText: 'Modeled US AQI 101 is unhealthy.',
-    });
-
-    const beyond = projectConsoleAlerts({
-      connection: 'live',
-      items: { ...healthyItems, Current_US_AQI: '500.5' },
-      now: 100_000,
-    });
-    expect(beyond.alerts.find((alert) => alert.id === 'aqi-unhealthy')).toMatchObject({
-      shortText: 'AQI 501',
-      fullText: 'Modeled US AQI 501 is unhealthy.',
-    });
   });
 
   it('reports unknown non-empty thermal codes without treating NULL-like values as alerts', async () => {
@@ -345,6 +314,7 @@ describe('console alert projection', () => {
         ...healthyItems,
         Current_US_AQI: '140',
       },
+      staleEssentials: [{ name: 'outdoor-temperature', label: 'Outdoor temperature', route: 'home' }],
       batteryAlarms: [
         { id: 'alarm-a', dedupeKey: 'battery:shared', text: 'Alarm A', active: true },
         { id: 'alarm-b', dedupeKey: 'battery:shared', text: 'Alarm B', active: true },

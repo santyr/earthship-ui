@@ -11,7 +11,7 @@ from test_household_pv_model import source as system_source
 from test_household_power_flows import declaration
 
 
-def fixture(tmp_path,monkeypatch,originals):
+def fixture(tmp_path,monkeypatch,originals,*,native_context=None):
     from test_household_energy_configuration import BANK,TOPOLOGY
     from test_household_model_snapshot import source_at
     from test_household_model_pipeline import run
@@ -23,7 +23,8 @@ def fixture(tmp_path,monkeypatch,originals):
     from household.power_snapshot import compile_power_inputs
     from household.weather_snapshot import bind_weather_snapshot
     from household_pipeline import pipeline_runtime_manifest
-    capture,_,thermal,weather=made(tmp_path,monkeypatch,originals);issue=instant(capture['issued_at']);at=issue-timedelta(seconds=1)
+    capture,_,thermal,weather=made(tmp_path,monkeypatch,originals) if native_context is None else native_context
+    issue=instant(capture['issued_at']);at=issue-timedelta(seconds=1)
     runtime=pipeline_runtime_manifest(expanded=True,configured=True,measured=True)
     original=source_at(at)['inputs'];bundle=deepcopy(original['bundle'])
     bundle['base_inputs']['sources'][0]['source_identity']='BMS_SOC_Evidence_JSON'

@@ -1,4 +1,5 @@
 """Runtime qualification routes v3 through the owned reader under old caps."""
+import thermal_model.native_operational_io as native_io
 import inspect,json
 from datetime import timedelta
 from pathlib import Path
@@ -11,13 +12,13 @@ def test_receipt_runtime_probe_uses_external_selection_and_unchanged_headroom(tm
     assert 'deployment_sha256' in inspect.signature(deploy.verify_runtime).parameters,'runtime selection pin missing'
     deploy,args,settings,helper,libraries,pin=stage(tmp_path,monkeypatch)
     import native_thermal_live as native,native_thermal_artifact as artifact
-    import thermal_model.provisional_live as legacy,native_inference_pressure as pressure
-    import thermal_installed_intel as installed,household_cycle_sources as collection
+    import native_inference_pressure as pressure
+    import thermal_model.serial_publication_caps as installed,household_cycle_sources as collection
     import native_model_serving_receipt as serving
     candidate=json.loads(Path(settings['candidate_path']).read_bytes());calls=[];selection=object()
     monkeypatch.setattr(deploy,'__file__',str(args['stage']/'sources/openhab/scripts/household_cycle_deploy.py'))
     monkeypatch.setattr(installed,'_resource_preflight',lambda:None)
-    monkeypatch.setattr(legacy,'_next_issue',lambda now:now+timedelta(minutes=5))
+    monkeypatch.setattr(native_io,'_next_issue',lambda now:now+timedelta(minutes=5))
     monkeypatch.setattr(native,'load_settings',lambda path:settings)
     class Headroom:
         def preflight(self):calls.append('quiet')

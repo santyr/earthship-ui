@@ -15,7 +15,7 @@ def test_forecast_admission_accepts_one_core_and_rejects_more(tmp_path):
 
 def test_forecast_driver_uses_production_resource_admission(tmp_path,monkeypatch):
     from test_household_native_cycle_driver import native_setup
-    import thermal_installed_intel as installed
+    import thermal_model.serial_publication_caps as installed
     import household_cycle_resources as resources
     cycle,native,config,calls=native_setup(tmp_path,monkeypatch)
     def old_profile():raise AssertionError('development CPU profile used for production')

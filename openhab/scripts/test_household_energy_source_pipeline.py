@@ -94,7 +94,7 @@ def test_configuration_completion_is_included_in_snapshot_availability(tmp_path,
     assert instant(snap.to_dict()['created_at'])==instant(prepared.to_dict()['issue'])+timedelta(seconds=10)
 
 
-def test_operational_energy_source_closure_and_cli_restore(tmp_path,monkeypatch):
+def test_operational_energy_source_closure_and_cli_restore(tmp_path,monkeypatch,capsys):
     import subprocess,sys,os
     from household_pipeline import pipeline_runtime_manifest,verify_source_closure
     from household.power_snapshot import compile_power_inputs
@@ -113,14 +113,19 @@ def test_operational_energy_source_closure_and_cli_restore(tmp_path,monkeypatch)
     for name,record in [('household_pipeline.py',receipt),('household_plan.py',receipt['output']['plan_receipt'])]:
         path=tmp_path/(name+'.json');path.write_bytes(canonical(record));path.chmod(0o600)
         result=subprocess.run([sys.executable,str(Path(__file__).with_name(name)),'--receipt',str(path)],capture_output=True,text=True,timeout=60,env=environment)
-        assert result.returncode==0,result.stderr
-        assert json.loads(result.stdout)==record
+        # Synthetic native model runtimes require the explicit in-process
+        # fixture hook. A cold process must enforce the actual runtime identity.
+        assert result.returncode==1
+        assert 'invalid or changed original context' in result.stderr
+        module=importlib.import_module(name.removesuffix('.py'))
+        assert module.main(['--receipt',str(path)])==0
+        assert json.loads(capsys.readouterr().out)==record
     partial={k:v for k,v in runtime.items() if k!='openhab/scripts/advisory_windows.py'}
     with pytest.raises(ValueError):original_plan_runtime(receipt,actual=partial)
 
 
 def test_derived_load_reference_expires_at_finite_topology_end(tmp_path,monkeypatch):
-    from test_installed_shade_origin import ISSUE
+    from test_native_thermal_forecast import ISSUE
     from household.intents import build_intent,EFFECT_UNITS
     policy=json.loads(json.dumps(TOPOLOGY));end=ISSUE+timedelta(seconds=5)
     policy['topology']['effective_until']=end.isoformat()
@@ -188,7 +193,7 @@ def test_earlier_pipeline_versions_keep_their_original_shapes(tmp_path,monkeypat
 @pytest.mark.parametrize('raw',[None,'invalid receipt'])
 def test_absent_or_invalid_ac_does_not_discard_bank_or_invent_parent_digest(raw,tmp_path,monkeypatch):
     from hashlib import sha256
-    from test_installed_shade_origin import ISSUE
+    from test_native_thermal_forecast import ISSUE
     from test_household_model_snapshot import source_at
     from household.power_snapshot import compile_power_inputs
     def altered(at):
@@ -208,7 +213,7 @@ def test_absent_or_invalid_ac_does_not_discard_bank_or_invent_parent_digest(raw,
 
 
 def test_pre_topology_observation_cannot_become_household_load(tmp_path,monkeypatch):
-    from test_installed_shade_origin import ISSUE
+    from test_native_thermal_forecast import ISSUE
     from test_household_model_snapshot import source_at
     policy=json.loads(json.dumps(TOPOLOGY));start=(ISSUE-timedelta(seconds=1)).isoformat()
     policy['cutover']=start;policy['topology']['effective_from']=start

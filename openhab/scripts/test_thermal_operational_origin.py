@@ -9,14 +9,8 @@ EPOCH = '864142d5-99ee-4b7a-b5fc-e6a96e7274d8'
 
 
 def forecast(*, origin, horizon_hours):
-    first = origin.replace(minute=0)
-    rows = [{'at': first + timedelta(hours=hour), 'tempF': 59.0,
-             'radiationWm2': 0.0, 'windMph': 2.0, 'weatherCode': 0}
-            for hour in range(horizon_hours + 2)]
-    return {'source': 'open_meteo_openhab', 'origin': origin, 'horizon_hours': horizon_hours,
-            'issued_at': origin - timedelta(hours=1),
-            'captured_at': origin - timedelta(minutes=20),
-            'rows_sha256': 'a' * 64, 'rows': rows}
+    from google_weather_fixtures import forecast as google_forecast
+    return google_forecast(origin,horizon_hours)
 
 
 def temperatures(*, stream, targets, assessed_at):
@@ -36,7 +30,7 @@ def test_complete_origin_preserves_capture_receipts_without_scoring_actions():
     assert result['status'] == 'available'
     assert result['initial'] == {'air_f': 70, 'mass_f': 68, 'outdoor_f': 59}
     assert result['receipts']['air']['stored_at'] < ORIGIN
-    assert result['forecast']['captured_at'] < ORIGIN
+    assert datetime.fromisoformat(result['forecast']['captured_at']) < ORIGIN
     assert result['action_knowledge'] == 'not_qualified'
     assert result['action_snapshot'] is None
 

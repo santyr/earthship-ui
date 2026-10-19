@@ -63,7 +63,7 @@ def test_late_geometry_preparation_never_publishes_packet(tmp_path,monkeypatch,o
 
 
 def settings_file(tmp_path,s):
-    from thermal_model.provisional_live import SOURCE_FIELDS
+    from native_thermal_live import SOURCE_FIELDS
     s=deepcopy(s);s.update(openhab_base='http://127.0.0.1:8080/rest',shared_lock=str(tmp_path/'lock'))
     for key in (SOURCE_FIELDS-{'candidate_path'})|{'shared_lock'}:
         path=tmp_path/key;path.write_bytes(b'synthetic owned fixture');path.chmod(0o600);s[key]=str(path)
@@ -71,7 +71,7 @@ def settings_file(tmp_path,s):
     path=tmp_path/'settings.json';path.write_bytes(_canonical(s));path.chmod(0o600);return path,s
 
 
-def test_native_settings_accept_only_owned_closed_v2_and_external_model_pins(tmp_path,monkeypatch,originals):
+def test_native_settings_accept_only_owned_google_profile_and_external_model_pins(tmp_path,monkeypatch,originals):
     live,s,_,_,_,_,_=fixture(tmp_path,monkeypatch,originals);path,s=settings_file(tmp_path,s)
     assert live.load_settings(path)==s
     for damage in ('schema','artifact','runtime','extra'):

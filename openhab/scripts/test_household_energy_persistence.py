@@ -183,7 +183,7 @@ def test_real_cycle_version_binds_preissue_metric_original(tmp_path,monkeypatch)
 
 def test_collector_retains_fixed_metric_original_and_refuses_midcycle_change(tmp_path,monkeypatch):
     from test_household_cycle_sources import collector_fixture
-    from test_forecast_pre_dusk import NOW
+    from local_measurement_test_support import NOW
     raw=metric(NOW)['raw']
     collector,_,calls,_,now=collector_fixture(tmp_path,monkeypatch,metric_raw=raw)
     out=collector(issue=now+timedelta(seconds=8),remaining=lambda:6.,guard=lambda:None)
@@ -217,7 +217,10 @@ def test_skewed_individually_valid_inputs_do_not_form_a_baseline(tmp_path,monkey
 def test_declared_bank_window_must_cover_entire_baseline_horizon(tmp_path,monkeypatch):
     from test_household_energy_configuration import BANK
     bank=deepcopy(BANK)
-    next(row for row in bank['epochs'] if row['current_analytics'])['end_local_date_exclusive']='2026-09-29'
+    from test_native_thermal_forecast import ISSUE
+    from zoneinfo import ZoneInfo
+    end=(ISSUE.astimezone(ZoneInfo('America/Denver')).date()+timedelta(days=1)).isoformat()
+    next(row for row in bank['epochs'] if row['current_analytics'])['end_local_date_exclusive']=end
     snap,source,now=fixture(tmp_path,monkeypatch,bank_raw=canonical(bank).decode())
     assert project(snap,source,now,6)['status']=='projected_nominal_baseline'
     out=project(snap,source,now,24)

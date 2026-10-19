@@ -194,6 +194,17 @@ def _stage_record(stage,pin=None):
 
 
 def verify(output,*,guard):
+    """Verify an active Google family, including its Google-only score dispatch."""
+    return _verify(output,guard=guard)
+
+
+def verify_handoff_baseline(output,*,expected_deployment_sha256,guard):
+    """Check a retired receipt family's ownership bytes without selecting it."""
+    from thermal_model.graduation_policy import _sha
+    return _verify(output,guard=guard,baseline_deployment_sha256=_sha(expected_deployment_sha256))
+
+
+def _verify(output,*,guard,baseline_deployment_sha256=None):
     """Reconstruct the draft from pinned originals, rather than trusting its hashes."""
     import household_cycle_deploy as deploy
     from household_native_geometry_prepare import _library_paths
@@ -202,79 +213,86 @@ def verify(output,*,guard):
     raw=deploy._bytes(output/'family.json',private=True);family=json.loads(raw)
     stage=deploy._path(family['stage']);libraries=deploy._path(family['libraries_path'])
     pin=family.get('deployment_sha256') if family.get('schema')=='earthship-native-thermal-service-family/v2' else None
-    record=_stage_record(stage,pin)
+    def selected_record():
+        if baseline_deployment_sha256 is not None:
+            if family.get('schema')!='earthship-native-thermal-service-family/v2' or pin!=baseline_deployment_sha256:
+                raise ValueError('external retired-family deployment pin differs')
+            return deploy.verify_handoff_baseline(stage,expected_deployment_sha256=baseline_deployment_sha256)
+        return _stage_record(stage,pin)
+    record=selected_record()
     if record['schema'] not in ('earthship-household-cycle-deployment/v2','earthship-household-cycle-deployment/v3'):
         raise ValueError('explicit native deployment stage required')
     original=deploy._bytes(libraries,private=True);paths=_library_paths(original)
     cycle=json.loads(deploy._bytes(stage/'cycle.json',private=True));config=deploy._path(cycle['forecast_config'])
     settings=json.loads(deploy._bytes(config,private=True))
+    if baseline_deployment_sha256 is not None:
+        if (settings.get('schema') in deploy.GOOGLE_SCHEMAS or
+                set(settings)!=deploy._baseline_configuration_fields(settings.get('schema'))):
+            raise ValueError('closed retired receipt-family configuration required')
     if settings['artifact_sha256']!=record['artifact_sha256'] or settings['runtime_sha256']!=record['runtime_sha256']:
         raise ValueError('native family model selection differs')
     geometry=json.loads(deploy._bytes(record['native_originals']['geometry']['path'],private=True,maximum=4*1024*1024))
-    actual=runtime_identity(paths,binding_version=geometry['native_runtime']['binding_version'],guard=guard)
-    if actual!=geometry['native_runtime']:raise ValueError('native family libraries differ from fitted geometry')
-    if record['schema']=='earthship-household-cycle-deployment/v3':
+    library_runtime=geometry['native_runtime']
+    # A retired family contributes frozen ownership metadata, not executable
+    # geometry. The new family independently verifies today's collector/JARs.
+    if baseline_deployment_sha256 is None:
+        actual=runtime_identity(paths,binding_version=library_runtime['binding_version'],guard=guard)
+        if actual!=library_runtime:raise ValueError('native family libraries differ from fitted geometry')
+    if record['schema']=='earthship-household-cycle-deployment/v3' and baseline_deployment_sha256 is None:
         from household_forecast_score import read_score_dispatch
         read_score_dispatch(stage,deployment_sha256=pin,guard=guard)
     files=_render(stage,config,libraries,deployment_sha256=pin)
-    expected=_metadata(stage,libraries,original,actual,record,files)
+    expected=_metadata(stage,libraries,original,library_runtime,record,files)
     if family!=expected or {path.name for path in output.iterdir()}!=set(files)|{'family.json'}:
         raise ValueError('native family metadata or membership differs')
     if any(deploy._bytes(output/name,private=True)!=content for name,content in files.items()):
         raise ValueError('native family service contract differs')
     guard()
     if (deploy._bytes(output/'family.json',private=True)!=raw or
-        deploy._bytes(libraries,private=True)!=original or _stage_record(stage,pin)!=record or
+        deploy._bytes(libraries,private=True)!=original or selected_record()!=record or
         any(deploy._bytes(output/name,private=True)!=content for name,content in files.items())):
         raise ValueError('native family originals changed during verification')
     return family
 
 
-def prepare_score_dispatch(*,legacy_stage,legacy_deployment_sha256,historical_selections,output,guard):
-    """Bind retained selections without embedding a final stage's own digest."""
+def prepare_score_dispatch(*,historical_selections,output,guard):
+    """Bind only Google serving history, without a legacy scorer or self pin."""
     import household_cycle_deploy as deploy
     from household.codec import loads
     from thermal_model.graduation_policy import _sha
     from copy import deepcopy
-    legacy_stage=deploy._directory(legacy_stage);output=deploy._path(output)
-    deploy._directory(output.parent)
+    output=deploy._path(output);deploy._directory(output.parent)
     if output.exists() or output.is_symlink():raise ValueError('distinct owned score dispatch output required')
     if type(historical_selections) is not tuple or len(historical_selections)>63:
         raise ValueError('bounded explicit historical score selection tuple required')
-    references=[]
-    def retained(stage,pin,schema):
+    references=[];historical=[];seen=set()
+    def retained(stage,pin):
         guard();stage=deploy._directory(stage);pin=_sha(pin)
         raw=deploy._bytes(stage/'deployment.json',private=True,maximum=131072)
         if sha256(raw).hexdigest()!=pin:raise ValueError('retained scoring stage pin differs')
         record=deploy.verify_stage(stage,expected_deployment_sha256=pin)
-        if record['schema']!=schema:raise ValueError('explicit retained scoring stage profile required')
-        references.append((stage/'deployment.json',raw))
-        return record
-    retained(legacy_stage,legacy_deployment_sha256,'earthship-household-cycle-deployment/v1')
-    cycle_raw=deploy._bytes(legacy_stage/'cycle.json',private=True,maximum=8192)
-    config=deploy._path(loads(cycle_raw)['forecast_config']);config_raw=deploy._bytes(config,private=True,maximum=8192)
-    if loads(config_raw).get('schema')!='earthship-provisional-thermal-live-config/v1':
-        raise ValueError('retained legacy configuration profile required')
-    references.extend(((legacy_stage/'cycle.json',cycle_raw),(config,config_raw)))
-    historical=[];seen={str(legacy_stage)}
+        if record['schema']!='earthship-household-cycle-deployment/v3':raise ValueError('Google receipt-serving history required')
+        cycle=deploy._bytes(stage/'cycle.json',private=True,maximum=8192)
+        config=deploy._path(loads(cycle)['forecast_config'])
+        original=deploy._bytes(config,private=True,maximum=8192)
+        if loads(original).get('schema')!='earthship-weathernext-thermal-live-config/v2':
+            raise ValueError('Google-only historical model configuration required')
+        return ((stage/'deployment.json',raw),(stage/'cycle.json',cycle),(config,original))
     for reference in deepcopy(historical_selections):
         if not isinstance(reference,dict) or set(reference)!={'stage','deployment_sha256'}:
             raise ValueError('closed explicit historical deployment pin required')
         stage=deploy._directory(reference['stage'])
         if str(stage) in seen:raise ValueError('unique retained scoring stages required')
-        seen.add(str(stage));retained(stage,reference['deployment_sha256'],'earthship-household-cycle-deployment/v3')
+        seen.add(str(stage));references.extend(retained(stage,reference['deployment_sha256']))
         historical.append(dict(stage=str(stage),deployment_sha256=reference['deployment_sha256']))
-    record=dict(schema='earthship-native-score-dispatch/v1',current='current',
-        legacy=dict(stage=str(legacy_stage),deployment_sha256=legacy_deployment_sha256,config=str(config),
-            config_sha256=sha256(config_raw).hexdigest()),historical=historical)
+    record=dict(schema='earthship-native-score-dispatch/v2',current='current',historical=historical)
     raw=deploy._encode(record)
     if len(raw)>131072:raise ValueError('bounded owned score dispatch record required')
     def unchanged():
         guard()
         if any(deploy._bytes(path,private=True,maximum=131072)!=original for path,original in references):
             raise ValueError('retained score selection changed during package preparation')
-        retained(legacy_stage,legacy_deployment_sha256,'earthship-household-cycle-deployment/v1')
-        for selection in historical:retained(selection['stage'],selection['deployment_sha256'],'earthship-household-cycle-deployment/v3')
+        for selection in historical:retained(selection['stage'],selection['deployment_sha256'])
     unchanged();deploy._write(output,raw);unchanged()
     if deploy._bytes(output,private=True,maximum=131072)!=raw:raise ValueError('score dispatch readback differs')
     return dict(status='native_score_dispatch_staged',path=str(output),sha256=sha256(raw).hexdigest(),

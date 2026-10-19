@@ -1,3 +1,5 @@
+**Execution update (2026-10-18):** WeatherNext access and a real GCS read are verified; bounded noncommercial Earth Engine retrieval is approved, but project IAM and noncommercial registration are now verified, while live WeatherNext raster reads return Google HTTP 500. The operator confirmed a fresh weather-ML start using Google forecasts plus qualified local measurements and complete Open-Meteo removal from OpenHAB/Earthship UI at cutover. The authoritative current plan is `docs/superpowers/plans/2026-10-05-weathernext-exclusive-forecast.md`; reset/removal details are in `docs/operations/openmeteo-retirement.md`, and live evidence is in `docs/operations/weathernext-readiness.md`. Earlier dates and fallback/capture-only instructions below are historical and superseded.
+
 # WeatherNext 3 Local Adaptation Implementation Plan
 
 > **For agentic workers:** Use `superpowers:executing-plans` for inline execution or `superpowers:subagent-driven-development` where independent workers are available. Execute the reviewed tasks sequentially with test-first changes. Checkboxes below are work to be performed, not completed work.

@@ -175,3 +175,34 @@ def test_many_overlapping_fault_intervals_are_swept_without_double_counting():
     assert result['status'] == 'partial' and result['covered_seconds'] == 0
     assert result['gap_count'] == 1 and result['maximum_gap_seconds'] == 32000
     assert result['irradiance_wh_m2'] is None
+
+
+def test_microsecond_persistence_does_not_invent_coverage_gaps():
+    for fraction in (123456, 777777, 200001):
+        rows = []
+        for n, i in enumerate(range(-60, 3661, 60), 1):
+            received = AT + timedelta(seconds=i, microseconds=-((n * fraction) % 1000000))
+            record_changes = dict(recordedAt=received.isoformat(), receivedAt=received.isoformat(),
+                                  validUntil=(received + timedelta(seconds=120)).isoformat())
+            rows.append((AT + timedelta(seconds=i, microseconds=(n * 991) % 1000000),
+                         raw(i, sequence=n, record_changes=record_changes)))
+        result = select_radiation_window(rows, start=AT, end=AT + timedelta(hours=1),
+            assessed_at=AT + timedelta(hours=1, seconds=120),
+            history_start=AT - timedelta(seconds=120),
+            cutover=AT - timedelta(days=1), policy=POLICY)
+        assert result['status'] == 'ok'
+        assert result['fully_covered'] is True
+        assert result['covered_seconds'] == 3600
+
+
+def test_one_microsecond_of_actual_missing_exposure_still_refuses():
+    rows = [(AT, raw()),
+            (AT + timedelta(seconds=120, microseconds=1), raw(120, sequence=2)),
+            (AT + timedelta(seconds=180), raw(180, sequence=3)),
+            (AT + timedelta(seconds=240), raw(240, sequence=4))]
+    result = select_radiation_window(rows, start=AT, end=AT + timedelta(seconds=240),
+        assessed_at=AT + timedelta(seconds=360), history_start=AT - timedelta(seconds=120),
+        cutover=AT - timedelta(days=1), policy=POLICY)
+    assert result['status'] == 'partial'
+    assert result['fully_covered'] is False
+    assert result['irradiance_wh_m2'] is None

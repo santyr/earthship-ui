@@ -5,7 +5,7 @@ from .control_contracts import instant
 from .snapshot import HouseholdSnapshot
 from .model_snapshot import MAX_SOURCE_BYTES
 from .weather_snapshot import WeatherSnapshot
-from .weather_context import PreparedWeatherContext,MAX_BYTES as MAX_WEATHER_BYTES
+from .weather_context import PreparedWeatherContext,MAX_GOOGLE_BYTES as MAX_WEATHER_BYTES
 from .energy_configuration import PreparedEnergyConfiguration,project_energy_configuration,MAX_BYTES
 
 CONTEXT_SCHEMA='earthship-household-energy-source-context/v1'

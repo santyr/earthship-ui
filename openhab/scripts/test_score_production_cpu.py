@@ -19,7 +19,7 @@ def test_score_family_opts_in_without_changing_old_archives(tmp_path):
 
 
 def test_archived_entrypoint_uses_explicit_policy_and_restores_it(monkeypatch):
-    import household_forecast_score as score,thermal_installed_intel as installed
+    import household_forecast_score as score,thermal_model.serial_publication_caps as installed
     import household_cycle_resources as resources,native_thermal_live as native
     original=installed._resource_preflight;resource_original=resources.publication_resource_preflight
     native_original=native._resource_preflight;calls=[]
@@ -36,7 +36,7 @@ def test_archived_entrypoint_uses_explicit_policy_and_restores_it(monkeypatch):
 
 
 def test_archive_cannot_enter_if_publication_policy_refuses(monkeypatch):
-    import household_forecast_score as score,thermal_installed_intel as installed
+    import household_forecast_score as score,thermal_model.serial_publication_caps as installed
     original=installed._resource_preflight
     def refuse():raise ValueError('publication caps exceed approved limits')
     monkeypatch.setattr(score,'production_resource_preflight',refuse)

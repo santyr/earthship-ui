@@ -8,6 +8,8 @@ import math
 
 import pytest
 
+from google_weather_fixtures import forecast as google_forecast
+
 import thermal_model.airflow_artifact as a
 from thermal_model.airflow_forecast import forecast_at_origin, replay_capture, _from_inputs
 from thermal_model.airflow_training import fit_airflow_dynamics
@@ -40,12 +42,7 @@ def receipt(at, temperature):
 
 
 def weather(*, origin, horizon_hours):
-    _, times = _window(origin, horizon_hours)
-    return {'source': 'open_meteo_openhab', 'origin': origin, 'horizon_hours': horizon_hours,
-        'issued_at': origin-timedelta(hours=1), 'captured_at': origin-timedelta(minutes=20),
-        # The archive digest includes per-metric capture times not exposed in rows.
-        'rows_sha256': 'a'*64, 'rows': [{'at': at, 'tempF': 59., 'radiationWm2': 0.,
-            'windMph': 2., 'weatherCode': 0} for at in times]}
+    return google_forecast(origin,horizon_hours)
 
 
 def actions(*, origin):
@@ -111,10 +108,9 @@ def test_window_and_skylight_predictions_remain_distinct(candidate, origin):
 def test_observer_and_interpolated_first_step_match_independent_equations(candidate, origin):
     origin += timedelta(hours=18)  # Daylight, with a nonzero normalized solar term.
     def changing(**kwargs):
-        value = weather(**kwargs)
-        for i, row in enumerate(value['rows']):
-            row.update(tempF=55.+i*2, radiationWm2=100.+i*20)
-        return value
+        return google_forecast(kwargs['origin'], kwargs['horizon_hours'],
+            temperature_f=55., temperature_step_f=2.,
+            radiation_wm2=100., radiation_step_wm2=20.)
     result = run(candidate, origin, forecast_reader=changing)
     latent = 70.
     alpha = 1-math.exp(-5/120)
@@ -213,7 +209,7 @@ def test_invalid_as_issued_weather_is_refused(candidate, origin, damage):
         value = weather(**kwargs)
         if damage == 'late': value['captured_at'] = origin+timedelta(seconds=1)
         elif damage == 'old': value['issued_at'] = origin-timedelta(hours=7)
-        elif damage == 'early_capture': value['captured_at'] = value['issued_at']-timedelta(seconds=1)
+        elif damage == 'early_capture': value['captured_at'] = a.utc(value['issued_at'])-timedelta(seconds=1)
         elif damage == 'digest': value['rows_sha256'] = 'invalid'
         elif damage == 'missing_row': value['rows'].pop()
         elif damage == 'nan': value['rows'][1]['tempF'] = float('nan')
@@ -324,7 +320,7 @@ def test_replay_rejects_tampering_even_with_recomputed_transport_digest(candidat
         capture['output']['trajectory'][0]['air_f'] += 1
         rehash(capture)
     elif damage == 'invalid_weather':
-        capture['inputs']['forecast']['captured_at'] = origin+STEP
+        capture['inputs']['forecast']['captured_at'] = (origin+STEP).isoformat()
         rehash(capture)
     else:
         capture['inputs']['current']['air']['storedAt'] = origin+STEP
@@ -358,9 +354,7 @@ def test_unidentified_joint_shade_gain_cannot_be_used_for_daylight_forecast(orig
         value['actions']['outdoor_shade']['state'] = 'present'
         return value
     def sunny(**kwargs):
-        value = weather(**kwargs)
-        for row in value['rows']:
-            row['radiationWm2'] = 500.
-        return value
+        return google_forecast(kwargs['origin'], kwargs['horizon_hours'],
+            temperature_f=59., radiation_wm2=500.)
     with pytest.raises(ValueError, match='unidentified'):
         run(candidate, origin, action_reader=activated, forecast_reader=sunny)

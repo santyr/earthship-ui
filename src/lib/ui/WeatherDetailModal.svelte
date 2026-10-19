@@ -17,7 +17,7 @@
   import OhIcon from './OhIcon.svelte';
   import { observeElementSize } from './observeElementSize.js';
   import { colors } from './tokens.js';
-  import { wmoIcon, wmoLabel, wmoColor } from './wmo.js';
+  import { forecastCondition, forecastDisplayDay } from '../weather/presentation.js';
 
   const TITLE_ID = 'weather-detail-modal-title';
   const DESCRIPTION_ID = 'weather-detail-modal-description';
@@ -41,8 +41,10 @@
     { nowMs: $weatherDetailStore.openedAtMs || Date.now() },
   ));
   const selectedDay = $derived(
-    forecast.days.find(({ date }) => date === $weatherDetailStore.date) ?? null,
+    (() => { const day = forecast.days.find(({ date }) => date === $weatherDetailStore.date);
+      return day ? forecastDisplayDay(day, { nowMs: $weatherDetailStore.openedAtMs || Date.now(), timezone: forecast.timezone }) : null; })(),
   );
+  const selectedCondition = $derived(forecastCondition({ ...selectedDay?.summary, isDay: true }));
   const selectedWindow = $derived(
     selectedDay
       ? selectForecastWindow(forecast, selectedDay.date, {
@@ -57,7 +59,7 @@
       hour.precipPct,
       hour.radiationWm2,
       hour.windMph,
-      hour.weatherCode,
+      hour.weatherCode, hour.cloudPct, hour.precipIn, hour.isDay,
     ].join(':')).join('|'),
   );
   const warnings = $derived([
@@ -67,11 +69,14 @@
       : '',
   ].filter(Boolean));
   const summaryText = $derived(selectedDay ? [
-    wmoLabel(selectedDay.summary.weatherCode),
+    selectedCondition.label,
     `high ${metric(selectedDay.summary.highF, ' degrees')}`,
     `low ${metric(selectedDay.summary.lowF, ' degrees')}`,
-    `precipitation ${metric(selectedDay.summary.precipPct, ' percent')}`,
-    `modeled PV ${metric(selectedDay.summary.pvKwh, ' kilowatt-hours')}`,
+    selectedDay.summary.precipPct !== null ? `precipitation ${metric(selectedDay.summary.precipPct, ' percent')}`
+      : `precipitation ${rainAmountText(selectedDay.summary.precipSumIn) ?? (selectedDay.summary.precipSumIn === 0 ? '0 inches' : 'unavailable')}`,
+    ...(selectedDay.summary.precipitationScope === 'remaining' ? ['precipitation covers remaining complete hours'] : []),
+    ...(selectedDay.summary.temperatureScope === 'remaining' ? ['temperature range covers remaining hours'] : []),
+    ...(selectedDay.summary.pvKwh === null ? [] : [`modeled PV ${metric(selectedDay.summary.pvKwh, ' kilowatt-hours')}`]),
   ].join(', ') : 'Hourly detail unavailable');
   const description = $derived(
     `${$weatherDetailStore.label || 'Selected day'} forecast. ${summaryText}. `
@@ -246,19 +251,20 @@
           {#if selectedDay}
             <p class="weather-detail-summary">
               <OhIcon
-                icon={wmoIcon(selectedDay.summary.weatherCode)}
+                icon={selectedCondition.icon}
                 size="1.15rem"
-                color={wmoColor(selectedDay.summary.weatherCode) ?? 'currentColor'}
+                color={selectedCondition.color ?? 'currentColor'}
               />
-              <span>{wmoLabel(selectedDay.summary.weatherCode)}</span>
-              <span>{metric(selectedDay.summary.highF, '°')} / {metric(selectedDay.summary.lowF, '°')}</span>
+              <span>{selectedCondition.label}</span>
+              <span>{metric(selectedDay.summary.highF, '°')} / {metric(selectedDay.summary.lowF, '°')}{selectedDay.summary.temperatureScope === 'remaining' ? ' · remaining hours' : ''}</span>
               <span>
-                {metric(selectedDay.summary.precipPct, '%')} precip
+                {#if selectedDay.summary.precipPct !== null}{metric(selectedDay.summary.precipPct, '%')} precip{/if}
                 {#if rainAmountText(selectedDay.summary.precipSumIn)}
                   <span data-testid="modal-day-rain-amount" style="color: {colors.rain}">{rainAmountText(selectedDay.summary.precipSumIn)}</span>
-                {/if}
+                {:else if selectedDay.summary.precipPct === null}<span>{selectedDay.summary.precipSumIn === 0 ? '0.00″ precipitation' : 'Precipitation unavailable'}</span>{/if}
+                {#if selectedDay.summary.precipitationScope === 'remaining'}<span title={`From ${selectedDay.summary.precipitationFromAt} through ${selectedDay.summary.precipitationThroughAt}`}> · remaining full hours</span>{/if}
               </span>
-              <span>PV {metric(selectedDay.summary.pvKwh, ' kWh')}</span>
+              {#if selectedDay.summary.pvKwh !== null}<span>PV {metric(selectedDay.summary.pvKwh, ' kWh')}</span>{/if}
             </p>
           {/if}
         </div>
@@ -286,19 +292,21 @@
         <div class="weather-detail-content">
           <div class="weather-detail-hours">
             {#each selectedWindow.hours as hour (hour.at)}
+              {@const condition = forecastCondition(hour)}
               <div
                 class="weather-detail-hour"
                 data-testid="weather-detail-hour"
-                aria-label={`${hourLabel(hour.at)}, ${wmoLabel(hour.weatherCode, hour)}`}
+                aria-label={`${hourLabel(hour.at)}, ${condition.label}`}
               >
                 <span class="hour-time">{hourLabel(hour.at)}</span>
                 <OhIcon
-                  icon={wmoIcon(hour.weatherCode, hour)}
+                  icon={condition.icon}
                   size="1.2rem"
-                  color={wmoColor(hour.weatherCode, hour) ?? 'currentColor'}
+                  color={condition.color ?? 'currentColor'}
                 />
                 <span class="hour-temp">{metric(hour.tempF, '°')}</span>
-                <span class="hour-precip">{metric(hour.precipPct, '%')}</span>
+                {#if hour.precipPct !== null}<span class="hour-precip">{metric(hour.precipPct, '%')}</span>{/if}
+                {#if hour.cloudPct !== null}<span class="hour-cloud">{metric(hour.cloudPct, '% cloud')}</span>{/if}
                 {#if rainAmountText(hour.precipIn)}
                   <span class="hour-rain" data-testid="modal-hour-rain-amount" style="color: {colors.rain}">{rainAmountText(hour.precipIn)}</span>
                 {/if}

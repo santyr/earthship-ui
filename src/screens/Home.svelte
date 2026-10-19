@@ -1,4 +1,7 @@
 <script>
+  import { energyForecastRaw, energyForecastClock } from '../lib/energy/forecastState.js';
+  import { energyForecastPresentation } from '../lib/energy/forecastPresentation.js';
+  const liveEnergyForecast = $derived(energyForecastPresentation($energyForecastRaw, { nowMs: $energyForecastClock }));
   import { itemUpdateEvidence, thingStatuses } from '../lib/openhab/store.js';
   import { nativeCurrentSkyContext, nativeDaylightText, siteTimeLabel } from '../lib/weather/astroPresentation.js';
 
@@ -7,7 +10,7 @@
   // wind/rain/baro tiles clickable -> openChart(). Indoor added alongside
   // Outdoor per operator request. No controls row (Home is data-only; toggles
   // move to a separate Controls screen).
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, untrack } from 'svelte';
   import Tile from '../lib/ui/Tile.svelte';
   import StatTile from '../lib/ui/StatTile.svelte';
   import Arc from '../lib/ui/Arc.svelte';
@@ -28,7 +31,6 @@
   import { parsePredictionReceipt } from '../lib/forecast/predictionReceipt.js';
   import { estimateDailyLoadKWh } from '../lib/ui/dailyLoad.js';
   import {
-    adaptCurrentAqi,
     batteryPowerFlowPresentation,
     batteryDirectionState,
     batteryIcon as selectBatteryIcon,
@@ -51,7 +53,7 @@
     uvIndexColor,
     windSpeedColor,
   } from '../lib/ui/homeCardState.js';
-  import { items, connection, num, fmt, socBands, runtimeText, getClientOnce } from '../lib/openhab';
+  import { items, connection, num, fmt, socBands, runtimeText, getClientOnce, clientReady } from '../lib/openhab';
   import { openChart } from '../lib/ui/chartStore.js';
   import { openWeatherDetail } from '../lib/weather/detailStore.js';
   import {
@@ -225,8 +227,7 @@
     if (document.visibilityState === 'visible') reconcileDayClock();
   }
 
-  onMount(() => {
-    wallClock = Date.now();
+  function refreshHomeHistory() {
     refreshOutdoorSpark();
     refreshTemperatureHistory();
     refreshBattSpark();
@@ -234,19 +235,21 @@
     refreshBitcoinHistory();
     refreshLoadToday();
     refreshWindGustMaxToday();
+  }
+
+  // Startup can take longer than the helper's short retry window. Start
+  // history only after the shared client and initial snapshot are ready.
+  $effect(() => {
+    if ($clientReady) untrack(refreshHomeHistory);
+  });
+
+  onMount(() => {
+    wallClock = Date.now();
 
     wallClockTimer = setInterval(reconcileDayClock, WALL_CLOCK_REFRESH_MS);
     document.addEventListener('visibilitychange', handleDayVisibility);
 
-    sparkRefreshTimer = setInterval(() => {
-      refreshOutdoorSpark();
-      refreshTemperatureHistory();
-      refreshBattSpark();
-      refreshBaroSpark();
-      refreshBitcoinHistory();
-      refreshLoadToday();
-      refreshWindGustMaxToday();
-    }, SPARK_REFRESH_MS);
+    sparkRefreshTimer = setInterval(refreshHomeHistory, SPARK_REFRESH_MS);
   });
 
   onDestroy(() => {
@@ -322,7 +325,6 @@
     ...nativeCurrentSkyContext(astroContext),
   }));
   const outdoorIconColor = $derived(outdoorTemperatureIconColor(outdoorTemp));
-  const currentAqi = $derived(adaptCurrentAqi($items.Current_US_AQI));
   const uvIndex = $derived(num($items.AmbientWeatherWS2902A_UVIndex));
   const uvColor = $derived(uvIndexColor(uvIndex));
   const indoorTemp = $derived(num($items.AmbientWeatherWS2902A_IndoorSensor_Temperature));
@@ -402,7 +404,7 @@
   const solarTodayForecast = $derived(todayPvForecastKwh(forecastDetail, { nowMs: wallClock }));
   const legacyForecast = $derived(parseLegacyDailyForecast($items.Forecast_Daily_JSON));
   const forecastDays = $derived(
-    forecastDetail.status === 'stale' ? []
+    forecastDetail.status === 'stale' || (forecastDetail.status !== 'ready' && !forecastDetail.legacyFallbackAllowed) ? []
       : forecastDetail.days.length > 0
         ? forecastDaysFromToday(forecastDetail, { nowMs: wallClock }) : legacyForecast
   );
@@ -571,12 +573,6 @@
             <span class="cond-icon"><OhIcon icon={outdoorConditionIcon} size="2rem" color={outdoorIconColor} /></span>
             <span class="big-temp">{fmt($items.AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature, '°')}</span>
             <div class="outdoor-chips">
-              <span
-                class="aqi-chip"
-                class:unavailable={currentAqi.value === null}
-                style="color: {currentAqi.textColor}; border-color: {currentAqi.accent}"
-                >AQI {currentAqi.value ?? '—'}</span
-              >
               <span class="uv-chip" style="color: {uvColor}">UV {fmt($items.AmbientWeatherWS2902A_UVIndex)}</span>
               {#if rainRateLabel}
                 <span class="rain-rate-chip" style="color: {colors.rain}; border-color: {colors.rain}">{rainRateLabel}</span>
@@ -783,7 +779,7 @@
           <span class="solar-icon" style="color: {solarColor}"><OhIcon icon="iconify:mdi:solar-power-variant" size="1.25rem" /></span>
           <div class="solar-main">{fmt($items.MPPT60_EnergyFromPV_Today, '', 1)}<span class="unit"> kWh</span></div>
         </div>
-        <div class="solar-sub">{solarTodayForecast === null ? 'prediction unavailable' : `of ${fmt(solarTodayForecast, '', 1)} predicted`}</div>
+        <div class="solar-sub">{liveEnergyForecast ? `${liveEnergyForecast.potentialRemainingTodayKwh.toFixed(1)} kWh potential left` : solarTodayForecast === null ? 'PV forecast unavailable' : `of ${fmt(solarTodayForecast, '', 1)} predicted`}</div>
         <div class="solar-current" style="color: {solarColor}">{fmt($items.MPPT60_PV_Power, ' W', 0)} now</div>
         <div class="curtail-lamp" style="color: {curtailColor}">
           <span class="lamp-dot" class:active={curtailActive}></span>
@@ -1011,7 +1007,6 @@
     gap: 0.25rem;
     flex: 0 0 auto;
   }
-  .aqi-chip,
   .uv-chip,
   .rain-rate-chip {
     font-size: 0.7rem;
@@ -1021,12 +1016,6 @@
     padding: 0.2rem 0.6rem;
     text-align: center;
     white-space: nowrap;
-  }
-  .aqi-chip {
-    background: #202631;
-  }
-  .aqi-chip.unavailable {
-    color: #aab4c2;
   }
   .uv-chip,
   .rain-rate-chip {

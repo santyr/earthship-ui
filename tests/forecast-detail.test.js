@@ -1,3 +1,4 @@
+import googleServing from './fixtures/weathernext-serving-v1.json';
 import { describe, expect, it } from 'vitest';
 import {
   FORECAST_DETAIL_MAX_BYTES,
@@ -323,5 +324,59 @@ describe('ten-day forecast contract', () => {
         summary: expect.objectContaining({ precipSumIn: null }),
       }),
     ]);
+  });
+});
+
+describe('Google production withdrawal', () => {
+  const nowMs = Date.parse('2026-07-18T12:01:00-06:00');
+  const unavailableGoogle = {
+    version: 1, generatedAt: '2026-07-18T12:00:00-06:00', timezone: 'America/Denver',
+    provider: 'weathernext3', providerStatus: 'UNAVAILABLE', providerReason: 'NO_ELIGIBLE_SOURCE',
+    source: null, issueSha256: null, days: [],
+  };
+  it('shows a fresh explicit source withdrawal as unavailable instead of ready', () => {
+    const parsed = parseForecast10Day(JSON.stringify(unavailableGoogle), { nowMs });
+    expect(parsed.status).toBe('unavailable');
+    expect(parsed.reason).toBe('WeatherNext forecast unavailable');
+    expect(parsed.days).toEqual([]);
+  });
+  it('does not present any empty forecast as a ready forecast', () => {
+    expect(parseForecast10Day(payload([]), { nowMs }).status).toBe('unavailable');
+  });
+  it('rejects a contradictory Google unavailable payload carrying old forecast rows', () => {
+    const raw = { ...unavailableGoogle, days: [day('2026-07-18', 'Today')] };
+    expect(parseForecast10Day(JSON.stringify(raw), { nowMs }).status).toBe('unavailable');
+  });
+});
+
+
+it('reads actual Python-produced Google publication bytes and native daylight flags', () => {
+  const detail = googleServing.Forecast_10Day_JSON;
+  const parsed = parseForecast10Day(JSON.stringify(detail), { nowMs: Date.parse('2026-01-01T00:31:00Z') });
+  expect(parsed.status).toBe('ready');
+  expect(parsed.temperatureAdjustment).toBeNull();
+  expect(parsed.days[0].hours.map((row) => row.tempF)).toEqual([50, 50, 50]);
+  expect(parsed.days[0].hours.map((row) => row.isDay)).toEqual([true, false, false]);
+  expect(parsed.days[0].hours.every((row) => row.precipPct === null && row.weatherCode === null)).toBe(true);
+});
+
+
+describe('dual forecast profile presentation', () => {
+  it('preserves near-term hour provenance and exact remaining rain interval labels', () => {
+    const today = day('2026-07-18', 'Today', 14, 23);
+    today.hours[0].forecastProfile = 'nearTerm';
+    Object.assign(today.summary, { precipSumIn: 0.12, precipitationScope: 'remaining',
+      precipitationFromAt: '2026-07-18T13:00:00-06:00', precipitationThroughAt: '2026-07-19T00:00:00-06:00',
+      precipitationForecastProfile: 'nearTerm', forecastProfile: 'extended' });
+    const parsed = parseForecast10Day(payload([today]), { nowMs: Date.parse('2026-07-18T12:30:00-06:00') });
+    expect(parsed.days[0].hours[0].forecastProfile).toBe('nearTerm');
+    expect(parsed.days[0].summary).toMatchObject({ precipitationScope: 'remaining',
+      precipitationFromAt: '2026-07-18T13:00:00-06:00', precipitationThroughAt: '2026-07-19T00:00:00-06:00',
+      precipitationForecastProfile: 'nearTerm' });
+  });
+  it('refuses a publication timestamp in the future', () => {
+    const parsed = parseForecast10Day(payload([day('2026-07-18', 'Today')], '2026-07-18T13:00:00-06:00'),
+      { nowMs: Date.parse('2026-07-18T12:00:00-06:00') });
+    expect(parsed.status).toBe('unavailable');
   });
 });

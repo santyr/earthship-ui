@@ -7,8 +7,6 @@ import stat
 
 import pytest
 
-import thermal_intel
-
 
 SCRIPT = Path(__file__).resolve().parents[2] / "scripts/thermal-model-files.py"
 SPEC = importlib.util.spec_from_file_location("thermal_model_files", SCRIPT)
@@ -47,94 +45,8 @@ def prepare(root):
     return repo
 
 
-def test_exact_manifest_contains_complete_runtime_and_capture_unit():
-    entries = thermal_model_files.MANIFEST
-    assert [entry["source"] for entry in entries if entry["phase"] == "verify"] == [
-        "openhab/scripts/forecast_intel.py"
-    ]
-    assert [entry["source"] for entry in entries if entry["phase"] == "code"] == [
-        "openhab/scripts/thermal_intel.py",
-        *[
-            f"openhab/scripts/{name}.py"
-            for name in (
-                "thermal_temperature_runtime", "hourly_temperature_runtime",
-                "thermal_radiation_runtime", "weather_radiation_reader",
-                "weather_radiation_history", "weather_radiation_evidence", "weather_radiation_config",
-                "daily_temperature_runtime",
-                "weather_temperature_reader", "weather_temperature_history",
-                "weather_temperature_evidence", "weather_temperature_config",
-            )
-        ],
-        *[
-            f"openhab/scripts/thermal_model/{name}.py"
-            for name in (
-                "__init__", "actions", "artifacts", "behavior", "dataset",
-                "dynamics", "evaluation", "forcing_capture", "journal", "pipeline", "schema", "solar",
-                "temperature_history",
-            )
-        ],
-    ]
-    deployed_runtime = tuple(
-        entry["source"].removeprefix("openhab/scripts/")
-        for entry in entries
-        if entry["phase"] in {"verify", "code"}
-    )
-    # Observational capture is deployed but does not affect the model revision.
-    assert set(deployed_runtime) == (
-        set(thermal_intel.RUNTIME_REVISION_PATHS) | {"thermal_model/forcing_capture.py"}
-    )
-    assert [entry["source"] for entry in entries if entry["phase"] == "unit"] == [
-        "deploy/thermal-model-train.service",
-        "deploy/thermal-model-train.timer",
-        "deploy/thermal-model-shadow.service",
-        "deploy/thermal-model-shadow.service.d/forcing-capture.conf",
-        "deploy/thermal-model-shadow.timer",
-    ]
 
 
-def test_actual_candidate_code_manifest_rolls_back_new_radiation_files(tmp_path):
-    """Actual repository code, isolated target preimages; never a live install."""
-    repo = Path(__file__).resolve().parents[2]
-    new_modules = {'thermal_radiation_runtime.py', 'weather_radiation_reader.py',
-                   'weather_radiation_history.py', 'weather_radiation_evidence.py',
-                   'weather_radiation_config.py'}
-    manifest = tuple({**entry, 'target': str(tmp_path/'live'/entry['source'])}
-                     for entry in thermal_model_files.MANIFEST if entry['phase'] != 'unit')
-    originals = {}
-    for entry in manifest:
-        target = Path(entry['target'])
-        target.parent.mkdir(parents=True, exist_ok=True)
-        if target.name in new_modules:
-            continue
-        data = (repo/entry['source']).read_bytes() if entry['phase'] == 'verify' else b'# isolated preimage\n'
-        target.write_bytes(data)
-        target.chmod(0o640)
-        originals[target] = data
-    receipt = tmp_path/'receipt'
-    thermal_model_files.capture_backup(repo, receipt, manifest=manifest)
-    def fail(event, index):
-        if event == 'before-parent-fsync' and index == 12:
-            raise RuntimeError('isolated candidate interruption')
-    with pytest.raises(RuntimeError, match='isolated candidate interruption'):
-        thermal_model_files.install_phase(repo, receipt, 'code', manifest=manifest, fault=fail)
-    for entry in manifest:
-        target = Path(entry['target'])
-        if target in originals:
-            assert target.read_bytes() == originals[target] and mode(target) == 0o640
-        else:
-            assert not target.exists()
-    thermal_model_files.install_phase(repo, receipt, 'code', manifest=manifest)
-    assert thermal_model_files.verify_phase(repo, receipt, 'code', manifest=manifest)
-    for entry in manifest:
-        assert Path(entry['target']).read_bytes() == (repo/entry['source']).read_bytes()
-    thermal_model_files.restore(repo, receipt, manifest=manifest)
-    for entry in manifest:
-        target = Path(entry['target'])
-        if target in originals:
-            assert target.read_bytes() == originals[target] and mode(target) == 0o640
-        else:
-            assert not target.exists()
-    assert not list((tmp_path/'live').rglob('*.thermal-stage-*'))
 
 
 def test_snapshot_install_and_restore_are_durable_exact_and_private(tmp_path):

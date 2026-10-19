@@ -17,9 +17,9 @@ def made(tmp_path,monkeypatch,originals):
 
 def test_native_weather_and_thermal_share_original_geometry_and_issue(tmp_path,monkeypatch,originals):
     c,k,p,w=made(tmp_path,monkeypatch,originals);out=api().project_weather(w)
-    assert w.to_dict()['schema']=='earthship-household-prepared-weather/v3'
+    assert w.to_dict()['schema']=='earthship-household-prepared-weather/v4'
     assert w.original_capture==c and w.prepared.to_dict()==p.to_dict()
-    assert out['schema']=='earthship-household-weather-projection/v3'
+    assert out['schema']=='earthship-household-weather-projection/v4'
     assert out['geometry_series_sha256']==c['geometry_series_sha256']
     assert out['model_rule']==c['output']['model_rule']
     assert out['origin']==c['issued_at'] and out['forcings']==p.to_dict()['forcings']
@@ -98,8 +98,8 @@ def test_native_geometry_projection_retains_exact_positions_and_provenance(tmp_p
     c,k,p,w=made(tmp_path,monkeypatch,originals)
     out=api().project_weather(w);geometry=out['solar_geometry']
     packet=c['geometry'];caches=packet['caches']
-    assert w.to_dict()['schema']=='earthship-household-prepared-weather/v3'
-    assert out['schema']=='earthship-household-weather-projection/v3'
+    assert w.to_dict()['schema']=='earthship-household-prepared-weather/v4'
+    assert out['schema']=='earthship-household-weather-projection/v4'
     assert geometry['positions']==[row for cache in caches for row in cache['positions']]
     assert geometry['series_sha256']==c['geometry_series_sha256']
     assert geometry['request_sha256']==packet['request']['request_sha256']
@@ -144,21 +144,10 @@ def test_geometry_snapshot_replays_without_io_and_refuses_derived_tampering(tmp_
     with pytest.raises(ValueError):restore_weather_snapshot(doc,snap.source_context)
 
 
-def test_retained_v2_weather_and_pipeline_keep_their_original_shape(tmp_path,monkeypatch,originals):
-    c,k,p,w=made(tmp_path,monkeypatch,originals)
-    from household.weather_snapshot import bind_weather_snapshot
-    from household.control_contracts import instant
-    from test_household_model_snapshot import source_at
-    from test_household_model_pipeline import run,RUNTIME
-    from household.pipeline import replay_pipeline
-    body=w.to_dict();body['schema']='earthship-household-prepared-weather/v2'
-    body['weather_sha256']=identity({k:v for k,v in body.items() if k!='weather_sha256'})
-    old=api().PreparedWeatherContext(canonical(body));out=api().project_weather(old)
-    assert out['schema']=='earthship-household-weather-projection/v2'
-    assert 'solar_geometry' not in out
-    assert out['unknown_observations']==['solar_radiation_wm2','relative_humidity','precipitation','wind_speed','daylight_geometry']
-    source=source_at(instant(c['issued_at']))
-    snap=bind_weather_snapshot(source_receipt=source,source_runtime_manifest=source['runtime_manifest'],weather_context=old,code_revision=CODE)
-    assert 'solar_geometry' not in snap.to_dict()['domains']['weather']
-    record=run(snap,p)
-    assert replay_pipeline(record,runtime_manifest=RUNTIME,thermal_runtime=p.to_dict()['executing_runtime'])==record
+@pytest.mark.parametrize('version',[1,2,3])
+def test_google_weather_cannot_be_downgraded_to_retired_context_versions(tmp_path,monkeypatch,originals,version):
+    _,_,_,weather=made(tmp_path,monkeypatch,originals)
+    body=weather.to_dict();body['schema']='earthship-household-prepared-weather/v'+str(version)
+    body['weather_sha256']=identity({key:v for key,v in body.items() if key!='weather_sha256'})
+    with pytest.raises(ValueError,match='Google originals|versions differ'):
+        api().PreparedWeatherContext(canonical(body))

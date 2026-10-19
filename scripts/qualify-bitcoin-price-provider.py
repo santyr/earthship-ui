@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = spec_from_file_location('linked_item_provider',
-    ROOT / 'scripts/qualify-openmeteo-forecast-temperature-provider.py')
+    ROOT / 'scripts/openhab_linked_item_qualification.py')
 provider = module_from_spec(spec)
 spec.loader.exec_module(provider)
 

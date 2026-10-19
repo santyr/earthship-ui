@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from astro_geometry_series import NativeGeometrySeries,replay_series
 from astro_geometry import _instant
-from native_thermal_artifact import validate_native_candidate,_read,LIMITS
+from native_thermal_artifact import validate_native_candidate,_read,LIMITS,fit_profile
 from native_thermal_model import NativeInstalledShadeDynamics,RULE
 from thermal_model.forcing_capture import _canonical
 from thermal_model.graduation_policy import _utc,_sha
@@ -44,7 +44,8 @@ def _numeric(candidate,inputs,geometry,*,issue,available,published,check_budget)
         raise ValueError('temperature inputs unavailable at issue')
     phases,initial=_temperatures(inputs['origin_temperatures'],inputs['current'],issued_at=issue,published_at=published,version=2)
     if phases!=candidate['fit']['sensor_epochs']:raise ValueError('native provisional sensor phase differs')
-    actions=_origin_actions(inputs['action_snapshot'],issue)
+    profile=fit_profile(candidate['fit'])
+    actions=_origin_actions(inputs['action_snapshot'],issue,allow_removed=profile['joint'])
     forcings=_forecast_forcing(inputs['forecast'],issue,available,actions)
     if type(geometry) is not NativeGeometrySeries:
         raise ValueError('original immutable native forecast geometry required')
@@ -59,12 +60,12 @@ def _numeric(candidate,inputs,geometry,*,issue,available,published,check_budget)
             descriptor['site']!=training['caches'][0]['source']['site'] or
             descriptor['timezone']!=training['request']['timezone']):
         raise ValueError('native forecast calculation differs from fitted geometry')
-    model=NativeInstalledShadeDynamics(tuple(candidate['fit']['coefficients']),geometry=geometry,expected_series_sha256=geometry.sha256)
+    model=profile['model'](tuple(candidate['fit']['coefficients']),geometry=geometry,expected_series_sha256=geometry.sha256)
     rolled=model.rollout(origin_at=issue,air_f=initial['air'],mass_f=initial['mass'],forcings=forcings,guard=check_budget)
     trajectory=[dict(at=row.at.isoformat(),air_f=state[0],mass_f=state[1]) for i,(row,state) in enumerate(zip(forcings,rolled.states),1) if i%12==0]
     check_budget()
     return dict(schema=NUMERIC_SCHEMA,status='provisional',generated_at=issue.isoformat(),artifact_sha256=candidate['artifact_sha256'],
-        runtime_sha256=candidate['runtime_sha256'],model_rule=RULE,geometry_series_sha256=geometry.sha256,
+        runtime_sha256=candidate['runtime_sha256'],model_rule=profile['rule'],geometry_series_sha256=geometry.sha256,
         horizon_hours=inputs['forecast']['horizon_hours'],initial=dict(air_f=initial['air'],mass_f=initial['mass'],outdoor_f=initial['outdoor']),
         origin_actions=actions,trajectory=trajectory,confidence='low',prediction_intervals=None,advice=[],graduated=False,automatic_actuation=False)
 
@@ -166,6 +167,14 @@ def publication(capture):
     # Formatting does not select or validate a model. Callers must first replay
     # the capture under its external identities, as with the original formatter.
     value=legacy.publication(capture);value.update(schema=PUBLICATION_SCHEMA,version=9)
+    if fit_profile(capture['candidate']['fit'])['joint']:
+        from native_joint_shade import REGIMES
+        f=capture['candidate']['fit'];a=capture['output']['origin_actions']
+        regime=REGIMES[(a['indoor_shade_closed'],a['outdoor_shade_present'])]
+        support=f['regime_support'][regime]['status'];rating=f['shade_context']['nominal_shade_rejection_fraction']*100
+        value['reasons'].append(f'{rating:g}% outdoor shade rating supplies provisional solar priors, not measured building attenuation.')
+        value['reasons'].append(f'Current shade regime: {regime}; solar response evidence: {support}. Unshaded performance is unqualified.')
+    if len(_canonical(value))>=16384:raise ValueError('bounded provisional publication required')
     return value
 
 
@@ -180,4 +189,4 @@ def read_capture(path,*,runtime,expected_artifact_sha256,expected_capture_sha256
     return validate_capture(value,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,expected_capture_sha256=expected_capture_sha256,check_budget=check_budget)
 
 
-SERVING_RECEIPT_SOURCE_SHA256='94d85e37afc79e08cf9de93ba937b2ba845acc7111c0a23e483b186d8ff9a57e'
+SERVING_RECEIPT_SOURCE_SHA256='11121a94a4501c7af520b9df54ec879a3c75edadc87a0d15afd279bf83bbf58e'

@@ -1,3 +1,4 @@
+from zoneinfo import ZoneInfo
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 import json
@@ -5,7 +6,6 @@ from types import SimpleNamespace
 
 import pytest
 import daily_temperature_runtime as runtime
-import forecast_intel as fi
 
 START = datetime(2026, 9, 20, 6, tzinfo=timezone.utc)
 END = START + timedelta(days=1)
@@ -138,110 +138,25 @@ def test_collect_rejects_future_day_before_private_config(monkeypatch):
                         config_path='unused', policy_path='unused')
 
 
-def test_forecast_boundary_never_fetches_numeric_temperature_when_enabled(monkeypatch):
-    monkeypatch.setenv('DAILY_TEMP_QUALIFIED_ENABLE', 'bad')
-    calls = []
-    monkeypatch.setattr(fi, 'series', lambda item, *args: calls.append(item) or [])
-    assert fi.measured_day_weather_with_evidence(START.date()) == (None, None, None, None)
-    assert calls == [fi.RAIN_DAY_ITEM]
 
 
-def test_absent_activation_preserves_legacy_boundary(monkeypatch):
-    monkeypatch.delenv('DAILY_TEMP_QUALIFIED_ENABLE', raising=False)
-    monkeypatch.setattr(fi, 'measured_day_weather', lambda day: (1, 85, 45))
-    assert fi.measured_day_weather_with_evidence(START.date()) == (1, 85, 45, None)
 
 
 def test_origin_cutover_and_forecast_horizons_are_not_relabelled():
     evidence = payload() | {'cutover': (START - timedelta(days=4)).isoformat()}
     origin = dict(temperature_origin_version=1, temperature_issued_at=(START + timedelta(hours=6)).isoformat())
-    assert runtime.origin_eligible(origin, START.date(), evidence, fi.MOUNTAIN, 0)
-    assert not runtime.origin_eligible(origin, START.date(), evidence, fi.MOUNTAIN, 3)
-    assert not runtime.origin_eligible({}, START.date(), evidence, fi.MOUNTAIN, 0)
-    assert not runtime.origin_eligible(origin | {'temperature_origin_version': True}, START.date(), evidence, fi.MOUNTAIN, 0)
+    assert runtime.origin_eligible(origin, START.date(), evidence, ZoneInfo('America/Denver'), 0)
+    assert not runtime.origin_eligible(origin, START.date(), evidence, ZoneInfo('America/Denver'), 3)
+    assert not runtime.origin_eligible({}, START.date(), evidence, ZoneInfo('America/Denver'), 0)
+    assert not runtime.origin_eligible(origin | {'temperature_origin_version': True}, START.date(), evidence, ZoneInfo('America/Denver'), 0)
     evidence['cutover'] = (START + timedelta(hours=7)).isoformat()
-    assert not runtime.origin_eligible(origin, START.date(), evidence, fi.MOUNTAIN, 0)
+    assert not runtime.origin_eligible(origin, START.date(), evidence, ZoneInfo('America/Denver'), 0)
 
 
-def scoring_fixture(monkeypatch, *, qualified=True, old_origin=False, utc_hour=18):
-    instant=datetime(2026,10,8,utc_hour,tzinfo=timezone.utc)
-    class ClockMeta(type):
-        def __instancecheck__(cls,value):return isinstance(value,datetime)
-    class Clock(datetime,metaclass=ClockMeta):
-        @classmethod
-        def now(cls,tz=None):
-            return instant.astimezone(tz) if tz is not None else instant.replace(tzinfo=None)
-    class HostDate(fi.date):
-        @classmethod
-        def today(cls):return instant.date()
-    monkeypatch.setattr(fi,'datetime',Clock)
-    monkeypatch.setattr(fi,'date',HostDate)
-    # This fixture exercises temperature isolation and historical rain scoring;
-    # rain/PV dated source-bound cutovers have dedicated tests elsewhere.
-    monkeypatch.setattr(fi, 'RAIN_EVIDENCE_REQUIRED_FROM', fi.date.max)
-    monkeypatch.setattr(fi, 'PV_EVIDENCE_REQUIRED_FROM', fi.date.max)
-    today = fi.datetime.now(fi.MOUNTAIN).date()
-    yesterday = today - timedelta(days=1)
-    start, end = fi.local_day_window_utc(yesterday)
-    request = dict(start=start.isoformat(), end=end.isoformat(), assessed_at=(end + timedelta(hours=6)).isoformat())
-    evidence = payload() | {'request': request, 'cutover': (start - timedelta(days=4)).isoformat()}
-    daily = dict(hi=84, lo=44, temperature_origin_version=1,
-                 temperature_issued_at=(start + timedelta(hours=6)).isoformat())
-    horizon = dict(hi=88, temperature_origin_version=1,
-                   temperature_issued_at=(start - timedelta(days=3) + timedelta(hours=6)).isoformat())
-    if old_origin:
-        daily.pop('temperature_issued_at')
-        horizon.pop('temperature_issued_at')
-    state = deepcopy(fi.DEFAULT_STATE)
-    state['kalman'] = {'hi': {'b': 1, 'P': 2}, 'lo': {'b': 1, 'P': 2}}
-    state['predictions'] = {yesterday.isoformat(): daily}
-    state['horizon'] = {yesterday.isoformat(): horizon}
-    saves = []
-    monkeypatch.setattr(fi, 'load_state', lambda: state)
-    monkeypatch.setattr(fi, 'save_state', lambda st: saves.append(deepcopy(st)))
-    monkeypatch.setattr(fi, 'score_hourly_targets', lambda *args: 0)
-    monkeypatch.setattr(fi, 'measured_day_weather_with_evidence', lambda day:
-                        (None, 80, 40, evidence) if qualified else (None, None, None, None))
-    # main() also checks PV history before reaching the forecast-fetch sentinel.
-    # This temperature fixture must not read host credentials or contact OpenHAB.
-    # The rain/PV test below supplies its own explicit history when needed.
-    def pv_history(item, *args):
-        assert item == 'MPPT60_EnergyFromPV_Today'
-        return []
-    def no_host_access(*args, **kwargs):
-        pytest.fail('temperature scoring fixture attempted host access')
-    monkeypatch.setattr(fi, 'series', pv_history)
-    monkeypatch.setattr(fi, 'auth_token', no_host_access)
-    monkeypatch.setattr(fi, 'oh_get', no_host_access)
-    monkeypatch.setattr(fi, 'oh_put_state', lambda *args: None)
-    def stop(): raise RuntimeError('after-scoring')
-    monkeypatch.setattr(fi, 'fetch_forecast', stop)
-    return state, saves, yesterday.isoformat()
 
 
-@pytest.mark.parametrize('utc_hour',[1,18])
-def test_both_horizons_learn_and_commit_provenance_once_before_fetch_failure(monkeypatch,utc_hour):
-    state, saves, day = scoring_fixture(monkeypatch,utc_hour=utc_hour)
-    for _ in range(2):
-        with pytest.raises(RuntimeError, match='after-scoring'): fi.main()
-    assert state['temp_hi_errors'] == [4]
-    assert state['temp_lo_errors'] == [4]
-    assert state['day3_hi_errors'] == [8]
-    assert state['scored'][day] == ['hi', 'lo']
-    assert day not in state['horizon']
-    assert [r['quantity'] for r in state['daily_temperature_evidence']] == ['hi', 'lo', 'day3_hi']
-    assert saves[-1] == state
 
 
-@pytest.mark.parametrize('qualified,old', [(False, False), (True, True)])
-def test_missing_evidence_or_legacy_origin_preserves_models_and_retryable_targets(monkeypatch, qualified, old):
-    state, saves, day = scoring_fixture(monkeypatch, qualified=qualified, old_origin=old)
-    before = deepcopy(state)
-    with pytest.raises(RuntimeError, match='after-scoring'): fi.main()
-    for key in ('kalman', 'predictions', 'horizon'):
-        assert state[key] == before[key]
-    assert 'daily_temperature_evidence' not in state
-    assert not state.get('scored', {}).get(day)
 
 
 def test_provenance_bound_keeps_recent_records():
@@ -252,22 +167,6 @@ def test_provenance_bound_keeps_recent_records():
     assert state['daily_temperature_evidence'][0]['day'] == '4'
 
 
-@pytest.mark.parametrize('utc_hour',[1,18])
-def test_failed_temperature_evidence_does_not_disable_rain_or_pv_scoring(monkeypatch,utc_hour):
-    state, saves, day = scoring_fixture(monkeypatch, qualified=False,utc_hour=utc_hour)
-    before = deepcopy(state['kalman'])
-    state['predictions'][day].update(pv=2, precip_in=2)
-    state['horizon'][day]['precip_in'] = 3
-    monkeypatch.setattr(fi, 'measured_day_weather_with_evidence', lambda day: (1, None, None, None))
-    monkeypatch.setattr(fi, 'series', lambda *args: [(START, 1)])
-    with pytest.raises(RuntimeError, match='after-scoring'): fi.main()
-    assert state['pv_errors'] == [100]
-    assert state['precip_errors'] == [1]
-    assert state['day3_precip_errors'] == [2]
-    assert state['kalman'] == before
-    assert state['scored'][day] == ['pv', 'precip']
-    assert 'hi' in state['horizon'][day]
-    assert 'daily_temperature_evidence' not in state
 
 
 @pytest.mark.parametrize('value', [True, '80', float('nan'), float('inf'), None])

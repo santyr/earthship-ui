@@ -24,18 +24,22 @@ def _utc(value):
 
 
 def fetch_qualified_rain_day(connection_factory, *, local_date, as_of,
-                             cutover, policy, site_timezone='America/Denver'):
+                             cutover, policy, site_timezone='America/Denver',
+                             source_capture=None):
     """Read last pre-day carry and bounded original rows in one stable snapshot.
 
     A pre-cutover or incomplete day, mapping ambiguity, permission failure,
     NULL/oversized row, gap, restart or boundary uncertainty fails closed.
     The caller must pin a reviewed activation time and dedicated SELECT role.
+    An optional callback receives exact original rows only after qualification;
+    no source capsule is emitted on refusal and the default result is unchanged.
     """
     connection = None
     try:
         if not isinstance(local_date, date) or isinstance(local_date, datetime):
             raise ValueError('local_date must be a date')
-        if not callable(connection_factory) or not isinstance(policy, RainPolicy):
+        if (not callable(connection_factory) or not isinstance(policy, RainPolicy)
+                or source_capture is not None and not callable(source_capture)):
             raise ValueError('connection factory and rain policy required')
         zone = ZoneInfo(site_timezone)
         start = datetime.combine(local_date, time.min, zone).astimezone(timezone.utc)
@@ -80,6 +84,10 @@ def fetch_qualified_rain_day(connection_factory, *, local_date, as_of,
         result = qualify_rain_day(local_date, as_of=assessed_at,
                                   observations=observations, policy=policy,
                                   site_timezone=site_timezone)
+        if source_capture is not None:
+            source_capture(local_date=local_date, as_of=assessed_at,
+                           cutover=cutover, policy=policy,
+                           site_timezone=site_timezone, observations=tuple(observations))
         return {**result, 'source_item': ITEM,
                 'source_cutover': cutover.isoformat()}
     except Exception:

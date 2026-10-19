@@ -1,0 +1,29 @@
+# Hallway-high forecast correction — October 16, 2026
+
+The operator reported an implausible next hallway high. The retained 23:15:15Z original forecast, model `a48b0274`, predicted **118.501976°F** from current hallway 83.12°F and mass 68.64°F. Its public monitoring report also showed a +6.91°F one-hour bias across eleven completed origins. Publication/layout checks in the preceding rollout established delivery, not realistic forecast accuracy.
+
+## Diagnosis and correction
+
+The four-regime prior initially divided installed solar gains by the nominal 35% cloth transmission. That provisional extrapolation had no measured shade-removed fitting evidence. On the exact same retained weather and temperatures, keeping the installed gains instead would produce an 84.23°F high. That counterfactual isolates the prior's effect; it is not a replacement forecast or measured shade attenuation.
+
+The endpoint selector also chose only the first eligible window on each local date. A shade removal later on a date already selected could therefore be omitted even after its observations arrived. Joint fitting now selects one endpoint per local date and indoor/outdoor shade regime, while retaining the original default installed-only selector and every transition, source-knowledge and heat barrier. Separate regimes on one date do not become independent origin days.
+
+Finally, the solar feature was 1,000 times measured irradiance divided by expected clear-sky irradiance at the native solar elevation. That represents a clear-sky/cloudiness ratio, not incident heat input, and can amplify weak late-day light as elevation falls. The new `earthship-native-irradiance-shade-dynamics/v4` uses explicit **W/m²** solar features with native night masking. Equal daytime irradiance has equal feature magnitude at different elevations; reducing irradiance reduces solar input proportionally. Heat exchange, four shade regimes, monotone gains, stability guards and analytic derivatives retain their existing equations. There is no temperature clipping or hand-chosen output ceiling.
+
+The original installed v2 and joint v3 numerical modules remain available for their original replay. New fitting uses fit v3, candidate v4 and fit-evidence v4, each retaining the explicit feature contract, original source clocks and exact runtime/source identities. Full admission rederives endpoints, objective and sensitivity from original measurements. Fast serving receipts, frozen household thermal/weather replay and the UI explicitly dispatch the new rule. The existing morning job uses it for subsequent fits. The 65% rating and three exterior zones remain recorded; unobserved regimes remain prior-only.
+
+## Retained-data checks
+
+A bounded fresh capture extends retained measurements to **2026-10-16T23:10Z / 5:10 PM MDT**, including 47 usable shade-removed samples beginning at 19:15Z. Final fitting has 32 endpoints and sensitivity rank 10/14. The current indoor-only regime has one selected solar-excited endpoint; this does not establish independent-day skill or full regime qualification.
+
+A candidate fitted only through 21:00Z was evaluated on two subsequent, non-overlapping one-hour measured-weather windows: 21:05–22:05 and 22:05–23:05Z. Hallway MAE was **2.5569°F for the deployed model**, **0.8757°F for the corrected model**, and **0.8100°F for persistence**. These are two same-day conditional checks using observed weather, not verified next-day or as-issued forecast skill. The intermediate selector-only correction reduced held-out error but still forecast 102°F, so it was not deployed.
+
+After fitting the final model through the fresh cutoff, replaying the original 23:15:15Z weather and temperatures changes its hallway high from **118.502°F to 91.857°F**, and its first-hour temperature from 91.794°F to 81.465°F. Tomorrow's peak is still an unobserved provisional prediction. Local terrain shadows and differences between station-derived irradiance and provider irradiance remain sources of uncertainty.
+
+## Verification and rollout
+
+Regressions were observed failing before the selector and irradiance corrections. Verification includes 663 affected backend tests passing with one explicit resource-smoke opt-in skipped, 81 UI tests passing, a successful production build, independent finite-difference sensitivities, full candidate/serving admission and frozen household replay with I/O forbidden. The single immutable review of `0d5344b..d4122fd` found no actionable issues.
+
+Source `d4122fd9fc3b7a8449fa6aa673fd6e1a2bbbed3a` is packaged as deployment `32bbaed5de4e0217d96382b1d016fad2bef685d7fc35e8f175e82d65b543c87e`, model `1ccff0a33a9b0b2474c70da9d8af81c6384a58f34e26e7d36b871d83b317b275`. Managed activation completed at 2026-10-16T23:32:02.016334+00:00; all five owned definitions, effective launcher selections, three timers, native/battery scoring calendars and shared pool passed readback. The idle morning checkout advanced to the corrected source with its service definition unchanged. The normal preparer completed at 23:33:09Z. The normal 2026-10-16T23:35:15+00:00 forecast published from the new model with shades removed, observed venting open, low confidence, empty advice and disabled actuation. Its actual next hallway high is **91.7°F** at 2026-10-17T22:35:15+00:00. The associated household v4 decision at 2026-10-16T23:35:27.297567+00:00 retains disabled release/actuation. Actual laptop (1280×800) and tablet (1340×800) rendering both show **91.7°F**, matching the published numeric high, with zero browser errors, write attempts or outer overflow. The UI reader is installed with all 161 unrelated dirty overlays preserved.
+
+Shared resource policies, original archive/scoring identities and disabled action/release authority are preserved. Full household qualification remains incomplete.

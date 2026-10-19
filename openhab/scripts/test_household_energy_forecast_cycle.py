@@ -12,7 +12,7 @@ from test_household_solar_horizon import source as horizon_source
 
 def test_collector_retains_and_brackets_original_array_and_terrain_files(tmp_path,monkeypatch):
     from test_household_cycle_sources import collector_fixture
-    from test_forecast_pre_dusk import NOW
+    from local_measurement_test_support import NOW
     system=system_source(NOW);horizon=horizon_source(NOW)
     collector,_,_,_,now=collector_fixture(tmp_path,monkeypatch,pv_system_raw=system['raw'],solar_horizon_raw=horizon['raw'])
     out=collector(issue=now+timedelta(seconds=8),remaining=lambda:6.,guard=lambda:None)
@@ -33,7 +33,7 @@ def test_bad_optional_array_or_map_preserves_other_source_domains(tmp_path,monke
     assert out['power_receipt']['snapshot']['domains']['energy']['inverter_output_w']['value']==1000
 
 
-def test_new_sources_leave_original_plan_and_battery_baseline_identical(tmp_path,monkeypatch):
+def test_google_sources_switch_energy_plan_and_preserve_thermal_and_battery_baselines(tmp_path,monkeypatch):
     from test_household_cycle import derived_fixture
     from test_household_energy_persistence import metric
     from test_household_power_flows import declaration
@@ -41,19 +41,24 @@ def test_new_sources_leave_original_plan_and_battery_baseline_identical(tmp_path
     args,capture=derived_fixture(tmp_path,monkeypatch);at=instant(capture['issued_at'])
     args['originals'].update(schema='earthship-household-cycle-sources/v6',daily_energy_source=None,owner_source=None,policy_source=None,
         energy_persistence_source=metric(at-timedelta(seconds=2)),load_topology_source=declaration(at))
+    from household_pipeline import pipeline_runtime_manifest
+    args['runtime_manifest']={**pipeline_runtime_manifest(expanded=True,configured=True,measured=True),**args['runtime_manifest']}
     old=derive_cycle(**args)
     args['originals'].update(schema='earthship-household-cycle-sources/v7',pv_system_source=system_source(at-timedelta(seconds=2)),solar_horizon_source=horizon_source(at-timedelta(seconds=2)))
-    assert derive_cycle(**args)==old
+    current=derive_cycle(**args)
+    assert old['inputs']['energy_inputs'] is None
+    assert current['inputs']['energy_inputs']['schema']=='earthship-household-prepared-trajectory-energy/v1'
+    for domain in ('thermal','energy_persistence'):
+        assert current['output']['projections'][domain]==old['output']['projections'][domain]
+    assert current['output']['automatic_actuation'] is False
     args['originals']['solar_horizon_source']['available_at']=at.isoformat()
     with pytest.raises(ValueError):derive_cycle(**args)
 
 
 def test_complete_cycle_retains_original_plan_flows_and_exact_replayable_PV_receipt(tmp_path,monkeypatch,originals):
-    from test_household_energy_forecast import fixture
-    from test_household_cycle_coordinator import setup
+    from native_cycle_test_support import energy_cycle
     import household_energy_forecast as forecast
-    _,original_args,plan=fixture(tmp_path,monkeypatch,originals)
-    cycle,args,_=setup(tmp_path,monkeypatch)
+    cycle,args,_,original_args,plan=energy_cycle(tmp_path,monkeypatch,originals)
     args['clock']=lambda:original_args['now']
     args['collection']['originals']=dict(schema='earthship-household-cycle-sources/v7',load_topology_source=original_args['topology_source'],
         pv_system_source=original_args['system_source'],solar_horizon_source=original_args['horizon_source'])
@@ -70,7 +75,7 @@ def test_complete_cycle_retains_original_plan_flows_and_exact_replayable_PV_rece
 
 @pytest.mark.parametrize('name',['household-pv-system.json','household-solar-horizon.json'])
 def test_committed_packaging_binds_array_and_map_configuration(tmp_path,name):
-    from test_household_cycle_deploy import fixture,api,write
+    from test_household_cycle_deploy import active_fixture as fixture,api,write
     args,_=fixture(tmp_path);repo=args['repo_root'];source=repo/'openhab'/name
     write(source,b'{"original":"provisional configuration"}',0o644)
     subprocess.run(['git','-C',str(repo),'add',str(source)],check=True,capture_output=True)

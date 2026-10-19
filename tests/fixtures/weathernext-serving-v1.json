@@ -1,0 +1,130 @@
+{
+  "Forecast_10Day_JSON": {
+    "days": [
+      {
+        "date": "2025-12-31",
+        "hours": [
+          {
+            "at": "2025-12-31T18:00:00-07:00",
+            "cloudPct": 50.0,
+            "isDay": true,
+            "precipIn": 0.03937007874015748,
+            "precipPct": null,
+            "radiationWm2": 100.0,
+            "tempF": 50.0,
+            "weatherCode": null,
+            "windMph": 2.236936292054402
+          },
+          {
+            "at": "2025-12-31T19:00:00-07:00",
+            "cloudPct": 50.0,
+            "isDay": false,
+            "precipIn": 0.03937007874015748,
+            "precipPct": null,
+            "radiationWm2": 100.0,
+            "tempF": 50.0,
+            "weatherCode": null,
+            "windMph": 2.236936292054402
+          },
+          {
+            "at": "2025-12-31T20:00:00-07:00",
+            "cloudPct": 50.0,
+            "isDay": false,
+            "precipIn": 0.03937007874015748,
+            "precipPct": null,
+            "radiationWm2": 100.0,
+            "tempF": 50.0,
+            "weatherCode": null,
+            "windMph": 2.236936292054402
+          }
+        ],
+        "label": "Today",
+        "summary": {
+          "cloudPct": 50.0,
+          "daylightSeconds": 43200,
+          "highF": null,
+          "lowF": null,
+          "precipPct": null,
+          "precipSumIn": null,
+          "pvKwh": null,
+          "weatherCode": null
+        }
+      }
+    ],
+    "generatedAt": "2025-12-31T17:30:00-07:00",
+    "issueSha256": "37078165f2f456e23250b68b4ee9ffb789be9107d872a99e982a2cad277367e0",
+    "learningNamespace": "weathernext3-temperature-v1",
+    "model": {
+      "parent_artifacts": [],
+      "sha256": null,
+      "status": "UNTRAINED"
+    },
+    "provider": "weathernext3",
+    "providerReason": null,
+    "providerSnapshotSha256": "32da0e400ca4ce282b35dac7332f079f7c579b1143567ad9a940e16da07d04f8",
+    "providerStatus": "AVAILABLE",
+    "releaseAuthorized": false,
+    "solarSource": {
+      "availableAt": "2026-01-01T00:20:00+00:00",
+      "reason": null,
+      "recordedAt": "2026-01-01T00:10:00+00:00",
+      "sourceSha256": "38b77fcbd64f315bb2ccc6bc4dc22abd215aa9292a81eeb36c0fe3388bffb9cc",
+      "status": "AVAILABLE"
+    },
+    "source": {
+      "first_seen_at": "2026-01-01T00:20:00+00:00",
+      "ingestion_completed_at": "2026-01-01T00:21:00+00:00",
+      "initialized_at": "2026-01-01T00:00:00+00:00",
+      "run_id": "ee:2026-01-01T00:00:00+00:00",
+      "snapshot_sha256": "50cdfe75c921daca0a765264d5d0223df9d1d42f0c80791f5f75dfdbb598f60a"
+    },
+    "timezone": "America/Denver",
+    "version": 1
+  },
+  "Forecast_Daily_JSON": [
+    {
+      "a": null,
+      "d": "Today",
+      "hi": null,
+      "lo": null,
+      "p": null,
+      "pv": null,
+      "w": null
+    }
+  ],
+  "Forecast_Hourly_JSON": [
+    {
+      "a": 0.03937007874015748,
+      "at": "2026-01-01T01:00:00+00:00",
+      "c": 50.0,
+      "h": "6pm",
+      "isDay": true,
+      "p": null,
+      "r": 100,
+      "t": 50,
+      "w": null
+    },
+    {
+      "a": 0.03937007874015748,
+      "at": "2026-01-01T02:00:00+00:00",
+      "c": 50.0,
+      "h": "7pm",
+      "isDay": false,
+      "p": null,
+      "r": 100,
+      "t": 50,
+      "w": null
+    },
+    {
+      "a": 0.03937007874015748,
+      "at": "2026-01-01T03:00:00+00:00",
+      "c": 50.0,
+      "h": "8pm",
+      "isDay": false,
+      "p": null,
+      "r": 100,
+      "t": 50,
+      "w": null
+    }
+  ]
+}

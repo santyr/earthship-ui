@@ -122,38 +122,6 @@ def test_conflicting_or_partially_missing_policy_is_rejected():
         native(rows)
 
 
-def test_publisher_captures_default_and_replay_ignores_later_policy_change(tmp_path, monkeypatch, capsys):
-    from dataclasses import replace
-    from types import SimpleNamespace
-    from thermal_model.forcing_capture import verify_capture
-    from test_thermal_artifacts import valid_artifact
-    now = CUTOFF
-    _, current = shadow_inputs(now)
-    artifact = replace(valid_artifact(), created_at=(now-timedelta(hours=2)).isoformat())
-    archive = tmp_path / 'captures'
-    archive.mkdir(mode=0o700)
-    rows = hourly(now)
-    monkeypatch.setenv('THERMAL_SHADOW_CAPTURE_DIR', str(archive))
-    monkeypatch.setattr(thermal_intel.forecast_intel, 'load_site_settings', lambda: {})
-    monkeypatch.setattr(thermal_intel.forecast_intel, 'fetch_forecast', lambda: {})
-    monkeypatch.setattr(thermal_intel, '_current_states', lambda at: current)
-    monkeypatch.setattr(thermal_intel, '_forecast_rows', lambda snapshot, at: rows)
-    monkeypatch.setattr(thermal_intel, 'ArtifactRegistry', lambda path: AcceptedRegistry(artifact))
-    published = []
-    assert thermal_intel._shadow(SimpleNamespace(output=tmp_path/'output.json', publish=True),
-        now, put_state=lambda item, value: published.append((item, value)),
-        published_clock=lambda: now+timedelta(seconds=1)) == 0
-    import json
-    record = verify_capture(next(archive.glob('*/*.json.gz')))
-    assert record['forecast_rows'][0]['_ventClosedFrom'] == '2026-11-01T00:00:00-06:00'
-    assert len(published) == 1 and json.loads(published[0][1]) == record['output']
-    monkeypatch.setattr(thermal_intel, '_VENT_CLOSED_FROM', datetime(2028, 11, 1, tzinfo=LOCAL))
-    replayed = pipeline.run_shadow(registry=AcceptedRegistry(artifact), current=record['current'],
-                                  forecast=record['forecast_rows'], now=now)
-    assert replayed == record['output']
-    assert thermal_intel._apply_vent_default(rows) == rows
-
-
 def test_winter_default_retains_original_shade_search_and_forcing():
     raw = hourly(CUTOFF, mode='winter')
     for row in raw:

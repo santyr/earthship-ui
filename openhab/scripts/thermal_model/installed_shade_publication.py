@@ -30,10 +30,12 @@ RUNTIME_PATHS=frozenset({
     'thermal_model/airflow_migration.py',
     'thermal_model/journal.py',
     'weather_temperature_receiver.py',
-    'thermal_installed_intel.py',
     'thermal_model/installed_shade_live.py',
     'thermal_model/installed_shade_live_inputs.py',
     'thermal_model/action_history.py',
+    'openhab_runtime_io.py',
+    'thermal_model/native_operational_io.py',
+    'thermal_model/serial_publication_caps.py',
     'thermal_model/capture_readers.py',
     'thermal_model/capture_guard.py',
     'thermal_temperature_runtime.py',
@@ -91,7 +93,12 @@ RELEASE_SCHEMA='earthship-installed-shade-release/v1'
 CALIBRATED_RAW_SCHEMA='earthship-installed-shade-publication/v2'
 CALIBRATED_RAW_RELEASE_SCHEMA='earthship-installed-shade-release/v2'
 RAW_RUNTIME_PATHS=RUNTIME_PATHS|frozenset({
-    'weather_temperature_sources.py','forecast_input_capture.py','forecast_temperature_origin.py',
+    'weather_learning/__init__.py','weather_learning/native_forecast.py','weather_learning/native_backend.py',
+    'weather_learning/config.py','weather_learning/contracts.py','weather_learning/features.py',
+    'weather_learning/normalize.py','weather_learning/weathernext_ee.py','weather_learning/transport.py',
+    'weather_learning/archive.py','weather_learning/evidence.py',
+
+    'weather_temperature_sources.py','weather_source_files.py',
     'thermal_model/installed_shade_raw_score_sources.py',
     'thermal_model/installed_shade_score_inputs.py','thermal_model/installed_shade_score_collection.py',
 })

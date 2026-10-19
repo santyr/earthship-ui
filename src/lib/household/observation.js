@@ -77,7 +77,9 @@ export function parseHouseholdObservation(raw, { nowMs = Date.now() } = {}) {
       if (!shape(model, ['domain', 'artifact_sha256', 'runtime_sha256', 'projection_sha256', 'confidence', 'qualification'])
         || !['energy', 'thermal'].includes(model.domain) || !nullableDigest(model.artifact_sha256)
         || !nullableDigest(model.runtime_sha256) || !digest(model.projection_sha256)
-        || !CONFIDENCE.includes(model.confidence) || !['not_assessed', 'not_graduated'].includes(model.qualification)) return null;
+        || !CONFIDENCE.includes(model.confidence)
+        || !(['not_assessed', 'not_graduated'].includes(model.qualification)
+          || (model.domain === 'energy' && model.qualification === 'conditional_uncalibrated_scenario'))) return null;
     }
     const originalMode = verified < until && row.model_identities.length ? 'shadow' : 'unavailable';
     if (row.planner_mode !== originalMode) return null;

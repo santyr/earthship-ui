@@ -95,3 +95,12 @@ describe('DailyForecast', () => {
     expect(container.textContent).not.toContain('″');
   });
 });
+
+
+it('shows cloud-derived Google conditions and rainfall without empty probability/PV placeholders',()=>{
+ const google=[{...days[0],summary:{highF:65,lowF:46,precipPct:null,precipSumIn:0.0008,pvKwh:null,weatherCode:null,cloudPct:40,temperatureScope:'remaining'}}];
+ const {container}=render(DailyForecast,{days:google});
+ expect(container.querySelector('[data-condition-basis="cloud-cover"]')).not.toBeNull();
+ expect(container.textContent).toContain('<0.01″');expect(container.textContent).toContain('remaining');
+ expect(container.textContent).not.toContain('PV —');expect(container.textContent).not.toContain('—');
+});

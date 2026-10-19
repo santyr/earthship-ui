@@ -61,10 +61,11 @@ def test_sun_semantic_representative_can_change_but_complete_edges_must_match():
  with pytest.raises(RuntimeError):m.normalized(changed)
 
 
-def test_only_declared_monotonic_binding_refresh_is_reconciled():
+def test_retired_binding_metadata_changes_are_definition_drift():
  m=tools();uid='openmeteo:forecast:local:site';left={'things':{uid:{'properties':{'last-updated':'2026-10-06T12:00:00Z'},'label':'same'}},'items':{},'links':{},'rules':{}}
+ assert m.compare(left,deepcopy(left))==[]
  right=deepcopy(left);right['things'][uid]['properties']['last-updated']='2026-10-06T13:00:00Z'
- assert len(m.compare(left,right))==1
+ with pytest.raises(RuntimeError):m.compare(left,right)
  right['things'][uid]['label']='changed'
  with pytest.raises(RuntimeError):m.compare(left,right)
 

@@ -14,89 +14,6 @@ import secrets
 import stat
 
 
-MANIFEST = (
-    {
-        "source": "openhab/scripts/forecast_intel.py",
-        "target": "/home/sat/openhab/scripts/forecast_intel.py",
-        "phase": "verify",
-        "mode": 0o755,
-    },
-    {
-        "source": "openhab/scripts/thermal_intel.py",
-        "target": "/home/sat/openhab/scripts/thermal_intel.py",
-        "phase": "code",
-        "mode": 0o755,
-    },
-    *(
-        {
-            "source": f"openhab/scripts/{name}.py",
-            "target": f"/home/sat/openhab/scripts/{name}.py",
-            "phase": "code",
-            "mode": 0o644,
-        }
-        for name in (
-            "thermal_temperature_runtime", "hourly_temperature_runtime",
-            "thermal_radiation_runtime", "weather_radiation_reader",
-            "weather_radiation_history", "weather_radiation_evidence", "weather_radiation_config",
-            "daily_temperature_runtime",
-            "weather_temperature_reader", "weather_temperature_history",
-            "weather_temperature_evidence", "weather_temperature_config",
-        )
-    ),
-    *(
-        {
-            "source": f"openhab/scripts/thermal_model/{name}.py",
-            "target": f"/home/sat/openhab/scripts/thermal_model/{name}.py",
-            "phase": "code",
-            "mode": 0o644,
-        }
-        for name in (
-            "__init__",
-            "actions",
-            "artifacts",
-            "behavior",
-            "dataset",
-            "dynamics",
-            "evaluation",
-            "forcing_capture",
-            "journal",
-            "pipeline",
-            "schema",
-            "solar",
-            "temperature_history",
-        )
-    ),
-    {
-        "source": "deploy/thermal-model-train.service",
-        "target": "/home/sat/.config/systemd/user/thermal-model-train.service",
-        "phase": "unit",
-        "mode": 0o644,
-    },
-    {
-        "source": "deploy/thermal-model-train.timer",
-        "target": "/home/sat/.config/systemd/user/thermal-model-train.timer",
-        "phase": "unit",
-        "mode": 0o644,
-    },
-    {
-        "source": "deploy/thermal-model-shadow.service",
-        "target": "/home/sat/.config/systemd/user/thermal-model-shadow.service",
-        "phase": "unit",
-        "mode": 0o644,
-    },
-    {
-        "source": "deploy/thermal-model-shadow.service.d/forcing-capture.conf",
-        "target": "/home/sat/.config/systemd/user/thermal-model-shadow.service.d/forcing-capture.conf",
-        "phase": "unit",
-        "mode": 0o644,
-    },
-    {
-        "source": "deploy/thermal-model-shadow.timer",
-        "target": "/home/sat/.config/systemd/user/thermal-model-shadow.timer",
-        "phase": "unit",
-        "mode": 0o644,
-    },
-)
 
 RECEIPT_SCHEMA = "earthship-thermal-file-deploy/v1"
 RECEIPT_NAME = "file-manifest.json"
@@ -451,7 +368,7 @@ def _source_path(repo_root, record):
     return Path(repo_root) / relative
 
 
-def capture_backup(repo_root, receipt_dir, *, manifest=MANIFEST):
+def capture_backup(repo_root, receipt_dir, *, manifest):
     os.umask(0o077)
     repo_root = Path(repo_root)
     repo_fd = _open_directory(repo_root)
@@ -1156,21 +1073,12 @@ def install_phase(
     receipt_dir,
     phase,
     *,
-    manifest=MANIFEST,
+    manifest,
     fault=None,
 ):
     if phase not in {"code", "unit"}:
         raise ValueError("phase must be code or unit")
     os.umask(0o077)
-    if phase == "unit" and any(
-        entry["source"] == "deploy/thermal-model-shadow.service.d/forcing-capture.conf"
-        for entry in manifest
-    ):
-        secure_directory(
-            ALLOWED_STATE_ROOT / "forcing-captures", 0o700,
-            create=True, enforce_mode=True,
-        )
-    repo_root = Path(repo_root)
     receipt = _load_receipt(receipt_dir, manifest)
     _assert_no_recovery(receipt_dir, receipt)
     prepared = _validated_sources(repo_root, receipt, phase)
@@ -1200,7 +1108,7 @@ def verify_phase(
     receipt_dir,
     phase,
     *,
-    manifest=MANIFEST,
+    manifest,
     check_recovery=True,
 ):
     if phase not in {"code", "unit"}:
@@ -1219,7 +1127,7 @@ def verify_phase(
     )
 
 
-def restore(repo_root, receipt_dir=None, *, manifest=MANIFEST, fault=None):
+def restore(repo_root, receipt_dir=None, *, manifest, fault=None):
     if receipt_dir is None:
         receipt_dir = repo_root
         repo_root = Path.cwd()
@@ -1250,7 +1158,7 @@ def restore(repo_root, receipt_dir=None, *, manifest=MANIFEST, fault=None):
     )
 
 
-def recover(repo_root, receipt_dir, *, manifest=MANIFEST):
+def recover(repo_root, receipt_dir, *, manifest):
     os.umask(0o077)
     repo_root = Path(repo_root)
     receipt = _load_receipt(receipt_dir, manifest)
@@ -1807,52 +1715,18 @@ def _cli_paths(args):
 
 
 def main(argv=None):
+    # Model archival remains available for the deferred recovery work. The old
+    # provider code/unit deployment commands have no default target manifest.
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "command",
-        choices=(
-            "prepare",
-            "archive-prior-v3",
-            "snapshot",
-            "install-code",
-            "verify-code",
-            "install-units",
-            "verify-units",
-            "restore",
-            "recover",
-        ),
-    )
+    parser.add_argument("command", choices=("prepare", "archive-prior-v3"))
     parser.add_argument("--repo-root", type=Path, default=ALLOWED_REPO_ROOT)
     parser.add_argument("--receipt-dir", type=Path, required=True)
     args = parser.parse_args(argv)
     evidence_root, item_receipt = _cli_paths(args)
-
     if args.command == "prepare":
-        prepare_private_directories(
-            ALLOWED_STATE_ROOT,
-            evidence_root,
-            item_receipt,
-            args.receipt_dir,
-        )
-    elif args.command == "archive-prior-v3":
-        archive_prior_v3(args.receipt_dir)
-    elif args.command == "snapshot":
-        capture_backup(args.repo_root, args.receipt_dir)
-    elif args.command == "install-code":
-        install_phase(args.repo_root, args.receipt_dir, "code")
-    elif args.command == "verify-code":
-        if not verify_phase(args.repo_root, args.receipt_dir, "code"):
-            raise SystemExit(1)
-    elif args.command == "install-units":
-        install_phase(args.repo_root, args.receipt_dir, "unit")
-    elif args.command == "verify-units":
-        if not verify_phase(args.repo_root, args.receipt_dir, "unit"):
-            raise SystemExit(1)
-    elif args.command == "restore":
-        restore(args.repo_root, args.receipt_dir)
+        prepare_private_directories(ALLOWED_STATE_ROOT, evidence_root, item_receipt, args.receipt_dir)
     else:
-        if not recover(args.repo_root, args.receipt_dir):
-            raise SystemExit(1)
+        archive_prior_v3(args.receipt_dir)
 
 
 if __name__ == "__main__":

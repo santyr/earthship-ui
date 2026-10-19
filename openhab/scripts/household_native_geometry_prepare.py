@@ -98,7 +98,7 @@ def run(config,libraries,*,stage=None,deployment_sha256=None,clock=lambda:dateti
 
 def _run(config,libraries,*,stage=None,deployment_sha256=None,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic):
     from native_thermal_live import load_settings,prepare_geometry,_resource_preflight
-    from thermal_model.provisional_live import _next_issue
+    from thermal_model.native_operational_io import _next_issue
     from thermal_model.capture_guard import SharedScoreLock
     from native_inference_pressure import NativeInferenceHeadroom
     from thermal_model.origin_capture import _source_bytes
@@ -107,7 +107,8 @@ def _run(config,libraries,*,stage=None,deployment_sha256=None,clock=lambda:datet
     config,libraries=map(lambda path:Path(path).absolute(),(config,libraries))
     source=Path(__file__).resolve();originals=_SourceGuard(config,libraries,source)
     settings=load_settings(config);paths=_library_paths(originals.original_libraries[0])
-    receipt_profile=settings.get('schema')=='earthship-provisional-thermal-live-config/v3'
+    from native_thermal_live import SERVING_SCHEMAS
+    receipt_profile=settings.get('schema') in SERVING_SCHEMAS
     if receipt_profile and (stage is None or deployment_sha256 is None):
         raise ValueError('external receipt-serving preparation selection required')
     now=clock();issue=_next_issue(now)

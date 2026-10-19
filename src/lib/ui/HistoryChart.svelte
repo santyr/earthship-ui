@@ -9,7 +9,7 @@
   import { items } from '../openhab/store.js';
   import { observeElementSize } from './observeElementSize.js';
 
-  let { series = [], initialHours, hours = 24, refreshMs = 5 * 60 * 1_000 } = $props();
+  let { series = [], initialHours, hours = 24, compact = false, refreshMs = 5 * 60 * 1_000 } = $props();
 
   const SOC_REDRAW_MS = 5 * 60 * 1_000;
   // Parents may recreate the array on an unrelated state tick. Only a real
@@ -25,6 +25,8 @@
   let activeHours = $state(untrack(() => snapHistoryPeriod(initialHours ?? hours)));
   let loadGen = 0;
   let refreshTimer;
+  let retryTimer;
+  let retryDelayMs = 5000;
   let socRedrawTimer;
   let requestController;
   let stopObserving = () => {};
@@ -57,13 +59,16 @@
     latestWidthPx = widthPx;
     try {
       const nowMs = Date.now();
-      chart.setOption(buildHistoryOption({
+      const option = buildHistoryOption({
         series: latestSeries,
         pointsPerSeries: latestResults,
         widthPx,
         nowMs,
         socEvidenceRaw: $items.BMS_SOC_Evidence_JSON,
-      }), { replaceMerge: ['series'] });
+        ...(compact ? {grid:{left:40,right:12,top:6,bottom:22}} : {}),
+      });
+      if (compact) { option.legend.show = false; option.yAxis.splitNumber = 3; option.yAxis.axisLabel = { ...option.yAxis.axisLabel, hideOverlap: true }; }
+      chart.setOption(option, { replaceMerge: ['series'] });
       lastRenderedSocValue = atomicSocFreshness($items.BMS_SOC_Evidence_JSON, nowMs)?.soc ?? null;
       if (sizeChanged) chart.resize();
     } catch (error) {
@@ -73,7 +78,23 @@
     }
   }
 
+  function clearRetry() {
+    if (retryTimer) clearTimeout(retryTimer);
+    retryTimer = null;
+  }
+
+  function retryTransientErrors(errors) {
+    if (!errors.some(error => !error?.code || error.code === 'history-request-timeout')) return;
+    clearRetry();
+    retryTimer = setTimeout(() => {
+      retryTimer = null;
+      untrack(() => load(series, activeHours, true));
+    }, retryDelayMs);
+    retryDelayMs = Math.min(retryDelayMs * 2, 60_000);
+  }
+
   async function load(seriesList = series, hoursVal = activeHours, preserve = false) {
+    clearRetry();
     cancelPending();
     const controller = new AbortController();
     requestController = controller;
@@ -113,6 +134,7 @@
       if (controller.signal.aborted || myGen !== loadGen) return;
       if (requestController === controller) requestController = null;
       errorMessage = error?.message || 'History request failed';
+      retryTransientErrors([error]);
       if (chart) staleHistory = true;
       else loadState = 'error';
       return;
@@ -120,6 +142,8 @@
     if (controller.signal.aborted || myGen !== loadGen) return;
     if (requestController === controller) requestController = null;
 
+    retryTransientErrors(result.errors.map(({ error }) => error));
+    if (!result.errors.length) retryDelayMs = 5000;
     unavailableCount = result.errors.length;
     timedOutCount = result.errors.filter(
       ({ error }) => error?.code === 'history-request-timeout',
@@ -193,6 +217,7 @@
 
   onDestroy(() => {
     loadGen += 1;
+    clearRetry();
     cancelPending();
     if (refreshTimer) clearInterval(refreshTimer);
     if (socRedrawTimer) clearInterval(socRedrawTimer);

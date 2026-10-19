@@ -27,6 +27,28 @@ describe('native provisional publication compatibility',()=>{
     expect(result.trajectory[0].hallwayF).toBe(75);expect(result.ventWindow).toBeNull();expect(result.effect.morningMassDeltaF).toBeNull();
     expect(result.modelAgeHours).toBeCloseTo(1+15/3600);expect(result.trainingDataAgeHours).toBeCloseTo(2+15/3600);
   });
+  it.each([
+    ['earthship-native-joint-shade-dynamics/v3',0],
+    ['earthship-native-joint-shade-dynamics/v3',1],
+    ['earthship-native-irradiance-shade-dynamics/v4',0],
+    ['earthship-native-irradiance-shade-dynamics/v4',1],
+  ])('renders the preserved family %s with outdoor shade state %s', (rule,outdoor)=>{
+    const value=payload();value.forecast.model_rule=rule;value.forecast.origin_actions.outdoor_shade_present=outdoor;
+    const result=parse(value);expect(result.state).toBe('ready');expect(result.badge).toBe('PROVISIONAL');
+    expect(result.actionConfidence).toBe('withheld');expect(result.uncertaintyMode).toBe('uncalibrated');
+    expect(result.trajectory[0].hallwayF).toBe(75);
+  });
+  it('keeps the original installed-only family outside the removed-shade domain',()=>{
+    const value=payload();value.forecast.origin_actions.outdoor_shade_present=0;
+    expect(parse(value).state).toBe('unavailable');
+  });
+  it.each(['actuation','shade'])('rejects invalid irradiance-family %s',damage=>{
+    const value=payload();value.forecast.model_rule='earthship-native-irradiance-shade-dynamics/v4';
+    value.forecast.origin_actions.outdoor_shade_present=0;
+    if(damage==='actuation')value.forecast.automatic_actuation=true;
+    else value.forecast.origin_actions.outdoor_shade_present=.5;
+    expect(parse(value).state).toBe('unavailable');
+  });
   it('preserves explicit unavailable native output',()=>{
     const value=payload();value.status='unavailable';value.model=null;value.forecast=null;value.confidence.grade='unavailable';
     const result=parse(value);expect(result.state).toBe('unavailable');expect(result.mode).toBe('unavailable');expect(result.badge).toBe('UNAVAILABLE');
@@ -57,3 +79,19 @@ describe('native provisional publication compatibility',()=>{
     value.forecast.geometry_series_sha256='c'.repeat(64);expect(parse(value).state).toBe('unavailable');
   });
 });
+
+it('accepts the explicitly versioned four-regime model with exterior shades removed and advice withheld',()=>{
+  const value=payload();value.forecast.model_rule='earthship-native-joint-shade-dynamics/v3';value.forecast.origin_actions.outdoor_shade_present=0;
+  value.reasons.push('65% outdoor shade rating supplies provisional solar priors; unshaded performance is unqualified.');
+  const r=parse(value);expect(r.state).toBe('ready');expect(r.actionConfidence).toBe('withheld');expect(r.confidence).toBe('low');
+  expect(r.reasons.some(x=>x.includes('65%'))).toBe(true);
+});
+it('continues refusing removed-shade state under the installed-only rule',()=>{
+  const value=payload();value.forecast.origin_actions.outdoor_shade_present=0;expect(parse(value).state).toBe('unavailable');
+});
+
+ it('accepts the separately versioned irradiance model with outdoor shades removed',()=>{
+  const value=payload();value.forecast.model_rule='earthship-native-irradiance-shade-dynamics/v4';value.forecast.origin_actions.outdoor_shade_present=0;
+  const result=parse(value);
+  expect(result.state).toBe('ready');
+ });

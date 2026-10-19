@@ -5,22 +5,12 @@ import json
 import pytest
 
 from test_thermal_release import inputs, NOW
-from test_thermal_release_runtime import release_case
 from thermal_model import release
 
 
 def rows(mode='warm'):
     return [dict(at=NOW+timedelta(hours=hour), tempF=50, radiationWm2=0,
         windMph=0, weatherCode=0, mode=mode) for hour in range(3)]
-
-
-def test_warm_only_qualification_does_not_authorize_current_winter(tmp_path, monkeypatch):
-    thermal, args, _, now = release_case(tmp_path, monkeypatch)
-    monkeypatch.setattr(thermal, '_forecast_rows', lambda *_: rows('winter'))
-    sent = []
-    assert thermal._release(args, now, put_state=lambda *values: sent.append(values),
-        decision_clock=lambda: now, qualification_clock=lambda: now) == 1
-    assert json.loads(sent[0][1])['status'] == 'unavailable'
 
 
 @pytest.mark.parametrize('mode,expected', [('warm', ['warm']), ('winter', ['winter']),

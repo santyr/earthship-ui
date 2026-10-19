@@ -34,17 +34,9 @@ def test_frozen_energy_refuses_bad_numeric_context(field,value):
     with pytest.raises(ValueError):mod.freeze_energy_inputs(**{**FIXTURE['cases'][0]['inputs'],field:value})
 
 
-def test_production_worker_retains_exact_energy_argument_record():
-    import ast
-    tree=ast.parse(Path(__file__).with_name('forecast_intel.py').read_text())
-    main=next(node for node in tree.body if isinstance(node,ast.FunctionDef) and node.name=='main')
-    assert any(isinstance(node,ast.Name) and node.id=='energy_projection_inputs' for node in ast.walk(main)),'exact original energy arguments missing'
-    assert any(isinstance(node,ast.Constant) and node.value=='household_energy_inputs' for node in ast.walk(main)),'prediction state lacks exact energy input record'
-
-
 from datetime import timedelta
 from test_household_planning import setup,context
-from test_forecast_pre_dusk import NOW
+from local_measurement_test_support import NOW
 from household.codec import canonical,identity
 from household.snapshot import HouseholdSnapshot
 

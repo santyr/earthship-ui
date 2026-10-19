@@ -14,7 +14,7 @@ import sys
 from uuid import uuid4
 
 from .forcing_capture import _canonical,_private_directory
-from .origin_capture import (_runtime,_source_bytes,_private_file,_object,build_runtime_binding)
+from .origin_capture import (_runtime,_source_bytes,_private_file,_object,build_runtime_binding,MAX_RUNTIME_SOURCES)
 
 SCHEMA='earthship-thermal-runtime-bundle/v1'
 FIELDS={'schema','runtime','revision_paths','release_authorized','bundle_sha256'}
@@ -34,9 +34,9 @@ def _path(name):
 
 
 def _revision(paths,sources):
-    if (not isinstance(paths,list) or not 1<=len(paths)<=64 or
+    if (not isinstance(paths,list) or not 1<=len(paths)<=MAX_RUNTIME_SOURCES or
             any(not isinstance(name,str) for name in paths) or len(set(paths))!=len(paths) or
-            'thermal_intel.py' not in paths or (len(paths)==64 and 'thermal_model/origin_capture.py' not in paths)):raise ValueError('original ordered prediction closure required')
+            'thermal_intel.py' not in paths or (len(paths)>=64 and 'thermal_model/origin_capture.py' not in paths)):raise ValueError('original ordered prediction closure required')
     digest=sha256()
     for name in paths:
         _path(name);raw=sources[name];encoded=name.encode()

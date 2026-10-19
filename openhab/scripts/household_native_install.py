@@ -5,7 +5,7 @@ inactivity/source/deadline guard. Helpers mutate exact reconciled files, quiesce
 owned schedules, reload and verify definitions. There is no live CLI or complete
 public activation entry point; source-backed admission remains unfinished.
 """
-import os,stat,secrets
+import os,stat,secrets,json
 from pathlib import Path
 from hashlib import sha256
 import household_cycle_deploy as deploy
@@ -64,9 +64,14 @@ def _install_files(output,*,guard,_undo_log=None):
     serving=selected['schema']=='earthship-native-thermal-service-family/v2'
     def stage_record(path):
         if record['schema']=='earthship-native-thermal-handoff/v3' and path==stages[1]:
-            return deploy.verify_stage(path,expected_deployment_sha256=record['previous_deployment_sha256']['forecast'])
-        if path==stage and serving:return deploy.verify_stage(path,expected_deployment_sha256=selected['deployment_sha256'])
-        return deploy.verify_stage(path)
+            pin=record['previous_deployment_sha256']['forecast']
+            baseline=deploy.verify_handoff_baseline(path,expected_deployment_sha256=pin)
+            cycle=json.loads(deploy._bytes(path/'cycle.json',private=True))
+            settings=json.loads(deploy._bytes(cycle['forecast_config'],private=True,maximum=8192))
+            if settings.get('schema') not in deploy.GOOGLE_SCHEMAS:return baseline
+            return deploy.verify_stage(path,expected_deployment_sha256=pin)
+        if path==stage:return deploy.verify_stage(path,**({'expected_deployment_sha256':selected['deployment_sha256']} if serving else {}))
+        return deploy.verify_handoff_baseline(path)
     stage_records=[stage_record(path) for path in stages]
     root=deploy._path(record['originals']['forecast_service']['path']).parent
     own=deploy._bytes(Path(__file__));changes=[]

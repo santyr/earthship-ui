@@ -15,6 +15,6 @@ if __name__ == '__main__':
     migration = importlib.util.module_from_spec(migration_spec)
     migration_spec.loader.exec_module(migration)
     names = migration.migration.NAMES
-    qualifier.main(items={names[0]: '72.7', names[1]: '43.9', names[2]: '39.0'},
+    qualifier.main(items={names[0]: '72.7', names[1]: '43.9'},
                    source_path=migration.migration.SOURCE,
                    types={name: 'Number' for name in names})

@@ -1,0 +1,11 @@
+[Unit]
+Description=Earthship WeatherNext hourly shadow inference
+
+[Timer]
+OnCalendar=*-*-* *:44:00
+RandomizedDelaySec=30
+Persistent=true
+Unit=local-forecast-shadow.service
+
+[Install]
+WantedBy=timers.target

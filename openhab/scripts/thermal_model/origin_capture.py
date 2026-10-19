@@ -21,6 +21,10 @@ from .schema import validate_shadow_output
 from .temperature_history import STREAMS,_validate_receipt,_validate_sensor_receipt
 from weather_temperature_evidence import sensor_epoch_id
 
+# Metadata capacity for the complete 83-file Google/native source closure.
+# Per-file byte checks and all execution resource/deadline guards are unchanged.
+MAX_RUNTIME_SOURCES=96
+
 SCHEMA='earthship-thermal-origin-capture/v1'
 RELEASE_SCHEMA='earthship-thermal-origin-capture/v2'
 SENSOR_SCHEMA='earthship-thermal-origin-capture/v3'
@@ -66,7 +70,7 @@ def _runtime(value):
         if not isinstance(version,str) or re.fullmatch(r'[0-9][0-9A-Za-z.+_-]{0,79}',version) is None:
             raise ValueError('runtime dependency version invalid')
     manifest=value['source_manifest']
-    if not isinstance(manifest,dict) or not 2<=len(manifest)<=72:
+    if not isinstance(manifest,dict) or not 2<=len(manifest)<=MAX_RUNTIME_SOURCES:
         raise ValueError('bounded runtime source manifest required')
     for name,digest in manifest.items():
         if not isinstance(name,str):raise ValueError('runtime source path invalid')
@@ -421,7 +425,7 @@ def build_runtime_binding(runtime_root,revision_paths):
     import scipy
     import psycopg2
     root=Path(runtime_root).resolve(strict=True)
-    if (not isinstance(revision_paths,(tuple,list)) or not 1<=len(revision_paths)<=72 or
+    if (not isinstance(revision_paths,(tuple,list)) or not 1<=len(revision_paths)<=MAX_RUNTIME_SOURCES or
             any(not isinstance(name,str) for name in revision_paths) or
             len(set(revision_paths))!=len(revision_paths) or 'thermal_intel.py' not in revision_paths or
             (len(revision_paths)>=64 and 'thermal_model/origin_capture.py' not in revision_paths)):

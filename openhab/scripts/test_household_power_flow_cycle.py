@@ -11,7 +11,7 @@ from test_household_power_flows import declaration
 
 def test_collector_retains_original_topology_and_refuses_midcycle_replacement(tmp_path,monkeypatch):
     from test_household_cycle_sources import collector_fixture
-    from test_forecast_pre_dusk import NOW
+    from local_measurement_test_support import NOW
     source=declaration(NOW);raw=source['raw']
     collector,_,_,_,now=collector_fixture(tmp_path,monkeypatch,load_topology_raw=raw)
     result=collector(issue=now+timedelta(seconds=8),remaining=lambda:6.,guard=lambda:None)
@@ -39,13 +39,13 @@ def test_new_source_version_preserves_original_plan_and_battery_baseline(tmp_pat
 
 
 def test_complete_cycle_retains_a_replayable_flow_sidecar_without_changing_plan(tmp_path,monkeypatch):
-    from test_household_energy_persistence import pipeline_fixture
-    from test_household_cycle_coordinator import setup
+    from native_cycle_test_support import energy_cycle
     import household_power_flows as flows
-    _,plan,_,_=pipeline_fixture(tmp_path,monkeypatch);at=instant(plan['inputs']['snapshot']['as_of'])
-    cycle,args,_=setup(tmp_path,monkeypatch)
+    cycle,args,_,_,plan=energy_cycle(tmp_path,monkeypatch)
+    at=instant(plan['inputs']['snapshot']['as_of'])
     args['collection']['originals']=dict(schema='earthship-household-cycle-sources/v6',load_topology_source=declaration(at))
     monkeypatch.setattr(cycle,'derive_cycle',lambda **kw:plan)
+    args['clock']=lambda:instant(plan['inputs']['snapshot']['created_at'])
     out=cycle.complete_cycle(**args);assert out['status']=='observation_written'
     path=next(iter(args['evidence_directory'].glob('*.household-power-flow-v1.json')))
     receipt=loads(path.read_bytes())
@@ -57,7 +57,7 @@ def test_complete_cycle_retains_a_replayable_flow_sidecar_without_changing_plan(
 
 
 def test_packaging_retains_and_verifies_the_exact_operator_declaration(tmp_path):
-    from test_household_cycle_deploy import fixture,api,write
+    from test_household_cycle_deploy import active_fixture as fixture,api,write
     args,_=fixture(tmp_path);repo=args['repo_root'];source=repo/'openhab/household-energy-topology.json'
     write(source,b'{"original":"operator topology"}',0o644)
     subprocess.run(['git','-C',str(repo),'add',str(source)],check=True,capture_output=True)

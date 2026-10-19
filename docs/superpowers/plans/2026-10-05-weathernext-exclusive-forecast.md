@@ -1,10 +1,16 @@
+**Attended deployment complete — October 19:** see the [live cutover record](../../operations/2026-10-19-weathernext-live-cutover.json) for applied retirement, fresh Google/local model identity and manual/natural/degraded/UI verification. The approved release passed all four hosted workflows. A necessary installer bootstrap fix passed 23 targeted tests and live activation; its remaining full OpenHAB CI was pending under the explicit operator deployment waiver. Statistical qualification and tuning continue in production under the approved monitored-release policy. Earlier design step checkboxes below are historical planning material, not a current deployment blocker list.
+
+**Owner-directed release update (2026-10-19):** remove the fixed 30-day provider wait and deploy as soon as source/contract/operational checks pass, then assess and tune from production data. Scientific model-qualification windows do not block explicitly unqualified monitored production. Preserve source/physics/resource/actuation safeguards and the existing reviewed release/handoff workflow; see spec section 10.
+
+**Execution update (2026-10-18):** Operator clarified a clean restart of weather-related ML using WeatherNext 3 forecasts plus qualified local measurements. Open-Meteo must be completely removed from OpenHAB and Earthship UI at cutover; later capture-only acquisition is no longer part of the plan. Tasks 8–9 are one attended release with removal prepared in advance. Current access/evidence: `docs/operations/weathernext-readiness.md`; binding reset/removal contract: `docs/operations/openmeteo-retirement.md`.
+
 # WeatherNext 3 Exclusive Forecast Migration Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Qualify WeatherNext 3, migrate the Earthship's external forecasting and local-adaptation pipeline to it, and retire Open-Meteo from normal production use without reducing forecast skill or weakening existing safety/evidence gates.
 
-**Architecture:** WeatherNext is introduced as an isolated shadow provider with immutable issue-time provenance. During qualification, locally corrected Open-Meteo remains the production baseline only. After variable/horizon gates pass, a normalized provider boundary switches production forecasting to WeatherNext; subsequent cleanup removes Open-Meteo acquisition and provider-specific state. After retirement, WeatherNext outages fail visibly degraded rather than silently falling back to another provider.
+**Architecture:** WeatherNext is introduced as an isolated shadow provider with immutable issue-time provenance. During qualification, locally corrected Open-Meteo remains the production baseline only. After variable/horizon gates pass, a normalized provider boundary switches production forecasting to WeatherNext; the same attended cutover removes Open-Meteo acquisition, integration code/configuration and provider-specific state. After retirement, WeatherNext outages fail visibly degraded rather than silently falling back to another provider.
 
 **Tech Stack:** Existing Python/OpenHAB/PostgreSQL/Svelte stack; WeatherNext 3 precomputed statistics Zarr access; isolated Python acquisition dependencies; private local archive/index; existing Earthship and Solar_PV evidence readers; existing repository CI.
 
@@ -15,7 +21,9 @@
 ## Global Constraints
 
 - End state is one external meteorological provider: **WeatherNext 3**.
-- Open-Meteo is a temporary qualification/control source only and must have a defined retirement path.
+- Open-Meteo is a pre-cutover evaluation control only; remove its integration from OpenHAB and Earthship UI in the cutover release. No post-cutover capture-only service.
+- Restart weather-related ML with WeatherNext forecasts and qualified local measurements only. Do not import Open-Meteo features, fitted weather-dependent weights, bias/Kalman seeds, pending targets or error history.
+- Preserve qualified local histories and physical configuration. Audit weather-dependent PV/thermal components for fresh fitting; old fixed artifacts are pre-cutover comparison controls, not inherited new-model state.
 - `paid_access_allowed=false`; full-ensemble Requester Pays acquisition is out of scope.
 - Never attach a requester billing project or automatically enable paid Cloud compute/storage.
 - Initial WeatherNext mode is shadow-only; no actuator or notification authority.
@@ -174,10 +182,10 @@ Do not refactor unrelated forecast/UI code merely to accommodate this migration.
 - Test: `openhab/scripts/weather_learning/tests/test_evaluation.py`
 
 **Interfaces:**
-- Consumes: archived WeatherNext issues, original corrected Open-Meteo issues, qualified local temperature outcomes.
+- Consumes: archived WeatherNext issues and qualified local temperature outcomes for fitting; original corrected Open-Meteo issues only in a separate pre-cutover evaluation path.
 - Produces: versioned `ModelArtifact`, raw/locally-adapted WeatherNext predictions, frozen `EvaluationReport`.
 
-- [ ] **Step 1: Write `test_weathernext_never_uses_openmeteo_bias_state`.**
+- [ ] **Step 1: Write `test_weathernext_never_uses_openmeteo_bias_state`.** Also reject old fitted weather-dependent artifacts, features, error history and pending targets; an empty candidate must serve raw WeatherNext with an explicit untrained status.
 - [ ] **Step 2: Write temporal-leakage tests proving recent-error features contain only outcomes completed before the issue.**
 - [ ] **Step 3: Write chronological split/embargo tests; random time-row split is forbidden.**
 - [ ] **Step 4: Implement baseline evaluation for persistence, locally corrected Open-Meteo as issued, raw WeatherNext, and WeatherNext bounded-bias correction.**
@@ -219,10 +227,10 @@ Do not refactor unrelated forecast/UI code merely to accommodate this migration.
 - [ ] **Step 5: Stage weekly candidate training separately from acquisition and inference.** Never make the production forecast wait for model training.
 - [ ] **Step 6: Add a compact temporary comparison panel showing corrected Open-Meteo, raw WeatherNext and local WeatherNext candidate distinctly, labeled `Shadow — not controlling equipment`.**
 - [ ] **Step 7: Display source-run age/decision time and validation sample/horizon; do not invent a generic confidence percentage.**
-- [ ] **Step 8: Rehearse network loss, access revocation, schema change, reboot, interrupted write and archive recovery.**
+- [ ] **Step 8: Verify network loss, access revocation, schema change and interrupted-write refusal.** Recovery rehearsals remain deferred per operator instruction; do not expand this migration into backup/recovery work.
 - [ ] **Step 9: Verify disabling all new units leaves existing Open-Meteo production unchanged, then stage attended deployment.**
 
-**Gate:** At least 30 consecutive days of prospective acquisition are required before provider cutover review; at least 14 days of normal local-model shadow inference are required for that model's promotion review.
+**Gate:** Current complete manual and normal scheduled acquisition, source/contract correctness and operational health are required before monitored provider cutover. No fixed 30-day acquisition wait applies. Training/holdout and normal-shadow evidence remain scientific qualification criteria; explicitly provisional/unqualified monitored production may proceed before those targets are complete.
 
 ---
 
@@ -244,15 +252,21 @@ Do not refactor unrelated forecast/UI code merely to accommodate this migration.
 - [ ] **Step 3: Compare WeatherNext GHI and direct-beam forcing against qualified local irradiance before touching PV coefficients.** Diagnose timing error separately from daily energy error.
 - [ ] **Step 4: Evaluate the supported WeatherNext precipitation candidates against source-qualified rain events using a predeclared selection metric.** Freeze one WeatherNext precipitation product if/when evidence is adequate.
 - [ ] **Step 5: Hold the existing energy model fixed and swap only WeatherNext weather forcing.** Evaluate available PV, harvested PV, full-charge/no-full outcomes, evening SoC and overnight trough at correct issue origins.
-- [ ] **Step 6: Hold the accepted thermal artifact fixed and compare WeatherNext versus incumbent weather forcing on identical windows.** Do not refit building parameters in this attribution step.
+- [ ] **Step 6: Hold the accepted thermal artifact fixed and compare WeatherNext versus incumbent weather forcing on identical windows.** Do not refit building parameters in this attribution step. Audit every weather-dependent learned component and train the new production component afresh on Google/local pairs; a fixed-artifact comparison does not authorize carrying old weather-trained weights into the new model.
 - [ ] **Step 7: Record cloudy, clear, cold/front, precipitation and no-full cases separately.** Unsupported regimes remain explicit gaps.
-- [ ] **Step 8: Keep current PV/thermal release gates unchanged; run tests and commit reports.**
+- [ ] **Step 8: Preserve PV/thermal physics, source and disabled-actuation gates; apply the October 19 monitored-production policy to accuracy qualification; run tests and commit reports.**
 
-**Gate:** Every currently required Open-Meteo consumer must have either a qualified WeatherNext replacement or an explicit decision that it is no longer required before complete provider retirement.
+**Gate:** Every currently required Open-Meteo consumer must have a source/contract-verified WeatherNext path or explicit unavailability/removal before complete retirement. Predictive accuracy can remain unqualified and be assessed in production; missing values cannot become benign conditions or authorize action.
 
 ---
 
 ### Task 8: Production Provider Boundary and WeatherNext Cutover
+
+**Execution update (October 19):** the focused `weather_learning.production_worker`
+now consumes the Google-only provider directly; `forecast_intel.py` is retired by
+the separately owner-approved 84-path source patch (`2f02e38`). Native Astro is
+wired through the existing adapter. These source preparations do not complete
+the release/fitting/qualification/installed-cutover steps below.
 
 **Files:**
 - Create: `openhab/scripts/weather_learning/provider.py`
@@ -270,12 +284,12 @@ Do not refactor unrelated forecast/UI code merely to accommodate this migration.
 - [ ] **Step 3: Write `test_stale_weathernext_is_degraded_not_openmeteo_fallback`.** After WeatherNext selection, no automatic provider switch is allowed.
 - [ ] **Step 4: Write `test_provider_identity_is_bound_to_prediction_and_learning_state`.** Old Open-Meteo issues remain Open-Meteo history.
 - [ ] **Step 5: Extract/introduce only the provider boundary needed for `forecast_intel.py`; leave scoring, PV gates, notifications and downstream contracts unchanged unless the new source requires an explicit reviewed mapping.**
-- [ ] **Step 6: Define correction-state migration.** WeatherNext starts from its independently trained artifact/state; do not rename or reuse Open-Meteo Kalman/bias history as if provider-independent.
-- [ ] **Step 7: Take private rollback preimages, verify all variable gates, then perform an attended WeatherNext production selection.**
+- [ ] **Step 6: Define correction-state migration.** Use a new WeatherNext namespace with an empty, explicit untrained state, or a separately fitted Google/local artifact. Never call the legacy Kalman/backfill seeder, merge old state defaults, or retain Open-Meteo-trained weather weights. Separate local-only/physical configuration from learned weather state.
+- [ ] **Step 7: Take private rollback preimages, verify source/contract/operational checks under the October 19 monitored-production policy, then perform the reviewed attended WeatherNext production selection.**
 - [ ] **Step 8: Verify natural scheduled publication, forecast JSON identity, UI, energy/thermal consumers, reboot behavior and degraded-mode behavior.**
-- [ ] **Step 9: Retain Open-Meteo acquisition only as capture-only diagnostics during the defined rollback/stability interval; it has zero production authority.**
+- [ ] **Step 9: Apply the prepared Task 9 removal in this same attended cutover.** Stop Open-Meteo writers, detach its state and remove all integrations before qualifying the new runtime. No capture-only acquisition remains after cutover.
 
-**Gate:** WeatherNext is authoritative only after the dated release report records passing access, provenance, variable, regression, rollback and operational-health gates.
+**Gate:** WeatherNext is authoritative only after the dated operational release report records passing access, provenance, variable-contract, regression, rollback-prerequisite and operational-health checks. It must disclose unqualified predictive skill; the former calendar/statistical qualification windows do not block this owner-directed monitored deployment.
 
 ---
 
@@ -290,19 +304,19 @@ Do not refactor unrelated forecast/UI code merely to accommodate this migration.
 - Test: retirement/dependency regression tests.
 
 **Interfaces:**
-- Consumes: successful WeatherNext production stability interval and dependency manifest.
-- Produces: WeatherNext-only normal runtime with preserved historical Open-Meteo evidence.
+- Consumes: passing pre-cutover qualification and a reviewed dependency/reset manifest. Prepare removal before Task 8; execute it as part of the same attended release, then observe WeatherNext-only stability.
+- Produces: WeatherNext-only runtime and project, with historical Open-Meteo evidence detached from deployed readers and new learning.
 
-- [ ] **Step 1: Generate a machine/readable dependency inventory for every Open-Meteo Thing/channel/Item/function/state key and classify each as replaced, historical-only, or still required.**
+- [ ] **Step 1: Generate a machine/readable dependency inventory for every Open-Meteo Thing/channel/Item/function/state key and classify each as replaced, removed/unavailable, detached historical-only, or still blocking cutover. Include AQI/UV, managed and file-owned objects, installed binding/add-on configuration, scheduled jobs, frontend/alert consumers, migration tools/tests, CI and ownership manifests.**
 - [ ] **Step 2: Write `test_no_production_path_calls_openmeteo_after_retirement`.** Network acquisition and production provider selection must contain no Open-Meteo path.
-- [ ] **Step 3: Write `test_historical_openmeteo_records_remain_readable_and_provider_labeled`.**
-- [ ] **Step 4: Disable Open-Meteo acquisition first and observe the WeatherNext-only runtime through an attended stability window.** Do not delete code and disable service in one irreversible step.
-- [ ] **Step 5: Remove unused Open-Meteo Things/channels/provider code and temporary compatibility state in a separate cleanup patch.** Preserve immutable historical comparison data.
+- [ ] **Step 3: Verify detached historical records retain their original provider labels.** Any archive reader retained outside the active project cannot feed new fitting or production; add tests for fresh Google/local-only state and artifact lineage.
+- [ ] **Step 4: Prepare a reversible removal patch before cutover; stop Open-Meteo acquisition/writers first during the attended release.** Verify fresh WeatherNext state and observe the resulting Google-only runtime; no Open-Meteo diagnostic collector remains.
+- [ ] **Step 5: Apply the prepared removal patch in the cutover release.** Remove the installed binding, Things/channels/links, obsolete Item definitions, provider code, migration/deployment tooling and state references from OpenHAB and Earthship UI. Archive old state privately outside all runtime readers; retain historical documentation/Git identity without keeping executable integration. Remove stale UI/alert dependencies, including AQI/UV when no qualified Google replacement exists.
 - [ ] **Step 6: Remove temporary provider-comparison UI or simplify it to WeatherNext health/local-skill status.**
 - [ ] **Step 7: Run the entire repository CI/test/build suite and explicit network-call search.**
 - [ ] **Step 8: Commit retirement only after rollback materials remain available for the defined post-cutover window.**
 
-**Gate:** Normal runtime has one external forecast provider and no silent or dormant automatic Open-Meteo fallback.
+**Gate:** OpenHAB and the active Earthship UI project contain no Open-Meteo integration, acquisition or learning path; weather ML has only Google/local-measurement lineage. No silent, dormant or capture-only Open-Meteo runtime remains.
 
 ---
 
@@ -320,7 +334,7 @@ Do not refactor unrelated forecast/UI code merely to accommodate this migration.
 - [ ] **Step 2: Score post-cutover WeatherNext/local forecasts against actual outcomes and compare them with the frozen pre-cutover incumbent baseline.** Keep failures and adverse regimes in the report.
 - [ ] **Step 3: Verify Google access path still obeys zero-paid-access policy and record observed bytes/runtime/storage.**
 - [ ] **Step 4: Verify there are no credentials/private extracts in Git, built frontend assets, logs or screenshots intended for publication.**
-- [ ] **Step 5: Rehearse final recovery procedure and confirm what would be required to return to the pinned pre-cutover revision if necessary.**
+- [ ] **Step 5: Record the pinned pre-cutover revision and manual rollback prerequisites.** Backup/recovery rehearsal and finishing work remain deferred per operator instruction.
 - [ ] **Step 6: Update architecture docs to the actual final state and close superseded migration instructions.**
 - [ ] **Step 7: Record unresolved limitations explicitly: insufficient seasonal evidence, precipitation-event count, WeatherNext experimental-service risk, or any target left shadow-only.**
 
@@ -353,7 +367,7 @@ Recommended increments:
 3. **Temperature shadow:** Tasks 5–6.
 4. **Required-variable/downstream qualification:** Task 7.
 5. **WeatherNext production cutover:** Task 8.
-6. **Open-Meteo retirement:** Task 9.
+6. **Open-Meteo retirement:** prepare Task 9 before Task 8, apply it in the same cutover release, then observe WeatherNext-only stability.
 7. **Closure:** Task 10.
 
 Stop rather than proceed when any of the following is true:
@@ -362,8 +376,8 @@ Stop rather than proceed when any of the following is true:
 - real retrieval violates the zero-paid-access/resource policy;
 - source availability times cannot be represented honestly;
 - a required WeatherNext variable cannot be mapped correctly;
-- final holdout shows a material regression without an explicitly predeclared non-inferiority justification;
-- precipitation/solar evidence is too weak to retire a still-required Open-Meteo consumer;
+- an evaluated local correction shows a material regression: withhold that correction and serve raw WeatherNext where its operational checks pass;
+- a required precipitation/solar source or unit/interval contract is unavailable and the consumer has not been explicitly withdrawn; insufficient accuracy-event samples alone do not impose a calendar wait;
 - rollout reveals stale-data ambiguity, hidden fallback, or unintended control authority.
 
-Open-Meteo remaining in production longer than hoped is preferable to an evidence-free cutover. Once WeatherNext qualifies, however, the intended architecture is explicit: **retire Open-Meteo rather than operate a permanent dual-provider stack.**
+The operator has accepted monitored production before full statistical qualification. Complete the concrete source/contract/operational checks promptly, then retire Open-Meteo in the reviewed handoff. Record and tune actual production outcomes without claiming unmeasured skill or retaining an incumbent fallback.

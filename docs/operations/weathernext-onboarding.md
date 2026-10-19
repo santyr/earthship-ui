@@ -1,3 +1,5 @@
+**Execution update (2026-10-18):** WeatherNext access, noncommercial registration and native Earth Engine extraction now work after the documented read-only storage-scope and source-clock corrections. Bounded 360-hour private collection and shadow recording are installed and scheduled; all three precipitation products are retained separately for qualification. Production remains on the incumbent pending the approved cutover gates. The operator confirmed a fresh weather-ML start using Google forecasts plus qualified local measurements and complete Open-Meteo removal from OpenHAB/Earthship UI at cutover. The authoritative current plan is `docs/superpowers/plans/2026-10-05-weathernext-exclusive-forecast.md`; reset/removal details are in `docs/operations/openmeteo-retirement.md`, and live evidence is in `docs/operations/weathernext-readiness.md`. Earlier dates and fallback/capture-only instructions below are historical and superseded.
+
 **Status update (2026-10-05):** WeatherNext access request submitted; approval pending. The revised project end state is WeatherNext 3 as the sole external forecast provider after qualification; Open-Meteo remains only as a temporary migration control.
 
 # WeatherNext 3 — operator onboarding and connection checklist
@@ -58,7 +60,7 @@ Prefer existing keyless workload authentication when your infrastructure support
 
 Create a private directory such as `~/.config/earthship-weather/` with mode 700. Store the credential there with mode 600, owned by the account running the worker. The developer should pass its path through the private service environment, conventionally `GOOGLE_APPLICATION_CREDENTIALS`, and verify that the chosen reader actually uses the approved identity.
 
-Never paste the JSON into ChatGPT, Codex prompts, issues, commits, screenshots, browser config, or logs. Do not place it inside `public/`, `config.json`, or `VITE_*` configuration. Restrict its permissions, revoke unused keys, and document rotation/revocation. The code only needs the local path, not the key copied into source.
+Never paste the JSON into ChatGPT, Codex prompts, issues, commits, screenshots, browser config, or logs. Do not place it inside `public/`, `config.json`, or `VITE_*` configuration. Restrict its permissions and revoke unused keys. Credential rotation is not a requirement of this migration, per operator instruction. The code only needs the local path, not the key copied into source.
 
 Grant only the permissions proven necessary by the selected backend. For direct reads from Google's allowlisted bucket, granting your worker broad storage permissions in your own project does not grant access to Google's bucket. Approval for your personal account also does not prove approval for the worker account.
 
@@ -78,7 +80,7 @@ New services are user-level and installed disabled. At the attended enablement, 
 
 - Only the new private archive and three new shadow/status Items may be written.
 - Original Open-Meteo forecasts, energy safety rules, and notifications remain unchanged.
-- Runtime limits, archive backup, and rollback have been rehearsed.
+- Shared host admission and fresh collection evidence have been verified. Backup/recovery rehearsals remain deferred per operator instruction.
 
 Then allow normal scheduled collection and review its first natural issue. Do not fabricate past publication times or treat a forced manual test as a scheduled reliability result.
 

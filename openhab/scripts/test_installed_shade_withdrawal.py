@@ -47,40 +47,10 @@ def test_withdrawal_shares_existing_publication_lock(tmp_path):
     finally:os.close(fd)
 
 
-def test_minimal_withdraw_settings_require_no_model_or_database_files(tmp_path):
-    from thermal_model import installed_shade_live_inputs as inputs
-    assert hasattr(inputs,'load_withdraw_settings'),'missing withdrawal-only settings'
-    tmp_path.chmod(0o700);token=tmp_path/'token';token.write_text('fixture');token.chmod(0o600)
-    settings=dict(schema='earthship-installed-shade-withdraw-config/v1',openhab_base='http://127.0.0.1:8080/rest',token_file=str(token),evidence_directory=str(tmp_path))
-    p=tmp_path/'settings.json';p.write_text(json.dumps(settings));p.chmod(0o600)
-    assert inputs.load_withdraw_settings(p)==settings
-    p.write_text(json.dumps({**settings,'active':True}))
-    with pytest.raises(ValueError):inputs.load_withdraw_settings(p)
 
 
-def test_withdrawal_backend_refuses_changed_credentials_before_transport(tmp_path):
-    from thermal_model.installed_shade_live_inputs import WithdrawalBackend
-    tmp_path.chmod(0o700);token=tmp_path/'token';token.write_text('fixture');token.chmod(0o600)
-    backend=WithdrawalBackend(dict(openhab_base='http://127.0.0.1:8080/rest',token_file=str(token)))
-    calls=[]
-    class Transport:
-        def put(self,*args,**kwargs):calls.append(args)
-    backend.transport=Transport();token.write_text('changed fixture')
-    with pytest.raises(ValueError,match='credential changed'):backend.put('Thermal_Model_JSON','{}')
-    assert calls==[]
 
 
-def test_withdrawal_backend_rechecks_credentials_at_transport_preflight(tmp_path):
-    from thermal_model.installed_shade_live_inputs import WithdrawalBackend
-    tmp_path.chmod(0o700);token=tmp_path/'token';token.write_text('fixture');token.chmod(0o600)
-    backend=WithdrawalBackend(dict(openhab_base='http://127.0.0.1:8080/rest',token_file=str(token)))
-    writes=[]
-    class Transport:
-        def put(self,item,state,*,preflight):
-            token.write_text('changed fixture');preflight();writes.append((item,state))
-    backend.transport=Transport()
-    with pytest.raises(ValueError,match='credential changed'):backend.put('Thermal_Model_JSON','{}')
-    assert writes==[]
 
 
 def test_withdrawal_refuses_lock_replacement_during_source_verification(tmp_path):
@@ -93,26 +63,3 @@ def test_withdrawal_refuses_lock_replacement_during_source_verification(tmp_path
     result=module().withdraw_live_publication(archive=tmp_path,backend=backend,reason='operator')
     assert result['status']=='unverified_failure'
     assert backend.states==[]
-
-
-def test_cli_withdrawal_resource_refusal_precedes_configuration_and_transport(monkeypatch,capsys):
-    import thermal_installed_intel as cli
-    from thermal_model import installed_shade_live_inputs as inputs
-    def refuse():raise ValueError('synthetic headroom refusal')
-    monkeypatch.setattr(cli,'_resource_preflight',refuse)
-    def forbidden(*args):pytest.fail('configuration or transport reached after resource refusal')
-    monkeypatch.setattr(inputs,'load_withdraw_settings',forbidden)
-    monkeypatch.setattr(inputs,'WithdrawalBackend',forbidden)
-    assert cli.main(['--config','/missing/private/config','--withdraw','--reason','operator'])==1
-    result=json.loads(capsys.readouterr().out)
-    assert result['status']=='unverified_failure' and result['publication_executed'] is False
-
-
-@pytest.mark.parametrize('args',[
-    ['--withdraw'],['--publish','--withdraw','--reason','operator'],
-    ['--check-only','--reason','operator']])
-def test_cli_refuses_ambiguous_or_reasonless_intents_before_resources(monkeypatch,args):
-    import thermal_installed_intel as cli
-    monkeypatch.setattr(cli,'_resource_preflight',lambda:pytest.fail('invalid intent reached resources'))
-    with pytest.raises(SystemExit) as error:cli.main(['--config','/missing/private/config',*args])
-    assert error.value.code==2

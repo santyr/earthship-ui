@@ -82,6 +82,7 @@
   import OhIcon from '../lib/ui/OhIcon.svelte';
   import HourlyStrip from '../lib/ui/HourlyStrip.svelte';
   import DailyForecast from '../lib/ui/DailyForecast.svelte';
+  import ForecastComparison from '../lib/ui/ForecastComparison.svelte';
   import { colors } from '../lib/ui/tokens.js';
   import { skyIconColor } from '../lib/ui/wmo.js';
   import { items, connection, num, fmt } from '../lib/openhab';
@@ -105,32 +106,6 @@
     }
   }
 
-  // ---- AQI (EPA bands) -------------------------------------------------
-  // Forecast_AQI is a categorical refresh/status surface. Current conditions
-  // must come only from the separately provisioned numeric Current_US_AQI item.
-  function currentAqi(raw) {
-    const text = typeof raw === 'number' ? String(raw) : String(raw ?? '').trim();
-    const unavailable = {
-      value: null,
-      color: '#6b7280',
-      band: 'Current sensor not configured',
-      status: 'unavailable',
-    };
-    if (!/^(?:\d+\.?\d*|\.\d+)$/.test(text)) return unavailable;
-    const value = Math.round(Number(text));
-    if (!Number.isFinite(value) || value < 0) return unavailable;
-    if (value <= 50) return { value, color: '#22c55e', band: 'Good', status: 'good' };
-    if (value <= 100) return { value, color: '#eab308', band: 'Moderate', status: 'moderate' };
-    if (value <= 150) {
-      return { value, color: '#f97316', band: 'Unhealthy for sensitive groups', status: 'unhealthy' };
-    }
-    if (value <= 200) return { value, color: '#ef4444', band: 'Unhealthy', status: 'unhealthy' };
-    if (value <= 300) return { value, color: '#a855f7', band: 'Very unhealthy', status: 'critical' };
-    if (value <= 500) return { value, color: '#991b1b', band: 'Hazardous', status: 'critical' };
-    return { value, color: '#ef4444', band: 'Beyond index', status: 'critical' };
-  }
-  const aqi = $derived(currentAqi($items.Current_US_AQI));
-
   // ---- Hourly (14h) ------------------------------------------------------
   const forecastDetail = $derived(parseForecast10Day($items.Forecast_10Day_JSON,
     { nowMs: wallClock }));
@@ -138,6 +113,7 @@
     if (forecastDetail.status === 'ready') {
       return hourlyForecastFromDetail(forecastDetail, { nowMs: wallClock });
     }
+    if (!forecastDetail.legacyFallbackAllowed) return [];
     try {
       const raw = $items.Forecast_Hourly_JSON;
       if (!raw || raw === 'NULL' || raw === 'UNDEF') return [];
@@ -156,7 +132,7 @@
   // ---- 10-day controls with null-safe legacy fallback ---------------------
   const legacyForecast = $derived(parseLegacyDailyForecast($items.Forecast_Daily_JSON));
   const forecastDays = $derived(
-    forecastDetail.status === 'stale' ? []
+    forecastDetail.status === 'stale' || (forecastDetail.status !== 'ready' && !forecastDetail.legacyFallbackAllowed) ? []
       : forecastDetail.days.length > 0
         ? forecastDaysFromToday(forecastDetail, { nowMs: wallClock }) : legacyForecast
   );
@@ -244,24 +220,13 @@
     </Tile>
   </div>
 
-  <div class="cell aqi-cell">
-    <Tile label="Modeled US AQI" accent={aqi.color}>
-      <div class="aqi-body" data-source-item="Current_US_AQI" data-aqi-status={aqi.status}>
-        {#if aqi.value === null}
-          <div class="aqi-unavailable">Unavailable</div>
-        {:else}
-          <div class="aqi-value" style="color: {aqi.color}">{aqi.value}</div>
-        {/if}
-        <div class="aqi-band" style="color: {aqi.color}">{aqi.band}</div>
-      </div>
-    </Tile>
-  </div>
-
   <div class="cell hourly-cell">
     <Tile label="Next 14 Hours" accent={colors.forecast}>
       <div class="hourly-wrap">
         {#if forecastDetail.status === 'stale'}
           <div class="forecast-unavailable" role="status">Forecast stale</div>
+        {:else if forecastDetail.status !== 'ready' && !forecastDetail.legacyFallbackAllowed}
+          <div class="forecast-unavailable" role="status">Forecast unavailable</div>
         {:else}
           <HourlyStrip hours={forecastHourly} height={96} />
         {/if}
@@ -270,8 +235,11 @@
   </div>
 
   <div class="cell daily-cell">
-    <Tile label="10-Day Forecast" accent={colors.forecast}>
+    <Tile label={forecastDetail.provider === 'weathernext3' ? '10-Day Forecast · WeatherNext 3' : '10-Day Forecast'} accent={colors.forecast}>
       <DailyForecast days={forecastDays} variant="weather" onselect={selectForecastDay} />
+      {#if hasItem('Forecast_Provider_Status_JSON') || hasItem('Forecast_Comparison_JSON') || hasItem('Forecast_Local_Shadow_JSON')}
+        <ForecastComparison statusRaw={$items.Forecast_Provider_Status_JSON} comparisonRaw={$items.Forecast_Comparison_JSON} localRaw={$items.Forecast_Local_Shadow_JSON} nowMs={wallClock} connected={$connection === 'live'} />
+      {/if}
     </Tile>
   </div>
 
@@ -325,6 +293,7 @@
 </div>
 
 <style>
+  .daily-cell { position: relative; }
   .weather-grid {
     block-size: 100%;
     min-width: 0;
@@ -335,7 +304,7 @@
       minmax(0, 0.75fr) minmax(0, 1.05fr)
       minmax(0, 1.2fr) minmax(0, 0.6fr);
     grid-template-areas:
-      'current current current current aqi aqi'
+      'current current current current current current'
       'hourly hourly hourly hourly hourly hourly'
       'daily daily daily daily daily daily'
       'wind wind rain rain pressure pressure';
@@ -364,14 +333,12 @@
   .current-cell {
     grid-area: current;
   }
-  .aqi-cell {
-    grid-area: aqi;
-  }
   .hourly-cell {
     grid-area: hourly;
   }
   .daily-cell {
     grid-area: daily;
+    position: relative;
   }
   .wind-cell {
     grid-area: wind;
@@ -423,35 +390,6 @@
   }
   .cur-hum {
     color: #8b93a1;
-  }
-
-  /* ---- AQI ---- */
-  .aqi-body {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    gap: 0.15rem;
-  }
-  .aqi-unavailable {
-    color: #8b93a1;
-    font-size: 1rem;
-    font-weight: 650;
-    line-height: 1.1;
-  }
-  .aqi-value {
-    font-size: 2.6rem;
-    font-weight: 700;
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
-  }
-  .aqi-band {
-    font-size: 0.78rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    text-align: center;
   }
 
   /* ---- Hourly strip ---- */

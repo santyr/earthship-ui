@@ -94,15 +94,15 @@ def test_genuinely_distinct_candidate_retains_its_own_original_context(version,t
 @pytest.mark.parametrize('version',[5,6])
 def test_actual_enclosing_outcome_replays_full_source_context(version,tmp_path,monkeypatch):
     from household.outcomes import seal_outcomes,replay_outcomes
-    from household.outcome_origin import prepare_outcome_origin
-    from thermal_model.provisional_forecast import publication
+    from household.outcome_origin import prepare_native_outcome_origin
+    from native_thermal_forecast import publication
     from thermal_model.installed_shade_published_origin import NUMERIC_ITEM,PUBLICATION_ITEM
     if version==5:snap,_,prepared,capture=energy_snapshot(tmp_path,monkeypatch)
     else:snap,_,prepared,capture,_=make(tmp_path,monkeypatch)
     issue=instant(prepared.to_dict()['issue']);plan=run_pipeline(snap,prepared)
     receipts={name:dict(item=name,time=int((issue+timedelta(seconds=3+i)).timestamp()*1000),state=json.dumps(body))
         for i,(name,body) in enumerate(((NUMERIC_ITEM,capture['output']),(PUBLICATION_ITEM,publication(capture))))}
-    origin=prepare_outcome_origin(capture,receipts,code_revision='a'*40)
+    origin=prepare_native_outcome_origin(capture,receipts,code_revision='a'*40,runtime=capture['candidate']['runtime'],expected_artifact_sha256=capture['candidate']['artifact_sha256'],expected_capture_sha256=capture['capture_sha256'])
     arguments=dict(plan_receipt=plan,origin=origin,outcome_sources={},assessed_at=issue+timedelta(hours=1,minutes=5),
         plan_runtime_manifest=RUNTIME,outcome_runtime_manifest={'household/outcomes.py':'b'*64},thermal_runtime=prepared.to_dict()['executing_runtime'])
     result=seal_outcomes(**arguments)
@@ -110,7 +110,7 @@ def test_actual_enclosing_outcome_replays_full_source_context(version,tmp_path,m
     assert replay_outcomes(result,plan_runtime_manifest=RUNTIME,outcome_runtime_manifest=arguments['outcome_runtime_manifest'],thermal_runtime=arguments['thermal_runtime'])==result
 
 
-def test_operational_measured_source_closure_is_complete(tmp_path,monkeypatch):
+def test_operational_measured_source_closure_is_complete(tmp_path,monkeypatch,capsys):
     import subprocess,sys,os
     from household_pipeline import pipeline_runtime_manifest,verify_source_closure,MEASURED_VALIDATORS
     from household.power_snapshot import compile_power_inputs
@@ -128,8 +128,13 @@ def test_operational_measured_source_closure_is_complete(tmp_path,monkeypatch):
     for name,record in [('household_pipeline.py',result),('household_plan.py',result['output']['plan_receipt'])]:
         path=tmp_path/(name+'.json');path.write_bytes(canonical(record));path.chmod(0o600)
         response=subprocess.run([sys.executable,str(Path(__file__).with_name(name)),'--receipt',str(path)],capture_output=True,text=True,timeout=60,env=environment)
-        assert response.returncode==0,response.stderr
-        assert json.loads(response.stdout)==record
+        # Synthetic native model runtimes require the explicit in-process
+        # fixture hook. A cold process must enforce the actual runtime identity.
+        assert response.returncode==1
+        assert 'invalid or changed original context' in response.stderr
+        module=importlib.import_module(name.removesuffix('.py'))
+        assert module.main(['--receipt',str(path)])==0
+        assert json.loads(capsys.readouterr().out)==record
 
 
 @pytest.mark.parametrize('damage',['derived_value','original_source','context_digest'])

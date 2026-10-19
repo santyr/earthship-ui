@@ -27,6 +27,8 @@ def test_short_rank_deficient_data_can_fit_with_explicit_prior(monkeypatch):
 
 
 def test_provisional_fit_still_requires_explicit_optin(monkeypatch):
+    # CI explicitly enables the compatibility alias; this refusal needs both off.
+    monkeypatch.setenv('EARTHSHIP_REMOTE_QUALIFICATION_FIT','0')
     monkeypatch.setenv('EARTHSHIP_QUALIFICATION_FIT','0')
     with pytest.raises(ValueError):module().fit_points(endpoints(2),initial=COEFFICIENTS,deadline=time.monotonic()+10)
 

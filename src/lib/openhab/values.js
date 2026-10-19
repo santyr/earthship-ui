@@ -17,11 +17,11 @@ export function fmt(state, unit = '', digits = 0) {
 }
 
 // Forecast rain amounts (inches) render only when strictly positive — dry
-// days/hours stay clean with no "0.00″" clutter. Two decimals + typographic
+// days/hours stay clean with no "0.00″" clutter; positive traces show <0.01″. Two decimals + typographic
 // double-prime, e.g. "0.24″".
 export function rainAmountText(value) {
   const n = num(value);
-  return n !== null && n > 0 ? `${n.toFixed(2)}″` : null;
+  return n !== null && n > 0 ? n < 0.005 ? '<0.01″' : `${n.toFixed(2)}″` : null;
 }
 
 // Default = full-bank thresholds (4P 400 Ah since 2026-07-18); pass

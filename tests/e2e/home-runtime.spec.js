@@ -109,7 +109,7 @@ function itemSnapshot(overrides = {}) {
 }
 
 async function openHomeFixture(page, target, {
-  states = {}, staleSeconds = 90, historyRows, historyFailure,
+  states = {}, staleSeconds = 90, historyRows, historyFailure, configDelayMs = 0,
 } = {}) {
   let activeStates = { ...states };
   const historyRequests = [];
@@ -140,13 +140,10 @@ async function openHomeFixture(page, target, {
       value: FixtureEventSource,
     });
   });
-  await page.route('**/config.json', (route) => route.fulfill({
-    json: {
-      openhabUrl: '/fixture-openhab',
-      apiToken: 'fixture-only',
-      staleBannerSeconds: staleSeconds,
-    },
-  }));
+  await page.route('**/config.json', async (route) => {
+    if (configDelayMs) await new Promise(resolve => setTimeout(resolve, configDelayMs));
+    return route.fulfill({ json: { openhabUrl: '/fixture-openhab', apiToken: 'fixture-only', staleBannerSeconds: staleSeconds } });
+  });
   await page.route('**/fixture-openhab/rest/items?*', (route) => route.fulfill({
     json: itemSnapshot(activeStates),
   }));
@@ -1165,7 +1162,7 @@ for (const target of TARGETS) {
     expect(geometry.outdoorSvg.right).toBeLessThanOrEqual(geometry.outdoorHost.right + 0.5);
     expect(geometry.outdoorSvg.bottom).toBeLessThanOrEqual(geometry.outdoorHost.bottom + 0.5);
 
-    expect(geometry.outdoor.chipItems).toHaveLength(2);
+    expect(geometry.outdoor.chipItems).toHaveLength(1);
     expect(geometry.windNeedleCount).toBe(1);
     expect(geometry.windHubCount).toBe(1);
     for (const cardinal of geometry.windCardinals) {
@@ -1178,7 +1175,8 @@ for (const target of TARGETS) {
     await expect(page.getByRole('group', { name: 'Power Flow', exact: true })).toBeAttached();
     await expect(page.getByRole('group', { name: 'Goat feedings: 2 feedings today', exact: true })).toBeVisible();
     await expect(page.locator('.goat-activation-icon')).toHaveCount(0);
-    await expect(page.locator('.sm-season')).toContainText(/(?:equinox|solstice)/);
+    // This fixture has no native season Items or freshness evidence.
+    await expect(page.locator('.sm-season')).toHaveText('Season unavailable');
     await expect(page.locator('.outdoor-spark svg path[stroke="#4caf50"]').first()).toBeVisible();
     await expect(page.locator('.indoor-spark svg')).toBeVisible();
     await expect(page.locator('.outdoor-hilo')).toHaveText('H 80° / L 53°');
@@ -1196,15 +1194,13 @@ for (const target of TARGETS) {
     await expect(page.locator('.outdoor-spark svg path[stroke="#f44336"]').first()).toBeVisible();
     await expect(page.getByRole('group', { name: 'Indoor', exact: true })).toBeAttached();
     await expect(page.getByRole('group', { name: 'Rain', exact: true })).toBeAttached();
-    await expect(page.getByText('AQI 42', { exact: true })).toBeVisible();
+    await expect(page.locator('.aqi-chip')).toHaveCount(0);
     await expect(page.locator('.compass-heading')).toHaveText('N · 0°');
     await expect(page.locator('.wind-meta')).toHaveText('gust 18 · max 18 mph');
     await expect(
       page.getByRole('img', { name: 'Wind direction N, 0 degrees, speed 11 mph', exact: true })
     ).toBeVisible();
     await expect(page.getByText('AQI 501', { exact: true })).toHaveCount(0);
-    await expect(page.locator('.aqi-chip')).toHaveCSS('color', 'rgb(248, 250, 252)');
-    await expect(page.locator('.aqi-chip')).toHaveCSS('border-top-color', 'rgb(34, 197, 94)');
     await expect(page.getByText('UV 0', { exact: true })).toHaveCSS('color', 'rgb(76, 175, 80)');
     await expect(page.locator('.rain-rate-chip')).toHaveCount(0);
     await expect(page.getByRole('group', { name: /^Greywater status idle\./i })).toBeAttached();
@@ -1387,8 +1383,6 @@ for (const target of TARGETS) {
     await expect(page.locator('.wind-meta')).toHaveText('gust 18 · max 18 mph');
     await expect(page.getByRole('group', { name: /^Greywater status unavailable\./i })).toBeAttached();
     await expect(page.locator('.gw-icon')).toHaveCSS('color', 'rgb(139, 147, 161)');
-    await expect(page.locator('.aqi-chip')).toHaveCSS('color', 'rgb(248, 250, 252)');
-    await expect(page.locator('.aqi-chip')).toHaveCSS('border-top-color', 'rgb(139, 147, 161)');
     await expect(page.getByText('UV —', { exact: true })).toHaveCSS('color', 'rgb(139, 147, 161)');
     await expect(page.locator('.rain-rate-chip')).toHaveText('RAIN 0.13 in/h');
     await expect(page.locator('.rain-rate-chip')).toHaveCSS('color', 'rgb(59, 130, 246)');
@@ -1426,7 +1420,7 @@ for (const target of TARGETS) {
     expectPrimaryChartHeights(geometry);
     expectHomeCardSeparation(geometry);
     expect(geometry.centeredBodies).toBe(14);
-    expect(geometry.outdoor.chipItems).toHaveLength(3);
+    expect(geometry.outdoor.chipItems).toHaveLength(2);
     expect(geometry.windNeedleCount).toBe(0);
     expect(geometry.windHubCount).toBe(0);
     expect(geometry.fonts.outdoor).toBeCloseTo(64, 1);
@@ -1474,4 +1468,29 @@ test('upstream freshness reaches the tablet header without value changes', async
   expect(runtime.unexpectedExternalRequests).toEqual([]);
   expect(writes).toEqual([]);
   await page.screenshot({ path: testInfo.outputPath('upstream-freshness-1340x800.png') });
+});
+
+
+test('Home loads history and measured daily extrema after delayed client startup', async ({ page }) => {
+  const runtime = await openHomeFixture(page, TARGETS[1], { configDelayMs: 4500 });
+  await expect(page.locator('.outdoor-hilo')).toHaveText('H 80° / L 53°', { timeout: 8000 });
+  for (const selector of ['.outdoor-spark', '.indoor-spark', '.battery-spark', '.baro-spark']) {
+    await expect.poll(() => page.evaluate(async (selector) => {
+      const { getEcharts } = await import('/src/lib/charts/loadEcharts.js');
+      return (await getEcharts()).getInstanceByDom(document.querySelector(selector+' .sparkline'))?.getOption()?.series?.[0]?.data?.length ?? 0;
+    }, selector)).toBeGreaterThan(1);
+  }
+  expect(runtime.pageErrors).toEqual([]);
+});
+
+test('Energy charts recover from a transient history failure without a reload', async ({ page }) => {
+  let fail = false;
+  const runtime = await openHomeFixture(page, TARGETS[1], { historyFailure: () => fail });
+  fail = true;
+  await page.goto(`${baseURL}#/energy`, { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.hero-chart .hc-error')).toBeVisible();
+  fail = false;
+  await expect(page.locator('.hero-chart .hc-canvas svg')).toBeVisible({ timeout: 15000 });
+  await expect(page.locator('.pv-chart .hc-canvas svg')).toBeVisible({ timeout: 15000 });
+  expect(runtime.pageErrors).toEqual([]);
 });

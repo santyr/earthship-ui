@@ -22,6 +22,6 @@ it('expires from the display clock without waiting for another fetch',async()=>{
  expect(container.textContent).toContain('Expired');
 });
 it('does not fabricate feeding or shade advice when it is absent',async()=>{
- serve();const a=render(RecommendationPreview,{group:'feeding'});await waitFor(()=>expect(a.container.textContent).toContain('Not proposed'));
+ serve();const a=render(RecommendationPreview,{group:'feeding'});expect(a.container.querySelector('[data-recommendation-group]')).toBeNull();
  const b=render(RecommendationPreview,{group:'shades'});expect(b.container.textContent).toContain('Model shade advice unavailable');
 });

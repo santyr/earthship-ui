@@ -15,22 +15,27 @@ Canonical source files live here; deploy only their declared destinations.
 Preparing a source file does not transfer runtime ownership. Existing managed
 resources remain managed until a verified, receipt-backed cutover removes that
 provider and loads the file definition. Never create overlapping definitions.
-`items/openmeteo-current-aqi.items` is now installed as the sole provider for
-`Current_US_AQI` and its OpenMeteo channel link. Isolated provider/link,
-state/JDBC and full-restart checks passed before the attended cutover; live
-provider/state and historical-prefix readback passed afterward. The private
-rollback snapshot and completed natural-writer check are recorded in
-`docs/operations/2026-09-23-openmeteo-aqi-item-cutover.md`. The source file's
-pre-cutover warning remains a guard against installing it alongside a managed
-provider on another host.
-`items/openmeteo-forecast-aqi.items` is now the sole file provider for
-`Forecast_AQI` and its hourly OpenMeteo channel link. Networkless provider,
-managed-rollback and exact `REFRESH`-state/JDBC recovery checks passed before
-the attended one-Item/one-link transfer. The live Item and link are noneditable,
-the special `REFRESH` state recovered, and the two older JDBC rows retained Item
-ID 582. The next natural 48-value binding series after transfer is still a
-separate verification gate; see
-`docs/operations/2026-09-23-openmeteo-forecast-aqi-item-cutover.md`.
+The prepared WeatherNext release removes the modeled current/forecast AQI Items,
+their channel links and the air-quality Thing. Their historical file ownership
+and cutover evidence remain in Git/operations history; do not reinstall those
+retired definitions. The running host retains its incumbent configuration until
+the coordinated WeatherNext cutover. See
+[the retirement contract](../../docs/operations/openmeteo-retirement.md).
+
+The prepared Google source uses six unlinked state targets in
+`items/forecast-weather.items`: current/hourly temperature, daily high/low,
+cloud cover, radiation and daily precipitation. Their explicit units are °F,
+%, W/m² and mm. These six ownership entries are **prepared**, not installed or
+verified Google writers. The old linked temperature/meteorology/daily files,
+weather Things and provider-specific migration/series probes are removed from
+this release source. Unsupported forecast probability, weather-code and UV
+Items are removed; physical station measurements remain. Keep `gForecast`,
+its persistence selectors and existing histories. Its provider transfer is
+already complete; do not rerun the obsolete cold/hot handoff tools. Install the
+new targets and remove old links/definitions only with the coordinated provider
+and consumer cutover. Do not merge this prepared manifest into the running
+installation as an inventory-only update.
+
 Three observational forecast JSON Items now share
 `items/forecast-json.items`; their isolated provider/JDBC/full-restart checks,
 live managed rollback and return, state preservation and unchanged history are
@@ -398,3 +403,8 @@ file-owned after actual original-managed rollback and final transfer. Their
 6,994 original rows and latest JDBC values are independently verified. Current
 installed source paths total59. The operator then stopped migration and directed
 work to machine learning; the prior58-source restart baseline is unrefreshed.
+
+
+## WeatherNext comparison Items — October 18
+
+The three String Items in `items/forecast-provider-shadow.items` are now installed and file-owned, with no groups or channel links. Ownership was appended after actual hot-load/state readback; this does not claim restart/recovery qualification. Only `local-forecast-shadow.service` publishes their identical sealed shadow generation. The live Weather comparison and first one-pair candidate remain unqualified and have no equipment authority. See the [activation record](../../docs/operations/2026-10-18-weathernext-comparison-activation.md).

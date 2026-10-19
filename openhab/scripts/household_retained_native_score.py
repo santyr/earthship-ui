@@ -13,16 +13,17 @@ def run(config,*,stage,deployment_sha256,deadline,resource_preflight,pressure_fa
         source_guard,verify_archive,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic):
     import os,math
     from native_thermal_live import load_settings,SERVING_SCHEMA
+    import native_thermal_live as native
     from native_model_serving_receipt import load_serving_selection,read_serving_model
     from thermal_model.capture_guard import SharedScoreLock
-    from thermal_model.provisional_live import _next_issue
+    from thermal_model.native_operational_io import _next_issue
     from thermal_model.policy_registration import _read_private
     from household_observation import _private_file
     if not math.isfinite(deadline) or monotonic()>=deadline:raise ValueError('score lifetime elapsed')
     source_guard();resource_preflight()
     os.environ['EARTHSHIP_QUALIFICATION_FIT']='0';os.environ['EARTHSHIP_REMOTE_QUALIFICATION_FIT']='0'
     config=Path(config).absolute();original=_private_file(config,8192);settings=load_settings(config)
-    if settings.get('schema')!=SERVING_SCHEMA:raise ValueError('retained native execution requires explicit serving profile')
+    if settings.get('schema') not in getattr(native,'SERVING_SCHEMAS',(SERVING_SCHEMA,)):raise ValueError('retained native execution requires explicit serving profile')
     from household.codec import loads
     from household_cycle_deploy import _bytes
     cycle=loads(_bytes(Path(stage)/'cycle.json',private=True))
@@ -56,8 +57,8 @@ def score_jobs(settings,*,guard,deadline,clock,monotonic,reader=None,max_jobs=1,
     from native_thermal_artifact import _read
     from household_cycle import load_cycle_delivery
     from thermal_model.forcing_capture import _private_directory
-    from thermal_model.provisional_monitor import _folders
-    from thermal_model.provisional_live import _phase_directory
+    from thermal_model.native_operational_io import _folders
+    from thermal_model.native_operational_io import _phase_directory
     from thermal_model.recent_cycles import compare_v2
     from thermal_model.replay_budget import shared_replay_budget,capture_source_reads
     if type(max_jobs) is not int or max_jobs!=1:raise ValueError('one serial native score job required')
@@ -66,8 +67,8 @@ def score_jobs(settings,*,guard,deadline,clock,monotonic,reader=None,max_jobs=1,
         guard();seconds=deadline-monotonic()
         if seconds<=0:raise ValueError('native scoring deadline exceeded')
         return seconds
-    receipt_profile=settings.get('schema')==SERVING_SCHEMA
-    if settings.get('schema') not in (LIVE_SCHEMA,SERVING_SCHEMA):raise ValueError('explicit native scoring selection required')
+    receipt_profile=settings.get('schema') in getattr(archive,'SERVING_SCHEMAS',(SERVING_SCHEMA,))
+    if settings.get('schema') not in getattr(archive,'NATIVE_SCHEMAS',(LIVE_SCHEMA,SERVING_SCHEMA)):raise ValueError('explicit native scoring selection required')
     if receipt_profile:
         if type(historical_selections) is not tuple or len(historical_selections)>31:raise ValueError('bounded owned historical score selections required')
         _serving_settings(serving_model,settings,assessed_at=now,guard=remaining)

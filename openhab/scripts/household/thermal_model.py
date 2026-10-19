@@ -44,7 +44,7 @@ class PreparedProjection:
 
 
 def _execution_runtime(root):
-    from thermal_model.provisional_live import RUNTIME_PATHS
+    from thermal_model.native_operational_io import RUNTIME_PATHS
     from thermal_model.origin_capture import build_runtime_binding,_source_bytes
     paths=EXECUTION_SOURCES
     manifest={name:sha256(_source_bytes(root/name,maximum=262144)).hexdigest() for name in paths}
@@ -123,8 +123,10 @@ def _geometry(value):
 
 def _native_prepared(value):
     from native_thermal_model import RULE
+    from native_joint_shade import RULE as JOINT_RULE
     from native_thermal_artifact import validate_native_runtime,digest as native_digest
-    if value['model_rule']!=RULE:raise ValueError('native prepared model rule required')
+    from native_irradiance_shade import RULE as IRRADIANCE_RULE
+    if value['model_rule'] not in (RULE,JOINT_RULE,IRRADIANCE_RULE):raise ValueError('native prepared model rule required')
     runtime=value['executing_runtime']
     if (not isinstance(runtime,dict) or set(runtime)!={'schema','thermal_runtime','household_source_manifest'} or
             runtime['schema']!='earthship-household-model-runtime/v2'):
@@ -164,7 +166,7 @@ def _prepare_native_projection(capture,*,code_revision,runtime,expected_artifact
     issue,published,available=map(_instant,(original['issued_at'],original['published_at'],original['inputs_available_at']))
     inputs=original['inputs'];candidate=original['candidate']
     _,initial=_temperatures(inputs['origin_temperatures'],inputs['current'],issued_at=issue,published_at=published,version=2)
-    actions=_origin_actions(inputs['action_snapshot'],issue);forcings=_forecast_forcing(inputs['forecast'],issue,available,actions)
+    actions=_origin_actions(inputs['action_snapshot'],issue,allow_removed=candidate['fit']['model_rule'] in ('earthship-native-joint-shade-dynamics/v3','earthship-native-irradiance-shade-dynamics/v4'));forcings=_forecast_forcing(inputs['forecast'],issue,available,actions)
     observations=[]
     for role,name in ROLES.items():
         source=inputs['origin_temperatures']['roles'][role];receipt=source['grid'][-1][1]
@@ -210,10 +212,13 @@ def prepare_serving_native_projection(capture,model,*,code_revision,expected_cap
 
 def _project_native(value):
     from native_thermal_model import NativeInstalledShadeDynamics
+    from native_joint_shade import NativeJointShadeDynamics,RULE as JOINT_RULE
     from astro_geometry import _instant
     geometry=_geometry(value);initial=value['initial']
     forcings=tuple(InstalledShadeForcing(**{**row,'at':_instant(row['at'])}) for row in value['forcings'])
-    model=NativeInstalledShadeDynamics(tuple(value['coefficients']),geometry=geometry,expected_series_sha256=value['geometry_series_sha256'])
+    from native_irradiance_shade import NativeIrradianceShadeDynamics,RULE as IRRADIANCE_RULE
+    model_type=NativeIrradianceShadeDynamics if value['model_rule']==IRRADIANCE_RULE else NativeJointShadeDynamics if value['model_rule']==JOINT_RULE else NativeInstalledShadeDynamics
+    model=model_type(tuple(value['coefficients']),geometry=geometry,expected_series_sha256=value['geometry_series_sha256'])
     rolled=model.rollout(origin_at=_instant(value['issue']),air_f=initial['air'],mass_f=initial['mass'],forcings=forcings)
     trajectory=[dict(at=row.at.isoformat(),air_f=state[0],mass_f=state[1]) for i,(row,state) in enumerate(zip(forcings,rolled.states),1) if i%12==0]
     output=dict(schema='earthship-provisional-thermal-forecast/v2',status='provisional',generated_at=value['issue'],

@@ -4,7 +4,7 @@ from hashlib import sha256
 import inspect,json,subprocess,shlex
 import pytest
 from test_native_household_deploy import native_fixture
-from test_household_cycle_deploy import write,encode
+from test_household_cycle_deploy import write,encode,baseline_metadata_stage
 
 
 def fixture(tmp_path,monkeypatch):
@@ -20,7 +20,7 @@ def fixture(tmp_path,monkeypatch):
     subprocess.run(['git','-C',str(repo),'add','.'],check=True,capture_output=True)
     subprocess.run(['git','-C',str(repo),'-c','user.name=Test','-c','user.email=test@example.invalid','commit','-qm','serving package fixture'],check=True,capture_output=True)
     args['code_revision']=subprocess.check_output(['git','-C',str(repo),'rev-parse','HEAD'],text=True).strip()
-    runtime=candidate['runtime'];runtime['native_source_manifest']={name:sha256(files[name]).hexdigest() for name in artifacts.REQUIRED_SOURCES|artifacts.OPTIONAL_SOURCES}
+    runtime=candidate['runtime'];runtime['native_source_manifest']={name:sha256(files[name]).hexdigest() for name in artifacts.REQUIRED_SOURCES|artifacts.OPTIONAL_SOURCES|artifacts.JOINT_SOURCES|artifacts.IRRADIANCE_SOURCES}
     runtime['native_code_revision']=artifacts.digest(runtime['native_source_manifest'])
     import astro_geometry_worker as worker
     native_runtime={'binding_version':'5.2.3','libraries':{role:'a'*64 for role in worker.ROLES},'collector_sha256':'b'*64}
@@ -31,12 +31,10 @@ def fixture(tmp_path,monkeypatch):
     receipt=tmp_path/'original/model-receipt.json';write(receipt,encode({'package_fixture_only':True}))
     legacy_args={k:v for k,v in args.items() if k!='service_forecast_config'}
     legacy_args.update(stage=tmp_path/'legacy',forecast_config=args['service_forecast_config'])
-    deploy.stage_deployment(**legacy_args)
+    baseline_metadata_stage(legacy_args)
     dispatch=tmp_path/'original/score-dispatch.json'
-    write(dispatch,encode({'schema':'earthship-native-score-dispatch/v1','current':'current','legacy':{
-        'stage':str(legacy_args['stage']),'deployment_sha256':sha256((legacy_args['stage']/'deployment.json').read_bytes()).hexdigest(),
-        'config':str(legacy_args['forecast_config']),'config_sha256':sha256(legacy_args['forecast_config'].read_bytes()).hexdigest()},'historical':[]}))
-    settings.update(schema='earthship-provisional-thermal-live-config/v3',artifact_sha256=candidate['artifact_sha256'],runtime_sha256=candidate['runtime_sha256'],model_receipt_path=str(receipt),model_receipt_sha256=sha256(receipt.read_bytes()).hexdigest())
+    write(dispatch,encode({'schema':'earthship-native-score-dispatch/v2','current':'current','historical':[]}))
+    settings.update(schema='earthship-weathernext-thermal-live-config/v2',artifact_sha256=candidate['artifact_sha256'],runtime_sha256=candidate['runtime_sha256'],model_receipt_path=str(receipt),model_receipt_sha256=sha256(receipt.read_bytes()).hexdigest())
     write(args['forecast_config'],encode(settings))
     args.update(model_receipt_path=receipt,model_receipt_sha256=settings['model_receipt_sha256'],score_dispatch_path=dispatch,score_dispatch_sha256=sha256(dispatch.read_bytes()).hexdigest())
     libraries=tmp_path/'libraries.json';paths={role:str(tmp_path/(role+'.jar')) for role in worker.ROLES}

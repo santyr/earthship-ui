@@ -53,34 +53,13 @@ def test_bad_item_or_persistence_never_becomes_delivery_proof(bad):
         else:transport.persisted('Thermal_Model_JSON',state,since=at,until=at+timedelta(seconds=1))
 
 
-def test_pending_weather_uses_actual_precollection_cutoff_and_preserves_old_api():
-    from thermal_model import forecast_history as h
-    from test_thermal_forecast_history import ORIGIN,issue,Connection
-    cutoff=ORIGIN-timedelta(seconds=30)
-    rows=issue(ORIGIN-timedelta(hours=2),ORIGIN-timedelta(hours=1))
-    late=issue(ORIGIN-timedelta(minutes=30),ORIGIN-timedelta(seconds=10))
-    connection=Connection(rows+late)
-    actual=h.fetch_pending_origin_forecast_with_receipts(lambda:connection,origin=ORIGIN,horizon_hours=1,available_by=cutoff)
-    assert actual['issued_at']==ORIGIN-timedelta(hours=2)
-    assert connection.cur.calls[-1][1][3]==cutoff
-    assert connection.closed and connection.readonly
-    legacy=h.fetch_origin_forecast_with_receipts(lambda:Connection(rows+late),origin=ORIGIN,horizon_hours=1)
-    assert legacy['issued_at']==ORIGIN-timedelta(minutes=30)
+def google_source(issue,known):
+    from weather_learning.tests.learning_fixtures import SITE,full_snapshot
+    from weather_learning.native_forecast import make_native_forecast
+    source=full_snapshot(issue.replace(minute=0,second=0,microsecond=0)-timedelta(hours=8))
+    return make_native_forecast(source,origin=issue,available_by=known,horizon_hours=24,site=SITE)
 
 
-def test_private_live_config_refuses_active_dates_extra_fields_and_public_secrets(tmp_path):
-    m=module();tmp_path.chmod(0o700)
-    archive=tmp_path/'evidence';archive.mkdir(mode=0o700)
-    fields={name:str(tmp_path/name) for name in ('release_inputs_path','token_file','journal_dsn_file','forecast_dsn_file','native_db_config','native_policy')}
-    for name in fields:Path(fields[name]).write_text('fixture');Path(fields[name]).chmod(0o600)
-    config=dict(schema='earthship-installed-shade-live-config/v1',openhab_base='http://127.0.0.1:8080/rest',evidence_directory=str(archive),**fields)
-    path=tmp_path/'config';path.write_text(json.dumps(config));path.chmod(0o600)
-    loaded=m.load_live_settings(path);assert loaded['evidence_directory']==str(archive)
-    for key in ('active','assessed_at'):
-        path.write_text(json.dumps({**config,key:True}))
-        with pytest.raises(ValueError):m.load_live_settings(path)
-    path.write_text(json.dumps(config));Path(fields['token_file']).chmod(0o644)
-    with pytest.raises(ValueError):m.load_live_settings(path)
 
 
 
@@ -94,17 +73,6 @@ def test_database_transport_failure_is_an_unavailable_source_not_uncaught_worker
 
 
 
-def test_cli_explicit_legacy_profile_checks_private_config_with_no_live_transports(tmp_path):
-    import subprocess,sys
-    m=module();tmp_path.chmod(0o700);archive=tmp_path/'evidence';archive.mkdir(mode=0o700)
-    fields={name:str(tmp_path/name) for name in ('release_inputs_path','token_file','journal_dsn_file','forecast_dsn_file','native_db_config','native_policy')}
-    for name in fields:Path(fields[name]).write_text('fixture');Path(fields[name]).chmod(0o600)
-    config=dict(schema='earthship-installed-shade-live-config/v1',openhab_base='http://127.0.0.1:8080/rest',evidence_directory=str(archive),**fields)
-    path=tmp_path/'config';path.write_text(json.dumps(config));path.chmod(0o600)
-    script=Path(__file__).resolve().parent/'thermal_installed_intel.py'
-    result=subprocess.run([sys.executable,str(script),'--config',str(path),'--contract-version','1'],check=True,capture_output=True,text=True)
-    assert json.loads(result.stdout)==dict(status='configuration_verified',publication_executed=False,automatic_actuation=False)
-    assert list(archive.iterdir())==[]
 
 
 @pytest.mark.parametrize('delay',['item_lookup','request_pacing'])
@@ -134,7 +102,7 @@ def test_final_send_guard_runs_after_metadata_and_pacing_and_blocks_expired_nati
 
 
 def test_live_source_collection_keeps_preissue_knowledge_native_epoch_and_actual_grid(monkeypatch):
-    from thermal_model import action_history,forecast_history
+    from thermal_model import action_history
     from thermal_model.temperature_history import STREAMS
     from test_installed_shade_origin import weather,actions,EPOCHS
     import test_thermal_sensor_epoch_origins as native
@@ -151,9 +119,9 @@ def test_live_source_collection_keeps_preissue_knowledge_native_epoch_and_actual
             return super().observe(message)
     monkeypatch.setattr(native,'TemperatureCollector',ChangingMassCollector)
     read=native.native_grid();requests=[];queried=[]
-    def pending(factory,*,origin,horizon_hours,available_by):
-        queried.append(('weather',origin,available_by));assert horizon_hours==24
-        return weather(issue)
+    def pending(*,issue,horizon_hours,available_by):
+        queried.append(('weather',issue,available_by));assert horizon_hours==24
+        return google_source(issue,available_by)
     def origin_actions(factory,*,origin):
         queried.append(('actions',origin));return actions(origin)
     def collect(request,*,config_path,policy_path,connection_factory):
@@ -161,11 +129,10 @@ def test_live_source_collection_keeps_preissue_knowledge_native_epoch_and_actual
         assert request['receipt_version']==2 and request['sensor_epoch'] in EPOCHS.values()
         assert config_path=='native-config' and policy_path=='native-policy'
         return read(request['stream'],[datetime.fromisoformat(t) for t in request['targets']],datetime.fromisoformat(request['assessed_at']))
-    monkeypatch.setattr(forecast_history,'fetch_pending_origin_forecast_with_receipts',pending)
     monkeypatch.setattr(action_history,'fetch_origin_actions',origin_actions)
     monkeypatch.setattr(temperatures,'collect_v2',collect)
     backend=object.__new__(m.LiveBackend);backend.settings=dict(native_db_config='native-config',native_policy='native-policy')
-    backend.epochs=EPOCHS;backend.budget=ReadBudget(30);backend.journal_dsn=backend.forecast_dsn='unused'
+    backend.epochs=EPOCHS;backend.budget=ReadBudget(30);backend.journal_dsn='unused';backend.forecast_reader=pending
     result=backend.collect(issue=issue,known_at=known)
     assert queried==[('weather',issue,known),('actions',known)]
     assert len(requests)==3 and all(len(row['targets'])==289 for row in requests)
@@ -194,7 +161,7 @@ def source_backend_case(tmp_path,monkeypatch,*,source=True,guard=lambda:None,bac
     from test_thermal_sensor_epoch_history import sources,EPOCHS
     from test_weather_temperature_history import Connection
     from test_weather_temperature_reader import AT
-    from thermal_model import forecast_history,action_history
+    from thermal_model import action_history
     import hourly_temperature_runtime
     m=module();policy,rows=sources(tmp_path,monkeypatch);tmp_path.chmod(0o700)
     archive=tmp_path/'queries';archive.mkdir(mode=0o700)
@@ -202,13 +169,13 @@ def source_backend_case(tmp_path,monkeypatch,*,source=True,guard=lambda:None,bac
     backend=object.__new__(backend_type or (m.SourceLiveBackend if source else m.LiveBackend))
     backend.settings=dict(native_db_config='/fixture/db',native_policy=str(policy),evidence_directory=str(archive))
     backend.epochs=dict(EPOCHS);backend.budget=ReadBudget(30,guard=guard);backend.hashes={}
-    backend.journal_dsn=backend.forecast_dsn='fixture'
+    backend.journal_dsn='fixture'
+    backend.forecast_reader=lambda **kw:google_source(kw['issue'],kw['available_by'])
     monkeypatch.setattr(hourly_temperature_runtime,'read_db_config',lambda _:dict(host='127.0.0.1',dbname='openhab',user='reader_fixture',password='fixture'))
     connections=[]
     def connect(_):
         connection=Connection(rows=rows);connections.append(connection);return connection
     backend._connect=connect
-    monkeypatch.setattr(forecast_history,'fetch_pending_origin_forecast_with_receipts',lambda *a,**kw:dict(fixture='weather_acquisition'))
     monkeypatch.setattr(action_history,'fetch_origin_actions',lambda *a,**kw:dict(origin=known,fixture='action_acquisition'))
     return backend,known,archive,connections
 

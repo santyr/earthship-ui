@@ -5,7 +5,7 @@ from hashlib import sha256
 from pathlib import Path
 import subprocess,sys
 import pytest
-from test_forecast_pre_dusk import evidence,NOW
+from local_measurement_test_support import bms_evidence as evidence, NOW
 from test_household_capabilities import originals
 
 

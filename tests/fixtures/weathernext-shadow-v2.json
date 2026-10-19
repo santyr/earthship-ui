@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "schema": "earthship-weather-provider-shadow/v2",
+  "provider": "weathernext3",
+  "mode": "shadow",
+  "generatedAt": "2026-01-01T00:30:01+00:00",
+  "decisionAt": "2026-01-01T00:30:00+00:00",
+  "status": "READY",
+  "reason": "NONE",
+  "source": {
+    "snapshotSha256": "f8fb725109a15971a10798bb3e201285ea911eb753151fe1e68a374fa4994dc9",
+    "runId": "ee:2026-01-01T00:00:00+00:00",
+    "initializedAt": "2026-01-01T00:00:00+00:00",
+    "firstSeenAt": "2026-01-01T00:20:00+00:00",
+    "ingestedAt": "2026-01-01T00:21:00+00:00",
+    "timezone": "America/Denver"
+  },
+  "model": {
+    "status": "SHADOW_ONLY",
+    "sha256": "a968322061ae6ea4ed303cf12ba51a34de8da4c64045b2473ef5099341c88a3c",
+    "fittedAt": "2025-12-31T01:00:00+00:00",
+    "trainingEnd": "2025-12-30T02:00:00+00:00",
+    "sampleCount": 1,
+    "targetDates": 1,
+    "validation": null
+  },
+  "hours": [
+    {
+      "at": "2026-01-01T01:00:00+00:00",
+      "rawC": 10.0,
+      "localC": 12.0
+    },
+    {
+      "at": "2026-01-01T02:00:00+00:00",
+      "rawC": 10.0,
+      "localC": 12.0
+    }
+  ],
+  "automaticActuation": false,
+  "generation": "efdb27c5f67076973d4b3503c2569610e9f14d7c33544f26315e5760121ed1f8"
+}

@@ -70,3 +70,17 @@ it.each(['top', 'nested', 'escaped'])('refuses %s duplicate object keys before p
     : raw.replace('"domain":"energy"', '"dom\\u0061in":{"private_path":"operator-only-data"},"domain":"energy"');
   expect(parseHouseholdObservation(changed, { nowMs: AT })).toBeNull();
 });
+
+it('shows the conditional trajectory energy scenario without granting model or action qualification', () => {
+  const row = observation();
+  row.model_identities[0].domain = 'energy';
+  row.model_identities[0].qualification = 'conditional_uncalibrated_scenario';
+  const view = parseHouseholdObservation(JSON.stringify(row), { nowMs: AT });
+  expect(view).not.toBeNull();
+  expect(view.model_identities[0].qualification).toBe('conditional_uncalibrated_scenario');
+  expect(view.effects_qualified).toBe(false);
+  expect(view.automatic_actuation).toBe(false);
+  expect(parseHouseholdObservation(JSON.stringify(row), { nowMs: AT + 60_000 }).expired).toBe(true);
+  row.model_identities[0].domain = 'thermal';
+  expect(parseHouseholdObservation(JSON.stringify(row), { nowMs: AT })).toBeNull();
+});

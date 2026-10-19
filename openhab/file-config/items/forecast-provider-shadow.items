@@ -1,0 +1,5 @@
+// Shadow research only. These Items have no channel or command link.
+// Install only with the attended WeatherNext shadow rollout.
+String Forecast_Provider_Status_JSON "WeatherNext shadow source status"
+String Forecast_Comparison_JSON "WeatherNext shadow forecast comparison"
+String Forecast_Local_Shadow_JSON "WeatherNext local shadow candidate"

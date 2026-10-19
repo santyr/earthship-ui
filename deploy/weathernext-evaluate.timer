@@ -1,0 +1,11 @@
+[Unit]
+Description=Hourly prospective WeatherNext outcome assessment
+
+[Timer]
+OnCalendar=*-*-* *:52:00
+RandomizedDelaySec=30
+Persistent=true
+Unit=weathernext-evaluate.service
+
+[Install]
+WantedBy=timers.target

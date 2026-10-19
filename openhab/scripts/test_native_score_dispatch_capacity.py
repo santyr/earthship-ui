@@ -14,14 +14,17 @@ def test_dispatch_roundtrip_retains_every_explicit_stage(tmp_path,monkeypatch,co
     for i in range(count):
         stage=tmp_path/str(i);stage.mkdir(mode=0o700)
         path=stage/'deployment.json';path.write_bytes(b'{}');path.chmod(0o600)
+        import json
+        config_path=stage/'forecast.json';config_path.write_text(json.dumps({'schema':'earthship-weathernext-thermal-live-config/v2'}));config_path.chmod(0o600)
+        cycle=stage/'cycle.json';cycle.write_text(json.dumps({'forecast_config':str(config_path)}));cycle.chmod(0o600)
         references.append(dict(stage=str(stage),deployment_sha256=sha256(path.read_bytes()).hexdigest()))
     current_record={'schema':'earthship-household-cycle-deployment/v3'}
     def verify(stage,*,expected_deployment_sha256=None):
         if stage==current:return current_record
         assert expected_deployment_sha256==pin
-        return {'schema':'earthship-household-cycle-deployment/v1' if stage==legacy else 'earthship-household-cycle-deployment/v3'}
+        return {'schema':'earthship-household-cycle-deployment/v3'}
     monkeypatch.setattr(deploy,'verify_stage',verify)
-    result=writer(legacy_stage=legacy,legacy_deployment_sha256=pin,historical_selections=tuple(references),output=output,guard=lambda:None)
+    result=writer(historical_selections=tuple(references),output=output,guard=lambda:None)
     current_record['score_dispatch']={'path':str(output),'sha256':result['sha256']}
     assert score.read_score_dispatch(current,deployment_sha256='a'*64,guard=lambda:None)['historical']==references
     assert output.stat().st_size<=131072
@@ -52,8 +55,7 @@ def test_dispatch_retains_a_finite_inventory_bound(tmp_path,monkeypatch):
     from test_native_serving_dispatch_package import fixture
     writer,legacy,pin,config,output=fixture(tmp_path,monkeypatch)
     with pytest.raises(ValueError,match='bounded explicit historical'):
-        writer(legacy_stage=legacy,legacy_deployment_sha256=pin,
-            historical_selections=({},)*64,output=output,guard=lambda:None)
+        writer(historical_selections=({},)*64,output=output,guard=lambda:None)
     assert not output.exists()
 
 
@@ -77,7 +79,7 @@ def test_selected_compatible_history_outside_envelope_executes_its_retained_work
         assert historical_selections==tuple(r['stage'] for r in refs[-31:])
         return dict(status='waiting',scored=0,automatic_actuation=False)
     monkeypatch.setattr(c,'execute_retained_native_score',retained)
-    monkeypatch.setattr(c,'execute_legacy_score',lambda *a:pytest.fail('legacy execution after cutover'))
+    assert not hasattr(c,'execute_legacy_score')
     monkeypatch.setattr(c,'score_with_report',in_process)
     assert c.run(config,stage=stage,deployment_sha256='a'*64,clock=lambda:now,monotonic=lambda:100)['status']=='waiting'
     assert executed==([target] if target_index==0 else [])

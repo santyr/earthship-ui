@@ -92,6 +92,9 @@ def test_training_builds_real_new_fit_evidence_before_packaging(tmp_path,monkeyp
     def package(run,originals,runtime,previous,libraries,commit):
         evidence=json.loads(originals['fit_evidence'].read_bytes())
         assert evidence['fit']['fit_executed'] is True
+        assert evidence['schema']=='earthship-native-development-fit-evidence/v4'
+        assert evidence['fit']['model_rule']=='earthship-native-irradiance-shade-dynamics/v4'
+        assert len(evidence['fit']['coefficients'])==14
         assert datetime.fromisoformat(evidence['fit']['training_end'])==END
         assert evidence['fit']['endpoint_count']>0
         assert evidence['fit_runtime']==runtime

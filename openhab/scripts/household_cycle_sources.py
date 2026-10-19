@@ -35,8 +35,6 @@ from household.evidence import utc
 from household_capture import _connection
 from household_cycle_deadline import MAX_OBSERVATION_SECONDS
 
-DAILY_STATE_PATH=Path('/home/sat/.local/state/forecast-intel/state.json')
-DAILY_RECEIPT_ITEM='Forecast_Prediction_Receipt_JSON'
 METRIC_PATH=Path('/home/sat/Solar_PV/analytics/config/metric-sources.json')
 LOAD_TOPOLOGY_PATH=Path(__file__).resolve().parents[2]/'openhab/household-energy-topology.json'
 PV_SYSTEM_PATH=Path(__file__).resolve().parents[2]/'openhab/household-pv-system.json'
@@ -168,7 +166,7 @@ class CycleSourceCollector:
     def _owner_transport(self,item,*,remaining):
         from household.capture import RECEIPT_ITEMS
         from household.power_snapshot import SOURCES
-        if item not in {DAILY_RECEIPT_ITEM,*RECEIPT_ITEMS.values(),*[row[0] for row in SOURCES.values()]}:
+        if item not in {*RECEIPT_ITEMS.values(),*[row[0] for row in SOURCES.values()]}:
             raise ValueError('fixed owner item required')
         raw=self._get_original('/items/'+item,maximum=8192,remaining=remaining)
         value=loads(raw)
@@ -223,18 +221,9 @@ class CycleSourceCollector:
         except (OSError,ValueError):
             pass
         check()
-        # Daily state is an existing mutable input, not an immutable credential
-        # or release artifact. Retain only its exact energy record and match it
-        # to the independently read published receipt before using it.
-        from household.daily_energy_source import capture_daily_source
+        # The daily forecast state/receipt is retired. New plans bind their
+        # Google/PV scenario directly to the same frozen source snapshot.
         daily_source=None
-        try:
-            daily_raw=_read(DAILY_STATE_PATH,2097152)
-            daily_receipt=self.owner_reader(DAILY_RECEIPT_ITEM,remaining=check)
-            daily_source=capture_daily_source(daily_raw,daily_receipt,collected_at=utc(self.clock()))
-            if _read(DAILY_STATE_PATH,2097152)!=daily_raw:daily_source=None
-        except (OSError,ValueError,KeyError,TypeError):
-            daily_source=None
         check()
         parsers={RECEIPT_ITEMS['battery_soc']:parse_evidence,RECEIPT_ITEMS['pv_day_wh']:parse_pv_receipt,
                  **{item:parser for item,parser in SOURCES.values()}}

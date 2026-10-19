@@ -1,0 +1,76 @@
+{
+  "schema": "earthship-weathernext-collector-live-qualification/v1",
+  "source_revision": "8be69ea0e7287a806b3b50a629af9efb49b2ef09",
+  "source_files_verified": 1994,
+  "source_manifest_sha256": "f28e7915fef49dba72177f9b186297434df2284511e63a5c6ad262723e381906",
+  "total_acquisition_seconds": 75,
+  "collection_runtime_seconds": 90,
+  "sampled_collection_limits": {
+    "memory.max": "268435456",
+    "memory.swap.max": "0",
+    "pids.max": "24",
+    "cpu.max": "20000 100000"
+  },
+  "manual_invocation_id": "e5100178bf7344cea208ed242a5e9268",
+  "manual_result": {
+    "schema": "earthship-weathernext-ingest-result/v1",
+    "status": "ARCHIVED",
+    "snapshot_sha256": "9645c37d77e95fc663ee448867dc3889ad8d029c24737724f6f019c48352d93d",
+    "ingestion_completed_at": "2026-10-19T08:28:20.978973+00:00",
+    "points": 4320,
+    "elapsed_seconds": 50.496,
+    "production_writes": false,
+    "automatic_actuation": false,
+    "bytes_received": 1271993,
+    "requests": 7,
+    "noncommercial_verified": true,
+    "peak_rss_kib": 73928
+  },
+  "natural_invocation_id": "06925403c33b4d9d94bb60a6d83a9603",
+  "natural_start_after_trigger_microseconds": 21370,
+  "natural_result": {
+    "schema": "earthship-weathernext-ingest-result/v1",
+    "status": "ARCHIVED",
+    "snapshot_sha256": "98604b6dd95026d0c30b3ccca3c68fff324f4a4785d5bbabc765d696ee104d0a",
+    "ingestion_completed_at": "2026-10-19T08:36:20.174116+00:00",
+    "points": 4320,
+    "elapsed_seconds": 55.286,
+    "production_writes": false,
+    "automatic_actuation": false,
+    "bytes_received": 1271993,
+    "requests": 7,
+    "noncommercial_verified": true,
+    "peak_rss_kib": 74992
+  },
+  "archive_snapshot_counts": {
+    "before": 16,
+    "after_manual": 17,
+    "after_natural": 18
+  },
+  "natural_snapshot_digest_verified": true,
+  "shadow_followthrough": {
+    "items": [
+      "Forecast_Local_Shadow_JSON",
+      "Forecast_Comparison_JSON",
+      "Forecast_Provider_Status_JSON"
+    ],
+    "matching_complete_generation": true,
+    "version": 1,
+    "schema": "earthship-weather-provider-shadow/v1",
+    "status": "READY",
+    "decision_at": "2026-10-19T08:40:25.602324+00:00",
+    "source_initialized_at": "2026-10-19T00:00:00+00:00",
+    "source_snapshot_sha256": "98604b6dd95026d0c30b3ccca3c68fff324f4a4785d5bbabc765d696ee104d0a",
+    "model_status": "SHADOW_ONLY",
+    "model_sample_count": 1,
+    "hours": 337,
+    "automatic_actuation": false,
+    "same_existing_ui_contract": true,
+    "new_v2_cohort_activated": false
+  },
+  "runtime_env_changed": false,
+  "shadow_train_source_changed": false,
+  "collector_timer_active": true,
+  "production_cutover": false,
+  "model_qualification": false
+}

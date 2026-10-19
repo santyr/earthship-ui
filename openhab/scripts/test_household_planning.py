@@ -6,7 +6,7 @@ import pytest
 from test_household_snapshot import build as snapshot
 from test_household_intents import document
 from test_household_capabilities import originals
-from test_forecast_pre_dusk import NOW
+from local_measurement_test_support import NOW
 from household.capabilities import build_registry
 from household.intents import build_intent
 

@@ -70,7 +70,7 @@ def _capture_revision():
     from thermal_model.origin_capture import _source_bytes
     names=['openhab/scripts/'+name for name in _release_runtime_paths()]
     names+=['openhab/scripts/thermal_model/'+name+'.py' for name in ('training_inputs','capture_guard','capture_readers','capture_backends','environment_bundle','rollback')]
-    names+=['scripts/capture-thermal-inputs.py','openhab/scripts/thermal_model/training_pressure_guard.py','openhab/scripts/thermal_installed_intel.py']
+    names+=['scripts/capture-thermal-inputs.py','openhab/scripts/thermal_model/training_pressure_guard.py','openhab/scripts/thermal_model/serial_publication_caps.py']
     digest=sha256()
     for name in dict.fromkeys(names):
         raw=_source_bytes(ROOT/name,maximum=2000000);encoded=name.encode()
@@ -102,7 +102,7 @@ def _worker(config,root,*,receipt_version=1):
 
 
 def _pressure_preflight():
-    from thermal_installed_intel import _resource_preflight
+    from thermal_model.serial_publication_caps import _resource_preflight
     _resource_preflight()
 
 

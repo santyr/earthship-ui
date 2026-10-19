@@ -58,20 +58,6 @@ def test_stage_a_refuses_candidate_conditioned_shadow_instead_of_hiding_it(monke
     assert shadow==original
 
 
-def test_release_command_requests_baseline_simulation(tmp_path,monkeypatch):
-    from test_thermal_release_runtime import release_case
-    from test_thermal_origin_capture import capture_inputs
-    thermal,args,data,now=release_case(tmp_path,monkeypatch)
-    def predict(**kwargs):
-        assert kwargs.get('optimize_schedule') is False
-        kwargs['artifact_observer'](capture_inputs()['artifact'])
-        return deepcopy(data['shadow'])
-    monkeypatch.setattr(thermal,'run_shadow',predict)
-    sent=[]
-    assert thermal._release(args,now,put_state=lambda item,raw:sent.append(json.loads(raw)),decision_clock=lambda:now,qualification_clock=lambda:now)==0
-    assert len(sent)==1 and sent[0]['status']=='forecast_active'
-
-
 @pytest.mark.parametrize('selection',[None,0,1,'false'])
 def test_schedule_selection_requires_explicit_boolean_before_artifact_read(selection):
     class UnreadableRegistry:

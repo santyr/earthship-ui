@@ -21,11 +21,14 @@ class PreparedOutcomeOrigin:
     def __post_init__(self):
         if not isinstance(self.content,bytes) or len(self.content)>MAX_BYTES:raise ValueError('bounded prepared delivered origin required')
         value=loads(self.content)
-        if set(value)!=FIELDS or value['schema']!='earthship-household-outcome-origin/v1':raise ValueError('closed prepared delivered origin required')
+        if set(value)!=FIELDS or value['schema'] not in ('earthship-household-outcome-origin/v1','earthship-household-outcome-origin/v2'):raise ValueError('closed prepared delivered origin required')
         if identity({key:item for key,item in value.items() if key!='origin_sha256'})!=value['origin_sha256']:
             raise ValueError('prepared delivered origin differs')
         prepared=PreparedProjection(canonical(value['prepared_thermal']));projection=project(prepared)
         capture=value['original_capture'];source=prepared.to_dict()
+        native=value['schema']=='earthship-household-outcome-origin/v2'
+        if (source['schema']=='earthship-household-prepared-thermal/v2')!=native:
+            raise ValueError('delivered origin and prepared model versions differ')
         if (not isinstance(capture,dict) or capture.get('capture_sha256')!=capture_digest(capture,'capture_sha256') or
             capture['capture_sha256']!=source['original_capture_sha256'] or capture['issued_at']!=source['issue'] or
             capture['published_at']!=source['snapshot']['created_at'] or
@@ -53,7 +56,19 @@ class PreparedOutcomeOrigin:
             code_revision=source['snapshot']['code_revision'],config_revision=identity(policy),**policy)
         if canonical(snapshot.to_dict())!=canonical(source['snapshot']):
             raise ValueError('prepared snapshot differs from original sensor evidence')
-        validate_delivery(capture,value['receipts'])
+        if native:
+            # Reuse the complete frozen Google/model/geometry/source verifier;
+            # an outer rehash cannot authorize a changed original weather row.
+            from .weather_context import PreparedWeatherContext,GOOGLE_SCHEMA,_encode_original
+            weather=dict(schema=GOOGLE_SCHEMA,original_capture=_encode_original(capture),prepared_thermal=source)
+            weather['weather_sha256']=identity(weather)
+            PreparedWeatherContext(canonical(weather))
+            from native_thermal_score import validate_delivery as validate_native_delivery
+            validate_native_delivery(capture,value['receipts'])
+        else:
+            from thermal_model.forecast_history import verify_origin_forecast_receipts
+            verify_origin_forecast_receipts(capture['inputs']['forecast'])
+            validate_delivery(capture,value['receipts'])
 
     def to_dict(self):return loads(self.content)
 
@@ -68,3 +83,20 @@ def prepare_outcome_origin(capture,receipts,*,code_revision):
         original_capture=capture,receipts=receipts)
     value['origin_sha256']=identity(value)
     return PreparedOutcomeOrigin(canonical(value))
+
+
+def prepare_native_outcome_origin(capture,receipts,*,code_revision,runtime,
+        expected_artifact_sha256,expected_capture_sha256,check_budget=lambda:None):
+    """Verify the externally pinned native delivery before pure outcome scoring."""
+    from copy import deepcopy
+    from .thermal_model import prepare_native_projection
+    from native_thermal_score import validate_delivery as validate_native_delivery
+    capture,receipts,runtime=map(deepcopy,(capture,receipts,runtime))
+    prepared=prepare_native_projection(capture,code_revision=code_revision,runtime=runtime,
+        expected_artifact_sha256=expected_artifact_sha256,expected_capture_sha256=expected_capture_sha256,
+        check_budget=check_budget)
+    validate_native_delivery(capture,receipts)
+    value=dict(schema='earthship-household-outcome-origin/v2',prepared_thermal=prepared.to_dict(),
+        original_capture=capture,receipts=receipts)
+    value['origin_sha256']=identity(value)
+    result=PreparedOutcomeOrigin(canonical(value));check_budget();return result

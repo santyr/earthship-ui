@@ -34,7 +34,7 @@ def main(argv=None):
     if not (args.collect or args.batch or args.update_release_index) and any(value is not None for value in (args.origin,args.horizon,args.shared_lock,args.queue,args.score_registration)):parser.error('source reads require explicit collection intent')
     try:
         if args.collect or args.batch or args.update_release_index:
-            from thermal_installed_intel import _resource_preflight
+            from thermal_model.serial_publication_caps import _resource_preflight
             _resource_preflight()
             if args.update_release_index:
                 from thermal_model.capture_guard import verify_host_headroom

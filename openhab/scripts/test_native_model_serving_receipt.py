@@ -15,12 +15,12 @@ def api():
 def prepared(tmp_path,originals):
     module=api()
     import native_thermal_artifact as artifacts
-    paths,_,at=fixture(tmp_path,originals)
-    runtime=artifacts.current_native_runtime()
-    evidence=json.loads(paths['fit_evidence'].read_bytes());evidence['fit_runtime']=runtime
-    paths['fit_evidence'].write_bytes(encode(evidence))
-    candidate=artifacts.build_native_candidate(originals=paths,runtime=runtime,created_at=at)
-    path=tmp_path/'candidate.json';path.write_bytes(encode(candidate));path.chmod(0o600)
+    from test_google_irradiance_model import fresh_candidate
+    from datetime import datetime
+    with pytest.MonkeyPatch.context() as patch:
+        candidate,runtime,paths=fresh_candidate(tmp_path,patch)
+    at=datetime.fromisoformat(candidate['created_at'])
+    path=tmp_path/(candidate['artifact_sha256']+'.native-provisional-candidate-v4.json')
     directory=tmp_path/'receipts';directory.mkdir(mode=0o700)
     return module,artifacts,candidate,path,paths,runtime,at,directory
 
@@ -78,11 +78,14 @@ def serving(tmp_path,originals):
     def private(name,value):
         target=stage/name;target.write_bytes(encode(value));target.chmod(0o600);return target
     origins=tmp_path/'origins';origins.mkdir(mode=0o700);geometry=tmp_path/'future-geometry';geometry.mkdir(mode=0o700)
-    settings=dict(schema='earthship-provisional-thermal-live-config/v3',candidate_path=str(path),artifact_sha256=candidate['artifact_sha256'],runtime_sha256=candidate['runtime_sha256'],geometry_directory=str(geometry),evidence_directory=str(origins),model_receipt_path=str(receipt),model_receipt_sha256=sha256(receipt.read_bytes()).hexdigest(),openhab_base='http://127.0.0.1:8080/rest',native_cutover='2026-09-23T00:00:00+00:00')
-    for key in ('token_file','journal_dsn_file','forecast_dsn_file','native_db_config','native_policy','shared_lock'):
+    settings=dict(schema='earthship-weathernext-thermal-live-config/v2',candidate_path=str(path),artifact_sha256=candidate['artifact_sha256'],runtime_sha256=candidate['runtime_sha256'],geometry_directory=str(geometry),evidence_directory=str(origins),model_receipt_path=str(receipt),model_receipt_sha256=sha256(receipt.read_bytes()).hexdigest(),openhab_base='http://127.0.0.1:8080/rest',native_cutover='2026-09-23T00:00:00+00:00')
+    for key in ('token_file','journal_dsn_file','native_db_config','native_policy','shared_lock'):
         target=private(key+'.txt',{'synthetic':'noncredential input'});settings[key]=str(target)
+    from test_google_native_selection import source
+    from weather_learning.archive import Archive
+    settings['weather_source']=source(Archive(tmp_path/'google').root)
     config=private('forecast.json',settings);cycle=private('cycle.json',{'forecast_config':str(config)})
-    dispatch=private('score-dispatch.json',{'schema':'earthship-native-score-dispatch/v1','current':'current','legacy':None,'historical':[]})
+    dispatch=private('score-dispatch.json',{'schema':'earthship-native-score-dispatch/v2','current':'current','historical':[]})
     dropin=stage/'service.conf';dropin.write_bytes(b'[Service]\n');dropin.chmod(0o600)
     helper=root/'openhab/scripts/native_model_serving_receipt.py'
     record=dict(schema='earthship-household-cycle-deployment/v3',code_revision='e'*40,stage=str(stage),service_file=str(dropin),original_bindings={str(config):sha256(config.read_bytes()).hexdigest(),str(path):sha256(path.read_bytes()).hexdigest()},source_manifest=sources,protected_runtime_sources=runtime['base_runtime']['source_manifest'],cycle_sha256=sha256(cycle.read_bytes()).hexdigest(),dropin_sha256=sha256(dropin.read_bytes()).hexdigest(),automatic_actuation=False,native_runtime_sources=runtime['native_source_manifest'],native_originals=candidate['originals'],artifact_sha256=candidate['artifact_sha256'],runtime_sha256=candidate['runtime_sha256'],model_verification={'receipt':{'path':str(receipt),'sha256':sha256(receipt.read_bytes()).hexdigest()},'helper':{'path':str(helper),'sha256':sha256(helper.read_bytes()).hexdigest()}},score_dispatch={'path':str(dispatch),'sha256':sha256(dispatch.read_bytes()).hexdigest()})

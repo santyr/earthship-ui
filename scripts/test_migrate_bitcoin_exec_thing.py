@@ -270,3 +270,20 @@ def test_final_definition_still_requires_derived_readonly_restored(monkeypatch):
     current['items']['BTC_USD_Price']['stateDescription']['readOnly'] = False
     monkeypatch.setattr(m, 'dependents', lambda: current)
     assert not m.unchanged_dependents(original)
+
+
+def test_private_preimage_does_not_import_retired_forecast_provider(tmp_path):
+    """Removing the weather worker must not strand an unrelated Thing transfer."""
+    import sys
+    from unittest.mock import patch
+    spec = importlib.util.spec_from_file_location(
+        'bitcoin_without_weather', Path(__file__).with_name('migrate-bitcoin-exec-thing.py'))
+    independent = importlib.util.module_from_spec(spec)
+    with patch.dict(sys.modules, {'forecast_intel': None}):
+        spec.loader.exec_module(independent)
+    target = independent.backup_tools.private_file(tmp_path, 'original.json', b'{"original":true}')
+    assert target.read_bytes() == b'{"original":true}'
+    assert target.stat().st_mode & 0o777 == 0o600
+    with pytest.raises(FileExistsError):
+        independent.backup_tools.private_file(tmp_path, 'original.json', b'replacement')
+    assert target.read_bytes() == b'{"original":true}'

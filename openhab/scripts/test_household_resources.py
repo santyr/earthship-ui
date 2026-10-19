@@ -7,7 +7,7 @@ from household.codec import canonical,identity
 from household.intents import build_intent
 from test_household_planning import setup,context,api as planning
 from test_household_intents import document
-from test_forecast_pre_dusk import NOW
+from local_measurement_test_support import NOW
 
 PLAN_RUNTIME={'household/planning.py':'a'*64}
 RESOURCE_RUNTIME={'household/resources.py':'b'*64}

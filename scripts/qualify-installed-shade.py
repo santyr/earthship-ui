@@ -11,7 +11,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'openhab/scripts'))
 
 
 def _resource_preflight():
-    from thermal_installed_intel import _resource_preflight as verify
+    from thermal_model.serial_publication_caps import _resource_preflight as verify
     verify()
 
 

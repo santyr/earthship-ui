@@ -2,7 +2,7 @@
   import OhIcon from './OhIcon.svelte';
   import { colors } from './tokens.js';
   import { rainAmountText } from '../openhab/values.js';
-  import { wmoIcon, wmoLabel, wmoColor } from './wmo.js';
+  import { forecastCondition } from '../weather/presentation.js';
 
   let { days = [], variant = 'home', onselect = () => {} } = $props();
 
@@ -12,10 +12,12 @@
 
   const accessibleName = (day) => [
     day.label,
-    wmoLabel(day.summary.weatherCode),
+    forecastCondition({ ...day.summary, isDay: true }).label,
+    day.summary.temperatureScope === 'remaining' ? 'remaining hours' : 'full day',
     `high ${value(day.summary.highF, ' degrees')}`,
     `low ${value(day.summary.lowF, ' degrees')}`,
-    `precipitation ${value(day.summary.precipPct, ' percent')}`,
+    day.summary.precipPct !== null ? `precipitation ${value(day.summary.precipPct, ' percent')}` : `precipitation ${rainAmountText(day.summary.precipSumIn) ?? (day.summary.precipSumIn === 0 ? '0.00 inches' : 'unavailable')}`,
+    ...(day.summary.precipitationScope === 'remaining' ? ['precipitation covers remaining complete hours'] : []),
   ].join(', ');
 </script>
 
@@ -24,6 +26,7 @@
     <div class="forecast-empty" role="status">Forecast unavailable</div>
   {/if}
   {#each days as day, index (`${day.date ?? 'legacy'}-${day.label}-${index}`)}
+    {@const condition = forecastCondition({ ...day.summary, isDay: true })}
     <button
       type="button"
       class="forecast-day"
@@ -33,17 +36,19 @@
       onclick={() => onselect(day)}
     >
       <span class="day-label">{day.label}</span>
-      <span class="day-icon"><OhIcon icon={wmoIcon(day.summary.weatherCode)} size="1.2rem" color={wmoColor(day.summary.weatherCode) ?? 'currentColor'} /></span>
+      <span class="day-icon" title={condition.label} data-condition-basis={condition.basis}><OhIcon icon={condition.icon} size="1.2rem" color={condition.color ?? 'currentColor'} /></span>
       <span class="day-hilo">
         {value(day.summary.highF, '°')} / {value(day.summary.lowF, '°')}
+        {#if day.summary.temperatureScope === 'remaining'}<small class="range-note">remaining</small>{/if}
       </span>
       <span class="day-meta">
-        <span>{value(day.summary.precipPct, '%')}</span>
+        {#if day.summary.precipPct !== null}<span>{value(day.summary.precipPct, '%')}</span>{/if}
         {#if rainAmountText(day.summary.precipSumIn)}
           <span data-testid="day-rain-amount" style="color: {colors.rain}">{rainAmountText(day.summary.precipSumIn)}</span>
         {/if}
-        <span aria-hidden="true"> · </span>
-        <span>PV {value(day.summary.pvKwh, ' kWh')}</span>
+        {#if day.summary.precipPct === null && !rainAmountText(day.summary.precipSumIn)}<span>{day.summary.precipSumIn === 0 ? '0.00″' : 'Rain unavailable'}</span>{/if}
+        {#if day.summary.precipitationScope === 'remaining'}<small class="range-note" title={`Rain forecast from ${day.summary.precipitationFromAt} through ${day.summary.precipitationThroughAt}`}>remaining</small>{/if}
+        {#if day.summary.pvKwh !== null}<span aria-hidden="true"> · </span><span>PV {value(day.summary.pvKwh, ' kWh')}</span>{/if}
       </span>
     </button>
   {/each}
@@ -150,6 +155,8 @@
   .emphasized .day-hilo {
     color: #c4b5fd;
   }
+
+  .range-note { display: block; color: #94a3b8; font-size: .55rem; font-weight: 400; }
 
   .day-meta {
     color: #94a3b8;

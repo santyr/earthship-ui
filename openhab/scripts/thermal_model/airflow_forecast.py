@@ -7,14 +7,13 @@ from copy import deepcopy
 from datetime import timedelta
 from hashlib import sha256
 import math
-import re
 
 from .airflow import AirflowSeed, simulate_airflow
 from .airflow_artifact import (MASS_INITIALIZATION, artifact_digest, canonical,
                                utc, validate_artifact)
 from .airflow_training import forcing_features
 from .dataset import CONFIRMED_SOURCES, KIVA_COOLDOWN, STEP
-from .forecast_history import MAX_ISSUE_AGE, SOURCE, _window
+from .forecast_history import _window, verify_origin_forecast_receipts
 from .operational_origin import assemble_origin, _validate_actions
 from .temperature_history import _validate_receipt
 
@@ -51,14 +50,9 @@ def _states(actions, origin):
 
 def _hourly(forcing, origin, horizon_hours):
     _, times = _window(origin, horizon_hours)
-    if (not isinstance(forcing, dict) or set(forcing) != {'source', 'origin', 'horizon_hours',
-            'issued_at', 'captured_at', 'rows_sha256', 'rows'}
-            or forcing.get('source') != SOURCE or utc(forcing['origin']) != origin
-            or forcing.get('horizon_hours') != horizon_hours
-            or not isinstance(forcing['rows_sha256'], str)
-            or re.fullmatch('[0-9a-f]{64}', forcing['rows_sha256']) is None
-            or not utc(forcing['issued_at']) <= utc(forcing['captured_at']) <= origin
-            or origin-utc(forcing['issued_at']) > MAX_ISSUE_AGE):
+    verify_origin_forecast_receipts(forcing)
+    if (utc(forcing['origin'])!=origin or forcing['horizon_hours']!=horizon_hours
+            or not utc(forcing['captured_at'])<=utc(forcing['available_by'])<=origin):
         raise ValueError('forecast was not available at origin')
     rows = forcing['rows']
     if (not isinstance(rows, list) or len(rows) != len(times)
@@ -69,10 +63,10 @@ def _hourly(forcing, origin, horizon_hours):
     for row in rows:
         if set(row) != {'at', 'tempF', 'radiationWm2', 'windMph', 'weatherCode'}:
             raise ValueError('unexpected hourly forecast fields')
-        values = [row[key] for key in ('tempF', 'radiationWm2', 'windMph', 'weatherCode')]
+        values = [row[key] for key in ('tempF', 'radiationWm2', 'windMph')]
         if (any(type(v) not in (int, float) or not math.isfinite(v) for v in values)
                 or not -40 <= row['tempF'] <= 140 or not 0 <= row['radiationWm2'] <= 1600
-                or row['windMph'] < 0):
+                or row['windMph'] < 0 or row['weatherCode'] is not None):
             raise ValueError('invalid hourly forecast forcing')
     return rows, times
 

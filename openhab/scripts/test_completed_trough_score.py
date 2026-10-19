@@ -4,9 +4,6 @@ from datetime import datetime, timezone
 import pytest
 
 import completed_trough_score as adapter
-import forecast_intel as fi
-from test_advisory_capture import run_main
-from test_forecast_intel import _run_main, _scoring_state
 
 
 def forbidden(*args, **kwargs):
@@ -44,60 +41,8 @@ def test_publication_failure_never_retries_or_clears_after_ambiguous_write():
     assert "PRIVATE" not in str(logs)
 
 
-@pytest.mark.parametrize("highs", [[98,83,83], [93,83,83], [92,83,83]])
-@pytest.mark.parametrize("low_resource,suppressed", [(False,False), (True,False), (True,True)])
-@pytest.mark.parametrize("mode", ["disabled", "accepted", "failed"])
-def test_score_integration_preserves_predictions_capture_and_notification_behavior(monkeypatch, tmp_path, highs, low_resource, suppressed, mode):
-    # Baseline omits only the diagnostic adapter; both paths execute real main().
-    original = adapter.update_completed_trough_score
-    monkeypatch.setattr(adapter, "update_completed_trough_score", lambda **kwargs: None)
-    args = dict(active=True, highs=highs, low_resource=low_resource, suppressed=suppressed)
-    before = run_main(monkeypatch, tmp_path, **args)
-    monkeypatch.setattr(adapter, "update_completed_trough_score", original)
-    monkeypatch.setenv("ADVISORY_ASSESS_ENABLED", "0" if mode == "disabled" else "1")
-    calls = []
-    def assess(env):
-        calls.append("assess")
-        return qualified_report(datetime.now(timezone.utc)) if mode == 'accepted' else {'status':'time_budget_exhausted'}
-    def publish(report, **kwargs):
-        calls.append("publish")
-        return {"sample_count":1}
-    monkeypatch.setattr(adapter, "_assess", assess)
-    monkeypatch.setattr(adapter, "_publish", publish)
-    monkeypatch.setattr(fi, "auth_token", lambda: "test-token")
-    after = run_main(monkeypatch, tmp_path, **args)
-    for state in (before[0], after[0]):
-        # Only the new optional outcome diagnostics may differ.
-        state['learning_evidence']['soc_trough'].pop('prospective_errors', None)
-    assert before[0] == after[0]  # model, predictions, DM markers unchanged
-    assert before[2] == after[2]  # exact notification command/content/options
-    assert before[1] == [p for p in after[1] if p[0] != "Forecast_Trough_Error_7d"]
-    if mode != "accepted":
-        assert after[1][-1] == ("Forecast_Trough_Error_7d", "UNDEF")
-    assert calls == ([] if mode == "disabled" else ["assess", "publish"] if mode == "accepted" else ["assess"])
 
 
-@pytest.mark.parametrize("month,day", [(1,15), (7,15), (3,8), (11,1)])
-def test_main_preserves_legacy_scores_and_does_not_consume_incomplete_night(monkeypatch, tmp_path, month, day):
-    class Clock(datetime):
-        @classmethod
-        def now(cls, tz=None):
-            value = cls(2026, month, day, 6, 40, tzinfo=fi.MOUNTAIN)
-            return value.astimezone(tz) if tz else value.replace(tzinfo=None)
-    class Day(fi.date):
-        @classmethod
-        def today(cls): return cls(2026, month, day)
-    monkeypatch.setattr(fi, "datetime", Clock)
-    monkeypatch.setattr(fi, "date", Day)
-    monkeypatch.setenv("ADVISORY_ASSESS_ENABLED", "0")
-    ykey = (fi.date.today() - fi.timedelta(days=1)).isoformat()
-    state = _scoring_state(ykey)
-    state["trough_errors"] = [4.2, 8.1]
-    original = copy.deepcopy(state["trough_errors"])
-    result, puts = _run_main(monkeypatch, tmp_path, state, {"BMS_SOC":[85]})
-    assert result["trough_errors"] == original
-    assert "trough" not in result.get("scored", {}).get(ykey, [])
-    assert puts.count("Forecast_Trough_Error_7d") == 1
 
 
 def test_enabled_adapter_forwards_one_complete_report_after_assessment():
@@ -179,23 +124,6 @@ def test_valid_assessment_is_retained_when_diagnostic_delivery_is_unknown():
     assert retained['projection']['sample_count']==1
 
 
-def test_main_saves_validated_prospective_errors_and_clears_stale_summary(monkeypatch,tmp_path):
-    from datetime import date,timedelta
-    monkeypatch.setenv('ADVISORY_ASSESS_ENABLED','1')
-    monkeypatch.setattr(adapter,'_assess',lambda _:qualified_report(datetime.now(timezone.utc)))
-    monkeypatch.setattr(adapter,'_publish',lambda report,**kwargs:{'sample_count':report['projection']['sample_count']})
-    yesterday=date.today()-timedelta(days=1)
-    state=_scoring_state(yesterday.isoformat())
-    saved,_=_run_main(monkeypatch,tmp_path/'qualified',state,{})
-    report=saved['learning_evidence']['soc_trough']['prospective_errors']
-    assert report['projection']['sample_count']==1
-    assert report['projection']['mean_absolute_error_pct_points']==3.5
-    assert report['projection']['bank_epoch']=='fixture-bank'
-    assert report['release_authority'] is False
-    monkeypatch.setenv('ADVISORY_ASSESS_ENABLED','0')
-    saved,_=_run_main(monkeypatch,tmp_path/'disabled',saved,{})
-    assert saved['learning_evidence']['soc_trough']['prospective_errors']['status']=='unavailable'
-    assert saved['trough_errors']==state['trough_errors']
 
 
 def test_delayed_token_read_does_not_extend_diagnostic_freshness():

@@ -64,43 +64,8 @@ def test_shared_guard_loss_after_actual_pointer_write_leaves_all_old_queues_sele
     with pytest.raises(ValueError):m.register_compressed_publication_jobs(registration_path=reg,origin_path=origin,guard=guard)
     assert reg.read_bytes()==before
 
-@pytest.mark.parametrize('delivered',[True,False])
-def test_compressed_operator_registers_only_verified_publication_receipts(monkeypatch,tmp_path,capsys,delivered):
-    import thermal_installed_intel as cli
-    from thermal_model import installed_shade_live_inputs as inputs,installed_shade_live as live,installed_shade_score_inputs as registration
-    tmp_path.chmod(0o700);lock=tmp_path/'lock';lock.touch(mode=0o600);calls=[]
-    settings=dict(release_inputs_path=tmp_path/'refs',evidence_directory=tmp_path)
-    monkeypatch.setattr(cli,'_resource_preflight',lambda:None)
-    monkeypatch.setattr(inputs,'load_compressed_live_settings',lambda _:settings)
-    monkeypatch.setattr(inputs,'CompressedSourceLiveBackend',lambda *a,**kw:object())
-    receipt=dict(status='published' if delivered else 'withdrawn',delivery_verified=True,capture_path=str(tmp_path/'actual.installed-shade-origin-v13.json'))
-    def run(**kw):calls.append('verified_receipt');return dict(receipt)
-    monkeypatch.setattr(live,'run_compressed_live_cycle',run)
-    def register(**kw):
-        kw['guard']();calls.append('registered')
-        assert kw['origin_path']==Path(receipt['capture_path']) and kw['registration_path']==tmp_path/'registry'
-        return dict(status='jobs_registered',release_authorized=False)
-    monkeypatch.setattr(registration,'register_compressed_publication_jobs',register)
-    assert cli.main(['--config',str(tmp_path/'config'),'--contract-version','3','--publish','--shared-lock',str(lock),'--score-registration',str(tmp_path/'registry')])==0
-    assert calls==(['verified_receipt','registered'] if delivered else ['verified_receipt'])
-    result=json.loads(capsys.readouterr().out)
-    if delivered:assert result['scoring_registration']=='jobs_registered'
 
 
-def test_registration_failure_preserves_publication_receipt_but_returns_failure(monkeypatch,tmp_path,capsys):
-    import thermal_installed_intel as cli
-    from thermal_model import installed_shade_live_inputs as inputs,installed_shade_live as live,installed_shade_score_inputs as registration
-    tmp_path.chmod(0o700);lock=tmp_path/'lock';lock.touch(mode=0o600)
-    monkeypatch.setattr(cli,'_resource_preflight',lambda:None)
-    monkeypatch.setattr(inputs,'load_compressed_live_settings',lambda _:dict(release_inputs_path=tmp_path/'refs',evidence_directory=tmp_path))
-    monkeypatch.setattr(inputs,'CompressedSourceLiveBackend',lambda *a,**kw:object())
-    monkeypatch.setattr(live,'run_compressed_live_cycle',lambda **kw:dict(status='published',delivery_verified=True,capture_path=str(tmp_path/'actual.installed-shade-origin-v13.json')))
-    def refuse(**kw):raise ValueError('private registration diagnostic')
-    monkeypatch.setattr(registration,'register_compressed_publication_jobs',refuse)
-    assert cli.main(['--config',str(tmp_path/'config'),'--contract-version','3','--publish','--shared-lock',str(lock),'--score-registration',str(tmp_path/'registry')])==1
-    result=capsys.readouterr();value=json.loads(result.out)
-    assert value['status']=='published' and value['delivery_verified'] is True and value['scoring_registration']=='withheld'
-    assert 'private registration diagnostic' not in result.out+result.err
 
 from test_installed_shade_raw_origin import source_origin_case,raw_math_capture,candidate
 
@@ -135,10 +100,3 @@ def test_full_horizon_queue_refuses_without_removing_any_existing_job(registrati
     before=reg.read_bytes()
     with pytest.raises(ValueError,match='capacity'):register_compressed_publication_jobs(registration_path=reg,origin_path=origin,guard=lambda:None)
     assert reg.read_bytes()==before
-
-@pytest.mark.parametrize('version,intent',[(2,'--publish'),(3,'--bootstrap-shadow'),(3,'--check-only')])
-def test_score_registration_refuses_wrong_operator_phase_before_reading_settings(version,intent,tmp_path):
-    import thermal_installed_intel as cli
-    with pytest.raises(SystemExit) as refused:
-        cli.main(['--config',str(tmp_path/'config'),'--contract-version',str(version),intent,'--score-registration',str(tmp_path/'registry')])
-    assert refused.value.code==2

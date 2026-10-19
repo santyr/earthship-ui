@@ -1,3 +1,4 @@
+import { forecastDisplayDay } from './forecastRange.js';
 import { HOUSEHOLD_TIMEZONE } from '../site.js';
 export const FORECAST_DETAIL_ITEM = 'Forecast_10Day_JSON';
 export const FORECAST_DETAIL_MAX_BYTES = 64 * 1024;
@@ -11,10 +12,11 @@ const SENTINELS = new Set(['', 'NULL', 'UNDEF']);
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const OFFSET_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
-function unavailable(reason) {
+function unavailable(reason, legacyFallbackAllowed = true) {
   return Object.freeze({
     status: 'unavailable',
     reason,
+    legacyFallbackAllowed,
     generatedAtMs: null,
     timezone: HOUSEHOLD_TIMEZONE,
     days: Object.freeze([]),
@@ -81,6 +83,7 @@ function normalizeHour(raw, date) {
   return Object.freeze({
     at: raw.at,
     atMs,
+    ...(raw.forecastProfile ? { forecastProfile: raw.forecastProfile } : {}),
     isDay: typeof raw.isDay === 'boolean' ? raw.isDay : null,
     tempF: nullableNumber(raw.tempF, 'tempF'),
     precipPct: nullableNumber(raw.precipPct, 'precipPct'),
@@ -88,6 +91,7 @@ function normalizeHour(raw, date) {
     radiationWm2: nullableNumber(raw.radiationWm2, 'radiationWm2'),
     windMph: nullableNumber(raw.windMph, 'windMph'),
     weatherCode: nullableNumber(raw.weatherCode, 'weatherCode'),
+    cloudPct: nullableNumber(raw.cloudPct ?? null, 'cloudPct'),
   });
 }
 
@@ -113,6 +117,14 @@ function normalizeDay(raw) {
       precipSumIn: nullableNumber(summary.precipSumIn ?? null, 'summary.precipSumIn'),
       weatherCode: nullableNumber(summary.weatherCode, 'summary.weatherCode'),
       pvKwh: nullableNumber(summary.pvKwh, 'pvKwh'),
+      cloudPct: nullableNumber(summary.cloudPct ?? null, 'summary.cloudPct'),
+      ...(summary.forecastProfile ? { forecastProfile: summary.forecastProfile } : {}),
+      ...(summary.precipitationScope === 'remaining' ? {
+        precipitationScope: 'remaining',
+        precipitationFromAt: summary.precipitationFromAt,
+        precipitationThroughAt: summary.precipitationThroughAt,
+        precipitationForecastProfile: summary.precipitationForecastProfile,
+      } : {}),
     }),
     hours: Object.freeze(hours),
   });
@@ -125,8 +137,10 @@ export function parseForecast10Day(raw, { nowMs = Date.now() } = {}) {
   if (new TextEncoder().encode(raw).length > FORECAST_DETAIL_MAX_BYTES) {
     return unavailable('forecast detail exceeds size limit');
   }
+  let legacyFallbackAllowed = true;
   try {
     const parsed = JSON.parse(raw);
+    legacyFallbackAllowed = parsed?.provider !== 'weathernext3';
     if (![1, 2].includes(parsed?.version)) {
       throw new TypeError('unsupported forecast detail version');
     }
@@ -139,9 +153,17 @@ export function parseForecast10Day(raw, { nowMs = Date.now() } = {}) {
     }
     const generatedAtMs = Date.parse(parsed.generatedAt);
     if (!Number.isFinite(generatedAtMs)) throw new TypeError('generatedAt is invalid');
+    if (generatedAtMs > nowMs) throw new TypeError('forecast generatedAt is in the future');
     if (!Array.isArray(parsed.days) || parsed.days.length > 10) {
       throw new TypeError('forecast days must contain at most ten entries');
     }
+    if (parsed.provider === 'weathernext3' && parsed.providerStatus === 'UNAVAILABLE') {
+      if (parsed.days.length || parsed.source !== null || parsed.issueSha256 !== null) {
+        throw new TypeError('unavailable WeatherNext forecast carries predictions');
+      }
+      return unavailable('WeatherNext forecast unavailable', false);
+    }
+    if (!parsed.days.length) return unavailable('forecast days missing', legacyFallbackAllowed);
     const days = parsed.days.map(normalizeDay);
     const seen = new Set();
     for (let index = 0; index < days.length; index += 1) {
@@ -154,13 +176,16 @@ export function parseForecast10Day(raw, { nowMs = Date.now() } = {}) {
     return Object.freeze({
       status: nowMs - generatedAtMs > FORECAST_DETAIL_STALE_MS ? 'stale' : 'ready',
       reason: '',
+      legacyFallbackAllowed,
       generatedAtMs,
       timezone: parsed.timezone,
+      provider: parsed.provider === 'weathernext3' ? 'weathernext3' : null,
       temperatureAdjustment,
+      ...(parsed.profiles ? { profiles: Object.freeze(parsed.profiles) } : {}),
       days: Object.freeze(days),
     });
   } catch (error) {
-    return unavailable(error?.message || 'forecast detail invalid');
+    return unavailable(error?.message || 'forecast detail invalid', legacyFallbackAllowed);
   }
 }
 
@@ -226,7 +251,7 @@ export function forecastDaysFromToday(result, { nowMs = Date.now() } = {}) {
   const tomorrow = new Date(Date.parse(`${today}T12:00:00Z`) + 86_400_000)
     .toISOString().slice(0, 10);
   return result.days.filter(({ date }) => date >= today).map((day) => ({
-    ...day,
+    ...forecastDisplayDay(day, { nowMs, timezone: result.timezone }),
     label: day.date === today ? 'Today' : day.date === tomorrow ? 'Tomorrow' : day.label,
   }));
 }
@@ -251,6 +276,7 @@ export function hourlyForecastFromDetail(result, { nowMs = Date.now() } = {}) {
         a: hour.precipIn,
         r: hour.radiationWm2,
         w: hour.weatherCode,
+        c: hour.cloudPct,
       };
     });
 }

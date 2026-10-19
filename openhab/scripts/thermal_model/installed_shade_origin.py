@@ -13,7 +13,7 @@ from pathlib import Path
 from .actions import DENVER
 from .dataset import KIVA_COOLDOWN
 from .forcing_capture import _canonical, _private_directory
-from .forecast_history import SOURCE, MAX_ISSUE_AGE, _window, verify_origin_forecast_receipts
+from .forecast_history import RUNTIME_PATHS as FORECAST_RUNTIME_PATHS, _window, verify_origin_forecast_receipts
 from .graduation_policy import _utc, _sha
 from .installed_shade_artifact import (validate_candidate_bundle, _shape, _digest,
     )
@@ -34,7 +34,7 @@ FIELDS = {'schema', 'issued_at', 'inputs_available_at', 'published_at', 'candida
     'source_epochs', 'output', 'capture_sha256'}
 RUNTIME_PATHS = {'thermal_model/installed_shade_origin.py',
     'thermal_model/installed_shade_dynamics.py', 'thermal_model/installed_shade_artifact.py',
-    'thermal_model/forecast_history.py'}
+    'thermal_model/forecast_history.py'} | FORECAST_RUNTIME_PATHS
 
 
 @dataclass(frozen=True)
@@ -50,7 +50,7 @@ def prepare_candidate(bundle, inputs, *, expected_runtime_revision, assessed_at)
     return PreparedCandidate(_canonical(bundle['artifact']), _utc(assessed_at))
 
 
-def _origin_actions(snapshot, issue):
+def _origin_actions(snapshot, issue, *, allow_removed=False):
     if not isinstance(snapshot, dict): raise ValueError('original origin action snapshot required')
     value = deepcopy(snapshot)
     if not isinstance(value.get('actions'), dict): raise ValueError('original action map required')
@@ -64,7 +64,7 @@ def _origin_actions(snapshot, issue):
     _validate_actions(value, issue)
     known = value['actions']
     outdoor = known.get('outdoor_shade'); indoor = known.get('indoor_shade'); vent = known.get('vent'); heat = known.get('kiva')
-    if outdoor is None or outdoor['state'] not in ('installed', 'present'):
+    if outdoor is None or outdoor['state'] not in (('installed','present','removed','absent') if allow_removed else ('installed','present')):
         raise ValueError('origin outside installed-outdoor-shade domain')
     if indoor is None or indoor['state'] not in ('open', 'closed'):
         raise ValueError('origin indoor shade state unavailable')
@@ -82,19 +82,19 @@ def _origin_actions(snapshot, issue):
     if mode not in ('warm', 'spring', 'fall_charge', 'winter', 'unknown'):
         raise ValueError('origin mode state unsupported')
     return dict(indoor_shade_closed=float(indoor['state'] == 'closed'),
-        outdoor_shade_present=1., vent_open=vent_value, vent_provenance=vent_provenance,
+        outdoor_shade_present=float(outdoor['state'] in ('installed','present')), vent_open=vent_value, vent_provenance=vent_provenance,
         mode=mode, action_knowledge='as_of_snapshot_not_outcome_confirmation')
 
 
 def _forecast_forcing(forecast, issue, available, actions):
     verify_origin_forecast_receipts(forecast)
-    fields = {'schema', 'source', 'origin', 'horizon_hours', 'issued_at', 'captured_at', 'rows_sha256', 'rows', 'metric_receipts'}
-    if not isinstance(forecast, dict) or set(forecast) != fields or forecast['source'] != SOURCE:
-        raise ValueError('original existing-provider forecast required')
-    hours = forecast['horizon_hours']; _, targets = _window(issue, hours)
-    issued, captured = _utc(forecast['issued_at']), _utc(forecast['captured_at'])
-    if (_utc(forecast['origin']) != issue or not issue-MAX_ISSUE_AGE <= issued <= captured <= available <= issue):
-        raise ValueError('weather forecast unavailable or stale at origin')
+    from weather_learning.native_forecast import FIELDS as google_fields
+    from .solar import SITE_LATITUDE,SITE_LONGITUDE
+    hours=forecast['horizon_hours'];_,targets=_window(issue,hours)
+    captured=_utc(forecast['captured_at'])
+    if (set(forecast)!=google_fields or forecast['site']!=dict(latitude=SITE_LATITUDE,longitude=SITE_LONGITUDE,timezone='America/Denver') or
+            _utc(forecast['origin'])!=issue or not captured<=_utc(forecast['available_by'])<=available<=issue):
+        raise ValueError('original Google forcing unavailable or site differs')
     _sha(forecast['rows_sha256'])
     rows = forecast['rows']
     if not isinstance(rows, list) or len(rows) != len(targets): raise ValueError('original hourly weather bracket incomplete')
@@ -103,8 +103,9 @@ def _forecast_forcing(forecast, issue, available, actions):
         if not isinstance(row, dict) or set(row) != {'at', 'tempF', 'radiationWm2', 'windMph', 'weatherCode'} or _utc(row['at']) != target:
             raise ValueError('original hourly weather grid differs')
         outside, radiation = _number(row['tempF']), _number(row['radiationWm2'])
-        wind, code = _number(row['windMph']), _number(row['weatherCode'])
-        if not -40 <= outside <= 140 or not 0 <= radiation <= 1600 or wind < 0 or not 0 <= code <= 99:
+        wind=_number(row['windMph'])
+        code_valid=row['weatherCode'] is None
+        if not -40 <= outside <= 140 or not 0 <= radiation <= 1600 or wind < 0 or not code_valid:
             raise ValueError('original weather outside physical bounds')
         hourly.append((target, outside, radiation))
     result = []; index = 0
@@ -114,8 +115,10 @@ def _forecast_forcing(forecast, issue, available, actions):
         left, right = hourly[index], hourly[index+1]
         fraction = (at-left[0])/(right[0]-left[0])
         if not 0 <= fraction <= 1: raise ValueError('weather interpolation cannot extrapolate')
+        # Google radiation is the mean over the trailing hour ending at
+        # right[0]. Preserve that interval; interpolate only point temperature.
         result.append(InstalledShadeForcing(at, left[1]+fraction*(right[1]-left[1]),
-            left[2]+fraction*(right[2]-left[2]), actions['indoor_shade_closed'],
+            right[2], actions['indoor_shade_closed'],
             actions['outdoor_shade_present'], actions['vent_open']))
     return tuple(result)
 
