@@ -1,0 +1,32 @@
+# Historical learning and daily PV implementation plan
+
+**Goal:** Restore daily PV potential, use historical Google forecasts with existing site measurements, and improve useful learning cadence without unnecessary refitting.
+
+**Design basis:** Operator instruction to implement all improvements discussed on October 19. Google forecasts remain the only external weather source; local measurements are outcomes. Actuation remains disabled. Shared resource admission, no-swap execution and production deadlines remain intact. Existing immutable releases and prospective scores are preserved.
+
+**Execution:** Inline in the existing isolated worktree; focused failing/passing tests for numerical or transport changes; one whole-branch review before final integration. Existing authorization covers deployment and remote main publication.
+
+## Deliverables and evidence
+
+- [ ] Daily PV potential for each covered Home/Weather forecast date. Reuse array physics and native Astro geometry with terrain masking; integrate hourly irradiance on a five-minute grid, respect Denver dates/DST, retain explicit partial-today scope. Publish a separately versioned read-only view with expiry and source identities. Missing coverage stays unavailable. Verify arithmetic, bounds, native cache reuse, HTTP transport, rendered UI and live values.
+- [ ] Daily outdoor correction candidate training, with no-op when no new eligible completed observations. Retain existing shadow-only authority. Verify installed timer and actual run.
+- [ ] Resumable bounded historical WeatherNext acquisition in a separate archive, using the existing Google identity and approved request limits. Select dates overlapping local measurement history; cache originals, mark historical provenance, do not modify first-seen clocks or operational archives. Verify actual source retrieval and checkpoint progress.
+- [ ] Retrospective outdoor/indoor training and chronological evaluation using that history. Fit only from earlier outcomes, evaluate later disjoint periods and compare baselines; retain source/lead/sensor/shade/vent evidence. Integrate qualified artifacts into production forecasting; retain explicit uncertainty when history is unknown. Verify real paired sample coverage, training receipts, holdout metrics and serving selection.
+- [ ] Hourly household-load adjustment based on newly completed qualified AC measurements, alongside the daily 14-day profile. Retain separate identities and current-load/profile baselines; no zero-fill or invented balance. Verify chronological behavior and production use.
+- [ ] Evaluate six-hourly versus daily thermal fitting on later held-out predictions. Support intraday cutoffs where necessary. Choose the measured better cadence; keep daily if higher frequency has no evidenced benefit. Forecast recalculation remains five-minute and existing scoring schedules remain unchanged.
+- [ ] End-to-end production monitoring, focused regression checks, source/runtime lineage and remote main publication. No recovery work or household-planner architecture expansion.
+
+## Implementation order
+
+1. Daily PV numerical view, native cache worker, fixed GET route and UI binding; deploy after focused verification.
+2. Daily outdoor training with idempotence; deploy schedule.
+3. Historical acquisition and coverage inventory; run bounded batches while implementing retrospective pairing and chronological evaluation.
+4. Hourly load residual and baseline comparisons; deploy with retained evidence.
+5. Thermal cadence experiment and eligible historical-model integration; deploy selected behavior.
+6. Whole-branch review, completion audit, documentation and merge/push.
+
+## Ledger
+
+- 2026-10-19: Started at `eb92aff` on `feat/historical-learning-pv-20261019`. Root live checkout contains intentional overlays; deploy only verified files or new frozen releases. No reset/cleanup.
+- Ruling: Daily PV uses a separate curated view, preserving the eleven-Item weather writer and sealed model receipts. This avoids treating an array calculation as a Google forecast field.
+- Ruling: Additional training schedule executions alone are insufficient: current thermal/load cutoffs are midnight. Higher-frequency fitting requires new completed data and comparative evidence.
