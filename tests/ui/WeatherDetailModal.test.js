@@ -116,6 +116,7 @@ describe('WeatherDetailModal', () => {
     // catches up to the fixture. shouldAdvanceTime keeps waitFor polling.
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date('2026-07-18T12:00:00-06:00'));
+    items.set({ Forecast_10Day_JSON: payload() });
     addOpener();
     render(WeatherDetailModal);
     await openTomorrow();

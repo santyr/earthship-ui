@@ -189,6 +189,12 @@ class Admission:
             body=provider.to_dict()
             if body['timezone']!=release['site']['timezone'] or body['required_horizon_seconds']!=336*3600:
                 raise ValueError('reviewed provider context differs')
+            if 'near_term' in body:
+                near=body['near_term']
+                if (body['schema']!='earthship-weathernext-publication-provider/v2' or
+                        near['required_horizon_seconds']!=24*3600 or near['decision_at']!=body['decision_at'] or
+                        near['timezone']!=body['timezone'] or near['required_variables']!=body['required_variables']):
+                    raise ValueError('reviewed short forecast context differs')
         return True
 
 

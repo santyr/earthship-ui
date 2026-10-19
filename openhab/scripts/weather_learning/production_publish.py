@@ -9,7 +9,7 @@ from datetime import datetime,timedelta,timezone
 import json,math
 from zoneinfo import ZoneInfo
 from .contracts import canonical,identity
-from .provider import publication_states
+from .provider import publication_states,_presentation
 
 DETAIL='Forecast_10Day_JSON'
 NUMERIC_ITEMS=('Forecast_Temp','Forecast_Cloudiness','Forecast_Radiation','Forecast_Daily_High',
@@ -17,7 +17,7 @@ NUMERIC_ITEMS=('Forecast_Temp','Forecast_Cloudiness','Forecast_Radiation','Forec
 
 
 def production_states(provider,*,now):
-    states=publication_states(provider,now=now);value=provider.to_dict()
+    states=publication_states(provider,now=now);value,_=_presentation(provider.to_dict())
     states.update({item:'UNDEF' for item in NUMERIC_ITEMS})
     if value['status']!='AVAILABLE':return states
     def number(item,value,unit=''):
@@ -38,6 +38,8 @@ def production_states(provider,*,now):
 def _withdrawal(states,reason):
     result={item:('UNDEF' if item in NUMERIC_ITEMS else '[]') for item in states}
     detail=json.loads(states[DETAIL]);detail.update(providerStatus='UNAVAILABLE',providerReason=reason,source=None,issueSha256=None,days=[])
+    if 'profiles' in detail:
+        detail['profiles']={key:dict(row,status='UNAVAILABLE',reason=reason,source=None,issueSha256=None) for key,row in detail['profiles'].items()}
     result[DETAIL]=canonical(detail).decode()
     return result
 

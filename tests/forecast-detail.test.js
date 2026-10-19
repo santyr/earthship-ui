@@ -359,3 +359,24 @@ it('reads actual Python-produced Google publication bytes and native daylight fl
   expect(parsed.days[0].hours.map((row) => row.isDay)).toEqual([true, false, false]);
   expect(parsed.days[0].hours.every((row) => row.precipPct === null && row.weatherCode === null)).toBe(true);
 });
+
+
+describe('dual forecast profile presentation', () => {
+  it('preserves near-term hour provenance and exact remaining rain interval labels', () => {
+    const today = day('2026-07-18', 'Today', 14, 23);
+    today.hours[0].forecastProfile = 'nearTerm';
+    Object.assign(today.summary, { precipSumIn: 0.12, precipitationScope: 'remaining',
+      precipitationFromAt: '2026-07-18T13:00:00-06:00', precipitationThroughAt: '2026-07-19T00:00:00-06:00',
+      precipitationForecastProfile: 'nearTerm', forecastProfile: 'extended' });
+    const parsed = parseForecast10Day(payload([today]), { nowMs: Date.parse('2026-07-18T12:30:00-06:00') });
+    expect(parsed.days[0].hours[0].forecastProfile).toBe('nearTerm');
+    expect(parsed.days[0].summary).toMatchObject({ precipitationScope: 'remaining',
+      precipitationFromAt: '2026-07-18T13:00:00-06:00', precipitationThroughAt: '2026-07-19T00:00:00-06:00',
+      precipitationForecastProfile: 'nearTerm' });
+  });
+  it('refuses a publication timestamp in the future', () => {
+    const parsed = parseForecast10Day(payload([day('2026-07-18', 'Today')], '2026-07-18T13:00:00-06:00'),
+      { nowMs: Date.parse('2026-07-18T12:00:00-06:00') });
+    expect(parsed.status).toBe('unavailable');
+  });
+});

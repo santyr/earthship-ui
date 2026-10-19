@@ -144,6 +144,50 @@ def load_production_forecast(archive,*,decision_at,required_horizon,site,require
         return _freeze(body)
 
 
+def load_publication_forecast(archive,*,decision_at,site,astro_source=None):
+    """Independently select a 24h forecast and a 336h outlook from originals.
+
+    The extended source stays identifiable even where newer interim hours are
+    displayed. Missing extended coverage never suppresses a valid short outlook.
+    This composite is a publication product, not a single-issue model input.
+    """
+    args=dict(decision_at=decision_at,site=site,astro_source=astro_source)
+    extended=load_production_forecast(archive,required_horizon=timedelta(hours=336),**args).to_dict()
+    near=load_production_forecast(archive,required_horizon=timedelta(hours=24),**args).to_dict()
+    extended.pop('provider_snapshot_sha256')
+    extended.update(schema='earthship-weathernext-publication-provider/v2',near_term=near,
+        extended_status=extended['status'],extended_reason=extended['reason'])
+    if near['status']=='AVAILABLE':extended.update(status='AVAILABLE',reason=None)
+    return _freeze(extended)
+
+
+def publication_sources(provider):
+    """All independently retained originals used by a publication, once each."""
+    value=provider.to_dict();sources={}
+    for profile in (value,value.get('near_term',{})):
+        source=profile.get('source')
+        if source is not None:sources[source['snapshot_sha256']]=source
+    return list(sources.values())
+
+
+def _presentation(value):
+    if 'near_term' not in value:return value,None
+    near=value['near_term']
+    profiles={}
+    for name,profile,status,reason in (
+            ('extended',value,value['extended_status'],value['extended_reason']),
+            ('nearTerm',near,near['status'],near['reason'])):
+        profiles[name]=dict(status=status,reason=reason,source=profile['source'],
+            issueSha256=profile['issue_sha256'],requiredHorizonSeconds=profile['required_horizon_seconds'])
+    # Summaries remain from the long-range issue. Only hourly values within the
+    # independently qualified short profile are overlaid; no extrapolation.
+    hours={row['at']:row for row in value['hours']}
+    for row in near['hours']:hours[row['at']]=dict(row,forecast_profile='nearTerm')
+    days=value['days'] if value['extended_status']=='AVAILABLE' else near['days']
+    return dict(value,summary_hours=value['hours'],hours=sorted(hours.values(),key=lambda row:row['at']),days=days,
+        solar_context=value['solar_context'] or near['solar_context']),profiles
+
+
 def forecast_payloads(provider,*,now):
     """Map raw Google values into existing nullable UI contracts, without seeds.
 
@@ -153,7 +197,7 @@ def forecast_payloads(provider,*,now):
     so the future publisher can withdraw old values instead of retaining them.
     """
     if not isinstance(provider,ProviderSnapshot):raise ValueError('original prepared provider required')
-    value=provider.to_dict();now=utc(now)
+    value,profiles=_presentation(provider.to_dict());now=utc(now)
     if now!=instant(value['decision_at']):raise ValueError('provider at its exact original decision required')
     zone=ZoneInfo(value['timezone']);today=now.astimezone(zone).date();grouped={row['date']:[] for row in value['days'][:10]}
     solar=value['solar_context'];solar_days={} if solar is None else {row['day']:row for row in solar['days']}
@@ -163,7 +207,7 @@ def forecast_payloads(provider,*,now):
 
     for row in value['hours']:
         at=instant(row['at']);key=at.astimezone(zone).date().isoformat()
-        if key in grouped:grouped[key].append(dict(at=at.astimezone(zone).isoformat(),isDay=is_day(at),tempF=row['temp_f'],
+        if key in grouped:grouped[key].append(dict(**({'forecastProfile':row['forecast_profile']} if 'forecast_profile' in row else {}),at=at.astimezone(zone).isoformat(),isDay=is_day(at),tempF=row['temp_f'],
             precipPct=None,precipIn=row['precip_in'],cloudPct=row['cloud_pct'],radiationWm2=row['radiation_wm2'],windMph=row['wind_mph'],weatherCode=None))
     days=[]
     for row in value['days'][:10]:
@@ -180,11 +224,38 @@ def forecast_payloads(provider,*,now):
             sourceSha256=None if solar is None else solar['sourceSha256'],recordedAt=None if solar is None else solar['recordedAt'],
             availableAt=None if solar is None else solar['availableAt']),
         learningNamespace=value['learning_namespace'],model=value['model'],releaseAuthorized=False,days=days)
+    if profiles is not None:
+        detail['profiles']=profiles
+        for day in detail['days']:
+            day['summary']['forecastProfile']='extended' if profiles['extended']['status']=='AVAILABLE' else 'nearTerm'
+            summary_hours=[h for h in value.get('summary_hours',[]) if instant(h['at']).astimezone(zone).date().isoformat()==day['date']]
+            if summary_hours:
+                day['summary']['cloudPct']=sum(h['cloud_pct'] for h in summary_hours)/len(summary_hours) if all(h['cloud_pct'] is not None for h in summary_hours) else None
+            if day['date']!=today.isoformat():continue
+            # Native rain is a trailing one-hour depth. Exclude the interval
+            # already in progress; require every full remaining interval through
+            # next local midnight, including its endpoint in tomorrow's hours.
+            start=now.replace(minute=0,second=0,microsecond=0)
+            if start<now:start+=timedelta(hours=1)
+            end=datetime.combine(today+timedelta(days=1),time.min,zone).astimezone(timezone.utc)
+            index={instant(h['at']):h for h in value['hours']}
+            at=start+timedelta(hours=1);rain=[];origins=set()
+            while at<=end:
+                hour=index.get(at)
+                if hour is None or hour['precip_in'] is None:break
+                rain.append(hour['precip_in']);origins.add(hour.get('forecast_profile','extended'))
+                at+=timedelta(hours=1)
+            if rain and at>end:
+                day['summary'].update(precipSumIn=sum(rain),precipitationScope='remaining',
+                    precipitationFromAt=start.astimezone(zone).isoformat(),precipitationThroughAt=end.astimezone(zone).isoformat(),
+                    precipitationForecastProfile=next(iter(origins)) if len(origins)==1 else 'mixed')
+
     def rounded(number):return None if number is None else round(number)
     hourly=[dict(at=row['at'],isDay=is_day(instant(row['at'])),h=instant(row['at']).astimezone(zone).strftime('%-I%p').lower(),t=rounded(row['temp_f']),
         p=None,a=row['precip_in'],r=rounded(row['radiation_wm2']),w=None,c=row['cloud_pct']) for row in value['hours'][:14]]
+    original_days={row['date']:row for row in value['days']}
     daily=[dict(d=row['label'],hi=rounded(row['summary']['highF']),lo=rounded(row['summary']['lowF']),p=None,
-        a=row['summary']['precipSumIn'],w=None,pv=None) for row in days[:7]]
+        a=original_days[row['date']]['precip_sum_in'],w=None,pv=None) for row in days[:7]]
     return hourly,daily,detail
 
 

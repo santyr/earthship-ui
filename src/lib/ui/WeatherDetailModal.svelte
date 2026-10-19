@@ -74,6 +74,7 @@
     `low ${metric(selectedDay.summary.lowF, ' degrees')}`,
     selectedDay.summary.precipPct !== null ? `precipitation ${metric(selectedDay.summary.precipPct, ' percent')}`
       : `precipitation ${rainAmountText(selectedDay.summary.precipSumIn) ?? (selectedDay.summary.precipSumIn === 0 ? '0 inches' : 'unavailable')}`,
+    ...(selectedDay.summary.precipitationScope === 'remaining' ? ['precipitation covers remaining complete hours'] : []),
     ...(selectedDay.summary.temperatureScope === 'remaining' ? ['temperature range covers remaining hours'] : []),
     ...(selectedDay.summary.pvKwh === null ? [] : [`modeled PV ${metric(selectedDay.summary.pvKwh, ' kilowatt-hours')}`]),
   ].join(', ') : 'Hourly detail unavailable');
@@ -261,6 +262,7 @@
                 {#if rainAmountText(selectedDay.summary.precipSumIn)}
                   <span data-testid="modal-day-rain-amount" style="color: {colors.rain}">{rainAmountText(selectedDay.summary.precipSumIn)}</span>
                 {:else if selectedDay.summary.precipPct === null}<span>{selectedDay.summary.precipSumIn === 0 ? '0.00″ precipitation' : 'Precipitation unavailable'}</span>{/if}
+                {#if selectedDay.summary.precipitationScope === 'remaining'}<span title={`From ${selectedDay.summary.precipitationFromAt} through ${selectedDay.summary.precipitationThroughAt}`}> · remaining full hours</span>{/if}
               </span>
               {#if selectedDay.summary.pvKwh !== null}<span>PV {metric(selectedDay.summary.pvKwh, ' kWh')}</span>{/if}
             </p>

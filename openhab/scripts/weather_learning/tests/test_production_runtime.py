@@ -141,6 +141,22 @@ class PublicationRuntimeTests(unittest.TestCase):
         self.assertEqual(json.loads(self.server.states['Forecast_10Day_JSON'])['providerStatus'],'UNAVAILABLE')
         self.assertTrue(all(self.server.states[item]=='UNDEF' for item in TYPES if TYPES[item]!='String'))
 
+    def test_dual_profile_rechecks_short_original_before_committing_detail(self):
+        archive=Archive(self.archive.root)
+        archive.store_snapshot(full_snapshot(hours=360))
+        short=archive.store_snapshot(full_snapshot(T+timedelta(hours=2),hours=48))
+        def change(item,raw):
+            if item!='Forecast_10Day_JSON' and raw not in ('UNDEF','[]'):
+                self.server.before_put=None
+                (self.archive.objects/(short+'.json')).write_bytes(b'{}')
+        self.server.before_put=change
+        result=self.run_worker(required_horizon=timedelta(hours=336),
+            clock=lambda:T+timedelta(hours=10,minutes=30,seconds=self.elapsed))
+        self.assertEqual(result['status'],'FAILED')
+        detail=json.loads(self.server.states['Forecast_10Day_JSON'])
+        self.assertEqual(detail['providerStatus'],'UNAVAILABLE')
+        self.assertTrue(all(row['status']=='UNAVAILABLE' and row['source'] is None for row in detail['profiles'].values()))
+
     def test_empty_source_withdraws_without_legacy_access_or_model_fitting(self):
         empty=Archive(self.root/'empty')
         result=self.run_worker(archive=Archive.open_readonly(empty.root))

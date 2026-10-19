@@ -83,6 +83,7 @@ function normalizeHour(raw, date) {
   return Object.freeze({
     at: raw.at,
     atMs,
+    ...(raw.forecastProfile ? { forecastProfile: raw.forecastProfile } : {}),
     isDay: typeof raw.isDay === 'boolean' ? raw.isDay : null,
     tempF: nullableNumber(raw.tempF, 'tempF'),
     precipPct: nullableNumber(raw.precipPct, 'precipPct'),
@@ -117,6 +118,13 @@ function normalizeDay(raw) {
       weatherCode: nullableNumber(summary.weatherCode, 'summary.weatherCode'),
       pvKwh: nullableNumber(summary.pvKwh, 'pvKwh'),
       cloudPct: nullableNumber(summary.cloudPct ?? null, 'summary.cloudPct'),
+      ...(summary.forecastProfile ? { forecastProfile: summary.forecastProfile } : {}),
+      ...(summary.precipitationScope === 'remaining' ? {
+        precipitationScope: 'remaining',
+        precipitationFromAt: summary.precipitationFromAt,
+        precipitationThroughAt: summary.precipitationThroughAt,
+        precipitationForecastProfile: summary.precipitationForecastProfile,
+      } : {}),
     }),
     hours: Object.freeze(hours),
   });
@@ -145,6 +153,7 @@ export function parseForecast10Day(raw, { nowMs = Date.now() } = {}) {
     }
     const generatedAtMs = Date.parse(parsed.generatedAt);
     if (!Number.isFinite(generatedAtMs)) throw new TypeError('generatedAt is invalid');
+    if (generatedAtMs > nowMs) throw new TypeError('forecast generatedAt is in the future');
     if (!Array.isArray(parsed.days) || parsed.days.length > 10) {
       throw new TypeError('forecast days must contain at most ten entries');
     }
@@ -172,6 +181,7 @@ export function parseForecast10Day(raw, { nowMs = Date.now() } = {}) {
       timezone: parsed.timezone,
       provider: parsed.provider === 'weathernext3' ? 'weathernext3' : null,
       temperatureAdjustment,
+      ...(parsed.profiles ? { profiles: Object.freeze(parsed.profiles) } : {}),
       days: Object.freeze(days),
     });
   } catch (error) {

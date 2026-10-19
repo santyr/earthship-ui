@@ -32,10 +32,10 @@ def pair(day=0,mean_c=10,actual_c=12,epoch=EPOCH,hour=2):
     return training_pair(target,outcome)
 
 
-def full_snapshot(init=T,hours=80):
+def full_snapshot(init=T,hours=80,temperature_k=283.15):
     collections=[]
     for collection,bands,values in [
-        (COLLECTIONS['station'],['station_head_temperature_2m_mean'],[283.15]),
+        (COLLECTIONS['station'],['station_head_temperature_2m_mean'],[temperature_k]),
         (COLLECTIONS['gridded'],['surface_solar_radiation_downwards_1hr_mean','total_sky_direct_solar_radiation_at_surface_1hr_mean','total_precipitation_1hr_mean','wind_speed_10m_mean','total_cloud_cover_mean'],[360000,180000,.001,1,.5])]:
         raw={'metadata':[],'region':[['id','longitude','latitude','time',*bands]]}
         for hour in range(1,hours+1):

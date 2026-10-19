@@ -17,6 +17,7 @@
     `high ${value(day.summary.highF, ' degrees')}`,
     `low ${value(day.summary.lowF, ' degrees')}`,
     day.summary.precipPct !== null ? `precipitation ${value(day.summary.precipPct, ' percent')}` : `precipitation ${rainAmountText(day.summary.precipSumIn) ?? (day.summary.precipSumIn === 0 ? '0.00 inches' : 'unavailable')}`,
+    ...(day.summary.precipitationScope === 'remaining' ? ['precipitation covers remaining complete hours'] : []),
   ].join(', ');
 </script>
 
@@ -46,6 +47,7 @@
           <span data-testid="day-rain-amount" style="color: {colors.rain}">{rainAmountText(day.summary.precipSumIn)}</span>
         {/if}
         {#if day.summary.precipPct === null && !rainAmountText(day.summary.precipSumIn)}<span>{day.summary.precipSumIn === 0 ? '0.00″' : 'Rain unavailable'}</span>{/if}
+        {#if day.summary.precipitationScope === 'remaining'}<small class="range-note" title={`Rain forecast from ${day.summary.precipitationFromAt} through ${day.summary.precipitationThroughAt}`}>remaining</small>{/if}
         {#if day.summary.pvKwh !== null}<span aria-hidden="true"> · </span><span>PV {value(day.summary.pvKwh, ' kWh')}</span>{/if}
       </span>
     </button>

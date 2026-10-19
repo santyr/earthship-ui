@@ -13,7 +13,7 @@ from .archive import Archive
 from .config import Site
 from .contracts import canonical,identity,instant
 from .evidence import utc
-from .provider import load_production_forecast
+from .provider import load_production_forecast,load_publication_forecast,publication_sources
 from .production_publish import DETAIL,production_states,publish_cycle
 
 ITEM_TYPES={
@@ -133,8 +133,10 @@ def run_publication(*,archive,site,evidence_directory,shared_lock,code_revision,
     root=_directory(pathlib.Path(evidence_directory));decision=utc(clock())
     with SharedScoreLock(shared_lock) as held:
         guard();held.verify()
-        provider=load_production_forecast(archive,decision_at=decision,required_horizon=required_horizon,
-            site=site,astro_source=astro_source)
+        if required_horizon==timedelta(hours=336):
+            provider=load_publication_forecast(archive,decision_at=decision,site=site,astro_source=astro_source)
+        else:
+            provider=load_production_forecast(archive,decision_at=decision,required_horizon=required_horizon,site=site,astro_source=astro_source)
         def check():
             guard();held.verify();now=utc(clock());transport.budget.remaining()
             if not decision<=now<=decision+timedelta(seconds=85):raise ValueError('publication lifetime elapsed')
@@ -149,11 +151,12 @@ def run_publication(*,archive,site,evidence_directory,shared_lock,code_revision,
             def before():
                 check()
                 if not withdrawal:
-                    source=provider.to_dict()['source']
-                    if source is None:raise ValueError('no original Google source to serve')
-                    archive.read(source['snapshot_sha256'])
-                    if utc(clock())-instant(source['initialized_at'])>timedelta(hours=24):
-                        raise ValueError('original Google source expired')
+                    sources=publication_sources(provider)
+                    if not sources:raise ValueError('no original Google source to serve')
+                    for source in sources:
+                        archive.read(source['snapshot_sha256'])
+                        if utc(clock())-instant(source['initialized_at'])>timedelta(hours=24):
+                            raise ValueError('original Google source expired')
             transport.put(item,raw,before_request=before)
         try:
             ownership=transport.preflight(before_request=check)
