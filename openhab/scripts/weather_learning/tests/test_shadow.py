@@ -160,10 +160,26 @@ class ShadowTests(unittest.TestCase):
         report=self.run_shadow();sent=[]
         for mutate in ('version','number','authority'):
             invalid=deepcopy(report)
-            if mutate=='version':invalid['version']=2
+            if mutate=='version':invalid['version']=3
             if mutate=='number':invalid['hours'][0]['rawC']=float('nan')
             if mutate=='authority':invalid['automaticActuation']=True
             with self.subTest(mutate=mutate),self.assertRaises(ValueError):self.p.publish_bundle(invalid,lambda *args:sent.append(args))
         self.assertEqual(sent,[])
+
+    def test_google_only_contract_and_retained_issue_have_no_incumbent_source(self):
+        report=self.run_shadow()
+        self.assertEqual(report['version'],2)
+        self.assertEqual(report['schema'],'earthship-weather-provider-shadow/v2')
+        self.assertNotIn('incumbent',report)
+        self.assertTrue(all(set(row)=={'at','rawC','localC'} for row in report['hours']))
+        issues=self.state.training_issues(T-timedelta(days=1),T+timedelta(days=1),sensor_epoch=EPOCH)
+        self.assertEqual(issues[0]['schema'],'earthship-weather-shadow-issue/v2')
+        self.assertEqual(set(issues[0]),{'schema','sensor_epoch','code_revision','payload'})
+
+    def test_previous_shadow_contract_cannot_publish_into_fresh_google_cohort(self):
+        value=self.run_shadow()
+        value.pop('generation')
+        value.update(version=1,schema='earthship-weather-provider-shadow/v1')
+        with self.assertRaises(ValueError):self.p.seal_payload(value)
 
 if __name__=='__main__':unittest.main()

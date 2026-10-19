@@ -18,7 +18,7 @@ def main(argv=None):
     try:
         if not 1<=args.hours<=360:raise ValueError('forecast horizon outside bound')
         # Reuse the established private OpenHAB token, but never its site fallback.
-        from forecast_intel import oh_get,I18N_CONFIG_PATH
+        from weather_learning.openhab import oh_get,I18N_CONFIG_PATH
         site=Site.from_openhab_config(oh_get(I18N_CONFIG_PATH))
         policy=AccessPolicy(backend='earthengine',noncommercial_verified=True)
         reader=EarthEngineReader(policy=policy,site=site,credential_path=args.credential)

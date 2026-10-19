@@ -1,5 +1,5 @@
 """Disabled-by-default operational entrypoints; Google access stays in ingestion."""
-import argparse,json,sys
+import argparse,json,pathlib,sys
 from datetime import datetime,timezone
 from .archive import Archive
 from .config import Site
@@ -16,35 +16,27 @@ def _parser(description):
 
 
 def _context(args):
-    from forecast_intel import oh_get,I18N_CONFIG_PATH
+    from weather_learning.openhab import oh_get,I18N_CONFIG_PATH
     from hourly_temperature_runtime import _native_outdoor_policy
     site=Site.from_openhab_config(oh_get(I18N_CONFIG_PATH))
     policy,epoch=_native_outdoor_policy(args.temperature_policy)
-    return Archive(args.archive),ShadowStore(args.state),site,policy,epoch
+    # Never import a prior comparison cohort's issues or candidate pointer.
+    return Archive(args.archive),ShadowStore(pathlib.Path(args.state)/'google-local-v2'),site,policy,epoch
 
 
 def main_shadow(argv=None):
     parser=_parser('Retain a read-only WeatherNext shadow issue; publication is opt-in')
     parser.add_argument('--publish',action='store_true')
-    parser.add_argument('--include-incumbent',action='store_true')
     parser.add_argument('--hours',type=int,default=336)
     args=parser.parse_args(argv)
     try:
         archive,state,site,policy,epoch=_context(args)
-        incumbent=None
-        if args.include_incumbent:
-            from forecast_intel import oh_get
-            from .incumbent import capture_incumbent
-            try:
-                raw=oh_get('/items/Forecast_10Day_JSON')['state']
-                incumbent=capture_incumbent(raw,observed_at=datetime.now(timezone.utc),site=site)
-            except Exception:pass  # Missing control never authorizes a substitute.
         put=None
         if args.publish:
-            from forecast_intel import oh_put_state
+            from weather_learning.openhab import oh_put_state
             put=oh_put_state
         payload=shadow_once(archive,state,now=datetime.now(timezone.utc),site=site,sensor_epoch=epoch,
-            code_revision=args.code_revision,horizon=args.hours,incumbent=incumbent,put_state=put)
+            code_revision=args.code_revision,horizon=args.hours,put_state=put)
         print(json.dumps(dict(status=payload['status'],generation=payload['generation'],published=args.publish,automatic_actuation=False)))
         return 0
     except Exception as exc:

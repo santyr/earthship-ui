@@ -92,14 +92,13 @@ class ShadowStore:
         if instant(value['model']['cutoff'])>instant(value['fitted_at']):raise ValueError('model receipt clocks invalid')
         return value
 
-    def retain_issue(self,payload,*,sensor_epoch,code_revision,incumbent_original=None):
+    def retain_issue(self,payload,*,sensor_epoch,code_revision):
         from weather_temperature_evidence import sensor_epoch_id
         validate_payload(payload)
         if payload['status']!='READY':raise ValueError('only a real shadow forecast can become an issue')
         epoch=sensor_epoch_id(sensor_epoch)
         if not isinstance(code_revision,str) or not re.fullmatch('[0-9a-f]{40}',code_revision):raise ValueError('immutable serving revision required')
-        if (payload['incumbent'] is None)!=(incumbent_original is None) or (incumbent_original is not None and identity(incumbent_original)!=payload['incumbent']['sourceSha256']):raise ValueError('retained incumbent control differs')
-        value=dict(schema='earthship-weather-shadow-issue/v1',sensor_epoch=epoch,code_revision=code_revision,payload=payload,incumbent_original=incumbent_original)
+        value=dict(schema='earthship-weather-shadow-issue/v2',sensor_epoch=epoch,code_revision=code_revision,payload=payload)
         name=identity(value);self._write(self.root/'issues'/(name+'.json'),value,immutable=True)
         day=instant(payload['decisionAt']).astimezone(ZoneInfo(payload['source']['timezone'])).date().isoformat()
         with self._connect() as db:db.execute('INSERT OR IGNORE INTO issues VALUES(?,?,?,?,?)',(name,payload['decisionAt'],payload['generatedAt'],day,epoch))
@@ -117,7 +116,7 @@ class ShadowStore:
         result=[]
         for (name,) in rows:
             digest(name);value=_read(self.root/'issues'/(name+'.json'),256*1024)
-            if identity(value)!=name or not isinstance(value,dict) or set(value)!={'schema','sensor_epoch','code_revision','payload','incumbent_original'} or value['schema']!='earthship-weather-shadow-issue/v1' or value['sensor_epoch']!=sensor_epoch:
+            if identity(value)!=name or not isinstance(value,dict) or set(value)!={'schema','sensor_epoch','code_revision','payload'} or value['schema']!='earthship-weather-shadow-issue/v2' or value['sensor_epoch']!=sensor_epoch:
                 raise ValueError('original shadow issue differs')
             payload=validate_payload(value['payload'])
             if not start<=instant(payload['decisionAt'])<end or instant(payload['generatedAt'])>end:raise ValueError('issue index clocks differ')
@@ -134,14 +133,14 @@ def empty_model_summary(status='UNTRAINED'):
     return dict(status=status,sha256=None,fittedAt=None,trainingEnd=None,sampleCount=0,targetDates=0,validation=None)
 
 
-def shadow_once(archive,state,*,now,site,sensor_epoch,code_revision,horizon=336,clock=lambda:datetime.now(timezone.utc),put_state=None,incumbent=None):
+def shadow_once(archive,state,*,now,site,sensor_epoch,code_revision,horizon=336,clock=lambda:datetime.now(timezone.utc),put_state=None):
     now=utc(now)
     if type(horizon) is not int or not 1<=horizon<=336:raise ValueError('bounded shadow horizon required')
     with collector_lock(state.root/'shadow.lock'):
         end=now+timedelta(hours=horizon)
         end=end.replace(minute=0,second=0,microsecond=0)+(timedelta(hours=1) if end.minute or end.second or end.microsecond else timedelta())
         snapshot=archive.eligible_snapshot(now,end,required_variables={'station_head_temperature_2m'})
-        source=None;hours=[];model=empty_model_summary();status='UNAVAILABLE';reason='NO_ELIGIBLE_SOURCE';inc_meta=None;inc_values={};inc_original=None
+        source=None;hours=[];model=empty_model_summary();status='UNAVAILABLE';reason='NO_ELIGIBLE_SOURCE'
         if snapshot is not None:
             targets=[target for target in reconstruct_targets(snapshot,now,site) if target.target_at<=end]
             source=dict(snapshotSha256=snapshot['snapshot_sha256'],runId=snapshot['run_id'],initializedAt=snapshot['initialized_at'],firstSeenAt=snapshot['first_seen_at'],ingestedAt=snapshot['ingestion_completed_at'],timezone=site.timezone)
@@ -154,12 +153,10 @@ def shadow_once(archive,state,*,now,site,sensor_epoch,code_revision,horizon=336,
                     for target in targets:predictor.predict(target,sensor_epoch=sensor_epoch)
                     fitted=receipt['model'];model=dict(status='SHADOW_ONLY',sha256=fitted['artifact_sha256'],fittedAt=receipt['fitted_at'],trainingEnd=fitted['training_end'],sampleCount=fitted['sample_count'],targetDates=fitted['target_dates'],validation=None);reason='NONE'
             except (ValueError,OSError,KeyError,TypeError):model=empty_model_summary('UNAVAILABLE');predictor=None;reason='MODEL_UNAVAILABLE'
-            if incumbent is not None:
-                inc_meta,inc_values,inc_original=incumbent
             for target in targets:
-                hours.append(dict(at=target.target_at.isoformat(),rawC=target.mean_c,localC=None if predictor is None else predictor.predict(target,sensor_epoch=sensor_epoch)['value_c'],incumbentC=inc_values.get(target.target_at)))
-        payload=seal_payload(dict(version=1,schema='earthship-weather-provider-shadow/v1',provider='weathernext3',mode='shadow',generatedAt=utc(clock()).isoformat(),decisionAt=now.isoformat(),status=status,reason=reason,source=source,model=model,incumbent=inc_meta,hours=hours,automaticActuation=False))
-        if status=='READY':state.retain_issue(payload,sensor_epoch=sensor_epoch,code_revision=code_revision,incumbent_original=inc_original)
+                hours.append(dict(at=target.target_at.isoformat(),rawC=target.mean_c,localC=None if predictor is None else predictor.predict(target,sensor_epoch=sensor_epoch)['value_c']))
+        payload=seal_payload(dict(version=2,schema='earthship-weather-provider-shadow/v2',provider='weathernext3',mode='shadow',generatedAt=utc(clock()).isoformat(),decisionAt=now.isoformat(),status=status,reason=reason,source=source,model=model,hours=hours,automaticActuation=False))
+        if status=='READY':state.retain_issue(payload,sensor_epoch=sensor_epoch,code_revision=code_revision)
         if put_state is not None:publish_bundle(payload,put_state)
         return payload
 

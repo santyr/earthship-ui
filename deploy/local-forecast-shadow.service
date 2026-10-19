@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=oneshot
 EnvironmentFile=%h/.config/earthship-weather/runtime.env
 Environment=PYTHONDONTWRITEBYTECODE=1
-ExecStart=/usr/bin/python3 ${EARTHSHIP_WEATHER_CODE_ROOT}/scripts/run-household-job.py --production --minimum-mib 256 --preferred-mib 512 --tasks 24 --seconds 120 -- ${EARTHSHIP_WEATHER_PYTHON} ${EARTHSHIP_WEATHER_CODE_ROOT}/openhab/scripts/local_forecast_shadow.py --archive ${EARTHSHIP_WEATHER_ARCHIVE} --state ${EARTHSHIP_WEATHER_SHADOW_STATE} --temperature-policy ${EARTHSHIP_WEATHER_TEMPERATURE_POLICY} --code-revision ${EARTHSHIP_WEATHER_CODE_REVISION} --publish --include-incumbent
+ExecStart=/usr/bin/python3 ${EARTHSHIP_WEATHER_CODE_ROOT}/scripts/run-household-job.py --production --minimum-mib 256 --preferred-mib 512 --tasks 24 --seconds 120 -- ${EARTHSHIP_WEATHER_PYTHON} ${EARTHSHIP_WEATHER_CODE_ROOT}/openhab/scripts/local_forecast_shadow.py --archive ${EARTHSHIP_WEATHER_ARCHIVE} --state ${EARTHSHIP_WEATHER_SHADOW_STATE} --temperature-policy ${EARTHSHIP_WEATHER_TEMPERATURE_POLICY} --code-revision ${EARTHSHIP_WEATHER_CODE_REVISION} --publish
 TimeoutStartSec=140
 Restart=no
 UMask=0077

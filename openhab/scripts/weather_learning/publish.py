@@ -3,7 +3,7 @@ from .contracts import canonical,digest,finite,identity,instant
 
 ITEMS=('Forecast_Local_Shadow_JSON','Forecast_Comparison_JSON','Forecast_Provider_Status_JSON')
 MAX_BYTES=65536
-FIELDS={'version','schema','provider','mode','generation','generatedAt','decisionAt','status','reason','source','model','incumbent','hours','automaticActuation'}
+FIELDS={'version','schema','provider','mode','generation','generatedAt','decisionAt','status','reason','source','model','hours','automaticActuation'}
 
 
 def seal_payload(body):
@@ -13,7 +13,7 @@ def seal_payload(body):
 
 
 def validate_payload(value):
-    if not isinstance(value,dict) or set(value)!=FIELDS or type(value['version']) is not int or value['version']!=1 or value['schema']!='earthship-weather-provider-shadow/v1':
+    if not isinstance(value,dict) or set(value)!=FIELDS or type(value['version']) is not int or value['version']!=2 or value['schema']!='earthship-weather-provider-shadow/v2':
         raise ValueError('closed versioned shadow payload required')
     if value['provider']!='weathernext3' or value['mode']!='shadow' or value['automaticActuation'] is not False:
         raise ValueError('WeatherNext shadow-only authority required')
@@ -23,7 +23,7 @@ def validate_payload(value):
     if generated<issued:raise ValueError('shadow completion precedes decision')
     if value['status'] not in ('READY','UNAVAILABLE') or value['reason'] not in ('NONE','NO_ELIGIBLE_SOURCE','UNTRAINED','MODEL_UNAVAILABLE'):
         raise ValueError('explicit shadow status required')
-    source=value['source'];hours=value['hours'];model=value['model'];incumbent=value['incumbent']
+    source=value['source'];hours=value['hours'];model=value['model']
     if not isinstance(hours,list) or len(hours)>360:raise ValueError('bounded shadow hours required')
     if value['status']=='READY':
         if not isinstance(source,dict) or set(source)!={'snapshotSha256','runId','initializedAt','firstSeenAt','ingestedAt','timezone'} or not hours:
@@ -34,7 +34,7 @@ def validate_payload(value):
         from zoneinfo import ZoneInfo
         ZoneInfo(source['timezone'])
         if not isinstance(source['runId'],str) or not 1<=len(source['runId'])<=128:raise ValueError('bounded source run required')
-    elif source is not None or hours or incumbent is not None:raise ValueError('unavailable source cannot carry forecasts')
+    elif source is not None or hours:raise ValueError('unavailable source cannot carry forecasts')
     if not isinstance(model,dict) or set(model)!={'status','sha256','fittedAt','trainingEnd','sampleCount','targetDates','validation'}:
         raise ValueError('closed model summary required')
     if model['status'] not in ('UNTRAINED','SHADOW_ONLY','UNAVAILABLE') or model['validation'] is not None:raise ValueError('unqualified shadow model required')
@@ -46,19 +46,14 @@ def validate_payload(value):
         if not instant(model['trainingEnd'])<=instant(model['fittedAt'])<=issued or model['sampleCount']==0:raise ValueError('original model clocks required')
     elif any(model[k] is not None for k in ('sha256','fittedAt','trainingEnd')) or model['sampleCount'] or model['targetDates']:
         raise ValueError('untrained/unavailable model cannot carry training claims')
-    if incumbent is not None:
-        if not isinstance(incumbent,dict) or set(incumbent)!={'provider','sourceSha256','generatedAt','observedAt'} or incumbent['provider']!='openmeteo':raise ValueError('retained incumbent control required')
-        digest(incumbent['sourceSha256'])
-        if not instant(incumbent['generatedAt'])<=instant(incumbent['observedAt'])<=issued:raise ValueError('incumbent observed after decision')
     previous=issued
     for row in hours:
-        if not isinstance(row,dict) or set(row)!={'at','rawC','localC','incumbentC'}:raise ValueError('closed shadow temperature row required')
+        if not isinstance(row,dict) or set(row)!={'at','rawC','localC'}:raise ValueError('closed shadow temperature row required')
         at=instant(row['at'])
         if not previous<at or (at-init).total_seconds()>360*3600:raise ValueError('ordered native forecast horizon required')
         previous=at
-        if not finite(row['rawC']) or any(row[k] is not None and not finite(row[k]) for k in ('localC','incumbentC')):raise ValueError('finite or absent temperature required')
+        if not finite(row['rawC']) or (row['localC'] is not None and not finite(row['localC'])):raise ValueError('finite or absent temperature required')
         if model['status']!='SHADOW_ONLY' and row['localC'] is not None:raise ValueError('untrained model cannot predict')
-        if incumbent is None and row['incumbentC'] is not None:raise ValueError('incumbent estimate lacks original control')
     if len(canonical(value))>=MAX_BYTES:raise ValueError('shadow payload exceeds Item bound')
     return value
 

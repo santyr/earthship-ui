@@ -69,3 +69,17 @@ The native Google backend now avoids the incumbent forecast credential entirely.
 
 
 The [preserved irradiance-family integration](2026-10-18-weathernext-irradiance-family.md) keeps the actual running thermal equations and makes them mandatory for Google production profiles. This does not exempt historical compatibility paths from retirement: detach incumbent pending forecasts, historical scoring selections, the old weather SQL/receipt branch and temporary comparison adapters from the active Google-only release. Preserve local measurements/physical context and fit new artifacts after that final source closure is frozen.
+
+
+### Prepared source retirement — attribution adapters
+
+The migration branch now removes `weather_learning/thermal_shadow.py`, the incumbent `compare_fixed_energy` function and their two dedicated replay test modules. Their attribution experiments are complete and retained reports keep their original provider, model and source identities. Source/test preimages are available at revision `05c5d61`; no historical evidence is relabeled or deleted. The remaining `energy_shadow` module contains Google/local rain qualification only. A source/import search found no remaining executable callers of the detached attribution APIs.
+
+Google collection, inference and learning now obtain regional configuration and state-only publication through `weather_learning/openhab.py`, using the existing private hex identity. They no longer import the legacy forecast worker for these utilities. End-to-end local HTTP tests exercise collector startup and three-Item shadow publication with the old worker made unimportable; an empty Google archive publishes unavailable rather than substituting a site or forecast.
+
+These are prepared source changes in the isolated migration branch. The installed immutable shadow release and incumbent services have not changed. The legacy forecast worker and SQL receipt readers, provider-specific OpenHAB definitions/tooling and attended deployment still require removal. Do not interpret this increment as complete retirement or production cutover.
+
+
+The prepared shadow worker and UI now accept only `earthship-weather-provider-shadow/v2`. Incumbent capture, its CLI switch/service argument, source metadata and temperature column are removed. The dialog shows WeatherNext raw values, the separate local candidate, source health and explicit unqualified status. It retains its accessible dialog and tile positioning. Mixed/old publications are unavailable rather than silently adapted.
+
+Retained new issues use `earthship-weather-shadow-issue/v2`, without any incumbent payload. Both CLI inference and fitting select the fresh `google-local-v2` directory under the configured shadow state root; neither loads the old comparison cohort's candidate pointer or issues. Original Google acquisition objects remain reusable through the unchanged archive provenance checks. The old cohort stays private and unchanged for detached evidence. The synthetic frontend fixture was replaced with a v2 fixture; real retained records are not rewritten. Deploy producer, service arguments and frontend together at cutover; the installed immutable release continues publishing v1 until that attended change.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import fixture from './fixtures/weathernext-shadow-v1.json';
+import fixture from './fixtures/weathernext-shadow-v2.json';
 import { parseProviderForecast } from '../src/lib/weather/providerForecast.js';
 const nowMs = Date.parse('2026-01-01T00:31:00Z');
 const raw = JSON.stringify(fixture);
@@ -13,7 +13,6 @@ describe('WeatherNext shadow publication contract', () => {
     expect(result.status).toBe('ready');
     expect(result.hours[0].rawF).toBeCloseTo(50);
     expect(result.hours[0].localF).toBeCloseTo(53.6);
-    expect(result.hours[0].incumbentF).toBeCloseTo(57.2);
     expect(result.model.sampleCount).toBe(1);
     expect(result.model.validation).toBeNull();
     expect(result.source.runId).toBe('ee:2026-01-01T00:00:00+00:00');
@@ -24,13 +23,11 @@ describe('WeatherNext shadow publication contract', () => {
   });
   it('does not turn absent values or untrained models into zero forecasts', () => {
     const value = structuredClone(fixture);
-    value.incumbent = null;
     value.model = { status: 'UNTRAINED', sha256: null, fittedAt: null, trainingEnd: null, sampleCount: 0, targetDates: 0, validation: null };
-    value.hours = value.hours.map((row) => ({ ...row, localC: null, incumbentC: null }));
+    value.hours = value.hours.map((row) => ({ ...row, localC: null }));
     const result = parse(value);
     expect(result.status).toBe('ready');
     expect(result.hours[0].localF).toBeNull();
-    expect(result.hours[0].incumbentF).toBeNull();
   });
   it('hides stale or disconnected forecast values', () => {
     const stale = parse(fixture, { nowMs: nowMs + 3 * 3600000 });
@@ -39,7 +36,7 @@ describe('WeatherNext shadow publication contract', () => {
     expect(parse(fixture, { connected: false }).hours).toEqual([]);
   });
   it('rejects unsupported versions, extra fields, authority and oversized input', () => {
-    for (const value of [{ ...fixture, version: 2 }, { ...fixture, command: 'ON' }, { ...fixture, automaticActuation: true }, 'x'.repeat(65536)]) {
+    for (const value of [{ ...fixture, version: 1 }, { ...fixture, command: 'ON' }, { ...fixture, automaticActuation: true }, 'x'.repeat(65536)]) {
       expect(parse(value).status).toBe('unavailable');
     }
   });

@@ -2,13 +2,17 @@
 
 Implementation date: 2026-10-18. The [private backend](2026-10-18-weathernext-shadow-activation.md) uses tested commit f5775f8; the separate [comparison activation](2026-10-18-weathernext-comparison-activation.md) adds the narrow live UI patch and Item publication: hourly collection, hourly retained shadow inference/publication and separate weekly candidate training. Three unlinked file-owned Items and the live Weather comparison UI are active. The first fresh Google/local candidate has one qualified pair, SHADOW_ONLY status and no validation; prospective skill/reliability remain unqualified. Household production forecasts, notifications and actuators are unchanged. The 19:40:31Z natural published trigger is verified against its retained issue and all three live Item states.
 
+## Prepared v2 release (not installed)
+
+The current migration source removes incumbent capture and comparison controls. It publishes only `earthship-weather-provider-shadow/v2`, retains `earthship-weather-shadow-issue/v2`, and shows raw WeatherNext versus the local candidate in a model/status dialog. Both inference and fitting select the fresh `google-local-v2` child under the configured shadow-state root. The installed f5775f8 release still uses v1 until producer, service and frontend are deployed together. Its original issues/models remain unchanged; v2 does not load them. The source retirement status is documented in [the removal contract](openmeteo-retirement.md).
+
 ## Data and state flow
 
 1. The separate bounded collector writes original WeatherNext snapshots to the private archive.
 2. Hourly `local_forecast_shadow.py` selects a fresh, complete snapshot for the authoritative site. It loads a previously fitted candidate, never fits during inference, retains the original decision and outputs, then optionally publishes three shadow Item states.
 3. Weekly `local_forecast_train.py` reads those retained original decisions and the existing qualified native outdoor-temperature reader. It fits a fresh Google/local bias or residual candidate and atomically advances a private model-receipt pointer only after successful fitting. Missing labels leave the previous candidate intact.
 
-Private model receipts bind model bytes and actual fit-completion time. Each original issue retains its decision/completion times, source snapshot, sensor epoch, serving revision and any separately captured incumbent control. Source, model and epoch mismatches refuse local-model use; fresh raw Google forecasts can remain visible with the local candidate explicitly unavailable. Missing/stale source produces an unavailable view without inventing zero values.
+Private model receipts bind model bytes and actual fit-completion time. Each original issue retains its decision/completion times, source snapshot, sensor epoch and serving revision. The prepared v2 issue has no incumbent source or values. Source, model and epoch mismatches refuse local-model use; fresh raw Google forecasts can remain visible with the local candidate explicitly unavailable. Missing/stale source produces an unavailable view without inventing zero values.
 
 The training policy is fixed before outcomes: select the earliest retained issue per local calendar date, then native future-hour positions 1–24, 36, 48, 60, 72, and every 24 hours from 96 through 360 where retained. At most 40 targets/date across at most 366 dates remains below the existing 20,000-pair artifact bound. Default fitting looks back 90 elapsed days. Daily issues are ranked before applying the rolling lower bound: a partial oldest date is omitted if its original first issue falls outside the window; a later issue never replaces it. If the maximum 366-day interval touches 367 local dates, retain the latest 366 original daily decisions. Labels are selected in bounded UTC-day batches through the existing native reader; missing labels cannot cause selection of a different/easier original issue. This policy is candidate research, not a declaration that full release evidence exists.
 
@@ -18,9 +22,9 @@ Model and issue objects are immutable, private and content-addressed; candidate 
 
 Only `Forecast_Local_Shadow_JSON`, `Forecast_Comparison_JSON` and `Forecast_Provider_Status_JSON` may be published. They contain the same closed, bounded, sealed generation; source status is written last. The UI requires all three states to match, so interrupted publication is unavailable rather than mixed data. No Item commands, rule execution or actuator API exists in this publisher.
 
-The Weather page exposes the comparison only after at least one shadow Item exists. The read-only dialog keeps corrected Open-Meteo, raw WeatherNext and local candidate temperatures distinct, shows source-run age, decision time, training support and forecast horizon, and explicitly states that validation is unavailable and candidates are not qualified. Stale/disconnected/incomplete data hides forecast values. No generic confidence percentage is generated. Existing weather-grid dimensions are unchanged.
+The Weather page exposes the model dialog only after at least one shadow Item exists. The prepared read-only dialog keeps raw WeatherNext and local candidate temperatures distinct, shows source-run age, decision time, training support and forecast horizon, and explicitly states that validation is unavailable and candidates are not qualified. Stale/disconnected/incomplete data hides forecast values. No generic confidence percentage is generated. Existing weather-grid dimensions are unchanged.
 
-The optional incumbent capture reads the existing corrected `Forecast_10Day_JSON` Item, retaining the actual observation time and original state. It is a separate pre-cutover control, never a new-model fitting input. Remove `weather_learning/incumbent.py`, the CLI/service `--include-incumbent` path and incumbent UI column at provider retirement; preserve only detached historical control records.
+The prepared source no longer reads the corrected incumbent forecast Item. `weather_learning/incumbent.py`, its CLI/service option and its UI column have been removed. Previously retained controls remain detached historical evidence and cannot enter the new cohort.
 
 ## Entry points and deployment inputs
 
@@ -32,7 +36,7 @@ The service templates read private `~/.config/earthship-weather/runtime.env`, no
 - `EARTHSHIP_WEATHER_PYTHON`: tested isolated Python executable.
 - `EARTHSHIP_WEATHER_CODE_REVISION`: pinned source commit used by that deployment; this is a recorded deployment assertion, not a substitute for verifying the deployed files.
 - `EARTHSHIP_WEATHER_ARCHIVE`: private collector archive.
-- `EARTHSHIP_WEATHER_SHADOW_STATE`: private model/issue state outside Git and browser-served directories.
+- `EARTHSHIP_WEATHER_SHADOW_STATE`: private state base outside Git and browser-served directories; prepared v2 uses its fresh `google-local-v2` child for models/issues.
 - `EARTHSHIP_WEATHER_TEMPERATURE_POLICY`: existing native outdoor policy with the current hardware epoch.
 - `EARTHSHIP_WEATHER_TEMPERATURE_DB_CONFIG`: existing dedicated read-only `weather_temperature_reader` JSON config.
 

@@ -13568,5 +13568,28 @@
     "Review/reset all weather-dependent learned state without importing incumbent weights.",
     "Implement qualified provider boundary and downstream consumer mappings.",
     "Apply complete removal in attended cutover and verify live/runtime/network behavior."
-  ]
+  ],
+  "prepared_source_retirement": {
+    "preimage_revision": "05c5d6168a0f17666f59cd92001127b386c8c382",
+    "live_applied": false,
+    "removed_files": [
+      "openhab/scripts/weather_learning/incumbent.py",
+      "openhab/scripts/weather_learning/thermal_shadow.py",
+      "openhab/scripts/weather_learning/tests/test_incumbent.py",
+      "openhab/scripts/test_weathernext_fixed_energy.py",
+      "openhab/scripts/test_weathernext_fixed_thermal.py"
+    ],
+    "removed_apis": [
+      "weather_learning.energy_shadow.compare_fixed_energy",
+      "shadow CLI incumbent capture option",
+      "shadow payload/issue incumbent fields",
+      "forecast comparison incumbent column"
+    ],
+    "neutral_transport": "openhab/scripts/weather_learning/openhab.py",
+    "shadow_payload_schema": "earthship-weather-provider-shadow/v2",
+    "shadow_issue_schema": "earthship-weather-shadow-issue/v2",
+    "fresh_shadow_state_child": "google-local-v2",
+    "historical_evidence_rewritten": false,
+    "remaining": "Legacy worker/SQL receipt branch, evaluation controls, OpenHAB definitions/tooling/AQI consumers and coordinated attended cutover remain unfinished."
+  }
 }

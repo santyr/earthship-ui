@@ -20,13 +20,13 @@
   const temperature = (value) => value === null ? '—' : `${value.toFixed(1)}°F`;
   onDestroy(() => { if (open && opener?.isConnected) opener.focus(); });
 </script>
-<button class="comparison-entry" onclick={show}>WeatherNext comparison · {forecast.status === 'ready' ? 'shadow' : forecast.status}</button>
+<button class="comparison-entry" onclick={show}>WeatherNext model · {forecast.status === 'ready' ? 'shadow' : forecast.status}</button>
 {#if open}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="comparison-backdrop" onclick={(event) => { if (event.target === event.currentTarget) close(); }}>
     <div bind:this={panelEl} class="comparison-panel" role="dialog" aria-modal="true" aria-labelledby="provider-comparison-title" tabindex="-1" onkeydown={keydown}>
-      <header><div><h2 id="provider-comparison-title">WeatherNext comparison</h2><p>Shadow — not controlling equipment</p></div><button bind:this={closeEl} onclick={close} aria-label="Close forecast comparison">Close</button></header>
+      <header><div><h2 id="provider-comparison-title">WeatherNext model</h2><p>Shadow — not controlling equipment</p></div><button bind:this={closeEl} onclick={close} aria-label="Close forecast details">Close</button></header>
       {#if forecast.status !== 'ready'}
         <p role="status">{forecast.reason}</p>
       {/if}
@@ -40,8 +40,8 @@
       <p class="validation">Validation unavailable; candidate not qualified.</p>
       {#if forecast.status === 'ready'}
         <p>Forecast horizon: {forecast.horizonHours.toFixed(1)} hours. Showing the first {Math.min(24, forecast.hours.length)} hours.</p>
-        <div class="table-wrap"><table><thead><tr><th>Local time</th><th>Corrected Open-Meteo</th><th>Raw WeatherNext</th><th>Local candidate</th></tr></thead>
-          <tbody>{#each forecast.hours.slice(0,24) as hour (hour.at)}<tr><th>{time(hour.atMs)}</th><td>{temperature(hour.incumbentF)}</td><td>{temperature(hour.rawF)}</td><td>{temperature(hour.localF)}</td></tr>{/each}</tbody>
+        <div class="table-wrap"><table><thead><tr><th>Local time</th><th>Raw WeatherNext</th><th>Local candidate</th></tr></thead>
+          <tbody>{#each forecast.hours.slice(0,24) as hour (hour.at)}<tr><th>{time(hour.atMs)}</th><td>{temperature(hour.rawF)}</td><td>{temperature(hour.localF)}</td></tr>{/each}</tbody>
         </table></div>
       {/if}
     </div>

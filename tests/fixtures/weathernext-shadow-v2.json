@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "schema": "earthship-weather-provider-shadow/v1",
+  "version": 2,
+  "schema": "earthship-weather-provider-shadow/v2",
   "provider": "weathernext3",
   "mode": "shadow",
   "generatedAt": "2026-01-01T00:30:01+00:00",
@@ -24,26 +24,18 @@
     "targetDates": 1,
     "validation": null
   },
-  "incumbent": {
-    "provider": "openmeteo",
-    "sourceSha256": "db9680b7a85645046b3bf316fc85f56a73c40f21ea0b24e0c0099304512c6316",
-    "generatedAt": "2026-01-01T00:00:00+00:00",
-    "observedAt": "2026-01-01T00:25:00+00:00"
-  },
   "hours": [
     {
       "at": "2026-01-01T01:00:00+00:00",
       "rawC": 10.0,
-      "localC": 12.0,
-      "incumbentC": 14.000000000000002
+      "localC": 12.0
     },
     {
       "at": "2026-01-01T02:00:00+00:00",
       "rawC": 10.0,
-      "localC": 12.0,
-      "incumbentC": 14.000000000000002
+      "localC": 12.0
     }
   ],
   "automaticActuation": false,
-  "generation": "3a2059f8677a2d2b3f46ef01eff806604c2280e83c59806efbefb807db5de78f"
+  "generation": "efdb27c5f67076973d4b3503c2569610e9f14d7c33544f26315e5760121ed1f8"
 }
