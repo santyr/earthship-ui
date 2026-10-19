@@ -53,7 +53,8 @@ def test_native_forecast_first_endpoint_matches_independent_physical_recurrence(
     left,right=inputs['forecast']['rows'][:2]
     for step in range(1,13):
         at=ISSUE+timedelta(minutes=5*step)
-        ratio=(at-left['at'])/(right['at']-left['at'])
+        left_at,right_at=(datetime.fromisoformat(row['at']) for row in (left,right))
+        ratio=(at-left_at)/(right_at-left_at)
         outside=left['tempF']+ratio*(right['tempF']-left['tempF'])
         air,mass=(air+coeff[0]*(outside-air)+coeff[1]*(mass-air)+coeff[3]*solar+coeff[5],mass+coeff[6]*(air-mass)+coeff[7]*(outside-mass)+coeff[9]*solar)
     first=capture['output']['trajectory'][0]

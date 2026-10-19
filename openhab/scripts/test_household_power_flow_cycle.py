@@ -46,6 +46,7 @@ def test_complete_cycle_retains_a_replayable_flow_sidecar_without_changing_plan(
     cycle,args,_=setup(tmp_path,monkeypatch)
     args['collection']['originals']=dict(schema='earthship-household-cycle-sources/v6',load_topology_source=declaration(at))
     monkeypatch.setattr(cycle,'derive_cycle',lambda **kw:plan)
+    args['clock']=lambda:instant(plan['inputs']['snapshot']['created_at'])
     out=cycle.complete_cycle(**args);assert out['status']=='observation_written'
     path=next(iter(args['evidence_directory'].glob('*.household-power-flow-v1.json')))
     receipt=loads(path.read_bytes())

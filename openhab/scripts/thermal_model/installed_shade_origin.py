@@ -13,7 +13,7 @@ from pathlib import Path
 from .actions import DENVER
 from .dataset import KIVA_COOLDOWN
 from .forcing_capture import _canonical, _private_directory
-from .forecast_history import SOURCE, MAX_ISSUE_AGE, _window, verify_origin_forecast_receipts
+from .forecast_history import RUNTIME_PATHS as FORECAST_RUNTIME_PATHS, _window, verify_origin_forecast_receipts
 from .graduation_policy import _utc, _sha
 from .installed_shade_artifact import (validate_candidate_bundle, _shape, _digest,
     )
@@ -34,7 +34,7 @@ FIELDS = {'schema', 'issued_at', 'inputs_available_at', 'published_at', 'candida
     'source_epochs', 'output', 'capture_sha256'}
 RUNTIME_PATHS = {'thermal_model/installed_shade_origin.py',
     'thermal_model/installed_shade_dynamics.py', 'thermal_model/installed_shade_artifact.py',
-    'thermal_model/forecast_history.py'}
+    'thermal_model/forecast_history.py'} | FORECAST_RUNTIME_PATHS
 
 
 @dataclass(frozen=True)
@@ -88,20 +88,13 @@ def _origin_actions(snapshot, issue, *, allow_removed=False):
 
 def _forecast_forcing(forecast, issue, available, actions):
     verify_origin_forecast_receipts(forecast)
-    google=forecast['source']=='weathernext3'
+    from weather_learning.native_forecast import FIELDS as google_fields
+    from .solar import SITE_LATITUDE,SITE_LONGITUDE
     hours=forecast['horizon_hours'];_,targets=_window(issue,hours)
-    issued,captured=map(_utc,(forecast['issued_at'],forecast['captured_at']))
-    if google:
-        from weather_learning.native_forecast import FIELDS as google_fields
-        from .solar import SITE_LATITUDE,SITE_LONGITUDE
-        if (set(forecast)!=google_fields or forecast['site']!=dict(latitude=SITE_LATITUDE,longitude=SITE_LONGITUDE,timezone='America/Denver') or
-                _utc(forecast['origin'])!=issue or not captured<=_utc(forecast['available_by'])<=available<=issue):
-            raise ValueError('original Google forcing unavailable or site differs')
-    else:
-        fields={'schema','source','origin','horizon_hours','issued_at','captured_at','rows_sha256','rows','metric_receipts'}
-        if (set(forecast)!=fields or forecast['source']!=SOURCE or _utc(forecast['origin'])!=issue or
-                not issue-MAX_ISSUE_AGE<=issued<=captured<=available<=issue):
-            raise ValueError('original existing-provider forecast unavailable or stale at origin')
+    captured=_utc(forecast['captured_at'])
+    if (set(forecast)!=google_fields or forecast['site']!=dict(latitude=SITE_LATITUDE,longitude=SITE_LONGITUDE,timezone='America/Denver') or
+            _utc(forecast['origin'])!=issue or not captured<=_utc(forecast['available_by'])<=available<=issue):
+        raise ValueError('original Google forcing unavailable or site differs')
     _sha(forecast['rows_sha256'])
     rows = forecast['rows']
     if not isinstance(rows, list) or len(rows) != len(targets): raise ValueError('original hourly weather bracket incomplete')
@@ -111,7 +104,7 @@ def _forecast_forcing(forecast, issue, available, actions):
             raise ValueError('original hourly weather grid differs')
         outside, radiation = _number(row['tempF']), _number(row['radiationWm2'])
         wind=_number(row['windMph'])
-        code_valid=(row['weatherCode'] is None) if google else (0<=_number(row['weatherCode'])<=99)
+        code_valid=row['weatherCode'] is None
         if not -40 <= outside <= 140 or not 0 <= radiation <= 1600 or wind < 0 or not code_valid:
             raise ValueError('original weather outside physical bounds')
         hourly.append((target, outside, radiation))

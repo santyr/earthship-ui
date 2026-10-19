@@ -87,7 +87,7 @@ def test_backward_collection_clock_refuses_household_originals(tmp_path,monkeypa
 def derived_fixture(tmp_path,monkeypatch):
     from household.codec import canonical
     from household.control_contracts import instant
-    from household.weather_context import prepare_weather_context
+    from household.weather_context import prepare_native_weather_context
     from household.energy_configuration import prepare_energy_configuration
     from household.measured_weather import prepare_measured_weather
     from test_household_measured_weather import sources
@@ -95,7 +95,7 @@ def derived_fixture(tmp_path,monkeypatch):
     from test_household_model_snapshot import source_at
     from test_household_model_pipeline import RUNTIME
     from test_household_models import FIXTURE
-    from thermal_model.provisional_forecast import publication
+    from native_thermal_forecast import publication
     from thermal_model.installed_shade_published_origin import NUMERIC_ITEM,PUBLICATION_ITEM
     base,configuration,prepared,capture=make(tmp_path,monkeypatch)
     issue=instant(capture['issued_at']);collected=issue-timedelta(seconds=1)
@@ -110,7 +110,7 @@ def derived_fixture(tmp_path,monkeypatch):
     receipts={item:{'item':item,'time':int(published.timestamp()*1000),'state':canonical(value).decode()}
         for item,value in ((NUMERIC_ITEM,capture['output']),(PUBLICATION_ITEM,publication(capture)))}
     params=dict(collected_at=(issue-timedelta(days=1)).isoformat(),record={'household_energy_inputs':FIXTURE['cases'][0]['inputs']})
-    return dict(originals=originals,capture=capture,receipts=receipts,thermal=prepared,weather=prepare_weather_context(capture,prepared_thermal=prepared),
+    return dict(originals=originals,capture=capture,receipts=receipts,thermal=prepared,weather=prepare_native_weather_context(capture,prepared_thermal=prepared,runtime=capture['candidate']['runtime'],expected_artifact_sha256=capture['candidate']['artifact_sha256'],expected_capture_sha256=capture['capture_sha256']),
         parameter_record=params,runtime_manifest=RUNTIME,code_revision='e'*40,now=published),capture
 
 def test_complete_cycle_derivation_preserves_original_thermal_and_current_source_soc(tmp_path,monkeypatch):

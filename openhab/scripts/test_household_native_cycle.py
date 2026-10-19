@@ -155,6 +155,6 @@ def test_native_cycle_derivation_preserves_original_forecast_and_measured_source
         assert record['inputs']['coordination']['policy_source']==source
         assert record['inputs']['coordination']['policy_observations']['hex_southoutlet_cycle']['reason']=='after_dark'
     assert record['output']['projections']['thermal']['output']==c['output']
-    assert record['output']['projections']['weather']['schema']=='earthship-household-weather-projection/v3'
+    assert record['output']['projections']['weather']['schema']=='earthship-household-weather-projection/v4'
     assert record['output']['automatic_actuation'] is False
     assert replay_pipeline(record,runtime_manifest=runtime,thermal_runtime=thermal.to_dict()['executing_runtime'])==record

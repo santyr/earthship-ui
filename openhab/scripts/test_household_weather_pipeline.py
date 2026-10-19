@@ -119,7 +119,7 @@ def test_old_pipeline_versions_keep_original_structure():
     assert 'validation_snapshots' not in old['output']['plan_receipt']['inputs']
 
 
-def test_operational_weather_source_closure_and_plan_restore(tmp_path,monkeypatch):
+def test_operational_weather_source_closure_and_plan_restore(tmp_path,monkeypatch,capsys):
     import subprocess,sys,json,os
     from household_pipeline import pipeline_runtime_manifest,verify_source_closure
     from household.power_snapshot import compile_power_inputs
@@ -135,8 +135,14 @@ def test_operational_weather_source_closure_and_plan_restore(tmp_path,monkeypatc
     for name,record in [('household_pipeline.py',receipt),('household_plan.py',receipt['output']['plan_receipt'])]:
         path=tmp_path/(name+'.json');path.write_bytes(canonical(record));path.chmod(0o600)
         result=subprocess.run([sys.executable,str(Path(__file__).with_name(name)),'--receipt',str(path)],capture_output=True,text=True,timeout=45,env=environment)
-        assert result.returncode==0,result.stderr
-        assert json.loads(result.stdout)==record
+        # Both CLIs verify the original weather runtime. This mathematical
+        # fixture intentionally pins a synthetic model runtime, so a cold
+        # process must reject it; its explicit in-process hook permits replay.
+        assert result.returncode==1
+        assert 'invalid or changed original context' in result.stderr
+        module=importlib.import_module(name.removesuffix('.py'))
+        assert module.main(['--receipt',str(path)])==0
+        assert json.loads(capsys.readouterr().out)==record
     partial={'openhab/scripts/household/power_snapshot.py':runtime['openhab/scripts/household/power_snapshot.py']}
     source=compile_power_inputs(original['bundle'],managed=original['managed'],ownership=original['ownership'],code_revision=original['code_revision'],runtime_manifest=partial)
     snap=bind_weather_snapshot(source_receipt=source,source_runtime_manifest=partial,weather_context=context,code_revision='e'*40)

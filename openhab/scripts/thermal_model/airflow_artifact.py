@@ -18,6 +18,7 @@ from .dataset import (MASS_OBSERVER_TAU_MINUTES, MODE_COUNT_KEYS,
     RADIATION_PROVENANCE_LABELS, CORE_REJECTED_COUNT_KEYS, AUXILIARY_EXCLUSION_COUNT_KEYS)
 from .schema import THERMAL_ITEMS, OPTIONAL_OBSERVATION_ITEMS, SOURCE_WEIGHTS
 from .dynamics import IDENTIFICATION_HORIZON_STEPS, MULTIHORIZON_OBJECTIVE_TOLERANCE
+from .forecast_history import RUNTIME_PATHS as FORECAST_RUNTIME_PATHS
 
 SCHEMA = 'earthship-split-airflow-shadow-artifact/v2'
 MASS_INITIALIZATION = {'method': 'causal_north_wall_exponential_observer',
@@ -27,7 +28,7 @@ EXTRA_FILES = ('thermal_model/joint_solar.py', 'thermal_model/airflow.py', 'ther
     'thermal_model/airflow_artifact.py', 'thermal_model/airflow_forecast.py',
     'thermal_model/airflow_capture.py',
     'thermal_model/operational_origin.py', 'thermal_model/action_history.py',
-    'thermal_model/forecast_history.py')
+    'thermal_model/forecast_history.py') + tuple(sorted(FORECAST_RUNTIME_PATHS))
 KEYS = {'schema', 'status', 'created_at', 'trained_from', 'trained_through',
         'runtime', 'data_manifest', 'fit', 'initialization', 'solar_contract', 'control_enabled'}
 

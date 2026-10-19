@@ -4,16 +4,22 @@ from hashlib import sha256
 from pathlib import Path
 import pytest
 from household.codec import canonical,identity
-from test_household_models import prepared_thermal
+from google_weather_fixtures import native_originals
 
 
 def api():return importlib.import_module('household.weather_context')
 
 
 def make(tmp_path,monkeypatch):
-    prepared,capture=prepared_thermal(tmp_path,monkeypatch)
-    frozen=api().prepare_weather_context(capture,prepared_thermal=prepared)
+    from test_household_native_weather import made
+    capture,_,prepared,frozen=made(tmp_path,monkeypatch,native_originals())
     return frozen,prepared,capture
+
+
+def prepare_shared(capture):
+    return api().prepare_native_cycle_contexts(capture,code_revision='a'*40,
+        runtime=capture['candidate']['runtime'],expected_artifact_sha256=capture['candidate']['artifact_sha256'],
+        expected_capture_sha256=capture['capture_sha256'])
 
 
 def test_original_receipts_and_exact_forcing_clocks_units_are_preserved(tmp_path,monkeypatch):
@@ -27,7 +33,7 @@ def test_original_receipts_and_exact_forcing_clocks_units_are_preserved(tmp_path
     assert out['origin_states']==prepared.to_dict()['actions']
     assert out['confidence']=='not_assessed' and out['input_qualification']=='not_assessed'
     assert out['action_effects_qualified'] is False and out['automatic_actuation'] is False
-    assert out['unknown_observations']==['solar_radiation_wm2','relative_humidity','precipitation','wind_speed','daylight_geometry']
+    assert out['unknown_observations']==['solar_radiation_wm2','relative_humidity','precipitation','wind_speed']
 
 
 @pytest.mark.parametrize('damage',['wind','availability','action','prepared','extra'])
@@ -118,13 +124,13 @@ def test_fully_resealed_candidate_must_match_artifact_and_prepared_coefficients(
 
 def test_shared_cycle_preparation_preserves_both_contexts_with_one_original_replay(tmp_path,monkeypatch):
     expected_weather,expected_thermal,capture=make(tmp_path,monkeypatch)
-    from thermal_model import provisional_forecast
+    import native_thermal_forecast as provisional_forecast
     original=provisional_forecast.validate_capture;calls=[]
     def validate(value,**kwargs):
         calls.append(value['capture_sha256'])
         return original(value,**kwargs)
     monkeypatch.setattr(provisional_forecast,'validate_capture',validate)
-    thermal,weather=api().prepare_cycle_contexts(capture,code_revision='a'*40)
+    thermal,weather=prepare_shared(capture)
     assert thermal.content==expected_thermal.content
     assert weather.content==expected_weather.content
     assert calls==[capture['capture_sha256']]
@@ -134,11 +140,11 @@ def test_shared_cycle_preparation_preserves_both_contexts_with_one_original_repl
 
 def test_shared_cycle_preparation_still_replays_original_native_binding(tmp_path,monkeypatch):
     _,_,capture=make(tmp_path,monkeypatch)
-    from thermal_model import provisional_forecast
+    import native_thermal_forecast as provisional_forecast
     def reject(*args,**kwargs):raise ValueError('changed original native archive')
     monkeypatch.setattr(provisional_forecast,'replay_binding',reject)
     with pytest.raises(ValueError,match='changed original native archive'):
-        api().prepare_cycle_contexts(capture,code_revision='a'*40)
+        prepare_shared(capture)
 
 
 def test_shared_cycle_preparation_refuses_resealed_numerical_output(tmp_path,monkeypatch):
@@ -146,4 +152,4 @@ def test_shared_cycle_preparation_refuses_resealed_numerical_output(tmp_path,mon
     from thermal_model.provisional_forecast import digest
     capture['output']['trajectory'][0]['air_f']+=1
     capture['capture_sha256']=digest(capture,'capture_sha256')
-    with pytest.raises(ValueError):api().prepare_cycle_contexts(capture,code_revision='a'*40)
+    with pytest.raises(ValueError):prepare_shared(capture)

@@ -217,7 +217,10 @@ def test_skewed_individually_valid_inputs_do_not_form_a_baseline(tmp_path,monkey
 def test_declared_bank_window_must_cover_entire_baseline_horizon(tmp_path,monkeypatch):
     from test_household_energy_configuration import BANK
     bank=deepcopy(BANK)
-    next(row for row in bank['epochs'] if row['current_analytics'])['end_local_date_exclusive']='2026-09-29'
+    from test_native_thermal_forecast import ISSUE
+    from zoneinfo import ZoneInfo
+    end=(ISSUE.astimezone(ZoneInfo('America/Denver')).date()+timedelta(days=1)).isoformat()
+    next(row for row in bank['epochs'] if row['current_analytics'])['end_local_date_exclusive']=end
     snap,source,now=fixture(tmp_path,monkeypatch,bank_raw=canonical(bank).decode())
     assert project(snap,source,now,6)['status']=='projected_nominal_baseline'
     out=project(snap,source,now,24)

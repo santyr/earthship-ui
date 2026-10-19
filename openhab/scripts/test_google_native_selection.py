@@ -164,7 +164,11 @@ def test_google_publication_retains_original_source_and_rejects_incumbent_inputs
     result=live.publish_cycle(settings,guard=lambda:None,backend=backend,geometry=geometry)
     capture=json.loads(Path(result['origin_path']).read_bytes())
     assert result['delivery_verified'] is True and capture['inputs']['forecast']['source']=='weathernext3'
-    clock[0]=ISSUE-timedelta(seconds=30);backend.collect=original_collect;backend.puts.clear()
+    clock[0]=ISSUE-timedelta(seconds=30);backend.puts.clear()
+    def retired_collect(**kw):
+        from test_google_receipt_retirement import retired
+        inputs=original_collect(**kw);inputs['forecast']=retired();return inputs
+    backend.collect=retired_collect
     with pytest.raises(ValueError,match='Google weather'):live.publish_cycle(settings,guard=lambda:None,backend=backend,geometry=geometry)
     assert backend.puts==[]
 

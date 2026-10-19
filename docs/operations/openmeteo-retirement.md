@@ -207,3 +207,77 @@ construction now refuses. Remove those remaining paths and the legacy forecast
 worker before freezing the final source closure and fitting release models.
 Existing installed sources/services, model artifacts, source history, database
 permissions and production data remain unchanged.
+
+
+### Prepared source retirement — shared weather receipt replay
+
+The prepared source removes the three in-memory per-metric forecast selectors
+and the old receipt reconstruction path. `thermal_model/forecast_history.py`
+now retains only its unchanged aware-clock/hourly-window helpers and original
+Google capsule verification. Installed-shade, operational-origin and split-airflow
+replay require those Google originals; condition codes remain unknown rather
+than being invented. The existing Google availability/freshness policy applies,
+including the native left bracket, instead of the retired six-hour source rule.
+
+Standalone installed-shade and airflow runtime bindings now include all nine
+local files needed by Google receipt verification. The full native runtime
+already includes those files; this does not change its physical equations or
+promote an old model. Existing release artifacts must be fitted/bound after the
+final source closure is complete.
+
+The well-formed retired receipt in `tests/fixtures/retired-weather-receipts-v2.json`
+is synthetic and consumed only by refusal tests. Its old schema/source/digests
+are preserved. Model-test weather factories generate fresh original-shaped
+Google responses while preserving their intended temperature, radiation and
+wind forcing. Household weather fixtures use the existing native v4 Google
+context rather than weakening its version guard. Downgraded v1/v2/v3 Google
+contexts refuse. The two retired selector/receipt test modules leave with their
+API; CI names the new Google refusal/acquisition suites instead.
+
+Eight new regressions failed before the source change. The focused shared
+receipt/operational suite now passes 19 tests, and the WeatherNext package last
+passed 182 tests. Broader native/household verification used an immutable export; the exact
+completed coverage and local skip are recorded below. Both operational CLIs
+correctly refuse the synthetic test model's runtime in a cold process, while
+in-process tests use the explicit mathematical fixture hook. Successful cold
+replay of an actual release candidate remains separate required evidence.
+
+This remains source preparation. Legacy configuration loaders/factories, old
+household context entrypoints and the legacy forecast worker still require
+retirement, followed by qualified production publication, fresh models and
+coordinated cutover. Installed model/state/service configuration is unchanged.
+
+
+Native household outcome integration exposed an additional consumer gap: the
+existing delivered-outcome factory accepted only the older provisional capture.
+`prepare_native_outcome_origin` now prepares a separately typed v2 delivered
+origin using explicit runtime/model/capture pins, the existing native projection
+preparer, both actual persisted publication receipts and the complete frozen
+Google weather/model/geometry verifier. Its five envelope fields and 3 MiB bound
+are unchanged; existing outcome arithmetic is unchanged. This adds no writer,
+schedule, fit, release decision or actuator authority.
+
+Native and older mathematical outcome envelopes must both reconstruct original
+Google weather. A regression rehashed the changed wind row, forecast, capture,
+sensor snapshot, prepared model, both publication states and outcome envelope;
+the older frozen outcome previously accepted it. That case failed before the
+verification fix and now refuses. Native frozen restoration also passes with
+file, network and database reads disabled. Downgrading a native delivered origin
+to the older model contract refuses.
+
+The focused delivered-outcome/old-score/enclosing-context/sidecar suite passes
+**35 tests in 24.46 seconds**. Verification covered all 125 affected modules
+in an immutable Git export with the pinned Solar_PV dependency and single-thread
+BLAS, using shared aggregate resource admission. The first shard passed **964
+tests in 515.69 seconds**. The second reached **894 passes and one skip** before
+a positive airflow fixture failed because it edited selected values without
+updating the original Google response. The complete corrected airflow module
+then passed **61 tests in 4.23 seconds**. These counts overlap at that module;
+they are not a single-run aggregate. Only test fixtures changed after the shard
+runs: they now generate coherent original Google values and use native ISO
+clocks. Source checks and independent numerical equations remain intact.
+
+The existing skipped multiweek synthetic calibration replay is enabled by its
+`CI=true` marker in hosted CI. The full WeatherNext package separately passed
+**182 tests in 6.302 seconds**. This proves affected source behavior, not full
+repository CI, an actual release candidate, predictive qualification or cutover.
