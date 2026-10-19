@@ -12,7 +12,7 @@ it.each(['home','weather'])('renders separate daily PV potential on %s cards',va
  dailyPvRaw.set(JSON.stringify(fixture()));dailyPvClock.set(now);
  const {container}=render(DailyForecast,{days,variant});
  const pv=container.querySelector('[data-testid="daily-pv-potential"]');expect(pv).not.toBeNull();
- expect(pv.textContent).toContain('PV 1 kWh');expect(pv.title).toContain('before battery acceptance');
+ expect(pv.textContent).toContain('PV 1.3 kWh');expect(pv.title).toContain('before battery acceptance');
  expect(container.textContent).not.toContain('remaining');
 });
 it('withdraws expired potential rather than reusing an old daily estimate',()=>{
