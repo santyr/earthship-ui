@@ -116,3 +116,20 @@ def test_native_geometry_and_capture_source_closures_pin_neutral_verifier():
     with patch.object(origin_capture,'_source_bytes',read):capture._capture_revision()
     assert neutral in seen
     assert 'openhab/scripts/thermal_installed_intel.py' not in seen
+
+
+
+def test_retired_provisional_entrypoints_are_not_importable():
+    names=('provisional_thermal','thermal_model.provisional_live','thermal_model.provisional_monitor','household_score_queue')
+    code="import importlib.util; names="+repr(names)+"; assert all(importlib.util.find_spec(name) is None for name in names), 'retired provisional entrypoint remains importable'"
+    result=subprocess.run([sys.executable,'-c',code],capture_output=True,text=True,timeout=30)
+    assert result.returncode==0,result.stderr
+    removed={'provisional_thermal.py','thermal_model/provisional_live.py','thermal_model/provisional_monitor.py'}
+    assert not removed.intersection(api().RUNTIME_PATHS)
+
+
+def test_retired_provisional_units_cannot_select_removed_workers():
+    root=ROOT.parents[1]/'openhab/systemd/user'
+    for name in ('thermal-provisional-forecast','thermal-provisional-score'):
+        for extension in ('service','timer'):
+            assert not (root/(name+'.'+extension)).exists(),'retired standalone schedule remains available'

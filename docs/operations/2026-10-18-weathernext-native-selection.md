@@ -2,6 +2,8 @@
 
 Observed October 18, 2026. This completes another Task 8 preparation increment; production provider selection and the full migration remain unfinished.
 
+**Current source update (October 19):** the provisional standalone CLI, publisher, monitor and non-native score queue are removed, together with their uninstalled schedule templates. Current native observation/receipt tests use the native Google publisher. The base model source binding contains 82 files. Installed-shade CLI/loader retirement and the remaining forecast-worker graph still precede the final source freeze and release fitting. Production has not cut over.
+
 ## Explicit source selection
 
 Two closed configurations select Google native inputs:
@@ -134,3 +136,47 @@ No production resource safeguard or numerical assertion was relaxed. Live
 services, installed sources, models, ownership and actuator authority were not
 changed. This closes the shared CLI resource dependency, not the entire provider
 retirement or production cutover.
+
+
+### Provisional standalone family retired — October 19
+
+Removed provisional_thermal.py, thermal_model/provisional_live.py,
+thermal_model/provisional_monitor.py and household_score_queue.py, plus their
+four uninstalled forecast/score service and timer templates. All production
+imports were confined to this closed obsolete family before deletion; none
+remain. Current source binding excludes its three fitted-runtime entries,
+reducing the native base from 85 to 82 files. The raw shared binding remains 77.
+Required mathematical fit/forecast/score validators remain available to native
+execution. Installed model receipts and weights were not rewritten.
+
+Twenty-nine observer, actual-receipt and cache-boundary tests now invoke the
+current native Google publisher with genuine fresh synthetic fourteen-parameter
+fit evidence. They passed before deletion and remain in the affected suite.
+The native-query packet fixture moved unchanged to native_cycle_test_support.py;
+its function AST matches the original, preserving native gap/absence tests.
+Four test modules exclusively exercising the removed family leave with it.
+Importability and obsolete-schedule regressions failed before retirement and
+pass after it. Forecast ML CI selects the replacement observer tests and no
+longer names the deleted test modules.
+
+The complete affected **70-module suite passed 784 tests in 151.84 seconds**,
+with two existing selected-capped-scope smoke tests skipped, from isolated export
+13ab3c361641ff4f45b91d38e0587ae23882b342. The pinned WeatherNext package passed
+**211 tests in 8.404 seconds**. The first wide run exposed a fixture still treating
+the removed provisional worker as protected current model code; its tampering
+case now targets the actual native helper. The full 24-case deployment module
+then passed before the final wide run. Source-integrity checks remain strict.
+
+The published predecessor's Forecast ML CI also found one stale raw source-count
+assertion. Correcting that fixture for the two previously extracted helpers
+passed its isolated registration test in **0.62 seconds**. Final export
+be7cab1caa1019d770d5126ef0788e36ac388f2e adds only that test correction after the
+wide run; numerical/operational source bytes are unchanged. Full new-head CI
+remains separate evidence.
+
+Closed historical handoff metadata and its fixtures still identify the original
+worker/unit preimages; they cannot load or execute a removed producer. Installed
+services and frozen runtime sources were unchanged. The installed-shade operator,
+its legacy loaders/renderer and the remaining provider/worker/tool graph still
+need retirement before final fresh fitting, qualification and attended cutover.
+No actuator, resource-policy or recovery workflow changed.

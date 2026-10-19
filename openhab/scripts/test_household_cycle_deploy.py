@@ -105,7 +105,7 @@ def test_candidate_selection_cannot_change_existing_source_settings(tmp_path):
 def test_bad_sources_refuse_before_creating_package(damage,tmp_path):
     args,_=active_fixture(tmp_path);repo=args['repo_root']
     if damage in ('dirty','core'):
-        write(repo/'openhab/scripts/provisional_thermal.py',b'changed\n',0o644)
+        write(repo/'openhab/scripts/thermal_model/native_operational_io.py',b'changed\n',0o644)
         if damage=='core':
             subprocess.run(['git','-C',str(repo),'-c','user.name=Test','-c','user.email=test@example.invalid','commit','-qam','changed'],check=True,capture_output=True)
             args['code_revision']=subprocess.check_output(['git','-C',str(repo),'rev-parse','HEAD'],text=True).strip()
@@ -121,7 +121,7 @@ def test_bad_sources_refuse_before_creating_package(damage,tmp_path):
 @pytest.mark.parametrize('damage',['source','extra_source','unit','config','parameters'])
 def test_changed_package_or_live_original_refuses_verification(damage,tmp_path):
     args,_=active_fixture(tmp_path);api().stage_deployment(**args)
-    if damage=='source':(args['stage']/'sources/openhab/scripts/provisional_thermal.py').write_bytes(b'changed')
+    if damage=='source':(args['stage']/'sources/openhab/scripts/thermal_model/native_operational_io.py').write_bytes(b'changed')
     if damage=='extra_source':write(args['stage']/'sources/openhab/scripts/household/injected.py',b'pass',0o644)
     if damage=='unit':args['service_file'].write_bytes(b'changed')
     if damage=='config':args['forecast_config'].write_bytes(b'{}')

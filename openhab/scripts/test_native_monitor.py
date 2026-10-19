@@ -79,7 +79,7 @@ def test_native_monitor_scores_one_actual_source_packet_and_reconciles_completio
 
 def test_native_missing_outcome_retains_absence_and_retries_after_fifteen_minutes(tmp_path,monkeypatch,originals):
     live,s,reader,clock,capture,d=setup(tmp_path,monkeypatch,originals)
-    from test_household_score_queue import native_packet
+    from native_cycle_test_support import native_packet
     target=datetime.fromisoformat(capture['issued_at'])+timedelta(hours=1)
     packets=tmp_path/'missing';packets.mkdir(mode=0o700)
     path=native_packet(packets,target,clock[0],capture['candidate']['fit']['sensor_epochs']['air'])
@@ -150,7 +150,7 @@ def test_native_active_model_precedes_an_earlier_other_revision(tmp_path,monkeyp
 
 
 def test_native_absence_is_requeried_at_retry_time_without_completing_a_score(tmp_path,monkeypatch,originals):
-    from test_household_score_queue import native_packet
+    from native_cycle_test_support import native_packet
     live,s,reader,clock,capture,d=setup(tmp_path,monkeypatch,originals)
     target=datetime.fromisoformat(capture['issued_at'])+timedelta(hours=1);folder=tmp_path/'retry';folder.mkdir(mode=0o700);queries=[]
     def missing(targets,*,assessed_at,sensor_epoch):
@@ -166,7 +166,7 @@ def test_native_absence_is_requeried_at_retry_time_without_completing_a_score(tm
 
 
 def test_native_gap_cache_accepts_more_than_eight_hours_within_recent_queue_window(tmp_path,monkeypatch,originals):
-    from test_household_score_queue import native_packet
+    from native_cycle_test_support import native_packet
     from thermal_model.native_operational_io import _phase_directory
     from native_thermal_artifact import digest
     live,s,reader,clock,capture,d=setup(tmp_path,monkeypatch,originals)

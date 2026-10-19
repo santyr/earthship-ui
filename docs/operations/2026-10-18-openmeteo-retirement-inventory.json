@@ -13632,7 +13632,19 @@
       "scripts/test_qualify_openmeteo_forecast_temperature_jdbc.py",
       "scripts/test_qualify_openmeteo_forecast_temperature_provider.py",
       "openhab/scripts/test_thermal_forecast_history.py",
-      "openhab/scripts/test_thermal_forecast_receipts.py"
+      "openhab/scripts/test_thermal_forecast_receipts.py",
+      "openhab/scripts/household_score_queue.py",
+      "openhab/scripts/provisional_thermal.py",
+      "openhab/scripts/test_household_score_queue.py",
+      "openhab/scripts/test_provisional_thermal_cli.py",
+      "openhab/scripts/test_provisional_thermal_live.py",
+      "openhab/scripts/test_provisional_thermal_monitor.py",
+      "openhab/scripts/thermal_model/provisional_live.py",
+      "openhab/scripts/thermal_model/provisional_monitor.py",
+      "openhab/systemd/user/thermal-provisional-forecast.service",
+      "openhab/systemd/user/thermal-provisional-forecast.timer",
+      "openhab/systemd/user/thermal-provisional-score.service",
+      "openhab/systemd/user/thermal-provisional-score.timer"
     ],
     "removed_apis": [
       "weather_learning.energy_shadow.compare_fixed_energy",
@@ -13656,7 +13668,7 @@
     "shadow_issue_schema": "earthship-weather-shadow-issue/v2",
     "fresh_shadow_state_child": "google-local-v2",
     "historical_evidence_rewritten": false,
-    "remaining": "Standalone provisional/installed-shade publisher/scorer entrypoints and legacy configuration loaders; remaining forecast worker/provider/tool graph and root-only AQI consumers; fresh downstream release models and qualification; actual reviewed publisher release/ownership handoff; coordinated cutover and installed binding/Things/links removal. Current household factories and score dispatch select only Google profiles; shared resource borrowers no longer import the old publisher CLI. No live retirement has been applied.",
+    "remaining": "Installed-shade standalone CLI, legacy configuration loaders and registered-unit renderer; remaining forecast worker/provider/tool graph and root-only AQI consumers; fresh downstream release models and qualification; actual reviewed publisher release/ownership handoff; coordinated cutover and installed binding/Things/links removal. Provisional CLI/publisher/monitor/non-native queue and their unit templates are removed from prepared source. Literal old worker names remain only in historical handoff metadata and its fixtures. No live retirement has been applied.",
     "neutral_tool_helpers": [
       "scripts/openhab_private_files.py",
       "scripts/HexThingsParse.java"
@@ -13720,7 +13732,7 @@
       "forecast_input_capture.py",
       "forecast_temperature_origin.py"
     ],
-    "native_base_source_count": 85,
+    "native_base_source_count": 82,
     "neutral_native_source_verification": "Five helper function ASTs exactly match original definitions; unchanged 128 KiB default read bound; two isolation regressions RED then 23 packet/isolation GREEN; 84 native/Google/fresh-irradiance/staging tests passed in 19.68 seconds in immutable export.",
     "neutral_openhab_io": "openhab/scripts/openhab_runtime_io.py; existing capture imports remain compatibility exports",
     "prepared_publication_runtime": "weather_learning.production_runtime.run_publication; mandatory external admission/resource guard, fixed Item preflight, shared writer lock and retained attempts/results; operational caller prepared, no live activation",
@@ -13752,10 +13764,7 @@
     "handoff_baseline_verifier": "verify_handoff_baseline: detached source/preimage integrity only; active verify_stage rejects retired deployment selection",
     "operational_caller_verification": "256 passed across 30 affected modules in 72.16 seconds in clean isolated export f85dff5d8f1b40811e68b0b71f3138a896bfd255; 23 changed Python/test files match. Thirteen new retirement cases, actual fourteen-parameter fit evidence, source/report reconstruction, staging/handoff/daily/retained worker/memory-event regressions; no production qualification claim.",
     "remaining_standalone_legacy_entrypoints": [
-      "provisional_thermal.py",
-      "thermal_installed_intel.py",
-      "thermal_model/provisional_live.py",
-      "thermal_model/provisional_monitor.py"
+      "thermal_installed_intel.py"
     ],
     "neutral_native_operational_helpers": [
       "openhab/scripts/thermal_model/native_operational_io.py",
@@ -13775,29 +13784,22 @@
       "scripts/household_energy_source_install.py"
     ],
     "remaining_legacy_config_loader_module": "thermal_model/installed_shade_live_inputs.py; preserve its shared Google/local acquisition and telemetry classes",
-    "shared_resource_old_cli_imports_remaining": [
-      {
-        "path": "openhab/scripts/provisional_thermal.py",
-        "line": 8,
-        "names": [
-          "_resource_preflight"
-        ]
-      },
-      {
-        "path": "openhab/scripts/thermal_model/provisional_live.py",
-        "line": 19,
-        "names": [
-          "_resource_preflight"
-        ]
-      },
-      {
-        "path": "openhab/scripts/thermal_model/provisional_monitor.py",
-        "line": 17,
-        "names": [
-          "_resource_preflight"
-        ]
-      }
+    "shared_resource_old_cli_imports_remaining": [],
+    "shared_resource_dependency_verification": "Ten production/tool ASTs match their preimages after only resource-import and manifest-path substitutions. Two import/admission/source-closure regressions RED then GREEN. Final 67-module isolated-export suite: 745 passed, two existing selected-capped-scope smoke skips, 135.76s; pinned WeatherNext package: 211 passed, 8.808s. Export 7db29600ed1859703bb0d6e79a8d6282ea124825. No live configuration, model, resource-policy or service change.",
+    "provisional_family_preimage_revision": "cdab99c3009f070d3559888dc7247e3005d90e8b",
+    "removed_provisional_source_entrypoints": [
+      "openhab/scripts/provisional_thermal.py",
+      "openhab/scripts/thermal_model/provisional_live.py",
+      "openhab/scripts/thermal_model/provisional_monitor.py",
+      "openhab/scripts/household_score_queue.py"
     ],
-    "shared_resource_dependency_verification": "Ten production/tool ASTs match their preimages after only resource-import and manifest-path substitutions. Two import/admission/source-closure regressions RED then GREEN. Final 67-module isolated-export suite: 745 passed, two existing selected-capped-scope smoke skips, 135.76s; pinned WeatherNext package: 211 passed, 8.808s. Export 7db29600ed1859703bb0d6e79a8d6282ea124825. No live configuration, model, resource-policy or service change."
+    "removed_provisional_unit_templates": [
+      "openhab/systemd/user/thermal-provisional-forecast.service",
+      "openhab/systemd/user/thermal-provisional-forecast.timer",
+      "openhab/systemd/user/thermal-provisional-score.service",
+      "openhab/systemd/user/thermal-provisional-score.timer"
+    ],
+    "provisional_observer_test_migration": "29 unchanged observer, original-receipt and cache-boundary cases now invoke the current native Google publisher with fresh synthetic fourteen-parameter fit evidence. They passed before deletion. Native query packet helper AST is unchanged; native gap tests retain it from native_cycle_test_support.py.",
+    "provisional_family_verification": "Two retirement regressions RED then GREEN; 29 observer/receipt cases ported to the current native publisher and passed before deletion. Full affected 70-module suite: 784 passed, two existing selected-capped-scope smoke skips, 151.84s, export 13ab3c361641ff4f45b91d38e0587ae23882b342. Pinned WeatherNext package 211 passed in 8.404s. Predecessor CI failed one stale raw source-count assertion; corrected registration-closure test passed in 0.62s in final export be7cab1caa1019d770d5126ef0788e36ac388f2e; production bytes unchanged after wide suite. No remaining production imports of removed family; query helper AST unchanged. No live deployment or release qualification."
   }
 }

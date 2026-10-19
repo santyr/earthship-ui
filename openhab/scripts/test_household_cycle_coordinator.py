@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 import pytest
 from household.codec import canonical
-from test_provisional_thermal_live import fixture,module as live
+from native_cycle_test_support import fixture,module as live
 
 
 def setup(tmp_path,monkeypatch):
@@ -16,14 +16,15 @@ def setup(tmp_path,monkeypatch):
     import household.weather_context as weather
     import household_pipeline as pipeline
     import household_observation as observation
-    settings,parent,clock,_=fixture(tmp_path,monkeypatch)
+    settings,parent,clock,candidate=fixture(tmp_path,monkeypatch)
     publication=live().publish_cycle(settings,backend=parent,guard=lambda:None)
     capture=json.loads(Path(publication['origin_path']).read_bytes())
     evidence=tmp_path/'household';evidence.mkdir(mode=0o700)
     calls=[]
     monkeypatch.setattr(thermal,'prepare_projection',lambda body,**kw: ('prepared',body['capture_sha256']))
     monkeypatch.setattr(weather,'prepare_weather_context',lambda body,**kw: ('weather',body['capture_sha256']))
-    monkeypatch.setattr(weather,'prepare_cycle_contexts',lambda body,**kw: (('prepared',body['capture_sha256']),('weather',body['capture_sha256'])))
+    monkeypatch.setattr(weather,'prepare_cycle_contexts',lambda *a,**k:pytest.fail('native cycle selected legacy context'))
+    monkeypatch.setattr(weather,'prepare_native_cycle_contexts',lambda body,**kw: (('prepared',body['capture_sha256']),('weather',body['capture_sha256'])))
     def derive(**kw):
         calls.append(('derive',kw))
         return {'receipt_sha256':'a'*64,'inputs':{'thermal_inputs':None},'automatic_actuation':False}
@@ -37,7 +38,9 @@ def setup(tmp_path,monkeypatch):
     collection={'status':'collected','issue':capture['issued_at'],'originals':originals}
     return cycle,dict(publication=publication,collection=collection,parameter_record={'collected_at':capture['issued_at']},
         runtime_manifest={'runtime':'b'*64},code_revision='e'*40,evidence_directory=evidence,
-        observation_cache=tmp_path/'observation.json',guard=lambda:None,clock=lambda:clock[0]),calls
+        observation_cache=tmp_path/'observation.json',guard=lambda:None,clock=lambda:clock[0],
+        runtime=candidate['runtime'],expected_artifact_sha256=candidate['artifact_sha256'],
+        expected_capture_sha256=publication['capture_sha256']),calls
 
 
 def test_verified_delivery_gates_models_and_retains_originals(tmp_path,monkeypatch):
@@ -94,7 +97,7 @@ def test_source_drift_before_materialization_refuses_cache(tmp_path,monkeypatch)
 
 def test_lazy_backend_uses_the_actual_publisher_issue_archive(tmp_path,monkeypatch):
     import household_cycle as cycle
-    import thermal_model.provisional_live as publisher
+    import native_thermal_live as publisher
     settings,_,clock,_=fixture(tmp_path,monkeypatch)
     calls=[];original={'input':'unchanged'}
     class Parent:
@@ -103,8 +106,9 @@ def test_lazy_backend_uses_the_actual_publisher_issue_archive(tmp_path,monkeypat
         def verify_unchanged(self):calls.append(('verified',))
         def put(self,*args,**kw):calls.append(('put',args,kw))
         def persisted(self,*args,**kw):return ('receipt',args,kw)
-    monkeypatch.setattr(publisher,'CompressedSourceLiveBackend',Parent)
-    monkeypatch.setattr(publisher,'backend_settings',lambda value:{'preserved_settings':value})
+    def factory(value,*,evidence_directory,guard):
+        return Parent({**value,'evidence_directory':str(evidence_directory)},shared_lock_guard=guard)
+    monkeypatch.setattr(publisher,'make_forecast_backend',factory)
     guard=lambda:None
     backend=cycle.LazyForecastBackend(settings,guard=guard)
     assert calls==[]

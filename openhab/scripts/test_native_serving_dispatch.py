@@ -22,7 +22,6 @@ def test_native_only_slots_leave_legacy_backlog_unscheduled():
 def test_receipt_score_refusal_cannot_route_to_legacy_monitor(monkeypatch,settings,tmp_path):
     import inspect,household_forecast_score as coordinator,native_thermal_live as native
     assert 'serving_model' in inspect.signature(coordinator.score_with_report).parameters,'receipt scoring propagation is missing'
-    from thermal_model import provisional_monitor as legacy
     context=object();settings={**settings[1],'schema':'earthship-weathernext-thermal-live-config/v2','evidence_directory':str(tmp_path/'evidence')}
     (tmp_path/'evidence').mkdir(mode=0o700)
     def refusal(value,*,guard,reader,serving_model,historical_selections):
@@ -31,7 +30,6 @@ def test_receipt_score_refusal_cannot_route_to_legacy_monitor(monkeypatch,settin
         assert value==settings and serving_model is context and historical_selections==()
         raise ValueError('receipt refused')
     monkeypatch.setattr(native,'score_jobs',refusal)
-    monkeypatch.setattr(legacy,'current_runtime',lambda:pytest.fail('receipt refusal selected legacy runtime'))
     with pytest.raises(ValueError,match='receipt refused'):
         coordinator.score_with_report(settings,guard=lambda:None,serving_model=context,historical_selections=())
 

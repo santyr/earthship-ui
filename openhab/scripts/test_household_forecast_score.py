@@ -47,11 +47,9 @@ def test_missing_completed_source_still_refuses_report_refresh(tmp_path,monkeypa
 @pytest.mark.parametrize('reason',['actual original publication receipt missing','training host pressure or memory reserve unavailable','original scoring model/runtime identity differs'])
 def test_unexpected_failures_do_not_publish_fallback_report(reason,tmp_path,monkeypatch):
     import native_thermal_live as native
-    from thermal_model import provisional_monitor as legacy
     settings={'schema':native.LIVE_SCHEMA}
     def broken(*args,**kwargs):raise ValueError(reason)
     monkeypatch.setattr(native,'score_jobs',broken)
-    monkeypatch.setattr(legacy,'refresh_report',lambda *a,**k:pytest.fail('unexpected failure refreshed an old report'))
     with pytest.raises(ValueError,match=reason):api().score_with_report(settings,guard=lambda:None)
 
 

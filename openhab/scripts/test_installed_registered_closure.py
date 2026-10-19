@@ -7,7 +7,7 @@ import sys
 def test_registered_publication_uses_only_declared_runtime_contents(tmp_path):
     from thermal_model.installed_shade_publication import RAW_RUNTIME_PATHS
     source=Path(__file__).parent;root=tmp_path/'sources';root.mkdir()
-    assert len(RAW_RUNTIME_PATHS)==75
+    assert len(RAW_RUNTIME_PATHS)==77
     assert 'thermal_model/installed_shade_score_registration.py' not in RAW_RUNTIME_PATHS
     assert 'thermal_model/installed_shade_score_jobs.py' not in RAW_RUNTIME_PATHS
     for name in RAW_RUNTIME_PATHS:

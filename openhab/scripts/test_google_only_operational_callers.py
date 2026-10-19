@@ -20,38 +20,36 @@ def private_config(tmp_path):
 def test_household_driver_refuses_old_profile_before_original_loader(tmp_path,monkeypatch):
     import household_cycle as driver
     import thermal_model.serial_publication_caps as installed
-    # Load its original resource dependency before this fixture patches it.
-    import native_thermal_live
     import household_cycle_resources as resources
-    import thermal_model.provisional_live as legacy
+    import native_thermal_live as native
     config=private_config(tmp_path)
     monkeypatch.setattr(installed,'_resource_preflight',lambda:None)
     monkeypatch.setattr(resources,'publication_resource_preflight',lambda:None)
-    monkeypatch.setattr(legacy,'load_settings',refuse_legacy)
+    monkeypatch.setattr(native,'load_settings',refuse_legacy)
     with pytest.raises(ValueError):driver.run_cycle(tmp_path/'unused-cycle',code_revision='a'*40,forecast_config=config)
 
 
 def test_lazy_backend_refuses_old_profile_before_translating_credentials(tmp_path,monkeypatch):
     import household_cycle as driver
-    import thermal_model.provisional_live as legacy
-    monkeypatch.setattr(legacy,'backend_settings',refuse_legacy)
+    import native_thermal_live as native
+    monkeypatch.setattr(native,'make_forecast_backend',refuse_legacy)
     backend=driver.LazyForecastBackend({'schema':LEGACY},guard=lambda:None)
     with pytest.raises(ValueError):backend.collect(issue=datetime.now(timezone.utc),known_at=datetime.now(timezone.utc))
 
 
 def test_score_runner_refuses_old_profile_before_original_loader(tmp_path,monkeypatch):
     import household_forecast_score as driver
-    import thermal_model.provisional_live as legacy
+    import native_thermal_live as native
     config=private_config(tmp_path)
     monkeypatch.setattr(driver,'production_resource_preflight',lambda:None)
-    monkeypatch.setattr(legacy,'load_settings',refuse_legacy)
+    monkeypatch.setattr(native,'load_settings',refuse_legacy)
     with pytest.raises(ValueError):driver.run(config)
 
 
 def test_score_dispatch_refuses_old_profile_before_legacy_model_or_report(monkeypatch):
     import household_forecast_score as driver
-    import thermal_model.provisional_monitor as legacy
-    monkeypatch.setattr(legacy,'current_runtime',refuse_legacy)
+    import native_thermal_live as native
+    monkeypatch.setattr(native,'current_runtime',refuse_legacy)
     with pytest.raises(ValueError):driver.score_with_report({'schema':LEGACY},guard=lambda:None)
 
 

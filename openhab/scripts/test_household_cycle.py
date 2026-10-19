@@ -1,11 +1,11 @@
-"""Capture integration exercises the unchanged actual provisional publisher."""
+"""Capture integration exercises the current native Google publisher."""
 from copy import deepcopy
 from datetime import datetime,timedelta
 import importlib,json
 from pathlib import Path
 import pytest
-from test_provisional_thermal_live import fixture,module as live
-from test_provisional_thermal_forecast import ISSUE
+from native_cycle_test_support import fixture,module as live
+from test_native_thermal_forecast import ISSUE
 
 def api():return importlib.import_module('household_cycle')
 
@@ -31,7 +31,7 @@ def test_collection_follows_parent_inputs_and_keeps_original_numeric_output(tmp_
     wrapped=json.loads(Path(result['origin_path']).read_bytes())['output']
     assert wrapped==original
     assert adapter.collection['status']=='collected'
-    assert adapter.collection['originals']['original_collection_finished']==(issued-timedelta(seconds=9)).isoformat()
+    assert adapter.collection['originals']['original_collection_finished']==(issued-timedelta(seconds=19)).isoformat()
 
 def test_collector_failure_does_not_withdraw_or_break_original_delivery(tmp_path,monkeypatch):
     settings,parent,clock,_=fixture(tmp_path,monkeypatch)
