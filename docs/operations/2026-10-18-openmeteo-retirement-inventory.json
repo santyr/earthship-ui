@@ -13687,7 +13687,7 @@
     "prepared_forecast_items": {
       "source": "openhab/file-config/items/forecast-weather.items",
       "ownership_status": "prepared",
-      "state_writer": "weather_learning.production_publish.publish_cycle",
+      "state_writer": "weathernext-publish.service",
       "items": [
         "Forecast_Temp",
         "Forecast_Daily_High",
@@ -13737,6 +13737,11 @@
     },
     "prepared_production_worker": "weather_publish.py / weather_learning.production_worker: default-read-only CLI, explicit reviewed-release report and original gate evidence, 27 source/deployment pins, installed Item ownership, authoritative site and stopped-incumbent checks; source-only service/timer",
     "production_worker_verification": "211 pinned WeatherNext package cases passed in 8.738 seconds from isolated export; all six changed code/test/unit files match branch. systemd-analyze --user verify accepted uninstalled units. Real read-only unit adapter correctly refuses three active incumbent timers; no writes, stops or activation.",
-    "production_worker_release_decision_generated": false
+    "production_worker_release_decision_generated": false,
+    "removed_unsupported_forecast_items": [
+      "Forecast_Tomorrow_PrecipProb"
+    ],
+    "retained_forecast_writer": "weathernext-publish.service; all eleven ownership records marked prepared, not live applied",
+    "tomorrow_source_verification": "Five focused source/migration tests passed in 0.07 seconds; obsolete third-index argument observed failing then fixed; 156 unrelated ownership records unchanged; old apply approval revoked. No JDBC, containers, recovery workflow or live Item changes."
   }
 }

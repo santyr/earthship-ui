@@ -108,3 +108,23 @@ This prepares the operational caller. Final removal/deployment closure, real
 fresh Google/local fitting and variable/outcome/interval qualification, actual
 reviewed configuration and coordinated cutover remain unfinished. Actuator
 requests remain disabled.
+
+## Prepared Item ownership completion
+
+All eleven retained targets now declare `weathernext-publish.service` as their
+prepared writer in `openhab/file-config/ownership.json`; the declaration is not
+live ownership verification. The unsupported `Forecast_Tomorrow_PrecipProb`
+definition and ownership record are removed from the prepared source. Unsupported
+Google precipitation probability remains unavailable rather than retaining an
+old-provider numeric value after cutover. The two retained tomorrow temperatures
+and three JSON definitions preserve their names and types.
+
+The old tomorrow file-transfer helper's batch now has two Items, and its previous
+`RELEASE_READY` approval is revoked because its qualified source has changed. A
+remaining adapter's third-index assumption was corrected by argument construction
+only. Five focused source/migration tests passed in 0.07 seconds, including an
+observed `IndexError` regression before correction. They executed no JDBC,
+containers or recovery workflow. All 156 unrelated ownership records match the
+preceding committed manifest exactly. Installed files, Item states and production
+services were untouched; actual unsupported-Item removal belongs to the attended
+cutover alongside the complete provider retirement.

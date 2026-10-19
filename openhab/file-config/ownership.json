@@ -63,47 +63,47 @@
     {
       "kind": "item", "id": "Forecast_Temp", "provider": "file", "migration": "prepared",
       "source": "items/forecast-weather.items", "destination": "/etc/openhab/items/forecast-weather.items",
-      "state_writer": "weather_learning.production_publish.publish_cycle"
+      "state_writer": "weathernext-publish.service"
     },
     {
       "kind": "item", "id": "Forecast_Daily_High", "provider": "file", "migration": "prepared",
       "source": "items/forecast-weather.items", "destination": "/etc/openhab/items/forecast-weather.items",
-      "state_writer": "weather_learning.production_publish.publish_cycle"
+      "state_writer": "weathernext-publish.service"
     },
     {
       "kind": "item", "id": "Forecast_Daily_Low", "provider": "file", "migration": "prepared",
       "source": "items/forecast-weather.items", "destination": "/etc/openhab/items/forecast-weather.items",
-      "state_writer": "weather_learning.production_publish.publish_cycle"
+      "state_writer": "weathernext-publish.service"
     },
     {
       "kind": "item", "id": "Forecast_Cloudiness", "provider": "file", "migration": "prepared",
       "source": "items/forecast-weather.items", "destination": "/etc/openhab/items/forecast-weather.items",
-      "state_writer": "weather_learning.production_publish.publish_cycle"
+      "state_writer": "weathernext-publish.service"
     },
     {
       "kind": "item", "id": "Forecast_Radiation", "provider": "file", "migration": "prepared",
       "source": "items/forecast-weather.items", "destination": "/etc/openhab/items/forecast-weather.items",
-      "state_writer": "weather_learning.production_publish.publish_cycle"
+      "state_writer": "weathernext-publish.service"
     },
     {
       "kind": "item", "id": "Forecast_Daily_PrecipSum", "provider": "file", "migration": "prepared",
       "source": "items/forecast-weather.items", "destination": "/etc/openhab/items/forecast-weather.items",
-      "state_writer": "weather_learning.production_publish.publish_cycle"
+      "state_writer": "weathernext-publish.service"
     },
     {
-      "kind": "item", "id": "Forecast_Hourly_JSON", "provider": "file", "migration": "verified",
+      "kind": "item", "id": "Forecast_Hourly_JSON", "provider": "file", "migration": "prepared",
       "source": "items/forecast-json.items", "destination": "/etc/openhab/items/forecast-json.items",
-      "state_writer": "forecast-json.service"
+      "state_writer": "weathernext-publish.service"
     },
     {
-      "kind": "item", "id": "Forecast_Daily_JSON", "provider": "file", "migration": "verified",
+      "kind": "item", "id": "Forecast_Daily_JSON", "provider": "file", "migration": "prepared",
       "source": "items/forecast-json.items", "destination": "/etc/openhab/items/forecast-json.items",
-      "state_writer": "forecast-json.service"
+      "state_writer": "weathernext-publish.service"
     },
     {
-      "kind": "item", "id": "Forecast_10Day_JSON", "provider": "file", "migration": "verified",
+      "kind": "item", "id": "Forecast_10Day_JSON", "provider": "file", "migration": "prepared",
       "source": "items/forecast-json.items", "destination": "/etc/openhab/items/forecast-json.items",
-      "state_writer": "forecast-json.service"
+      "state_writer": "weathernext-publish.service"
     },
     {
       "kind": "item", "id": "Forecast_Prediction_Receipt_JSON", "provider": "file", "migration": "observational",
@@ -186,19 +186,14 @@
       "state_writer": "forecast-intel.service"
     },
     {
-      "kind": "item", "id": "Forecast_Tomorrow_High", "provider": "file", "migration": "verified",
+      "kind": "item", "id": "Forecast_Tomorrow_High", "provider": "file", "migration": "prepared",
       "source": "items/forecast-tomorrow.items", "destination": "/etc/openhab/items/forecast-tomorrow.items",
-      "state_writer": "forecast-intel.service"
+      "state_writer": "weathernext-publish.service"
     },
     {
-      "kind": "item", "id": "Forecast_Tomorrow_Low", "provider": "file", "migration": "verified",
+      "kind": "item", "id": "Forecast_Tomorrow_Low", "provider": "file", "migration": "prepared",
       "source": "items/forecast-tomorrow.items", "destination": "/etc/openhab/items/forecast-tomorrow.items",
-      "state_writer": "forecast-intel.service"
-    },
-    {
-      "kind": "item", "id": "Forecast_Tomorrow_PrecipProb", "provider": "file", "migration": "verified",
-      "source": "items/forecast-tomorrow.items", "destination": "/etc/openhab/items/forecast-tomorrow.items",
-      "state_writer": "forecast-intel.service"
+      "state_writer": "weathernext-publish.service"
     },
     {
       "kind": "item", "id": "Thermal_Advisory", "provider": "file", "migration": "verified",
