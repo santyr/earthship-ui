@@ -1,6 +1,6 @@
 # WeatherNext migration readiness
 
-Updated 2026-10-18. Execution branch: `feat/weathernext-migration-20261018`; base `0710a08f2a9dabcd7f5dd824dc99511642c6c728`. The operator authorized execution of the existing exclusive-provider plan. This is an implementation/readiness report, not a production cutover approval or skill result.
+Updated 2026-10-19. Execution branch: `feat/weathernext-migration-20261018`; base `0710a08f2a9dabcd7f5dd824dc99511642c6c728`. The operator authorized execution of the existing exclusive-provider plan. This is an implementation/readiness report, not a production cutover approval or skill result.
 
 ## Operator-confirmed clean start
 
@@ -15,6 +15,19 @@ Google approved access. The private reader authenticates; statistics GCS listing
 At **18:20:30Z**, the corrected native collector successfully archived a complete **360-hour / 10-band / 3,600-point** WeatherNext issue in **10.11 seconds**, receiving **1,255,580 bytes** with **72,128 KiB peak RSS**. The access blocker was a missing read-only Cloud Storage OAuth scope in the custom credential loader, followed by a parser assumption that source image time always meant forecast valid time. Both are corrected with regression tests; the native cell, source/run identity, original timestamps and acquisition/resource/cost bounds are preserved. No new IAM grant or credential was needed. The [live API compatibility report](2026-10-18-weathernext-api-compatibility.md) records the controlled comparison, documentation review, exact snapshot identity and limitations. The [earlier raster diagnosis](2026-10-18-weathernext-ee-raster-diagnosis.md) is historical and superseded. The [backend activation](2026-10-18-weathernext-shadow-activation.md) subsequently verified a pinned installed collector run and enabled hourly collection/private issue recording plus separate weekly shadow fitting. The first natural collector trigger also succeeded at 18:35Z; the later 18:40Z shadow trigger recorded locally. The [comparison activation](2026-10-18-weathernext-comparison-activation.md) subsequently enabled three unlinked shadow Items and the live read-only comparison UI. A fresh Google/local candidate fitted from one pair remains SHADOW_ONLY with no validation. The first natural published shadow trigger is verified at 19:40:31Z against the retained issue and all three Item states. Natural weekly training, prospective qualification intervals and production cutover remain unverified.
 
 The [precipitation capture increment](2026-10-18-weathernext-rain-candidates.md) adds the two previously omitted supported rain heads for separate qualification. A real 360-hour capture retained all three products alongside existing fields (4,320 points / 1,272,037 bytes / 9.729 seconds); unit/interval/source rederivation and all 128 pinned tests pass. The tested f5775f8 increment is installed in the private backend; an installed 4,320-point collection and shadow issue from that exact snapshot/source both pass. No production precipitation product is selected by this increment.
+
+## Current installed shadow state — October 19
+
+The [v2 runtime qualification](weathernext-shadow-runtime.md) supersedes the
+historical v1 candidate status above. Shadow inference and the existing weekly
+training service now use immutable revision `59c0b81`; the collector remains
+pinned separately at `8be69ea`. The live producer/UI use a fresh Google-only
+cohort with **zero training pairs**. All three Items matched the installed
+manual READY generation and source snapshot, and real tablet/laptop browser
+checks passed without equipment requests. The old v1 one-pair candidate remains
+separate and unused. No new fitting, qualified skill, natural v2 trigger or
+production cutover is claimed. Main production still uses the incumbent pending
+the release gates below.
 
 ## Qualified household evidence
 
@@ -32,7 +45,7 @@ The existing qualified PV reader accepted all three sampled days (coverage 99.96
 | Indoor temperature | `weather_temperature_history` native role streams | Bedroom/indoor/north_wall current epochs audited; no full 24-hour days in October 3–17; shorter qualified thermal windows retain existing rules | Fixed-artifact thermal attribution |
 | Operator actions/shades | `thermal_model.action_history`, `thermal_model.shade_observations` | 19 action events, 4 mode events, 13 receipts; 14 origin-aware snapshots selected; continuous/per-zone observation not established | Known action context; no action effects inferred |
 | Original incumbent issues | Existing forecast/thermal original captures | 129 validated original capture files, October 1–18, 18 capture dates; pre-cutover controls only, excluded from new fitting | Paired chronological comparison |
-| Prospective WeatherNext issues | New private content-addressed archive | 0 scheduled issues so far | Future comparison evidence |
+| Prospective WeatherNext issues | Private content-addressed collector archive; fresh v2 issue namespace | Hourly acquisition is installed and naturally verified; v2 producer/UI manually qualified October 19, fresh/untrained with no v1 model imported | Future Google/local learning and qualification; required intervals remain incomplete |
 
 The inventory helper counts only typed windows supplied by source validators, requires original digests and complete post-cutover windows, partitions by hardware epoch, rejects conflicting proofs and cannot turn raw numeric rows into qualified labels. The initial audit did not query original forecast archives: its zero counted issues means no verified inputs supplied, not proof that no archives exist. Temperature is ready to begin shadow acquisition and paired qualification; no variable is qualified for production cutover yet.
 

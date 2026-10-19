@@ -143,7 +143,9 @@ These checks do not constitute the full repository suite or release qualificatio
 
 **Disposition:** retain the corrected native-cell Earth Engine reader. No further
 acquisition architecture rewrite is supported by this review. The consumer
-read-only fix is prepared source, not an installed v2 activation. Archive changes
+read-only fix was prepared source at review time; the subsequent
+[v2 shadow rollout](weathernext-shadow-runtime.md) installed it together with
+the matching producer/UI contract, while retaining incumbent production ownership. Archive changes
 are protected native-source changes, so final release fitting must use the new
 source closure; existing receipts are not relabelled. Final provider/worker
 retirement, fresh Google/local fitting, qualification and coordinated production

@@ -1,0 +1,93 @@
+{
+  "source_revision": "59c0b81d20bcd3f33d1d26f4c19768e441b5752f",
+  "source_manifest_sha256": "7619836022fae316a6a1adc386e8cca0c3ee6fcfc05391f760c0388ab9572cc9",
+  "installed_at": "2026-10-19T09:18:48.892931+00:00",
+  "installed_shadow_result": {
+    "Result": "success",
+    "ExecMainExitTimestamp": "Mon 2026-10-19 03:18:48 MDT",
+    "ExecMainStatus": "0",
+    "InvocationID": "5809f5880db94b7cb1f616d54bd07dbd"
+  },
+  "generation": "f43a87b951a96f36af5b9a6aa6bf7f980e33db5919ffaac212c6d2d732d56f3d",
+  "decision_at": "2026-10-19T09:18:47.860697+00:00",
+  "source_snapshot_sha256": "98604b6dd95026d0c30b3ccca3c68fff324f4a4785d5bbabc765d696ee104d0a",
+  "schema": "earthship-weather-provider-shadow/v2",
+  "hours": 337,
+  "model_status": "UNTRAINED",
+  "training_pairs": 0,
+  "published_items_match": true,
+  "automatic_actuation": false,
+  "unrelated_live_ui_files_unchanged": true,
+  "previous_model_unchanged": true,
+  "ui_process_unchanged": true,
+  "resource_properties_unchanged": true,
+  "shared_launch_sources_unchanged": true,
+  "collector_definition_and_pin_unchanged": true,
+  "training_unit_and_weekly_cadence_unchanged": true,
+  "production_provider_changed": false,
+  "normal_shadow_days_claimed": 0,
+  "schema_receipt": "earthship-weathernext-v2-shadow-activation/v1",
+  "source_files": 1995,
+  "private_qualification": {
+    "source_revision": "59c0b81d20bcd3f33d1d26f4c19768e441b5752f",
+    "observed_at": "2026-10-19T09:12:20.790544+00:00",
+    "status": "READY",
+    "published": false,
+    "issue_sha256": "3d4923d8ef65ab434b2636d688278b887ad6a1636aca810502ace96e7a57834b",
+    "generation": "dd38211d93be749c988de785259f4a8bb70d16903928f49ef29d10409d1be387",
+    "decision_at": "2026-10-19T09:12:19.853747+00:00",
+    "source_snapshot_sha256": "98604b6dd95026d0c30b3ccca3c68fff324f4a4785d5bbabc765d696ee104d0a",
+    "hours": 337,
+    "model_status": "UNTRAINED",
+    "training_pairs": 0,
+    "previous_model_imported": false,
+    "published_items_unchanged": true,
+    "old_candidate_pointer_unchanged": true,
+    "collector_index_unchanged": true,
+    "automatic_actuation": false,
+    "manual_qualification": true,
+    "normal_shadow_days_claimed": 0
+  },
+  "live_browser": {
+    "observed_at": "2026-10-19T09:19:44.091Z",
+    "live_url": "http://127.0.0.1:5190/#/weather",
+    "mocked": false,
+    "results": [
+      {
+        "viewport": "laptop",
+        "width": 1440,
+        "height": 900,
+        "dialog_visible": true,
+        "dialog_contained": true,
+        "button_contained": true,
+        "forecast_rows": 24,
+        "untrained_explicit": true,
+        "console_errors": 0,
+        "mutating_rest_requests": 0
+      },
+      {
+        "viewport": "tablet",
+        "width": 1024,
+        "height": 768,
+        "dialog_visible": true,
+        "dialog_contained": true,
+        "button_contained": true,
+        "forecast_rows": 24,
+        "untrained_explicit": true,
+        "console_errors": 0,
+        "mutating_rest_requests": 0
+      }
+    ]
+  },
+  "verification": {
+    "frontend_files": 168,
+    "frontend_tests": 2554,
+    "frontend_seconds": 47.29,
+    "staged_live_ui_tests": 10,
+    "staged_live_ui_seconds": 2.3,
+    "staged_live_ui_build_seconds": 1.03,
+    "build_warning": "existing large chunks",
+    "natural_v2_trigger_verified": false,
+    "model_fitting_performed": false
+  }
+}

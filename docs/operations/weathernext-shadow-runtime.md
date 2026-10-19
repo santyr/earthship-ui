@@ -1,10 +1,59 @@
 # WeatherNext prospective shadow runtime
 
-Implementation date: 2026-10-18. Shadow inference and training in the [private backend](2026-10-18-weathernext-shadow-activation.md) use tested commit f5775f8; the collector now has the separate tested source pin described below; the separate [comparison activation](2026-10-18-weathernext-comparison-activation.md) adds the narrow live UI patch and Item publication: hourly collection, hourly retained shadow inference/publication and separate weekly candidate training. Three unlinked file-owned Items and the live Weather comparison UI are active. The first fresh Google/local candidate has one qualified pair, SHADOW_ONLY status and no validation; prospective skill/reliability remain unqualified. Household production forecasts, notifications and actuators are unchanged. The 19:40:31Z natural published trigger is verified against its retained issue and all three live Item states.
+Implementation date: 2026-10-18; v2 activated 2026-10-19 at **03:18:48 MDT**.
+Shadow inference and weekly training now select immutable source
+`59c0b81d20bcd3f33d1d26f4c19768e441b5752f`. Its 1,995 source files were verified
+against committed Git blobs and made read-only. The collector retains its
+separate 8be69ea source pin. The three shadow Items and matching live UI now use
+the Google-only v2 contract. Household production forecast ownership,
+notifications and actuators remain unchanged.
 
-## Prepared v2 release (not installed)
+## Installed v2 cohort
 
-The current migration source removes incumbent capture and comparison controls. It publishes only `earthship-weather-provider-shadow/v2`, retains `earthship-weather-shadow-issue/v2`, and shows raw WeatherNext versus the local candidate in a model/status dialog. Both inference and fitting select the fresh `google-local-v2` child under the configured shadow-state root. They open the collector archive read-only; a missing source remains explicitly unavailable without creating collector history. The collector retains sole responsibility for archive initialization and writes. The installed f5775f8 release still uses v1 until producer, service and frontend are deployed together. Its original issues/models remain unchanged; v2 does not load them. The source retirement status is documented in [the removal contract](openmeteo-retirement.md).
+The producer publishes `earthship-weather-provider-shadow/v2`, retains
+`earthship-weather-shadow-issue/v2`, and shows raw WeatherNext versus a local
+candidate in the read-only model/status dialog. Both inference and fitting use
+the fresh `google-local-v2` child of the configured shadow-state root. They open
+the collector archive read-only. A missing source stays explicitly unavailable
+without creating collector history; only the collector initializes/writes it.
+No incumbent issue, fitted candidate, error history or bias is imported.
+
+The initial private, nonpublishing qualification retained a real **337-hour**
+issue at **09:12:19 UTC**. Published Item states, the collector index and the old
+candidate pointer were unchanged. The installed manual service qualification at
+**09:18:47 UTC** then published identical READY states to all three Items, using
+source snapshot
+`98604b6dd95026d0c30b3ccca3c68fff324f4a4785d5bbabc765d696ee104d0a`.
+The fresh cohort reports **UNTRAINED, zero pairs**, with no local predictions or
+validation claim. The previous v1 one-pair model and original issues remain
+separate and unchanged. This intentionally replaces the earlier v1 comparison
+column; it does not promote a model or change the main production forecast.
+
+The rollout changed only two source-selection keys in private runtime.env,
+removed the obsolete `--include-incumbent` argument from the existing shadow
+unit, and installed the matching parser/dialog plus their tests/fixture. All
+other live UI source/test files were hash-checked unchanged. The running UI
+process, collector definition/pin, training unit/weekly cadence, resource
+properties and six shared launcher/guard source files were unchanged. The two
+existing shadow/training timers were briefly stopped for the transaction and
+resumed with their prior active/enabled states. No new timer, credential, grant,
+resource policy or production provider was installed.
+
+Verification: **2,554 migration frontend tests passed** across 168 files in
+47.29 seconds. The staged live UI passed its **10 parser/component/integration
+tests** and production build (1.03 seconds, existing large-chunk warning).
+Real unmocked browser checks at **1440×900** and **1024×768** showed a contained,
+working dialog with 24 forecast rows, explicit untrained status, no console
+errors and no mutating REST requests. The UI service did not restart.
+[Typed public qualification evidence](2026-10-19-weathernext-v2-shadow-qualification.json)
+records source/invocation/generation identity and test results. Raw weather
+responses, screenshots and operational preimages remain private.
+
+Manual qualification is not a natural timer trigger or a prospective shadow
+day. The first natural v2 trigger remains unverified as of this record. The
+approved reliability, training/holdout, variable/regime and model-promotion
+intervals are still incomplete. The broader source retirement status is in
+[the removal contract](openmeteo-retirement.md).
 
 ## Collector source maintenance
 
@@ -57,4 +106,4 @@ The proposed order is collector at :35, shadow at :40 and weekly candidate train
 
 ## Remaining work
 
-The first real WeatherNext/local candidate exists with one pair; no qualified predictive skill, completed prospective reliability interval, untouched holdout report or production cutover is established. Source/epoch inventory, required-variable/downstream qualification, production-provider replacement and complete Open-Meteo removal remain separate unfinished plan requirements. This implementation has no promotion or equipment-control authority.
+The installed v2 cohort is untrained; its older v1 one-pair candidate is retained separately and unused. No qualified predictive skill, completed prospective reliability interval, untouched holdout report or production cutover is established. Source/epoch inventory, required-variable/downstream qualification, production-provider replacement and complete Open-Meteo removal remain separate unfinished plan requirements. This implementation has no promotion or equipment-control authority.

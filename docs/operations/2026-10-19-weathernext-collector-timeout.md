@@ -110,3 +110,12 @@ resource limits, archive and publication checks. They contain no raw journals.
 These successful runs repair acquisition and demonstrate downstream consumption;
 the approved prospective reliability/skill intervals and production cutover
 requirements remain unmet.
+
+## Subsequent shadow-only upgrade
+
+The later [v2 shadow rollout](weathernext-shadow-runtime.md) separately advanced
+shadow inference and weekly training to revision 59c0b81 with a fresh Google-only
+cohort and matching UI. The collector remains pinned at 8be69ea. The unchanged
+v1 shadow/profile statements above describe the earlier collector maintenance,
+not the post-upgrade shadow state. Main production ownership and all resource
+safeguards remain unchanged.
