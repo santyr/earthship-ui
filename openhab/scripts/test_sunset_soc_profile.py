@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from sunset_soc_profile import measure, charge_profile, pre_dusk_phase_profile
-from test_qualified_soc_forecast import evidence
+from local_measurement_test_support import bms_soc_evidence as evidence
 from advisory_windows import trough_window
 
 

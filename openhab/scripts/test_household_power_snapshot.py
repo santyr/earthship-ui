@@ -7,7 +7,7 @@ import pytest
 from household.codec import identity,canonical
 from test_household_replay import bundle,build as base_build
 from test_household_capabilities import originals
-from test_forecast_pre_dusk import NOW
+from local_measurement_test_support import NOW
 
 RUNTIME={'fixture.py':'d'*64}
 POWER_EPOCH='00000000-0000-0000-0000-000000000002'

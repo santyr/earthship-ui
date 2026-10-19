@@ -183,7 +183,7 @@ def test_real_cycle_version_binds_preissue_metric_original(tmp_path,monkeypatch)
 
 def test_collector_retains_fixed_metric_original_and_refuses_midcycle_change(tmp_path,monkeypatch):
     from test_household_cycle_sources import collector_fixture
-    from test_forecast_pre_dusk import NOW
+    from local_measurement_test_support import NOW
     raw=metric(NOW)['raw']
     collector,_,calls,_,now=collector_fixture(tmp_path,monkeypatch,metric_raw=raw)
     out=collector(issue=now+timedelta(seconds=8),remaining=lambda:6.,guard=lambda:None)

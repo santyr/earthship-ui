@@ -81,3 +81,26 @@ def test_original_plan_receipt_keeps_exact_closure_and_refuses_old_or_tampered_s
     with pytest.raises(ValueError):outcomes.original_plan_runtime(plan,actual=changed)
     missing=dict(actual);del missing['openhab/scripts/weather_temperature_history.py']
     with pytest.raises(ValueError):outcomes.original_plan_runtime(plan,actual=missing)
+
+
+def test_current_household_test_data_imports_without_retired_weather_modules():
+    source=Path(__file__).parent
+    code="""import builtins,importlib
+original=builtins.__import__
+retired={'forecast_intel','forecast_pre_dusk','qualified_soc_forecast',
+         'test_forecast_intel','test_forecast_pre_dusk','test_qualified_soc_forecast'}
+def guarded(name,*args,**kwargs):
+    if name.split('.')[0] in retired:raise ImportError('retired weather test dependency: '+name)
+    return original(name,*args,**kwargs)
+builtins.__import__=guarded
+for name in ('battery_outcomes','capture','cycle_sources','energy_forecast_cycle',
+             'energy_outcomes','energy_persistence','evidence','intents','pipeline',
+             'planning','power_flow_cycle','power_snapshot','pv_review','replay',
+             'resources','snapshot','solar_outcomes'):
+    importlib.import_module('test_household_'+name)
+importlib.import_module('test_sunset_soc_profile')
+"""
+    env=dict(os.environ,PYTHONPATH=str(source)+os.pathsep+os.environ.get('PYTHONPATH',''))
+    result=subprocess.run([sys.executable,'-c',code],env=env,
+        capture_output=True,text=True,timeout=20)
+    assert result.returncode==0,result.stderr

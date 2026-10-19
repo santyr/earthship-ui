@@ -8,7 +8,7 @@ from household.codec import canonical,loads,identity
 from household.control_contracts import instant
 from test_household_native_weather import originals
 from test_household_energy_forecast import fixture
-from test_forecast_pre_dusk import evidence
+from local_measurement_test_support import bms_evidence as evidence
 from household.battery_outcomes import build_endpoint_source
 
 

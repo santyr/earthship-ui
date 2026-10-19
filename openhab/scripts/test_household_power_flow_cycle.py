@@ -11,7 +11,7 @@ from test_household_power_flows import declaration
 
 def test_collector_retains_original_topology_and_refuses_midcycle_replacement(tmp_path,monkeypatch):
     from test_household_cycle_sources import collector_fixture
-    from test_forecast_pre_dusk import NOW
+    from local_measurement_test_support import NOW
     source=declaration(NOW);raw=source['raw']
     collector,_,_,_,now=collector_fixture(tmp_path,monkeypatch,load_topology_raw=raw)
     result=collector(issue=now+timedelta(seconds=8),remaining=lambda:6.,guard=lambda:None)

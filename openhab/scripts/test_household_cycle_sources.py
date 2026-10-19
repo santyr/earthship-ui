@@ -36,7 +36,7 @@ def collector_fixture(tmp_path,monkeypatch,*,metric_raw=None,load_topology_raw=N
     from uuid import UUID
     from household.codec import canonical
     from thermal_model.temperature_history import STREAMS,POLICY
-    from test_forecast_pre_dusk import NOW,evidence
+    from local_measurement_test_support import NOW, bms_evidence as evidence
     from test_pv_day_evidence import receipt
     from test_household_power_snapshot import source
     from test_weather_temperature_history import Connection

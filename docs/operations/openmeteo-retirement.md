@@ -399,3 +399,20 @@ test/template graph still need authorized retirement. The reviewed 47-path
 operator proposal remains unapplied with unchanged preimages and patch identity.
 Final source freeze, fresh release fitting, qualification and attended provider
 cutover remain unfinished.
+
+### Local test-data helpers detached — October 19
+
+Eighteen current test modules used old forecast test modules only for two
+synthetic local battery packet constructors and fixed clocks. These constructors
+now live in `local_measurement_test_support.py`; both complete function ASTs,
+packet field order, defaults, epochs, timestamps and validity behavior match
+the originals. No forecast, learner, seed state or fitted coefficient was moved.
+The old worker files remain untouched pending the removal decision.
+
+A cold-import regression failed through the old forecast test dependency before
+extraction and passes while the retired worker/test modules are blocked. The
+complete affected scope plus existing focused receipt checks passed **523 tests
+in 26 modules in 177.74 seconds**, under shared admission with up to 2 GiB memory
+and zero swap. The focused CI workflow runs this exact module set and watches
+the new helper. Production code, services, training cadence and models were
+unchanged by this test-data extraction.

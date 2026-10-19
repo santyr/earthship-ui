@@ -4,7 +4,7 @@ from hashlib import sha256
 import importlib
 import pytest
 from test_household_replay import bundle
-from test_forecast_pre_dusk import NOW
+from local_measurement_test_support import NOW
 
 
 def api():

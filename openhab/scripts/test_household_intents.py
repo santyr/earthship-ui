@@ -5,7 +5,7 @@ from hashlib import sha256
 import importlib,json
 import pytest
 from test_household_snapshot import build as snapshot
-from test_forecast_pre_dusk import NOW
+from local_measurement_test_support import NOW
 
 
 def api():

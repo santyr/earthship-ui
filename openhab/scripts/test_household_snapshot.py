@@ -4,7 +4,7 @@ from dataclasses import replace, FrozenInstanceError
 import importlib
 import pytest
 from test_household_evidence import api,args
-from test_forecast_pre_dusk import evidence,NOW
+from local_measurement_test_support import bms_evidence as evidence, NOW
 
 
 def build(values=None,**changes):

@@ -44,7 +44,7 @@ def test_production_worker_retains_exact_energy_argument_record():
 
 from datetime import timedelta
 from test_household_planning import setup,context
-from test_forecast_pre_dusk import NOW
+from local_measurement_test_support import NOW
 from household.codec import canonical,identity
 from household.snapshot import HouseholdSnapshot
 

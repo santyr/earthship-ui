@@ -5,7 +5,7 @@ from hashlib import sha256
 import importlib
 import json
 import pytest
-from test_forecast_pre_dusk import evidence as bms_raw, NOW
+from local_measurement_test_support import bms_evidence as bms_raw, NOW
 from test_pv_day_evidence import receipt as pv_receipt, EPOCH
 from test_weather_temperature_sources import case
 from weather_temperature_sources import build_temperature_source

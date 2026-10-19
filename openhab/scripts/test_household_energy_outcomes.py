@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 import pytest
 from advisory_windows import trough_window
 from household.codec import identity
-from test_qualified_soc_forecast import evidence
+from local_measurement_test_support import bms_soc_evidence as evidence
 
 DAY=date(2026,10,9)
 WINDOW=trough_window(DAY,'America/Denver')

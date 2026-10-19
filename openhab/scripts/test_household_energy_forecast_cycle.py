@@ -12,7 +12,7 @@ from test_household_solar_horizon import source as horizon_source
 
 def test_collector_retains_and_brackets_original_array_and_terrain_files(tmp_path,monkeypatch):
     from test_household_cycle_sources import collector_fixture
-    from test_forecast_pre_dusk import NOW
+    from local_measurement_test_support import NOW
     system=system_source(NOW);horizon=horizon_source(NOW)
     collector,_,_,_,now=collector_fixture(tmp_path,monkeypatch,pv_system_raw=system['raw'],solar_horizon_raw=horizon['raw'])
     out=collector(issue=now+timedelta(seconds=8),remaining=lambda:6.,guard=lambda:None)

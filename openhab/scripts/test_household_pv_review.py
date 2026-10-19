@@ -11,7 +11,7 @@ from test_household_solar_horizon import source as horizon_source
 def test_malformed_map_capture_withholds_PV_storage_but_keeps_flows_and_plan(tmp_path,monkeypatch,originals):
     from test_household_cycle_sources import collector_fixture
     from test_household_energy_forecast import fixture
-    from test_forecast_pre_dusk import NOW
+    from local_measurement_test_support import NOW
     import household_energy_forecast as api
     collector,_,_,_,now=collector_fixture(tmp_path,monkeypatch,pv_system_raw=system_source(NOW)['raw'],solar_horizon_raw='{')
     collected=collector(issue=now+timedelta(seconds=8),remaining=lambda:6.,guard=lambda:None)

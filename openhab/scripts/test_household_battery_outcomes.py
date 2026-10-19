@@ -7,7 +7,7 @@ import pytest
 from household.codec import canonical,loads,identity
 from household.control_contracts import instant
 from test_household_energy_persistence import pipeline_fixture
-from test_forecast_pre_dusk import evidence
+from local_measurement_test_support import bms_evidence as evidence
 
 
 def api():return importlib.import_module('household.battery_outcomes')
