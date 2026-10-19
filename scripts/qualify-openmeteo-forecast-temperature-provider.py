@@ -13,7 +13,7 @@ from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location(
-    'aqi_provider_rehearsal', ROOT / 'scripts/qualify-openmeteo-aqi-item.py')
+    'aqi_provider_rehearsal', ROOT / 'scripts/openhab_qualification_fixture.py')
 aqi = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(aqi)
 
@@ -26,7 +26,7 @@ CHANNELS = {
 }
 TYPES = {name: 'Number:Temperature' for name in CHANNELS}
 GROUPS = {name: ['gForecast'] for name in CHANNELS}
-BINDING = aqi.BINDING
+BINDING = Path('/var/lib/openhab/marketplace/bundles/165191/com.obones.binding.openmeteo-0.5.0.jar')
 BINDING_TARGET = 'openmeteo.jar'
 FILE_LABELS = {}
 FILE_PATTERNS = {}

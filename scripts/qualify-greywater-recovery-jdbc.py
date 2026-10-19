@@ -36,7 +36,7 @@ def load(name, filename):
     return module
 
 
-aqi = load('greywater_jdbc_support', 'qualify-openmeteo-aqi-jdbc.py')
+aqi = load('greywater_jdbc_support', 'openhab_qualification_jdbc.py')
 provider = load('greywater_provider_support', 'qualify-season-rule-provider.py')
 runtime = provider.runtime
 

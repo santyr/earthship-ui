@@ -22,7 +22,7 @@ def load(name, filename):
     return module
 
 jdbc = load('radiation_jdbc_fixture', 'qualify-persistence-jdbc.py')
-aqi = load('radiation_rest_fixture', 'qualify-openmeteo-aqi-jdbc.py')
+aqi = load('radiation_rest_fixture', 'openhab_qualification_jdbc.py')
 ITEM = 'Weather_Radiation_Evidence_JSON'
 THING = 'http:url:weatherRadiationEvidence'
 ITEM_SOURCE = ROOT / 'openhab/file-config/items/weather-radiation-evidence.items'

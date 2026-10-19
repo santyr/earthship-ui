@@ -17,7 +17,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location(
-    'aqi_jdbc_fixture', ROOT / 'scripts/qualify-openmeteo-aqi-jdbc.py')
+    'aqi_jdbc_fixture', ROOT / 'scripts/openhab_qualification_jdbc.py')
 aqi = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(aqi)
 

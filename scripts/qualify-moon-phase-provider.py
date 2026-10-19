@@ -15,7 +15,7 @@ from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location(
-    'moon_aqi_rehearsal', ROOT / 'scripts/qualify-openmeteo-aqi-item.py')
+    'moon_aqi_rehearsal', ROOT / 'scripts/openhab_qualification_fixture.py')
 aqi = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(aqi)
 

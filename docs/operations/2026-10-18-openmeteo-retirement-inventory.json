@@ -13586,7 +13586,19 @@
       "scripts/test_openmeteo_config.py",
       "scripts/openhab-aqi.mjs",
       "tests/openhab/aqi-migration.test.js",
-      "tests/aqi-consumption.test.js"
+      "tests/aqi-consumption.test.js",
+      "scripts/qualify-openmeteo-aqi-item.py",
+      "scripts/qualify-openmeteo-aqi-jdbc.py",
+      "scripts/migrate-openmeteo-aqi-item.py",
+      "scripts/migrate-openmeteo-forecast-aqi-item.py",
+      "scripts/test_qualify_openmeteo_aqi_item.py",
+      "scripts/test_qualify_openmeteo_aqi_jdbc.py",
+      "scripts/test_migrate_openmeteo_aqi_item.py",
+      "scripts/test_migrate_openmeteo_forecast_aqi_item.py",
+      "openhab/file-config/items/openmeteo-current-aqi.items",
+      "openhab/file-config/items/openmeteo-forecast-aqi.items",
+      "tests/openhab/openmeteo-current-aqi-item.test.js",
+      "tests/openhab/openmeteo-forecast-aqi-item.test.js"
     ],
     "removed_apis": [
       "weather_learning.energy_shadow.compare_fixed_energy",
@@ -13601,7 +13613,7 @@
     "shadow_issue_schema": "earthship-weather-shadow-issue/v2",
     "fresh_shadow_state_child": "google-local-v2",
     "historical_evidence_rewritten": false,
-    "remaining": "Legacy worker/SQL receipt branch, OpenHAB binding/definitions, remaining Item/JDBC tooling and root-only AQI producer/receipt consumers, plus coordinated attended cutover remain unfinished.",
+    "remaining": "Legacy weather worker/SQL receipt branch, weather forecast binding/definitions and remaining provider-specific tooling, root-only AQI producer/receipt consumers and coordinated attended cutover remain unfinished.",
     "neutral_tool_helpers": [
       "scripts/openhab_private_files.py",
       "scripts/HexThingsParse.java"
@@ -13618,6 +13630,14 @@
     "preserved_observations": [
       "qualified local measurements",
       "physical station current UV"
-    ]
+    ],
+    "neutral_qualification_helpers": [
+      "scripts/openhab_qualification_fixture.py",
+      "scripts/openhab_qualification_jdbc.py"
+    ],
+    "qualification_helper_body_parity_count": 8,
+    "aqi_definition_preimage_revision": "9b1423e9e9bdfb467debedc2cd59a12fc623230b",
+    "removed_air_quality_thing": "openmeteo:air-quality:local:aq",
+    "removed_air_quality_ownership_count": 5
   }
 }

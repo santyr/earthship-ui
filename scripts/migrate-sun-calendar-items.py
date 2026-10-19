@@ -17,7 +17,7 @@ b=d.batch
 ROOT=d.ROOT
 TARGET=Path('/etc/openhab/items/sun-calendar.items')
 BACKUP_ROOT=Path('/home/sat/.local/state/openhab-config-migration')
-FRESHNESS={'openmeteo:air-quality:local:aq','openmeteo:forecast:local:site'}
+FRESHNESS={'openmeteo:forecast:local:site'}
 s=importlib.util.spec_from_file_location('sun_history_reader',ROOT/'scripts/qualify-sky-diagnostic-items.py');q=importlib.util.module_from_spec(s);s.loader.exec_module(q);h=q.q
 
 

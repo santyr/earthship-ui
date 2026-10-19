@@ -33,8 +33,8 @@ def load(name, file):
     return module
 
 h = load('weather_group_history', 'migrate-moon-weather-batch.py')
-p = load('weather_group_jdbc_helpers', 'qualify-openmeteo-aqi-jdbc.py')
-f = load('weather_group_file_helpers', 'qualify-openmeteo-aqi-item.py')
+p = load('weather_group_jdbc_helpers', 'openhab_qualification_jdbc.py')
+f = load('weather_group_file_helpers', 'openhab_qualification_fixture.py')
 protected = load('weather_group_protected', 'migrate-battery-charging-status-item.py')
 SOURCE = ROOT/'openhab/file-config/items/weather-health-group.items'
 SOURCE_SHA = 'b2eae0fe035a099fa079d0854cd866ecf9986836a2ff7a1b5d5ecfb043dd762f'

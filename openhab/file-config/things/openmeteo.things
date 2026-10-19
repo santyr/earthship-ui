@@ -9,9 +9,3 @@ Thing openmeteo:forecast:local:site "Site Forecast" (openmeteo:openmeteo:local) 
     includeCloudCover=true,
     includeShortwaveRadiation=true
 ]
-
-Thing openmeteo:air-quality:local:aq "Site Air Quality" (openmeteo:openmeteo:local) [
-    location="38.3739919,-105.7744931",
-    airQualityIndicatorsAsNumber=true,
-    current=true
-]
