@@ -1,3 +1,5 @@
+**October 19 closure:** the audited removal was applied and verified live. The three retired Things, AQI rule and custom binding are absent, with zero Open-Meteo links. See [verified live deployment](2026-10-19-weathernext-live-cutover.json). The October 18 audit below records the pre-cutover snapshot.
+
 # Open-Meteo removal preparation audit
 
 Observed 2026-10-18 at approximately 16:17 UTC. Source revision: `6e76f4963f93046f1cbe8790672e04920dc8828f`. This is a read-only dependency audit, not a removal or qualification result. The machine-readable record is [the retirement inventory](2026-10-18-openmeteo-retirement-inventory.json).

@@ -1,3 +1,7 @@
+**Live deployment — October 19:** WeatherNext 3 is the sole external forecast provider. The fresh thermal model is active with training data through October 19 06:00 UTC. Manual and timer-driven publication, scheduled scoring, the morning entrypoint, both UI sizes, and degraded-source withdrawal/restoration passed live checks. Open-Meteo writers, Things, links, AQI rule, custom binding and old learning state are retired. Automatic actuation remains disabled; predictive accuracy remains unqualified and is assessed from production outcomes. See [verified live deployment](2026-10-19-weathernext-live-cutover.json).
+
+Earlier dated preparation and design sections below are retained as history; the linked live record is authoritative for current deployment state.
+
 # WeatherNext production worker preparation
 
 Status update — October 19: the exact 28-file publisher package and private
