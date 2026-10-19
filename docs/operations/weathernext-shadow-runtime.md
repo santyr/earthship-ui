@@ -5,8 +5,9 @@ Shadow inference and weekly training now select immutable source
 `59c0b81d20bcd3f33d1d26f4c19768e441b5752f`. Its 1,995 source files were verified
 against committed Git blobs and made read-only. The collector retains its
 separate 8be69ea source pin. The three shadow Items and matching live UI now use
-the Google-only v2 contract. Household production forecast ownership,
-notifications and actuators remain unchanged.
+the Google-only v2 contract. Its first fresh candidate now has **one qualified
+Google/local pair**, SHADOW_ONLY status and no validation claim. Household
+production forecast ownership, notifications and actuators remain unchanged.
 
 ## Installed v2 cohort
 
@@ -24,8 +25,8 @@ candidate pointer were unchanged. The installed manual service qualification at
 **09:18:47 UTC** then published identical READY states to all three Items, using
 source snapshot
 `98604b6dd95026d0c30b3ccca3c68fff324f4a4785d5bbabc765d696ee104d0a`.
-The fresh cohort reports **UNTRAINED, zero pairs**, with no local predictions or
-validation claim. The previous v1 one-pair model and original issues remain
+At activation the fresh cohort reported **UNTRAINED, zero pairs**, with no local
+predictions or validation claim. The previous v1 one-pair model and original issues remain
 separate and unchanged. This intentionally replaces the earlier v1 comparison
 column; it does not promote a model or change the main production forecast.
 
@@ -62,6 +63,38 @@ this natural run. This is one scheduled cycle, not a completed prospective day.
 The approved reliability, training/holdout, variable/regime and model-promotion
 intervals remain incomplete. The broader source retirement status is in
 [the removal contract](openmeteo-retirement.md).
+
+## First fresh v2 candidate — October 19
+
+The first retained v2 issue was actually made at **09:12:19 UTC**, before its
+**10:00 UTC** target. After that target elapsed, one manual qualification of the
+existing training service ran at **10:04:50–10:04:51 UTC**, invocation
+`3c47280d20264cab8bd3d77b20f1628a`. It fitted a new bounded-bias artifact from
+**one qualified Google/local pair on one observed date**:
+`a61b19c36d833f09f329c033a450c404b1cdf4a29c60b1e20cb0c1f21113b292`.
+The original Google target, qualified local outcome and pair digest were
+independently reconstructed at the original cutoff; rerunning the pure fit
+reproduced the saved model exactly. This is provenance/reproducibility evidence,
+not a validation score. No v1 candidate or learning state was imported; the old
+v1 model identity and fit time remain unchanged.
+
+Manual shadow publication at **10:09:43 UTC**, invocation
+`8e2a08d7f1594a92a965f199ca5c5943`, published one matching READY generation across
+all three Items with that exact model, **337 hours**, finite local predictions,
+SHADOW_ONLY status, one pair and `validation=null`. Actual laptop/tablet browser
+checks passed again: 24 local-prediction rows, explicit one-pair support and
+“Validation unavailable; candidate not qualified,” no console errors and no
+mutating REST requests. Private screenshots remain separate from activation
+screenshots. Main production forecasts, native building/PV models, notifications
+and equipment authority are unchanged.
+
+The weekly timer's unit bytes/calendar and enabled state are unchanged. Its next
+execution remains Sunday October 25 around 06:50 MDT, within the existing
+two-minute randomized delay. A post-check initially compared its volatile next
+fire timestamp too strictly; configuration/readback corrected that verifier.
+Training was executed **once**, with no retry due to that verification error.
+These are manual candidate/publication qualifications, not normal trained-shadow
+days, a complete qualified training day, held-out outcomes or promotion evidence.
 
 ## Collector source maintenance
 
@@ -114,4 +147,4 @@ The proposed order is collector at :35, shadow at :40 and weekly candidate train
 
 ## Remaining work
 
-The installed v2 cohort is untrained; its older v1 one-pair candidate is retained separately and unused. No qualified predictive skill, completed prospective reliability interval, untouched holdout report or production cutover is established. Source/epoch inventory, required-variable/downstream qualification, production-provider replacement and complete Open-Meteo removal remain separate unfinished plan requirements. This implementation has no promotion or equipment-control authority.
+The installed v2 cohort has its own one-pair SHADOW_ONLY candidate; its older v1 one-pair candidate is retained separately and unused. No qualified predictive skill, completed prospective reliability interval, untouched holdout report or production cutover is established. Source/epoch inventory, required-variable/downstream qualification, production-provider replacement and complete Open-Meteo removal remain separate unfinished plan requirements. This implementation has no promotion or equipment-control authority.

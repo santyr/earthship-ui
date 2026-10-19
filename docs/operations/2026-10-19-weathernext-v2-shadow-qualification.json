@@ -116,5 +116,116 @@
     "automatic_actuation": false,
     "production_provider_changed": false,
     "completed_normal_shadow_days_claimed": 0
+  },
+  "first_candidate_training": {
+    "status": "CANDIDATE_FITTED",
+    "observed_at": "2026-10-19T10:08:14.962769+00:00",
+    "source_revision": "59c0b81d20bcd3f33d1d26f4c19768e441b5752f",
+    "training_service": {
+      "Result": "success",
+      "ExecMainStartTimestamp": "Mon 2026-10-19 04:04:50 MDT",
+      "ExecMainExitTimestamp": "Mon 2026-10-19 04:04:51 MDT",
+      "ExecMainStatus": "0",
+      "InvocationID": "3c47280d20264cab8bd3d77b20f1628a"
+    },
+    "model_sha256": "a61b19c36d833f09f329c033a450c404b1cdf4a29c60b1e20cb0c1f21113b292",
+    "model_status": "SHADOW_ONLY",
+    "algorithm": "bounded_bias",
+    "sample_count": 1,
+    "target_dates": 1,
+    "training_start": "2026-10-19T10:00:00+00:00",
+    "training_end": "2026-10-19T10:00:00+00:00",
+    "cutoff": "2026-10-19T10:04:50.879496+00:00",
+    "fitted_at": "2026-10-19T10:04:51.120238+00:00",
+    "training_manifest": [
+      {
+        "issue_sha256": "156f79a4266f10a1fdd36313d86bd84835b0b521eb6d0356162a0dd74e267974",
+        "issued_at": "2026-10-19T09:12:19.853747+00:00",
+        "outcome_sha256": "e0dabeff692127a0e9fa37a8c977df62698671af36368f5a30a13464a69dbde5",
+        "pair_sha256": "0b36b015fd930aeb1d7eade3f1b74c1278f4a7971dcca8474c665c081b06b882",
+        "snapshot_sha256": "98604b6dd95026d0c30b3ccca3c68fff324f4a4785d5bbabc765d696ee104d0a",
+        "target_at": "2026-10-19T10:00:00+00:00"
+      }
+    ],
+    "original_google_local_pairs_reconstructed_exactly": true,
+    "model_reproduced_exactly": true,
+    "previous_v1_model_identity_unchanged": true,
+    "weekly_timer_unchanged": true,
+    "validation": null,
+    "automatic_actuation": false,
+    "production_model_changed": false,
+    "manual_qualification": true,
+    "normal_trained_shadow_days_claimed": 0
+  },
+  "first_candidate_publication": {
+    "source_revision": "59c0b81d20bcd3f33d1d26f4c19768e441b5752f",
+    "observed_at": "2026-10-19T10:09:44.509919+00:00",
+    "manual_service": {
+      "Result": "success",
+      "ExecMainStartTimestamp": "Mon 2026-10-19 04:09:43 MDT",
+      "ExecMainExitTimestamp": "Mon 2026-10-19 04:09:44 MDT",
+      "ExecMainStatus": "0",
+      "InvocationID": "8e2a08d7f1594a92a965f199ca5c5943"
+    },
+    "generation": "6e7abc5d629f918e294a5228c6989f7116cdb5fc3c5429107f856dd213f87985",
+    "decision_at": "2026-10-19T10:09:43.480859+00:00",
+    "source_snapshot_sha256": "aa8c44c6e21711aba43be3b501efe685206861b8cfefe3517e3492c1f7665e81",
+    "model_sha256": "a61b19c36d833f09f329c033a450c404b1cdf4a29c60b1e20cb0c1f21113b292",
+    "model_status": "SHADOW_ONLY",
+    "sample_count": 1,
+    "target_dates": 1,
+    "validation": null,
+    "hours": 337,
+    "all_local_predictions_present": true,
+    "published_items_match": true,
+    "automatic_actuation": false,
+    "production_provider_changed": false,
+    "normal_trained_shadow_days_claimed": 0
+  },
+  "first_candidate_ui": {
+    "observed_at": "2026-10-19T10:10:47.043Z",
+    "live_url": "http://127.0.0.1:5190/#/weather",
+    "mocked": false,
+    "results": [
+      {
+        "viewport": "laptop",
+        "width": 1440,
+        "height": 900,
+        "dialog_visible": true,
+        "dialog_contained": true,
+        "button_contained": true,
+        "forecast_rows": 24,
+        "training_pairs": 1,
+        "validation_unavailable_explicit": true,
+        "local_prediction_rows": 24,
+        "console_errors": 0,
+        "mutating_rest_requests": 0
+      },
+      {
+        "viewport": "tablet",
+        "width": 1024,
+        "height": 768,
+        "dialog_visible": true,
+        "dialog_contained": true,
+        "button_contained": true,
+        "forecast_rows": 24,
+        "training_pairs": 1,
+        "validation_unavailable_explicit": true,
+        "local_prediction_rows": 24,
+        "console_errors": 0,
+        "mutating_rest_requests": 0
+      }
+    ]
+  },
+  "current_candidate": {
+    "model_sha256": "a61b19c36d833f09f329c033a450c404b1cdf4a29c60b1e20cb0c1f21113b292",
+    "model_status": "SHADOW_ONLY",
+    "algorithm": "bounded_bias",
+    "sample_count": 1,
+    "target_dates": 1,
+    "training_start": "2026-10-19T10:00:00+00:00",
+    "training_end": "2026-10-19T10:00:00+00:00",
+    "fitted_at": "2026-10-19T10:04:51.120238+00:00",
+    "validation": null
   }
 }

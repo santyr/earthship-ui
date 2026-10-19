@@ -22,12 +22,15 @@ The [v2 runtime qualification](weathernext-shadow-runtime.md) supersedes the
 historical v1 candidate status above. Shadow inference and the existing weekly
 training service now use immutable revision `59c0b81`; the collector remains
 pinned separately at `8be69ea`. The live producer/UI use a fresh Google-only
-cohort with **zero training pairs**. All three Items matched the installed
-manual READY generation and source snapshot, and real tablet/laptop browser
-checks passed without equipment requests. The old v1 one-pair candidate remains
-separate and unused. The first natural v2 trigger at 09:40:25 UTC is now verified against its retained
-issue, all three Item states and preceding collector snapshot. No new fitting,
-qualified skill, completed prospective day or production cutover is claimed. Main production still uses the incumbent pending
+cohort whose first bounded-bias candidate now has **one qualified Google/local
+pair** for the 10:00 UTC target, fitted at 10:04:51 UTC and explicitly SHADOW_ONLY
+with no validation score. Its original target/outcome/pair and complete fitted
+artifact were independently reproduced. All three Items and real tablet/laptop
+browser checks show that new candidate with its one-pair support. The old v1
+one-pair candidate remains separate and unused. The first natural v2 trigger at 09:40:25 UTC is now verified against its retained
+issue, all three Item states and preceding collector snapshot. Only the separate weather-temperature shadow candidate has been fitted. No
+qualified skill, completed prospective day, native production model promotion or
+provider cutover is claimed. Main production still uses the incumbent pending
 the release gates below.
 
 ## Qualified household evidence
