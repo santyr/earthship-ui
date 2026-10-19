@@ -7,7 +7,7 @@ import org.openhab.core.model.thing.ThingStandaloneSetup;
 import org.eclipse.xtext.resource.XtextResourceSet;
 import org.eclipse.emf.common.util.URI;
 
-public class HexOpenMeteoThingsParse {
+public class HexThingsParse {
     public static void main(String[] args) throws Exception {
         if (args.length != 1 && args.length != 2)
             throw new IllegalArgumentException("one .things file and optional declaration count required");

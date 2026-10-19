@@ -108,7 +108,7 @@ def qualify_syntax():
             'review installed Thing parser version before qualification')
     result = subprocess.run([
         'java', '-Xmx256m', '-XX:ActiveProcessorCount=2', '--class-path',
-        ':'.join(map(str, jars)), str(ROOT / 'scripts/HexOpenMeteoThingsParse.java'),
+        ':'.join(map(str, jars)), str(ROOT / 'scripts/HexThingsParse.java'),
         str(SOURCE), '1',
     ], capture_output=True, text=True, timeout=45)
     lines = [line for line in result.stdout.splitlines() if line.startswith((

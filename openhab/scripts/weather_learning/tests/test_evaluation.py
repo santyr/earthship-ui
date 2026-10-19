@@ -42,18 +42,36 @@ class EvaluationTests(unittest.TestCase):
     def test_empty_holdout_reports_unavailable_metrics_without_nan(self):
         report=self.e.evaluate(self.model,[],self.policy)
         self.assertIsNone(report['scores']['candidate'])
-        self.assertIsNone(report['paired_incumbent_comparison']['relative_mae_gain'])
+        self.assertIsNone(report['paired_raw_comparison']['relative_mae_gain'])
         self.assertEqual(report['holdout_pairs'],0)
 
-    def test_only_incumbent_issues_available_at_the_same_decision_are_compared(self):
-        first=self.holdout[0].forecast
-        original=self.e.IncumbentForecast(issued_at=first.issued_at,available_at=first.issued_at,target_at=first.target_at,value_c=13,source_digest='b'*64)
-        late=replace(original,issued_at=first.issued_at+timedelta(minutes=1),available_at=first.issued_at+timedelta(minutes=1),value_c=0)
-        report=self.e.evaluate(self.model,self.holdout,self.policy,incumbent=[original,late])
-        comparison=report['paired_incumbent_comparison']
-        self.assertEqual(comparison['pairs'],1)
-        self.assertAlmostEqual(comparison['incumbent']['mae_c'],1)
+    def test_raw_and_candidate_comparison_uses_identical_google_local_pairs(self):
+        report=self.e.evaluate(self.model,self.holdout,self.policy)
+        self.assertEqual(report['schema'],'earthship-weathernext-temperature-evaluation/v2')
+        comparison=report['paired_raw_comparison']
+        self.assertEqual(comparison['pairs'],4)
+        self.assertAlmostEqual(comparison['raw']['mae_c'],2)
+        self.assertAlmostEqual(comparison['candidate']['mae_c'],0)
         self.assertAlmostEqual(comparison['relative_mae_gain'],1)
+        self.assertNotIn('predeclared_target_met',comparison)
+        self.assertNotIn('paired_incumbent_comparison',report)
+        self.assertNotIn('incumbent_originals',report)
+        self.assertEqual(report['qualification'],'SHADOW_ONLY')
+
+    def test_zero_raw_error_cannot_claim_relative_improvement_or_release(self):
+        holdout=[pair(10,mean_c=12,actual_c=12)]
+        report=self.e.evaluate(self.model,holdout,self.policy)
+        comparison=report['paired_raw_comparison']
+        self.assertEqual(comparison['raw']['mae_c'],0)
+        self.assertEqual(comparison['candidate']['mae_c'],2)
+        self.assertIsNone(comparison['relative_mae_gain'])
+        self.assertEqual(report['qualification'],'SHADOW_ONLY')
+
+    def test_worse_local_adaptation_reports_negative_gain(self):
+        report=self.e.evaluate(self.model,[pair(10,actual_c=8)],self.policy)
+        comparison=report['paired_raw_comparison']
+        self.assertEqual(comparison['relative_mae_gain'],-1)
+        self.assertEqual(comparison['candidate']['mae_c'],4)
 
     def test_persistence_uses_only_prior_qualified_local_observations(self):
         report=self.e.evaluate(self.model,self.holdout,self.policy,prior_outcomes=[pair(9,actual_c=11).outcome])

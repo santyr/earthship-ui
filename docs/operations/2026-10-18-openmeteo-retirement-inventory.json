@@ -13577,19 +13577,33 @@
       "openhab/scripts/weather_learning/thermal_shadow.py",
       "openhab/scripts/weather_learning/tests/test_incumbent.py",
       "openhab/scripts/test_weathernext_fixed_energy.py",
-      "openhab/scripts/test_weathernext_fixed_thermal.py"
+      "openhab/scripts/test_weathernext_fixed_thermal.py",
+      "scripts/HexOpenMeteoThingsParse.java",
+      "scripts/check-openmeteo-things-parser.py",
+      "scripts/migrate-openmeteo-things.py",
+      "scripts/rehearse-openmeteo-file-provider.py",
+      "scripts/openmeteo_config.py",
+      "scripts/test_openmeteo_config.py"
     ],
     "removed_apis": [
       "weather_learning.energy_shadow.compare_fixed_energy",
       "shadow CLI incumbent capture option",
       "shadow payload/issue incumbent fields",
-      "forecast comparison incumbent column"
+      "forecast comparison incumbent column",
+      "weather_learning.evaluation.IncumbentForecast",
+      "weather_learning.evaluation incumbent input/scoring"
     ],
     "neutral_transport": "openhab/scripts/weather_learning/openhab.py",
     "shadow_payload_schema": "earthship-weather-provider-shadow/v2",
     "shadow_issue_schema": "earthship-weather-shadow-issue/v2",
     "fresh_shadow_state_child": "google-local-v2",
     "historical_evidence_rewritten": false,
-    "remaining": "Legacy worker/SQL receipt branch, evaluation controls, OpenHAB definitions/tooling/AQI consumers and coordinated attended cutover remain unfinished."
+    "remaining": "Legacy worker/SQL receipt branch, OpenHAB definitions, remaining Item/JDBC tooling, AQI consumers and coordinated attended cutover remain unfinished.",
+    "neutral_tool_helpers": [
+      "scripts/openhab_private_files.py",
+      "scripts/HexThingsParse.java"
+    ],
+    "evaluation_report_schema": "earthship-weathernext-temperature-evaluation/v2",
+    "additional_preimage_revision": "efdf0019c9976b91395f421cf3dd75b7b66b7619"
   }
 }

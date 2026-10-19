@@ -37,7 +37,7 @@ def load(name, filename):
 
 p = load('bitcoin_exec_preflight', 'preflight-bitcoin-exec-thing.py')
 history = load('bitcoin_history_digest', 'bitcoin-price-history-digest.py')
-backup_tools = load('openmeteo_thing_migration', 'migrate-openmeteo-things.py')
+backup_tools = load('openhab_private_files', 'openhab_private_files.py')
 TARGET = p.TARGET
 SOURCE_SHA256 = 'becb9ed6081f7a5780dc943a055217bed3907ec0bc55fc3793aa0ec401fff26a'
 DELETE_PATH = '/things/' + quote(p.UID, safe='') + '?force=true'
