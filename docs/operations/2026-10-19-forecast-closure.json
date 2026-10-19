@@ -1,0 +1,128 @@
+{
+  "schema": "earthship-weather-household-closure/v1",
+  "status": "verified_closure_of_confirmed_findings",
+  "observed_at": "2026-10-19T22:08:56.332200+00:00",
+  "scope": "retained282-module consumer inventory, full WeatherNext/frontend/household-native suites, active service and UI boundaries",
+  "source_revision": "850f753cd52c7bf9f4462441d425a52413fe9a74",
+  "closed_findings": [
+    "WNML-01",
+    "WNML-02",
+    "WNML-03",
+    "WNML-04",
+    "WNML-05",
+    "FC-01",
+    "FC-02",
+    "FC-03",
+    "FC-04",
+    "FC-05",
+    "FC-06",
+    "FC-07"
+  ],
+  "open_confirmed_code_findings": [],
+  "verification": {
+    "frontend": {
+      "passed": 2570,
+      "files": 170
+    },
+    "weather": {
+      "system_passed": 233,
+      "system_skipped": 3,
+      "sdk_module_passed": 12,
+      "unique_cases_verified": 236
+    },
+    "household_native": {
+      "passed": 2136,
+      "skipped": 1,
+      "seconds": 936.69,
+      "separate_capped_smoke_passed": 1,
+      "unique_cases_verified": 2137
+    },
+    "total_distinct_cases_verified": 4943,
+    "production_build": "passed",
+    "browser_page_errors": [],
+    "gitleaks": "no leaks in source commit range",
+    "independent_review": "only slow-retry finding; corrected and regression verified"
+  },
+  "publication_results": [
+    {
+      "status": "PUBLISHED",
+      "completed_at": "2026-10-19T22:03:57.473125+00:00",
+      "result_sha256": "96ee67c24c0b432aefffc13942514f9523a22a86b484b9ffebde28366c632951",
+      "failure_kind": null
+    }
+  ],
+  "services": {
+    "weathernext-ingest.service": "success",
+    "weathernext-publish.service": "success",
+    "local-forecast-shadow.service": "success",
+    "weathernext-evaluate.service": "success",
+    "thermal-native-daily.service": "success",
+    "thermal-provisional-forecast.service": "success"
+  },
+  "endpoints": {
+    "household-observation": {
+      "http": 200,
+      "schema": "earthship-household-observation/v4",
+      "generated_at": "2026-10-19T22:05:33.302982+00:00",
+      "valid_until": "2026-10-19T22:05:35.047000+00:00"
+    },
+    "household-chronological-summary": {
+      "http": 200,
+      "schema": "earthship-household-chronological-summary/v1",
+      "generated_at": "2026-10-19T22:05:34.933358+00:00",
+      "valid_until": "2026-10-19T22:20:34.933358+00:00"
+    },
+    "household-energy-observation": {
+      "http": 200,
+      "schema": "earthship-household-energy-observation/v1",
+      "generated_at": "2026-10-19T22:05:36.987181+00:00",
+      "valid_until": "2026-10-19T22:20:15+00:00"
+    },
+    "household-profiled-energy-observation": {
+      "http": 200,
+      "schema": "earthship-household-profiled-energy-observation/v1",
+      "generated_at": "2026-10-19T22:05:37.485572+00:00",
+      "valid_until": "2026-10-19T22:20:15+00:00"
+    },
+    "household-battery-performance": {
+      "http": 200,
+      "schema": "earthship-household-battery-performance/v1",
+      "generated_at": "2026-10-19T22:08:26.696449+00:00",
+      "valid_until": "2026-10-19T22:38:26.696449+00:00"
+    },
+    "household-energy-performance": {
+      "http": 200,
+      "schema": "earthship-household-solar-storage-performance/v1",
+      "generated_at": "2026-10-19T22:08:29.343249+00:00",
+      "valid_until": "2026-10-19T22:38:29.343249+00:00"
+    },
+    "household-profiled-energy-performance": {
+      "http": 200,
+      "schema": "earthship-household-profiled-energy-performance/v1",
+      "generated_at": "2026-10-19T22:08:33.649556+00:00",
+      "valid_until": "2026-10-19T22:38:33.649556+00:00"
+    },
+    "household-captured-pv-performance": {
+      "http": 200,
+      "schema": "earthship-household-captured-pv-performance/v1",
+      "generated_at": "2026-10-19T22:08:36.092357+00:00",
+      "valid_until": "2026-10-19T22:38:36.092357+00:00"
+    }
+  },
+  "native_model_artifact_sha256": "bd23cc37fe80c2a9918d0c22f69c363721f3aef49c9246321d1acdfe92858916",
+  "model_trained_through": "2026-10-19T06:00:00+00:00",
+  "retry": {
+    "delay_seconds": 60,
+    "maximum_starts": 3,
+    "window_seconds": 900,
+    "per_attempt_timeout_seconds": 110
+  },
+  "accuracy_qualified": false,
+  "automatic_actuation": false,
+  "limits": [
+    "mature local outcomes required for accuracy claims",
+    "physical storage/terrain/load assumptions remain conditional",
+    "owner/action-effect qualification remains intentionally disabled",
+    "hourly source acquisition is subject to Google dissemination latency"
+  ]
+}
