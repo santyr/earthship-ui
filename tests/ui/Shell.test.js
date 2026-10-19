@@ -49,3 +49,5 @@ describe('bounded target shell', () => {
     expect(container.querySelectorAll('.energy-icon')).toHaveLength(2);
   });
 });
+
+it('omits Sensors navigation until hardware is installed', () => { render(Shell); expect(screen.queryByRole('button', { name: 'Sensors' })).toBeNull(); });

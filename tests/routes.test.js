@@ -42,8 +42,8 @@ describe('navigate + currentRoute', () => {
     expect(get(currentRoute)).toBe('home');
   });
 
-  it('keeps household inspection within Earthship alongside the sensors route', () => {
-    expect(ROUTES).toEqual(['home', 'energy', 'weather', 'earthship', 'shades', 'controls', 'ventilation']);
+  it('keeps hardware-free pages in navigation', () => {
+    expect(ROUTES).toEqual(['home', 'energy', 'weather', 'earthship', 'shades', 'controls']);
   });
 
   it('navigates to the controls route', () => {
@@ -53,3 +53,5 @@ describe('navigate + currentRoute', () => {
 });
 
 it('parses the household inspection deep link', () => { expect(parseHash('#/household')).toBe('earthship'); });
+
+it('redirects retired sensor page links to Earthship', () => { expect(parseHash('#/ventilation')).toBe('earthship'); });
