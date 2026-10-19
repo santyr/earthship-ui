@@ -1,6 +1,6 @@
 # WeatherNext publication runtime preparation
 
-Status: source prepared; no live publisher, CLI or timer installed.
+Status: library and operational caller prepared; no live publisher, CLI or timer installed.
 
 `weather_learning.production_runtime.run_publication` now connects the existing
 Google-only provider and commit-last publication mechanics to bounded REST,
@@ -78,3 +78,13 @@ The qualified operational caller/configuration, final source retirement, fresh
 Google/local model qualification and coordinated service/binding cutover remain
 unfinished. Existing production provider, model, services and actuator authority
 were not changed by this work.
+
+## Operational caller prepared
+
+The [production worker](2026-10-18-weathernext-production-worker.md) now supplies
+the explicit private reviewed-release/configuration boundary, installed Item-file
+identity, original gate-report pins, incumbent-unit checks and existing resource
+guard. The default CLI is read-only; publication requires `--publish`. Prepared
+service/timer sources are not installed. All 211 WeatherNext tests passed in
+8.738 seconds. Actual release evidence, reviewed private configuration and the
+coordinated source/service/provider cutover remain required.

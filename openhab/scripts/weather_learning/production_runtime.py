@@ -117,7 +117,7 @@ def _capacity(root,check):
 
 def run_publication(*,archive,site,evidence_directory,shared_lock,code_revision,transport,
         authorize=None,guard,clock=lambda:datetime.now(timezone.utc),
-        required_horizon=timedelta(hours=336),astro_source=None):
+        required_horizon=timedelta(hours=336),astro_source=None,admission_sha256=None):
     """Publish only after held-lock, release, source and Item-owner admission.
 
     The result records state readbacks, not a JDBC delivery receipt or scientific
@@ -128,6 +128,8 @@ def run_publication(*,archive,site,evidence_directory,shared_lock,code_revision,
             not callable(authorize) or not callable(guard) or not callable(clock) or
             not isinstance(code_revision,str) or re.fullmatch('[a-f0-9]{40}',code_revision) is None):
         raise ValueError('explicit Google runtime and release admission required')
+    if admission_sha256 is not None and (not isinstance(admission_sha256,str) or re.fullmatch('[a-f0-9]{64}',admission_sha256) is None):
+        raise ValueError('original production admission digest required')
     root=_directory(pathlib.Path(evidence_directory));decision=utc(clock())
     with SharedScoreLock(shared_lock) as held:
         guard();held.verify()
@@ -139,7 +141,7 @@ def run_publication(*,archive,site,evidence_directory,shared_lock,code_revision,
             if authorize(provider) is not True:raise ValueError('qualified writer admission refused')
         check();states=production_states(provider,now=decision);_capacity(root,check)
         attempt_path,attempt=_persist(root,dict(schema='earthship-weather-publication-attempt/v1',
-            started_at=decision.isoformat(),code_revision=code_revision,provider=provider.to_dict(),
+            started_at=decision.isoformat(),code_revision=code_revision,admission_sha256=admission_sha256,provider=provider.to_dict(),
             states=states,states_sha256=identity(states),release_authorized=False,automatic_actuation=False),'attempt')
         ownership=None;publication=None;failure=None;failed_item=None;status='REFUSED'
         def put(item,raw):

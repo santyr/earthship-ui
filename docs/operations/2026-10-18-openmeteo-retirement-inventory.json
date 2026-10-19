@@ -13723,7 +13723,7 @@
     "native_base_source_count": 83,
     "neutral_native_source_verification": "Five helper function ASTs exactly match original definitions; unchanged 128 KiB default read bound; two isolation regressions RED then 23 packet/isolation GREEN; 84 native/Google/fresh-irradiance/staging tests passed in 19.68 seconds in immutable export.",
     "neutral_openhab_io": "openhab/scripts/openhab_runtime_io.py; existing capture imports remain compatibility exports",
-    "prepared_publication_runtime": "weather_learning.production_runtime.run_publication; mandatory external admission/resource guard, fixed Item preflight, shared writer lock, retained attempts/results; no live caller/CLI/timer",
+    "prepared_publication_runtime": "weather_learning.production_runtime.run_publication; mandatory external admission/resource guard, fixed Item preflight, shared writer lock and retained attempts/results; operational caller prepared, no live activation",
     "publication_runtime_verification": "196 pinned WeatherNext, 55 existing capture/I/O and 84 source-bound native integration cases passed; real retained Google input passes local HTTP simulation; actual GET-only preflight verifies eleven Item contracts and refuses existing Forecast_Radiation channel link with zero updates.",
     "publication_runtime_live_preflight": {
       "read_only": true,
@@ -13734,6 +13734,9 @@
       "refusal": "CHANNEL_LINK_PRESENT",
       "item": "Forecast_Radiation",
       "release_authorized": false
-    }
+    },
+    "prepared_production_worker": "weather_publish.py / weather_learning.production_worker: default-read-only CLI, explicit reviewed-release report and original gate evidence, 27 source/deployment pins, installed Item ownership, authoritative site and stopped-incumbent checks; source-only service/timer",
+    "production_worker_verification": "211 pinned WeatherNext package cases passed in 8.738 seconds from isolated export; all six changed code/test/unit files match branch. systemd-analyze --user verify accepted uninstalled units. Real read-only unit adapter correctly refuses three active incumbent timers; no writes, stops or activation.",
+    "production_worker_release_decision_generated": false
   }
 }

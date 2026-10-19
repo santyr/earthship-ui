@@ -1,0 +1,10 @@
+[Unit]
+Description=Earthship reviewed WeatherNext publication cadence
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=2h
+Unit=weathernext-publish.service
+
+[Install]
+WantedBy=timers.target

@@ -71,3 +71,15 @@ GET-only OpenHAB preflight verified the eleven Item contracts and correctly
 refused an existing `Forecast_Radiation` channel link; no state update occurred.
 The qualified release/file-ownership caller, operational configuration and
 coordinated retirement remain required; no CLI, timer or live writer was added.
+
+## Operational publisher caller prepared (October 18)
+
+The [worker and prepared units](2026-10-18-weathernext-production-worker.md) now
+connect the library runtime to an explicit private reviewed-release decision,
+27-file source closure, original gate-report pins, installed Item definitions,
+authoritative site and stopped-incumbent checks. The CLI defaults to read-only;
+`--publish` is explicit. Existing resource safeguards and the two-hour JSON cadence
+are preserved. All 211 package tests pass; systemd accepts both uninstalled units.
+The live registry correctly refuses the still-active three incumbent timers. No
+private release grant, installed publisher, service stop or source cutover was
+performed. Complete release evidence and source retirement before activation.
