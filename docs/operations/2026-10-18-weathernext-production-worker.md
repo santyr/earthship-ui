@@ -1,8 +1,13 @@
 # WeatherNext production worker preparation
 
-Status: worker, CLI and units prepared in source; **not installed or activated**.
-No private production configuration or passing release decision was generated.
-The existing collector/shadow schedules and incumbent provider remain unchanged.
+Status update — October 19: the exact 28-file publisher package and private
+configuration/release draft are staged. The service is **installed/inactive** and
+its timer is **installed/inactive/disabled**. The release decision remains
+`REVIEW_PENDING`; no production publication or incumbent stop occurred. Its
+separate private environment preserves the collector's code/configuration.
+[Current preparation evidence](2026-10-19-weathernext-installed-cutover-preparation.json)
+also records the current Google/Item read checks and cold native verification.
+The older verification sections below describe their dated source-only checks.
 
 `openhab/scripts/weather_publish.py --config /absolute/private/config.json`
 performs a read-only preflight. Adding `--publish` explicitly invokes the existing

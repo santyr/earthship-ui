@@ -21,7 +21,7 @@ it('expires from the display clock without waiting for another fetch',async()=>{
  expect(container.textContent).toContain('Blocked');vi.spyOn(Date,'now').mockReturnValue(AT+60000);await vi.advanceTimersByTimeAsync(1000);
  expect(container.textContent).toContain('Expired');
 });
-it('does not fabricate feeding or shade advice when it is absent',async()=>{
- serve();const a=render(RecommendationPreview,{group:'feeding'});await waitFor(()=>expect(a.container.textContent).toContain('Not proposed'));
+it('omits feeder recommendations and does not fabricate absent shade advice',async()=>{
+ serve();const a=render(RecommendationPreview,{group:'feeding'});expect(a.container.querySelector('[data-recommendation-group]')).toBeNull();
  const b=render(RecommendationPreview,{group:'shades'});expect(b.container.textContent).toContain('Model shade advice unavailable');
 });

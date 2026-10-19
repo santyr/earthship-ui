@@ -20,12 +20,27 @@ GHI/direct solar retain native trailing-hour interval semantics. Daily accumulat
 
 ## Work required before the attended release
 
-1. Access and full native collection were verified on October 18 after the documented scope/clock corrections; retain those original proofs and continue prospective collection. Successful extraction does not replace the required acquisition/skill intervals.
+1. Access and full native collection were verified on October 18 after the documented scope/clock corrections; retain those original proofs and continue prospective collection. Successful extraction establishes access; accuracy remains unqualified and is assessed from retained production outcomes under the October 19 policy.
 2. Verify a pinned deployment stage, existing private configuration and original-source retention. Activate only the bounded collector/shadow schedules that have passed their live checks. Record natural publications and the actual source/model/runtime identities.
-3. Complete the plan's prospective acquisition, Google/local training, untouched evaluation and normal shadow-inference intervals. Qualify solar/rain and weather-dependent PV/thermal consumers on actual paired evidence. Fixed incumbent-artifact attribution is a comparison experiment, not permission to inherit its fitted weights. Preserve qualified local measurements, physical configuration and independent non-weather learning.
+3. Use the October 19 monitored-production policy: current source/contract and operational checks govern deployment, with no fixed calendar wait. Collect paired outcomes and assess chronological/untouched accuracy evidence in production. Keep unqualified outputs explicit and preserve local measurements, physical configuration and independent non-weather learning; no old weather weights may initialize the new models.
 4. Finish the actual production publisher/provider selection and fresh Google/local fitted-model integration. The [serving preparation](2026-10-18-weathernext-serving-preparation.md) now defines explicit withdrawal bytes for all three forecast JSON views and native Astro daylight. Finish operational partial-write/retry handling and deliberate replacement/withdrawal of every remaining numeric consumer; prepared bytes are not an installed publisher. Resolve or remove unsupported AQI/UV/probability/weather-code dependencies; do not invent substitutes.
 5. Prepare and review one complete removal/reset patch. Refresh [the source/live removal inventory](2026-10-18-openmeteo-retirement-audit.md), including current root overlays, the custom binding JAR, AQI evidence producer/receipt, installed overrides, dynamic state and transitive consumers. The inventory is candidate coverage, not a final no-integration proof.
 6. Verify the repository's complete CI/test/build checks, private state preimages and pinned pre-cutover revision. Recovery rehearsals and a broader backup project remain deferred.
+
+## Concrete installation preparation — October 19
+
+The publisher is installed inactive with its timer disabled and a deliberately
+unapproved private release draft. Current read-only checks rederive a complete
+337-hour Google source and verify all eleven retained Item contracts. The fresh
+native package passes its actual cold runtime qualifier in 10.115 seconds.
+
+One preimage-pinned root manifest prepares 384 file changes, including 13 UI/config
+changes that preserve existing feeder exclusions and current sensor receipts.
+The combined UI's full run had 2,551 passes and two diagnosed fixture/thread
+failures; both complete affected modules then passed 55 tests, and the build
+passed. No root UI/source transaction was applied. Twelve installed file changes
+prepare the custom binding/Things/links/Item retirement. [Typed evidence](2026-10-19-weathernext-installed-cutover-preparation.json)
+distinguishes preparation, disabled installation and actual production cutover.
 
 ## Attended release order
 

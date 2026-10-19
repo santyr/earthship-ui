@@ -1,0 +1,80 @@
+{
+  "schema": "earthship-weathernext-installed-cutover-preparation/v1",
+  "observed_date": "2026-10-19",
+  "release_source_revision": "6037b3af9b9128716e510064e61c35f0893e0685",
+  "provider_status": "INCUMBENT_STILL_ACTIVE",
+  "production_provider_switched": false,
+  "automatic_actuation": false,
+  "native_model": {
+    "artifact_sha256": "2b67b38f2394bb72c61ea7282b4aea3940ae02583ad17caf6b03c8a576f64d3e",
+    "deployment_sha256": "b770e679857a22add04229ada69b8d64f27860f6c03dc944f2ba0f5bf5e3773b",
+    "cold_runtime_verified": true,
+    "cold_runtime_seconds": 10.115,
+    "training_cutoff": "2026-10-19T06:00:00+00:00",
+    "accuracy_status": "UNQUALIFIED"
+  },
+  "main_publisher": {
+    "installed": true,
+    "service": "loaded/inactive",
+    "timer": "loaded/inactive/disabled",
+    "release_decision": "REVIEW_PENDING",
+    "runtime_files": 28,
+    "provider_snapshot_sha256": "13676586d2d94c7b694220a7c235f1cfc4790bb1a7dd4f45c815284f37f32c12",
+    "source_snapshot_sha256": "73287cd20fab61ca695bfa1c6fd1ada298d717cab6fd1850a5d2cbadfce138e5",
+    "current_source_hours": 337,
+    "retained_item_contracts": 11,
+    "retired_things": 3,
+    "retired_links": 12,
+    "unsupported_state_withdrawals": 17,
+    "collector_configuration_changed": false
+  },
+  "installed_retirement": {
+    "applied": false,
+    "files": 12,
+    "remove": 9,
+    "replace": 2,
+    "create": 1
+  },
+  "root_integration": {
+    "applied": false,
+    "files": 384,
+    "counts": {
+      "backend": 361,
+      "root_only": 10,
+      "ui": 13
+    },
+    "preserved_feeder_exclusion": true,
+    "preserved_sensor_phase": true,
+    "python_modules_parsed": 442,
+    "retained_historical_error_labels": 1,
+    "source_scan_is_completion_proof": false
+  },
+  "composite_ui_validation": {
+    "full_run_passed": 2551,
+    "full_run_failed": 2,
+    "total": 2553,
+    "failures": [
+      "Old receipt fixture against preserved current sensor phase",
+      "Disposable Vite native thread pool exceeded its task envelope"
+    ],
+    "corrected_complete_modules_passed": 55,
+    "corrected_complete_modules_failed": 0,
+    "build_passed": true,
+    "build_seconds": 2.098,
+    "development_native_threads": 2,
+    "production_resource_policy_changed": false
+  },
+  "ci": {
+    "source_revision": "6037b3af9b9128716e510064e61c35f0893e0685",
+    "forecast_ml": "SUCCESS",
+    "thermal_delivery": "SUCCESS",
+    "household_receipts": "SUCCESS",
+    "general": "IN_PROGRESS"
+  },
+  "remaining": [
+    "Finish general CI and concrete reviewed release evidence",
+    "Prepare coordinated unit/state/source handoff including morning trainer source selection",
+    "Apply exact Item/binding, root source/UI and private learned-state retirement",
+    "Verify explicit and natural Google-only serving, degradation and no active incumbent provider"
+  ]
+}

@@ -29,9 +29,9 @@ describe('Earthship household observation panels', () => {
     unmount(); expect(signal.aborted).toBe(true);
   });
   it('shows proposed effects as unknown and exposes the blocking hard constraint', async () => {
-    const row = observation(); row.proposals = [proposal()]; serve(row);
+    const row = observation(); row.proposals = [{...proposal(),type:'RUN_GREYWATER_CYCLE'}]; serve(row);
     const { container, getByText } = render(HouseholdObservation);
-    await waitFor(() => expect(getByText('RUN_FEEDER_CYCLE')).toBeTruthy());
+    await waitFor(() => expect(getByText('RUN_GREYWATER_CYCLE')).toBeTruthy());
     expect(container.textContent).toContain('battery reserve: unknown');
     expect(container.textContent).toContain('unqualified effect');
     expect(container.textContent).toContain('batteryKwh: unknown');
@@ -141,9 +141,9 @@ it('shows twelve evidence gates for each intent while keeping every family unqua
  const {container,getByText}=render(HouseholdObservation);
  await waitFor(()=>expect(getByText('Intent qualification')).toBeTruthy());
  const region=container.querySelector('section[aria-label="Intent qualification"]');
- expect(region.querySelectorAll('details')).toHaveLength(4);
- expect(region.querySelectorAll('tbody tr')).toHaveLength(48);
- expect(region.textContent).toContain('Every intent family remains unqualified');
+ expect(region.querySelectorAll('details')).toHaveLength(3);
+ expect(region.querySelectorAll('tbody tr')).toHaveLength(36);
+ expect(region.textContent).toContain('Automated intent families remain unqualified');
  expect(region.textContent).toContain('Original-plan evidence');
  expect(region.querySelector('button,form,input,select')).toBeNull();
 });
@@ -157,4 +157,11 @@ it('shows chronological counts without claiming independent evidence or actuator
  expect(container.textContent).toContain('2 Denver origin days');expect(container.textContent).toContain('2 non-overlapping forecast windows');
  expect(container.textContent).toContain('Statistical independence and action benefits remain unqualified');
  expect(container.querySelector('button, form, input, select')).toBeNull();
+});
+
+it('excludes feeder proposals even when the backend retains a valid feeder intent',async()=>{
+ const row=observation();row.proposals=[proposal()];serve(row);
+ const {container,getByText}=render(HouseholdObservation);
+ await waitFor(()=>expect(getByText('No automated proposals to display. No qualified action effects available.')).toBeTruthy());
+ expect(container.textContent).not.toContain('RUN_FEEDER_CYCLE');
 });

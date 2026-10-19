@@ -2,7 +2,7 @@ import {expect,it} from 'vitest';
 import {parseHouseholdObservation} from '../src/lib/household/observation.js';
 import {recommendationPreview,climatePreview} from '../src/lib/household/recommendations.js';
 import {recommendationObservation} from './fixtures/household-recommendations.js';
-import {AT,observation} from './fixtures/household-observation.js';
+import {AT,observation,proposal} from './fixtures/household-observation.js';
 const parse=(v,nowMs=AT)=>parseHouseholdObservation(JSON.stringify(v),{nowMs});
 it('exposes exact OFF direction, its original clock and blocks in its own domain',()=>{
  const v=parse(recommendationObservation());expect(v).not.toBeNull();
@@ -56,4 +56,9 @@ it('does not fabricate a ventilation window for an explicit closed-vent candidat
  raw.schedule.candidate={ventOpenAt:null,ventCloseAt:null};
  raw.schedule.effect={morningMassDeltaF:-1.5,hallwayPeakDeltaF:-0.75};
  expect(climatePreview(JSON.stringify(raw),'ventilation',Date.parse(raw.generatedAt)).rows).toEqual([]);
+});
+
+it('excludes a retained feeder intent from automated recommendation previews',()=>{
+ const row=observation();row.proposals=[proposal()];const v=parse(row);expect(v).not.toBeNull();
+ expect(recommendationPreview(v,'feeding',AT).rows).toEqual([]);
 });
