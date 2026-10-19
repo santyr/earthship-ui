@@ -101,6 +101,24 @@ class ShadowTests(unittest.TestCase):
         self.assertEqual(result['pairs'],2)
         self.assertAlmostEqual(self.state.current_model()['model']['intercept_c'],2)
 
+    def test_daily_training_skips_unchanged_pairs_but_learns_new_outcomes(self):
+        self.run_shadow()
+        cutoff=T+timedelta(days=1)
+        def train(value,at):
+            return self.m.train_once(self.archive,self.state,
+                reader=lambda targets,assessed_at:{target:receipt(target,value) for target in targets},
+                site=SITE,sensor_epoch=EPOCH,cutoff=at,code_revision=REVISION,apply=True)
+        first=train(12,cutoff)
+        pointer=self.state.current_model()
+        second=train(12,cutoff+timedelta(hours=1))
+        self.assertEqual(first['status'],'CANDIDATE_FITTED')
+        self.assertEqual(second['status'],'CANDIDATE_ALREADY_CURRENT')
+        self.assertFalse(second['applied'])
+        self.assertEqual(self.state.current_model(),pointer)
+        third=train(13,cutoff+timedelta(hours=2))
+        self.assertEqual(third['status'],'CANDIDATE_FITTED')
+        self.assertNotEqual(self.state.current_model()['model']['artifact_sha256'],pointer['model']['artifact_sha256'])
+
     def test_missing_local_labels_cannot_replace_previous_model(self):
         self.run_shadow()
         old=fit_bias([],cutoff=T,code_revision=REVISION);self.state.install_model(old,fitted_at=T)

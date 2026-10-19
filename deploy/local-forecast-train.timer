@@ -1,8 +1,8 @@
 [Unit]
-Description=Earthship WeatherNext weekly shadow candidate
+Description=Earthship WeatherNext daily shadow candidate
 
 [Timer]
-OnCalendar=Sun *-*-* 06:50:00
+OnCalendar=*-*-* 06:35:00 America/Denver
 RandomizedDelaySec=120
 Persistent=true
 Unit=local-forecast-train.service

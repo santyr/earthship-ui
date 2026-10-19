@@ -182,6 +182,14 @@ def train_once(archive,state,*,reader,site,sensor_epoch,cutoff,code_revision,app
             pairs.append(training_pair(target,outcome))
         result=dict(status='NO_ELIGIBLE_PAIRS',selected_issues=len(issues),pairs=len(pairs),withheld=withheld,applied=False,automatic_actuation=False)
         if pairs:
+            previous=state.current_model()
+            if previous is not None:
+                fitted=previous['model']
+                if (fitted['algorithm']==('bounded_bias' if algorithm=='bias' else 'ridge_residual') and
+                    fitted['code_revision']==code_revision and instant(fitted['cutoff'])<=cutoff and
+                    sorted(row['pair_sha256'] for row in fitted['training_manifest'])==sorted(pair.pair_digest for pair in pairs)):
+                    result.update(status='CANDIDATE_ALREADY_CURRENT',model_sha256=fitted['artifact_sha256'])
+                    return result
             fit=fit_bias if algorithm=='bias' else fit_residual
             model=fit(pairs,cutoff=cutoff,code_revision=code_revision)
             if apply:state.install_model(model,fitted_at=utc(clock()))

@@ -1,5 +1,5 @@
 [Unit]
-Description=Earthship WeatherNext separate weekly candidate fitting
+Description=Earthship WeatherNext separate daily candidate fitting
 After=network-online.target
 Wants=network-online.target
 
