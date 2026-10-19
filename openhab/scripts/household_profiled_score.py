@@ -114,7 +114,7 @@ def run(*,stage,historical,guard,deadline,clock=lambda:datetime.now(timezone.utc
     if cohort is None:
         for ref in sorted(refs.values(),key=lambda r:r['issued_at'],reverse=True):
             check();saved,saved_energy,saved_plan,original=read_forecast(Path(ref['forecast_path']))
-            if saved['runtime_manifest']!=fr or saved['load_runtime_manifest']!=lr:continue
+            if saved['runtime_manifest']!=fr or saved['load_runtime_manifest']!=lr or saved_energy['runtime_manifest']!=er:continue
             if saved['receipt_sha256']!=ref['forecast_receipt_sha256'] or sha256(original[1][0]).hexdigest()!=ref['forecast_sha256']:raise ValueError('original sampled profile forecast differs')
             replay_profiled_forecast(saved,energy_receipt=saved_energy,plan_receipt=saved_plan,runtime_manifest=fr,energy_runtime_manifest=er,load_runtime_manifest=lr)
             candidate=cohort_for_profiled(saved,saved_energy,saved_plan);unchanged(original)
@@ -124,7 +124,7 @@ def run(*,stage,historical,guard,deadline,clock=lambda:datetime.now(timezone.utc
     if cohort is None:
         for path in sorted(paths,key=lambda p:p.stat().st_mtime,reverse=True):
             check();saved,saved_energy,saved_plan,original=read_forecast(path)
-            if saved['runtime_manifest']!=fr or saved['load_runtime_manifest']!=lr:continue
+            if saved['runtime_manifest']!=fr or saved['load_runtime_manifest']!=lr or saved_energy['runtime_manifest']!=er:continue
             replay_profiled_forecast(saved,energy_receipt=saved_energy,plan_receipt=saved_plan,runtime_manifest=fr,energy_runtime_manifest=er,load_runtime_manifest=lr)
             candidate=cohort_for_profiled(saved,saved_energy,saved_plan);unchanged(original)
             if candidate is not None:cohort=candidate;break
@@ -134,7 +134,7 @@ def run(*,stage,historical,guard,deadline,clock=lambda:datetime.now(timezone.utc
         check();hint=datetime.fromtimestamp(path.stat().st_mtime,timezone.utc).replace(minute=0,second=0,microsecond=0).isoformat()
         if hint in refs:continue
         saved,saved_energy,saved_plan,original=read_forecast(path);issued=instant(saved['output']['issued_at']);hour=issued.replace(minute=0,second=0,microsecond=0).isoformat()
-        if hour in refs or not now-timedelta(days=7)<=issued<=now or saved['runtime_manifest']!=fr or saved['load_runtime_manifest']!=lr:continue
+        if hour in refs or not now-timedelta(days=7)<=issued<=now or saved['runtime_manifest']!=fr or saved['load_runtime_manifest']!=lr or saved_energy['runtime_manifest']!=er:continue
         replay_profiled_forecast(saved,energy_receipt=saved_energy,plan_receipt=saved_plan,runtime_manifest=fr,energy_runtime_manifest=er,load_runtime_manifest=lr)
         if cohort_for_profiled(saved,saved_energy,saved_plan)!=cohort:continue
         unchanged(original)
@@ -157,7 +157,7 @@ def run(*,stage,historical,guard,deadline,clock=lambda:datetime.now(timezone.utc
     selected=None
     for entry in sorted(due):
         check();_,hour,ref,previous_sample=entry;saved,saved_energy,saved_plan,original=read_forecast(Path(ref['forecast_path']))
-        if saved['runtime_manifest']!=fr or saved['load_runtime_manifest']!=lr:continue
+        if saved['runtime_manifest']!=fr or saved['load_runtime_manifest']!=lr or saved_energy['runtime_manifest']!=er:continue
         selected=entry;break
     if selected is not None:
         if saved['receipt_sha256']!=ref['forecast_receipt_sha256'] or sha256(original[1][0]).hexdigest()!=ref['forecast_sha256']:raise ValueError('original sampled profile forecast differs')

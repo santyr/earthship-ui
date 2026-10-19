@@ -98,3 +98,19 @@ def test_new_unavailable_forecast_keeps_previous_valid_origin_scoring(tmp_path,m
     result=api.run(**kwargs)
     assert result['status']=='profiled_energy_performance_refreshed' and result['count']==2
     assert calls==['hour','endpoint']
+
+
+@pytest.mark.parametrize('already_indexed',[False,True])
+def test_changed_underlying_energy_runtime_keeps_old_profile_originals_out_of_current_scoring(tmp_path,monkeypatch,originals,already_indexed):
+    api,kwargs,calls,args=staged(tmp_path,monkeypatch,originals)
+    if already_indexed:api.run(**kwargs)
+    calls.clear()
+    previous=kwargs['stage'];current=tmp_path/'new-stage';(current/'evidence').mkdir(parents=True,mode=0o700)
+    kwargs.update(stage=current,historical=[dict(stage=str(previous))])
+    originals_before={p.name:p.read_bytes() for p in (previous/'evidence').iterdir()}
+    old_runtime=api.forecast_runtime_manifest()
+    monkeypatch.setattr(api,'forecast_runtime_manifest',lambda:{**old_runtime,'new-energy-source.py':'a'*64})
+    result=api.run(**kwargs)
+    assert result['status']=='waiting' and result['reason']=='current_load_profile_unavailable'
+    assert calls==[]
+    assert {p.name:p.read_bytes() for p in (previous/'evidence').iterdir()}==originals_before

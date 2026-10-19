@@ -33,7 +33,7 @@ def test_bad_optional_array_or_map_preserves_other_source_domains(tmp_path,monke
     assert out['power_receipt']['snapshot']['domains']['energy']['inverter_output_w']['value']==1000
 
 
-def test_new_sources_leave_original_plan_and_battery_baseline_identical(tmp_path,monkeypatch):
+def test_google_sources_switch_energy_plan_and_preserve_thermal_and_battery_baselines(tmp_path,monkeypatch):
     from test_household_cycle import derived_fixture
     from test_household_energy_persistence import metric
     from test_household_power_flows import declaration
@@ -41,9 +41,16 @@ def test_new_sources_leave_original_plan_and_battery_baseline_identical(tmp_path
     args,capture=derived_fixture(tmp_path,monkeypatch);at=instant(capture['issued_at'])
     args['originals'].update(schema='earthship-household-cycle-sources/v6',daily_energy_source=None,owner_source=None,policy_source=None,
         energy_persistence_source=metric(at-timedelta(seconds=2)),load_topology_source=declaration(at))
+    from household_pipeline import pipeline_runtime_manifest
+    args['runtime_manifest']={**pipeline_runtime_manifest(expanded=True,configured=True,measured=True),**args['runtime_manifest']}
     old=derive_cycle(**args)
     args['originals'].update(schema='earthship-household-cycle-sources/v7',pv_system_source=system_source(at-timedelta(seconds=2)),solar_horizon_source=horizon_source(at-timedelta(seconds=2)))
-    assert derive_cycle(**args)==old
+    current=derive_cycle(**args)
+    assert old['inputs']['energy_inputs'] is None
+    assert current['inputs']['energy_inputs']['schema']=='earthship-household-prepared-trajectory-energy/v1'
+    for domain in ('thermal','energy_persistence'):
+        assert current['output']['projections'][domain]==old['output']['projections'][domain]
+    assert current['output']['automatic_actuation'] is False
     args['originals']['solar_horizon_source']['available_at']=at.isoformat()
     with pytest.raises(ValueError):derive_cycle(**args)
 

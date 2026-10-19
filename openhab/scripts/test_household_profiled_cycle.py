@@ -27,6 +27,8 @@ def test_new_load_original_does_not_change_existing_plan_or_v1_projections(tmp_p
     args,capture=derived_fixture(tmp_path,monkeypatch);at=instant(capture['issued_at'])
     args['originals'].update(schema='earthship-household-cycle-sources/v7',daily_energy_source=None,owner_source=None,policy_source=None,
         energy_persistence_source=metric(at-timedelta(seconds=2)),load_topology_source=declaration(at),pv_system_source=system_source(at-timedelta(seconds=2)),solar_horizon_source=horizon_source(at-timedelta(seconds=2)))
+    from household_pipeline import pipeline_runtime_manifest
+    args['runtime_manifest']={**pipeline_runtime_manifest(expanded=True,configured=True,measured=True),**args['runtime_manifest']}
     previous=derive_cycle(**args)
     args['originals'].update(schema='earthship-household-cycle-sources/v8',ac_load_source=None)
     assert derive_cycle(**args)==previous

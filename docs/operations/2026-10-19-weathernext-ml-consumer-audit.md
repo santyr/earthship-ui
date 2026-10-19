@@ -1,5 +1,7 @@
 # WeatherNext ML and forecast consumer audit — October 19
 
+The findings below describe the original audit snapshot. The subsequent [repair and deployment record](2026-10-19-weathernext-consumer-repairs.md) records corrections, schedule tuning and qualification limits.
+
 The audit found three production migration gaps: thermal irradiance loses Google's hourly interval semantics; the original household energy planner still depends on retired daily receipts; and all four energy outcome scorers are refusing pre-cutover sample indexes. WeatherNext acquisition, raw forecast publication and the separate physical PV/storage forecasts are operating. Passing source tests do not close the production gaps below.
 
 This is a source/runtime audit, not an accuracy qualification. The [canonical inventory and finding ledger](2026-10-19-weathernext-ml-consumer-audit.json) inventories 282 Python modules, including shared readers and synthetic test helpers. The audit also traces installed systemd entry points, OpenHAB rules, browser/backend forecast boundaries and the adjacent Solar_PV analytics consumers. Private original readbacks, probes and logs remain outside Git.
