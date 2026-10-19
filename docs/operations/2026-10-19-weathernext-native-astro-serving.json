@@ -1,0 +1,55 @@
+{
+  "change": "Prepared production worker consumes existing validated native Astro context",
+  "base_revision": "2f02e38a15073508304fe9f46a6df06604cc482b",
+  "tested_source_snapshot": "1348140d43048bddb844f076e0a9c61cc0f5a118",
+  "source_sha256": {
+    "openhab/scripts/weather_learning/production_worker.py": "1b80fd22e221db9385cf94c2173610b87251e6c606237a2f54988ddeb6b94c7e",
+    "openhab/scripts/weather_learning/tests/test_production_worker.py": "2cef2b4badf6624b53d5d1de2a6fd212a88f092cf59eb2f2e14003d3f16f6347"
+  },
+  "runtime_manifest_files": 28,
+  "red_tests": {
+    "worker_tests": 19,
+    "failures": 3,
+    "seconds": 4.833,
+    "names": [
+      "test_native_astro_reaches_published_daylight_with_original_identity",
+      "test_native_astro_validator_tamper_refuses_before_http",
+      "test_revocation_during_native_astro_read_refuses_before_put"
+    ]
+  },
+  "green_tests": {
+    "worker_tests": 19,
+    "worker_seconds": 4.138,
+    "complete_weathernext_package_tests": 220,
+    "package_seconds": 11.041,
+    "package_umask": "077"
+  },
+  "read_only_actual_source_verification": {
+    "verified_at": "2026-10-19T13:45:34.120407+00:00",
+    "status": "READ_ONLY_PREPARATION_VERIFIED",
+    "google_source_sha256": "30246524b65b6b258797eafd3e8148d80decf4bbc3cdcd5d33257b464f5588a7",
+    "provider_snapshot_sha256": "983cadb84e050dab783f9f0c01299e276e42a09050e795c3f4de2c058b240ba0",
+    "original_astro_sha256": "ce58d9f5352e46d40095d53671cdbdeef8d10242d711a7b3b245992e198337d8",
+    "astro_recorded_at": "2026-10-19T06:10:00.580364881Z",
+    "astro_available_at": "2026-10-19T13:39:07.071522+00:00",
+    "astro_days": 10,
+    "ui_days": 10,
+    "native_daylight_hours": 232,
+    "next_daylight_seconds": 39524.209,
+    "native_daily_durations_match": true,
+    "production_writes": false,
+    "model_fitting": false,
+    "release_authorized": false,
+    "automatic_actuation": false,
+    "additional_google_requests": 0
+  },
+  "full_repository_ci": "PENDING_FOR_FINAL_PUBLISHED_HEAD",
+  "installed_state_changed": false,
+  "release_authorized": false,
+  "automatic_actuation": false,
+  "source_review": {
+    "result": "No Critical or Important findings",
+    "patch_sha256": "43da2ae7122154a19c4d0aea68e189e9c69047268f18069019b67b9a6c46b2ec",
+    "read_only": true
+  }
+}

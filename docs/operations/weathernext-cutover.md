@@ -97,3 +97,17 @@ in 72.16 seconds from a committed isolated export. This increment also corrects
 two stale source-closure assertions discovered by predecessor CI. Current-head
 full CI, remaining standalone legacy source removal, final source freeze/fresh
 release fits and attended activation are still required; nothing was deployed.
+
+
+## Native Astro worker input completed (October 19)
+
+The prepared operational worker now reads the existing native Astro Item through
+its bounded admitted transport and passes original bytes/read-completion time to
+the already-qualified provider adapter. Its 28-file runtime pin includes the
+unchanged Astro validator. Invalid or missing context leaves daylight unavailable
+without substituting weather values or weakening release/resource admission.
+All 19 worker and 220 pinned package tests pass; actual retained Google and native
+Astro inputs verify ten days and 232 daylight labels without writes or new Google
+requests. See the [typed preparation evidence](2026-10-19-weathernext-native-astro-serving.json).
+This closes the source wiring gap, not installed activation, final-source fresh
+fitting or the approved acquisition/model/variable/downstream/release gates.

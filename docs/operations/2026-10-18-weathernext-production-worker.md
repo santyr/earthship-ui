@@ -41,7 +41,7 @@ No helper creates a passing report, invents evidence or reduces the existing
 qualification periods. Synthetic test decisions are temporary simulation inputs,
 never live admission evidence.
 
-The runtime manifest pins 27 source/deployment files, including the worker,
+The runtime manifest pins 28 source/deployment files, including the worker,
 provider/parser/transport, shared I/O/resource guard, launcher and prepared units.
 Execution must use a deployment export with nonwritable source files; the developer
 worktree's group-writable files deliberately fail the existing source-file guard.
@@ -128,3 +128,31 @@ containers or recovery workflow. All 156 unrelated ownership records match the
 preceding committed manifest exactly. Installed files, Item states and production
 services were untouched; actual unsupported-Item removal belongs to the attended
 cutover alongside the complete provider retirement.
+
+
+## Native Astro worker input completed — October 19
+
+Explicit publication now reads the existing `Astro_Forecast_Context_JSON` Item
+under the same shared lock, bounded REST budget and release/resource admission.
+The exact Item name, String type and nonfuture integer `lastStateUpdate` are
+required. The source's availability is the actual read-completion time. Existing
+native validation then checks site, timezone, binding version, original bytes,
+expiry, ordered events and exact durations; its source digest and native rows
+are retained in the publication attempt. No sun approximation is introduced.
+
+Missing/unavailable input and incompatible context leave daylight fields null
+while Google weather remains available. Admission/resource refusals remain fatal,
+and admission is checked again after the read. The unchanged Astro validator is
+now included in the 28-file runtime manifest; changed validator bytes revoke
+admission before HTTP. The default preflight still performs no publication.
+
+Three new regressions failed before the change. All **19 worker tests** then
+passed in **4.138 seconds**; the complete pinned **220-test WeatherNext package**
+passed under umask 077 in **11.041 seconds**. An independent read-only review of
+the completion delta found no Critical or Important defects. A read-only check
+using the actual original Google archive, authoritative site and live Astro
+context produced ten UI days, **232 native daylight labels** and exactly matching
+native daily durations (first day **39,524.209 seconds**). It made no additional
+Google request, production write, fit or installed change. The [typed evidence](2026-10-19-weathernext-native-astro-serving.json)
+binds the sources and tested bytes; it is preparation evidence, not a release
+report. Final-source fitting, all release gates and coordinated cutover remain.

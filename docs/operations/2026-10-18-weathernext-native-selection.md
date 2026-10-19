@@ -2,7 +2,7 @@
 
 Observed October 18, 2026. This completes another Task 8 preparation increment; production provider selection and the full migration remain unfinished.
 
-**Current source update (October 19):** both obsolete standalone publisher families and their uninstalled schedule templates are removed. Current native observation/receipt tests use the native Google publisher. The old thermal weather commands and their provider import are also removed; journal/schema commands and generic helpers remain. Shared Google/local acquisition classes remain. The base model source binding contains 81 files; the raw shared binding contains 76. The remaining forecast-worker/provider/tool graph still precedes final source freeze and fresh release fitting. Production has not cut over.
+**Current source update (October 19):** both obsolete standalone publisher families and their uninstalled schedule templates are removed. Current native observation/receipt tests use the native Google publisher. The old thermal weather commands and their provider import are also removed; journal/schema commands and generic helpers remain. Shared Google/local acquisition classes remain. The base model source binding contains 81 files; the raw shared binding contains 76. The owner-approved 84-path source retirement is applied in `2f02e38`; installed provider/binding/state retirement still awaits coordinated cutover. The prepared production worker now consumes source-qualified native Astro, with [220-test and actual read-only evidence](2026-10-19-weathernext-native-astro-serving.json). Final source freeze, fresh release fitting and qualification remain required. Production has not cut over. Earlier sections below retain their historical audit status.
 
 ## Explicit source selection
 
@@ -304,7 +304,8 @@ native cold-start coverage now blocks the same fourteen modules in addition to
 the four retired standalone publishers. These are development tests, not site
 qualification.
 
-The separate operator/recovery/template removal proposal remains unapplied while
-its explicit owner decision is pending. This independent boundary change neither
-applies that proposal nor alters recovery functions, templates, installed
+At this earlier boundary-check stage the separate operator/recovery/template
+proposal was still unapplied pending the owner decision; the later approval and
+source application are recorded above. This independent boundary change did not
+apply that proposal or alter recovery functions, templates, installed
 services, resource policy, model state or actuator authority.

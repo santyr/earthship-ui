@@ -1,7 +1,9 @@
 """Operational admission uses real private files and simulated local REST only."""
 from datetime import timedelta
 from hashlib import sha256
-import importlib,importlib.util,json,pathlib,tempfile,unittest,uuid
+import importlib,importlib.util,json,pathlib,shutil,tempfile,unittest,uuid
+from unittest.mock import patch
+from urllib.error import HTTPError
 from learning_fixtures import T,SITE,full_snapshot
 from test_production_runtime import LocalOpenHAB
 from weather_learning.archive import Archive
@@ -41,13 +43,19 @@ class ProductionWorkerTests(unittest.TestCase):
             code_revision='a'*40,runtime_manifest=self.api.runtime_manifest())
         self.release['item_ownership_sha256']=identity({key:self.config[key] for key in ('items_directory','items_directory_metadata','item_files')})
         self.release_path.write_bytes(canonical(self.release));self.config['release_sha256']=sha256(self.release_path.read_bytes()).hexdigest()
-        self.config_path=self.private('publisher.json',canonical(self.config));self.server=LocalOpenHAB()
+        self.config_path=self.private('publisher.json',canonical(self.config));self.server=LocalOpenHAB();self.astro_item=None
         self.transport=self.api.ProductionTransport(base=self.config['openhab_base'],token_reader=lambda:uuid.uuid4().hex,
             budget=ReadBudget(85,clock=lambda:self.elapsed,sleeper=self.advance,max_requests=96),opener=self.open)
     def private(self,name,raw):
         path=self.root/name;path.write_bytes(raw);path.chmod(0o600);return path
     def advance(self,seconds):self.elapsed+=seconds
     def open(self,request,timeout):
+        if request.full_url.endswith('/items/Astro_Forecast_Context_JSON'):
+            self.assertEqual(request.get_method(),'GET')
+            self.server.requests.append(('GET','/items/Astro_Forecast_Context_JSON'))
+            if self.astro_item is None:raise HTTPError(request.full_url,404,'missing optional Astro',{},None)
+            from test_production_runtime import Response
+            return Response(request.full_url,canonical(self.astro_item))
         if request.full_url.endswith('/services/org.openhab.i18n/config'):
             from test_production_runtime import Response
             self.server.requests.append(('GET','/services/org.openhab.i18n/config'))
@@ -74,6 +82,68 @@ class ProductionWorkerTests(unittest.TestCase):
         self.server.before_put=inspect
         result=self.run_worker(publish=True)
         self.assertEqual(result['status'],'PUBLISHED');self.assertEqual(len(self.server.states),11)
+
+    def test_native_astro_reaches_published_daylight_with_original_identity(self):
+        from astro_serving_fixtures import astro_source
+        source=astro_source(self.now)
+        self.astro_item=dict(name='Astro_Forecast_Context_JSON',type='String',state=source['raw'],
+            lastStateUpdate=int(source['available_at'].timestamp()*1000))
+        result=self.run_worker(publish=True)
+        self.assertEqual(result['status'],'PUBLISHED')
+        hourly=json.loads(self.server.states['Forecast_Hourly_JSON'])
+        self.assertTrue(hourly[0]['isDay']);self.assertFalse(hourly[1]['isDay'])
+        detail=json.loads(self.server.states['Forecast_10Day_JSON'])
+        self.assertEqual(detail['solarSource']['status'],'AVAILABLE')
+        self.assertEqual(detail['solarSource']['sourceSha256'],sha256(source['raw'].encode()).hexdigest())
+        self.assertEqual(next(day for day in detail['days'] if day['date']=='2026-01-01')['summary']['daylightSeconds'],43200)
+        attempt=json.loads(next(self.attempts.glob('*.publication-attempt-v1.json')).read_bytes())
+        self.assertEqual(attempt['provider']['solar_context']['days'],json.loads(source['raw'])['days'])
+        self.assertIn(('GET','/items/Astro_Forecast_Context_JSON'),self.server.requests)
+        self.assertNotIn(('PUT','/items/Astro_Forecast_Context_JSON/state'),self.server.requests)
+
+    def test_unavailable_or_future_native_astro_preserves_google_weather(self):
+        from astro_serving_fixtures import astro_source
+        for damage in ('missing','future-update','boolean-update','wrong-site','bad-json'):
+            with self.subTest(damage=damage):
+                self.transport.budget=ReadBudget(85,clock=lambda:self.elapsed,sleeper=self.advance,max_requests=96)
+                source=astro_source(self.now,damage='site' if damage=='wrong-site' else None)
+                self.astro_item=None if damage=='missing' else dict(name='Astro_Forecast_Context_JSON',type='String',
+                    state=source['raw'],lastStateUpdate=int(source['available_at'].timestamp()*1000))
+                if damage=='future-update':self.astro_item['lastStateUpdate']=int((self.now+timedelta(days=1)).timestamp()*1000)
+                if damage=='boolean-update':self.astro_item['lastStateUpdate']=True
+                if damage=='bad-json':self.astro_item['state']='{'
+                result=self.run_worker(publish=True)
+                self.assertEqual(result['status'],'PUBLISHED')
+                detail=json.loads(self.server.states['Forecast_10Day_JSON'])
+                self.assertEqual(detail['providerStatus'],'AVAILABLE')
+                self.assertEqual(detail['solarSource']['status'],'UNAVAILABLE')
+                self.assertTrue(all(row['isDay'] is None for row in json.loads(self.server.states['Forecast_Hourly_JSON'])))
+                self.assertNotEqual(self.server.states['Forecast_Temp'],'UNDEF')
+
+    def test_native_astro_validator_tamper_refuses_before_http(self):
+        runtime=self.root/'runtime';runtime.mkdir(mode=0o700)
+        astro='openhab/scripts/astro_forecast_context.py'
+        for name in set(self.api.SOURCE_FILES)|{astro}:
+            target=runtime/name;target.parent.mkdir(parents=True,exist_ok=True)
+            shutil.copyfile(self.api.ROOT/name,target);target.chmod(0o644)
+        with patch.object(self.api,'ROOT',runtime):
+            path=runtime/astro;path.write_bytes(path.read_bytes()+b'\n')
+            with self.assertRaises(ValueError):self.run_worker(publish=True)
+        self.assertEqual(self.server.requests,[])
+
+    def test_revocation_during_native_astro_read_refuses_before_put(self):
+        from astro_serving_fixtures import astro_source
+        source=astro_source(self.now)
+        self.astro_item=dict(name='Astro_Forecast_Context_JSON',type='String',state=source['raw'],
+            lastStateUpdate=int(source['available_at'].timestamp()*1000))
+        original=self.transport.opener
+        def revoke(request,timeout):
+            response=original(request,timeout)
+            if request.full_url.endswith('/items/Astro_Forecast_Context_JSON'):self.release_path.write_bytes(b'{}')
+            return response
+        self.transport.opener=revoke
+        with self.assertRaises(ValueError):self.run_worker(publish=True)
+        self.assertEqual(self.puts(),[])
 
     def test_unqualified_or_missing_gate_refuses_before_any_http(self):
         for mode in ('shadow','missing','future','lineage'):

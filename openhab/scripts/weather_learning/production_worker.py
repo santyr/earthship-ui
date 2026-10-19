@@ -8,6 +8,8 @@ from datetime import datetime,timedelta,timezone
 from hashlib import sha256
 import json,os,re,stat,subprocess
 from pathlib import Path
+from urllib.error import URLError
+from astro_forecast_context import ITEM as ASTRO_ITEM
 from .archive import Archive
 from .config import Site
 from .contracts import digest,identity,instant
@@ -28,7 +30,7 @@ SOURCE_FILES=tuple('openhab/scripts/weather_learning/'+name+'.py' for name in (
     '__init__','archive','config','contracts','evidence','features','normalize','provider',
     'weathernext_ee','transport','production_publish','production_runtime','production_worker'))+tuple(
     'openhab/scripts/'+name+'.py' for name in ('weather_publish','weather_source_files',
-    'openhab_runtime_io','household_cycle_resources','household_job_run','household_job_launch',
+    'openhab_runtime_io','astro_forecast_context','household_cycle_resources','household_job_run','household_job_launch',
     'household_job_start','household_job_pool','household_job_budget','thermal_model/__init__',
     'thermal_model/capture_guard'))+('scripts/run-household-job.py',
     'deploy/weathernext-publish.service','deploy/weathernext-publish.timer')
@@ -203,7 +205,7 @@ def run_worker(config_path,*,publish=False,guard=None,unit_reader=incumbent_unit
             budget=ReadBudget(85,max_requests=96))
     if type(transport) is not ProductionTransport or transport.base!=settings['openhab_base']:
         raise ValueError('exact configured state-only transport required')
-    archive=Archive.open_readonly(_path(settings['archive']))
+    archive=Archive.open_readonly(_path(settings['archive']));astro_source=None
     with SharedScoreLock(settings['shared_lock']):
         regional=_json(transport._request('/services/org.openhab.i18n/config',before_request=admission.verify))
         site=Site.from_openhab_config(regional)
@@ -212,6 +214,22 @@ def run_worker(config_path,*,publish=False,guard=None,unit_reader=incumbent_unit
             ownership=transport.preflight(before_request=admission.verify)
             return dict(status='PREFLIGHT_PASSED',admission_sha256=admission.admission_sha256,
                 ownership_sha256=ownership,production_writes=False,release_authorized=False,automatic_actuation=False)
+        # Only this fixed local Item is optional. Admission/resource failures stay
+        # fatal; unavailable network data or invalid metadata cannot invent sun.
+        try:
+            astro_raw=transport._request('/items/'+ASTRO_ITEM,before_request=admission.verify)
+        except (URLError,TimeoutError,ConnectionError):
+            astro_raw=None
+        if astro_raw is not None:
+            try:
+                item=_json(astro_raw);available=clock()
+                if (isinstance(item,dict) and item.get('name')==ASTRO_ITEM and item.get('type')=='String' and
+                        isinstance(item.get('state'),str) and type(item.get('lastStateUpdate')) is int and
+                        0<=item['lastStateUpdate']<=available.timestamp()*1000):
+                    astro_source=dict(raw=item['state'],available_at=available)
+            except (ValueError,TypeError,OverflowError):
+                pass
+        admission.verify()
     return run_publication(archive=archive,site=site,evidence_directory=settings['evidence_directory'],
         shared_lock=settings['shared_lock'],code_revision=settings['code_revision'],transport=transport,
-        authorize=admission.verify,guard=guard,clock=clock,admission_sha256=admission.admission_sha256)
+        authorize=admission.verify,guard=guard,clock=clock,astro_source=astro_source,admission_sha256=admission.admission_sha256)

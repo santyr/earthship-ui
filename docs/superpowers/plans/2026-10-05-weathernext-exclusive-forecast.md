@@ -258,6 +258,12 @@ Do not refactor unrelated forecast/UI code merely to accommodate this migration.
 
 ### Task 8: Production Provider Boundary and WeatherNext Cutover
 
+**Execution update (October 19):** the focused `weather_learning.production_worker`
+now consumes the Google-only provider directly; `forecast_intel.py` is retired by
+the separately owner-approved 84-path source patch (`2f02e38`). Native Astro is
+wired through the existing adapter. These source preparations do not complete
+the release/fitting/qualification/installed-cutover steps below.
+
 **Files:**
 - Create: `openhab/scripts/weather_learning/provider.py`
 - Test: `openhab/scripts/weather_learning/tests/test_provider.py`

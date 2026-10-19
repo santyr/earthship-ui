@@ -33,6 +33,19 @@ qualified skill, completed prospective day, native production model promotion or
 provider cutover is claimed. The first normal trained-v2 cycle at **10:40:25 UTC** is now verified: its retained issue and all three live Items match, all 337 local predictions are present, and the model remains SHADOW_ONLY with one pair and no validation. Main production still uses the incumbent pending
 the release gates below.
 
+## Current native Astro serving preparation — October 19
+
+The prepared production worker now passes the existing native Astro context to
+its provider under the shared lock, request budget and release/resource checks;
+the validator is pinned in the executing source manifest. Valid native daylight
+is retained, and unavailable/incompatible input leaves daylight null while
+Google weather remains available. All 19 worker and 220 pinned WeatherNext tests
+pass; a read-only original-source check verified ten days, 232 daylight labels
+and exact native durations. [Typed source/test evidence](2026-10-19-weathernext-native-astro-serving.json).
+The publisher remains uninstalled. No release decision, model fit, production
+write or cutover occurred; fresh downstream fitting and all qualification gates
+remain required.
+
 ## Qualified household evidence
 
 A bounded read-only audit at 2026-10-18T13:52:57Z found 81,913 original temperature snapshots retained from 2026-09-20T00:17:03Z to 2026-10-18T13:52:28Z. Raw snapshot count is not a count of qualified training labels. The existing native daily validator proved complete outdoor-temperature coverage for October 15, 16 and 17 (each 86,400 seconds) in the same hardware epoch. Three sampled days are not the full retained training range.
