@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from thermal_model.forecast_history import fetch_origin_forecast, select_origin_forecast
+from thermal_model.forecast_history import select_origin_forecast
 
 UTC = timezone.utc
 ORIGIN = datetime(2026, 9, 23, 13, 30, tzinfo=UTC)
@@ -48,36 +48,3 @@ def test_no_complete_asof_issue_is_explicitly_unavailable():
 def test_invalid_origin_or_horizon_refused(origin, hours):
     with pytest.raises(ValueError):
         select_origin_forecast([], origin=origin, horizon_hours=hours)
-
-
-class Cursor:
-    def __init__(self, records):
-        self.records = records
-        self.calls = []
-    def __enter__(self): return self
-    def __exit__(self, *_): return False
-    def execute(self, query, params=None): self.calls.append((query, params))
-    def fetchone(self): return ('on',)
-    def fetchall(self): return self.records
-
-
-class Connection:
-    def __init__(self, records):
-        self.cur = Cursor(records)
-        self.readonly = False
-        self.closed = False
-    def get_transaction_status(self): return 0
-    def set_session(self, *, readonly, autocommit, isolation_level):
-        self.readonly = readonly and not autocommit and isolation_level == 'REPEATABLE READ'
-    def cursor(self): return self.cur
-    def close(self): self.closed = True
-
-
-def test_database_reader_enforces_capture_cutoff_and_closes_connection():
-    connection = Connection(issue(ORIGIN - timedelta(hours=2), ORIGIN - timedelta(hours=1)))
-    result = fetch_origin_forecast(lambda: connection, origin=ORIGIN, horizon_hours=1)
-    assert result is not None and connection.readonly and connection.closed
-    query, params = connection.cur.calls[-1]
-    assert 'captured_at <= %s' in query
-    assert params[3] == ORIGIN
-    assert params[4] == FIRST and params[5] == FIRST + timedelta(hours=2)

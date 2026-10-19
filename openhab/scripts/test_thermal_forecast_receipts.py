@@ -1,7 +1,7 @@
 """Explicit original per-metric archive receipts; legacy selection unchanged."""
 from datetime import timedelta
 import pytest
-from test_thermal_forecast_history import ORIGIN, issue, Connection
+from test_thermal_forecast_history import ORIGIN, issue
 from thermal_model import forecast_history as history
 
 
@@ -29,11 +29,3 @@ def test_receipt_selected_rows_and_archive_digest_cannot_diverge(damage):
     elif damage=='receipt_missing':record['metric_receipts'].pop()
     else:record['rows_sha256']='f'*64
     with pytest.raises(ValueError):history.verify_origin_forecast_receipts(record)
-
-
-def test_retained_reader_keeps_original_readonly_sql_bounds_and_closure():
-    connection=Connection(source())
-    record=history.fetch_origin_forecast_with_receipts(lambda:connection,origin=ORIGIN,horizon_hours=1)
-    assert connection.readonly and connection.closed
-    assert record['schema']=='earthship-thermal-archived-forecast/v2'
-    assert connection.cur.calls[-1][1][3]==ORIGIN

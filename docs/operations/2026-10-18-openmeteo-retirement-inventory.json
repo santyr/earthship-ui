@@ -13638,14 +13638,19 @@
       "shadow payload/issue incumbent fields",
       "forecast comparison incumbent column",
       "weather_learning.evaluation.IncumbentForecast",
-      "weather_learning.evaluation incumbent input/scoring"
+      "weather_learning.evaluation incumbent input/scoring",
+      "thermal_model.forecast_history.fetch_origin_forecast",
+      "thermal_model.forecast_history.fetch_origin_forecast_with_receipts",
+      "thermal_model.forecast_history.fetch_pending_origin_forecast_with_receipts",
+      "thermal_model.forecast_history._fetch_origin_forecast",
+      "native collector implicit forecast SQL selection"
     ],
     "neutral_transport": "openhab/scripts/weather_learning/openhab.py",
     "shadow_payload_schema": "earthship-weather-provider-shadow/v2",
     "shadow_issue_schema": "earthship-weather-shadow-issue/v2",
     "fresh_shadow_state_child": "google-local-v2",
     "historical_evidence_rewritten": false,
-    "remaining": "Legacy weather worker/SQL receipt branch, root-only AQI producer/receipt consumers, qualified production publication worker and consumer/ownership integration, fresh downstream fitting/qualification and coordinated attended cutover remain unfinished. Live binding, Things/links and old Item definitions remain until cutover.",
+    "remaining": "Legacy weather worker, old in-memory per-metric receipt selectors/forcing branches and configuration loaders/callers; root-only AQI consumers; qualified production publication/ownership/lock integration; fresh downstream models/qualification; coordinated cutover. Native weather SQL acquisition has been removed in source. Installed binding/Things/links/old definitions remain until cutover.",
     "neutral_tool_helpers": [
       "scripts/openhab_private_files.py",
       "scripts/HexThingsParse.java"
@@ -13687,6 +13692,8 @@
       ],
       "live_applied": false
     },
-    "removed_weather_ownership_count": 16
+    "removed_weather_ownership_count": 16,
+    "weather_sql_preimage_revision": "1dc5c138b21e421759093174b158a5385c125654",
+    "native_collection_weather_contract": "validated original Google capsule for exact issue/available_by/24-hour request; explicit reader required"
   }
 }

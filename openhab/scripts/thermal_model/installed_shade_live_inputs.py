@@ -122,14 +122,14 @@ class LiveBackend:
         if not callable(shared_lock_guard):raise ValueError('held shared publication guard required')
         shared_lock_guard()
         self.settings=deepcopy(settings);self.budget=ReadBudget(85,max_requests=24,guard=shared_lock_guard)
-        if forecast_reader is not None and not callable(forecast_reader):raise ValueError('explicit forecast reader required')
+        if not callable(forecast_reader):raise ValueError('explicit Google forecast reader required')
+        if 'forecast_dsn_file' in settings:raise ValueError('retired forecast database configuration refused')
         self.forecast_reader=forecast_reader
-        source_paths=SOURCE_PATHS if forecast_reader is None else SOURCE_PATHS-{'forecast_dsn_file'}
+        source_paths=SOURCE_PATHS-{'forecast_dsn_file'}
         self.hashes={name:sha256(_owned_bytes(Path(settings[name]),16384)).hexdigest() for name in source_paths}
         self.token=_owned_bytes(Path(settings['token_file']),4096).decode().strip()
         self.transport=TelemetryTransport(base=settings['openhab_base'],token_reader=lambda:self.token,budget=self.budget)
         self.journal_dsn=bounded_journal_dsn(_owned_bytes(Path(settings['journal_dsn_file']),4096).decode().strip())
-        self.forecast_dsn=None if forecast_reader is not None else bounded_journal_dsn(_owned_bytes(Path(settings['forecast_dsn_file']),4096).decode().strip())
         from thermal_temperature_runtime import _configured_sensor_epochs
         self.env=dict(THERMAL_TEMP_POLICY=settings['native_policy'],THERMAL_TEMP_DB_CONFIG=settings['native_db_config'])
         self.epochs=_configured_sensor_epochs(self.env)
@@ -166,13 +166,15 @@ class LiveBackend:
         from .dataset import latent_mass_from_series
         known_at,issue=map(_utc,(known_at,issue))
         if not timedelta(0)<issue-known_at<=timedelta(seconds=60) or known_at>_clock():raise ValueError('bounded actual pre-issue collection clock required')
+        from weather_learning.native_forecast import validate_native_forecast
         reader=getattr(self,'forecast_reader',None)
-        if reader is None:
-            from .forecast_history import fetch_pending_origin_forecast_with_receipts
-            forecast=fetch_pending_origin_forecast_with_receipts(lambda:self._connect(self.forecast_dsn),origin=issue,horizon_hours=24,available_by=known_at)
-        else:
-            forecast=reader(issue=issue,available_by=known_at,horizon_hours=24)
+        if not callable(reader):raise ValueError('explicit Google forecast reader required')
+        forecast=reader(issue=issue,available_by=known_at,horizon_hours=24)
         if forecast is None:raise ValueError('original archived weather unavailable')
+        validate_native_forecast(forecast)
+        if (_utc(forecast['origin'])!=issue or forecast['horizon_hours']!=24 or
+                _utc(forecast['available_by'])!=known_at):
+            raise ValueError('original Google forecast request differs')
         saved=[]
         selected=shadow_temperatures_v2(known_at,self._temperature_grid,sensor_epochs=self.epochs,origin_observer=saved.append)
         current={role:deepcopy(value['current']) for role,value in selected.items()}

@@ -94,57 +94,6 @@ def _select_origin_forecast(records, *, origin, horizon_hours, retain_receipts):
     return None
 
 
-def fetch_origin_forecast(connection_factory, *, origin, horizon_hours):
-    return _fetch_origin_forecast(connection_factory, origin=origin,
-                                 horizon_hours=horizon_hours, retain_receipts=False)
-
-
-def fetch_origin_forecast_with_receipts(connection_factory, *, origin, horizon_hours):
-    return _fetch_origin_forecast(connection_factory, origin=origin,
-                                 horizon_hours=horizon_hours, retain_receipts=True)
-
-
-def fetch_pending_origin_forecast_with_receipts(connection_factory, *, origin, horizon_hours, available_by):
-    """Read a pending issue from weather already captured before collection."""
-    return _fetch_origin_forecast(connection_factory,origin=origin,horizon_hours=horizon_hours,
-        retain_receipts=True,available_by=available_by)
-
-
-def _fetch_origin_forecast(connection_factory, *, origin, horizon_hours, retain_receipts, available_by=None):
-    """Use one bounded read-only snapshot of the archived Solar-PV forecast table."""
-    origin, targets = _window(origin, horizon_hours)
-    known=origin if available_by is None else _utc(available_by)
-    if known>origin:raise ValueError('weather knowledge cannot follow pending issue')
-    connection = connection_factory()
-    try:
-        if connection.get_transaction_status() != 0:
-            raise ValueError('dedicated idle connection required')
-        connection.set_session(readonly=True, autocommit=False, isolation_level='REPEATABLE READ')
-        with connection.cursor() as cursor:
-            cursor.execute("SET LOCAL statement_timeout = '3000ms'")
-            cursor.execute("SET LOCAL lock_timeout = '1000ms'")
-            cursor.execute('SHOW transaction_read_only')
-            if cursor.fetchone() != ('on',):
-                raise ValueError('read-only transaction required')
-            cursor.execute('''SELECT issued_at, captured_at, valid_for, metric, value
-                FROM energy_analytics.forecast_snapshots
-                WHERE source = %s AND issued_at <= %s AND issued_at >= %s
-                  AND captured_at <= %s AND valid_for >= %s AND valid_for <= %s
-                  AND metric = ANY(%s)
-                ORDER BY issued_at DESC, valid_for, metric LIMIT %s''',
-                (SOURCE, known, origin - MAX_ISSUE_AGE, known,
-                 targets[0], targets[-1], list(METRICS), MAX_ROWS + 1))
-            records = cursor.fetchall()
-        if len(records) > MAX_ROWS:
-            raise ValueError('archived forecast row bound exceeded')
-        if available_by is not None:
-            records=[row for row in records if _utc(row[0])<=known and _utc(row[1])<=known]
-        return _select_origin_forecast(records, origin=origin, horizon_hours=horizon_hours, retain_receipts=retain_receipts)
-    finally:
-        connection.close()
-
-
-
 def verify_origin_forecast_receipts(forecast):
     """Reconstruct the original metric/capture-clock archive digest, no SQL."""
     if isinstance(forecast,dict) and forecast.get('source')=='weathernext3':

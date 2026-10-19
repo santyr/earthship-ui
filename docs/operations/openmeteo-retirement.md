@@ -167,3 +167,43 @@ tools/tests is an intentional negative drift fixture. Four extracted helper
 function bodies match their preimages after the neutral alias substitution;
 the main body is unchanged after its new explicit-configuration admission.
 No browser rerun was needed for this increment: rendered UI code was unchanged.
+
+
+### Prepared source retirement — native weather SQL acquisition
+
+The shared native live-input collector now requires an explicit Google reader.
+It rejects obsolete forecast-database settings before private file reads and no
+longer loads or stores a forecast DSN. Missing Google data is unavailable; it
+cannot select the old database path. Before collecting local observations or
+action knowledge, it independently reconstructs the original Google capsule
+and verifies the exact requested issue, knowledge cutoff and 24-hour horizon.
+A valid capsule for a different request is refused as well as an invalid or
+legacy-provider capsule.
+
+All four archived weather SQL acquisition functions are removed from
+`thermal_model/forecast_history.py`; there is no remaining production caller
+or query of `energy_analytics.forecast_snapshots` in backend Python source.
+Their three dedicated SQL test cases and unused fake connection helper leave
+with that API. Native source/temperature/journal barrier tests now use actual
+synthetic Google capsules rather than replacing the old SQL function. Local
+measurement queries, causal mass initialization, sensor epochs, action-journal
+knowledge clocks, original-source retention and fixed telemetry authority stay
+unchanged.
+
+Seven new regressions failed before implementation and pass afterward. Broader
+source-bound verification passed **123 tests in 26.63 seconds**; the full
+WeatherNext package passed **182 tests in 5.943 seconds**. The native suite ran
+from an immutable Git export with the pinned Solar-PV test dependency. An
+initial direct worktree run had 44 passing tests and three refusals because
+runtime source files were group-writable; using the isolated immutable export
+resolved the verification environment without changing worktree/live permissions
+or weakening source-integrity checks.
+
+This is acquisition removal, not final receipt/configuration retirement. Old
+in-memory per-metric receipt selection/verification, its compatibility forcing
+branches and old configuration loaders/callers remain explicit unfinished
+work. They cannot use the removed SQL API, and old source-less live-backend
+construction now refuses. Remove those remaining paths and the legacy forecast
+worker before freezing the final source closure and fitting release models.
+Existing installed sources/services, model artifacts, source history, database
+permissions and production data remain unchanged.

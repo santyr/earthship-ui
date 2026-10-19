@@ -117,7 +117,7 @@ def test_configured_backend_and_lazy_household_backend_use_google_only(tmp_path,
     monkeypatch.setattr(live,'CompressedSourceLiveBackend',lambda *a,**kw:pytest.fail('incumbent backend selected'))
     backend=live.make_forecast_backend(settings,evidence_directory=tmp_path,guard=lambda:None)
     backend.verify_unchanged()
-    assert backend.forecast_dsn is None and 'forecast_dsn_file' not in backend.settings
+    assert not hasattr(backend,'forecast_dsn') and 'forecast_dsn_file' not in backend.settings
     origin=__import__('weather_learning.tests.learning_fixtures',fromlist=['T']).T+timedelta(hours=8,minutes=15)
     assert backend.forecast_reader(issue=origin,available_by=origin-timedelta(seconds=30),horizon_hours=24)['source']=='weathernext3'
     calls=[]

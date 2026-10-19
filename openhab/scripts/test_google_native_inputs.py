@@ -16,7 +16,7 @@ ACTIONS=dict(indoor_shade_closed=.65,outdoor_shade_present=1.,vent_open=0.)
 def test_native_forcing_uses_original_google_rows_without_a_weather_code_or_six_hour_incumbent_limit(monkeypatch):
     from thermal_model.installed_shade_origin import _forecast_forcing
     from thermal_model import forecast_history
-    monkeypatch.setattr(forecast_history,'fetch_origin_forecast_with_receipts',lambda *a,**kw:pytest.fail('legacy forecast SQL'))
+    monkeypatch.setattr(forecast_history,'fetch_origin_forecast_with_receipts',lambda *a,**kw:pytest.fail('legacy forecast SQL'),raising=False)
     value=make_native_forecast(full_snapshot(),origin=ORIGIN,available_by=KNOWN,horizon_hours=24,site=SITE)
     forcings=_forecast_forcing(value,ORIGIN,ORIGIN,ACTIONS)
     assert len(forcings)==288 and forcings[0].at==ORIGIN+timedelta(minutes=5)
@@ -45,7 +45,7 @@ def test_google_backend_constructor_does_not_read_or_require_forecast_database_c
     archive=Archive(tmp_path/'google');archive.store_snapshot(full_snapshot())
     backend=make_native_backend(settings,archive=archive,site=SITE,shared_lock_guard=lambda:None)
     backend.verify_unchanged()
-    assert backend.forecast_dsn is None
+    assert not hasattr(backend,'forecast_dsn')
     value=backend.forecast_reader(issue=ORIGIN,available_by=KNOWN,horizon_hours=24)
     assert value['source']=='weathernext3'
     assert 'forecast_dsn_file' not in backend.settings
@@ -55,7 +55,7 @@ def test_missing_google_source_never_queries_old_forecast_database(tmp_path,monk
     from thermal_model import forecast_history
     backend,known,_,connections=source_backend_case(tmp_path,monkeypatch)
     backend.forecast_reader=lambda **kw:None
-    monkeypatch.setattr(forecast_history,'fetch_pending_origin_forecast_with_receipts',lambda *a,**kw:pytest.fail('legacy weather fallback'))
+    monkeypatch.setattr(forecast_history,'fetch_pending_origin_forecast_with_receipts',lambda *a,**kw:pytest.fail('legacy weather fallback'),raising=False)
     with pytest.raises(ValueError,match='weather unavailable'):backend.collect(issue=known+timedelta(seconds=30),known_at=known)
     assert connections==[]
 
@@ -66,7 +66,7 @@ def test_native_backend_retains_local_original_sources_with_google_weather(tmp_p
     init=known.replace(minute=0,second=0,microsecond=0)-timedelta(hours=8)
     source=full_snapshot(init)
     backend.forecast_reader=lambda **kw:make_native_forecast(source,origin=kw['issue'],available_by=kw['available_by'],horizon_hours=kw['horizon_hours'],site=SITE)
-    monkeypatch.setattr(forecast_history,'fetch_pending_origin_forecast_with_receipts',lambda *a,**kw:pytest.fail('legacy weather query'))
+    monkeypatch.setattr(forecast_history,'fetch_pending_origin_forecast_with_receipts',lambda *a,**kw:pytest.fail('legacy weather query'),raising=False)
     result=backend.collect(issue=known+timedelta(seconds=30),known_at=known)
     assert result['forecast']['source']=='weathernext3'
     assert set(result['native_source_paths'])=={'air','mass','outdoor'}
