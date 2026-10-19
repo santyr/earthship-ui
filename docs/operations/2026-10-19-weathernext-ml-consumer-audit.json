@@ -1,0 +1,1492 @@
+{
+  "schema": "earthship-weathernext-ml-consumer-audit/v1",
+  "status": "AUDIT_COMPLETE_WITH_CONFIRMED_GAPS",
+  "observed_at": "2026-10-19T19:20:04.393153+00:00",
+  "source_revision": "cf3e41be62dfcff747167a2b2bc8d3d0e3d15906",
+  "scope": {
+    "production_python_modules": 282,
+    "family_counts": {
+      "retired_or_offline_daily_diagnostics": 15,
+      "native_solar_geometry": 4,
+      "shared_or_nonweather_support": 10,
+      "local_measurement_sources": 31,
+      "offline_residual_experiment": 1,
+      "synthetic_test_support": 2,
+      "household_models_and_contexts": 37,
+      "household_orchestration_and_scores": 57,
+      "google_weather_entrypoints": 3,
+      "native_thermal": 12,
+      "thermal_operator_and_legacy_tools": 12,
+      "thermal_physics_and_history": 74,
+      "google_weather": 24
+    },
+    "live_services_inventoried": 25,
+    "live_readonly_endpoints": 15,
+    "adjacent_repository": "Solar_PV: analytics forecast/feature/outcome consumers inspected read-only"
+  },
+  "verification": {
+    "integration_tests": 160,
+    "weather_tests": 221,
+    "integration_seconds": 72.93,
+    "weather_seconds": 10.943,
+    "production_actuation_changes": false,
+    "production_model_fitting": false
+  },
+  "findings": [
+    {
+      "id": "WNML-01",
+      "priority": "high",
+      "status": "confirmed",
+      "title": "Thermal forcing treats trailing hourly radiation means as instantaneous samples",
+      "path": "openhab/scripts/thermal_model/installed_shade_origin.py",
+      "line": 118
+    },
+    {
+      "id": "WNML-02",
+      "priority": "high",
+      "status": "confirmed",
+      "title": "Live household daily-energy projection still requires retired forecast state and receipt",
+      "path": "openhab/scripts/household_cycle_sources.py",
+      "line": 38
+    },
+    {
+      "id": "WNML-03",
+      "priority": "high",
+      "status": "confirmed",
+      "title": "Pre-cutover sample indexes refuse all four Google-era energy scorers",
+      "path": "openhab/scripts/household_battery_score.py",
+      "line": 149
+    },
+    {
+      "id": "WNML-04",
+      "priority": "medium",
+      "status": "confirmed",
+      "title": "Direct Google temperature/rain/solar evaluation is not connected to recurring jobs",
+      "path": "openhab/scripts/weather_learning/cli.py",
+      "line": 46
+    },
+    {
+      "id": "WNML-05",
+      "priority": "medium",
+      "status": "confirmed",
+      "title": "Pure forecast parser pulls SunCalc into package-free ML contract checks",
+      "path": "src/lib/weather/forecastDetail.js",
+      "line": 1
+    }
+  ],
+  "modules": [
+    {
+      "path": "openhab/scripts/advisory_capture.py",
+      "sha256": "6dd1449c71fd51a4e97096135efd3638b8246bad3d2f5491a2c5f135498d7efb",
+      "family": "retired_or_offline_daily_diagnostics"
+    },
+    {
+      "path": "openhab/scripts/advisory_records.py",
+      "sha256": "c374d353bc07febfd4e2a8f8fc161e4f4927ede988d125d5888b23566823b951",
+      "family": "retired_or_offline_daily_diagnostics"
+    },
+    {
+      "path": "openhab/scripts/advisory_windows.py",
+      "sha256": "d496469e87d27e78cb6169de8aa416c7f6a30805c9d8f8444ac059ec4eeab6d7",
+      "family": "retired_or_offline_daily_diagnostics"
+    },
+    {
+      "path": "openhab/scripts/astro_forecast_context.py",
+      "sha256": "3a584322231cc765e88ecc76e6a36930ace8f553f318fcb282df9d9ff2e6b881",
+      "family": "native_solar_geometry"
+    },
+    {
+      "path": "openhab/scripts/astro_geometry.py",
+      "sha256": "ed9075dd5b3e63b4c65e4ebf3ec9e6a25ad0c73d6e4afefd381b787e5c39769f",
+      "family": "native_solar_geometry"
+    },
+    {
+      "path": "openhab/scripts/astro_geometry_series.py",
+      "sha256": "52219cc4e5a42ae63f64d33553940b0bdfb6b2c0f6d19c8d76243ba0fc115353",
+      "family": "native_solar_geometry"
+    },
+    {
+      "path": "openhab/scripts/astro_geometry_worker.py",
+      "sha256": "19c5c3bb4bd6b2a9c2f37bdf387439c8220701f420da3a9c91b366033cc424fc",
+      "family": "native_solar_geometry"
+    },
+    {
+      "path": "openhab/scripts/bitcoin_legacy.py",
+      "sha256": "2484cbde6cd3d3a6b74f578b6035a98f94dbe3c6344b54da397cff3197228b35",
+      "family": "shared_or_nonweather_support"
+    },
+    {
+      "path": "openhab/scripts/bms_aux_evidence.py",
+      "sha256": "09c5e213213368fbb2e9240cb2e6b9bd335c220dec9d6e1d7e7d42da19cf6617",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/bms_aux_history.py",
+      "sha256": "acfebbff8ee49c3f8d7ba24f43c68825ca199c33f23b2a0fd73733194441d218",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/bms_temperature_parity.py",
+      "sha256": "76abe84969fc8692a6447218dd20dc7e5e54dfb36804c9c752b0277fe0030d48",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/completed_trough_score.py",
+      "sha256": "3e35fe2c9175142ecc6af0eeb28badd34ae989ae9ac92ccecacac0184d2c9f0c",
+      "family": "retired_or_offline_daily_diagnostics"
+    },
+    {
+      "path": "openhab/scripts/config_inventory.py",
+      "sha256": "d63296ca80e59bf3787d6fac2e55f51901c429fb1bfaad0a9013164176eabdde",
+      "family": "shared_or_nonweather_support"
+    },
+    {
+      "path": "openhab/scripts/daily_temperature_runtime.py",
+      "sha256": "2c656026c20f139ee556b6d5d6acfa9cef646b868e7ebe46540593b6ea0ee7d5",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/extrema_item_source.py",
+      "sha256": "79476cb5fd4750b7d1fa80832aa9364657c0bc363cab188c934a8b388555548d",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/forecast_fetch_recovery.py",
+      "sha256": "efcaa18f39fcd7c08619f7507ad8c310ad604ce1148e1e9b370017b4f6ba0f33",
+      "family": "retired_or_offline_daily_diagnostics"
+    },
+    {
+      "path": "openhab/scripts/forecast_solar_ablation.py",
+      "sha256": "63f099dd770aa256c976b9ca926df968077c6c5c3066082e618a62b933fa6bb1",
+      "family": "offline_residual_experiment"
+    },
+    {
+      "path": "openhab/scripts/google_weather_fixtures.py",
+      "sha256": "9c96c4f83c078a2bc698a6344987d144981fc516ad05a03c2b02b6c849350e26",
+      "family": "synthetic_test_support"
+    },
+    {
+      "path": "openhab/scripts/hourly_temperature_runtime.py",
+      "sha256": "1d9d53c362850b5bb3e1f0af192a43c4113588dfbd3cef72976b94dda35b664d",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/household/__init__.py",
+      "sha256": "be8de0f21189c42d9993c54fab3c8daddd4df6fb3059269c9bb2890af4aafd26",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/adapters.py",
+      "sha256": "7fa701e33b93430b46f451802529fd983ca15f3a58b7a21ed10fba272e746d3b",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/battery_outcomes.py",
+      "sha256": "044d79adf221e645f0814eabc03c5cd4d540c8a41c8771189248f5b05398f2b4",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/capabilities.py",
+      "sha256": "54f7f9fb321dd49b4dd88fbde29fa9dea367e1ebd9d6921aed67285c2517a85c",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/capture.py",
+      "sha256": "ad032e6d68cb73c8aace70ba9a7c5b8cbde5370b3c803c287309345de0832890",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/codec.py",
+      "sha256": "f2abc69ca6d1905fe03eb7ff3102fccc3d9616b42ba2f87a92827541b3155204",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/control_contracts.py",
+      "sha256": "28221f71b58d18dd7078d8e16456743644cf83acd14b4c25fed953384727a308",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/daily_energy_source.py",
+      "sha256": "1d8728cb25ecad62731597d72315023ea563917577efc5eb72ad27ee997fe66b",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/energy_configuration.py",
+      "sha256": "b7d9dd5fd8e2cdaba0428d00718f136a994995d63da05fb3c81eb19d2461f85d",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/energy_configuration_capture.py",
+      "sha256": "39b6859042abefa9fcd617386f771ff944f9f5923ab4be625a1ad1b410ca3f9e",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/energy_model.py",
+      "sha256": "134290f224fa2efdfb344c6a8fd911d5b4b482af0b3446689ab3ae677decbef8",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/energy_outcome_sources.py",
+      "sha256": "a4b030ee8f6a912e160e140cf20ed19ec99a962590bbd02775699fad7a7c824b",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/energy_outcomes.py",
+      "sha256": "c748a25cd51ac3eedf30fc06b1b4f0115e68c4e77a3b3cdb7f5efa79b5c4661b",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/energy_persistence.py",
+      "sha256": "eb7abce900063a004c5266117dd7671b72b01ed0cfa9225325e2615dc91181b8",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/energy_source_snapshot.py",
+      "sha256": "8c518aa1f4f59a7514e87c02f801e2d4bc2584473b31b9d12fb2f1d2b6599440",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/evidence.py",
+      "sha256": "a74a92a60e03113210a1050b0cbbcc264d162267494d2eea0c4224639779d424",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/intents.py",
+      "sha256": "8329f9055ebbdbc0e2864acb1599091427855f647bdabef9eaad9a648c5dd654",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/measured_weather.py",
+      "sha256": "b2d2f756a6dd869781cb3a4a8724ef3e1ac26d2426be49c670c5b4682b9c77dd",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/measured_weather_capture.py",
+      "sha256": "5e16f8ae6fe5f44a67a40c18744ef614f2d91f834bddeb5f3fb74de956a4fdfd",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/measured_weather_snapshot.py",
+      "sha256": "a7f2f1ba5b4f96eba01635d1de49e53a3c6485a2ec8709c48025b98c7c7adcde",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/model_snapshot.py",
+      "sha256": "9dd9f2e42f4543108a7129ae31f1e8e84d0c4e15986ac37d59ee276eaecda0a1",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/outcome_origin.py",
+      "sha256": "b231458ecfa4ced1ba5a795b28fddde192cae200e4e955772d562938cb22ee95",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/outcomes.py",
+      "sha256": "95a27c63ead116e4b2ac8cf723f75c8c6c76f131453525a660f339fd4264dff5",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/owner_policy.py",
+      "sha256": "7d96b52510d91e64b6026f0e6df39dcacf4b7b27b243ea6a36a8904d63f9e1eb",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/owner_sources.py",
+      "sha256": "8e27169c1a658bbfb16d579739b1a4adbafb77406d9335db33f5889b188dcb25",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/pipeline.py",
+      "sha256": "c4e7f0162432433a4da06af04d88944a4d7d3da4b62740d84ca70c6ba765326d",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/planning.py",
+      "sha256": "7918b6e1e7b03884ecfa274c4214e5ace3c16e2bf3f83ff24e45b13bbc91ddc1",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/power_capture.py",
+      "sha256": "617e4a7c4abb852b1cd58103a5bb23984052b4b11bd55f5e1a50a4bb4629ed1b",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/power_flows.py",
+      "sha256": "efd66e8531b481fb6255c993ca6d8cff7f09f7eee02a24202176c8baa33924a6",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/power_snapshot.py",
+      "sha256": "d805cecb2bf19bb8a10acd06f0f3b40abb2a5464f5c558e974078a13cc4b6cda",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/replay.py",
+      "sha256": "93ce162d1b92cfa72e807964a503a2b1dcd399bd7d5f28b1b058a6a087d9526d",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/resources.py",
+      "sha256": "89f587d6a674bf48b2ef817cc5840e2a50b2b20e2ece842cc0c8740dcf0d0ae5",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/sensor_observations.py",
+      "sha256": "74ac6f746827593e91a4581fa95f1f587ba9ec96ace1cc4bfbf0c47eaaee3d21",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/snapshot.py",
+      "sha256": "a0b5572a56f445714b5514ce65fd4eb9985700cc56cb9bf5304d1f7117267497",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/thermal_model.py",
+      "sha256": "8cbe36ec076ae5db0f8979d9d7dd1e0638f2d20cab3d1b62cb09871f736fce4a",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/weather_context.py",
+      "sha256": "1e876bd578c3e607c0ca5ad3d285f2d2b0d382f46d1c60d71fc35bebee3f5a3c",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household/weather_snapshot.py",
+      "sha256": "63fe690f4ee8e1b566bc3efe01a28dd5425478c3f9f366b972bdef92982ad082",
+      "family": "household_models_and_contexts"
+    },
+    {
+      "path": "openhab/scripts/household_ac_load_artifact.py",
+      "sha256": "3d9a80dc16e83bf40177e2ecb4d0076205bc3e217e62a192fca549f8f8fd79a3",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_ac_load_model.py",
+      "sha256": "4d317f5f70c3d72acf77f556382dc2ae05e942ebaf738fba981d2e69c324c5b4",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_ac_load_sources.py",
+      "sha256": "61f8f3231e3e303cdaab7afafdf0fe654566cb8141319e7859a82795ef354d06",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_ac_load_store.py",
+      "sha256": "1263efa2479c19389cdbee800b26c5d245a0be4df2311808468b630b23d87a09",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_ac_load_transport.py",
+      "sha256": "0569511dff4442602be5dd454f1d9c99ccdfe597ac33c6b6b00de4d1031debe9",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_ac_load_window.py",
+      "sha256": "d0cd7e29864f9e05a34ce016555cf4aa56f65eed30b52581ea270dc717006419",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_battery_outcomes.py",
+      "sha256": "4330d90e3f7efcad90fec1b3de0f062daa1f476b98294727657a9cf378fb9ecd",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_battery_score.py",
+      "sha256": "4e9230b2dcb2021c0547aa214e39d94f2fdd0a1ab28281ddc0b480bfe67c294e",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_battery_source.py",
+      "sha256": "43c1a9917d1a2206eb612e42213e73ca571ddbc54ce33700a1f349ec3dfe0cdd",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_capture.py",
+      "sha256": "c3cf344e2323b77ba6f5ebd71c619f596429177542f4934dd341ecf0d9a757c0",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_chronology.py",
+      "sha256": "72ee572c1dd4ebc4c9adb6729bad3d708a2358f3d101491879f4b42480dc39f3",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_cycle.py",
+      "sha256": "17c121120a1169f4e6c707af5110a4fad3123e3d854029d5ee838d878cc413a9",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_cycle_deadline.py",
+      "sha256": "d5c8290ba9d8541a1bf42e0f7e94ed090cd06813cc5d1a14773bdc432a068b89",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_cycle_deploy.py",
+      "sha256": "32e7f11e8fc430065936d45746fc3694c99e4977d6cc0c1c22abbad10c84a3bc",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_cycle_pressure.py",
+      "sha256": "43cef34e31bc9b82a9d416f97bf9e15f255ebe95b873409089478e41e40fd9f9",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_cycle_resources.py",
+      "sha256": "e7a330a82886605ef80f418f818bf2da90a2e419aa3264d7d981fa265642545c",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_cycle_sources.py",
+      "sha256": "cfea1f91bb7257ed9dc846410f24a19a090bc71e7805026c53664964f499fbab",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_energy_forecast.py",
+      "sha256": "7ae94fd85b050a6f64a60bc728bea13fd4e19ee73813ef5cbff80dd50b6080bb",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_energy_outcomes.py",
+      "sha256": "48b66b30ca5702992576b04bb97443cd41b4091a2de52d271da5324a114930a1",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_energy_state.py",
+      "sha256": "c189e4d16cbb7da4a2f4e07ab2d9daf65fb18f50362318231685ac2654be6133",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_forecast_score.py",
+      "sha256": "30df2e38ff9441d4d5daced64b14b46a25349099fd3609a87c73ad5ffec3b607",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_job_budget.py",
+      "sha256": "d7c397d05d2e95c086ca71f23822b8d80e5ad6db6f18d08321003aa924b41aa0",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_job_launch.py",
+      "sha256": "7a820357381e72bab76e9cc6021189c86f3acffe6e89c613afebd39a75a843e0",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_job_pool.py",
+      "sha256": "d03f0951ed48b552af98c2ed90964321e5ee4f9ebdaeae6c0540c5d95dd489f2",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_job_run.py",
+      "sha256": "a2eb226ef6a39ad7d893f6a9478ad2320e4c61bbb57b3144586b10d084e425fc",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_job_start.py",
+      "sha256": "8f0fc2b03cc90959d96d60dcc5db4e130168045eb773d77b0610ac9509644d5f",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_native_daily.py",
+      "sha256": "36113375230345e60336ffe69d6ae874ffb35a9e22676e35dec54a36756eb0ca",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_native_family.py",
+      "sha256": "416e9be46aaf5b61b1555edc060a91a929a198d0185603aa3716778443839048",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_native_geometry_prepare.py",
+      "sha256": "79f375c3ebac6a472cb27e57872f7a74e1660d3749068df4c145389680bfb37f",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_native_handoff.py",
+      "sha256": "5d2f24c356e2b9bd2713fbf3e8b9d1e852efdc0e1c8c0e0aa100979f5f3824b1",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_native_install.py",
+      "sha256": "e85cf9c8bf0fa69f082376c5fb02103ea987618ac864bcebb76767bb59466d5d",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_native_score_queries.py",
+      "sha256": "5621fba1de64e317bfe5b4a7b0f7fa12d8e05ecc323961a6a96e170601f9f4a5",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_native_training.py",
+      "sha256": "be4728154c4c9efad7e723640ced1ff4b4a5df48a38378213db5d30a9c874a01",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_observation.py",
+      "sha256": "f8d572845bb3c69daf57c3435457923b075fd980e0961c6aa5abe9c8e5df56df",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_outcomes.py",
+      "sha256": "ce523ace4c6eb3a20e2006fd05c2942d970f09d20d28a8b4d7e3a7b28044f023",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_pipeline.py",
+      "sha256": "9a07578d9f3eb956788fa0d7bf74ce56e7273b3e043f091de5d5869612be98d0",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_plan.py",
+      "sha256": "52ee46e2e03138e76e6bc9fd841e2099a96cc04adb104ea567670807d94c5938",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_power_flows.py",
+      "sha256": "768fc90b698e3b1124de003bfa227f8211ae8e3d2e1f121a9e214186d7b3ad80",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_profiled_forecast.py",
+      "sha256": "4631a948995f90698f4434ee73201ae8d3247ae1836f9e1d8a954e095e6ce134",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_profiled_outcomes.py",
+      "sha256": "001608b6e9305df190e9806ff3cc83a2a50d0ec27e0219abcb9b880f1644edc6",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_profiled_samples.py",
+      "sha256": "bebc0531ff3974ba8569482c3382cdf29e22823abe1276da40774e4cb74e69d1",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_profiled_score.py",
+      "sha256": "0d887a81cb39c3f7add80f0837d2b9936593776b161e9529025e7ad32b11b730",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_profiled_state.py",
+      "sha256": "4069d13144a2767d84b1496c0c17ed3840b67436f98bf9ef53aa996f58420e94",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_profiled_storage.py",
+      "sha256": "61c55949311c1884f09149158062aaaa2e4e9e2227bfba378868c822d9828c66",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_pv_model.py",
+      "sha256": "1884ca714b860acb1aa5f3423366dbb8ed7eee73c35214082a4bf9f4d0331f95",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_pv_outcomes.py",
+      "sha256": "2bc5c83ed3c7e75b39bfbfef002e6aea2c9069b88d69a67cbb1d1fb46c8b7925",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_pv_samples.py",
+      "sha256": "80244ca1fba1c38df76e8488df530abfcd16596e3ae5bf0836bd35438fb85af8",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_pv_score.py",
+      "sha256": "16749393faf0157d30459e7a2b7c13992e738539ce7edb959c84961d6e681f08",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_pv_window.py",
+      "sha256": "d6357448aa18a39c0411950be83cd22f536bdccc6f5721a529b38b235fb2d1c2",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_resources.py",
+      "sha256": "a0d8b4b32c86d7a698180f2c4cfd886ec99fa60e144a9c8a9193746a4f858c10",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_retained_native_score.py",
+      "sha256": "3914670ce1535ee6291032ae00a2375e57d8db051e0af318e12bd5839f5671e1",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_score_report_reuse.py",
+      "sha256": "cb83f94a8f0e21d83fa14a61248584d532b48728c83e3b0a005536cc8d3f2d8e",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_snapshot.py",
+      "sha256": "4bcbf5a633fb19699cb7f9686dfe563eb9ce79796abdd54477a3fd2552c1df29",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_solar_horizon.py",
+      "sha256": "2be22105c9aa4b704808fffc21821aee178047c8c59f605c1f62e5847dbb47a6",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_solar_outcomes.py",
+      "sha256": "b758634483c874be75dcada23c0fe6508f5afc06b0d1bd595d174909e5dbc9e0",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_solar_score.py",
+      "sha256": "71d6b27aa67f926802da73ae557465f1cb875b53530cd2e9ba68e5ec2b298a47",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/household_trajectory_plan.py",
+      "sha256": "0c5323f6384af6bfcbc3c96f915271ccd63a4dba02fb54fa9b01038dd3a2ceb2",
+      "family": "household_orchestration_and_scores"
+    },
+    {
+      "path": "openhab/scripts/install_temperature_resources.py",
+      "sha256": "8122a5c5e7e97b61e8a91feaab53feff989cabf3546ed208cbbe9ff0d395471c",
+      "family": "shared_or_nonweather_support"
+    },
+    {
+      "path": "openhab/scripts/local_forecast_shadow.py",
+      "sha256": "dfbf8116591e3177d8e6cb4c110dec313bd609eff99b25a457bc31dc9d231914",
+      "family": "google_weather_entrypoints"
+    },
+    {
+      "path": "openhab/scripts/local_forecast_train.py",
+      "sha256": "279039f48a09cf7135dee74afadb94feb1d65dce315733c23ed12fe9bf6eb038",
+      "family": "google_weather_entrypoints"
+    },
+    {
+      "path": "openhab/scripts/local_measurement_test_support.py",
+      "sha256": "5c053211e36a9d2dabe42705c2091621fb2be0468b6f2d94d08ee8c3bf0e0ce5",
+      "family": "synthetic_test_support"
+    },
+    {
+      "path": "openhab/scripts/native_cycle_test_support.py",
+      "sha256": "6b8e4b37734f8e796383d421258c622b8b77120d6fe8a08eaa548c779fd1317d",
+      "family": "native_thermal"
+    },
+    {
+      "path": "openhab/scripts/native_inference_pressure.py",
+      "sha256": "7435a1a786b96cc5a4118103de6eb24dd7413055758bfa99e7799f9034fbf082",
+      "family": "native_thermal"
+    },
+    {
+      "path": "openhab/scripts/native_irradiance_shade.py",
+      "sha256": "82634d3a12ca1d5c0583d81943f9e6e6857407b3c1a4c32e20f7e3182e4617c0",
+      "family": "native_thermal"
+    },
+    {
+      "path": "openhab/scripts/native_joint_shade.py",
+      "sha256": "2a8b90f7f0dff906957727162691533442c56abd520157d0c7485940963e8f88",
+      "family": "native_thermal"
+    },
+    {
+      "path": "openhab/scripts/native_model_serving_receipt.py",
+      "sha256": "11121a94a4501c7af520b9df54ec879a3c75edadc87a0d15afd279bf83bbf58e",
+      "family": "native_thermal"
+    },
+    {
+      "path": "openhab/scripts/native_thermal_artifact.py",
+      "sha256": "f169d9f407599e270aeb4144aa8b6c55ff33788a3ca3ac55a1aa6b219c7c1951",
+      "family": "native_thermal"
+    },
+    {
+      "path": "openhab/scripts/native_thermal_fit.py",
+      "sha256": "c8feb1c60a213527a2d08b7e8769dac0ba1bc966b91093defbcca11b3b36e7ac",
+      "family": "native_thermal"
+    },
+    {
+      "path": "openhab/scripts/native_thermal_forecast.py",
+      "sha256": "cacd105f2f0afed6299fa2293c580cce849e481430928441695f9ae7fc9233ef",
+      "family": "native_thermal"
+    },
+    {
+      "path": "openhab/scripts/native_thermal_inputs.py",
+      "sha256": "d7d02aca2d352255bd7b54cfa2e4d2e735dc42b9823aff4c0311771c75f72b74",
+      "family": "native_thermal"
+    },
+    {
+      "path": "openhab/scripts/native_thermal_live.py",
+      "sha256": "c396bccf902c337b585f7523e9932a147ca88b23ddce6c9f0c4d9d61f85cf16e",
+      "family": "native_thermal"
+    },
+    {
+      "path": "openhab/scripts/native_thermal_model.py",
+      "sha256": "f92fa799d0a5fc83679e3fbf2f4f6f3eb1cddeb8b631cdc4bee547b9ba465777",
+      "family": "native_thermal"
+    },
+    {
+      "path": "openhab/scripts/native_thermal_score.py",
+      "sha256": "60cd7a67a914ef8d996390f60e9be398475f9a1ef08c5da011d7d279a0db0608",
+      "family": "native_thermal"
+    },
+    {
+      "path": "openhab/scripts/openhab_runtime_io.py",
+      "sha256": "db2b0adf2619fd65320e65aaa60fa5911cf78beb3ef2b0a39ad610c20770fb18",
+      "family": "shared_or_nonweather_support"
+    },
+    {
+      "path": "openhab/scripts/openhab_sanity_check.py",
+      "sha256": "b9f20a56148ddb7b0f6c9113f2fef5f0db78428002d0278fa666a62deee1f6f0",
+      "family": "shared_or_nonweather_support"
+    },
+    {
+      "path": "openhab/scripts/persistence_source.py",
+      "sha256": "d9caa3272a6bc443a303c3f51bf7bbf1648eb24976f91637f16a926005ef7a1b",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/pre_dusk_issue_source.py",
+      "sha256": "78cec1d23ca935e600b7eed5ea0e42ad117e88fd851667721b0b819c87c00628",
+      "family": "retired_or_offline_daily_diagnostics"
+    },
+    {
+      "path": "openhab/scripts/pre_dusk_notification.py",
+      "sha256": "f2a4402362155ec0c2b1d31a2f79bf1b12cf60056f2f9cda22b03d150f884791",
+      "family": "retired_or_offline_daily_diagnostics"
+    },
+    {
+      "path": "openhab/scripts/pre_dusk_notification_cli.py",
+      "sha256": "e46b3e3ba85242e974ffd9bb9035854e0bfa6ab54158605d5a72649a9f83a7cb",
+      "family": "retired_or_offline_daily_diagnostics"
+    },
+    {
+      "path": "openhab/scripts/pre_dusk_notification_source.py",
+      "sha256": "5c212f484fea1174a5565d639be1cb51ec7f82e45ea10e9b24a6c1c865a8ffb4",
+      "family": "retired_or_offline_daily_diagnostics"
+    },
+    {
+      "path": "openhab/scripts/pre_dusk_notification_worker.py",
+      "sha256": "f78b69802030a8981b0cb91dafb50faadf177505201daaafeb3f4b0a38278387",
+      "family": "retired_or_offline_daily_diagnostics"
+    },
+    {
+      "path": "openhab/scripts/pre_dusk_release.py",
+      "sha256": "1c5223b2613c76e0b4b97d45b16ceff6e5dc46272edca3e0fbb0042b281287f1",
+      "family": "retired_or_offline_daily_diagnostics"
+    },
+    {
+      "path": "openhab/scripts/pre_dusk_tuning.py",
+      "sha256": "a0abb2afa64889136d08aa29997ebadea215ef898b30f5662d355a81033e6934",
+      "family": "retired_or_offline_daily_diagnostics"
+    },
+    {
+      "path": "openhab/scripts/pre_dusk_tuning_history.py",
+      "sha256": "c43a88c7b0bf38a54d9712d66c801b0a814e1a1104db529d9c5ed2bad9802710",
+      "family": "retired_or_offline_daily_diagnostics"
+    },
+    {
+      "path": "openhab/scripts/pre_dusk_tuning_outcome.py",
+      "sha256": "a4e14668e8187d30f42b1c77fc0a43f76e5f58660127994222fb4a2aeb0c2885",
+      "family": "retired_or_offline_daily_diagnostics"
+    },
+    {
+      "path": "openhab/scripts/provision_temperature_reader.py",
+      "sha256": "110bab9f663b850ed5ec2441be53a6d576fd2e87fe2449f6a4a027f0ef16a760",
+      "family": "shared_or_nonweather_support"
+    },
+    {
+      "path": "openhab/scripts/pv_day_evidence.py",
+      "sha256": "b254e0f302aadcbe1c5b417b0b46aa34ee3a7ec912c5b4ae61e6c6818b8af649",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/pv_day_history.py",
+      "sha256": "76d53761cb68e95d7dcdd78dedd7c0b7e37a4ef41f1f16e1f120b9b9e347ce66",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/render_living_room_circadian.py",
+      "sha256": "adc873fe448eaa80f451493044322b8f206225aeecd9ec53532c496656b3516b",
+      "family": "shared_or_nonweather_support"
+    },
+    {
+      "path": "openhab/scripts/retired_schedule_calls.py",
+      "sha256": "722c3f6aac93c83d2858d35f84220932be53ccf6e3858cf3bb9bbe74c8b36ff2",
+      "family": "shared_or_nonweather_support"
+    },
+    {
+      "path": "openhab/scripts/rtl_weather.py",
+      "sha256": "a22f458d563ab5e95c67e69cc1e39060a7212708b37afc7d80ce8d686e7c967d",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/sunset_soc_profile.py",
+      "sha256": "d559d335269cf9906073ef8db7f318012f5ed27761e4a8c308465c96c68735de",
+      "family": "retired_or_offline_daily_diagnostics"
+    },
+    {
+      "path": "openhab/scripts/thermal_confirmation.py",
+      "sha256": "92d02c4b5e7e84faadb08b3f4208b3e16bbe48254f532eeef2c84830a4adf740",
+      "family": "thermal_operator_and_legacy_tools"
+    },
+    {
+      "path": "openhab/scripts/thermal_followup.py",
+      "sha256": "09225462b5341593a46e6cdcd1dbcf6d20cdc2a8bab036d50664a2dcddbc0328",
+      "family": "thermal_operator_and_legacy_tools"
+    },
+    {
+      "path": "openhab/scripts/thermal_installed_calibrate.py",
+      "sha256": "9e0738a622fbf9606eeb16492757136d846a09a28068504fe4fff9d05217bee1",
+      "family": "thermal_operator_and_legacy_tools"
+    },
+    {
+      "path": "openhab/scripts/thermal_installed_register.py",
+      "sha256": "f9d1be480ef90cb1b59e28339290e57e8806b96ea5ef71b11deb7e18cd1420c9",
+      "family": "thermal_operator_and_legacy_tools"
+    },
+    {
+      "path": "openhab/scripts/thermal_installed_score.py",
+      "sha256": "0907e9564c54e6b3a0ba5e025c175c6f97563acd955c62d66c7d82291ddd3ae5",
+      "family": "thermal_operator_and_legacy_tools"
+    },
+    {
+      "path": "openhab/scripts/thermal_installed_train.py",
+      "sha256": "8045e44f56791d4db5c81d0566d957c123722f6728fbf2ff0405d3e9c6aaead4",
+      "family": "thermal_operator_and_legacy_tools"
+    },
+    {
+      "path": "openhab/scripts/thermal_intel.py",
+      "sha256": "f9e0a04bf7bfd853a0a62b25ac7df53a70baae5f066ad93238a7c92ddc94220c",
+      "family": "thermal_operator_and_legacy_tools"
+    },
+    {
+      "path": "openhab/scripts/thermal_messaging.py",
+      "sha256": "b3f1714df57adc5281f40c9daff71e0c9543891dd21a6ae638199455be0426f2",
+      "family": "thermal_operator_and_legacy_tools"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/action_history.py",
+      "sha256": "b6d41f43e6850f4d25081e0e68a54fc347d2994305f66c61388f257971b5ad04",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/actions.py",
+      "sha256": "df29074cca2d784f6ae787947785ec771b24ab929a545e1c4352129babc69969",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/airflow.py",
+      "sha256": "6b47527006d314b5e2fb8170fcf540e01dec756a8874eeda2b743125cef0137e",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/airflow_artifact.py",
+      "sha256": "0932824f28edb0f71005cfca10225f6e5714bb607ac1e943dee3f773f43ab592",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/airflow_capture.py",
+      "sha256": "e0814b4b49ef6a57683003508046a6df6a0afac9406ef4e51bb262622b3fca17",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/airflow_forecast.py",
+      "sha256": "8e376c061c910d09a331de5e387e59080e9b6d82409a09a85e3b420b482090d3",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/airflow_migration.py",
+      "sha256": "d8f08a9cf2512e85e14573af4f335be6e8d2804b464a4cd8f53bb58da202187b",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/airflow_training.py",
+      "sha256": "05e15bf2fda7f006c22c75cd46dfe4b9b59b754a09eb504c07c564e2f4f847f2",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/artifacts.py",
+      "sha256": "4a194b04366833b5cf6710fa80e0a22eff49e517569f309e5616dc8a8d370427",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/behavior.py",
+      "sha256": "5a4f911c54776fc1de7bf45f30ba8ce3939e712fd8c805174867e9a23945563b",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/capture_backends.py",
+      "sha256": "07d16ecdf7197eedf058357ab3bd75c1ca6dc76d5be4d26fbc515f53b2592ac9",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/capture_guard.py",
+      "sha256": "762c3b2fb29a117c2675e01a2ccd30a2fccd9e673eb9ad02b3f2412c74c89a1c",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/capture_readers.py",
+      "sha256": "98a91b193d22a0d7539edfaef768261aa993420c1c8f91faab79b8b8b0898d56",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/dataset.py",
+      "sha256": "075aa4920735e3aa3c233356ea48494425ed3391aa4db6f474b5386339e52696",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/dynamics.py",
+      "sha256": "ca319956f7344fc3eaa1bd82c8e81f3e0f3a916862d83046b4314d85bccc054c",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/environment_bundle.py",
+      "sha256": "ffad889f38d26771cdf2b992b59126bb2c20d924f0beb8cff6562c18f70b66d2",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/evaluation.py",
+      "sha256": "f982309822a2c926ed49228a4464779579de43fa1091c9e0fa6876b51e365fd1",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/fit_evidence.py",
+      "sha256": "a69294aef1460028edef1fa7baf775c999d73064a875955cb2ecbee625abf620",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/forcing_capture.py",
+      "sha256": "c492418769bfff01d0b42b1f2c982e3570a910eb2011ada4deb9bc5014dd9ec0",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/forecast_history.py",
+      "sha256": "e7b1c7ad677282e5672a2a81d10463a81b9020e9c64bcbcef9dfc9af36a84023",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/graduation_decision.py",
+      "sha256": "ebd4da56133deabd4260a035d7da9e958794f786d60479c638df485b4819b1f3",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/graduation_evidence.py",
+      "sha256": "3a332cf1bc33d7b017cfb8abdd70cf2723142e9d301f84f524b3259c512f4838",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/graduation_policy.py",
+      "sha256": "cbd57421fdc98227470054d195b1d5310adb481b1605671d40d57101f09b8546",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/graduation_statistics.py",
+      "sha256": "0781d355b896a1ef8b8abc69c0a59453a49f70ffebe21deeaf1aeb7e13cdf763",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/installed_shade_artifact.py",
+      "sha256": "81e7ada7105ac7b7b3fcb91646171a2ec28427aa118ece9e13321fe92c485dcc",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/installed_shade_calibrated_artifact.py",
+      "sha256": "ca89e5828822de5d8f4e8b69eaa31c1a01d91c0f802b6230e01c68288bc8c636",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/installed_shade_calibrated_origin.py",
+      "sha256": "4d480de02b5b361d9e7fcfb6b0efe21a2ef8d3e959bfa7436a3c03f03d11045e",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/installed_shade_calibration.py",
+      "sha256": "36b28e1df16538549b868399646781eb7e53c0230961529c16f20b9a9ee4e5cd",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/installed_shade_dynamics.py",
+      "sha256": "7774ced1a3084a37606fa032c60d727926dc884c9a340c757e54fc9a885446ac",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/installed_shade_fit.py",
+      "sha256": "ccab515758322bd5c2b3c11ac920e0a20e954b00db1685a1c3c6f6a7652a1807",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/installed_shade_inputs.py",
+      "sha256": "d4503d412c695edb6b954b48b5a9d4a92bef268a005f56ac485a91ab74a2f0ec",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/installed_shade_live.py",
+      "sha256": "8d755122a79194e54d50de0ddfdd7d0b43926d9c0845e527deb796330141a49a",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/installed_shade_live_inputs.py",
+      "sha256": "1e8369681fe4c45cbc0e3b7333c1b7700e8c16fd7e4587201ef3684d244cc613",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/installed_shade_origin.py",
+      "sha256": "e9c25fbfecb904a30067704a39d5ef96955524e15faa65b5c6677994c9d3dbb2",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/installed_shade_publication.py",
+      "sha256": "462849e517e6951940475632a70514b7e2b3dd2d0c99a9ab5ea96e50ec74af6c",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/installed_shade_published_origin.py",
+      "sha256": "b8100a4811963efbee8b1647d1c9f1adb7df9c17882e88e97868fb2463485ae3",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/installed_shade_qualification.py",
+      "sha256": "f2adbcbca583f6a099e379b2465a34b6217312e4eed5f3ef0cdfad2294131b36",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/installed_shade_raw_score_sources.py",
+      "sha256": "c92d9fc1f95c54993a91b886d9f92d83b9f90ecf72248004c14c3feedeee680f",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/installed_shade_release_index.py",
+      "sha256": "e20b4bd6ec947c87c479040b9127dc11f66dae261efbba88c037fb1a933840ae",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/installed_shade_score_collection.py",
+      "sha256": "8f6bddc3ba70bf14bf3459f5b903efa7709523b72830a51ed771e7d3e6751a18",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/installed_shade_score_inputs.py",
+      "sha256": "61db733bdcd3e57e72b306bd6e55bbb9572653ce046a13664a207ca3513a2c17",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/installed_shade_score_jobs.py",
+      "sha256": "8b8db23d28ec47ed74435952ce9af0429702c91a519d62bd50672a354be24597",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/installed_shade_score_registration.py",
+      "sha256": "5ffec3241f617d6b62dae97bf5d90d5fdc3f89e39229eec82f61c3dc3584cf83",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/installed_shade_training.py",
+      "sha256": "328cc0cfa907986598dbb352fbd2e72664c9a9c088d5424ac653d23d9b18a43c",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/joint_solar.py",
+      "sha256": "fed587d293c14bbb6012009988adf41244222a6f2a7bf0c5c5d90641d5500754",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/journal.py",
+      "sha256": "c01beb74ec6ca11245b5b742a5a563f2c4ff1f1547b9720cb1f340f657a02e6a",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/legacy_recovery.py",
+      "sha256": "1dad7a8d1aca2e33a24c48daa5db9dbdbcb48b79ee370b7963c75d7bfc8a9790",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/native_dependencies.py",
+      "sha256": "fcabe99c0c2375603ce255899bd5e53aa8e1cf703fd08d371149d9c700e4093e",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/native_operational_io.py",
+      "sha256": "fadd6199e27f1eefd7029f93391f6507b5d9628792b09f96a68a8fe78851a4e8",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/offline_training.py",
+      "sha256": "71c1d57e78c81f5311367d53f69e28237310e0a3198111e171288e23646fda61",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/operational_origin.py",
+      "sha256": "c64f97dc053185c2cc2b85c961d528ad0986d5040dbf6336594caf82459de80c",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/origin_capture.py",
+      "sha256": "bb8d21d03128dc2812e4bc781716c3bae226f1e66c646233cafc2e212fa0d6e8",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/pipeline.py",
+      "sha256": "53dd4ce28ed48437dd8b4ac94be040197e5703b2fdea855133339f7853fa566c",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/policy_registration.py",
+      "sha256": "9baf4b13fea46eb35d8ea1e1c19a6fdb5fe5270180da16a5193e19ce07b99bfb",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/provisional_artifact.py",
+      "sha256": "40fccd37956cb7ae7f299776e36c33a34b96ee11be7d1cb63bc71e56ed4f31ea",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/provisional_fit.py",
+      "sha256": "952074c855cc87a268e889fc3c6bff336d5f0cc91090f32a26f585edbd990827",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/provisional_forecast.py",
+      "sha256": "4db85bb934d0dcf072c0b5aa98e6d261a7dc8af4df8fcd75331e652d891cb4d1",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/provisional_score.py",
+      "sha256": "eaf4a74d850a9489e55d0c49acfd0cba79b845c42a5644bd90ab1631871d60f7",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/recent_cycles.py",
+      "sha256": "245ddbb167e18475109e361eda9f7c739667c9d9407fdea86b1b6894b446d901",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/release.py",
+      "sha256": "a0369846dcc9d352586c4e3b06c25dd5137281601b8b1dedf5f95873d962ddc0",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/replay_budget.py",
+      "sha256": "0962de5a39db509d0abe4cde4afce5c0a3366f8ce3c876e3c9a9a08f76a935b9",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/rollback.py",
+      "sha256": "203aa14bea99d1cdfc2feac44a4de2a6857405a71dbf3815127359950b2fa074",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/runtime_bundle.py",
+      "sha256": "640693918a9651e6e0c8d8b200feb914838ee2a0326946d710f5b647e0407c20",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/schema.py",
+      "sha256": "083ff97d9044e15644bc065c7c51f672aa2600781dc547a38564d992983c1c12",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/serial_publication_caps.py",
+      "sha256": "c4f7e0e312eacaa7cd4c3e85ebcc521d4a120d67f6d02bc63c91c2365ba71443",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/shade_history.py",
+      "sha256": "5a9aefbbd6378845279ef21ea6db7ebb99f5a5dbb0323032f9e14c4d9f3ed806",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/shade_observations.py",
+      "sha256": "a465dc7a269da058355672a3a715344b53023567aaa8776b2f645ff200e7ccd2",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/solar.py",
+      "sha256": "abb5f8d1db8eeb31cc42d4110582f249e35d7628e0ce05dbbb5920c9ca50c08d",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/temperature_history.py",
+      "sha256": "90388a6d0e24213f46b253047cc9c3b9a501b404888b381c35ff01ffb5abfef8",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/training_assembly.py",
+      "sha256": "fba1dce605cb6f24d145bfebccc98c06a1a9140997af18b9a186197da84e117c",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/training_inputs.py",
+      "sha256": "98de9fcc99234b6343a52caa530d765de3ade6e0e2a52b43058091587c3832bd",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/training_pressure_guard.py",
+      "sha256": "791663b98acd79d316e2a7ba873d2cb331a7bd9a914fc1c5d148cba4c221f683",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_model/training_sources.py",
+      "sha256": "56c090b253106b973fe582b9e460a1a4451fab874901e3845ae18626c5d63b97",
+      "family": "thermal_physics_and_history"
+    },
+    {
+      "path": "openhab/scripts/thermal_nip04.py",
+      "sha256": "21439920b75d6d0de953a1cc34ba0ff6c9fb3f95452ce8259104d780b53555fd",
+      "family": "thermal_operator_and_legacy_tools"
+    },
+    {
+      "path": "openhab/scripts/thermal_primal.py",
+      "sha256": "471b7702ad1f524cb5ed4a58a8ba3a82e1e730b1765ca8ba7aa459db6db34226",
+      "family": "thermal_operator_and_legacy_tools"
+    },
+    {
+      "path": "openhab/scripts/thermal_radiation_runtime.py",
+      "sha256": "23ebc1285510edef52de704cbeedd8e9197b73ca297fd30be6b03b1cda14b6ea",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/thermal_state_backup.py",
+      "sha256": "6c5aece9f0c189fcb9dbfb3b64cf2cc56cf7f97e983b1d20995e0f06417c409c",
+      "family": "thermal_operator_and_legacy_tools"
+    },
+    {
+      "path": "openhab/scripts/thermal_temperature_runtime.py",
+      "sha256": "7298e701c0a7b25ce71dcfdabf7869f4de24056437cdf1a477e6fe4afe59bf5f",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/tplink_switch_evidence.py",
+      "sha256": "1e9354d9ca4beb153b704e91a5eb50625a006128a7b8a3854807d24b35f576fa",
+      "family": "shared_or_nonweather_support"
+    },
+    {
+      "path": "openhab/scripts/tplink_switch_history.py",
+      "sha256": "86a6461c639fce3ed66d9e53bb7e0137adbe803b91568a427b36da5520c8a67a",
+      "family": "shared_or_nonweather_support"
+    },
+    {
+      "path": "openhab/scripts/validate_thermal_shadow.py",
+      "sha256": "fd1baf7a6855c95c48742ad22cd9c10d3468734db6fb3c661ad5c984eb09bb03",
+      "family": "thermal_operator_and_legacy_tools"
+    },
+    {
+      "path": "openhab/scripts/weather_evidence_wsgi.py",
+      "sha256": "f36b3badca148a2f3bfc0df4c1a96d49661a2e85f3e3e2bdf6d0b53bf4f8548d",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/weather_learning/__init__.py",
+      "sha256": "bfaf8cb78e6361dcc24b3fc00e5ff91c61b9a982f3276789384bec5e97473a19",
+      "family": "google_weather"
+    },
+    {
+      "path": "openhab/scripts/weather_learning/archive.py",
+      "sha256": "223f5eab143b432c3c1685258e462dd93e6a52fb16e264bbc37615584e382c11",
+      "family": "google_weather"
+    },
+    {
+      "path": "openhab/scripts/weather_learning/cli.py",
+      "sha256": "29b6df6be760b1378494329446e90f35d4ac93e3da1e451e62152c9c07024383",
+      "family": "google_weather"
+    },
+    {
+      "path": "openhab/scripts/weather_learning/config.py",
+      "sha256": "65499c391de0df18e1177fc31c70e251e4b08fc4c81f9ad009c15b9a6e8fca6b",
+      "family": "google_weather"
+    },
+    {
+      "path": "openhab/scripts/weather_learning/contracts.py",
+      "sha256": "da661a56a4d0d3d012d643d007538c54ccb2ce0511ff5f6a29ec32392eb71543",
+      "family": "google_weather"
+    },
+    {
+      "path": "openhab/scripts/weather_learning/energy_shadow.py",
+      "sha256": "bdbb0426b37e4d7c93fc144f9850b1cbfa65caf544053808095e084479982ef7",
+      "family": "google_weather"
+    },
+    {
+      "path": "openhab/scripts/weather_learning/evaluation.py",
+      "sha256": "850d76872af1a6ec6141a365271b5a3d8f93b52da71a864c90d77708e1cdbd7e",
+      "family": "google_weather"
+    },
+    {
+      "path": "openhab/scripts/weather_learning/evidence.py",
+      "sha256": "94b77d1dc4d0d2bc93fa00f91ef620a54216d2a239f65348e29c3311bf024663",
+      "family": "google_weather"
+    },
+    {
+      "path": "openhab/scripts/weather_learning/features.py",
+      "sha256": "8aada026f2e4b0d0bad588f47f74a018f5d405e98c31c60fff99a4d529f82e96",
+      "family": "google_weather"
+    },
+    {
+      "path": "openhab/scripts/weather_learning/native_backend.py",
+      "sha256": "e5cf68593ec5e7f15c37b8ea364cade6fbf8094cdac73a2b63898e1a96549cf0",
+      "family": "google_weather"
+    },
+    {
+      "path": "openhab/scripts/weather_learning/native_forecast.py",
+      "sha256": "c36fcbfbde573bf661d74ebd7576484cb0accba1d745d3e46d8becfc8b3891e2",
+      "family": "google_weather"
+    },
+    {
+      "path": "openhab/scripts/weather_learning/normalize.py",
+      "sha256": "732e3056b4493aeb2dc90f1110e750f8c5a1e6901e61154e7df85315e8e0ec2e",
+      "family": "google_weather"
+    },
+    {
+      "path": "openhab/scripts/weather_learning/openhab.py",
+      "sha256": "af5d3748c5902f711dec2bace81543128386ab45f1401dfb9e58abffe4bbd26d",
+      "family": "google_weather"
+    },
+    {
+      "path": "openhab/scripts/weather_learning/production_publish.py",
+      "sha256": "6cd4a889065a39cea77f3983546cf2f174cbc38d32724e6125fa2dc5551cbfa0",
+      "family": "google_weather"
+    },
+    {
+      "path": "openhab/scripts/weather_learning/production_runtime.py",
+      "sha256": "2fdcab420a9dbdc9e79bac684e669dbb5e3c105173a2536b36534edb98af8b1a",
+      "family": "google_weather"
+    },
+    {
+      "path": "openhab/scripts/weather_learning/production_worker.py",
+      "sha256": "1b80fd22e221db9385cf94c2173610b87251e6c606237a2f54988ddeb6b94c7e",
+      "family": "google_weather"
+    },
+    {
+      "path": "openhab/scripts/weather_learning/provider.py",
+      "sha256": "90c0e8ea2a8c74185b4f6b8cea1d772aa9014834d14d43789002619ec65abf64",
+      "family": "google_weather"
+    },
+    {
+      "path": "openhab/scripts/weather_learning/publish.py",
+      "sha256": "7e211a2228113b0448b6bdecc2a32255c325f0299bbf25229bee5ddcb05ffdfe",
+      "family": "google_weather"
+    },
+    {
+      "path": "openhab/scripts/weather_learning/shadow.py",
+      "sha256": "c728cafe2c2c873b353a2f611460fd6db48a8f74ecdc071337921048d91f1834",
+      "family": "google_weather"
+    },
+    {
+      "path": "openhab/scripts/weather_learning/solar_shadow.py",
+      "sha256": "a2fa1dd0932c0a3b3eaaa8803ea7a03e88a4ba23a00d253d2a4eebcf59b7f4b0",
+      "family": "google_weather"
+    },
+    {
+      "path": "openhab/scripts/weather_learning/training.py",
+      "sha256": "c739c12353452457ec3201eb1546c4d74908fa93beff4f40dc39fe6d74321073",
+      "family": "google_weather"
+    },
+    {
+      "path": "openhab/scripts/weather_learning/transport.py",
+      "sha256": "fdcdbbc840e2feaacf3a1e2d32c8274f47f6f7ee9c8e5bcdf5d324114fdfa38d",
+      "family": "google_weather"
+    },
+    {
+      "path": "openhab/scripts/weather_learning/weathernext_ee.py",
+      "sha256": "8c7fb93d8e79218e196e6e843fef738a63c2679fe4cca10aea507612b8a6fe66",
+      "family": "google_weather"
+    },
+    {
+      "path": "openhab/scripts/weather_learning/worker.py",
+      "sha256": "10b6488f6a40c675610cb3f1a808fed21f49bc7d3bc782c00fa6817954bf32e3",
+      "family": "google_weather"
+    },
+    {
+      "path": "openhab/scripts/weather_publish.py",
+      "sha256": "ed3e640ae1b03115a8a1cfd75701ec825eb74797db763dfbf07173265f4fdf8b",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/weather_radiation_config.py",
+      "sha256": "2b7afe8cefff6254810768721d2a216159f73f62abca232a7e4fd3fb59d8b95c",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/weather_radiation_evidence.py",
+      "sha256": "f84b7ff6d1247fe4d4b9da52724a63b93dc5d5ee4568fcc77c2ae51f455c34bb",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/weather_radiation_history.py",
+      "sha256": "17684ce98da8042463e68eb1f82f3e75b2169d7a0680fd067622ae8a94bb7b55",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/weather_radiation_reader.py",
+      "sha256": "9fc1cb38f06a6af1a43424e86ac72057d12c694d288799148207a3b01a682300",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/weather_radiation_receiver.py",
+      "sha256": "9f49e459fbc0ef4c984c144691bc87825c4f0a723910565d4702e980548bcc92",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/weather_rain_config.py",
+      "sha256": "f1215fc3e07e2654210da6a460eded86181f5221979e85798074f03294a5aff8",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/weather_rain_day.py",
+      "sha256": "a20ff32183285b46ab7d3e5b0162e1b0af99cd2b240ff4ea8850b432c3591ed6",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/weather_rain_evidence.py",
+      "sha256": "d3aff96b230b15fc8379022093397876c215c2e087aa01c8aab13c10ff0d7aea",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/weather_rain_history.py",
+      "sha256": "df016437ac9ee15503faebc4607dceb367cd4fc08f3bf553b102a99b62185ddf",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/weather_rain_receiver.py",
+      "sha256": "d47a6a9e038e78f4ca492fe35dc2420a2123edf5431b2c596e36c3acdaee23f4",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/weather_source_files.py",
+      "sha256": "e49f3785d3304df77cb8df8bee78a1372151de299d27d388b9cda473c7eac0af",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/weather_temperature_config.py",
+      "sha256": "5550b1fb3ec7582d4d98b13a0aabf4249b22f2994f14e1ecb9195500adbebd50",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/weather_temperature_evidence.py",
+      "sha256": "0cb88f92fd43ad64ee20880a5b381418afafeb263e80025b2bbf47db09ce6dc2",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/weather_temperature_history.py",
+      "sha256": "52b4c87c033f59e53460d704f2cad62aafb823506ef77ac9296fd70777aed412",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/weather_temperature_reader.py",
+      "sha256": "efefeebcaf201dd4d85fe01f8fb17e509324ed913de8e996ee76fcbe911b262f",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/weather_temperature_receiver.py",
+      "sha256": "9b99dfd871dc1de9d6e7d6a54a998ae250a035612bd4ff441e659e5b0fbd63c0",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/weather_temperature_sources.py",
+      "sha256": "c7c53d55cdeb8a4090ea7469bf3d4c6015a88235f7056aa9866f132c81cf493d",
+      "family": "local_measurement_sources"
+    },
+    {
+      "path": "openhab/scripts/weathernext_ingest.py",
+      "sha256": "f7519f5574ef1b0d883243a9afc1b3bdc2eccd565eccbf1fbb92f05add6178aa",
+      "family": "google_weather_entrypoints"
+    }
+  ],
+  "production_ingestion_fully_correct": false,
+  "production_algorithm_changes": false,
+  "scope_decision": "read-only audit prepared; repair/deployment scope question pending"
+}
