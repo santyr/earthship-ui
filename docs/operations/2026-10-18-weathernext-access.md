@@ -2,11 +2,11 @@
 
 Date: 2026-10-18. Project: `earthship-weather-research`. Reader: `weathernext-reader@earthship-weather-research.iam.gserviceaccount.com`. Operator supplied access approval and installed the private credential outside Git.
 
-## Current status (reverified 2026-10-18T23:36Z)
+## Current status (reverified 2026-10-19T01:49Z)
 
 Earth Engine access is working with the existing service account. The registration, permission and raster failures recorded below are historical; they do not call for further IAM grants, personal-account authentication or API enablement. The [API compatibility report](2026-10-18-weathernext-api-compatibility.md) explains the corrected storage OAuth scope and source-clock handling, the successful full-horizon captures, and the current documentation audit.
 
-A fresh bounded native-cell CLI probe completed at 23:36:42Z: `PROBE_PASSED`, run `ee:2026-10-18T16:00:00+00:00`, one point, 5.8 seconds, 991,572 bytes, six requests, 61,524 KiB peak RSS, verified noncommercial registration. It published nothing and did not archive a training snapshot. All 175 pinned WeatherNext regression tests passed in 6.087 seconds. Read-only systemd inspection found active ingest/shadow timers and successful last service exits. This verifies acquisition, not completed provider cutover or predictive qualification.
+A fresh bounded native-cell collection completed at 2026-10-19T01:49:19Z (October 18 locally): `ARCHIVED`, run `ee:2026-10-18T12:00:00+00:00`, 360 hours, 12 bands and 4,320 present values. It took 12.097 seconds, received 1,272,068 bytes over seven requests, peaked at 73,880 KiB RSS and verified noncommercial registration. Original rows and metadata passed the separate clock/cell/completeness check. The snapshot is in a separate private diagnostic archive; it published nothing and did not update installed archives, models or services. All 56 selected acquisition regression tests passed in 0.287 seconds. This verifies acquisition, not completed provider cutover or predictive qualification; see the compatibility report for the exact scope and snapshot identity.
 
 ## Initial connection evidence
 

@@ -63,10 +63,23 @@ Additional API reference: [ImageCollection.getRegion](https://developers.google.
 
 The subsequent [fixed thermal comparison](2026-10-18-weathernext-fixed-thermal-attribution.md) exposed a downstream assumption unrelated to retrieval: the installed current thermal artifact uses a newer irradiance/shade model family than the older checkout fixture. Its separate comparison adapter now delegates family selection to the original executing runtime; actual fixed-model Google forcing replay succeeds without changing production. This does not change the acquisition decision above or qualify thermal skill.
 
-## Current-code revalidation at 23:36Z
+## Current-code revalidation at 2026-10-19T01:49Z
 
-The operator requested another online reread because the initial implementation preceded working API access. The current official Earth Engine guide, both collection band/property catalogues, dissemination schedule, authentication scopes and `getRegion` reference were read again against the current reader, normalizer and worker. The documented grid assignment, named statistics, units, forecast horizons and native-projection extraction agree with the corrected implementation. The guide's `system:time_start` description still differs from the retained live behavior; validated `end_time` plus lead hour remains the forecast target contract.
+This pass reread the current official Earth Engine guide, both collection band/property catalogues, dissemination schedule, service-account/scopes documentation and `getRegion` reference against the current reader, normalizer, transport and collector. It found no additional retrieval architecture mismatch. The two API corrections above are existing changes, not changes made in this pass.
 
-Fresh verification of the current branch: **175 tests passed in 6.087 seconds**. A separate one-point CLI probe using the existing private service-account credential passed at `2026-10-18T23:36:42.692876+00:00`, selecting initialization `2026-10-18T16:00:00+00:00`. It took 5.8 seconds, transferred 991,572 bytes over six requests and peaked at 61,524 KiB RSS. Noncommercial registration was verified; production writes and automatic actuation were false. Probe mode deliberately did not archive a learning snapshot. Both installed timers were active and their last service exits successful when inspected.
+Fresh verification of acquisition: **56 focused tests passed in 0.287 seconds**, covering configuration, EE parsing/SDK/scopes, normalization, transport, collector, archive and neutral OpenHAB reads. This is the selected acquisition suite, not a claim that all migration or downstream tests passed.
 
-No additional retrieval refactor was supported by this pass. The previous scope and clock fixes are existing changes, not new changes in this revalidation. This pass updates the access document to distinguish resolved failures from current instructions; it does not change production services, qualify downstream models or retire Open-Meteo.
+The unchanged collector then used the existing service-account credential to retain a separate diagnostic **360-hour / 12-band / 4,320-point** snapshot:
+
+- Initialization: `2026-10-18T12:00:00+00:00`.
+- Collection completed: `2026-10-19T01:49:19.187211+00:00` (October 18 locally).
+- Snapshot SHA256: `15ea934badb24e36220540ff27ff00bfaa84a10614407af10a592897f3b870fb`.
+- Elapsed **12.097 seconds**, **1,272,068 bytes** over seven requests, **73,880 KiB peak RSS**.
+- All 360 values were present for each of the 12 selected bands; both grids returned one stable native cell. Returned row clocks matched original metadata and were initialization clocks; forecast targets remained independently derived from `end_time` and lead hour.
+- Live noncommercial registration verified; production writes and automatic actuation were false. Existing collection admission, transfer and deadline limits were preserved.
+
+Original bytes, index and an aggregate contract check are private under the execution directory's `online-contract-recheck-archive`; nothing was written to the installed collector archive, model state or OpenHAB. No personal-account ADC, IAM change, paid fallback, fitting or service activation was used.
+
+**Decision:** retain the corrected native-cell Earth Engine reader. The generic guide's suggested approximate metre scales do not require resampling an explicitly supplied native projection; the `getRegion` API documents that supplying a scale resizes that projection. Keep the exact native cell for reproducible local learning. Likewise, the WeatherNext guide's `system:time_start` description still differs from actual returned rows; preserve the original clock and validate forecast targets independently.
+
+The documented multi-hour dissemination lag means initialization age and observed availability must remain distinct. Hourly solar fields remain energy in J/m², converted to mean W/m² by dividing by 3,600; hourly precipitation remains metres converted to millimetres. These behaviors already agree with the implementation. This successful collection does not establish prospective reliability or local predictive skill. Production-provider integration, fresh downstream Google/local learning, qualification and complete Open-Meteo retirement remain unfinished.
