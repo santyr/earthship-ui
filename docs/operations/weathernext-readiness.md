@@ -30,7 +30,7 @@ browser checks show that new candidate with its one-pair support. The old v1
 one-pair candidate remains separate and unused. The first natural v2 trigger at 09:40:25 UTC is now verified against its retained
 issue, all three Item states and preceding collector snapshot. Only the separate weather-temperature shadow candidate has been fitted. No
 qualified skill, completed prospective day, native production model promotion or
-provider cutover is claimed. Main production still uses the incumbent pending
+provider cutover is claimed. The first normal trained-v2 cycle at **10:40:25 UTC** is now verified: its retained issue and all three live Items match, all 337 local predictions are present, and the model remains SHADOW_ONLY with one pair and no validation. Main production still uses the incumbent pending
 the release gates below.
 
 ## Qualified household evidence
@@ -49,7 +49,7 @@ The existing qualified PV reader accepted all three sampled days (coverage 99.96
 | Indoor temperature | `weather_temperature_history` native role streams | Bedroom/indoor/north_wall current epochs audited; no full 24-hour days in October 3–17; shorter qualified thermal windows retain existing rules | Fixed-artifact thermal attribution |
 | Operator actions/shades | `thermal_model.action_history`, `thermal_model.shade_observations` | 19 action events, 4 mode events, 13 receipts; 14 origin-aware snapshots selected; continuous/per-zone observation not established | Known action context; no action effects inferred |
 | Original incumbent issues | Existing forecast/thermal original captures | 129 validated original capture files, October 1–18, 18 capture dates; pre-cutover controls only, excluded from new fitting | Paired chronological comparison |
-| Prospective WeatherNext issues | Private content-addressed collector archive; fresh v2 issue namespace | Hourly acquisition is installed and naturally verified; v2 producer/UI manually qualified October 19, fresh/untrained with no v1 model imported | Future Google/local learning and qualification; required intervals remain incomplete |
+| Prospective WeatherNext issues | Private content-addressed collector archive; fresh v2 issue namespace | Hourly acquisition is installed and naturally verified; v2 producer/UI and first normal trained cycle verified October 19; fresh one-pair candidate, no v1 model imported | Future Google/local learning and qualification; required intervals remain incomplete |
 
 The inventory helper counts only typed windows supplied by source validators, requires original digests and complete post-cutover windows, partitions by hardware epoch, rejects conflicting proofs and cannot turn raw numeric rows into qualified labels. The initial audit did not query original forecast archives: its zero counted issues means no verified inputs supplied, not proof that no archives exist. Temperature is ready to begin shadow acquisition and paired qualification; no variable is qualified for production cutover yet.
 
@@ -175,3 +175,5 @@ Explicit Google-only native and receipt-serving configuration profiles now reach
 ## Installed model family preserved (October 18)
 
 The migration source now preserves the installed fourteen-parameter irradiance/shade equations and source-bound validation. Google production profiles refuse older model families; scheduled fitting selects the preserved family, the full 83-source/context package verifies, and the UI accepts its removed-shade domain without granting authority. A retained real-data replay exactly matches all 288 forcing steps and 24 hourly rows; this uses old coefficients only for parity, not promotion. Final checks: 125 relevant Python, 175 WeatherNext and 2,598 frontend tests passed, plus UI build. See [model-family preservation evidence](2026-10-18-weathernext-irradiance-family.md). Final provider retirement/source closure and real fresh fitting remain ahead of cutover.
+
+The [complete 84-path source-retirement proposal](2026-10-19-provider-operator-retirement-review.md) supersedes the earlier operator-only scope. It is unapplied pending the owner decision following automatic review rejection; static patch checks are not implementation test results. Installed services and production ownership are unchanged.

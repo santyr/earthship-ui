@@ -395,8 +395,7 @@ ceiling. Only that development scope changed; zero swap and production safeguard
 were preserved. Its process terminated normally after reporting test results.
 
 The eight operator tools, fourteen worker/evidence modules and their remaining
-test/template graph still need authorized retirement. The reviewed 47-path
-operator proposal remains unapplied with unchanged preimages and patch identity.
+test/template graph still need authorized retirement. The [complete 84-path proposal](2026-10-19-provider-operator-retirement-review.md) now supersedes the narrower 47-path operator request. Its exact patch and preimage/postimage manifest are prepared; source and installed removals remain unapplied pending the owner decision. Shared archive/prepare functions are preserved.
 Final source freeze, fresh release fitting, qualification and attended provider
 cutover remain unfinished.
 

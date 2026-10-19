@@ -148,3 +148,21 @@ The proposed order is collector at :35, shadow at :40 and weekly candidate train
 ## Remaining work
 
 The installed v2 cohort has its own one-pair SHADOW_ONLY candidate; its older v1 one-pair candidate is retained separately and unused. No qualified predictive skill, completed prospective reliability interval, untouched holdout report or production cutover is established. Source/epoch inventory, required-variable/downstream qualification, production-provider replacement and complete Open-Meteo removal remain separate unfinished plan requirements. This implementation has no promotion or equipment-control authority.
+
+## First scheduled trained-candidate publication
+
+At **2026-10-19 10:40:25 UTC (04:40:25 MDT)** the normal timer started
+invocation `2d2aa7e897f9456ab1751feeebfa8d88`, 18,082 microseconds after its
+trigger. It exited successfully at 10:40:26 UTC. All three live shadow Items
+exactly match retained issue
+`55194dd13ddd2dcfe99ad5ed2361af058d7a5b5b989f0b6c86c79c7a5b0c0838`.
+The scheduled run used the original fresh v2 candidate `a61b19c36d833f09f329c033a450c404b1cdf4a29c60b1e20cb0c1f21113b292`,
+with 337 local predictions present, one training pair, SHADOW_ONLY status and
+`validation=null`. Its source was the preceding natural collector's complete
+4,320-point capture, completed at 10:37:38 UTC. This is the first verified normal
+trained-v2 cycle, not a completed shadow day or an accuracy/promotion result.
+
+Verification was read-only: no training or publication was manually started.
+Source pins, weekly fitting cadence, production provider ownership and actuator
+authority are unchanged. The [qualification record](2026-10-19-weathernext-v2-shadow-qualification.json)
+contains the exact timer, service, model, issue and source identities.

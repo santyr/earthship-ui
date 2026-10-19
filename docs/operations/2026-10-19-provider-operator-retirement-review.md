@@ -1,20 +1,28 @@
-# Proposed retirement of old provider operator tools
+# Complete old-provider source-retirement proposal
 
-Status: **unapplied; explicit owner decision required after automatic approval rejection**.
+Status: **unapplied; owner decision pending following automatic approval rejection**.
+This complete proposal supersedes the earlier 47-path operator-only request.
+It prepares the source removal required by Task 9 of the approved WeatherNext
+migration. Installed services and production ownership are outside this patch.
 
-This is source preparation for the approved WeatherNext-only migration. It does
-not stop, restart or alter installed services, remove installed files, modify
-credentials, activate a model, change resource safeguards or authorize actuators.
-Production remains unchanged.
+## Exact review artifact
 
-The proposed patch is private in the existing execution directory:
-`.superpowers/sdd/2026-10-05-weathernext-exclusive-forecast/proposal-provider-operators-unapplied.patch`.
-It applies cleanly to base `6c04131eb18220513f25ac0b8c1d36e1d28a8dc8` with `git apply --check`.
-Patch SHA256: `08dd03f5035a9c13b40f321dcd02d5adf0efe3271400a15b64154f66095a241f`.
+- Base: `6ba1cfcf41d631d07dd769810703cc9fffd803c4`.
+- Private patch: `.superpowers/sdd/2026-10-05-weathernext-exclusive-forecast/proposal-complete-provider-retirement-unapplied.patch`.
+- SHA256: `9dc8395861ee7284efcfc19f7890c133a182a968d30f6b6990120a2e54177cdb`.
+- Size: 659,083 bytes; **84 paths: 74 removals and 10 modifications**.
+- [Complete path/preimage/postimage manifest](2026-10-19-complete-provider-retirement-proposal.json).
 
-## Concrete scope
+Every removal has a tracked Git preimage. `git apply --check` passes against the
+current branch; the exact patch passes Gitleaks. Neither the patch nor its
+proposed implementation has been applied or executed. No installed file, model,
+credential, service, timer, resource safeguard or actuator changes are included.
 
-Remove eight old-provider operator tools and their eight exclusive test modules:
+## Complete source scope
+
+The original 47-path segment removes eight obsolete provider-specific operator
+tools, their eight exclusive test modules and 27 old service/timer/drop-in
+repository templates. The eight tools are:
 
 - `scripts/forecast-recovery-files.py`
 - `scripts/activate-forecast-recovery.py`
@@ -25,71 +33,57 @@ Remove eight old-provider operator tools and their eight exclusive test modules:
 - `scripts/qualify-thermal-collector-baseline-bundle.py`
 - `scripts/replay-thermal-forcing.py`
 
-Remove 27 repository service/timer/drop-in templates for the old forecast and
-thermal weather workers. Installed definitions remain untouched:
+That segment also removes the implicit old-provider deployment manifest and
+forcing-capture directory creation from `scripts/thermal-model-files.py`, requires
+explicit manifests for shared file transactions, and rejects retired deployment
+commands. It updates the two affected tests and the Forecast ML workflow.
 
-- `deploy/forecast-intel.timer`
-- `deploy/forecast-intel.service`
-- `deploy/forecast-pre-dusk.timer`
-- `deploy/thermal-model-shadow.service`
-- `deploy/forecast-json.timer`
-- `deploy/forecast-intel-fetch-recovery.service`
-- `deploy/thermal-model-train.service`
-- `deploy/thermal-model-train.timer`
-- `deploy/forecast-intel-fetch-recovery.timer`
-- `deploy/thermal-model-shadow.timer`
-- `deploy/forecast-json.service`
-- `deploy/forecast-pre-dusk.service`
-- `deploy/forecast-intel.service.d/fetch-recovery.conf`
-- `deploy/thermal-model-shadow.service.d/bounded-retry.conf`
-- `deploy/thermal-model-shadow.service.d/qualified-radiation.conf`
-- `deploy/thermal-model-shadow.service.d/forcing-capture.conf`
-- `deploy/forecast-intel-fetch-recovery.service.d/enabled.conf`
-- `openhab/systemd/user/forecast-temperature-score.service`
-- `openhab/systemd/user/forecast-temperature-score.timer`
-- `openhab/systemd/user/forecast-pre-dusk.timer`
-- `openhab/systemd/user/forecast-pre-dusk.service`
-- `openhab/systemd/user/forecast-pre-dusk.service.d/zzz-bounded-native-inputs.conf`
-- `openhab/systemd/user/thermal-model-train.service.d/resource-limits.conf`
-- `openhab/systemd/user/thermal-model-train.service.d/memory-preflight.conf`
-- `openhab/systemd/user/thermal-model-train.service.d/memory-preflight.awk`
-- `openhab/systemd/user/forecast-intel.service.d/qualified-soc.conf`
-- `openhab/systemd/user/thermal-model-shadow.service.d/zzzz-legacy-origin-observer.conf`
+The complete proposal additionally removes fourteen old forecast/evidence worker
+modules and seventeen tests exclusive to those modules. Their exact names are in
+the manifest. Six further shared test modules retain their current generic/native
+checks while dropping only the old-worker integration cases/imports. The workflow
+continues to run surviving checks. The separately committed local-measurement
+fixture helper keeps current household/BMS tests independent of retired tests.
 
-Modify the shared `scripts/thermal-model-files.py` library to require explicit
-manifests for file transactions, remove its built-in forecast deployment manifest
-and implicit forcing-capture directory creation, and reject the retired provider
-deployment commands. Preserve its existing prepare/archive CLI and every model
-archive function unchanged. Preserve file ownership, receipt, transaction,
-compare-and-swap and privacy guards. The local energy-quality installer already
-supplies an explicit manifest and remains a caller.
+## Preserved shared behavior
 
-Update retirement tests and the Forecast ML workflow; remove only the two generic
-test cases specific to the removed built-in forecast manifest. Shared transaction
-and model archive tests remain. No new backup/recovery implementation is proposed.
+The shared file-transaction library, its ownership/receipt/compare-and-swap/privacy
+guards, and the local energy-quality installer's explicit-manifest path remain.
+The library's existing prepare/archive CLI and both model archive entry functions
+are preserved. The draft's ASTs match the originals for those entry points and
+all 33 functions in their transitive helper closure.
 
-The patch changes 47 paths: 43 removals and four modifications. Every preimage is
-tracked in the base commit and remains recoverable from Git; no source deletion
-has been applied. The separately identified fourteen old worker/evidence modules
-are outside this patch and remain present pending dependency closure and removal.
+Generic forecast-fetch recovery, solar comparison, thermal archive and archive
+preparation tests remain. The manifest lists preserved shared test functions.
+No backup/recovery implementation or rehearsal is added. The separate recovery
+finishing work stays deferred. No installed recovery capability is removed by
+this source-only patch; old source remains available through its Git preimages.
 
-## Approval boundary and verification
+## Why an owner decision is still needed
 
-Automatic approval review rejected the original broader cleanup because it
-removed recovery/replay tools and archive/CLI functions, which it considered
-beyond the earlier instruction to shelve recovery work and a risk to recovery
-capability. That rejection occurred before execution; no cleanup was performed.
+Automatic approval review rejected an earlier broader cleanup before execution:
+it removed recovery/replay tools and archive/CLI functions, which the review
+considered beyond the instruction to shelve recovery work and a risk to recovery
+capability. A separate legacy-worker removal was also refused before execution.
+Those refusals were not bypassed and no protected removal has occurred.
 
-This narrower unapplied patch preserves all model archive functions and its
-prepare/archive CLI. The remaining decision is whether obsolete provider-specific
-recovery, replay, qualification and installation tools may leave the active
-project as part of retiring Open-Meteo, with their exact code retained in Git.
+This consolidated proposal preserves generic archive/CLI functionality and makes
+the entire remaining source scope reviewable together. The specific owner decision
+is whether the obsolete provider-specific tools, workers and exclusive tests may
+be removed from the active branch as migration work, while retaining their code
+in Git and leaving installed services unchanged. This replaces the narrower
+47-path question; it is not a production-cutover approval.
 
-Read-only checks prove patch applicability, tracked preimages and unchanged
-archive-function ASTs in the draft. New retirement checks were observed failing
-against the still-present operator tools/templates; they are included in the
-unapplied patch. The proposed implementation has not been executed or tested.
-After approval, apply it and run the complete shared transaction, local energy
-quality, retirement/native and WeatherNext package checks before publishing code.
-Final fresh model fitting, all approved qualification gates and attended live
-cutover remain required afterward.
+## Verification and next steps
+
+The proposal builder parsed the virtual surviving Python tree and found no imports
+of the fourteen removed workers or seventeen removed test modules. It checked the
+workflow's surviving test paths and preserved archive ASTs. These are static draft
+checks, **not an applied implementation test result**.
+
+After approval, apply the exact patch and run shared file transactions, local
+energy quality, archive/prepare CLI, retained shared tests, retirement/native
+checks, WeatherNext tests and the full required CI/test/build scope. Any substantive
+change to this proposal requires an updated manifest and review scope. Final source
+freeze, fresh model fits, approved qualification gates and coordinated attended
+production retirement remain separate required work.

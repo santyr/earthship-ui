@@ -1,0 +1,691 @@
+{
+  "base_revision": "6ba1cfcf41d631d07dd769810703cc9fffd803c4",
+  "applied": false,
+  "source_files_changed": false,
+  "installed_state_changed": false,
+  "patch_sha256": "9dc8395861ee7284efcfc19f7890c133a182a968d30f6b6990120a2e54177cdb",
+  "patch_bytes": 659083,
+  "original_operator_segment_paths": 47,
+  "retired_worker_modules": [
+    "forecast_backfill",
+    "forecast_input_capture",
+    "forecast_intel",
+    "forecast_ml_evidence",
+    "forecast_pre_dusk",
+    "forecast_temperature_batch",
+    "forecast_temperature_collect",
+    "forecast_temperature_collection",
+    "forecast_temperature_origin",
+    "forecast_temperature_reads",
+    "forecast_temperature_score",
+    "qualified_soc_forecast",
+    "thermal_legacy_observe",
+    "thermal_legacy_origin"
+  ],
+  "obsolete_test_modules": [
+    "openhab/scripts/test_forecast_input_capture.py",
+    "openhab/scripts/test_forecast_intel.py",
+    "openhab/scripts/test_forecast_intel_site_clock.py",
+    "openhab/scripts/test_forecast_ml_evidence.py",
+    "openhab/scripts/test_forecast_ml_support.py",
+    "openhab/scripts/test_forecast_pre_dusk.py",
+    "openhab/scripts/test_forecast_temperature_batch.py",
+    "openhab/scripts/test_forecast_temperature_collect.py",
+    "openhab/scripts/test_forecast_temperature_collection.py",
+    "openhab/scripts/test_forecast_temperature_origin.py",
+    "openhab/scripts/test_forecast_temperature_reads.py",
+    "openhab/scripts/test_forecast_temperature_report.py",
+    "openhab/scripts/test_forecast_temperature_score.py",
+    "openhab/scripts/test_hourly_qualified_scoring.py",
+    "openhab/scripts/test_qualified_soc_forecast.py",
+    "openhab/scripts/test_thermal_legacy_observe.py",
+    "openhab/scripts/test_thermal_legacy_origin.py"
+  ],
+  "preserved_generic_test_modules": [
+    "test_forecast_fetch_recovery.py",
+    "test_forecast_solar_ablation.py",
+    "test_thermal_legacy_recovery.py"
+  ],
+  "preserved_archive_function_asts": [
+    "_prior_v3_archive_exists",
+    "archive_prior_v3"
+  ],
+  "preserved_archive_helper_closure_asts": [
+    "_absolute_parts",
+    "_assert_mode",
+    "_assert_prior_v3_intent",
+    "_assert_prior_v3_intent_owns_temporary",
+    "_assert_prior_v3_temporary_identity",
+    "_atomic_write_private_at",
+    "_canonical",
+    "_digest",
+    "_hit",
+    "_load_prior_v3_intent",
+    "_open_directory",
+    "_open_parent",
+    "_open_prior_v3_temporary",
+    "_prior_v3_archive_exists",
+    "_prior_v3_intent_bytes",
+    "_prior_v3_intent_value",
+    "_prior_v3_manifest",
+    "_prior_v3_parent",
+    "_prior_v3_temporary_names",
+    "_read_from_fd",
+    "_read_regular",
+    "_read_regular_at",
+    "_recover_prior_v3_temporaries",
+    "_remove_current_unowned_empty_prior_v3_temporary",
+    "_remove_owned_prior_v3_temporary",
+    "_remove_prior_v3_intent",
+    "_renameat2",
+    "_unsafe_component",
+    "_validate_prior_v3_intent",
+    "_validate_prior_v3_temporary",
+    "_validated_prior_v3_files",
+    "_write_prior_v3_intent",
+    "archive_prior_v3"
+  ],
+  "removed_worker_specific_test_functions": {
+    "openhab/scripts/test_advisory_capture.py": [
+      "test_safe_put_observes_reported_result_without_replay",
+      "test_observer_failure_does_not_change_put_result",
+      "run_main",
+      "test_main_golden_behavior_and_exact_learned_inputs",
+      "test_notification_capture_never_changes_calls_or_markers",
+      "test_retired_morning_warning_retains_forecast_history_without_notification",
+      "test_store_failure_preserves_existing_main_behavior"
+    ],
+    "openhab/scripts/test_completed_trough_score.py": [
+      "test_score_integration_preserves_predictions_capture_and_notification_behavior",
+      "test_main_preserves_legacy_scores_and_does_not_consume_incomplete_night",
+      "test_main_saves_validated_prospective_errors_and_clears_stale_summary"
+    ],
+    "openhab/scripts/test_daily_temperature_runtime.py": [
+      "test_forecast_boundary_never_fetches_numeric_temperature_when_enabled",
+      "test_absent_activation_preserves_legacy_boundary",
+      "scoring_fixture",
+      "test_both_horizons_learn_and_commit_provenance_once_before_fetch_failure",
+      "test_missing_evidence_or_legacy_origin_preserves_models_and_retryable_targets",
+      "test_failed_temperature_evidence_does_not_disable_rain_or_pv_scoring"
+    ],
+    "openhab/scripts/test_hourly_temperature_runtime.py": [
+      "run",
+      "test_process_bound_and_qualified_update",
+      "test_worker_failure_preserves_state",
+      "test_bad_output_preserves_state",
+      "test_invalid_activation_never_queries_or_changes",
+      "test_unqualified_history_does_not_consume"
+    ],
+    "openhab/scripts/test_hourly_temperature_sensor_epoch_runtime.py": [
+      "test_native_hourly_routing_keeps_numeric_update_and_epoch_evidence",
+      "test_native_hourly_invalid_child_preserves_state",
+      "test_malformed_native_metadata_cannot_partially_update_kalman_state",
+      "test_native_hourly_uses_declared_policy_lifetime_without_thermal_narrowing"
+    ]
+  },
+  "preserved_shared_test_functions": {
+    "openhab/scripts/test_advisory_capture.py": [
+      "Store",
+      "decision",
+      "enabled",
+      "start",
+      "test_disabled_capture_touches_no_dependencies",
+      "test_decision_precedes_results_and_freezes_inputs",
+      "test_new_natural_run_has_fresh_identity",
+      "test_capture_failures_are_bounded_and_secret_safe"
+    ],
+    "openhab/scripts/test_completed_trough_score.py": [
+      "forbidden",
+      "test_disabled_does_not_import_assessor_or_read_credentials",
+      "test_failed_or_partial_assessment_clears_diagnostic_without_publisher",
+      "test_publication_failure_never_retries_or_clears_after_ambiguous_write",
+      "test_enabled_adapter_forwards_one_complete_report_after_assessment",
+      "qualified_report",
+      "test_same_validated_prospective_projection_is_retained_without_another_assessment",
+      "test_unverified_prospective_projection_never_reaches_sink_or_publisher",
+      "test_valid_assessment_is_retained_when_diagnostic_delivery_is_unknown",
+      "test_delayed_token_read_does_not_extend_diagnostic_freshness"
+    ],
+    "openhab/scripts/test_daily_temperature_runtime.py": [
+      "payload",
+      "child",
+      "test_complete_window_is_bounded_and_keeps_evidence",
+      "test_invalid_activation_never_reads_or_falls_back",
+      "test_partial_coverage_is_not_a_daily_training_actual",
+      "test_invalid_summary_refuses_both_actuals",
+      "test_missing_gap_count_refuses_both_actuals",
+      "test_wrong_metadata_is_rejected",
+      "test_worker_errors_are_sanitized",
+      "test_invalid_worker_json_never_becomes_an_actual",
+      "test_partial_calendar_day_is_rejected_before_worker",
+      "test_complete_dst_calendar_day_is_accepted",
+      "test_collect_rejects_future_day_before_private_config",
+      "test_origin_cutover_and_forecast_horizons_are_not_relabelled",
+      "test_provenance_bound_keeps_recent_records",
+      "test_qualified_learning_rejects_bad_forecast_values"
+    ],
+    "openhab/scripts/test_hourly_temperature_runtime.py": [
+      "receipt",
+      "configured",
+      "output",
+      "test_absent_opt_in_preserves_legacy",
+      "test_private_db_config",
+      "test_worker_rejects_invalid_targets_before_connection"
+    ],
+    "openhab/scripts/test_hourly_temperature_sensor_epoch_runtime.py": [
+      "receipt",
+      "private_policy",
+      "native_receipt",
+      "test_native_hourly_worker_reads_actual_hardware_bound_point",
+      "test_native_hourly_policy_change_refuses_before_database"
+    ]
+  },
+  "virtual_import_closure_checked": true,
+  "proposed_implementation_executed": false,
+  "files": [
+    {
+      "path": ".github/workflows/forecast-ml-hardening.yml",
+      "action": "modify",
+      "preimage_sha256": "c6a1a9bcbac29d1fdea4c9b340db9af06b35caf22fb3e6b3d04525f9fb6f7761",
+      "postimage_sha256": "86e5b2ab3cc45e18caa43aefa3bdc43b73da016932b77649599cbb900a2c2db6"
+    },
+    {
+      "path": "deploy/forecast-intel-fetch-recovery.service",
+      "action": "remove",
+      "preimage_sha256": "606368e47408f2539ad142401424eb3f252c3f198abc15cddedf693b4bbe0ef9",
+      "postimage_sha256": null
+    },
+    {
+      "path": "deploy/forecast-intel-fetch-recovery.service.d/enabled.conf",
+      "action": "remove",
+      "preimage_sha256": "8e98cdb91652d8fd9c9af0c180f7d4718fbb41774e510c96d7eb164e010629fe",
+      "postimage_sha256": null
+    },
+    {
+      "path": "deploy/forecast-intel-fetch-recovery.timer",
+      "action": "remove",
+      "preimage_sha256": "f52834d9e38de531ba712b96afe5c65475717649f3675dd026f41673f03a9294",
+      "postimage_sha256": null
+    },
+    {
+      "path": "deploy/forecast-intel.service",
+      "action": "remove",
+      "preimage_sha256": "4fcd8f48f4b1ca55f96532e44ac7e4dc06998a64660ebc428140df1273f2adcc",
+      "postimage_sha256": null
+    },
+    {
+      "path": "deploy/forecast-intel.service.d/fetch-recovery.conf",
+      "action": "remove",
+      "preimage_sha256": "1ed6e2bcdd5fcfc53f4ebf940277d7af4e8786f383da8d31b4f0c114e33bff71",
+      "postimage_sha256": null
+    },
+    {
+      "path": "deploy/forecast-intel.timer",
+      "action": "remove",
+      "preimage_sha256": "d56e82e7cfac78f3c7b5873126b05358d8582e86af0849db2779ee0821f3aa79",
+      "postimage_sha256": null
+    },
+    {
+      "path": "deploy/forecast-json.service",
+      "action": "remove",
+      "preimage_sha256": "05df4372197141a107b8822daebd4171f513f988f2f18422606d8bf0c5ea1031",
+      "postimage_sha256": null
+    },
+    {
+      "path": "deploy/forecast-json.timer",
+      "action": "remove",
+      "preimage_sha256": "739fa901c9f08511bfed698c0c66c138d374c62f59975c2a9b06afc1205bf3b4",
+      "postimage_sha256": null
+    },
+    {
+      "path": "deploy/forecast-pre-dusk.service",
+      "action": "remove",
+      "preimage_sha256": "bdbb04afe38d28775161eb9186421ed81302ba2811fff453a7511da853304631",
+      "postimage_sha256": null
+    },
+    {
+      "path": "deploy/forecast-pre-dusk.timer",
+      "action": "remove",
+      "preimage_sha256": "bd9cd7281c98671e8ac14e56ba1ab96de0d19f345f396e233e12b6d8731a1887",
+      "postimage_sha256": null
+    },
+    {
+      "path": "deploy/thermal-model-shadow.service",
+      "action": "remove",
+      "preimage_sha256": "9f348ad38f305a1af414ee587aff1d0378be8ceeaa658a6b98e7e944973c36b9",
+      "postimage_sha256": null
+    },
+    {
+      "path": "deploy/thermal-model-shadow.service.d/bounded-retry.conf",
+      "action": "remove",
+      "preimage_sha256": "26aa046ecdddd7c1a78c9595a9e086db3c1342c21f98f7e57cff7230a01f54fc",
+      "postimage_sha256": null
+    },
+    {
+      "path": "deploy/thermal-model-shadow.service.d/forcing-capture.conf",
+      "action": "remove",
+      "preimage_sha256": "a8075c393233b370cbe78845b14f80ae2c0090e01b12f992bd55bb8b14680d18",
+      "postimage_sha256": null
+    },
+    {
+      "path": "deploy/thermal-model-shadow.service.d/qualified-radiation.conf",
+      "action": "remove",
+      "preimage_sha256": "f1d384a7346a7ca5207f9450f33d3ba380cf04b13346cf9632451aee2f7f8d31",
+      "postimage_sha256": null
+    },
+    {
+      "path": "deploy/thermal-model-shadow.timer",
+      "action": "remove",
+      "preimage_sha256": "2bb877c610caf5abb6ee011a152e9532b60d81f10879e8bf74885c68eb7fb223",
+      "postimage_sha256": null
+    },
+    {
+      "path": "deploy/thermal-model-train.service",
+      "action": "remove",
+      "preimage_sha256": "cba88761d11e945277249920a185dcd9b99fea67123dcdd0c0f5902e9580e6d1",
+      "postimage_sha256": null
+    },
+    {
+      "path": "deploy/thermal-model-train.timer",
+      "action": "remove",
+      "preimage_sha256": "ece3658e4a8ef4d40d52c7f959745303cd2115b78f91ae763834b019c600e0b0",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/forecast_backfill.py",
+      "action": "remove",
+      "preimage_sha256": "7b93eb485d5581f6cdaba841838f6f490636af2c1d2de32067d53513d93d5b37",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/forecast_input_capture.py",
+      "action": "remove",
+      "preimage_sha256": "01920ce57698a64a08b04bc86b4298c96a19f9b417c229a7550b4386de0d16be",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/forecast_intel.py",
+      "action": "remove",
+      "preimage_sha256": "b742547bea3d003d82980922f7936ac5d70c6f36c809a7c487392f69e76f3515",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/forecast_ml_evidence.py",
+      "action": "remove",
+      "preimage_sha256": "098956cf28f9cb202d2ad1f19731bee149d715aa18d4c79cfc60e648d7978db9",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/forecast_pre_dusk.py",
+      "action": "remove",
+      "preimage_sha256": "1198c93a8893f9892f2d01070b165fe29210285d156768cf7eedf94118325b17",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/forecast_temperature_batch.py",
+      "action": "remove",
+      "preimage_sha256": "f7e1444ef9a065682f8650a42d3d88a4621dab8cde0beed55b3565f09788badc",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/forecast_temperature_collect.py",
+      "action": "remove",
+      "preimage_sha256": "bf9c852c9ee499e8b8ec2d62332f7df62a34fbedc1dbff474039fb8a33919e60",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/forecast_temperature_collection.py",
+      "action": "remove",
+      "preimage_sha256": "2d16f3348b782560e74e9f148141109f36d77667fd8c21e923d636da3c01443b",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/forecast_temperature_origin.py",
+      "action": "remove",
+      "preimage_sha256": "58cf197b35976400770f19dc6fc622c71d9998c83555f8df1d5d3b8917143954",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/forecast_temperature_reads.py",
+      "action": "remove",
+      "preimage_sha256": "242a7e02e1cf36c7510bd21a7762e7914f33a3f5555f5dba05bda47eee4d44c9",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/forecast_temperature_score.py",
+      "action": "remove",
+      "preimage_sha256": "0ec6717f7ecbb5abae2d179f269b5c7139c5838ec564cb2a88b9e5fd026a0328",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/qualified_soc_forecast.py",
+      "action": "remove",
+      "preimage_sha256": "bab96e75f6d816a71c82d0d88fc1d037fd74f7befe87fc9b6f13824c57bcf68a",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/test_advisory_capture.py",
+      "action": "modify",
+      "preimage_sha256": "deaa391f5baa01889c17c77d71a95d43a5d239fedc451a4c1fb71b2e86b9a5bf",
+      "postimage_sha256": "b4aa643a0da5add43be10226afd1500ac03cd3b4fce0418eeafd0c7e4625989b"
+    },
+    {
+      "path": "openhab/scripts/test_completed_trough_score.py",
+      "action": "modify",
+      "preimage_sha256": "312c06cba8788c8c7d759c09fe2b8d36ea9c2a5f2b973abf03aafc21a5eccad1",
+      "postimage_sha256": "18e8db27385bb7864fe06da01e5ece26503b53200c8b309a773816db0e3bfdfa"
+    },
+    {
+      "path": "openhab/scripts/test_daily_temperature_runtime.py",
+      "action": "modify",
+      "preimage_sha256": "9b2b78ad27bffd85de4ead7fec8da25e857c6306e238f47474dac58279c1a5d5",
+      "postimage_sha256": "7a5bc570c41c1bdaf6db5bbb1d19e300a6ab6eec13e25132b31725da94ccbff5"
+    },
+    {
+      "path": "openhab/scripts/test_forecast_input_capture.py",
+      "action": "remove",
+      "preimage_sha256": "66f6df3b78ea6509e033413f3ae06a2d4c1ed941e9bd2fa6c0fe19299b63edc3",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/test_forecast_intel.py",
+      "action": "remove",
+      "preimage_sha256": "a91ec26ac3a315bb403e6b707cd3cf196539045508bcecbf4a3ff3ed67ab50cf",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/test_forecast_intel_site_clock.py",
+      "action": "remove",
+      "preimage_sha256": "c8abb19afb7fd1c130e04b38b5c31723c4bb7e45bae10bdf9c19a6abe0a91d48",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/test_forecast_ml_evidence.py",
+      "action": "remove",
+      "preimage_sha256": "2d2f5f2209e5d9b45a6324a542c87e6761662618ecb6890d20ae994fb212511c",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/test_forecast_ml_support.py",
+      "action": "remove",
+      "preimage_sha256": "0a6516b6d6c3b0ee76b1b5ff5d6d2da44536efc87186d4bd03b415dae9918c90",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/test_forecast_pre_dusk.py",
+      "action": "remove",
+      "preimage_sha256": "89d3f87ff1619a30132afe7861596b7096bc9d167e277492aeaa9d9ebb536d6d",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/test_forecast_temperature_batch.py",
+      "action": "remove",
+      "preimage_sha256": "5b91ab95d48b0fd61eb56d9b8f754c0c926f8f8580ca87ac3d485397806ffe20",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/test_forecast_temperature_collect.py",
+      "action": "remove",
+      "preimage_sha256": "7672a88ad4a5d1013da977b1d63613c0520f1cf32673c81416100158c8bd7f31",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/test_forecast_temperature_collection.py",
+      "action": "remove",
+      "preimage_sha256": "4f26c84e7afb6e865279a6b6bfb41e29c58ae665a911f52a09cabcda4849915a",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/test_forecast_temperature_origin.py",
+      "action": "remove",
+      "preimage_sha256": "fd2b3eaf8f74faead955ed876097af74357ae406acbabbd6d23e8a27c3f4fa35",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/test_forecast_temperature_reads.py",
+      "action": "remove",
+      "preimage_sha256": "6d7a2502a288baf899bc696080f6e193ef5f60cb6353d8f280cadfbed21e6f42",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/test_forecast_temperature_report.py",
+      "action": "remove",
+      "preimage_sha256": "3c94ba5dd28ba9fc394976287b4964c0b30e6cfa4c50095c85d308ddb9b335a5",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/test_forecast_temperature_score.py",
+      "action": "remove",
+      "preimage_sha256": "6bc7c45805fba638926f04cc8d088c761bc24d5b42581f670a1010be744476dd",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/test_google_thermal_cli_retirement.py",
+      "action": "modify",
+      "preimage_sha256": "d373cd5e3deba5b88a93c69ac4de7b0c9e69186efcbaca8115cb51a7b485cefa",
+      "postimage_sha256": "d43cbffce9b83c56f32643a62be3f76cc7e6e4763c3db5ffe1f24125ab9cdce1"
+    },
+    {
+      "path": "openhab/scripts/test_hourly_qualified_scoring.py",
+      "action": "remove",
+      "preimage_sha256": "4348b638ebe1939427c38a1fc1ab75f462b6383c631809de067c23e0ef0deeab",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/test_hourly_temperature_runtime.py",
+      "action": "modify",
+      "preimage_sha256": "939c2ca2b0f4299674d14810d387ad9f82c81460453038cd9fe43db557c8eaae",
+      "postimage_sha256": "436de6780a18c8788daf4d71ae4fed5288a8923f40a5c242056db0015329d625"
+    },
+    {
+      "path": "openhab/scripts/test_hourly_temperature_sensor_epoch_runtime.py",
+      "action": "modify",
+      "preimage_sha256": "168908f4daf821a9b4a20c3d0fb37141b4ca7e2ff76c3c91006ba33844932f2e",
+      "postimage_sha256": "e362517d8106d4bab3ced348c4329e3dc13357b729e167bb091526d15aa549ac"
+    },
+    {
+      "path": "openhab/scripts/test_qualification_source_inventory.py",
+      "action": "modify",
+      "preimage_sha256": "17daeeb62d442e1312c113bce17348197f7afbe802187b9edeb67ec26f8d6e88",
+      "postimage_sha256": "35378b8f632fc7a8cafb50dde8a02163404ee40b6bc40821584896c1739c6160"
+    },
+    {
+      "path": "openhab/scripts/test_qualified_soc_forecast.py",
+      "action": "remove",
+      "preimage_sha256": "a4acffab5050e9c5a4faa638de42d422e02a0ee4f291c7d903c0ee58259867ff",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/test_thermal_deploy_files.py",
+      "action": "modify",
+      "preimage_sha256": "e78a58c6597eefdd9de12c3954eb0aad925a7ce397e29bb08cdfb4a217783f18",
+      "postimage_sha256": "1fa10999c4906095853222d12575cb6b43d63dfd91fa1bc04e0d3e7e0ec7648b"
+    },
+    {
+      "path": "openhab/scripts/test_thermal_legacy_observe.py",
+      "action": "remove",
+      "preimage_sha256": "d7d0110e3f0043c2c0f44e28f51a06d19c187cf8ad13ca0888b11a7aafc1eb06",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/test_thermal_legacy_origin.py",
+      "action": "remove",
+      "preimage_sha256": "b7732a6d8f8aa6b015c37fbfb6dd321839e7b04ba28d72896f71006bf9dd14e0",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/thermal_legacy_observe.py",
+      "action": "remove",
+      "preimage_sha256": "e890a8753d3dd9603c6d74ecb745de42778b1900e7de6b1cabb77758eada124d",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/scripts/thermal_legacy_origin.py",
+      "action": "remove",
+      "preimage_sha256": "ba33438aadeb10930ded75670f73ce87afbcdfa94d7a4217a33d564532f75d90",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/systemd/user/forecast-intel.service.d/qualified-soc.conf",
+      "action": "remove",
+      "preimage_sha256": "d126db26f903a5d2753140f0b4b02e90fe1001522504520ab44f0adbfa5f1bd3",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/systemd/user/forecast-pre-dusk.service",
+      "action": "remove",
+      "preimage_sha256": "bdbb04afe38d28775161eb9186421ed81302ba2811fff453a7511da853304631",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/systemd/user/forecast-pre-dusk.service.d/zzz-bounded-native-inputs.conf",
+      "action": "remove",
+      "preimage_sha256": "40a4f3a7f8a6c5d62f2dd5cbe558c176cf4ecd9852d45071632b4819d08b43a9",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/systemd/user/forecast-pre-dusk.timer",
+      "action": "remove",
+      "preimage_sha256": "1d7e371f9710f153299012e7d071aebf23e092710ad1be18973badccf9c84574",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/systemd/user/forecast-temperature-score.service",
+      "action": "remove",
+      "preimage_sha256": "e70288de070cb4ce46dbec1496f192d637a0d089dd71ab71fc87ca967a55f41d",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/systemd/user/forecast-temperature-score.timer",
+      "action": "remove",
+      "preimage_sha256": "d467772f09528abdf256d434e74477c70a3212694b5635e10cb3564c834d46bf",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/systemd/user/thermal-model-shadow.service.d/zzzz-legacy-origin-observer.conf",
+      "action": "remove",
+      "preimage_sha256": "ed93139e5d6f8aba2016f83a23cc042186e4249e31f4e8b5009139c516910a12",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/systemd/user/thermal-model-train.service.d/memory-preflight.awk",
+      "action": "remove",
+      "preimage_sha256": "4aa98d8e7c6c850d965ecfd0beba70e1fe7836967b39608cc5898a39c779a4c8",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/systemd/user/thermal-model-train.service.d/memory-preflight.conf",
+      "action": "remove",
+      "preimage_sha256": "af1cb7604ed11ccf46b8ebc64b64c5327f44008e919a509c12125ee1fac1e1fb",
+      "postimage_sha256": null
+    },
+    {
+      "path": "openhab/systemd/user/thermal-model-train.service.d/resource-limits.conf",
+      "action": "remove",
+      "preimage_sha256": "74c7f65c24b35b981730c215bcf131e2a1a85a7ba193c77871c389f32827d679",
+      "postimage_sha256": null
+    },
+    {
+      "path": "scripts/activate-forecast-recovery.py",
+      "action": "remove",
+      "preimage_sha256": "0c3405aefdde0e939f83689b86b2c2099da1ccf60bd20802e147e91e39549d6e",
+      "postimage_sha256": null
+    },
+    {
+      "path": "scripts/forecast-recovery-files.py",
+      "action": "remove",
+      "preimage_sha256": "5212e9b8eb3dfbae7850e0e80d455518fe53c423aa0129371a432233ba4f780d",
+      "postimage_sha256": null
+    },
+    {
+      "path": "scripts/qualify-thermal-collector-baseline-bundle.py",
+      "action": "remove",
+      "preimage_sha256": "e5129d9a0385275d8075e72924ddbe656c6350e980750e0c6010d8243a06e22d",
+      "postimage_sha256": null
+    },
+    {
+      "path": "scripts/qualify-thermal-radiation-runtime.py",
+      "action": "remove",
+      "preimage_sha256": "2d46513d187145ad1aa28906eab040d05663b046f82e43a108d0b1c969b4980e",
+      "postimage_sha256": null
+    },
+    {
+      "path": "scripts/replay-thermal-forcing.py",
+      "action": "remove",
+      "preimage_sha256": "5739798524d9888f2584ffbd9e0c101bd861f8a813b17da03fb188dac52add78",
+      "postimage_sha256": null
+    },
+    {
+      "path": "scripts/test_activate_forecast_recovery.py",
+      "action": "remove",
+      "preimage_sha256": "df440ac5bdf6ba7f88f63af8a917ddaa0f8e8f566323d5ee50fc9a3077652f72",
+      "postimage_sha256": null
+    },
+    {
+      "path": "scripts/test_forecast_recovery_files.py",
+      "action": "remove",
+      "preimage_sha256": "7853236f00f0a7337ef5184ceba8eeb5de5db0065fa67aebb97c00060c077000",
+      "postimage_sha256": null
+    },
+    {
+      "path": "scripts/test_qualify_thermal_collector_baseline_bundle.py",
+      "action": "remove",
+      "preimage_sha256": "ec133274cd69cadb230ff0ef9f92d97592e2e0c970a5003eae6f359941eecc6f",
+      "postimage_sha256": null
+    },
+    {
+      "path": "scripts/test_qualify_thermal_radiation_runtime.py",
+      "action": "remove",
+      "preimage_sha256": "e3df58d9451c5db18de3d39dd9a4bd03fb891ea93edf20ab1c75f48b6f9232dc",
+      "postimage_sha256": null
+    },
+    {
+      "path": "scripts/test_replay_thermal_forcing.py",
+      "action": "remove",
+      "preimage_sha256": "8157169f252362f8aff3c0d97e60f38fce476d859301cf7f7b3551e78d0f8c63",
+      "postimage_sha256": null
+    },
+    {
+      "path": "scripts/test_thermal_radiation_files.py",
+      "action": "remove",
+      "preimage_sha256": "64083afb6b1b5442c110e348432c49ac17e7dcf42cecc8c8d24fece7732184d1",
+      "postimage_sha256": null
+    },
+    {
+      "path": "scripts/test_verify_thermal_natural_publication.py",
+      "action": "remove",
+      "preimage_sha256": "13bec076452076179e5e75c3b10bc56ab0bb8416cbe2efe46f5f61caf845df01",
+      "postimage_sha256": null
+    },
+    {
+      "path": "scripts/thermal-model-files.py",
+      "action": "modify",
+      "preimage_sha256": "be2e6a58351357084e427700c680b1740aba3a8dc202471df397f4d6840b6412",
+      "postimage_sha256": "4beea0f4d0bb0bc9b6ca0e637ab213fee2688f1ce65dd71fc8a2bce212a885f9"
+    },
+    {
+      "path": "scripts/thermal-radiation-files.py",
+      "action": "remove",
+      "preimage_sha256": "3203d572b2f2fedce4e1c2cb0f41540a03c10c099420424a133dde3d3dc0fc48",
+      "postimage_sha256": null
+    },
+    {
+      "path": "scripts/thermal-replay-bundle.py",
+      "action": "remove",
+      "preimage_sha256": "96b5c07109ba2edde09078e7d6f002e3d996003959802d32fb8f999db3b785b7",
+      "postimage_sha256": null
+    },
+    {
+      "path": "scripts/verify-thermal-natural-publication.py",
+      "action": "remove",
+      "preimage_sha256": "8bad047c30d22aa67a95a9e8904164fca81ea249bb4509a832ab14eca39ae88f",
+      "postimage_sha256": null
+    },
+    {
+      "path": "tests/completion/test_thermal_replay_bundle.py",
+      "action": "remove",
+      "preimage_sha256": "0f6f64c976bc4e185c0f6c36f1255f4ef29242a242d8c27de11d4cae3ccca6ca",
+      "postimage_sha256": null
+    }
+  ]
+}
