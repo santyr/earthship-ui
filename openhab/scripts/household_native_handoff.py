@@ -50,8 +50,8 @@ def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard,previo
             raise ValueError('explicit previous owned receipt family pin required')
     def stage_record(path):
         if upgrade and path==forecast:return deploy.verify_stage(path,expected_deployment_sha256=previous_deployment_sha256)
-        if path==stage and serving:return deploy.verify_stage(path,expected_deployment_sha256=selected['deployment_sha256'])
-        return deploy.verify_stage(path)
+        if path==stage:return deploy.verify_stage(path,**({'expected_deployment_sha256':selected['deployment_sha256']} if serving else {}))
+        return deploy.verify_handoff_baseline(path)
     records=[stage_record(path) for path in (stage,forecast,score)]
     if serving:
         from household_forecast_score import read_score_dispatch
@@ -59,11 +59,8 @@ def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard,previo
         if upgrade:
             previous_dispatch=read_score_dispatch(forecast,deployment_sha256=previous_deployment_sha256,guard=guard)
             required=[dict(stage=str(forecast),deployment_sha256=previous_deployment_sha256),*previous_dispatch['historical']]
-            if dispatch['legacy']!=previous_dispatch['legacy'] or any(row not in dispatch['historical'] for row in required):
-                raise ValueError('upgrade must retain original legacy and all native score backlogs')
-        elif (dispatch['legacy']['stage']!=str(score) or
-            dispatch['legacy']['deployment_sha256']!=sha256(deploy._bytes(score/'deployment.json',private=True)).hexdigest()):
-            raise ValueError('handoff must retain its explicitly selected legacy scorer')
+            if any(row not in dispatch['historical'] for row in required):
+                raise ValueError('upgrade must retain all Google native score backlogs')
     cycles=[json.loads(deploy._bytes(path/'cycle.json',private=True)) for path in (stage,forecast,score)]
     current,old_forecast,old_score=records
     stripped=lambda cycle:{k:v for k,v in cycle.items() if k not in ('evidence_directory','forecast_config')}

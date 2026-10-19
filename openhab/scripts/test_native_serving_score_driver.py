@@ -56,7 +56,7 @@ def test_current_score_slot_reads_one_context_under_existing_lock(tmp_path,monke
 
 def test_former_legacy_slot_runs_native_without_history(tmp_path,monkeypatch):
     coordinator,config,stage,calls,model,now,dispatch=fixture(tmp_path,monkeypatch,6)
-    monkeypatch.setattr(coordinator,'execute_legacy_score',lambda *a,**kw:pytest.fail('retired legacy worker executed'))
+    assert not hasattr(coordinator,'execute_legacy_score')
     def scored(settings,*,guard,clock,queue,serving_model,historical_selections):
         assert serving_model is model and historical_selections==()
         guard();return dict(status='waiting',scored=0,automatic_actuation=False)

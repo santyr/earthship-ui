@@ -42,10 +42,10 @@ def dispatch_fixture(tmp_path,monkeypatch):
     assert callable(reader),'owned dispatch reader is missing'
     tmp_path.chmod(0o700);stage=tmp_path/'current';stage.mkdir(mode=0o700)
     legacy=tmp_path/'legacy';legacy.mkdir(mode=0o700)
-    config=legacy/'forecast.json';config.write_text(json.dumps({'schema':'earthship-provisional-thermal-live-config/v1'}));config.chmod(0o600)
+    config=legacy/'forecast.json';config.write_text(json.dumps({'schema':'earthship-weathernext-thermal-live-config/v2'}));config.chmod(0o600)
     cycle=legacy/'cycle.json';cycle.write_text(json.dumps({'forecast_config':str(config)}));cycle.chmod(0o600)
     manifest=legacy/'deployment.json';manifest.write_bytes(b'{}');manifest.chmod(0o600);legacy_pin=sha256(manifest.read_bytes()).hexdigest()
-    body={'schema':'earthship-native-score-dispatch/v1','current':'current','legacy':{'stage':str(legacy),'deployment_sha256':legacy_pin,'config':str(config),'config_sha256':sha256(config.read_bytes()).hexdigest()},'historical':[]}
+    body={'schema':'earthship-native-score-dispatch/v2','current':'current','historical':[{'stage':str(legacy),'deployment_sha256':legacy_pin}]}
     path=stage/'score-dispatch.json';path.write_text(json.dumps(body));path.chmod(0o600)
     record={'schema':'earthship-household-cycle-deployment/v3','score_dispatch':{'path':str(path),'sha256':sha256(path.read_bytes()).hexdigest()}}
     calls=[]
@@ -54,17 +54,17 @@ def dispatch_fixture(tmp_path,monkeypatch):
         if actual==stage:
             assert expected_deployment_sha256=='a'*64;return record
         if actual==legacy:
-            assert expected_deployment_sha256==legacy_pin;return {'schema':'earthship-household-cycle-deployment/v1'}
+            assert expected_deployment_sha256==legacy_pin;return {'schema':'earthship-household-cycle-deployment/v3'}
         pytest.fail('unselected stage')
     monkeypatch.setattr(deploy,'verify_stage',verify)
     return reader,stage,path,body,record,calls
 
 
-def test_owned_dispatch_pins_legacy_stage_and_original_config(tmp_path,monkeypatch):
+def test_owned_dispatch_pins_google_history_and_original_config(tmp_path,monkeypatch):
     reader,stage,path,body,record,calls=dispatch_fixture(tmp_path,monkeypatch)
     assert reader(stage,deployment_sha256='a'*64,guard=lambda:None)==body
-    assert (Path(body['legacy']['stage']),body['legacy']['deployment_sha256']) in calls
-    Path(body['legacy']['config']).write_bytes(b'{}')
+    assert (Path(body['historical'][0]['stage']),body['historical'][0]['deployment_sha256']) in calls
+    (Path(body['historical'][0]['stage'])/'forecast.json').write_bytes(b'{}')
     with pytest.raises(ValueError):reader(stage,deployment_sha256='a'*64,guard=lambda:None)
 
 
@@ -74,6 +74,6 @@ def test_dispatch_cannot_select_unpinned_or_implicit_model(tmp_path,monkeypatch,
     if damage=='self_pin':body['deployment_sha256']='a'*64
     if damage=='no_legacy':body['legacy']=None
     if damage=='wrong_slot':body['current']='legacy'
-    if damage=='digest':body['legacy']['config_sha256']='f'*64
+    if damage=='digest':body['historical'][0]['deployment_sha256']='f'*64
     path.write_text(json.dumps(body));record['score_dispatch']['sha256']=sha256(path.read_bytes()).hexdigest()
     with pytest.raises(ValueError):reader(stage,deployment_sha256='a'*64,guard=lambda:None)

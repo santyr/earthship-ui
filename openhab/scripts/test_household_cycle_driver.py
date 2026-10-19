@@ -8,20 +8,21 @@ from household.codec import canonical
 def setup(tmp_path,monkeypatch):
     import household_cycle as cycle
     import household_cycle_sources as sources
-    import thermal_model.provisional_live as forecast
+    import native_thermal_live as forecast
     import thermal_model.capture_guard as locks
     import household_cycle_pressure as pressure
     import thermal_installed_intel as installed
     calls=[]
     params=tmp_path/'params.json';params.write_bytes(canonical({'collected_at':'2026-10-11T00:00:00+00:00','record':{'household_energy_inputs':{}}}));params.chmod(0o600)
-    forecast_path=tmp_path/'forecast.json';forecast_path.write_bytes(b'{}');forecast_path.chmod(0o600)
+    forecast_path=tmp_path/'forecast.json';forecast_path.write_bytes(canonical({'schema':forecast.LIVE_SCHEMA}));forecast_path.chmod(0o600)
     evidence=tmp_path/'evidence';evidence.mkdir(mode=0o700)
     config=tmp_path/'cycle.json'
     settings=dict(schema='earthship-household-cycle-config/v1',forecast_config=str(forecast_path),retained_energy_parameters=str(params),
         parameters_sha256=sha256(params.read_bytes()).hexdigest(),evidence_directory=str(evidence),observation_cache=str(tmp_path/'observation.json'))
     config.write_bytes(canonical(settings));config.chmod(0o600)
-    forecast_settings={'shared_lock':str(tmp_path/'lock'),'token_file':str(tmp_path/'token'),'openhab_base':'http://127.0.0.1:8080/rest'}
+    forecast_settings={'schema':forecast.LIVE_SCHEMA,'artifact_sha256':'a'*64,'shared_lock':str(tmp_path/'lock'),'token_file':str(tmp_path/'token'),'openhab_base':'http://127.0.0.1:8080/rest'}
     monkeypatch.setattr(forecast,'load_settings',lambda path:forecast_settings)
+    monkeypatch.setattr(forecast,'current_runtime',lambda **kw:{'source':'a'*64})
     monkeypatch.setattr(installed,'_resource_preflight',lambda:calls.append('resources'))
     import household_cycle_resources
     monkeypatch.setattr(household_cycle_resources,'publication_resource_preflight',lambda:calls.append('resources'))
@@ -42,7 +43,7 @@ def setup(tmp_path,monkeypatch):
     monkeypatch.setattr(sources,'CycleSourceCollector',Collector)
     def publish(settings,*,guard,backend):
         guard();calls.append('published');backend.collection={'status':'collected'}
-        return {'status':'published','delivery_verified':True,'origin_path':'private-origin','delivery_path':'private-delivery'}
+        return {'status':'published','delivery_verified':True,'origin_path':'private-origin','delivery_path':'private-delivery','capture_sha256':'b'*64}
     monkeypatch.setattr(forecast,'publish_cycle',publish)
     monkeypatch.setattr(forecast,'withdraw',lambda *a,**kw:calls.append('withdrawn') or {'status':'withdrawn'})
     def complete(**kw):
@@ -87,7 +88,7 @@ def test_household_failure_does_not_withdraw_verified_forecast(tmp_path,monkeypa
 
 
 def test_forecast_failure_uses_existing_withdrawal_behavior(tmp_path,monkeypatch):
-    import thermal_model.provisional_live as forecast
+    import native_thermal_live as forecast
     cycle,config,_,calls=setup(tmp_path,monkeypatch)
     def failed(*args,**kw):raise ValueError('original forecast failure')
     monkeypatch.setattr(forecast,'publish_cycle',failed)
@@ -110,12 +111,12 @@ def test_observer_initialization_failure_still_runs_original_publisher(tmp_path,
 
 
 def test_observer_parameter_drift_does_not_abort_original_publication(tmp_path,monkeypatch):
-    import thermal_model.provisional_live as forecast
+    import native_thermal_live as forecast
     cycle,config,params,calls=setup(tmp_path,monkeypatch)
     def publish(settings,*,guard,backend):
         params.write_bytes(b'{}');guard();calls.append('published')
         backend.collection={'status':'collected'}
-        return {'status':'published','delivery_verified':True,'origin_path':'private-origin','delivery_path':'private-delivery'}
+        return {'status':'published','delivery_verified':True,'origin_path':'private-origin','delivery_path':'private-delivery','capture_sha256':'b'*64}
     monkeypatch.setattr(forecast,'publish_cycle',publish)
     result=cycle.run_cycle(config,code_revision='e'*40)
     assert result['status']=='published'

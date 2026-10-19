@@ -352,8 +352,7 @@ class NativeTraining:
         save(config, settings)
         save(run / 'geometry-libraries.json', libraries)
         historical = tuple([*old['historical'], {k: previous[k] for k in ('stage', 'deployment_sha256')}])
-        dispatch = prepare_score_dispatch(legacy_stage=Path(old['legacy']['stage']),
-            legacy_deployment_sha256=old['legacy']['deployment_sha256'], historical_selections=historical,
+        dispatch = prepare_score_dispatch(historical_selections=historical,
             output=run / 'score-dispatch.json', guard=self.guard)
         stage = run / 'final'
         deploy.stage_deployment(repo_root=self.repo, stage=stage, forecast_config=config,

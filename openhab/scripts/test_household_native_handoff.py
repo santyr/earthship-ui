@@ -3,14 +3,14 @@ import importlib,json
 from pathlib import Path
 import pytest
 from test_household_native_family import fixture as family_fixture
-from test_household_cycle_deploy import write,encode
+from test_household_cycle_deploy import write,encode,baseline_metadata_stage
 
 
 def fixture(tmp_path,monkeypatch):
     family,args,settings,record,libraries,out=family_fixture(tmp_path,monkeypatch)
     import household_cycle_deploy as deploy
     legacy={**args,'stage':tmp_path/'previous','forecast_config':args['service_forecast_config']}
-    legacy.pop('service_forecast_config');deploy.stage_deployment(**legacy)
+    legacy.pop('service_forecast_config');baseline_metadata_stage(legacy)
     previous=legacy['stage'];base=args['service_file'].parent;config=legacy['forecast_config']
     forecast_override=base/'thermal-provisional-forecast.service.d'/'zzzz-household-cycle.conf'
     forecast_override.parent.mkdir(mode=0o700);write(forecast_override,(previous/'service.conf').read_bytes())
@@ -39,7 +39,7 @@ def test_handoff_binds_one_native_family_and_both_previous_owned_stages(tmp_path
     m,args,previous,family,out,base=fixture(tmp_path,monkeypatch)
     import household_cycle_deploy as deploy
     # A fresh Google fit owns different source bytes from its retired baseline.
-    assert deploy.verify_stage(args['stage'])['protected_runtime_sources']!=deploy.verify_stage(previous)['protected_runtime_sources']
+    assert deploy.verify_stage(args['stage'])['protected_runtime_sources']!=deploy.verify_handoff_baseline(previous)['protected_runtime_sources']
     selected=json.loads(args['forecast_config'].read_bytes())
     assert selected['schema']=='earthship-weathernext-thermal-live-config/v1'
     result=m.prepare(family,previous_forecast_stage=previous,previous_score_stage=previous,output=out,guard=lambda:None)

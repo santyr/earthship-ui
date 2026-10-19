@@ -13742,6 +13742,20 @@
       "Forecast_Tomorrow_PrecipProb"
     ],
     "retained_forecast_writer": "weathernext-publish.service; all eleven ownership records marked prepared, not live applied",
-    "tomorrow_source_verification": "Five focused source/migration tests passed in 0.07 seconds; obsolete third-index argument observed failing then fixed; 156 unrelated ownership records unchanged; old apply approval revoked. No JDBC, containers, recovery workflow or live Item changes."
+    "tomorrow_source_verification": "Five focused source/migration tests passed in 0.07 seconds; obsolete third-index argument observed failing then fixed; 156 unrelated ownership records unchanged; old apply approval revoked. No JDBC, containers, recovery workflow or live Item changes.",
+    "google_only_operational_callers": [
+      "household_cycle.py",
+      "household_forecast_score.py",
+      "household_cycle_deploy.py"
+    ],
+    "score_dispatch_contract": "earthship-native-score-dispatch/v2; current plus explicitly pinned Google receipt-serving history, no legacy selector/executor; writer, daily package, handoff and installer updated together",
+    "handoff_baseline_verifier": "verify_handoff_baseline: detached source/preimage integrity only; active verify_stage rejects retired deployment selection",
+    "operational_caller_verification": "256 passed across 30 affected modules in 72.16 seconds in clean isolated export f85dff5d8f1b40811e68b0b71f3138a896bfd255; 23 changed Python/test files match. Thirteen new retirement cases, actual fourteen-parameter fit evidence, source/report reconstruction, staging/handoff/daily/retained worker/memory-event regressions; no production qualification claim.",
+    "remaining_standalone_legacy_entrypoints": [
+      "provisional_thermal.py",
+      "thermal_installed_intel.py",
+      "thermal_model/provisional_live.py",
+      "thermal_model/installed_shade_live_inputs.py"
+    ]
   }
 }

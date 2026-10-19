@@ -65,8 +65,8 @@ def _install_files(output,*,guard,_undo_log=None):
     def stage_record(path):
         if record['schema']=='earthship-native-thermal-handoff/v3' and path==stages[1]:
             return deploy.verify_stage(path,expected_deployment_sha256=record['previous_deployment_sha256']['forecast'])
-        if path==stage and serving:return deploy.verify_stage(path,expected_deployment_sha256=selected['deployment_sha256'])
-        return deploy.verify_stage(path)
+        if path==stage:return deploy.verify_stage(path,**({'expected_deployment_sha256':selected['deployment_sha256']} if serving else {}))
+        return deploy.verify_handoff_baseline(path)
     stage_records=[stage_record(path) for path in stages]
     root=deploy._path(record['originals']['forecast_service']['path']).parent
     own=deploy._bytes(Path(__file__));changes=[]

@@ -34,3 +34,47 @@ Private immutable receipt: `658f9d2049c0db2688de0e6da9181c4dba9603bdc482a4cc584b
 Fifteen focused Google configuration/routing/source tests cover both profiles, field/path damage, read-only SQLite access, lazy collection, original Google publication, owned receipt preparation/driver/score routing, older archived scoring, and differing-source Google staging with an incumbent negative control. The complete relevant native preparation/publication/deployment/scoring set passed **115 tests in 18.89 seconds**. The pinned WeatherNext suite passed **175 tests in 6.142 seconds**. Native input/runtime/household weather/physical energy regressions passed **140 tests in 55.87 seconds**. The final staging-only fix was followed by the complete 115-test relevant set; no numerical/model code changed. Tests run in an immutable Git export, without changing live or working source permissions.
 
 Real installation, final Google-only code/configuration removal, fresh weather-dependent Google/local fitting, variable/regime/outcome and prospective interval qualification, production release ownership and retained publication attempts, natural publication and final whole-branch review remain required. The existing production service still selects its incumbent configuration. No resource policy, actuator/notification authority or recovery scope changed.
+
+## Operational caller and score-dispatch retirement
+
+The prepared household publisher, score coordinator and deployment/runtime verifier
+now select only the two Google configuration profiles. They no longer construct
+the provisional producer, translate its forecast credential, refresh its metric
+report or run a non-native archived scorer. Literal Google profile checks also
+prevent an archived module's schema aliases from re-enabling an old factory.
+
+Score dispatch is now earthship-native-score-dispatch/v2, with exactly schema,
+current and historical. A fresh Google cohort starts with an empty historical
+list. Retained entries must be independently pinned Google receipt-serving stages
+and configurations. The family writer, scheduled training package, dispatch reader,
+handoff and installer use this contract together. Version-1 dispatch records are
+not accepted or rewritten in place. The unused legacy executor is removed.
+The existing 63-stage inventory bound, 31-model process envelope, rotating native
+slots, shared lock, source checks and deadlines are unchanged.
+
+A separate verify_handoff_baseline verifies prior stage/preimage bytes for
+ownership transfer only. Active verify_stage rejects the retired deployment
+profile and validates the new candidate. The metadata reader does not construct
+an old producer or initialize the fresh model from old weights. Initial cutover
+can retain original service/configuration preimages without retaining an active
+legacy scorer. Later Google upgrades retain their explicit Google score history.
+
+Verification: **256 tests passed across 30 affected modules in 72.16 seconds**,
+using shared host admission and a committed isolated export
+f85dff5d8f1b40811e68b0b71f3138a896bfd255. All 23 changed Python/test files matched
+that clean export. Coverage includes the thirteen new retirement regressions,
+genuine fourteen-parameter fit evidence, native score/report reconstruction,
+historical selection, source/candidate identity, staged handoff/installation
+integrity, daily training and real memory-event protection. These are development
+tests, not site skill or a production qualification report.
+
+The published predecessor's Forecast ML run found two stale source-closure test
+parameters for removed capture helpers. They now exercise the actual neutral
+weather_source_files.py and openhab_runtime_io.py dependencies; the focused
+43-case verification passed before the complete affected suite. The old helpers
+were not restored to satisfy those assertions.
+
+Standalone obsolete CLIs/loaders and the remaining provider/worker source graph
+still need retirement before the final source freeze, fresh release fitting and
+attended cutover. Installed services, models, credentials, binding/links, root UI
+overlays and actuator authority were unchanged. No recovery rehearsal ran.

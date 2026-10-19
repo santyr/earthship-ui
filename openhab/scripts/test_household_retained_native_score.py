@@ -69,7 +69,7 @@ def outer_context(tmp_path,monkeypatch):
     import native_model_serving_receipt as admission
     from test_household_forecast_score import runtime_setup
     from test_household_score_pressure import monitor
-    config,now=runtime_setup(tmp_path,monkeypatch)
+    config,now=runtime_setup(tmp_path,monkeypatch,mock_native_pressure=False)
     settings=json.loads(config.read_bytes());settings['schema']=live.SERVING_SCHEMA
     config.write_text(json.dumps(settings));config.chmod(0o600)
     (tmp_path/'cycle.json').write_text(json.dumps(dict(forecast_config=str(config))))

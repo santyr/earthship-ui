@@ -31,36 +31,40 @@ def archive(tmp_path,monkeypatch,body):
     tmp_path.chmod(0o700);stage=tmp_path/'old';stage.mkdir(mode=0o700)
     script=stage/'sources/openhab/scripts/household_forecast_score.py';script.parent.mkdir(parents=True)
     script.write_text(body);manifest=stage/'deployment.json';manifest.write_text('{}');manifest.chmod(0o600)
+    config=stage/'forecast.json';config.write_text(json.dumps({'schema':'earthship-weathernext-thermal-live-config/v2'}));config.chmod(0o600)
+    cycle=stage/'cycle.json';cycle.write_text(json.dumps({'forecast_config':str(config)}));cycle.chmod(0o600)
     source_hash=sha256(script.read_bytes()).hexdigest()
     monkeypatch.setattr(deploy,'__file__',str(script.parent/'household_cycle_deploy.py'))
-    monkeypatch.setattr(deploy,'verify_stage',lambda actual,**kwargs:dict(source_manifest={'openhab/scripts/household_forecast_score.py':source_hash}))
+    monkeypatch.setattr(deploy,'verify_stage',lambda actual,**kwargs:dict(schema='earthship-household-cycle-deployment/v3',source_manifest={'openhab/scripts/household_forecast_score.py':source_hash}))
     return stage,script,sha256(manifest.read_bytes()).hexdigest()
 
 
-def test_retained_legacy_worker_runs_original_function_with_its_original_stage(tmp_path,monkeypatch):
+def test_retired_worker_cannot_run_original_function_with_its_original_stage(tmp_path,monkeypatch):
     native=False
     stage,script,pin=archive(tmp_path,monkeypatch,"def run(config, **kwargs):\n return dict(status='waiting',config=str(config),stage=str(kwargs['stage']),native=kwargs.get('retained_native',False),pin=kwargs.get('deployment_sha256'))\n")
-    result=score.run_retained_worker(script,tmp_path/'config.json',stage=stage,deployment_sha256=pin,retained_native=native)
-    assert result==dict(status='waiting',config=str(tmp_path/'config.json'),stage=str(stage),native=native,pin=pin if native else None)
+    with pytest.raises(ValueError,match='Google-only'):
+        score.run_retained_worker(script,stage/'forecast.json',stage=stage,deployment_sha256=pin,retained_native=native)
 
 
 def test_retained_worker_refuses_source_drift_before_executing(tmp_path,monkeypatch):
     stage,script,pin=archive(tmp_path,monkeypatch,"raise AssertionError('must not execute')\n")
     script.write_text(script.read_text()+'# changed\n')
-    with pytest.raises(ValueError):score.run_retained_worker(script,tmp_path/'config',stage=stage,deployment_sha256=pin,retained_native=False)
+    with pytest.raises(ValueError):score.run_retained_worker(script,stage/'forecast.json',stage=stage,deployment_sha256=pin,retained_native=False)
 
 
 def test_retained_worker_refuses_external_manifest_drift(tmp_path,monkeypatch):
     stage,script,pin=archive(tmp_path,monkeypatch,"raise AssertionError('must not execute')\n")
     (stage/'deployment.json').write_text('{ }')
-    with pytest.raises(ValueError):score.run_retained_worker(script,tmp_path/'config',stage=stage,deployment_sha256=pin,retained_native=False)
+    with pytest.raises(ValueError):score.run_retained_worker(script,stage/'forecast.json',stage=stage,deployment_sha256=pin,retained_native=False)
 
 
-def test_archived_exception_reaches_current_secret_free_cli(tmp_path,monkeypatch,capsys):
+def test_retired_archive_refusal_reaches_current_secret_free_cli(tmp_path,monkeypatch,capsys):
     stage,script,pin=archive(tmp_path,monkeypatch,"def run(*args, **kwargs):\n raise OSError('private connection details')\n")
-    result=score.main(['--config',str(tmp_path/'config'),'--stage',str(stage),'--worker-script',str(script),'--worker-deployment-sha256',pin])
+    result=score.main(['--config',str(stage/'forecast.json'),'--stage',str(stage),'--worker-script',str(script),'--worker-deployment-sha256',pin])
     assert result==1
-    assert json.loads(capsys.readouterr().out)==dict(status='score_withheld',reason='io_unavailable',site=dict(source='household_forecast_score.py',line=2),fit_executed=False,automatic_actuation=False)
+    result=json.loads(capsys.readouterr().out)
+    site=result.pop('site');assert site['source']=='household_forecast_score.py'
+    assert result==dict(status='score_withheld',reason='validation_refused',fit_executed=False,automatic_actuation=False)
 
 
 def test_retained_worker_rejects_mixed_dependency_context(tmp_path,monkeypatch):
@@ -68,8 +72,8 @@ def test_retained_worker_rejects_mixed_dependency_context(tmp_path,monkeypatch):
     original_file=deploy.__file__
     stage,script,pin=archive(tmp_path,monkeypatch,"raise AssertionError('must not execute')\n")
     monkeypatch.setattr(deploy,'__file__',original_file)
-    with pytest.raises(ValueError,match='dependency context'):
-        score.run_retained_worker(script,tmp_path/'config',stage=stage,deployment_sha256=pin,retained_native=False)
+    with pytest.raises(ValueError,match='Google-only'):
+        score.run_retained_worker(script,stage/'forecast.json',stage=stage,deployment_sha256=pin,retained_native=False)
 
 
 def test_python_safe_path_keeps_archived_dependencies_in_the_child(tmp_path):
@@ -82,34 +86,17 @@ def test_python_safe_path_keeps_archived_dependencies_in_the_child(tmp_path):
     assert output.strip()=='retained'
 
 
-def test_legacy_dispatch_reenters_reporting_wrapper_with_archived_dependencies(tmp_path,monkeypatch):
-    import os
-    import household_cycle_deploy as deploy
-    stage,script,pin=archive(tmp_path,monkeypatch,"def run(*args, **kwargs): return dict(status='waiting')\n")
-    config=stage/'forecast.json';config.write_text('{}');config.chmod(0o600)
-    record=dict(schema='earthship-household-cycle-deployment/v1',source_manifest={
-        'openhab/scripts/household_forecast_score.py':sha256(script.read_bytes()).hexdigest()})
-    monkeypatch.setattr(deploy,'verify_stage',lambda actual,**kwargs:record)
-    seen=[]
-    monkeypatch.setattr(os,'execve',lambda *args:seen.append(args))
-    selection=dict(stage=str(stage),deployment_sha256=pin,config=str(config),config_sha256=sha256(config.read_bytes()).hexdigest())
-    score.execute_legacy_score(selection)
-    executable,args,environment=seen.pop()
-    assert args==[executable,'-P',str(Path(score.__file__).resolve()),'--worker-script',str(script),
-        '--worker-deployment-sha256',pin,'--config',str(config),'--stage',str(stage)]
-    assert environment['PYTHONPATH']==str(script.parent)+':/home/sat/Solar_PV/analytics/src'
-    config.write_text('{ }')
-    with pytest.raises(ValueError):score.execute_legacy_score(selection)
-    assert seen==[]
+def test_retired_dispatch_executor_cannot_reenter_any_archived_dependency():
+    assert not hasattr(score,'execute_legacy_score')
 
 
-def test_legacy_worker_supports_original_bytes_helper_signature(tmp_path,monkeypatch):
+def test_retired_worker_does_not_consult_original_bytes_helper(tmp_path,monkeypatch):
     import household_cycle_deploy as deploy
-    stage,script,pin=archive(tmp_path,monkeypatch,"def run(*args, **kwargs): return dict(status='waiting')\n")
-    original=deploy._bytes
-    def legacy_bytes(path,*,private=False):return original(path,private=private)
-    monkeypatch.setattr(deploy,'_bytes',legacy_bytes)
-    assert score.run_retained_worker(script,tmp_path/'config',stage=stage,deployment_sha256=pin,retained_native=False)==dict(status='waiting')
+    stage,script,pin=archive(tmp_path,monkeypatch,"raise AssertionError('must not execute')\n")
+    def forbidden(*args,**kwargs):pytest.fail('retired worker read archived source')
+    monkeypatch.setattr(deploy,'_bytes',forbidden)
+    with pytest.raises(ValueError,match='Google-only'):
+        score.run_retained_worker(script,stage/'forecast.json',stage=stage,deployment_sha256=pin,retained_native=False)
 
 
 @pytest.mark.parametrize('message',[
@@ -136,13 +123,13 @@ def test_failure_site_omits_external_code_and_invalid_source_paths():
         except ValueError as error:assert score.failure_site(error) is None
 
 
-def test_retained_entrypoint_own_policy_loader_uses_current_admission(tmp_path,monkeypatch):
-    body="def production_resource_preflight():\n raise ValueError('retired pinned limits')\ndef run(config, **kwargs):\n production_resource_preflight()\n return dict(status='waiting')\n"
-    stage,script,pin=archive(tmp_path,monkeypatch,body)
+def test_retired_entrypoint_cannot_request_even_current_admission(tmp_path,monkeypatch):
+    stage,script,pin=archive(tmp_path,monkeypatch,"raise AssertionError('must not execute')\n")
     calls=[]
     monkeypatch.setattr(score,'production_resource_preflight',lambda:calls.append('current'))
-    assert score.run_retained_worker(script,tmp_path/'config',stage=stage,deployment_sha256=pin,retained_native=False)==dict(status='waiting')
-    assert calls==['current','current']
+    with pytest.raises(ValueError,match='Google-only'):
+        score.run_retained_worker(script,stage/'forecast.json',stage=stage,deployment_sha256=pin,retained_native=False)
+    assert calls==[]
 
 
 def test_retained_native_worker_uses_current_orchestration_with_original_archive(tmp_path,monkeypatch):
@@ -153,7 +140,7 @@ def test_retained_native_worker_uses_current_orchestration_with_original_archive
         resource_preflight();source_guard();verify_archive()
         return dict(status='waiting',automatic_actuation=False)
     monkeypatch.setattr(score,'production_retained_runner',lambda:types.SimpleNamespace(run=current))
-    assert score.run_retained_worker(script,tmp_path/'config',stage=stage,deployment_sha256=pin,
+    assert score.run_retained_worker(script,stage/'forecast.json',stage=stage,deployment_sha256=pin,
         retained_native=True,monotonic=lambda:0.)==dict(status='waiting',automatic_actuation=False)
 
 
@@ -162,4 +149,4 @@ def test_current_retained_helper_source_drift_refuses_before_archive_runs(tmp_pa
     helper=tmp_path/'household_retained_native_score.py';helper.write_text("raise AssertionError('unverified helper executed')\n");helper.chmod(0o600)
     monkeypatch.setattr(score,'__file__',str(tmp_path/'household_forecast_score.py'))
     with pytest.raises(ValueError,match='retained coordinator source differs'):
-        score.run_retained_worker(script,tmp_path/'config',stage=stage,deployment_sha256=pin,retained_native=True)
+        score.run_retained_worker(script,stage/'forecast.json',stage=stage,deployment_sha256=pin,retained_native=True)

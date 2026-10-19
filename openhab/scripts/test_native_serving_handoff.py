@@ -10,7 +10,7 @@ def fixture(tmp_path,monkeypatch):
     deploy,args,settings,helper,libraries,pin=stage(tmp_path,monkeypatch)
     import household_native_family as family,household_native_handoff as handoff
     output=tmp_path/'family';family.prepare(args['stage'],libraries,output,guard=lambda:None,deployment_sha256=pin)
-    dispatch=json.loads(args['score_dispatch_path'].read_bytes());previous=Path(dispatch['legacy']['stage']);config=Path(dispatch['legacy']['config'])
+    previous=tmp_path/'legacy';config=args['service_forecast_config']
     root=args['service_file'].parent
     old_forecast=(previous/'service.conf').read_bytes();old_score=handoff._score_override(previous,config)
     write(root/'thermal-provisional-forecast.service.d/zzzz-household-cycle.conf',old_forecast)
@@ -30,7 +30,7 @@ def fixture(tmp_path,monkeypatch):
     return deploy,handoff,args,previous,output,tmp_path/'handoff',pin,old_forecast,old_score
 
 
-def test_handoff_retains_legacy_score_selection_and_pinned_family_forecast(tmp_path,monkeypatch):
+def test_handoff_uses_detached_baseline_and_pinned_google_family_forecast(tmp_path,monkeypatch):
     deploy,handoff,args,previous,family,output,pin,old_forecast,old_score=fixture(tmp_path,monkeypatch)
     handoff.prepare(family,previous_forecast_stage=previous,previous_score_stage=previous,output=output,guard=lambda:None)
     record=handoff.verify(output,guard=lambda:None)

@@ -85,7 +85,7 @@ def serving(tmp_path,originals):
     from weather_learning.archive import Archive
     settings['weather_source']=source(Archive(tmp_path/'google').root)
     config=private('forecast.json',settings);cycle=private('cycle.json',{'forecast_config':str(config)})
-    dispatch=private('score-dispatch.json',{'schema':'earthship-native-score-dispatch/v1','current':'current','legacy':None,'historical':[]})
+    dispatch=private('score-dispatch.json',{'schema':'earthship-native-score-dispatch/v2','current':'current','historical':[]})
     dropin=stage/'service.conf';dropin.write_bytes(b'[Service]\n');dropin.chmod(0o600)
     helper=root/'openhab/scripts/native_model_serving_receipt.py'
     record=dict(schema='earthship-household-cycle-deployment/v3',code_revision='e'*40,stage=str(stage),service_file=str(dropin),original_bindings={str(config):sha256(config.read_bytes()).hexdigest(),str(path):sha256(path.read_bytes()).hexdigest()},source_manifest=sources,protected_runtime_sources=runtime['base_runtime']['source_manifest'],cycle_sha256=sha256(cycle.read_bytes()).hexdigest(),dropin_sha256=sha256(dropin.read_bytes()).hexdigest(),automatic_actuation=False,native_runtime_sources=runtime['native_source_manifest'],native_originals=candidate['originals'],artifact_sha256=candidate['artifact_sha256'],runtime_sha256=candidate['runtime_sha256'],model_verification={'receipt':{'path':str(receipt),'sha256':sha256(receipt.read_bytes()).hexdigest()},'helper':{'path':str(helper),'sha256':sha256(helper.read_bytes()).hexdigest()}},score_dispatch={'path':str(dispatch),'sha256':sha256(dispatch.read_bytes()).hexdigest()})

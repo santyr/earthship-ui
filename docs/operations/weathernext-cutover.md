@@ -83,3 +83,15 @@ are preserved. All 211 package tests pass; systemd accepts both uninstalled unit
 The live registry correctly refuses the still-active three incumbent timers. No
 private release grant, installed publisher, service stop or source cutover was
 performed. Complete release evidence and source retirement before activation.
+
+## Household caller retirement prepared (October 18)
+
+The [native selection record](2026-10-18-weathernext-native-selection.md) now
+documents Google-only publication/scoring/staging factories and score dispatch v2.
+The new dispatch retains only pinned Google history and no legacy scorer. Handoff
+preimages use a separate metadata-only verifier; active model verification and
+resource/evidence safeguards remain. All 256 cases in 30 affected modules passed
+in 72.16 seconds from a committed isolated export. This increment also corrects
+two stale source-closure assertions discovered by predecessor CI. Current-head
+full CI, remaining standalone legacy source removal, final source freeze/fresh
+release fits and attended activation are still required; nothing was deployed.

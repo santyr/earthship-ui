@@ -33,8 +33,44 @@ def fixture(tmp_path):
         observation_cache=cache_parent/'observation.json',service_file=unit,code_revision=revision),files
 
 
+def active_fixture(tmp_path):
+    from test_native_household_deploy import native_fixture
+    args,files,*_=native_fixture(tmp_path)
+    return args,files
+
+
+def baseline_metadata_stage(args):
+    """Build detached historical fixture bytes; no legacy producer is invoked."""
+    stage=args['stage'];stage.mkdir(mode=0o700);root=stage/'sources';root.mkdir(mode=0o700)
+    sources={}
+    for path in args['repo_root'].rglob('*'):
+        if not path.is_file() or '.git' in path.parts:continue
+        name=str(path.relative_to(args['repo_root']))
+        if not (name.endswith(('.py','.java')) or name in ('openhab/managed-resources.json','openhab/file-config/ownership.json')):continue
+        raw=path.read_bytes();write(root/name,raw,0o644);sources[name]=sha256(raw).hexdigest()
+    settings=json.loads(args['forecast_config'].read_bytes())
+    candidate=Path(settings['candidate_path']);body=json.loads(candidate.read_bytes())
+    (stage/'evidence').mkdir(mode=0o700)
+    cycle=dict(schema='earthship-household-cycle-config/v1',forecast_config=str(args['forecast_config']),
+        retained_energy_parameters=str(args['parameters']),parameters_sha256=args['parameters_sha256'],
+        evidence_directory=str(stage/'evidence'),observation_cache=str(args['observation_cache']))
+    write(stage/'cycle.json',encode(cycle))
+    scripts=root/'openhab/scripts'
+    dropin=('[Service]\nEnvironment="PYTHONPATH='+str(scripts)+':/home/sat/Solar_PV/analytics/src"\n'
+        'ExecStart=\nExecStart=/usr/bin/python3 '+str(scripts/'household_cycle.py')+' --config '+str(stage/'cycle.json')+
+        ' --forecast-config '+str(args['forecast_config'])+' --code-revision '+args['code_revision']+'\n')
+    write(stage/'service.conf',dropin.encode())
+    inputs={str(path):sha256(path.read_bytes()).hexdigest() for path in
+        (args['forecast_config'],candidate,args['parameters'],args['service_file'])}
+    record=dict(schema='earthship-household-cycle-deployment/v1',code_revision=args['code_revision'],
+        stage=str(stage),service_file=str(args['service_file']),original_bindings=inputs,source_manifest=sources,
+        protected_runtime_sources=body['runtime']['source_manifest'],cycle_sha256=sha256((stage/'cycle.json').read_bytes()).hexdigest(),
+        dropin_sha256=sha256((stage/'service.conf').read_bytes()).hexdigest(),automatic_actuation=False)
+    write(stage/'deployment.json',encode(record))
+
+
 def test_stage_preserves_core_and_registry_layout_with_private_configuration(tmp_path):
-    args,files=fixture(tmp_path)
+    args,files=active_fixture(tmp_path)
     result=api().stage_deployment(**args)
     assert result['status']=='deployment_staged'
     assert api().verify_stage(args['stage'])['code_revision']==args['code_revision']
@@ -48,7 +84,7 @@ def test_stage_preserves_core_and_registry_layout_with_private_configuration(tmp
 
 
 def test_new_candidate_config_preserves_original_service_and_binds_both_configs(tmp_path):
-    args,_=fixture(tmp_path);baseline=args['forecast_config'];old=json.loads(baseline.read_bytes())
+    args,_=active_fixture(tmp_path);baseline=args['service_forecast_config'];old=json.loads(args['forecast_config'].read_bytes())
     candidate=baseline.parent/'next-candidate.json';write(candidate,Path(old['candidate_path']).read_bytes())
     config=baseline.parent/'next-forecast.json';write(config,encode({**old,'candidate_path':str(candidate)}))
     unit=args['service_file'].read_bytes();args.update(forecast_config=config,service_forecast_config=baseline)
@@ -59,7 +95,7 @@ def test_new_candidate_config_preserves_original_service_and_binds_both_configs(
 
 
 def test_candidate_selection_cannot_change_existing_source_settings(tmp_path):
-    args,_=fixture(tmp_path);baseline=args['forecast_config'];old=json.loads(baseline.read_bytes())
+    args,_=active_fixture(tmp_path);baseline=args['service_forecast_config'];old=json.loads(args['forecast_config'].read_bytes())
     config=baseline.parent/'next-forecast.json';write(config,encode({**old,'openhab_base':'different'}))
     args.update(forecast_config=config,service_forecast_config=baseline)
     with pytest.raises(ValueError):api().stage_deployment(**args)
@@ -67,7 +103,7 @@ def test_candidate_selection_cannot_change_existing_source_settings(tmp_path):
 
 @pytest.mark.parametrize('damage',['dirty','core','parameters','weak_limits','symlink'])
 def test_bad_sources_refuse_before_creating_package(damage,tmp_path):
-    args,_=fixture(tmp_path);repo=args['repo_root']
+    args,_=active_fixture(tmp_path);repo=args['repo_root']
     if damage in ('dirty','core'):
         write(repo/'openhab/scripts/provisional_thermal.py',b'changed\n',0o644)
         if damage=='core':
@@ -84,7 +120,7 @@ def test_bad_sources_refuse_before_creating_package(damage,tmp_path):
 
 @pytest.mark.parametrize('damage',['source','extra_source','unit','config','parameters'])
 def test_changed_package_or_live_original_refuses_verification(damage,tmp_path):
-    args,_=fixture(tmp_path);api().stage_deployment(**args)
+    args,_=active_fixture(tmp_path);api().stage_deployment(**args)
     if damage=='source':(args['stage']/'sources/openhab/scripts/provisional_thermal.py').write_bytes(b'changed')
     if damage=='extra_source':write(args['stage']/'sources/openhab/scripts/household/injected.py',b'pass',0o644)
     if damage=='unit':args['service_file'].write_bytes(b'changed')
@@ -94,7 +130,7 @@ def test_changed_package_or_live_original_refuses_verification(damage,tmp_path):
 
 
 def apply_fixture(tmp_path,monkeypatch):
-    args,_=fixture(tmp_path);api().stage_deployment(**args);calls=[]
+    args,_=active_fixture(tmp_path);api().stage_deployment(**args);calls=[]
     monkeypatch.setattr(api(),'_qualify',lambda stage:calls.append('qualified'),raising=False)
     def state(service):
         dropin=service.parent/(service.name+'.d')/'zzzz-household-cycle.conf'
@@ -143,7 +179,7 @@ def test_active_original_worker_prevents_handoff(tmp_path,monkeypatch):
 
 @pytest.mark.parametrize('valid',[True,False])
 def test_runtime_probe_is_capped_and_bound_to_exact_package(valid,tmp_path,monkeypatch):
-    args,_=fixture(tmp_path);api().stage_deployment(**args);calls=[]
+    args,_=active_fixture(tmp_path);api().stage_deployment(**args);calls=[]
     identity=sha256((args['stage']/'deployment.json').read_bytes()).hexdigest()
     def execute(command,**kw):
         calls.append(command)
@@ -161,7 +197,7 @@ def test_runtime_probe_is_capped_and_bound_to_exact_package(valid,tmp_path,monke
 
 
 def test_source_edit_after_cleanliness_check_cannot_masquerade_as_commit(tmp_path,monkeypatch):
-    args,files=fixture(tmp_path);original=api()._git
+    args,files=active_fixture(tmp_path);original=api()._git
     changed=args['repo_root']/'openhab/scripts/household_cycle.py'
     def git(repo,*command):
         result=original(repo,*command)
@@ -176,7 +212,7 @@ def test_source_edit_after_cleanliness_check_cannot_masquerade_as_commit(tmp_pat
 
 
 def test_index_edit_after_clean_check_cannot_omit_committed_entrypoint(tmp_path,monkeypatch):
-    args,files=fixture(tmp_path);original=api()._git
+    args,files=active_fixture(tmp_path);original=api()._git
     def git(repo,*command):
         result=original(repo,*command)
         if command[:2]==('status','--porcelain'):
@@ -193,16 +229,17 @@ def test_index_edit_after_clean_check_cannot_omit_committed_entrypoint(tmp_path,
 
 @pytest.mark.parametrize('helper', ['regular', 'missing', 'symlink'])
 def test_native_worker_stage_retains_its_exact_java_source_or_refuses(helper, tmp_path):
-    args, _ = fixture(tmp_path); repo = args['repo_root']
+    args, _ = active_fixture(tmp_path); repo = args['repo_root']
     worker = repo/'openhab/scripts/astro_geometry_worker.py'
-    write(worker, b'bounded native worker\n', 0o644)
-    java = repo/'scripts/java/NativeSolarGeometry.java'; original = b'class NativeSolarGeometry {}\n'
-    if helper == 'regular': write(java, original, 0o644)
+    java = repo/'scripts/java/NativeSolarGeometry.java'
+    assert worker.is_file() and java.is_file()
+    original = java.read_bytes()
+    if helper == 'missing':java.unlink()
     if helper == 'symlink':
-        java.parent.mkdir(parents=True); java.symlink_to('../../openhab/scripts/household_cycle.py')
+        java.unlink();java.symlink_to('../../openhab/scripts/household_cycle.py')
     subprocess.run(['git', '-C', str(repo), 'add', '.'], check=True, capture_output=True)
     subprocess.run(['git', '-C', str(repo), '-c', 'user.name=Test', '-c', 'user.email=test@example.invalid',
-                    'commit', '-qm', 'native worker'], check=True, capture_output=True)
+                    'commit', '--allow-empty', '-qm', 'native worker'], check=True, capture_output=True)
     args['code_revision'] = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'], text=True).strip()
     if helper != 'regular':
         with pytest.raises(ValueError): api().stage_deployment(**args)

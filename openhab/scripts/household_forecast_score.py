@@ -162,6 +162,8 @@ def production_score_policy():
 
 
 def score_with_report(settings,*,guard,clock=lambda:datetime.now(timezone.utc),queue=False,serving_model=None,historical_selections=()):
+    if not isinstance(settings,dict) or settings.get('schema') not in ('earthship-weathernext-thermal-live-config/v1','earthship-weathernext-thermal-live-config/v2'):
+        raise ValueError('Google-only native score configuration required')
     import native_thermal_live as native
     SERVING_SCHEMAS=getattr(native,'SERVING_SCHEMAS',(native.SERVING_SCHEMA,))
     LIVE_SCHEMAS=getattr(native,'LIVE_SCHEMAS',(native.LIVE_SCHEMA,))
@@ -183,32 +185,15 @@ def score_with_report(settings,*,guard,clock=lambda:datetime.now(timezone.utc),q
         from native_thermal_live import score_jobs
         guard()
         return score_jobs(settings,guard=guard)
-    from thermal_model import provisional_monitor as monitor
-    guard();now=clock();runtime=monitor.current_runtime()
-    candidate=monitor.read_candidate(Path(settings['candidate_path']),assessed_at=now,runtime=runtime)
-    score_jobs=monitor.score_jobs
-    if queue:
-        from household_score_queue import score_jobs
-    try:return score_jobs(settings,guard=guard)
-    except ValueError as error:
-        if str(error)!='original mature outcome unavailable':raise
-    # Original refresh replays pair validation and checks every retained source
-    # fingerprint. Missing/corrupt completed originals cannot become a report.
-    guard()
-    report=monitor.refresh_report(settings,artifact_sha256=candidate['artifact_sha256'],now=clock(),guard=guard)
-    guard()
-    return dict(status='monitoring_refreshed',scored=0,
-        current_revision_scored=sum(row['model']['count'] for row in report['by_horizon'].values()),
-        pending_reason='mature_outcome_unavailable',automatic_actuation=False)
+    raise ValueError('Google-only native score configuration required')
 
 
 def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic):
     started=monotonic()
     import os
     _resource_preflight=production_resource_preflight
-    from thermal_model.provisional_live import load_settings,_next_issue
+    from thermal_model.provisional_live import _next_issue
     from thermal_model.capture_guard import SharedScoreLock
-    from thermal_model.training_pressure_guard import TrainingHeadroom
     from thermal_model.policy_registration import _read_private
     from household_observation import _private_file
     deadline=started+SCORE_LIFETIME_SECONDS
@@ -220,9 +205,9 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
     import native_thermal_live as native
     NATIVE_SCHEMAS=getattr(native,'NATIVE_SCHEMAS',(native.LIVE_SCHEMA,native.SERVING_SCHEMA))
     SERVING_SCHEMAS=getattr(native,'SERVING_SCHEMAS',(native.SERVING_SCHEMA,))
-    if isinstance(declared,dict) and declared.get('schema') in NATIVE_SCHEMAS:
-        from native_thermal_live import load_settings
-    settings=load_settings(config)
+    if not isinstance(declared,dict) or declared.get('schema') not in ('earthship-weathernext-thermal-live-config/v1','earthship-weathernext-thermal-live-config/v2'):
+        raise ValueError('Google-only native score configuration required')
+    settings=native.load_settings(config)
     receipt_profile=settings.get('schema') in SERVING_SCHEMAS
     if retained_native and not receipt_profile:raise ValueError('retained native execution requires explicit serving profile')
     if receipt_profile and (stage is None or deployment_sha256 is None):raise ValueError('external serving score stage pin required')
@@ -268,12 +253,9 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
             # original model association, without restarting the lifetime.
 
     with SharedScoreLock(settings['shared_lock']) as lock:
-        if settings.get('schema') in NATIVE_SCHEMAS:
-            from native_inference_pressure import NativeInferenceHeadroom
-            pressure=NativeInferenceHeadroom();pressure.preflight()
-            pressure=SampledScorePressure(pressure,monotonic=monotonic)
-        else:
-            pressure=TrainingHeadroom(max_swapin_bytes_per_second=1048576)
+        from native_inference_pressure import NativeInferenceHeadroom
+        pressure=NativeInferenceHeadroom();pressure.preflight()
+        pressure=SampledScorePressure(pressure,monotonic=monotonic)
         def guard():
             lock.verify();pressure.check()
             if monotonic()>=deadline or clock()>=issue-timedelta(seconds=135):raise ValueError('score lifetime elapsed')
@@ -424,12 +406,12 @@ def failure_site(error):
 def run_retained_worker(script,config,*,stage,deployment_sha256,retained_native,
         deadline=None,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic):
     """Keep archived numerics; use current operational policy and native clocks."""
+    if retained_native is not True:raise ValueError('Google-only native retained scoring required')
     import math
     started=monotonic()
     if not math.isfinite(started):raise ValueError('score lifetime elapsed')
     stop=started+SCORE_LIFETIME_SECONDS if deadline is None else min(deadline,started+SCORE_LIFETIME_SECONDS)
     if not math.isfinite(stop) or started>=stop:raise ValueError('score lifetime elapsed')
-    import runpy
     from hashlib import sha256
     import household_cycle_deploy as deploy
     stage=deploy._path(stage);script=deploy._path(script)
@@ -448,12 +430,21 @@ def run_retained_worker(script,config,*,stage,deployment_sha256,retained_native,
     original=deploy._bytes(script)
     if sha256(original).hexdigest()!=record['source_manifest'].get(source):
         raise ValueError('retained worker source changed')
+    if record.get('schema')!='earthship-household-cycle-deployment/v3':
+        raise ValueError('Google-only receipt-serving retained stage required')
+    from household.codec import loads
+    config=deploy._path(config);cycle_path=stage/'cycle.json'
+    cycle_raw=deploy._bytes(cycle_path,private=True);config_raw=deploy._bytes(config,private=True)
+    if (len(cycle_raw)>8192 or len(config_raw)>8192 or loads(cycle_raw).get('forecast_config')!=str(config) or
+            loads(config_raw).get('schema')!='earthship-weathernext-thermal-live-config/v2'):
+        raise ValueError('Google-only retained model configuration required')
     if retained_native:
         runner=production_retained_runner()
         own_path=Path(__file__).resolve();own=own_path.read_bytes()
         helper=own_path.with_name('household_retained_native_score.py')
         def source_guard():
             if (own_path.read_bytes()!=own or deploy._bytes(script)!=original or read_manifest()!=manifest or
+                    deploy._bytes(cycle_path,private=True)!=cycle_raw or deploy._bytes(config,private=True)!=config_raw or
                     sha256(_policy_source_bytes(helper)).hexdigest()!=RETAINED_COORDINATOR_SHA256):
                 raise ValueError('retained worker changed during execution')
         def verify_archive():
@@ -466,26 +457,6 @@ def run_retained_worker(script,config,*,stage,deployment_sha256,retained_native,
                 pressure_factory=lambda:SampledScorePressure(production_pressure_monitor(),monotonic=monotonic),
                 source_guard=source_guard,verify_archive=verify_archive,clock=clock,monotonic=monotonic)
         source_guard();return result
-    namespace=runpy.run_path(str(script),run_name='retained_score_worker')
-    if deploy._bytes(script)!=original or read_manifest()!=manifest:
-        raise ValueError('retained worker changed before execution')
-    options=dict(stage=stage)
-    if retained_native:options.update(deployment_sha256=deployment_sha256,retained_native=True)
-    entry=namespace['run']
-    bindings=entry.__globals__
-    replacements={'production_resource_preflight':production_resource_preflight,
-        'production_pressure_monitor':production_pressure_monitor,
-        'production_score_policy':production_score_policy}
-    originals={name:bindings[name] for name in replacements if name in bindings}
-    try:
-        for name in originals:bindings[name]=replacements[name]
-        with production_score_policy():
-            result=entry(config,**options)
-    finally:
-        for name,original_binding in originals.items():bindings[name]=original_binding
-    if deploy._bytes(script)!=original or read_manifest()!=manifest:
-        raise ValueError('retained worker changed during execution')
-    return result
 
 
 def main(argv=None):
@@ -535,14 +506,9 @@ def read_score_dispatch(stage,*,deployment_sha256,guard):
     raw=deploy._bytes(path,private=True,maximum=131072)
     if sha256(raw).hexdigest()!=_sha(ref['sha256']):raise ValueError('owned score dispatch bytes differ')
     value=loads(raw)
-    if (not isinstance(value,dict) or set(value)!={'schema','current','legacy','historical'} or
-        value['schema']!='earthship-native-score-dispatch/v1' or value['current']!='current'):
+    if (not isinstance(value,dict) or set(value)!={'schema','current','historical'} or
+        value['schema']!='earthship-native-score-dispatch/v2' or value['current']!='current'):
         raise ValueError('closed explicit score dispatch required')
-    legacy=value['legacy']
-    if not isinstance(legacy,dict) or set(legacy)!={'stage','deployment_sha256','config','config_sha256'}:
-        raise ValueError('explicit retained legacy score selection required')
-    retained=deploy._path(legacy['stage']);config=deploy._path(legacy['config'])
-    if retained==stage:raise ValueError('legacy score stage must be retained separately')
     def pinned_stage(selected,identity):
         manifest=deploy._bytes(selected/'deployment.json',private=True,maximum=131072)
         if sha256(manifest).hexdigest()!=_sha(identity):raise ValueError('retained score deployment changed')
@@ -550,13 +516,7 @@ def read_score_dispatch(stage,*,deployment_sha256,guard):
         if deploy._bytes(selected/'deployment.json',private=True,maximum=131072)!=manifest:
             raise ValueError('retained score deployment changed during readback')
         return result
-    original=pinned_stage(retained,legacy['deployment_sha256'])
-    if original['schema']!='earthship-household-cycle-deployment/v1':raise ValueError('legacy score profile required')
-    original_config=deploy._bytes(config,private=True,maximum=8192)
-    if sha256(original_config).hexdigest()!=_sha(legacy['config_sha256']):raise ValueError('retained legacy configuration changed')
-    cycle=loads(deploy._bytes(retained/'cycle.json',private=True,maximum=8192))
-    if cycle.get('forecast_config')!=str(config) or loads(original_config).get('schema')!='earthship-provisional-thermal-live-config/v1':
-        raise ValueError('retained legacy cycle configuration differs')
+    historical_originals=[]
     historical=value['historical']
     if not isinstance(historical,list) or len(historical)>63:raise ValueError('bounded explicit historical score selections required')
     seen={str(stage)}
@@ -568,35 +528,19 @@ def read_score_dispatch(stage,*,deployment_sha256,guard):
         seen.add(str(selected))
         if pinned_stage(selected,selection['deployment_sha256'])['schema']!='earthship-household-cycle-deployment/v3':
             raise ValueError('retained historical serving profile required')
+        cycle_path=selected/'cycle.json';cycle_raw=deploy._bytes(cycle_path,private=True,maximum=8192)
+        config=deploy._path(loads(cycle_raw)['forecast_config'])
+        config_raw=deploy._bytes(config,private=True,maximum=8192)
+        if loads(config_raw).get('schema')!='earthship-weathernext-thermal-live-config/v2':
+            raise ValueError('Google-only historical score configuration required')
+        historical_originals.extend(((cycle_path,cycle_raw),(config,config_raw)))
     guard()
-    if (deploy._bytes(path,private=True,maximum=131072)!=raw or deploy._bytes(config,private=True,maximum=8192)!=original_config or
+    if (deploy._bytes(path,private=True,maximum=131072)!=raw or
+        any(deploy._bytes(path,private=True,maximum=8192)!=raw for path,raw in historical_originals) or
         deploy.verify_stage(stage,expected_deployment_sha256=pin)!=record):
         raise ValueError('owned score selection changed during dispatch read')
     return value
 
-
-
-
-def execute_legacy_score(selection):
-    """Replace this invocation with its exact retained worker under the same unit."""
-    import os
-    from hashlib import sha256
-    import household_cycle_deploy as deploy
-    stage=deploy._path(selection['stage']);config=deploy._path(selection['config'])
-    original=deploy._bytes(stage/'deployment.json',private=True,maximum=131072)
-    if sha256(original).hexdigest()!=selection['deployment_sha256']:raise ValueError('retained score deployment changed before execution')
-    record=deploy.verify_stage(stage,expected_deployment_sha256=selection['deployment_sha256'])
-    source='openhab/scripts/household_forecast_score.py';script=stage/'sources'/source
-    if record['schema']!='earthship-household-cycle-deployment/v1' or source not in record['source_manifest']:
-        raise ValueError('retained legacy score source closure required')
-    if (sha256(deploy._bytes(config,private=True,maximum=8192)).hexdigest()!=selection['config_sha256'] or
-        deploy._bytes(stage/'deployment.json',private=True,maximum=131072)!=original or
-        sha256(deploy._bytes(script)).hexdigest()!=record['source_manifest'][source]):
-        raise ValueError('retained score source or config changed before execution')
-    command=['/usr/bin/python3','-P',str(Path(__file__).resolve()),'--worker-script',str(script),
-        '--worker-deployment-sha256',selection['deployment_sha256'],'--config',str(config),'--stage',str(stage)]
-    environment=dict(os.environ,PYTHONPATH=str(stage/'sources/openhab/scripts')+':/home/sat/Solar_PV/analytics/src')
-    os.execve(command[0],command,environment)
 
 
 
