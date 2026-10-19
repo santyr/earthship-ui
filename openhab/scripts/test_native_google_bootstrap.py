@@ -115,3 +115,17 @@ def test_retired_family_does_not_run_the_current_collector_to_requalify_old_geom
     monkeypatch.setattr(worker,'runtime_identity',lambda *a,**kw:pytest.fail('retired native execution was requalified'))
     family.verify_handoff_baseline(old_family,
         expected_deployment_sha256=kwargs['previous_deployment_sha256'],guard=lambda:None)
+
+
+def test_bootstrap_installs_five_owned_files_without_active_retired_verification(tmp_path,monkeypatch):
+    deploy,handoff,new_family,kwargs,targets,old_family=fixture(tmp_path,monkeypatch)
+    import household_native_install as install
+    original=deploy.verify_stage;previous=kwargs['previous_forecast_stage']
+    def active(stage,**kw):
+        if Path(stage)==previous:pytest.fail('retired family entered active installation verification')
+        return original(stage,**kw)
+    monkeypatch.setattr(deploy,'verify_stage',active)
+    handoff.prepare(new_family,**kwargs)
+    result=install._install_files(kwargs['output'],guard=lambda:None)
+    assert result['file_count']==5 and result['automatic_actuation'] is False
+    for role,path in targets.items():assert path.read_bytes()==(new_family/FILES[role]).read_bytes()
