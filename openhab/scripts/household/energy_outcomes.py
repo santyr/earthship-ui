@@ -61,11 +61,11 @@ def seal_energy_outcomes(*,plan_receipt,forecast_source,night_source,plan_runtim
     assessment=None if night_source is None else replay_night_source(night_source)
     forecast=None if forecast_source is None else _forecast(forecast_source,snapshot)
     reason=None;stream_changed=None
-    if energy is None or energy['output']['trough_pred'] is None:reason='original_energy_model_unavailable'
+    if energy is None or energy['output'].get('trough_pred') is None:reason='original_energy_model_unavailable'
     elif forecast is None:reason='original_prediction_receipt_required'
     else:
         value,day,persisted=forecast;origin=_origin(value,snapshot)
-        if value['overnightTroughSocPct']!=energy['output']['trough_pred']:
+        if value['overnightTroughSocPct']!=energy['output'].get('trough_pred'):
             raise ValueError('delivered energy prediction differs from original model')
         if night_source is None:reason='original_whole_night_evidence_required'
         else:
@@ -83,14 +83,14 @@ def seal_energy_outcomes(*,plan_receipt,forecast_source,night_source,plan_runtim
     output=dict(daily_model_target=None if target is None else dict(basis='legacy_daily_next_night_minimum',window_start=target.start.isoformat(),window_end=target.end.isoformat()),
         planner_horizon_hours=plan['inputs']['config']['horizon_hours'],outcome_within_planner_horizon=within_horizon,
         evaluation_scope='retrospective_planner_from_original_delivered_forecast',status='unavailable' if reason else 'scored',reason=reason,
-        original_delivery_verified=forecast is not None,predicted_min_soc_pct=None if energy is None else energy['output']['trough_pred'],
+        original_delivery_verified=forecast is not None,predicted_min_soc_pct=None if energy is None else energy['output'].get('trough_pred'),
         actual_min_soc_pct=None,error_soc_pct=None,absolute_error_soc_pct=None,reserve_violation=None,
         assessment=assessment,physical_bank_epoch=None if night_source is None else night_source['expected_bank_epoch'],
         bank_binding_scope='measurement_interval_and_original_numerical_capacity',original_bank_provenance_qualified=False,
         producer_stream_changed=stream_changed,
         causal_benefit_qualified=False,graduated=False,automatic_actuation=False)
     if reason is None:
-        actual=assessment['min_soc_pct'];error=energy['output']['trough_pred']-actual
+        actual=assessment['min_soc_pct'];error=energy['output'].get('trough_pred')-actual
         output.update(actual_min_soc_pct=actual,error_soc_pct=error,absolute_error_soc_pct=abs(error),
             reserve_violation=actual<plan['inputs']['config']['reserve_soc'])
     value=dict(schema='earthship-household-energy-outcome-receipt/v1',inputs=dict(plan_receipt=plan,forecast_source=forecast_source,night_source=night_source),

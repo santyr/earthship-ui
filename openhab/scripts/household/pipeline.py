@@ -42,7 +42,10 @@ def _restore(document,kind,key):
 
 def _projections(snapshot,energy_inputs,thermal_inputs,thermal_runtime,now,horizon):
     snap=snapshot.to_dict();energy=None;thermal=None
-    if energy_inputs is not None:
+    from .trajectory_energy import PreparedTrajectoryInputs,project as project_trajectory
+    if isinstance(energy_inputs,PreparedTrajectoryInputs):
+        energy=project_trajectory(energy_inputs,snapshot=snapshot,now=now)
+    elif energy_inputs is not None:
         if not isinstance(energy_inputs,PreparedEnergyInputs):raise ValueError('snapshot-bound prepared energy context required')
         origin=energy_inputs.to_dict();row=snap['domains']['energy']['battery_soc'];ref=row['evidence']
         if (origin['snapshot_id']!=snapshot.snapshot_id or instant(origin['as_of'])!=instant(snap['as_of']) or
@@ -91,30 +94,30 @@ def _intent(snapshot,now,kind,parameters,refs,reason):
 def _candidates(snapshot,projections,config,now):
     no_action=_intent(snapshot,now,'NO_ACTION',{},[],'no_optional_action')
     energy=projections['energy'];items=[];utilities={};reason=None
-    if energy is None or energy['output']['trough_pred'] is None:
-        reason='source_unavailable'
+    rolling=energy is not None and energy.get('schema')=='earthship-household-trajectory-energy-projection/v1'
+    body={} if energy is None else energy['output']
+    minimum=body.get('minimum_nominal_soc_pct') if rolling else body.get('trough_pred')
+    surplus=body.get('modeled_unaccepted_pv_kwh') if rolling else body.get('curtail')
+    if minimum is None or surplus is None:reason='source_unavailable'
     else:
         row=snapshot.to_dict()['domains']['energy']['battery_soc'];ref=row['evidence']
         if row['value'] is None or row['reason'] is not None or ref is None or ref['quality']!='qualified':reason='source_unavailable'
         else:
-            try:
-                # Same typed source validator as the final arbiter, not a numeric fallback.
-                _intent(snapshot,now,'RUN_GREYWATER_CYCLE',{},[ref['digest']],'unqualified_effect')
+            try:_intent(snapshot,now,'RUN_GREYWATER_CYCLE',{},[ref['digest']],'unqualified_effect')
             except ContractRefused as error:reason=error.reason_code
         if reason is None:
-            output=energy['output'];specs=[]
-            if output['curtail']>0:
-                specs.append(('RUN_GREYWATER_CYCLE',{},'unqualified_effect',output['curtail']*config['surplus_weight']))
-            if output['trough_pred']<config['low_trough_threshold_soc_pct']:
+            specs=[]
+            if surplus>0:specs.append(('RUN_GREYWATER_CYCLE',{},'unqualified_effect',surplus*config['surplus_weight']))
+            if minimum<config['low_trough_threshold_soc_pct']:
                 specs.append(('SET_NIGHT_LOAD_OVERRIDE',{'command':'OFF'},'low_soc',
-                    (config['low_trough_threshold_soc_pct']-output['trough_pred'])*config['reserve_weight']))
+                    (config['low_trough_threshold_soc_pct']-minimum)*config['reserve_weight']))
             for kind,parameters,why,utility in specs:
                 item=_intent(snapshot,now,kind,parameters,[ref['digest']],why)
                 items.append(item);utilities[item.intent_id]=utility
     items.sort(key=lambda item:item.intent_id)
     return items,utilities,no_action,dict(status='unavailable' if reason else 'generated_shadow_only',reason=reason,
         action_effects_qualified=False,input_qualification='not_assessed',
-        objective_units=dict(surplus_weight='declared_preference_points_per_curtailment_proxy_hour',
+        objective_units=dict(surplus_weight='declared_preference_points_per_nominal_unaccepted_DC_kWh' if rolling else 'declared_preference_points_per_curtailment_proxy_hour',
             reserve_weight='declared_preference_points_per_predicted_soc_percentage_point'))
 
 
@@ -131,6 +134,9 @@ def _comfort(thermal,config,now):
 def seal_pipeline(*,snapshot,registry,energy_inputs,thermal_inputs,thermal_runtime,coordination,config,now,runtime_manifest,energy_persistence_source=_NO_PERSISTENCE):
     if not isinstance(snapshot,HouseholdSnapshot) or not isinstance(registry,CapabilityRegistry):raise ValueError('immutable shared context required')
     now=utc(now);config=_config(config);runtime=_runtime_manifest(runtime_manifest)
+    from .trajectory_energy import PreparedTrajectoryInputs,RUNTIME_ROOTS
+    if isinstance(energy_inputs,PreparedTrajectoryInputs) and not {'openhab/scripts/'+name for name in RUNTIME_ROOTS}<=set(runtime):
+        raise ValueError('complete trajectory energy runtime required')
     snap=snapshot.to_dict()
     if instant(snap['as_of'])>now or instant(snap['created_at'])>now:raise ValueError('shared snapshot unavailable at decision')
     from .model_snapshot import ModelSnapshot,verify_model_binding,verify_source_runtime
@@ -202,7 +208,8 @@ def replay_pipeline(receipt,*,runtime_manifest,thermal_runtime):
     if expanded and (not isinstance(contexts,dict) or set(contexts)!={value['snapshot']['snapshot_id']}):raise ValueError('exact original source context required')
     snapshot=restore_snapshot(value['snapshot'],contexts)
     registry=_restore(value['registry'],CapabilityRegistry,'registry_id')
-    energy=None if value['energy_inputs'] is None else PreparedEnergyInputs(canonical(value['energy_inputs']))
+    from .trajectory_energy import PreparedTrajectoryInputs,SCHEMA as TRAJECTORY_SCHEMA
+    energy=None if value['energy_inputs'] is None else (PreparedTrajectoryInputs if value['energy_inputs'].get('schema')==TRAJECTORY_SCHEMA else PreparedEnergyInputs)(canonical(value['energy_inputs']))
     thermal=None if value['thermal_inputs'] is None else PreparedProjection(canonical(value['thermal_inputs']))
     replayed=seal_pipeline(snapshot=snapshot,registry=registry,energy_inputs=energy,thermal_inputs=thermal,
         thermal_runtime=thermal_runtime,coordination=value['coordination'],config=value['config'],now=instant(value['now']),runtime_manifest=runtime,

@@ -141,7 +141,11 @@ def derive_cycle(*,originals,capture,receipts,thermal,weather,parameter_record,r
         weather_context=weather,energy_configuration=configuration,measured_weather=measured,code_revision=code_revision)
     body=snapshot.to_dict();soc=body['domains']['energy']['battery_soc']['value']
     energy=None
-    if daily_source_version:
+    if pv_version and capture['inputs']['forecast']['source']=='weathernext3':
+        from household.trajectory_energy import prepare_inputs
+        energy=prepare_inputs(snapshot=snapshot,system_source=originals['pv_system_source'],
+            topology_source=originals['load_topology_source'],horizon_source=originals['solar_horizon_source'])
+    elif daily_source_version:
         from household.daily_energy_source import daily_inputs,ZONE
         daily_source=originals['daily_energy_source']
         if daily_source is not None:

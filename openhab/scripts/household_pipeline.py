@@ -32,6 +32,8 @@ def pipeline_runtime_manifest(*,expanded=False,configured=False,measured=False):
     if configured:
         result['openhab/scripts/advisory_windows.py']=sha256(_read(root/'advisory_windows.py',262144)).hexdigest()
     if measured:
+        from household.trajectory_energy import RUNTIME_ROOTS
+        for name in RUNTIME_ROOTS:result['openhab/scripts/'+name]=sha256(_read(root/name,262144)).hexdigest()
         for name in MEASURED_VALIDATORS:result['openhab/scripts/'+name]=sha256(_read(root/name,262144)).hexdigest()
     return result
 
