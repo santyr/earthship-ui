@@ -39,6 +39,15 @@ class ProviderTests(unittest.TestCase):
         self.assertAlmostEqual(detail['days'][1]['hours'][0]['windMph'],3600/1609.344)
         self.assertEqual(detail['days'][1]['hours'][0]['radiationWm2'],100)
 
+    def test_cloud_cover_reaches_presentation_without_synthetic_weather_codes(self):
+        self.archive.store_snapshot(full_snapshot())
+        provider=self.load();hours,daily,detail=self.p.forecast_payloads(provider,now=self.now)
+        original=provider.to_dict()['hours'][0]['cloud_pct']
+        self.assertEqual(detail['days'][0]['hours'][0]['cloudPct'],original)
+        self.assertEqual(hours[0]['c'],original)
+        self.assertIsNotNone(detail['days'][0]['summary']['cloudPct'])
+        self.assertIsNone(detail['days'][0]['hours'][0]['weatherCode'])
+
     def test_daily_interval_energy_uses_complete_native_days_including_dst(self):
         for init,hours in [(datetime(2026,3,8,tzinfo=timezone.utc),23),(datetime(2026,11,1,tzinfo=timezone.utc),25)]:
             with self.subTest(init=init),tempfile.TemporaryDirectory() as directory:

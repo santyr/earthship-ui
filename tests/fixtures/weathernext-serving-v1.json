@@ -1,47 +1,4 @@
 {
-  "Forecast_Hourly_JSON": [
-    {
-      "a": 0.03937007874015748,
-      "at": "2026-01-01T01:00:00+00:00",
-      "h": "6pm",
-      "isDay": true,
-      "p": null,
-      "r": 100,
-      "t": 50,
-      "w": null
-    },
-    {
-      "a": 0.03937007874015748,
-      "at": "2026-01-01T02:00:00+00:00",
-      "h": "7pm",
-      "isDay": false,
-      "p": null,
-      "r": 100,
-      "t": 50,
-      "w": null
-    },
-    {
-      "a": 0.03937007874015748,
-      "at": "2026-01-01T03:00:00+00:00",
-      "h": "8pm",
-      "isDay": false,
-      "p": null,
-      "r": 100,
-      "t": 50,
-      "w": null
-    }
-  ],
-  "Forecast_Daily_JSON": [
-    {
-      "a": null,
-      "d": "Today",
-      "hi": null,
-      "lo": null,
-      "p": null,
-      "pv": null,
-      "w": null
-    }
-  ],
   "Forecast_10Day_JSON": {
     "days": [
       {
@@ -49,6 +6,7 @@
         "hours": [
           {
             "at": "2025-12-31T18:00:00-07:00",
+            "cloudPct": 50.0,
             "isDay": true,
             "precipIn": 0.03937007874015748,
             "precipPct": null,
@@ -59,6 +17,7 @@
           },
           {
             "at": "2025-12-31T19:00:00-07:00",
+            "cloudPct": 50.0,
             "isDay": false,
             "precipIn": 0.03937007874015748,
             "precipPct": null,
@@ -69,6 +28,7 @@
           },
           {
             "at": "2025-12-31T20:00:00-07:00",
+            "cloudPct": 50.0,
             "isDay": false,
             "precipIn": 0.03937007874015748,
             "precipPct": null,
@@ -80,6 +40,7 @@
         ],
         "label": "Today",
         "summary": {
+          "cloudPct": 50.0,
           "daylightSeconds": 43200,
           "highF": null,
           "lowF": null,
@@ -119,5 +80,51 @@
     },
     "timezone": "America/Denver",
     "version": 1
-  }
+  },
+  "Forecast_Daily_JSON": [
+    {
+      "a": null,
+      "d": "Today",
+      "hi": null,
+      "lo": null,
+      "p": null,
+      "pv": null,
+      "w": null
+    }
+  ],
+  "Forecast_Hourly_JSON": [
+    {
+      "a": 0.03937007874015748,
+      "at": "2026-01-01T01:00:00+00:00",
+      "c": 50.0,
+      "h": "6pm",
+      "isDay": true,
+      "p": null,
+      "r": 100,
+      "t": 50,
+      "w": null
+    },
+    {
+      "a": 0.03937007874015748,
+      "at": "2026-01-01T02:00:00+00:00",
+      "c": 50.0,
+      "h": "7pm",
+      "isDay": false,
+      "p": null,
+      "r": 100,
+      "t": 50,
+      "w": null
+    },
+    {
+      "a": 0.03937007874015748,
+      "at": "2026-01-01T03:00:00+00:00",
+      "c": 50.0,
+      "h": "8pm",
+      "isDay": false,
+      "p": null,
+      "r": 100,
+      "t": 50,
+      "w": null
+    }
+  ]
 }

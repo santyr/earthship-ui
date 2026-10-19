@@ -164,12 +164,14 @@ def forecast_payloads(provider,*,now):
     for row in value['hours']:
         at=instant(row['at']);key=at.astimezone(zone).date().isoformat()
         if key in grouped:grouped[key].append(dict(at=at.astimezone(zone).isoformat(),isDay=is_day(at),tempF=row['temp_f'],
-            precipPct=None,precipIn=row['precip_in'],radiationWm2=row['radiation_wm2'],windMph=row['wind_mph'],weatherCode=None))
+            precipPct=None,precipIn=row['precip_in'],cloudPct=row['cloud_pct'],radiationWm2=row['radiation_wm2'],windMph=row['wind_mph'],weatherCode=None))
     days=[]
     for row in value['days'][:10]:
         day=date.fromisoformat(row['date']);label='Today' if day==today else day.strftime('%a')
         days.append(dict(date=row['date'],label=label,summary=dict(highF=row['high_f'],lowF=row['low_f'],precipPct=None,
             precipSumIn=row['precip_sum_in'],weatherCode=None,pvKwh=None,
+            cloudPct=(sum(h['cloudPct'] for h in grouped[row['date']])/len(grouped[row['date']])
+                if grouped[row['date']] and all(h['cloudPct'] is not None for h in grouped[row['date']]) else None),
             daylightSeconds=None if row['date'] not in solar_days else solar_days[row['date']]['daylightSeconds']),hours=grouped[row['date']]))
     detail=dict(version=1,generatedAt=now.astimezone(zone).isoformat(),timezone=zone.key,provider='weathernext3',
         providerSnapshotSha256=value['provider_snapshot_sha256'],providerStatus=value['status'],providerReason=value['reason'],
@@ -180,7 +182,7 @@ def forecast_payloads(provider,*,now):
         learningNamespace=value['learning_namespace'],model=value['model'],releaseAuthorized=False,days=days)
     def rounded(number):return None if number is None else round(number)
     hourly=[dict(at=row['at'],isDay=is_day(instant(row['at'])),h=instant(row['at']).astimezone(zone).strftime('%-I%p').lower(),t=rounded(row['temp_f']),
-        p=None,a=row['precip_in'],r=rounded(row['radiation_wm2']),w=None) for row in value['hours'][:14]]
+        p=None,a=row['precip_in'],r=rounded(row['radiation_wm2']),w=None,c=row['cloud_pct']) for row in value['hours'][:14]]
     daily=[dict(d=row['label'],hi=rounded(row['summary']['highF']),lo=rounded(row['summary']['lowF']),p=None,
         a=row['summary']['precipSumIn'],w=None,pv=None) for row in days[:7]]
     return hourly,daily,detail
