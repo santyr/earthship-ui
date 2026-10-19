@@ -415,3 +415,30 @@ in 26 modules in 177.74 seconds**, under shared admission with up to 2 GiB memor
 and zero swap. The focused CI workflow runs this exact module set and watches
 the new helper. Production code, services, training cadence and models were
 unchanged by this test-data extraction.
+
+
+### Offline SQL analysis closure
+
+The previously unexecuted operational-tool CI stage exposed three entry points
+that still imported `thermal_model.forecast_history.fetch_origin_forecast` after
+that incumbent SQL reader had been retired. The source removes these obsolete
+provider-specific analyses and their three exclusive test modules:
+
+- `scripts/audit-thermal-operational-baseline.py`
+- `scripts/audit-thermal-operational-origins.py`
+- `scripts/experiment-forecast-solar-context.py`
+
+A new dependency-closure regression failed on all three old imports, then the
+complete acquisition-retirement module passed eight tests. The preserved origin/
+persistence, pure solar comparison, generic archive and provider-isolation scope
+passed 71 tests in 2.39 seconds. No shared mathematical or archive implementation
+was removed, and no installed service, credential, database or model was changed.
+The separate 84-path recovery/operator/worker proposal remains unapplied with
+all preimages unchanged. Its owner question and exact scope are unchanged.
+
+The [canonical inventory](2026-10-18-openmeteo-retirement-inventory.json) records
+these six Git preimages and validation. The full surviving operational-tool test
+suite passed **1,563 tests with three skips in 131.90 seconds** through shared
+resource admission, using normalized export `d6cc6a4c386b2da414040fe79c37a3999afac998`.
+The inventory names all skipped checks and their reasons. Whole-repository CI
+and release gates remain separate requirements.

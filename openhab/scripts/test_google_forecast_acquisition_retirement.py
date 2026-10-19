@@ -41,3 +41,18 @@ def test_only_exact_google_request_can_reach_local_observation_collection(monkey
     backend._temperature_grid=lambda *a,**kw:pytest.fail('local observation read for invalid weather')
     monkeypatch.setattr(live,'_clock',lambda:KNOWN)
     with pytest.raises(ValueError):backend.collect(issue=ISSUE,known_at=KNOWN)
+
+
+def test_offline_tools_do_not_import_retired_weather_sql():
+    import ast
+    from pathlib import Path
+    retired={'fetch_origin_forecast','fetch_origin_forecast_with_receipts',
+             'fetch_pending_origin_forecast_with_receipts','_fetch_origin_forecast'}
+    tools=Path(__file__).resolve().parents[2]/'scripts'
+    callers=[]
+    for path in sorted(tools.glob('*.py')):
+        if path.name.startswith('test_'):continue
+        for node in ast.walk(ast.parse(path.read_text(),filename=str(path))):
+            if isinstance(node,ast.ImportFrom) and node.module=='thermal_model.forecast_history':
+                callers.extend(path.name+':'+alias.name for alias in node.names if alias.name in retired)
+    assert not callers, 'retired weather SQL callers remain: '+', '.join(callers)

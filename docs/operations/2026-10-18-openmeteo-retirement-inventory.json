@@ -14265,6 +14265,69 @@
       },
       "counts_overlap": true,
       "fresh_full_repository_pass_claimed": false
+    },
+    "offline_sql_analysis_closure": {
+      "observed_at": "2026-10-19T10:56:49.662407+00:00",
+      "base_revision": "172d6f36efc16b41416b2788b694c9cbd56b184c",
+      "reason": "offline analyses exclusively import removed incumbent forecast SQL reader",
+      "files": [
+        {
+          "path": "scripts/audit-thermal-operational-baseline.py",
+          "preimage_sha256": "f2751b3ec07cbc3796b394ebcbc9402eed3cc19b3fa963bd235be184e385fb85"
+        },
+        {
+          "path": "scripts/audit-thermal-operational-origins.py",
+          "preimage_sha256": "137a70027a78ba38d37c49ae75ddde63e5bb45167c4b6c1722d4b5d08837ac54"
+        },
+        {
+          "path": "scripts/experiment-forecast-solar-context.py",
+          "preimage_sha256": "f6686488cfb721143157333ab00604a7f113fee2b7690b982859ab65e330c0aa"
+        },
+        {
+          "path": "scripts/test_thermal_operational_baseline.py",
+          "preimage_sha256": "c17bfa651d70c2815d7a3377b34bf17e6cbc60b08f2fea125119baeda51249e5"
+        },
+        {
+          "path": "scripts/test_audit_thermal_operational_origins.py",
+          "preimage_sha256": "aeb80922a4667bf2ff6b4c69b8baca8b1963c3868b78d651fa3cb85c0d444b87"
+        },
+        {
+          "path": "scripts/test_experiment_forecast_solar_context.py",
+          "preimage_sha256": "a1bdaba347ed05453a8d6f413c1a8d1a76f8ff9c8f1637cc8652eb4e7382f6fc"
+        }
+      ],
+      "shared_math_or_recovery_removed": false,
+      "installed_state_changed": false,
+      "removed_tool_count": 3,
+      "removed_exclusive_test_count": 3,
+      "removed_sql_dependency": "thermal_model.forecast_history.fetch_origin_forecast",
+      "retirement_regression_red_observed": true,
+      "affected_tests_passed": 8,
+      "preserved_shared_tests_passed": 71,
+      "operational_suite_status": "PASSED",
+      "pending_84_path_patch_changed": false,
+      "operational_suite": {
+        "tests": 1566,
+        "passed": 1563,
+        "skipped": [
+          {
+            "test": "test_thermal_shadow_retry::test_actual_systemd_retry_cap_and_next_natural_timer[success]",
+            "reason": "explicit isolated user-systemd qualification required"
+          },
+          {
+            "test": "test_thermal_shadow_retry::test_actual_systemd_retry_cap_and_next_natural_timer[recover]",
+            "reason": "explicit isolated user-systemd qualification required"
+          },
+          {
+            "test": "test_thermal_shadow_retry::test_actual_systemd_retry_cap_and_next_natural_timer[persistent]",
+            "reason": "explicit isolated user-systemd qualification required"
+          }
+        ],
+        "seconds": 131.9,
+        "source_export": "d6cc6a4c386b2da414040fe79c37a3999afac998",
+        "shared_admission": true,
+        "installed_state_changed": false
+      }
     }
   }
 }
