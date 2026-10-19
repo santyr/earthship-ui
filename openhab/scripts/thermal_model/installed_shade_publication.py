@@ -96,7 +96,7 @@ RAW_RUNTIME_PATHS=RUNTIME_PATHS|frozenset({
     'weather_learning/normalize.py','weather_learning/weathernext_ee.py','weather_learning/transport.py',
     'weather_learning/archive.py','weather_learning/evidence.py',
 
-    'weather_temperature_sources.py','forecast_input_capture.py','forecast_temperature_origin.py',
+    'weather_temperature_sources.py','weather_source_files.py',
     'thermal_model/installed_shade_raw_score_sources.py',
     'thermal_model/installed_shade_score_inputs.py','thermal_model/installed_shade_score_collection.py',
 })

@@ -10,8 +10,7 @@ import json
 from pathlib import Path
 import re
 
-from forecast_input_capture import _canonical,_directory,_instant
-from forecast_temperature_origin import _read,_write
+from weather_source_files import _canonical,_directory,_instant,_read,_write
 from weather_temperature_config import _object,_nonfinite
 from weather_temperature_evidence import TemperaturePolicy
 from weather_temperature_reader import select_temperature_grid_v2,_utc

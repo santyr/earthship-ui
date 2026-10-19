@@ -197,7 +197,7 @@ jobs:
             openhab/scripts/test_installed_shade_raw_score_sources.py \
             openhab/scripts/test_installed_shade_raw_qualification.py \
             openhab/scripts/test_installed_shade_raw_publication.py \
-            openhab/scripts/test_google_receipt_retirement.py openhab/scripts/test_google_config_retirement.py \
+            openhab/scripts/test_google_receipt_retirement.py openhab/scripts/test_google_config_retirement.py openhab/scripts/test_google_local_source_isolation.py \
             openhab/scripts/test_google_native_outcome_origin.py \
             openhab/scripts/test_google_forecast_acquisition_retirement.py \
             openhab/scripts/test_thermal_dynamics.py \

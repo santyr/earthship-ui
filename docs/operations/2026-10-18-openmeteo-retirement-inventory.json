@@ -13714,6 +13714,13 @@
       "earthship-provisional-thermal-live-config/v3"
     ],
     "retained_baseline_metadata": "Closed read-only previous config/model byte pins for attended handoff only; no producer construction or old model/learning seed.",
-    "native_configuration_verification": "283 affected root modules exercised across sealed exports and resumed shards; final suffixes 621 and 1501 passed, with completed prefixes retained and overlapping counts not aggregated. Four existing skips: two long qualification tests and two selected-publication-scope checks. Focused 88 configuration/publication/staging, 43 handoff/upgrade, 15 pressure/dispatch and 10 monitor cases passed."
+    "native_configuration_verification": "283 affected root modules exercised across sealed exports and resumed shards; final suffixes 621 and 1501 passed, with completed prefixes retained and overlapping counts not aggregated. Four existing skips: two long qualification tests and two selected-publication-scope checks. Focused 88 configuration/publication/staging, 43 handoff/upgrade, 15 pressure/dispatch and 10 monitor cases passed.",
+    "neutral_native_source_files": "openhab/scripts/weather_source_files.py",
+    "removed_native_runtime_dependencies": [
+      "forecast_input_capture.py",
+      "forecast_temperature_origin.py"
+    ],
+    "native_base_source_count": 82,
+    "neutral_native_source_verification": "Five helper function ASTs exactly match original definitions; unchanged 128 KiB default read bound; two isolation regressions RED then 23 packet/isolation GREEN; 84 native/Google/fresh-irradiance/staging tests passed in 19.68 seconds in immutable export."
   }
 }

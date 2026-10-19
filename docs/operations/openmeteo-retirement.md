@@ -315,3 +315,20 @@ single-run aggregate. Four existing tests skipped: multiday synthetic calibratio
 full qualification fitting, and two checks requiring a specifically selected
 capped publication scope. These skips are not release qualification evidence.
 No installed configuration, model or service changed in this source increment.
+
+
+Qualified native-temperature query storage now imports five neutral private-file
+primitives from `weather_source_files.py`, without importing the retired forecast
+capture or temperature-correction origin modules. All five function ASTs exactly
+match their preimages, including the 128 KiB default read bound and callback,
+private ownership, symlink, immutable-readback and atomic-write behavior. Packet
+schemas, selection math and compressed-source limits are unchanged.
+
+The native runtime source manifest replaces those two legacy capture modules
+with the neutral module, reducing its base inventory from 83 to 82 files. New
+isolation tests failed before this extraction; 23 isolation/native packet tests
+then passed, followed by **84 native inputs, actual fresh irradiance fits, Google
+backend selection and deployment-source tests in 19.68 seconds** in a separate
+immutable export. The existing original Google response/capsule validators and
+all local measurement policy/epoch/barrier checks remain in place. Retiring the
+remaining legacy worker and its old producer/scorer entrypoints is still pending.
