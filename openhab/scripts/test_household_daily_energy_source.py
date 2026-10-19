@@ -83,7 +83,7 @@ def test_missing_daily_source_keeps_thermal_without_using_static_old_parameters(
     assert result['output']['projections']['thermal']['output']==capture['output']
 
 
-def test_live_collector_freezes_today_state_and_matching_owner_receipt(tmp_path,monkeypatch):
+def test_live_google_collector_does_not_read_retired_daily_state_or_receipt(tmp_path,monkeypatch):
     from test_household_cycle_sources import collector_fixture
     import household_cycle_sources as module
     collector,raw,calls,_,now=collector_fixture(tmp_path,monkeypatch)
@@ -93,11 +93,9 @@ def test_live_collector_freezes_today_state_and_matching_owner_receipt(tmp_path,
     monkeypatch.setattr(module,'DAILY_STATE_PATH',state,raising=False)
     raw['Forecast_Prediction_Receipt_JSON']=daily['receipt_raw']
     result=collector(issue=now+timedelta(seconds=8),remaining=lambda:6.,guard=lambda:None)
-    retained=result['daily_energy_source']
-    assert retained['record']==daily['record']
-    assert retained['receipt_raw']==daily['receipt_raw']
-    assert retained['state_sha256']==sha256(state.read_bytes()).hexdigest()
-    assert calls.count('Forecast_Prediction_Receipt_JSON')==1
+    assert result['daily_energy_source'] is None
+    assert 'Forecast_Prediction_Receipt_JSON' not in calls
+    assert state.read_bytes()==canonical({'predictions':{daily['prediction_day']:daily['record']}})
     assert result['automatic_actuation'] is False
 
 

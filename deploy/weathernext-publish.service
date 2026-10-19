@@ -3,6 +3,8 @@ Description=Earthship reviewed WeatherNext forecast publication
 Documentation=https://developers.google.com/weathernext/guides/earth-engine
 After=network-online.target weathernext-ingest.service
 Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=3
 
 [Service]
 Type=oneshot
@@ -10,7 +12,8 @@ EnvironmentFile=%h/.config/earthship-weather/runtime.env
 Environment=PYTHONDONTWRITEBYTECODE=1
 ExecStart=/usr/bin/python3 ${EARTHSHIP_WEATHER_CODE_ROOT}/scripts/run-household-job.py --production --minimum-mib 256 --preferred-mib 512 --tasks 24 --seconds 90 -- ${EARTHSHIP_WEATHER_PYTHON} ${EARTHSHIP_WEATHER_CODE_ROOT}/openhab/scripts/weather_publish.py --config ${EARTHSHIP_WEATHER_PRODUCTION_CONFIG} --publish
 TimeoutStartSec=110
-Restart=no
+Restart=on-failure
+RestartSec=60s
 UMask=0077
 StandardOutput=journal
 StandardError=journal

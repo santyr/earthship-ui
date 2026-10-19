@@ -249,3 +249,14 @@ class ProductionWorkerTests(unittest.TestCase):
         self.assertEqual(self.puts(),[])
 
 if __name__=='__main__':unittest.main()
+
+class PublicationScheduleRecoveryTests(unittest.TestCase):
+    def test_transient_refusal_has_bounded_service_retries_before_next_hour(self):
+        import configparser
+        config=configparser.ConfigParser(interpolation=None)
+        config.read(pathlib.Path(__file__).resolve().parents[4]/'deploy/weathernext-publish.service')
+        self.assertEqual(config['Service']['Restart'],'on-failure')
+        self.assertEqual(config['Service']['RestartSec'],'60s')
+        self.assertEqual(config['Unit']['StartLimitIntervalSec'],'300')
+        self.assertEqual(config['Unit']['StartLimitBurst'],'3')
+        self.assertEqual(config['Service']['TimeoutStartSec'],'110')
