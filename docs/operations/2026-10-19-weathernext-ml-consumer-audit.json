@@ -1488,5 +1488,22 @@
   ],
   "production_ingestion_fully_correct": false,
   "production_algorithm_changes": false,
-  "scope_decision": "read-only audit prepared; repair/deployment scope question pending"
+  "scope_decision": "read-only audit prepared; repair/deployment scope question pending",
+  "remediation": {
+    "status": "deployed_prospective_monitoring",
+    "record": "docs/operations/2026-10-19-weathernext-consumer-repairs.md",
+    "native_source_revision": "f4146927bdad80fce2abdfd25a28e807c73459cf",
+    "native_deployment_sha256": "06a9cac22a52b0ee29de044a1c56eeb414597e730a49e63cf44672fc4d721e62",
+    "native_model_artifact_sha256": "bd23cc37fe80c2a9918d0c22f69c363721f3aef49c9246321d1acdfe92858916",
+    "corrected_findings": [
+      "WNML-01",
+      "WNML-02",
+      "WNML-03",
+      "WNML-04",
+      "WNML-05"
+    ],
+    "accuracy_qualified": false,
+    "automatic_actuation": false,
+    "historical_audit_snapshot_preserved": true
+  }
 }

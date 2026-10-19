@@ -10,7 +10,7 @@
   // wind/rain/baro tiles clickable -> openChart(). Indoor added alongside
   // Outdoor per operator request. No controls row (Home is data-only; toggles
   // move to a separate Controls screen).
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, untrack } from 'svelte';
   import Tile from '../lib/ui/Tile.svelte';
   import StatTile from '../lib/ui/StatTile.svelte';
   import Arc from '../lib/ui/Arc.svelte';
@@ -53,7 +53,7 @@
     uvIndexColor,
     windSpeedColor,
   } from '../lib/ui/homeCardState.js';
-  import { items, connection, num, fmt, socBands, runtimeText, getClientOnce } from '../lib/openhab';
+  import { items, connection, num, fmt, socBands, runtimeText, getClientOnce, clientReady } from '../lib/openhab';
   import { openChart } from '../lib/ui/chartStore.js';
   import { openWeatherDetail } from '../lib/weather/detailStore.js';
   import {
@@ -227,8 +227,7 @@
     if (document.visibilityState === 'visible') reconcileDayClock();
   }
 
-  onMount(() => {
-    wallClock = Date.now();
+  function refreshHomeHistory() {
     refreshOutdoorSpark();
     refreshTemperatureHistory();
     refreshBattSpark();
@@ -236,19 +235,21 @@
     refreshBitcoinHistory();
     refreshLoadToday();
     refreshWindGustMaxToday();
+  }
+
+  // Startup can take longer than the helper's short retry window. Start
+  // history only after the shared client and initial snapshot are ready.
+  $effect(() => {
+    if ($clientReady) untrack(refreshHomeHistory);
+  });
+
+  onMount(() => {
+    wallClock = Date.now();
 
     wallClockTimer = setInterval(reconcileDayClock, WALL_CLOCK_REFRESH_MS);
     document.addEventListener('visibilitychange', handleDayVisibility);
 
-    sparkRefreshTimer = setInterval(() => {
-      refreshOutdoorSpark();
-      refreshTemperatureHistory();
-      refreshBattSpark();
-      refreshBaroSpark();
-      refreshBitcoinHistory();
-      refreshLoadToday();
-      refreshWindGustMaxToday();
-    }, SPARK_REFRESH_MS);
+    sparkRefreshTimer = setInterval(refreshHomeHistory, SPARK_REFRESH_MS);
   });
 
   onDestroy(() => {

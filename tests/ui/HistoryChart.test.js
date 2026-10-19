@@ -147,6 +147,24 @@ describe('HistoryChart', () => {
     expect(await screen.findByText(/history request timed out after 15 seconds/i)).toBeTruthy();
   });
 
+  it('retries a transient first load before the long battery refresh interval', async () => {
+    mocks.getHistory.mockRejectedValueOnce(new Error('getHistory BMS_SOC 503'));
+    const scheduled=[];
+    const nativeTimeout=globalThis.setTimeout;
+    const timer=vi.spyOn(globalThis,'setTimeout').mockImplementation((fn,ms,...args) => {
+      if (ms===5000) { scheduled.push(fn);return 12345; }
+      return nativeTimeout(fn,ms,...args);
+    });
+    try {
+      render(HistoryChart,{series:[{name:'BMS_SOC',label:'SoC'}],refreshMs:30*60_000});
+      await screen.findByText(/getHistory BMS_SOC 503/);
+      expect(scheduled).toHaveLength(1);
+      scheduled[0]();
+      await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalled());
+      expect(mocks.getHistory).toHaveBeenCalledTimes(2);
+    } finally {timer.mockRestore();}
+  });
+
   it('keeps the battery chart visible and reuses it during a history refresh', async () => {
     let finishRefresh;
     mocks.getHistory

@@ -109,7 +109,7 @@ function itemSnapshot(overrides = {}) {
 }
 
 async function openHomeFixture(page, target, {
-  states = {}, staleSeconds = 90, historyRows, historyFailure,
+  states = {}, staleSeconds = 90, historyRows, historyFailure, configDelayMs = 0,
 } = {}) {
   let activeStates = { ...states };
   const historyRequests = [];
@@ -140,13 +140,10 @@ async function openHomeFixture(page, target, {
       value: FixtureEventSource,
     });
   });
-  await page.route('**/config.json', (route) => route.fulfill({
-    json: {
-      openhabUrl: '/fixture-openhab',
-      apiToken: 'fixture-only',
-      staleBannerSeconds: staleSeconds,
-    },
-  }));
+  await page.route('**/config.json', async (route) => {
+    if (configDelayMs) await new Promise(resolve => setTimeout(resolve, configDelayMs));
+    return route.fulfill({ json: { openhabUrl: '/fixture-openhab', apiToken: 'fixture-only', staleBannerSeconds: staleSeconds } });
+  });
   await page.route('**/fixture-openhab/rest/items?*', (route) => route.fulfill({
     json: itemSnapshot(activeStates),
   }));
@@ -1471,4 +1468,29 @@ test('upstream freshness reaches the tablet header without value changes', async
   expect(runtime.unexpectedExternalRequests).toEqual([]);
   expect(writes).toEqual([]);
   await page.screenshot({ path: testInfo.outputPath('upstream-freshness-1340x800.png') });
+});
+
+
+test('Home loads history and measured daily extrema after delayed client startup', async ({ page }) => {
+  const runtime = await openHomeFixture(page, TARGETS[1], { configDelayMs: 4500 });
+  await expect(page.locator('.outdoor-hilo')).toHaveText('H 80° / L 53°', { timeout: 8000 });
+  for (const selector of ['.outdoor-spark', '.indoor-spark', '.battery-spark', '.baro-spark']) {
+    await expect.poll(() => page.evaluate(async (selector) => {
+      const { getEcharts } = await import('/src/lib/charts/loadEcharts.js');
+      return (await getEcharts()).getInstanceByDom(document.querySelector(selector+' .sparkline'))?.getOption()?.series?.[0]?.data?.length ?? 0;
+    }, selector)).toBeGreaterThan(1);
+  }
+  expect(runtime.pageErrors).toEqual([]);
+});
+
+test('Energy charts recover from a transient history failure without a reload', async ({ page }) => {
+  let fail = false;
+  const runtime = await openHomeFixture(page, TARGETS[1], { historyFailure: () => fail });
+  fail = true;
+  await page.goto(`${baseURL}#/energy`, { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.hero-chart .hc-error')).toBeVisible();
+  fail = false;
+  await expect(page.locator('.hero-chart .hc-canvas svg')).toBeVisible({ timeout: 15000 });
+  await expect(page.locator('.pv-chart .hc-canvas svg')).toBeVisible({ timeout: 15000 });
+  expect(runtime.pageErrors).toEqual([]);
 });
