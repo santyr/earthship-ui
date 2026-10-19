@@ -69,3 +69,44 @@ native model receipts are not reusable under the change. Source counts remain
 this collector-only maintenance. Full qualification, provider retirement and
 attended production cutover remain unfinished. The separate operator/recovery
 removal proposal remains unapplied pending its owner decision.
+
+
+## Installed qualification — October 19
+
+The collector now uses immutable source revision
+`8be69ea0e7287a806b3b50a629af9efb49b2ef09` through its dedicated source pin.
+All **1,994 source files** were verified against committed Git blob identities
+and made read-only. The release manifest SHA256 is
+`f28e7915fef49dba72177f9b186297434df2284511e63a5c6ad262723e381906`.
+The shared runtime.env, shadow/training command definitions and collector unit
+resource properties are unchanged. No root UI source or model receipt changed.
+
+The manual collector invocation `e5100178bf7344cea208ed242a5e9268`
+started at **02:27:31 MDT** and exited successfully at **02:28:23 MDT**.
+It archived all **4,320 values** in **50.496 seconds**, using **7 requests**,
+**1,271,993 bytes** and **73,928 KiB peak RSS**. Its live resource leaf was sampled:
+CPU quota **20%**, memory maximum **268,435,456 bytes**, swap maximum **0**, and
+process limit **24**. The live archive grew from **16 to 17** snapshots; the
+retained object's digest and all nonnull values were verified read-only.
+
+The next **natural timer invocation** `06925403c33b4d9d94bb60a6d83a9603`
+started at **02:35:25 MDT**, **21,370 microseconds** after the timer trigger,
+and succeeded at **02:36:22 MDT**. It archived all **4,320 values** in
+**55.286 seconds**, again using **7 requests / 1,271,993 bytes**, with
+**74,992 KiB peak RSS**. The live archive grew to **18** snapshots.
+Its October 19 00:00 UTC source and retained digest were verified:
+`98604b6dd95026d0c30b3ccca3c68fff324f4a4785d5bbabc765d696ee104d0a`.
+The collector timer remained active afterward.
+
+The **02:40:25 MDT** natural shadow run then selected that exact new snapshot.
+All three shadow Items carried an identical complete READY generation with
+**337 forecast hours**, retaining their existing version-1 UI contract. The
+model remained **SHADOW_ONLY with one training sample**; no fitting, validation
+claim, model promotion or actuator authority was introduced. The separately
+prepared fresh v2 cohort was not activated by this maintenance.
+
+Typed private receipts retain the exact invocation, source manifest, sampled
+resource limits, archive and publication checks. They contain no raw journals.
+These successful runs repair acquisition and demonstrate downstream consumption;
+the approved prospective reliability/skill intervals and production cutover
+requirements remain unmet.

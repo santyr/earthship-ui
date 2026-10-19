@@ -1,6 +1,6 @@
 # WeatherNext prospective shadow runtime
 
-Implementation date: 2026-10-18. The [private backend](2026-10-18-weathernext-shadow-activation.md) uses tested commit f5775f8; the separate [comparison activation](2026-10-18-weathernext-comparison-activation.md) adds the narrow live UI patch and Item publication: hourly collection, hourly retained shadow inference/publication and separate weekly candidate training. Three unlinked file-owned Items and the live Weather comparison UI are active. The first fresh Google/local candidate has one qualified pair, SHADOW_ONLY status and no validation; prospective skill/reliability remain unqualified. Household production forecasts, notifications and actuators are unchanged. The 19:40:31Z natural published trigger is verified against its retained issue and all three live Item states.
+Implementation date: 2026-10-18. Shadow inference and training in the [private backend](2026-10-18-weathernext-shadow-activation.md) use tested commit f5775f8; the collector now has the separate tested source pin described below; the separate [comparison activation](2026-10-18-weathernext-comparison-activation.md) adds the narrow live UI patch and Item publication: hourly collection, hourly retained shadow inference/publication and separate weekly candidate training. Three unlinked file-owned Items and the live Weather comparison UI are active. The first fresh Google/local candidate has one qualified pair, SHADOW_ONLY status and no validation; prospective skill/reliability remain unqualified. Household production forecasts, notifications and actuators are unchanged. The 19:40:31Z natural published trigger is verified against its retained issue and all three live Item states.
 
 ## Prepared v2 release (not installed)
 
@@ -8,12 +8,13 @@ The current migration source removes incumbent capture and comparison controls. 
 
 ## Collector source maintenance
 
-The collector can use its own immutable source root through the optional
-source-release drop-in and private collector-release.env. Shadow inference and
+The collector uses immutable revision 8be69ea through the source-release drop-in
+and private collector-release.env. Shadow inference and
 training retain their existing shared runtime root and UI/cohort contract. The
 [October 19 timeout correction](2026-10-19-weathernext-collector-timeout.md) records
 two natural ReadTimeout failures, the unchanged overall/resource bounds and the
-successful 56-second full native capture. Collector maintenance does not activate
+successful diagnostic, manual and natural full native captures. The 02:40 shadow
+run consumed the new live snapshot and published a matching READY generation. Collector maintenance does not activate
 the prepared v2 shadow cohort or change household production forecast ownership.
 
 ## Data and state flow
