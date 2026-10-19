@@ -23,7 +23,11 @@ def test_native_runtime_uses_neutral_binding_and_original_source_inventory():
 def test_current_native_imports_do_not_load_legacy_publishers():
     code="""
 import importlib.abc,sys
-blocked={'thermal_model.provisional_live','thermal_model.provisional_monitor','thermal_installed_intel','provisional_thermal'}
+blocked={'thermal_model.provisional_live','thermal_model.provisional_monitor','thermal_installed_intel','provisional_thermal',
+         'forecast_intel','forecast_backfill','forecast_pre_dusk','forecast_input_capture','forecast_temperature_origin',
+         'forecast_temperature_collect','forecast_temperature_collection','forecast_temperature_batch',
+         'forecast_temperature_score','forecast_temperature_reads','thermal_legacy_origin','thermal_legacy_observe',
+         'forecast_ml_evidence','qualified_soc_forecast'}
 class Block(importlib.abc.MetaPathFinder):
  def find_spec(self,fullname,*args):
   if fullname in blocked:raise AssertionError('retired standalone runtime imported: '+fullname)

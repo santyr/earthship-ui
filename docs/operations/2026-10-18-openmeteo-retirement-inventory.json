@@ -13699,7 +13699,8 @@
       "thermal_intel._release",
       "thermal_intel._forecast_rows",
       "thermal_intel._date_range",
-      "thermal_intel._offline_journal"
+      "thermal_intel._offline_journal",
+      "forecast_intel.build_forecast_payloads(ProviderSnapshot, ...)"
     ],
     "neutral_transport": "openhab/scripts/weather_learning/openhab.py",
     "shadow_payload_schema": "earthship-weather-provider-shadow/v2",
@@ -13897,6 +13898,31 @@
       "production_qualification": false,
       "retained_native_model_code_changed_after_wide_run": false,
       "closed_tool_removals_verified_separately": true
+    },
+    "google_publication_entrypoints": [
+      "weather_learning.provider.forecast_payloads",
+      "weather_learning.provider.publication_states",
+      "weather_learning.production_publish.production_states"
+    ],
+    "incumbent_google_bridge_retirement": {
+      "preimage_revision": "6c04131eb18220513f25ac0b8c1d36e1d28a8dc8",
+      "incumbent_dictionary_calculation_ast_identical": true,
+      "refuses_google_before_legacy_model_selection": true,
+      "pinned_package_tests": 211,
+      "pinned_package_seconds": 8.561,
+      "package_cold_import_blocked_old_modules": 14,
+      "legacy_native_boundary_tests": 168,
+      "legacy_native_boundary_seconds": 3.05,
+      "export": "fa3401bdf719347e4635e380ba704d9776ff02c0",
+      "live_applied": false
+    },
+    "operator_retirement_review": {
+      "status": "OWNER_DECISION_PENDING",
+      "applied": false,
+      "proposed_paths": 47,
+      "proposed_source_removals": 43,
+      "archive_functions_preserved": true,
+      "review": "docs/operations/2026-10-19-provider-operator-retirement-review.md"
     }
   }
 }

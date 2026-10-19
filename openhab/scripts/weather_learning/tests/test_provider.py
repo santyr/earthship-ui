@@ -25,9 +25,7 @@ class ProviderTests(unittest.TestCase):
         self.archive.store_snapshot(full_snapshot())
         provider=self.load();value=provider.to_dict()
         self.assertEqual(value['status'],'AVAILABLE')
-        import forecast_intel as fi
-        with patch.object(fi,'hourly_model_seed',side_effect=AssertionError('legacy seeding')),patch.object(fi,'load_state',side_effect=AssertionError('legacy state')),patch.object(fi,'fetch_forecast',side_effect=AssertionError('external fallback')):
-            hourly,daily,detail=fi.build_forecast_payloads(provider,[],self.now)
+        hourly,daily,detail=self.p.forecast_payloads(provider,now=self.now)
         self.assertEqual(detail['version'],1)
         self.assertEqual(detail['provider'],'weathernext3')
         self.assertEqual(detail['providerSnapshotSha256'],value['provider_snapshot_sha256'])
@@ -76,9 +74,9 @@ class ProviderTests(unittest.TestCase):
         original=self.archive.read(first['source']['snapshot_sha256'])
         self.assertEqual(first['issue_sha256'],temperature_targets(original,issued_at=T+timedelta(minutes=30))[0].issue_digest)
         self.assertFalse(first['release_authorized'])
-        import forecast_intel as fi
-        with self.assertRaises(ValueError):fi.build_forecast_payloads(self.load(),[8.5],self.now)
-        with self.assertRaises(ValueError):fi.build_forecast_payloads(self.load(),[],self.now,hourly_model={})
+        # Serialized or incumbent dictionaries cannot bypass original source
+        # identity by entering the serving API as a prepared provider.
+        with self.assertRaises(ValueError):self.p.forecast_payloads(first,now=self.now)
 
     def test_original_normalization_mismatch_or_wrong_site_refuses(self):
         raw=full_snapshot();raw['points'][0]['value']+=1;self.archive.store_snapshot(raw)
@@ -101,22 +99,20 @@ class ProviderTests(unittest.TestCase):
         self.archive.store_snapshot(full_snapshot(hours=360))
         provider=self.p.load_production_forecast(self.archive,decision_at=self.now,required_horizon=timedelta(hours=336),site=SITE)
         self.assertEqual(len(provider.to_dict()['hours']),337)
-        import forecast_intel as fi
-        _,_,detail=fi.build_forecast_payloads(provider,[],self.now)
-        self.assertLessEqual(len(fi.serialize_detail(detail).encode()),fi.DETAIL_MAX_BYTES)
+        states=self.p.publication_states(provider,now=self.now)
+        self.assertLess(len(states['Forecast_10Day_JSON'].encode()),65536)
 
     def test_unavailable_withdraws_and_different_decision_still_refuses(self):
-        import forecast_intel as fi
         unavailable=self.load()
-        with patch.object(fi,'hourly_model_seed',side_effect=AssertionError('legacy seeding')):
-            hourly,daily,detail=fi.build_forecast_payloads(unavailable,[],self.now)
+        with patch('urllib.request.urlopen',side_effect=AssertionError('external fallback')):
+            hourly,daily,detail=self.p.forecast_payloads(unavailable,now=self.now)
         self.assertEqual((hourly,daily,detail['days']),([],[],[]))
         self.assertEqual(detail['providerStatus'],'UNAVAILABLE')
         self.assertEqual(detail['providerReason'],'NO_ELIGIBLE_SOURCE')
         self.assertIsNone(detail['source'])
         self.assertEqual(detail['learningNamespace'],'weathernext3-temperature-v1')
         self.archive.store_snapshot(full_snapshot())
-        with self.assertRaises(ValueError):fi.build_forecast_payloads(self.load(),[],self.now+timedelta(seconds=1))
+        with self.assertRaises(ValueError):self.p.forecast_payloads(self.load(),now=self.now+timedelta(seconds=1))
 
     def test_archive_contention_and_corruption_are_unavailable_without_fallback(self):
         for failure in (sqlite3.OperationalError('database is locked'),sqlite3.DatabaseError('database disk image is malformed')):
@@ -129,9 +125,8 @@ class ProviderTests(unittest.TestCase):
 
     def test_withdrawal_serializes_all_existing_forecast_items_without_fetch_or_seed(self):
         import json
-        import forecast_intel as fi
         provider=self.load()
-        with patch('urllib.request.urlopen',side_effect=AssertionError('external fallback')),patch.object(fi,'hourly_model_seed',side_effect=AssertionError('old learning')):
+        with patch('urllib.request.urlopen',side_effect=AssertionError('external fallback')):
             updates=self.p.publication_states(provider,now=self.now)
         self.assertEqual(set(updates),{'Forecast_Hourly_JSON','Forecast_Daily_JSON','Forecast_10Day_JSON'})
         self.assertEqual(json.loads(updates['Forecast_Hourly_JSON']),[])

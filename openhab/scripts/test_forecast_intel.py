@@ -1839,3 +1839,20 @@ def test_main_saves_first_hourly_capture_before_failure_and_retry(monkeypatch):
         fi.main()
 
     assert durable["hourly_temp_targets"][target_key] == first_record
+
+
+def test_incumbent_worker_refuses_google_cohort_before_loading_old_model(tmp_path, monkeypatch):
+    from datetime import datetime, timedelta, timezone
+    import pytest
+    import forecast_intel as incumbent
+    from weather_learning.archive import Archive
+    from weather_learning.config import Site
+    from weather_learning.provider import load_production_forecast
+    now = datetime(2026, 10, 19, tzinfo=timezone.utc)
+    provider = load_production_forecast(Archive(tmp_path / 'google'), decision_at=now,
+        required_horizon=timedelta(hours=48), site=Site(38.3739919, -105.7744609, 'America/Denver'))
+    def old_model(*args, **kwargs):
+        raise AssertionError('retired worker selected its old learning state')
+    monkeypatch.setattr(incumbent, '_hourly_model_snapshot', old_model)
+    with pytest.raises(ValueError, match='incumbent dictionary'):
+        incumbent.build_forecast_payloads(provider, [], now)

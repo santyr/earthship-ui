@@ -279,3 +279,32 @@ forecast-worker family. This proves import closure only; remaining deployment
 tools, unit templates and dynamic references still need closure before worker
 removal. Live services, source
 releases, model receipts, resource policy and actuator authority were unchanged.
+
+
+### Google publication no longer enters the incumbent worker — October 19
+
+The unused ProviderSnapshot overload in forecast_intel.build_forecast_payloads
+is removed. The remaining dictionary worker refuses a Google snapshot before its
+old model selector can run; all original dictionary calculation statements have
+identical ASTs. No current native source binding or model receipt changed.
+
+All Google provider tests now exercise the actual forecast_payloads and
+publication_states APIs, retaining nullable fields, original source/decision
+identity, complete local/DST days, maximum-horizon byte limits and unavailable
+withdrawal checks. Serialized or incumbent dictionaries cannot impersonate the
+immutable provider object. The Google package no longer imports the old worker
+to verify those contracts.
+
+Verification: **all 211 pinned WeatherNext tests passed in 8.561 seconds**, in a
+fresh process whose import hook rejects all fourteen old worker/evidence modules
+throughout discovery and execution. **168 legacy-worker/native boundary tests
+passed in 3.05 seconds** from export fa3401bdf719347e4635e380ba704d9776ff02c0.
+The new incumbent refusal test failed before the edit, then passed. Existing
+native cold-start coverage now blocks the same fourteen modules in addition to
+the four retired standalone publishers. These are development tests, not site
+qualification.
+
+The separate operator/recovery/template removal proposal remains unapplied while
+its explicit owner decision is pending. This independent boundary change neither
+applies that proposal nor alters recovery functions, templates, installed
+services, resource policy, model state or actuator authority.
