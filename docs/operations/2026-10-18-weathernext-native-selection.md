@@ -2,7 +2,7 @@
 
 Observed October 18, 2026. This completes another Task 8 preparation increment; production provider selection and the full migration remain unfinished.
 
-**Current source update (October 19):** the provisional standalone CLI, publisher, monitor and non-native score queue are removed, together with their uninstalled schedule templates. Current native observation/receipt tests use the native Google publisher. The base model source binding contains 82 files. Installed-shade CLI/loader retirement and the remaining forecast-worker graph still precede the final source freeze and release fitting. Production has not cut over.
+**Current source update (October 19):** both obsolete standalone publisher families and their uninstalled schedule templates are removed. Current native observation/receipt tests use the native Google publisher. Shared Google/local acquisition classes remain. The base model source binding contains 81 files; the raw shared binding contains 76. The remaining forecast-worker/provider/tool graph still precedes final source freeze and fresh release fitting. Production has not cut over.
 
 ## Explicit source selection
 
@@ -180,3 +180,43 @@ services and frozen runtime sources were unchanged. The installed-shade operator
 its legacy loaders/renderer and the remaining provider/worker/tool graph still
 need retirement before final fresh fitting, qualification and attended cutover.
 No actuator, resource-policy or recovery workflow changed.
+
+
+### Installed standalone family retired — October 19
+
+Removed thermal_installed_intel.py, installed_shade_schedule.py and
+scripts/stage-installed-monitoring.py, their two uninstalled service/timer
+templates and four exclusive old-operator test modules. Removed the six old
+configuration loaders and WithdrawalBackend from installed_shade_live_inputs.
+Mixed mathematical, registration, withdrawal and telemetry tests remain.
+
+TelemetryTransport, SourceLiveBackend, CompressedSourceLiveBackend and the local
+clock retain identical function/class ASTs. LiveBackend changes only its protected
+source-set declaration to the same five values: release inputs, token, journal
+DSN, native database configuration and native policy. The retired forecast DSN
+is still explicitly refused before private reads. The closed Google configuration
+field set and mandatory Google reader are unchanged. The optional old-CLI scorer
+hook is removed; current serial/native resource verification remains. Native base
+binding is 81 files and raw shared binding is 76. Installed weights and receipts
+were not relabelled or changed.
+
+The final affected **73-module suite passed 806 tests in 174.09 seconds**, with
+two existing selected-capped-scope smoke tests skipped, using isolated export
+693bee0326406aaaeefb6e2958805983a5cf4d09. The pinned WeatherNext package passed
+**211 tests in 8.701 seconds** with the same production bytes. The last change
+was confined to a test fixture and its regression. All new retirement regressions
+were observed failing before source removal and passing afterward.
+
+Predecessor Forecast ML CI failed eighteen observation tests because its toolcache
+interpreter failed the immutable-source guard. A writable-interpreter reproduction
+failed at the same guard. The fresh synthetic fit fixture now uses the existing
+private_interpreter helper: an owned, non-writable copy with identical executable
+bytes. The regression first proves that the original writable binary is refused,
+then verifies the fitted candidate pins the original executable hash. The
+regression and all observer/receipt cases passed (41 tests in 19.92 seconds)
+before the final wide suite. No production guard or host interpreter permission
+was changed. New-head repository CI remains separate evidence.
+
+Remaining provider/worker/tool source retirement, final fresh fits, prospective
+qualification and coordinated live ownership/cutover are unfinished. No live
+unit, model, source release, resource policy or actuator changed.

@@ -12,53 +12,20 @@ from pathlib import Path
 from urllib.parse import urlencode
 from urllib.request import Request,build_opener,ProxyHandler
 
-from .forcing_capture import _canonical,_private_directory
+from .forcing_capture import _canonical
 from .graduation_policy import _utc
 from .runtime_bundle import _owned_bytes
 from .origin_capture import _object
-from .policy_registration import _read_private
 from .capture_readers import BASES,ReadBudget,_NoRedirect,bounded_journal_dsn
 from .installed_shade_published_origin import NUMERIC_ITEM,PUBLICATION_ITEM
 
-SCHEMA='earthship-installed-shade-live-config/v1'
-RAW_SCHEMA='earthship-installed-shade-live-config/v2'
-COMPRESSED_SCHEMA='earthship-installed-shade-live-config/v3'
-SOURCE_PATHS={'release_inputs_path','token_file','journal_dsn_file','forecast_dsn_file','native_db_config','native_policy'}
-FIELDS=SOURCE_PATHS|{'schema','openhab_base','evidence_directory'}
+SOURCE_PATHS={'release_inputs_path','token_file','journal_dsn_file','native_db_config','native_policy'}
 ITEMS={NUMERIC_ITEM,PUBLICATION_ITEM}
 MAX_RESPONSE_BYTES=262144
 MAX_TOTAL_BYTES=2097152
 
 
 def _clock():return datetime.now(timezone.utc)
-
-
-def load_raw_live_settings(path):
-    return load_live_settings(path,_version=2)
-
-
-def load_compressed_live_settings(path):
-    return load_live_settings(path,_version=3)
-
-
-def load_live_settings(path,*,_version=1):
-    if type(_version) is not int or _version not in (1,2,3):raise ValueError('explicit live configuration profile required')
-    path=Path(path);_private_directory(path.parent);value=_read_private(path)
-    if not isinstance(value,dict) or set(value)!=FIELDS or value['schema']!={1:SCHEMA,2:RAW_SCHEMA,3:COMPRESSED_SCHEMA}[_version] or value['openhab_base'] not in BASES:
-        raise ValueError('closed private installed live configuration required')
-    for key in SOURCE_PATHS|{'evidence_directory'}:
-        name=value[key]
-        if not isinstance(name,str) or not 1<=len(name)<=1024:raise ValueError('bounded explicit source path required')
-        target=Path(name)
-        if not target.is_absolute() or target.resolve()!=target:raise ValueError('resolved original source path required')
-        if key=='evidence_directory':_private_directory(target)
-        else:_private_directory(target.parent);_owned_bytes(target,16384)
-    if _version in (2,3):
-        from .installed_shade_publication import COMPLETE_RAW_REFERENCE_SCHEMA,COMPRESSED_REFERENCE_SCHEMA,REFERENCE_FIELDS
-        refs=_read_private(Path(value['release_inputs_path']))
-        if not isinstance(refs,dict) or set(refs)!=REFERENCE_FIELDS or refs['schema']!=(COMPRESSED_REFERENCE_SCHEMA if _version==3 else COMPLETE_RAW_REFERENCE_SCHEMA):
-            raise ValueError('complete raw release references required')
-    return deepcopy(value)
 
 
 class TelemetryTransport:
@@ -125,7 +92,7 @@ class LiveBackend:
         if not callable(forecast_reader):raise ValueError('explicit Google forecast reader required')
         if 'forecast_dsn_file' in settings:raise ValueError('retired forecast database configuration refused')
         self.forecast_reader=forecast_reader
-        source_paths=SOURCE_PATHS-{'forecast_dsn_file'}
+        source_paths=SOURCE_PATHS
         self.hashes={name:sha256(_owned_bytes(Path(settings[name]),16384)).hexdigest() for name in source_paths}
         self.token=_owned_bytes(Path(settings['token_file']),4096).decode().strip()
         self.transport=TelemetryTransport(base=settings['openhab_base'],token_reader=lambda:self.token,budget=self.budget)
@@ -227,54 +194,3 @@ class SourceLiveBackend(LiveBackend):
 class CompressedSourceLiveBackend(SourceLiveBackend):
     """Explicit container2 acquisition; no installed caller selects this port."""
     _compressed_sources=True
-
-
-WITHDRAW_SCHEMA='earthship-installed-shade-withdraw-config/v1'
-RAW_WITHDRAW_SCHEMA='earthship-installed-shade-withdraw-config/v2'
-COMPRESSED_WITHDRAW_SCHEMA='earthship-installed-shade-withdraw-config/v3'
-WITHDRAW_FIELDS={'schema','openhab_base','token_file','evidence_directory'}
-
-
-def load_raw_withdraw_settings(path):
-    return load_withdraw_settings(path,_version=2)
-
-
-def load_compressed_withdraw_settings(path):
-    return load_withdraw_settings(path,_version=3)
-
-
-def load_withdraw_settings(path,*,_version=1):
-    if type(_version) is not int or _version not in (1,2,3):raise ValueError('explicit withdrawal configuration profile required')
-    path=Path(path);_private_directory(path.parent);value=_read_private(path)
-    if not isinstance(value,dict) or set(value)!=WITHDRAW_FIELDS or value['schema']!={1:WITHDRAW_SCHEMA,2:RAW_WITHDRAW_SCHEMA,3:COMPRESSED_WITHDRAW_SCHEMA}[_version] or value['openhab_base'] not in BASES:
-        raise ValueError('closed private withdrawal configuration required')
-    for name in ('token_file','evidence_directory'):
-        raw=value[name]
-        if not isinstance(raw,str) or not 1<=len(raw)<=1024:raise ValueError('bounded withdrawal source path required')
-        target=Path(raw)
-        if not target.is_absolute() or target.resolve()!=target:raise ValueError('resolved withdrawal source required')
-        if name=='evidence_directory':_private_directory(target)
-        else:_private_directory(target.parent);_owned_bytes(target,4096)
-    return deepcopy(value)
-
-
-class WithdrawalBackend:
-    def __init__(self,settings):
-        self.settings=deepcopy(settings);self.budget=ReadBudget(25,max_requests=8)
-        raw=_owned_bytes(Path(settings['token_file']),4096);self.token_sha256=sha256(raw).hexdigest();token=raw.decode().strip()
-        self.transport=TelemetryTransport(base=settings['openhab_base'],token_reader=lambda:token,budget=self.budget)
-    def verify_unchanged(self):
-        self.budget.remaining()
-        if sha256(_owned_bytes(Path(self.settings['token_file']),4096)).hexdigest()!=self.token_sha256:
-            raise ValueError('withdrawal credential changed')
-    def put(self,item,state,*,preflight=None):
-        if item!=PUBLICATION_ITEM:raise ValueError('withdrawal targets main thermal telemetry only')
-        def final_preflight():
-            self.verify_unchanged()
-            if preflight:preflight()
-        self.verify_unchanged();self.transport.put(item,state,preflight=final_preflight)
-    def persisted(self,item,state,*,since):
-        if item!=PUBLICATION_ITEM:raise ValueError('withdrawal receipt must be main thermal telemetry')
-        self.verify_unchanged()
-        receipt=self.transport.persisted(item,state,since=since,until=_utc(_clock()))
-        self.verify_unchanged();return receipt

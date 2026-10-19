@@ -75,6 +75,8 @@ def fresh_candidate(tmp_path,monkeypatch):
     from native_thermal_fit import fit_native_development
     from household.codec import canonical
     tmp_path.mkdir(mode=0o700,exist_ok=True)
+    from test_thermal_origin_capture import private_interpreter
+    private_interpreter(tmp_path,monkeypatch)
     record=snapshot(initial_outdoor='removed');data=build(record);g=data.geometry
     runtime=artifact.current_native_runtime()
     monkeypatch.setenv('EARTHSHIP_QUALIFICATION_FIT','1')

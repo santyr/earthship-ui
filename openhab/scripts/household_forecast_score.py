@@ -131,7 +131,6 @@ def production_retained_runner():
 @contextmanager
 def production_score_policy():
     """Explicitly use current admission for an archived scoring invocation only."""
-    import sys
     import thermal_model.serial_publication_caps as serial
     import household_cycle_resources as resources
     production_resource_preflight()
@@ -144,11 +143,6 @@ def production_score_policy():
         (resources,'publication_resource_preflight',production_resource_preflight)]
     # Native archives bind policy at import time. Keep their numerical sources
     # intact; report-local reuse retains their original final inventory check.
-    # An original archive may already have loaded its old compatibility export;
-    # do not import that CLI into current Google execution.
-    installed=sys.modules.get('thermal_installed_intel')
-    if installed is not None and hasattr(installed,'_resource_preflight'):
-        hooks.append((installed,'_resource_preflight',production_resource_preflight))
     if Path(resources.__file__).with_name('native_thermal_live.py').is_file():
         import native_thermal_live as native
         if hasattr(native,'_resource_preflight'):

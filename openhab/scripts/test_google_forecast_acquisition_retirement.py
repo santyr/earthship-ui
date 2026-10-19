@@ -18,7 +18,7 @@ def test_missing_weather_reader_refuses_before_private_source_reads(monkeypatch)
 def test_obsolete_forecast_secret_is_refused_even_with_explicit_reader(monkeypatch):
     monkeypatch.setattr(live,'_owned_bytes',lambda *a,**kw:pytest.fail('obsolete forecast credential was read'))
     with pytest.raises(ValueError,match='forecast database'):
-        live.LiveBackend({key:'/unused/'+key for key in live.SOURCE_PATHS},shared_lock_guard=lambda:None,forecast_reader=lambda **kw:None)
+        live.LiveBackend({**{key:'/unused/'+key for key in live.SOURCE_PATHS},'forecast_dsn_file':'/unused/retired-weather'},shared_lock_guard=lambda:None,forecast_reader=lambda **kw:None)
 
 
 def test_legacy_sql_acquisition_apis_are_removed():

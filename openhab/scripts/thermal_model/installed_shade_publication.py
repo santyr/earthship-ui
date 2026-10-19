@@ -30,7 +30,6 @@ RUNTIME_PATHS=frozenset({
     'thermal_model/airflow_migration.py',
     'thermal_model/journal.py',
     'weather_temperature_receiver.py',
-    'thermal_installed_intel.py',
     'thermal_model/installed_shade_live.py',
     'thermal_model/installed_shade_live_inputs.py',
     'thermal_model/action_history.py',

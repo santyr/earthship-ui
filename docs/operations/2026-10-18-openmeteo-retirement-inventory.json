@@ -13644,7 +13644,16 @@
       "openhab/systemd/user/thermal-provisional-forecast.service",
       "openhab/systemd/user/thermal-provisional-forecast.timer",
       "openhab/systemd/user/thermal-provisional-score.service",
-      "openhab/systemd/user/thermal-provisional-score.timer"
+      "openhab/systemd/user/thermal-provisional-score.timer",
+      "openhab/scripts/test_installed_registered_closure.py",
+      "openhab/scripts/test_installed_registered_schedule.py",
+      "openhab/scripts/test_installed_shade_compressed_live_cli.py",
+      "openhab/scripts/test_installed_shade_raw_live_cli.py",
+      "openhab/scripts/thermal_installed_intel.py",
+      "openhab/scripts/thermal_model/installed_shade_schedule.py",
+      "openhab/systemd/user/thermal-installed-forecast.service",
+      "openhab/systemd/user/thermal-installed-forecast.timer",
+      "scripts/stage-installed-monitoring.py"
     ],
     "removed_apis": [
       "weather_learning.energy_shadow.compare_fixed_energy",
@@ -13661,14 +13670,21 @@
       "thermal_model.forecast_history.select_origin_forecast",
       "thermal_model.forecast_history.select_origin_forecast_with_receipts",
       "thermal_model.forecast_history._select_origin_forecast",
-      "legacy per-metric receipt verification and shared thermal/airflow forcing branch"
+      "legacy per-metric receipt verification and shared thermal/airflow forcing branch",
+      "thermal_model.installed_shade_live_inputs.load_live_settings",
+      "thermal_model.installed_shade_live_inputs.load_raw_live_settings",
+      "thermal_model.installed_shade_live_inputs.load_compressed_live_settings",
+      "thermal_model.installed_shade_live_inputs.load_withdraw_settings",
+      "thermal_model.installed_shade_live_inputs.load_raw_withdraw_settings",
+      "thermal_model.installed_shade_live_inputs.load_compressed_withdraw_settings",
+      "thermal_model.installed_shade_live_inputs.WithdrawalBackend"
     ],
     "neutral_transport": "openhab/scripts/weather_learning/openhab.py",
     "shadow_payload_schema": "earthship-weather-provider-shadow/v2",
     "shadow_issue_schema": "earthship-weather-shadow-issue/v2",
     "fresh_shadow_state_child": "google-local-v2",
     "historical_evidence_rewritten": false,
-    "remaining": "Installed-shade standalone CLI, legacy configuration loaders and registered-unit renderer; remaining forecast worker/provider/tool graph and root-only AQI consumers; fresh downstream release models and qualification; actual reviewed publisher release/ownership handoff; coordinated cutover and installed binding/Things/links removal. Provisional CLI/publisher/monitor/non-native queue and their unit templates are removed from prepared source. Literal old worker names remain only in historical handoff metadata and its fixtures. No live retirement has been applied.",
+    "remaining": "Remaining forecast worker/provider/tool graph and root-only AQI consumers; final source freeze, fresh downstream release models and qualification; actual reviewed publisher release/ownership handoff; coordinated cutover and installed binding/Things/links removal. Both provisional and installed-shade standalone publishers, obsolete configuration loaders and registered-unit renderer are removed from prepared source. Shared Google/local acquisition/telemetry and existing physical/receipt/resource checks remain. No live retirement has been applied.",
     "neutral_tool_helpers": [
       "scripts/openhab_private_files.py",
       "scripts/HexThingsParse.java"
@@ -13732,7 +13748,7 @@
       "forecast_input_capture.py",
       "forecast_temperature_origin.py"
     ],
-    "native_base_source_count": 82,
+    "native_base_source_count": 81,
     "neutral_native_source_verification": "Five helper function ASTs exactly match original definitions; unchanged 128 KiB default read bound; two isolation regressions RED then 23 packet/isolation GREEN; 84 native/Google/fresh-irradiance/staging tests passed in 19.68 seconds in immutable export.",
     "neutral_openhab_io": "openhab/scripts/openhab_runtime_io.py; existing capture imports remain compatibility exports",
     "prepared_publication_runtime": "weather_learning.production_runtime.run_publication; mandatory external admission/resource guard, fixed Item preflight, shared writer lock and retained attempts/results; operational caller prepared, no live activation",
@@ -13763,9 +13779,7 @@
     "score_dispatch_contract": "earthship-native-score-dispatch/v2; current plus explicitly pinned Google receipt-serving history, no legacy selector/executor; writer, daily package, handoff and installer updated together",
     "handoff_baseline_verifier": "verify_handoff_baseline: detached source/preimage integrity only; active verify_stage rejects retired deployment selection",
     "operational_caller_verification": "256 passed across 30 affected modules in 72.16 seconds in clean isolated export f85dff5d8f1b40811e68b0b71f3138a896bfd255; 23 changed Python/test files match. Thirteen new retirement cases, actual fourteen-parameter fit evidence, source/report reconstruction, staging/handoff/daily/retained worker/memory-event regressions; no production qualification claim.",
-    "remaining_standalone_legacy_entrypoints": [
-      "thermal_installed_intel.py"
-    ],
+    "remaining_standalone_legacy_entrypoints": [],
     "neutral_native_operational_helpers": [
       "openhab/scripts/thermal_model/native_operational_io.py",
       "openhab/scripts/thermal_model/serial_publication_caps.py"
@@ -13783,7 +13797,7 @@
       "scripts/qualify-installed-shade.py",
       "scripts/household_energy_source_install.py"
     ],
-    "remaining_legacy_config_loader_module": "thermal_model/installed_shade_live_inputs.py; preserve its shared Google/local acquisition and telemetry classes",
+    "remaining_legacy_config_loader_module": null,
     "shared_resource_old_cli_imports_remaining": [],
     "shared_resource_dependency_verification": "Ten production/tool ASTs match their preimages after only resource-import and manifest-path substitutions. Two import/admission/source-closure regressions RED then GREEN. Final 67-module isolated-export suite: 745 passed, two existing selected-capped-scope smoke skips, 135.76s; pinned WeatherNext package: 211 passed, 8.808s. Export 7db29600ed1859703bb0d6e79a8d6282ea124825. No live configuration, model, resource-policy or service change.",
     "provisional_family_preimage_revision": "cdab99c3009f070d3559888dc7247e3005d90e8b",
@@ -13800,6 +13814,21 @@
       "openhab/systemd/user/thermal-provisional-score.timer"
     ],
     "provisional_observer_test_migration": "29 unchanged observer, original-receipt and cache-boundary cases now invoke the current native Google publisher with fresh synthetic fourteen-parameter fit evidence. They passed before deletion. Native query packet helper AST is unchanged; native gap tests retain it from native_cycle_test_support.py.",
-    "provisional_family_verification": "Two retirement regressions RED then GREEN; 29 observer/receipt cases ported to the current native publisher and passed before deletion. Full affected 70-module suite: 784 passed, two existing selected-capped-scope smoke skips, 151.84s, export 13ab3c361641ff4f45b91d38e0587ae23882b342. Pinned WeatherNext package 211 passed in 8.404s. Predecessor CI failed one stale raw source-count assertion; corrected registration-closure test passed in 0.62s in final export be7cab1caa1019d770d5126ef0788e36ac388f2e; production bytes unchanged after wide suite. No remaining production imports of removed family; query helper AST unchanged. No live deployment or release qualification."
+    "provisional_family_verification": "Two retirement regressions RED then GREEN; 29 observer/receipt cases ported to the current native publisher and passed before deletion. Full affected 70-module suite: 784 passed, two existing selected-capped-scope smoke skips, 151.84s, export 13ab3c361641ff4f45b91d38e0587ae23882b342. Pinned WeatherNext package 211 passed in 8.404s. Predecessor CI failed one stale raw source-count assertion; corrected registration-closure test passed in 0.62s in final export be7cab1caa1019d770d5126ef0788e36ac388f2e; production bytes unchanged after wide suite. No remaining production imports of removed family; query helper AST unchanged. No live deployment or release qualification.",
+    "raw_shared_source_count": 76,
+    "installed_cli_retirement_preimage_revision": "2279cc005068d7b06d5a55f49b428dd36e0422d5",
+    "preserved_native_acquisition_classes": [
+      "TelemetryTransport",
+      "LiveBackend",
+      "SourceLiveBackend",
+      "CompressedSourceLiveBackend"
+    ],
+    "installed_native_protected_sources": [
+      "release_inputs_path",
+      "token_file",
+      "journal_dsn_file",
+      "native_db_config",
+      "native_policy"
+    ]
   }
 }

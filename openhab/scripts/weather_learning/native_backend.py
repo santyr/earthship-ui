@@ -13,7 +13,7 @@ SCHEMA='earthship-weathernext-native-backend/v1'
 
 def make_native_backend(settings,*,archive,site,shared_lock_guard):
     from thermal_model.installed_shade_live_inputs import CompressedSourceLiveBackend,SOURCE_PATHS
-    expected=(SOURCE_PATHS-{'forecast_dsn_file'})|{'schema','openhab_base','evidence_directory'}
+    expected=SOURCE_PATHS|{'schema','openhab_base','evidence_directory'}
     if (not isinstance(settings,dict) or set(settings)!=expected or settings['schema']!=SCHEMA or
             not isinstance(site,Site) or not callable(shared_lock_guard)):
         raise ValueError('explicit private Google native backend and held guard required')

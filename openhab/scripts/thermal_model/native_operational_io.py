@@ -14,7 +14,6 @@ RUNTIME_ROOT=Path(__file__).resolve().parents[1]
 RUNTIME_PATHS=frozenset({
     'hourly_temperature_runtime.py',
     'openhab_runtime_io.py',
-    'thermal_installed_intel.py',
     'thermal_intel.py',
     'thermal_model/__init__.py',
     'thermal_model/action_history.py',

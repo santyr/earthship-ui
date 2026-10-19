@@ -60,19 +60,6 @@ def google_source(issue,known):
     return make_native_forecast(source,origin=issue,available_by=known,horizon_hours=24,site=SITE)
 
 
-def test_private_live_config_refuses_active_dates_extra_fields_and_public_secrets(tmp_path):
-    m=module();tmp_path.chmod(0o700)
-    archive=tmp_path/'evidence';archive.mkdir(mode=0o700)
-    fields={name:str(tmp_path/name) for name in ('release_inputs_path','token_file','journal_dsn_file','forecast_dsn_file','native_db_config','native_policy')}
-    for name in fields:Path(fields[name]).write_text('fixture');Path(fields[name]).chmod(0o600)
-    config=dict(schema='earthship-installed-shade-live-config/v1',openhab_base='http://127.0.0.1:8080/rest',evidence_directory=str(archive),**fields)
-    path=tmp_path/'config';path.write_text(json.dumps(config));path.chmod(0o600)
-    loaded=m.load_live_settings(path);assert loaded['evidence_directory']==str(archive)
-    for key in ('active','assessed_at'):
-        path.write_text(json.dumps({**config,key:True}))
-        with pytest.raises(ValueError):m.load_live_settings(path)
-    path.write_text(json.dumps(config));Path(fields['token_file']).chmod(0o644)
-    with pytest.raises(ValueError):m.load_live_settings(path)
 
 
 
@@ -86,17 +73,6 @@ def test_database_transport_failure_is_an_unavailable_source_not_uncaught_worker
 
 
 
-def test_cli_explicit_legacy_profile_checks_private_config_with_no_live_transports(tmp_path):
-    import subprocess,sys
-    m=module();tmp_path.chmod(0o700);archive=tmp_path/'evidence';archive.mkdir(mode=0o700)
-    fields={name:str(tmp_path/name) for name in ('release_inputs_path','token_file','journal_dsn_file','forecast_dsn_file','native_db_config','native_policy')}
-    for name in fields:Path(fields[name]).write_text('fixture');Path(fields[name]).chmod(0o600)
-    config=dict(schema='earthship-installed-shade-live-config/v1',openhab_base='http://127.0.0.1:8080/rest',evidence_directory=str(archive),**fields)
-    path=tmp_path/'config';path.write_text(json.dumps(config));path.chmod(0o600)
-    script=Path(__file__).resolve().parent/'thermal_installed_intel.py'
-    result=subprocess.run([sys.executable,str(script),'--config',str(path),'--contract-version','1'],check=True,capture_output=True,text=True)
-    assert json.loads(result.stdout)==dict(status='configuration_verified',publication_executed=False,automatic_actuation=False)
-    assert list(archive.iterdir())==[]
 
 
 @pytest.mark.parametrize('delay',['item_lookup','request_pacing'])

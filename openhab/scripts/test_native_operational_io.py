@@ -133,3 +133,45 @@ def test_retired_provisional_units_cannot_select_removed_workers():
     for name in ('thermal-provisional-forecast','thermal-provisional-score'):
         for extension in ('service','timer'):
             assert not (root/(name+'.'+extension)).exists(),'retired standalone schedule remains available'
+
+
+def test_old_installed_configuration_factories_are_absent():
+    from thermal_model import installed_shade_live_inputs as inputs
+    names=('load_live_settings','load_raw_live_settings','load_compressed_live_settings',
+           'load_withdraw_settings','load_raw_withdraw_settings','load_compressed_withdraw_settings','WithdrawalBackend')
+    assert not [name for name in names if hasattr(inputs,name)],'obsolete installed-shade configuration factory remains'
+    assert 'forecast_dsn_file' not in inputs.SOURCE_PATHS
+
+
+def test_retired_installed_publisher_and_scheduler_are_unavailable():
+    names=('thermal_installed_intel','thermal_model.installed_shade_schedule')
+    code="import importlib.util; names="+repr(names)+"; assert all(importlib.util.find_spec(name) is None for name in names), 'retired installed publisher remains importable'"
+    result=subprocess.run([sys.executable,'-c',code],capture_output=True,text=True,timeout=30)
+    assert result.returncode==0,result.stderr
+    root=ROOT.parents[1]
+    assert not (root/'scripts/stage-installed-monitoring.py').exists()
+    for extension in ('service','timer'):
+        assert not (root/'openhab/systemd/user'/('thermal-installed-forecast.'+extension)).exists()
+    assert 'thermal_installed_intel.py' not in api().RUNTIME_PATHS
+    from thermal_model.installed_shade_publication import RAW_RUNTIME_PATHS
+    assert 'thermal_installed_intel.py' not in RAW_RUNTIME_PATHS
+
+
+def test_native_observation_fixture_qualifies_an_immutable_interpreter(tmp_path,monkeypatch):
+    import shutil
+    from hashlib import sha256
+    from native_cycle_test_support import fixture
+    from thermal_model.origin_capture import _source_bytes
+    # Hosted CI may provide a writable toolcache interpreter. Do not change it
+    # or relax the production guard: bind an owned exact-byte copy in the case.
+    original=Path(sys.executable).resolve();expected=sha256(original.read_bytes()).hexdigest()
+    writable=tmp_path/'ci-python';shutil.copyfile(original,writable);writable.chmod(0o775)
+    monkeypatch.setattr(sys,'executable',str(writable))
+    with pytest.raises(ValueError,match='non-writable runtime source'):
+        _source_bytes(writable,maximum=64000000)
+    case=tmp_path/'case';case.mkdir(mode=0o700)
+    _,_,_,candidate=fixture(case,monkeypatch)
+    qualified=Path(sys.executable)
+    assert qualified.is_relative_to(case) and not qualified.stat().st_mode&0o022
+    assert sha256(_source_bytes(qualified,maximum=64000000)).hexdigest()==expected
+    assert candidate['runtime']['base_runtime']['interpreter_sha256']==expected

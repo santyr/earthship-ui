@@ -56,7 +56,6 @@ def test_unexpected_failures_do_not_publish_fallback_report(reason,tmp_path,monk
 def runtime_setup(tmp_path,monkeypatch,*,mock_native_pressure=True):
     from thermal_model import native_operational_io as provisional_live
     import native_thermal_live as native,native_inference_pressure
-    import thermal_installed_intel
     from datetime import datetime,timezone,timedelta
     settings={'schema':native.LIVE_SCHEMA,'shared_lock':str(tmp_path/'score.lock')}
     lock=tmp_path/'score.lock';lock.write_text('');lock.chmod(0o600)

@@ -3,7 +3,6 @@ import json
 from pathlib import Path
 import pytest
 from thermal_model.forcing_capture import _canonical
-from test_installed_shade_compressed_live_cli import compressed_settings,raw_settings
 
 
 def test_compressed_bootstrap_factory_refuses_configured_registration(tmp_path):
@@ -24,19 +23,6 @@ def test_production_cannot_accept_compressed_base_bootstrap_type(monkeypatch):
     assert value['status']=='unavailable' and value['release']['forecastQualified'] is False
 
 
-def test_compressed_cli_bootstrap_explicitly_selects_source_worker(compressed_settings,monkeypatch,capsys):
-    import thermal_installed_intel as cli
-    from thermal_model import installed_shade_live as live,installed_shade_live_inputs as inputs
-    path,value,_=compressed_settings;backend=object()
-    monkeypatch.setattr(cli,'_resource_preflight',lambda:None)
-    monkeypatch.setattr(inputs,'CompressedSourceLiveBackend',lambda *a,**kw:backend)
-    def run(**kw):
-        assert kw['backend'] is backend
-        return dict(status='published',mode='shadow',delivery_verified=True,automatic_actuation=False)
-    monkeypatch.setattr(live,'run_compressed_bootstrap_live_cycle',run,raising=False)
-    lock=path.parent/'lock';lock.touch(mode=0o600)
-    assert cli.main(['--config',str(path),'--contract-version','3','--bootstrap-shadow','--shared-lock',str(lock)])==0
-    assert json.loads(capsys.readouterr().out)['mode']=='shadow'
 
 
 from copy import deepcopy
