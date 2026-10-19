@@ -39,7 +39,7 @@
       <span class="day-icon" title={condition.label} data-condition-basis={condition.basis}><OhIcon icon={condition.icon} size="1.2rem" color={condition.color ?? 'currentColor'} /></span>
       <span class="day-hilo">
         {value(day.summary.highF, '°')} / {value(day.summary.lowF, '°')}
-        {#if day.summary.temperatureScope === 'remaining'}<small class="range-note">remaining</small>{/if}
+        {#if variant !== 'home' && day.summary.temperatureScope === 'remaining'}<small class="range-note">remaining</small>{/if}
       </span>
       <span class="day-meta">
         {#if day.summary.precipPct !== null}<span>{value(day.summary.precipPct, '%')}</span>{/if}
@@ -47,7 +47,7 @@
           <span data-testid="day-rain-amount" style="color: {colors.rain}">{rainAmountText(day.summary.precipSumIn)}</span>
         {/if}
         {#if day.summary.precipPct === null && !rainAmountText(day.summary.precipSumIn)}<span>{day.summary.precipSumIn === 0 ? '0.00″' : 'Rain unavailable'}</span>{/if}
-        {#if day.summary.precipitationScope === 'remaining'}<small class="range-note" title={`Rain forecast from ${day.summary.precipitationFromAt} through ${day.summary.precipitationThroughAt}`}>remaining</small>{/if}
+        {#if variant !== 'home' && day.summary.precipitationScope === 'remaining'}<small class="range-note" title={`Rain forecast from ${day.summary.precipitationFromAt} through ${day.summary.precipitationThroughAt}`}>remaining</small>{/if}
         {#if day.summary.pvKwh !== null}<span aria-hidden="true"> · </span><span>PV {value(day.summary.pvKwh, ' kWh')}</span>{/if}
       </span>
     </button>

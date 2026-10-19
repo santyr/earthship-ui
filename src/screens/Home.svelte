@@ -551,8 +551,7 @@
         </span>
         <div class="gw-text">
           <div class="gw-state" style="color: {gwStatus.color}">{gwSchedule.label}</div>
-          <div class="gw-next" title={gwSchedule.detail}>{gwSchedule.next}</div>
-          <div class="gw-last" title={`${gwSchedule.detail} Last automatic run ${gwLastAgo}`}>Conditions permitting</div>
+          <div class="gw-next" title={`${gwSchedule.detail} Last automatic run ${gwLastAgo}`}>{gwSchedule.next}</div>
         </div>
       </div>
     </Tile>
@@ -960,11 +959,6 @@
   }
   .gw-text { min-width: 0; }
   .gw-next { font-size: 0.68rem; line-height: 1.25; color: #d0d8e2; overflow-wrap: anywhere; }
-  .gw-last {
-    font-size: 0.68rem;
-    line-height: 1.2;
-    color: #aab4c2;
-  }
 
   /* ---- Outdoor hero ---- */
   .outdoor-body {
