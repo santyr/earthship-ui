@@ -56,3 +56,18 @@ Explicit Google-only native and receipt-serving configuration profiles now reach
 ## Installed model family preserved (October 18)
 
 The migration source now preserves the installed fourteen-parameter irradiance/shade equations and source-bound validation. Google production profiles refuse older model families; scheduled fitting selects the preserved family, the full 83-source/context package verifies, and the UI accepts its removed-shade domain without granting authority. A retained real-data replay exactly matches all 288 forcing steps and 24 hourly rows; this uses old coefficients only for parity, not promotion. Final checks: 125 relevant Python, 175 WeatherNext and 2,598 frontend tests passed, plus UI build. See [model-family preservation evidence](2026-10-18-weathernext-irradiance-family.md). Final provider retirement/source closure and real fresh fitting remain ahead of cutover.
+
+
+## Bounded publication runtime prepared (October 18)
+
+The [publication runtime](2026-10-18-weathernext-publication-runtime.md) now adds
+fixed state-only REST, existing shared-lock exclusion, admission checks after
+pacing, source-digest/freshness checks and immutable pre-write/result evidence.
+Its standard-library I/O helper preserves existing thermal imports and avoids
+pulling the numerical stack into the pinned WeatherNext environment. Verification:
+196 pinned package, 55 existing I/O and 84 source-bound native integration tests
+passed. Real retained Google input also passed local HTTP simulation. An actual
+GET-only OpenHAB preflight verified the eleven Item contracts and correctly
+refused an existing `Forecast_Radiation` channel link; no state update occurred.
+The qualified release/file-ownership caller, operational configuration and
+coordinated retirement remain required; no CLI, timer or live writer was added.

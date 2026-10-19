@@ -34,6 +34,7 @@ RUNTIME_PATHS=frozenset({
     'thermal_model/installed_shade_live.py',
     'thermal_model/installed_shade_live_inputs.py',
     'thermal_model/action_history.py',
+    'openhab_runtime_io.py',
     'thermal_model/capture_readers.py',
     'thermal_model/capture_guard.py',
     'thermal_temperature_runtime.py',
