@@ -81,22 +81,3 @@ def test_current_states_do_not_read_numeric_temperature_or_rest_update_times(mon
     current=thermal_intel._current_states(AT,series_reader=history,state_reader=state)
     assert current['air']['at']==AT-timedelta(seconds=30)
     assert current['mass']['validUntil']==AT+timedelta(seconds=90)
-
-
-def test_expiry_during_shadow_computation_prevents_publication(monkeypatch,tmp_path):
-    import thermal_intel
-    from test_thermal_pipeline import current_states, NOW
-    current=current_states(); current['air']['validUntil']=NOW+timedelta(seconds=1)
-    ticks=iter([0,2])
-    monkeypatch.setattr(thermal_intel.time,'monotonic',lambda:next(ticks))
-    monkeypatch.setattr(thermal_intel.forecast_intel,'load_site_settings',lambda:None)
-    monkeypatch.setattr(thermal_intel,'_current_states',lambda now:current)
-    monkeypatch.setattr(thermal_intel.forecast_intel,'fetch_forecast',lambda:{})
-    monkeypatch.setattr(thermal_intel,'_forecast_rows',lambda *args:[{'at':NOW,'mode':'warm'}])
-    monkeypatch.setattr(thermal_intel,'run_shadow',lambda **kwargs:{'confidence':{'grade':'high'}})
-    monkeypatch.setattr(thermal_intel,'ArtifactRegistry',lambda *args:None)
-    publications=[]
-    result=thermal_intel._shadow(SimpleNamespace(output=tmp_path/'shadow.json',publish=True),NOW,
-                                put_state=lambda *args:publications.append(args))
-    assert result==1 and publications==[]
-    assert 'expired current air' in (tmp_path/'shadow.json').read_text()

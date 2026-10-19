@@ -7,8 +7,6 @@ import stat
 
 import pytest
 
-import thermal_intel
-
 
 SCRIPT = Path(__file__).resolve().parents[2] / "scripts/thermal-model-files.py"
 SPEC = importlib.util.spec_from_file_location("thermal_model_files", SCRIPT)
@@ -47,7 +45,7 @@ def prepare(root):
     return repo
 
 
-def test_exact_manifest_contains_complete_runtime_and_capture_unit():
+def test_legacy_manifest_retains_original_runtime_and_capture_unit():
     entries = thermal_model_files.MANIFEST
     assert [entry["source"] for entry in entries if entry["phase"] == "verify"] == [
         "openhab/scripts/forecast_intel.py"
@@ -74,15 +72,8 @@ def test_exact_manifest_contains_complete_runtime_and_capture_unit():
             )
         ],
     ]
-    deployed_runtime = tuple(
-        entry["source"].removeprefix("openhab/scripts/")
-        for entry in entries
-        if entry["phase"] in {"verify", "code"}
-    )
-    # Observational capture is deployed but does not affect the model revision.
-    assert set(deployed_runtime) == (
-        set(thermal_intel.RUNTIME_REVISION_PATHS) | {"thermal_model/forcing_capture.py"}
-    )
+    # This legacy installer retains its fixed historical contract; the exact
+    # verify/code lists above must not track today's journal-only module.
     assert [entry["source"] for entry in entries if entry["phase"] == "unit"] == [
         "deploy/thermal-model-train.service",
         "deploy/thermal-model-train.timer",

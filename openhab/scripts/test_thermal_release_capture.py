@@ -84,52 +84,6 @@ def test_prospective_scorer_replays_exact_v2_publication_and_baselines(tmp_path,
     with pytest.raises(ValueError): score_qualified_origin(**packet)
 
 
-def test_release_emitter_archives_only_after_accepted_publication(tmp_path, monkeypatch):
-    import thermal_intel
-    from test_thermal_release_runtime import release_case
-    thermal, args, _, now = release_case(tmp_path, monkeypatch)
-    args.origin_capture_dir = tmp_path/'origins'
-    args.origin_capture_dir.mkdir(mode=0o700)
-    events = []
-    def archive(directory, **source):
-        assert events == ['accepted']
-        assert directory == args.origin_capture_dir
-        assert source['output']['version'] == 2
-        assert source['published_at'] == now+timedelta(seconds=2)
-        events.append('archived')
-    monkeypatch.setattr(thermal, '_archive_release_publication', archive)
-    assert thermal._release(args, now, put_state=lambda *_: events.append('accepted'),
-        decision_clock=lambda: now, qualification_clock=lambda: now,
-        published_clock=lambda: now+timedelta(seconds=2)) == 0
-    assert events == ['accepted', 'archived']
-
-
-def test_release_capture_failure_is_explicit_without_revoking_delivery(tmp_path, monkeypatch, capsys):
-    from test_thermal_release_runtime import release_case
-    thermal, args, _, now = release_case(tmp_path, monkeypatch)
-    args.origin_capture_dir = tmp_path/'origins'
-    args.origin_capture_dir.mkdir(mode=0o700)
-    sent = []
-    def refused(*_args, **_kwargs): raise OSError('storage unavailable')
-    monkeypatch.setattr(thermal, '_archive_release_publication', refused)
-    assert thermal._release(args, now, put_state=lambda *_: sent.append(True),
-        decision_clock=lambda: now, qualification_clock=lambda: now,
-        published_clock=lambda: now+timedelta(seconds=2)) == 0
-    assert sent == [True]
-    assert 'thermal release capture gap' in capsys.readouterr().err
-
-
-def test_release_preview_does_not_archive_or_invent_acknowledgement(tmp_path, monkeypatch):
-    from test_thermal_release_runtime import release_case
-    thermal, args, _, now = release_case(tmp_path, monkeypatch)
-    args.publish = False
-    args.origin_capture_dir = tmp_path/'origins'
-    def prohibited(*_args, **_kwargs): raise AssertionError('preview must not archive publication')
-    monkeypatch.setattr(thermal, '_archive_release_publication', prohibited)
-    assert thermal._release(args, now, decision_clock=lambda: now,
-        qualification_clock=lambda: now, published_clock=prohibited) == 0
-
-
 def test_release_archive_retains_actual_runtime_bundle_and_private_origin(tmp_path, monkeypatch):
     """Real storage transaction; synthetic publication is not release fitness proof."""
     import shutil
@@ -158,25 +112,6 @@ def test_release_archive_retains_actual_runtime_bundle_and_private_origin(tmp_pa
     bundles = [entry for entry in bundles if entry.is_dir()]
     assert len(bundles) == 1
     assert read_runtime_bundle(bundles[0])['release_authorized'] is False
-
-
-@pytest.mark.parametrize('role',['air','mass','outdoor'])
-def test_release_mixed_origin_epoch_withdraws_before_active_publication(tmp_path,monkeypatch,role):
-    from test_thermal_release_runtime import release_case
-    from test_thermal_release import shift
-    from thermal_model.forcing_capture import _canonical
-    thermal,args,_,now=release_case(tmp_path,monkeypatch)
-    original=capture_inputs()
-    proof=shift(json.loads(_canonical(original['origin_temperatures'])))
-    current=shift(json.loads(_canonical(original['current'])))
-    proof['roles'][role]['grid'][0][1]['streamEpoch']='064142d5-99ee-4b7a-b5fc-e6a96e7274d8'
-    def observed(at,*,origin_observer):origin_observer(deepcopy(proof));return deepcopy(current)
-    monkeypatch.setattr(thermal,'_current_states',observed)
-    sent=[]
-    assert thermal._release(args,now,put_state=lambda item,raw:sent.append(json.loads(raw)),decision_clock=lambda:now,qualification_clock=lambda:now)==1
-    assert len(sent)==1 and sent[0]['status']=='unavailable'
-    assert sent[0]['forecast']['trajectory']==[]
-    assert sent[0]['release']['forecastQualified'] is False
 
 
 @pytest.mark.parametrize('role',['air','mass','outdoor'])

@@ -154,17 +154,6 @@ def test_pipeline_persists_source_evidence_in_candidate():
     assert evidence['roles']['air']['targets']==1
 
 
-def test_cli_training_uses_configured_reader(monkeypatch):
-    import thermal_intel
-    import thermal_temperature_runtime
-    from types import SimpleNamespace
-    selected=object()
-    monkeypatch.setattr(thermal_temperature_runtime,'configured_history',lambda legacy,now:selected)
-    monkeypatch.setattr(thermal_intel,'_offline_journal',lambda parser:object())
-    args=SimpleNamespace(start=AT-timedelta(days=1),end=AT,state_dir='/tmp/not-written')
-    assert thermal_intel._training_kwargs(args,None,AT)['series_reader'] is selected
-
-
 def env():
     return dict(THERMAL_TEMP_QUALIFIED_ENABLE='1',THERMAL_TEMP_EVIDENCE_CUTOVER=AT.isoformat(),
                 THERMAL_TEMP_DB_CONFIG='/private/db.json',THERMAL_TEMP_POLICY='/private/policy.json')

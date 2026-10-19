@@ -74,55 +74,6 @@ def test_native_release_origin_v4_retains_typed_publication_and_phase(tmp_path,m
     assert path.name.endswith('-origin-v4.json.gz')
 
 
-def runtime_case(tmp_path,monkeypatch):
-    import thermal_intel
-    from types import SimpleNamespace
-    from test_thermal_policy_registration import shift as shift_origin
-    from datetime import datetime
-    data=native_release_inputs(monkeypatch);now=data['now'];original=sensor_inputs()
-    delta=now-datetime.fromisoformat(original['output']['generatedAt'])
-    proof=shift_origin(json.loads(_canonical(original['origin_temperatures'])),delta)
-    current=shift_origin(json.loads(_canonical(original['current'])),delta)
-    report=data['qualification_loader'](now)
-    monkeypatch.setattr(thermal_intel.forecast_intel,'load_site_settings',lambda:None)
-    def observed(at,*,origin_observer=None,receipt_version=1):
-        assert receipt_version==2 and origin_observer is not None
-        origin_observer(deepcopy(proof));return deepcopy(current)
-    monkeypatch.setattr(thermal_intel,'_current_states',observed)
-    monkeypatch.setattr(thermal_intel.forecast_intel,'fetch_forecast',lambda:{})
-    monkeypatch.setattr(thermal_intel,'_forecast_rows',lambda *_:deepcopy(data['forecast_rows']))
-    def predict(**kwargs):
-        kwargs['artifact_observer'](original['artifact']);return deepcopy(data['shadow'])
-    monkeypatch.setattr(thermal_intel,'run_shadow',predict)
-    monkeypatch.setattr(thermal_intel,'_release_runtime_binding',lambda:deepcopy(report['runtime']['runtime']))
-    monkeypatch.setattr(decision,'load_sensor_qualification_inputs',lambda _:lambda _:deepcopy(report))
-    args=SimpleNamespace(evidence_inputs=tmp_path/'inputs.json',output=tmp_path/'release.json',publish=True,receipt_version=2)
-    return thermal_intel,args,data
-
-
-def test_explicit_native_release_runtime_delivers_valid_v3_once(tmp_path,monkeypatch):
-    thermal,args,data=runtime_case(tmp_path,monkeypatch);sent=[]
-    assert thermal._release(args,data['now'],put_state=lambda *values:sent.append(values),decision_clock=lambda:data['now'],qualification_clock=lambda:data['now'])==0
-    assert len(sent)==1
-    output=json.loads(sent[0][1])
-    assert output==json.loads(args.output.read_text()) and output['version']==3 and output['status']=='forecast_active'
-    assert output['release']['sensorEpochs']==EPOCHS
-
-
-def test_native_release_runtime_missing_source_delivers_unavailable(tmp_path,monkeypatch):
-    thermal,args,data=runtime_case(tmp_path,monkeypatch);sent=[]
-    def refuse(_):raise ValueError('missing original native evidence')
-    monkeypatch.setattr(decision,'load_sensor_qualification_inputs',refuse)
-    assert thermal._release(args,data['now'],put_state=lambda *values:sent.append(values),decision_clock=lambda:data['now'],qualification_clock=lambda:data['now'])==1
-    assert len(sent)==1 and json.loads(sent[0][1])['version']==3 and json.loads(sent[0][1])['status']=='unavailable'
-
-
-def test_native_release_cli_requires_explicit_receipt_version():
-    import thermal_intel
-    args=thermal_intel._build_parser().parse_args(['release','--evidence-inputs','/private/inputs','--receipt-version','2'])
-    assert args.receipt_version==2 and args.publish is False
-
-
 def test_native_current_state_assembly_explicitly_selects_v2_source(monkeypatch):
     import thermal_intel
     import thermal_temperature_runtime as runtime
@@ -153,27 +104,6 @@ def test_native_production_capture_v4_scores_exact_original_output(tmp_path,monk
     result=evidence.score_qualified_origin(**packet)
     assert result['schema']=='earthship-thermal-source-scored-pair/v2' and result['scored_pair']['sensor_epochs']==EPOCHS
     assert result['scored_pair']['model_error_f']==1 and result['release_authorized'] is False
-
-
-@pytest.mark.parametrize('damage',['wrong_phase','legacy_model'])
-def test_native_observation_refuses_model_identity_before_delivery(tmp_path,monkeypatch,damage):
-    from dataclasses import replace
-    from types import SimpleNamespace
-    thermal,_,data=runtime_case(tmp_path,monkeypatch)
-    artifact=sensor_inputs()['artifact']
-    if damage=='wrong_phase':
-        manifest=deepcopy(artifact.data_manifest);manifest['temperature_evidence']['roles']['air']['sensor_epoch']=EPOCHS['mass']
-        artifact=replace(artifact,data_manifest=manifest)
-    else:
-        from test_thermal_artifacts import valid_artifact
-        artifact=valid_artifact()
-    def predict(**kwargs):kwargs['artifact_observer'](artifact);return deepcopy(data['shadow'])
-    monkeypatch.setattr(thermal,'run_shadow',predict)
-    models=tmp_path/'models';origins_path=tmp_path/'origins';models.mkdir(mode=0o700);origins_path.mkdir(mode=0o700)
-    args=SimpleNamespace(model_directory=models,origin_capture_dir=origins_path,output=tmp_path/'observe.json',candidate_sha256=sha256(_canonical(asdict(artifact))).hexdigest(),runtime_sha256=sha256(_canonical(thermal._release_runtime_binding())).hexdigest(),receipt_version=2,publish=True)
-    sent=[]
-    assert thermal._observe_candidate(args,data['now'],put_state=lambda *values:sent.append(values),decision_clock=lambda:data['now'],published_clock=lambda:data['now']+timedelta(seconds=30))==1
-    assert sent==[] and json.loads(args.output.read_text())['confidence']['grade']=='unavailable'
 
 
 def test_native_shadow_requires_complete_hardware_bindings(monkeypatch):

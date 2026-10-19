@@ -13653,7 +13653,20 @@
       "openhab/scripts/thermal_model/installed_shade_schedule.py",
       "openhab/systemd/user/thermal-installed-forecast.service",
       "openhab/systemd/user/thermal-installed-forecast.timer",
-      "scripts/stage-installed-monitoring.py"
+      "scripts/stage-installed-monitoring.py",
+      "openhab/scripts/test_thermal_candidate_observation.py",
+      "openhab/scripts/test_thermal_origin_publication.py",
+      "openhab/scripts/test_thermal_release_latency.py",
+      "scripts/experiment-sunset-soc-drop.py",
+      "scripts/test_experiment_sunset_soc_drop.py",
+      "scripts/household_energy_source_install.py",
+      "scripts/test_household_energy_source_install.py",
+      "scripts/weather_forecast_lock_wait.py",
+      "scripts/test_weather_forecast_lock_wait.py",
+      "scripts/daily_forecast_lock_wait.py",
+      "scripts/test_daily_forecast_lock_wait.py",
+      "openhab/systemd/user/forecast-json.service.d/zzzz-weather-lock-wait.conf",
+      "openhab/systemd/user/forecast-intel.service.d/zzzz-daily-lock-wait.conf"
     ],
     "removed_apis": [
       "weather_learning.energy_shadow.compare_fixed_energy",
@@ -13677,14 +13690,23 @@
       "thermal_model.installed_shade_live_inputs.load_withdraw_settings",
       "thermal_model.installed_shade_live_inputs.load_raw_withdraw_settings",
       "thermal_model.installed_shade_live_inputs.load_compressed_withdraw_settings",
-      "thermal_model.installed_shade_live_inputs.WithdrawalBackend"
+      "thermal_model.installed_shade_live_inputs.WithdrawalBackend",
+      "thermal_intel._training_kwargs",
+      "thermal_intel._train",
+      "thermal_intel._backtest",
+      "thermal_intel._shadow",
+      "thermal_intel._observe_candidate",
+      "thermal_intel._release",
+      "thermal_intel._forecast_rows",
+      "thermal_intel._date_range",
+      "thermal_intel._offline_journal"
     ],
     "neutral_transport": "openhab/scripts/weather_learning/openhab.py",
     "shadow_payload_schema": "earthship-weather-provider-shadow/v2",
     "shadow_issue_schema": "earthship-weather-shadow-issue/v2",
     "fresh_shadow_state_child": "google-local-v2",
     "historical_evidence_rewritten": false,
-    "remaining": "Remaining forecast worker/provider/tool graph and root-only AQI consumers; final source freeze, fresh downstream release models and qualification; actual reviewed publisher release/ownership handoff; coordinated cutover and installed binding/Things/links removal. Both provisional and installed-shade standalone publishers, obsolete configuration loaders and registered-unit renderer are removed from prepared source. Shared Google/local acquisition/telemetry and existing physical/receipt/resource checks remain. No live retirement has been applied.",
+    "remaining": "Remaining forecast provider/worker/tool/unit graph and root-only AQI consumers must still be removed; final source closure, fresh Google/local release fits, required qualification, actual release/ownership records and attended live cutover remain pending.",
     "neutral_tool_helpers": [
       "scripts/openhab_private_files.py",
       "scripts/HexThingsParse.java"
@@ -13794,8 +13816,7 @@
       "openhab/scripts/thermal_model/training_pressure_guard.py",
       "scripts/capture-thermal-inputs.py",
       "scripts/assemble-thermal-inputs.py",
-      "scripts/qualify-installed-shade.py",
-      "scripts/household_energy_source_install.py"
+      "scripts/qualify-installed-shade.py"
     ],
     "remaining_legacy_config_loader_module": null,
     "shared_resource_old_cli_imports_remaining": [],
@@ -13829,6 +13850,53 @@
       "journal_dsn_file",
       "native_db_config",
       "native_policy"
-    ]
+    ],
+    "thermal_cli_retirement_preimage_revision": "7f148b98afaea62b86d101686b2d7cb93a6ef96d",
+    "retained_thermal_cli_commands": [
+      "journal",
+      "schema-audit"
+    ],
+    "retained_thermal_helper_io": "Explicit caller-supplied JDBC/state/publication callbacks; no default forecast-provider transport.",
+    "retained_thermal_helper_ast_parity_count": 16,
+    "thermal_revision_manifest_count": 25,
+    "thermal_revision_removed_sources": [
+      "forecast_intel.py"
+    ],
+    "remaining_forecast_family_external_python_imports": [],
+    "removed_obsolete_operator_tools": [
+      "scripts/experiment-sunset-soc-drop.py",
+      "scripts/household_energy_source_install.py",
+      "scripts/weather_forecast_lock_wait.py",
+      "scripts/daily_forecast_lock_wait.py"
+    ],
+    "thermal_cli_retirement_verification": {
+      "wide": {
+        "modules": 160,
+        "passed": 2720,
+        "skipped": 7,
+        "fixture_failures": 24,
+        "seconds": 714.87,
+        "export": "189aafcb43b3dd67b31505a2eefc7561c0c8aaac"
+      },
+      "corrected_complete_fixture_modules": {
+        "modules": 2,
+        "passed": 111,
+        "seconds": 1.66
+      },
+      "final_native_and_retirement": {
+        "modules": 2,
+        "passed": 25,
+        "seconds": 1.79
+      },
+      "weathernext_package": {
+        "passed": 211,
+        "seconds": 8.807
+      },
+      "final_export": "e906bb6598168b2cb140d1529193f25695e0e39b",
+      "full_wide_rerun_after_test_fixture_corrections": false,
+      "production_qualification": false,
+      "retained_native_model_code_changed_after_wide_run": false,
+      "closed_tool_removals_verified_separately": true
+    }
   }
 }

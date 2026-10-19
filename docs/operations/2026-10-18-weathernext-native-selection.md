@@ -2,7 +2,7 @@
 
 Observed October 18, 2026. This completes another Task 8 preparation increment; production provider selection and the full migration remain unfinished.
 
-**Current source update (October 19):** both obsolete standalone publisher families and their uninstalled schedule templates are removed. Current native observation/receipt tests use the native Google publisher. Shared Google/local acquisition classes remain. The base model source binding contains 81 files; the raw shared binding contains 76. The remaining forecast-worker/provider/tool graph still precedes final source freeze and fresh release fitting. Production has not cut over.
+**Current source update (October 19):** both obsolete standalone publisher families and their uninstalled schedule templates are removed. Current native observation/receipt tests use the native Google publisher. The old thermal weather commands and their provider import are also removed; journal/schema commands and generic helpers remain. Shared Google/local acquisition classes remain. The base model source binding contains 81 files; the raw shared binding contains 76. The remaining forecast-worker/provider/tool graph still precedes final source freeze and fresh release fitting. Production has not cut over.
 
 ## Explicit source selection
 
@@ -220,3 +220,62 @@ was changed. New-head repository CI remains separate evidence.
 Remaining provider/worker/tool source retirement, final fresh fits, prospective
 qualification and coordinated live ownership/cutover are unfinished. No live
 unit, model, source release, resource policy or actuator changed.
+
+
+### Old thermal weather commands retired — October 19
+
+thermal_intel now exposes only journal and schema-audit. Its old train, backtest,
+shadow, observe-candidate and release commands and their weather factories are
+removed, including the implicit forecast-provider reader and payload adapter.
+The retained module does not import forecast_intel. Its revision manifest drops
+that source (26 to 25 entries); the current native/raw bindings remain 81/76.
+This changes source identities and still requires final fresh release fitting.
+No installed artifact or receipt was relabelled.
+
+Sixteen retained helper function ASTs are unchanged, including schema auditing,
+exact journal readback, vent/mode projection and original receipt archival. The
+November no-vent default keeps the America/Denver timezone. JDBC parsing, current
+measurement assembly and generic validated publication helpers retain their
+logic but require explicit caller-supplied I/O callbacks. They cannot acquire
+weather or select an implicit provider transport. Timestamped invalid-state
+barrier and quantity parsing tests remain at the actual explicit reader boundary.
+All mathematical model, fitting, outcome, sensor-identity and source guards remain.
+
+Three exclusive old-operator test modules and old-command-only cases in mixed
+modules leave with the removed functions. Mixed physical, fitting-proof, release,
+measurement and journal tests remain. New cold-start and command-refusal tests
+failed against the original implementation, then all seven passed. After updating
+two integrity fixtures to tamper a retained pipeline helper, 61 focused cases
+passed in 0.52 seconds. The complete 211-test pinned WeatherNext package passed
+in 8.807 seconds.
+
+The wider 160-module run passed 2,720 tests and skipped seven, with 24 fixture
+failures in two modules (714.87 seconds, export
+189aafcb43b3dd67b31505a2eefc7561c0c8aaac). Twenty-three failures came from a
+historical replay fixture trying to classify the current, changed manifest as an
+old replay runtime. It now constructs the original supported historical fixture
+explicitly. One legacy installer test redundantly compared its already exact,
+literal source list with today's changed module; it now keeps those independent
+historical assertions. No archive reader, installer, acceptance rule or production
+source changed to accommodate the fixtures. Both complete affected modules then
+passed **111 tests in 1.66 seconds**.
+
+After the independent tool/template removal, the complete native operational and
+retirement modules passed **25 tests in 1.79 seconds**, including all thirteen new
+retirement checks. Final export e906bb6598168b2cb140d1529193f25695e0e39b differs
+from the wide-run export only by those closed tool/test/template removals and
+localized test changes. All nineteen present and eleven deleted changed Python
+paths match it; retained production native/model bytes match the wide-run export.
+The full 160-module suite was not repeated after the test-only corrections.
+New-head repository CI remains separate evidence; this is not site qualification.
+
+The obsolete sunset-SoC experiment and household-energy installer are also
+removed, together with the old daily/weather lock-patch tools, their four
+exclusive test modules and two repository drop-in templates. No production
+caller imported or invoked these tools. All six source-availability regressions
+failed before removal and passed afterward. The installed definitions remain
+untouched. There are now no external production Python imports of the old
+forecast-worker family. This proves import closure only; remaining deployment
+tools, unit templates and dynamic references still need closure before worker
+removal. Live services, source
+releases, model receipts, resource policy and actuator authority were unchanged.

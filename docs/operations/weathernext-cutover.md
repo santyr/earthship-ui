@@ -2,6 +2,8 @@
 
 Status: **production provider not deployed; release gates unmet**. Collector and shadow schedules are deployed. The Google-only provider adapter is implemented for offline integration, but production still uses its incumbent worker. See [readiness](weathernext-readiness.md), [resolved API findings](2026-10-18-weathernext-api-compatibility.md), [the migration plan](../superpowers/plans/2026-10-05-weathernext-exclusive-forecast.md) and [the binding reset/removal contract](openmeteo-retirement.md).
 
+Source retirement now removes both obsolete standalone publisher families, the old thermal weather commands/provider import, and four closed operator tools with their exclusive tests/templates. Journal/schema commands and Google/local acquisition helpers remain. See the [current source and verification record](2026-10-18-weathernext-native-selection.md) for the exact remaining worker/tool graph and fixture corrections. This source preparation has not changed installed services or model receipts.
+
 ## Prepared provider boundary
 
 `weather_learning.provider.load_production_forecast` selects an original, prospectively available WeatherNext archive object for the authoritative site and requested horizon. The default requires temperature, GHI, direct solar, precipitation, wind and cloud means. Original native capsules are rederived before conversion; initialization, availability, site, required-variable coverage and the exact decision bind the result. Missing/stale/incomplete source is unavailable; invalid selected source is refused. The adapter has no network fallback, fitted-state reader, seeder, publisher or equipment API.

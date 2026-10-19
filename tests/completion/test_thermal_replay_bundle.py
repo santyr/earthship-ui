@@ -25,10 +25,9 @@ def fixture(tmp_path, *, legacy=False):
     for directory in (state, state / 'forcing-captures', models, month, output_dir):
         directory.mkdir(parents=True, mode=0o700)
         directory.chmod(0o700)
-    paths = bundle._paths((Path(__file__).resolve().parents[2]
-                           / 'openhab/scripts/thermal_intel.py').read_bytes())
-    if legacy:
-        paths = bundle.LEGACY_RUNTIME_PATHS
+    # Historical fixture: the current journal-only module is deliberately not
+    # one of these old replay runtimes. Keep the original archive contracts.
+    paths = bundle.LEGACY_RUNTIME_PATHS if legacy else bundle.RADIATION_RUNTIME_PATHS
     entries = {}
     for name in paths:
         path = runtime / name

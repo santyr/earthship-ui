@@ -5,12 +5,6 @@ import thermal_temperature_runtime as runtime
 from test_thermal_sensor_epoch_origins import native_grid,NOW,EPOCHS
 
 
-def test_shadow_cli_explicitly_selects_native_receipts():
-    args=thermal_intel._build_parser().parse_args(['shadow','--receipt-version','2'])
-    assert args.receipt_version==2 and args.publish is False
-    assert thermal_intel._build_parser().parse_args(['shadow']).receipt_version==1
-
-
 def test_legacy_shadow_caller_can_explicitly_select_native_current_inputs(monkeypatch):
     monkeypatch.setattr(runtime,'_configured_sensor_epochs',lambda _:EPOCHS)
     def grid(env,*,budget,sensor_epochs=None):

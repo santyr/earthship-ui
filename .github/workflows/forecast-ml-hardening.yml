@@ -75,6 +75,7 @@ on:
       - 'openhab/scripts/test_installed_replay_budget.py'
       - 'openhab/scripts/test_training_pressure_guard.py'
       - 'openhab/scripts/test_native_operational_io.py'
+      - 'openhab/scripts/test_google_thermal_cli_retirement.py'
       - 'openhab/scripts/test_household_cycle.py'
       - 'openhab/scripts/test_household_cycle_coordinator.py'
       - 'openhab/scripts/test_installed_candidate_build.py'
@@ -142,6 +143,7 @@ jobs:
             openhab/scripts/test_installed_shade_fit.py \
             openhab/scripts/test_training_pressure_guard.py \
             openhab/scripts/test_native_operational_io.py \
+            openhab/scripts/test_google_thermal_cli_retirement.py \
             openhab/scripts/test_household_cycle.py \
             openhab/scripts/test_household_cycle_coordinator.py \
             openhab/scripts/test_provisional_thermal_fit.py \

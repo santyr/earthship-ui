@@ -77,7 +77,7 @@ def test_current_consumers_import_helpers_without_legacy_runtime():
 
 def test_shared_worker_imports_and_collection_admission_do_not_load_old_cli():
     import ast
-    for name in ('capture-thermal-inputs.py','assemble-thermal-inputs.py','qualify-installed-shade.py','household_energy_source_install.py'):
+    for name in ('capture-thermal-inputs.py','assemble-thermal-inputs.py','qualify-installed-shade.py'):
         path=ROOT.parents[1]/'scripts'/name
         imports=[node.module for node in ast.walk(ast.parse(path.read_bytes())) if isinstance(node,ast.ImportFrom)]
         assert 'thermal_installed_intel' not in imports,name
