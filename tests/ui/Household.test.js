@@ -29,7 +29,7 @@ describe('Earthship household observation panels', () => {
     unmount(); expect(signal.aborted).toBe(true);
   });
   it('shows proposed effects as unknown and exposes the blocking hard constraint', async () => {
-    const row = observation(); row.proposals = [{...proposal(),type:'RUN_GREYWATER_CYCLE'}]; serve(row);
+    const row = observation();const item=proposal();item.type='RUN_GREYWATER_CYCLE';row.proposals=[item];serve(row);
     const { container, getByText } = render(HouseholdObservation);
     await waitFor(() => expect(getByText('RUN_GREYWATER_CYCLE')).toBeTruthy());
     expect(container.textContent).toContain('battery reserve: unknown');
@@ -142,6 +142,7 @@ it('shows twelve evidence gates for each intent while keeping every family unqua
  await waitFor(()=>expect(getByText('Intent qualification')).toBeTruthy());
  const region=container.querySelector('section[aria-label="Intent qualification"]');
  expect(region.querySelectorAll('details')).toHaveLength(3);
+ expect(region.textContent).not.toContain('Feeder cycle');
  expect(region.querySelectorAll('tbody tr')).toHaveLength(36);
  expect(region.textContent).toContain('Automated intent families remain unqualified');
  expect(region.textContent).toContain('Original-plan evidence');
@@ -159,9 +160,11 @@ it('shows chronological counts without claiming independent evidence or actuator
  expect(container.querySelector('button, form, input, select')).toBeNull();
 });
 
-it('excludes feeder proposals even when the backend retains a valid feeder intent',async()=>{
- const row=observation();row.proposals=[proposal()];serve(row);
+it('excludes even a selected feeder original from automated suggestion and proposal surfaces',async()=>{
+ const row=observation();const feeder=proposal();Object.assign(feeder,{selected:true,decision_status:'accepted',decision_reason:null,hard_checks:[]});row.proposals=[feeder];serve(row);
  const {container,getByText}=render(HouseholdObservation);
- await waitFor(()=>expect(getByText('No automated proposals to display. No qualified action effects available.')).toBeTruthy());
+ await waitFor(()=>expect(getByText('Shadow')).toBeTruthy());
  expect(container.textContent).not.toContain('RUN_FEEDER_CYCLE');
+ expect(container.textContent).not.toContain('Selected shadow proposals:');
+ expect(getByText('No action selected')).toBeTruthy();
 });

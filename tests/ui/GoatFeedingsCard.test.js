@@ -68,7 +68,8 @@ describe('GoatFeedingsCard', () => {
     })).toBeInTheDocument();
     expect(container.querySelector('.goat-feed-icon')).toHaveTextContent('🐐');
     expect(container.querySelector('.goat-activation-icon')).toBeNull();
-    expect(container.querySelector('button:not([popovertarget])')).toBeNull();
+    expect(container.querySelector('button')).toBeNull();
+    expect(container.querySelector('[data-recommendation-group]')).toBeNull();
     expect(source).not.toMatch(/sendCommand|getClientOnce/);
   });
 

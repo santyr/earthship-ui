@@ -58,7 +58,8 @@ it('does not fabricate a ventilation window for an explicit closed-vent candidat
  expect(climatePreview(JSON.stringify(raw),'ventilation',Date.parse(raw.generatedAt)).rows).toEqual([]);
 });
 
-it('excludes a retained feeder intent from automated recommendation previews',()=>{
- const row=observation();row.proposals=[proposal()];const v=parse(row);expect(v).not.toBeNull();
- expect(recommendationPreview(v,'feeding',AT).rows).toEqual([]);
+it('excludes feeder intents even when an incoming original marks one selected',()=>{
+ const row=observation();const feeder=proposal();Object.assign(feeder,{selected:true,decision_status:'accepted',decision_reason:null,hard_checks:[]});row.proposals=[feeder];
+ const view=parse(row);expect(view).not.toBeNull();
+ expect(recommendationPreview(view,'feeding',AT).rows).toEqual([]);
 });
