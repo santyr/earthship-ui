@@ -1,3 +1,4 @@
+import { parseDailyPvPotential } from '../energy/dailyPvPotential.js';
 import { parseChronologicalSummary } from './chronology.js';
 import { constants } from 'node:fs';
 import { open, realpath, stat, lstat } from 'node:fs/promises';
@@ -55,12 +56,14 @@ export function householdObservationPlugin({
   profiledCachePath = resolve(homedir(), '.local/state/household-intel/profiled-energy-observation.json'),
   profiledPerformanceCachePath = resolve(homedir(), '.local/state/household-intel/profiled-energy-performance.json'),
   capturedPvCachePath = resolve(homedir(), '.local/state/household-intel/captured-pv-performance.json'),
+  dailyPvCachePath = resolve(homedir(), '.local/state/household-intel/daily-pv-potential.json'),
   now = Date.now,
 } = {}) {
   const attach = server => { server.middlewares.use(async (req, res, next) => {
     let url;
     try { url = new URL(req.url || '/', 'http://localhost'); } catch { return next(); }
     const route = {
+      '/api/daily-pv-potential': [dailyPvCachePath, parseDailyPvPotential],
       '/api/household-chronological-summary': [chronologicalCachePath, parseChronologicalSummary],
       '/api/household-observation': [cachePath, parseHouseholdObservation],
       '/api/household-captured-pv-performance': [capturedPvCachePath, parseCapturedPvPerformance],

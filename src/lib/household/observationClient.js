@@ -27,3 +27,5 @@ async function load(path, signal) {
     return raw + decoder.decode();
   } finally { reader.releaseLock(); }
 }
+
+export const loadDailyPvPotential = signal => load('/api/daily-pv-potential', signal);

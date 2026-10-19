@@ -1,4 +1,7 @@
 <script>
+  import { dailyPvRaw, dailyPvClock } from '../energy/dailyPvState.js';
+  import { parseDailyPvPotential, dailyPvForDate } from '../energy/dailyPvPotential.js';
+  const dailyPv = $derived(parseDailyPvPotential($dailyPvRaw, { nowMs: $dailyPvClock }));
   import OhIcon from './OhIcon.svelte';
   import { colors } from './tokens.js';
   import { rainAmountText } from '../openhab/values.js';
@@ -27,6 +30,7 @@
   {/if}
   {#each days as day, index (`${day.date ?? 'legacy'}-${day.label}-${index}`)}
     {@const condition = forecastCondition({ ...day.summary, isDay: true })}
+    {@const pv = dailyPvForDate(dailyPv, day.date)}
     <button
       type="button"
       class="forecast-day"
@@ -48,7 +52,8 @@
         {/if}
         {#if day.summary.precipPct === null && !rainAmountText(day.summary.precipSumIn)}<span>{day.summary.precipSumIn === 0 ? '0.00″' : 'Rain unavailable'}</span>{/if}
         {#if variant !== 'home' && day.summary.precipitationScope === 'remaining'}<small class="range-note" title={`Rain forecast from ${day.summary.precipitationFromAt} through ${day.summary.precipitationThroughAt}`}>remaining</small>{/if}
-        {#if day.summary.pvKwh !== null}<span aria-hidden="true"> · </span><span>PV {value(day.summary.pvKwh, ' kWh')}</span>{/if}
+        {#if pv}<span aria-hidden="true"> · </span><span data-testid="daily-pv-potential" title={`Provisional array DC potential before battery acceptance and demand limits; ${pv.fromAt} through ${pv.throughAt}.`}>PV {value(pv.potentialKwh, ' kWh')}</span>
+        {:else if day.summary.pvKwh !== null}<span aria-hidden="true"> · </span><span>PV {value(day.summary.pvKwh, ' kWh')}</span>{/if}
       </span>
     </button>
   {/each}

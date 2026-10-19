@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily PV potential after hourly Google collection
+
+[Timer]
+OnCalendar=*-*-* *:46:00
+RandomizedDelaySec=15
+Persistent=true
+Unit=daily-pv-potential.service
+
+[Install]
+WantedBy=timers.target
