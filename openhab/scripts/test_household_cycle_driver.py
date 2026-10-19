@@ -11,7 +11,7 @@ def setup(tmp_path,monkeypatch):
     import native_thermal_live as forecast
     import thermal_model.capture_guard as locks
     import household_cycle_pressure as pressure
-    import thermal_installed_intel as installed
+    import thermal_model.serial_publication_caps as installed
     calls=[]
     params=tmp_path/'params.json';params.write_bytes(canonical({'collected_at':'2026-10-11T00:00:00+00:00','record':{'household_energy_inputs':{}}}));params.chmod(0o600)
     forecast_path=tmp_path/'forecast.json';forecast_path.write_bytes(canonical({'schema':forecast.LIVE_SCHEMA}));forecast_path.chmod(0o600)

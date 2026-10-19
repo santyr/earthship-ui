@@ -16,7 +16,7 @@ def run(config,*,stage,deployment_sha256,deadline,resource_preflight,pressure_fa
     import native_thermal_live as native
     from native_model_serving_receipt import load_serving_selection,read_serving_model
     from thermal_model.capture_guard import SharedScoreLock
-    from thermal_model.provisional_live import _next_issue
+    from thermal_model.native_operational_io import _next_issue
     from thermal_model.policy_registration import _read_private
     from household_observation import _private_file
     if not math.isfinite(deadline) or monotonic()>=deadline:raise ValueError('score lifetime elapsed')
@@ -57,8 +57,8 @@ def score_jobs(settings,*,guard,deadline,clock,monotonic,reader=None,max_jobs=1,
     from native_thermal_artifact import _read
     from household_cycle import load_cycle_delivery
     from thermal_model.forcing_capture import _private_directory
-    from thermal_model.provisional_monitor import _folders
-    from thermal_model.provisional_live import _phase_directory
+    from thermal_model.native_operational_io import _folders
+    from thermal_model.native_operational_io import _phase_directory
     from thermal_model.recent_cycles import compare_v2
     from thermal_model.replay_budget import shared_replay_budget,capture_source_reads
     if type(max_jobs) is not int or max_jobs!=1:raise ValueError('one serial native score job required')

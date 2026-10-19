@@ -98,7 +98,7 @@ def run(config,libraries,*,stage=None,deployment_sha256=None,clock=lambda:dateti
 
 def _run(config,libraries,*,stage=None,deployment_sha256=None,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic):
     from native_thermal_live import load_settings,prepare_geometry,_resource_preflight
-    from thermal_model.provisional_live import _next_issue
+    from thermal_model.native_operational_io import _next_issue
     from thermal_model.capture_guard import SharedScoreLock
     from native_inference_pressure import NativeInferenceHeadroom
     from thermal_model.origin_capture import _source_bytes

@@ -39,7 +39,7 @@ def test_native_private_runner_uses_native_loader_and_original_lock_deadline(tmp
     import thermal_model.provisional_live as legacy
     import thermal_model.capture_guard as locks
     import native_inference_pressure as pressure
-    import thermal_installed_intel as installed
+    import thermal_model.serial_publication_caps as installed
     settings={'schema':native.LIVE_SCHEMA,'shared_lock':str(tmp_path/'lock'),'artifact_sha256':'a'*64,'runtime_sha256':'b'*64}
     path=tmp_path/'native-config.json';path.write_text(json.dumps(settings));path.chmod(0o600);calls=[]
     monkeypatch.setattr(native,'load_settings',lambda actual:settings if actual==path else pytest.fail('wrong native config'))

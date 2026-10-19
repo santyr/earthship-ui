@@ -79,7 +79,7 @@ def test_real_provisional_runtime_binds_every_deployed_source(tmp_path,monkeypat
     monkeypatch.setattr(module(),'RUNTIME_ROOT',root)
     runtime=module().current_runtime()
     assert set(runtime['source_manifest'])==set(module().RUNTIME_PATHS)
-    assert len(runtime['source_manifest'])==83
+    assert len(runtime['source_manifest'])==85
 
 
 def test_withdrawal_waits_for_asynchronous_exact_persistence(tmp_path,monkeypatch):

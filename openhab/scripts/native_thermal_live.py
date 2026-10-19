@@ -67,7 +67,7 @@ from household_cycle_resources import publication_resource_preflight as _publica
 from thermal_model.origin_capture import _source_bytes
 from hashlib import sha256
 from native_thermal_artifact import current_native_runtime as current_runtime,read_native_candidate,digest as runtime_digest
-from thermal_model.provisional_live import _next_issue,delivery_directory,_persisted_after_write
+from thermal_model.native_operational_io import _next_issue,delivery_directory,_persisted_after_write
 from thermal_model.runtime_bundle import _owned_bytes
 from thermal_model.installed_shade_live_inputs import TelemetryTransport
 from thermal_model.installed_shade_published_origin import NUMERIC_ITEM,PUBLICATION_ITEM,_receipt
@@ -227,7 +227,7 @@ def publish_cycle(settings,*,guard,geometry=None,backend=None,serving_model=None
         receipts={}
         for item,value in ((NUMERIC_ITEM,capture['output']),(PUBLICATION_ITEM,forecasts.publication(capture))):
             state=_canonical(value).decode();send_guard();backend.put(item,state,preflight=send_guard)
-            receipt=_persisted_after_write(backend,item,state,since=issue,guard=send_guard)
+            receipt=_persisted_after_write(backend,item,state,since=issue,guard=send_guard,clock=_clock)
             if receipt is None or _canonical(_receipt(receipt,item)[0])!=_canonical(value):
                 raise ValueError('native delivery not actually persisted')
             receipts[item]=receipt
@@ -256,7 +256,7 @@ def withdraw(settings,*,guard,backend=None):
         graduated=False,automatic_actuation=False)
     for item,value in ((NUMERIC_ITEM,numeric),(PUBLICATION_ITEM,main)):
         state=_canonical(value).decode();backend.put(item,state,preflight=guard)
-        receipt=_persisted_after_write(backend,item,state,since=at,guard=guard)
+        receipt=_persisted_after_write(backend,item,state,since=at,guard=guard,clock=_clock)
         if receipt is None or _canonical(_receipt(receipt,item)[0])!=_canonical(value):
             raise ValueError('native withdrawal delivery unverified')
     return dict(status='withdrawn',mode='unavailable',delivery_verified=True,automatic_actuation=False)
@@ -415,7 +415,7 @@ def prepare_geometry(settings,*,issue,library_paths,guard,serving_model=None):
 
 
 def _native_completion_index(root,now,guard):
-    from thermal_model.provisional_monitor import _folders
+    from thermal_model.native_operational_io import _folders
     from native_thermal_artifact import _read
     from native_thermal_score import COMPLETION_FIELDS,COMPLETION_SCHEMA,COMPLETION_SUFFIX
     paths=[]
@@ -501,8 +501,8 @@ def score_jobs(settings,*,guard,reader=None,max_jobs=1,serving_model=None,histor
     from native_thermal_artifact import _read
     from household_cycle import load_cycle_delivery
     from thermal_model.forcing_capture import _private_directory
-    from thermal_model.provisional_monitor import _folders
-    from thermal_model.provisional_live import _phase_directory
+    from thermal_model.native_operational_io import _folders
+    from thermal_model.native_operational_io import _phase_directory
     from thermal_model.recent_cycles import compare_v2
     from thermal_model.replay_budget import shared_replay_budget,capture_source_reads
     if type(max_jobs) is not int or max_jobs!=1:raise ValueError('one serial native score job required')
@@ -639,7 +639,7 @@ def _validate_native_absence(paths,capture,*,target,assessed,guard):
 
 
 def _native_gap_pending(root,now,job,delivery,delivery_path,capture,guard):
-    from thermal_model.provisional_monitor import _folders,_fingerprint
+    from thermal_model.native_operational_io import _folders,_fingerprint
     from native_thermal_artifact import _read
     paths=[]
     for folder in _folders(root,'scores',now):paths.extend(folder.glob(job+'-*.native-thermal-gap-v1.json'))
@@ -665,7 +665,7 @@ def _native_gap_pending(root,now,job,delivery,delivery_path,capture,guard):
 
 
 def _retain_native_gap(folder,job,delivery,delivery_path,capture,*,horizon,target,now,paths,guard):
-    from thermal_model.provisional_monitor import _fingerprint
+    from thermal_model.native_operational_io import _fingerprint
     from thermal_model.provisional_forecast import persist
     _validate_native_absence(paths,capture,target=target,assessed=now,guard=guard)
     sources=set(paths)|{str(delivery_path),delivery['capture_path']}|{ref['path'] for ref in capture['candidate']['originals'].values()}|set(capture['native_origin_binding'].get('query_sources',{}).values())

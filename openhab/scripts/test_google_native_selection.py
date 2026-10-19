@@ -24,7 +24,7 @@ def irradiance_package_candidate(args,settings):
     from hashlib import sha256
     import native_thermal_artifact as artifacts
     repo=args['repo_root']
-    from thermal_model.provisional_live import RUNTIME_PATHS
+    from thermal_model.native_operational_io import RUNTIME_PATHS
     # Exercise the complete expanded production inventory, not a tiny fake base.
     for name in sorted(RUNTIME_PATHS):
         path=repo/'openhab/scripts'/name
@@ -197,7 +197,7 @@ def test_google_native_deployment_seals_source_selection_without_old_secret(tmp_
     record=api().verify_stage(args['stage'])
     assert record['runtime_sha256']==candidate['runtime_sha256']
     assert args['service_file'].read_bytes()==before
-    assert len(record['protected_runtime_sources'])==83
+    assert len(record['protected_runtime_sources'])==85
     shade=args['stage']/'sources/openhab/thermal-shade-context.json'
     assert shade.is_file() and 'openhab/thermal-shade-context.json' in record['native_runtime_sources']
     shade.write_bytes(b'{"changed_after_fit":true}')

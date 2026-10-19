@@ -332,3 +332,24 @@ backend selection and deployment-source tests in 19.68 seconds** in a separate
 immutable export. The existing original Google response/capsule validators and
 all local measurement policy/epoch/barrier checks remain in place. Retiring the
 remaining legacy worker and its old producer/scorer entrypoints is still pending.
+
+
+### Current native helpers separated from standalone publishers
+
+Current native preparation, publication, scoring and staging now obtain runtime
+binding, issue clocks, receipt verification and archive-file helpers from
+thermal_model/native_operational_io.py. The original serial resource verifier
+lives in thermal_model/serial_publication_caps.py; the old CLI reexports it while
+its remaining callers are retired. Its function AST and seven extracted helper
+ASTs match their original implementations. Native receipt verification explicitly
+uses the issuing native clock, preserving the two attempts, actual persistence
+requirement and guard checks.
+
+The current base runtime inventory contains 85 files, including both new helpers.
+Old sources remain in the inventory until their actual borrowers and entrypoints
+are closed; an inventory entry does not execute a publisher. Cold-start tests
+block the old standalone publisher and monitor imports while current Google
+execution and the scoring-policy context initialize. No old worker file has
+been deleted in this increment. Standalone CLIs/configuration loaders and the
+remaining provider/worker graph still require retirement before final source
+freeze and fresh release fitting. No installed service or model was changed.

@@ -84,10 +84,39 @@ Original bytes, index and an aggregate contract check are private under the exec
 
 The documented multi-hour dissemination lag means initialization age and observed availability must remain distinct. Hourly solar fields remain energy in J/m², converted to mean W/m² by dividing by 3,600; hourly precipitation remains metres converted to millimetres. These behaviors already agree with the implementation. This successful collection does not establish prospective reliability or local predictive skill. Production-provider integration, fresh downstream Google/local learning, qualification and complete Open-Meteo retirement remain unfinished.
 
-## Operator-requested online recheck against source `47946fa`
+## Latest online verification
 
-Reread the official [Earth Engine guide](https://developers.google.com/weathernext/guides/earth-engine), [model/variable reference](https://developers.google.com/weathernext/guides/models), both collection catalogues, authentication scopes, dissemination schedule and `getRegion` contract. No additional acquisition mismatch was found. The read-only storage scope and original-clock handling are existing live-access corrections; this recheck adds no retrieval code or deployment.
+The current official Earth Engine guide, both collection catalogues, both freshly
+downloaded official starter notebooks, model specifications, authentication and
+service-account guides, dissemination schedule and getRegion contract were
+compared with the migration branch. The downloaded notebook hashes still match
+those recorded above. No further acquisition architecture mismatch was found.
+The storage-scope and original-clock corrections above are already implemented.
 
-Fresh, targeted verification passed **37 tests in 0.180 seconds** in the pinned Earth Engine environment through shared host admission: reader/SDK/authentication/native projection, unit/interval normalization, collector and transport. Separately, the current parser reconstructed all **4,320 points across 12 bands** exactly from the retained original two-grid response and verified snapshot `15ea934badb24e36220540ff27ff00bfaa84a10614407af10a592897f3b870fb`. All 720 original image clocks were initialization clocks; targets remained independently validated. This verification made no cloud requests or production writes.
+Fresh verification passed **211 tests in 8.602 seconds** in the pinned Earth Engine
+environment through shared host admission, using an isolated source export.
+An initial invocation against the group-writable development checkout refused
+fifteen production-worker fixtures at the immutable-source guard; rerunning in
+the normalized export passed without changing source guards or checkout modes.
+These are package tests, not the full repository suite or release qualification.
 
-Google's [dissemination table](https://developers.google.com/weathernext/guides/dissemination) targets Earth Engine delivery at initialization plus **8 hours 10 minutes** for full runs, and plus **7 hours 25 minutes** for interim runs, with possible further delays. Monitoring must distinguish initialization age, upstream ingestion and local collection completion. These delivery estimates do not authorize inventing earlier availability or filling missing targets. The corrected reader remains appropriate; operational publisher integration, fresh local learning and coordinated provider retirement still require completion.
+The current parser independently reconstructed all **4,320 normalized points**
+from the original two-grid response, with exact snapshot identity
+15ea934badb24e36220540ff27ff00bfaa84a10614407af10a592897f3b870fb.
+All 720 original image clocks are initialization clocks; forecast targets remain
+independently checked against end_time and lead hour. This reconstruction made
+no cloud requests, archive changes or production writes.
+
+Google's [dissemination table](https://developers.google.com/weathernext/guides/dissemination)
+targets Earth Engine delivery at initialization plus **8 hours 10 minutes** for
+full runs and plus **7 hours 25 minutes** for interim runs, with possible further
+delays. Initialization age, upstream ingestion and local completion remain
+separate. Actual available data, rather than the nominal hourly initialization
+cadence, determines selection.
+
+**Disposition:** retain the corrected native-cell Earth Engine reader. The
+remaining source refactor separates current native operational helpers from
+standalone legacy publishers; it does not replace a working acquisition path.
+See the [native source selection record](2026-10-18-weathernext-native-selection.md).
+Final provider/worker retirement, fresh Google/local release fitting, qualification
+and coordinated production cutover remain unfinished.

@@ -18,7 +18,10 @@ def private_config(tmp_path):
 
 
 def test_household_driver_refuses_old_profile_before_original_loader(tmp_path,monkeypatch):
-    import household_cycle as driver,thermal_installed_intel as installed
+    import household_cycle as driver
+    import thermal_model.serial_publication_caps as installed
+    # Load its original resource dependency before this fixture patches it.
+    import native_thermal_live
     import household_cycle_resources as resources
     import thermal_model.provisional_live as legacy
     config=private_config(tmp_path)

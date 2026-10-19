@@ -167,7 +167,7 @@ def test_native_absence_is_requeried_at_retry_time_without_completing_a_score(tm
 
 def test_native_gap_cache_accepts_more_than_eight_hours_within_recent_queue_window(tmp_path,monkeypatch,originals):
     from test_household_score_queue import native_packet
-    from thermal_model.provisional_live import _phase_directory
+    from thermal_model.native_operational_io import _phase_directory
     from native_thermal_artifact import digest
     live,s,reader,clock,capture,d=setup(tmp_path,monkeypatch,originals)
     target=datetime.fromisoformat(capture['issued_at'])+timedelta(hours=1);packets=tmp_path/'long-gap';packets.mkdir(mode=0o700)

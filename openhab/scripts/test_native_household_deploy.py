@@ -1,4 +1,5 @@
 """Native package metadata/source checks; numerical qualification is separate."""
+import thermal_model.native_operational_io as native_io
 import json,subprocess
 from pathlib import Path
 from hashlib import sha256
@@ -117,13 +118,13 @@ def test_native_runtime_probe_uses_external_pins_and_original_pressure_guard(tmp
     import native_thermal_artifact as artifact
     import thermal_model.provisional_live as legacy
     import native_inference_pressure as pressure
-    import thermal_installed_intel as installed
+    import thermal_model.serial_publication_caps as installed
     import household_cycle_sources as collection
     from datetime import timedelta
     calls=[];m=api();stage=args['stage']
     monkeypatch.setattr(m,'__file__',str(stage/'sources/openhab/scripts/household_cycle_deploy.py'))
     monkeypatch.setattr(installed,'_resource_preflight',lambda:None)
-    monkeypatch.setattr(legacy,'_next_issue',lambda now:now+timedelta(minutes=5))
+    monkeypatch.setattr(native_io,'_next_issue',lambda now:now+timedelta(minutes=5))
     monkeypatch.setattr(legacy,'load_settings',lambda *a,**kw:pytest.fail('native runtime probe used legacy loader'))
     monkeypatch.setattr(legacy,'current_runtime',lambda *a,**kw:pytest.fail('native runtime probe used legacy runtime'))
     monkeypatch.setattr(native,'load_settings',lambda path:settings if Path(path)==args['forecast_config'] else pytest.fail('wrong native config'))

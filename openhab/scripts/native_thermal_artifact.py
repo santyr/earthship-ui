@@ -14,7 +14,7 @@ import re
 from thermal_model.forcing_capture import _canonical, _private_directory
 from thermal_model.graduation_policy import _utc, _sha
 from thermal_model.origin_capture import _runtime, _source_bytes, _object
-from thermal_model.provisional_live import current_runtime as current_base_runtime
+from thermal_model.native_operational_io import current_runtime as current_base_runtime
 from thermal_model.provisional_artifact import FIT_FIELDS as BASE_FIT_FIELDS, candidate_digest, validate_candidate
 from thermal_model.runtime_bundle import _owned_bytes
 from thermal_model.training_inputs import read_training_inputs_v2

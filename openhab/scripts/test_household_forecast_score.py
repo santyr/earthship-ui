@@ -56,7 +56,7 @@ def test_unexpected_failures_do_not_publish_fallback_report(reason,tmp_path,monk
 
 
 def runtime_setup(tmp_path,monkeypatch,*,mock_native_pressure=True):
-    from thermal_model import provisional_live
+    from thermal_model import native_operational_io as provisional_live
     import native_thermal_live as native,native_inference_pressure
     import thermal_installed_intel
     from datetime import datetime,timezone,timedelta
@@ -77,7 +77,7 @@ def runtime_setup(tmp_path,monkeypatch,*,mock_native_pressure=True):
 
 def test_score_coordinator_refuses_near_forecast_preparation(tmp_path,monkeypatch):
     from datetime import timedelta
-    from thermal_model import provisional_live
+    from thermal_model import native_operational_io as provisional_live
     config,now=runtime_setup(tmp_path,monkeypatch)
     monkeypatch.setattr(provisional_live,'_next_issue',lambda at:now+timedelta(seconds=89))
     monkeypatch.setattr(api(),'score_with_report',lambda *a,**k:pytest.fail('score entered forecast preparation window'))

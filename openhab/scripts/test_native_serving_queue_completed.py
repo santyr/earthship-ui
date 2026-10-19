@@ -10,7 +10,7 @@ from thermal_model.forcing_capture import _canonical
 def test_serving_queue_reconciles_completed_job_without_reacquiring_outcome(tmp_path,originals,monkeypatch):
     scores,model,capture,args,serving_args=queried(tmp_path,originals,monkeypatch)
     import native_thermal_live as live,native_thermal_forecast as forecasts
-    from thermal_model.provisional_live import _phase_directory
+    from thermal_model.native_operational_io import _phase_directory
     selected=json.loads(model._selection._encoded);settings=json.loads((Path(selected['stage'])/'forecast.json').read_bytes())
     root=Path(settings['evidence_directory']);folder=_phase_directory(root,'origins',ISSUE)
     origin=forecasts.persist(folder,capture);serving_args['capture_path']=str(origin)

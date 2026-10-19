@@ -113,7 +113,7 @@ def production_report_replay(scores):
     return _production_report_reuse.wrap_report(scores)
 
 
-RETAINED_COORDINATOR_SHA256 = 'ddd862fcd5f964504ab80954e284e97befbbaedfef1a1f2c39dd4c7b962d2a28'
+RETAINED_COORDINATOR_SHA256 = '3914670ce1535ee6291032ae00a2375e57d8db051e0af318e12bd5839f5671e1'
 
 
 def production_retained_runner():
@@ -131,7 +131,8 @@ def production_retained_runner():
 @contextmanager
 def production_score_policy():
     """Explicitly use current admission for an archived scoring invocation only."""
-    import thermal_installed_intel as installed
+    import sys
+    import thermal_model.serial_publication_caps as serial
     import household_cycle_resources as resources
     production_resource_preflight()
     monitors=[]
@@ -139,11 +140,16 @@ def production_score_policy():
         pressure=SampledScorePressure(production_pressure_monitor())
         monitors.append(pressure)
         return pressure
-    hooks=[(installed,'_resource_preflight',production_resource_preflight),
+    hooks=[(serial,'_resource_preflight',production_resource_preflight),
         (resources,'publication_resource_preflight',production_resource_preflight)]
     # Native archives bind policy at import time. Keep their numerical sources
     # intact; report-local reuse retains their original final inventory check.
-    if Path(installed.__file__).with_name('native_thermal_live.py').is_file():
+    # An original archive may already have loaded its old compatibility export;
+    # do not import that CLI into current Google execution.
+    installed=sys.modules.get('thermal_installed_intel')
+    if installed is not None and hasattr(installed,'_resource_preflight'):
+        hooks.append((installed,'_resource_preflight',production_resource_preflight))
+    if Path(resources.__file__).with_name('native_thermal_live.py').is_file():
         import native_thermal_live as native
         if hasattr(native,'_resource_preflight'):
             hooks.append((native,'_resource_preflight',production_resource_preflight))
@@ -172,7 +178,7 @@ def score_with_report(settings,*,guard,clock=lambda:datetime.now(timezone.utc),q
         if serving_model is None:raise ValueError('owned serving score context required')
         from household_native_score_queries import RecentCycleWindowReader
         from thermal_model.installed_shade_score_inputs import COMPRESSED_SOURCE_SCHEMA
-        from thermal_model.provisional_live import _phase_directory
+        from thermal_model.native_operational_io import _phase_directory
         from thermal_model.forcing_capture import _private_directory
         guard()
         folder=_phase_directory(_private_directory(Path(settings['evidence_directory'])),'scores',clock())
@@ -192,7 +198,7 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
     started=monotonic()
     import os
     _resource_preflight=production_resource_preflight
-    from thermal_model.provisional_live import _next_issue
+    from thermal_model.native_operational_io import _next_issue
     from thermal_model.capture_guard import SharedScoreLock
     from thermal_model.policy_registration import _read_private
     from household_observation import _private_file

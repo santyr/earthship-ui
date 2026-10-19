@@ -74,7 +74,34 @@ weather_source_files.py and openhab_runtime_io.py dependencies; the focused
 43-case verification passed before the complete affected suite. The old helpers
 were not restored to satisfy those assertions.
 
+## Shared native helpers separated
+
+Current native artifact, publication, household, score and deployment callers now
+import their operational helpers from thermal_model/native_operational_io.py,
+without loading the old provisional publisher or monitor. The unchanged serial
+resource verifier moves to thermal_model/serial_publication_caps.py, which the
+old CLI temporarily reexports. Cold-start coverage blocks all four old standalone
+publisher/monitor imports while current native execution and the scoring-policy
+context initialize.
+
+Seven helper function ASTs and the serial resource verifier exactly match their
+originals. Receipt verification accepts the issuing native clock explicitly;
+actual persisted receipts, two attempts, retry pacing and guard checks remain.
+The complete base source binding now contains 85 files, including both new
+helpers. This is source separation, not permission to reuse old fitted weights.
+
+Verification: **336 tests across 41 modules passed in 94.64 seconds**, with one
+explicitly capped-scope resource smoke test skipped. A further **27 pressure and
+forecast-budget tests passed in 0.50 seconds**. All changed Python/test bytes match
+committed isolated export f2ee3817aa75823d940a7126080c3399abed4a79, using the pinned
+Solar_PV companion. The 211-test pinned WeatherNext package also passed in
+8.602 seconds. A diagnostic run exposed a fixture importing the native resource
+alias while its dependency was mocked; initializing the original module first
+fixed isolation without weakening the source-location guard. No numerical
+assertion or resource threshold was relaxed.
+
 Standalone obsolete CLIs/loaders and the remaining provider/worker source graph
 still need retirement before the final source freeze, fresh release fitting and
-attended cutover. Installed services, models, credentials, binding/links, root UI
-overlays and actuator authority were unchanged. No recovery rehearsal ran.
+attended cutover. Their files remain present; no broad source deletion occurred.
+Installed services, models, credentials, binding/links, root UI overlays and
+actuator authority were unchanged. No recovery rehearsal ran.

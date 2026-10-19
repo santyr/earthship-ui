@@ -360,7 +360,7 @@ def _qualify(stage,*,deployment_sha256=None):
 
 def verify_runtime(stage,*,deployment_sha256=None):
     from datetime import datetime,timedelta,timezone
-    from thermal_installed_intel import _resource_preflight
+    from thermal_model.serial_publication_caps import _resource_preflight
     _resource_preflight()
     def selected_record():
         return verify_stage(stage) if deployment_sha256 is None else verify_stage(stage,expected_deployment_sha256=deployment_sha256)
@@ -368,7 +368,7 @@ def verify_runtime(stage,*,deployment_sha256=None):
     scripts=stage/'sources/openhab/scripts'
     if Path(__file__).resolve()!=scripts/'household_cycle_deploy.py':raise ValueError('staged verifier execution required')
     from household_cycle_sources import load_cycle_settings,CycleSourceCollector
-    from thermal_model.provisional_live import _next_issue
+    from thermal_model.native_operational_io import _next_issue
     from native_thermal_live import load_settings
     from thermal_model.capture_guard import SharedScoreLock
     cycle=load_cycle_settings(stage/'cycle.json')

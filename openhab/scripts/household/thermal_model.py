@@ -44,7 +44,7 @@ class PreparedProjection:
 
 
 def _execution_runtime(root):
-    from thermal_model.provisional_live import RUNTIME_PATHS
+    from thermal_model.native_operational_io import RUNTIME_PATHS
     from thermal_model.origin_capture import build_runtime_binding,_source_bytes
     paths=EXECUTION_SOURCES
     manifest={name:sha256(_source_bytes(root/name,maximum=262144)).hexdigest() for name in paths}

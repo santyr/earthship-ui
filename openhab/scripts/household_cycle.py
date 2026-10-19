@@ -424,7 +424,7 @@ class LazyForecastBackend:
         return getattr(self.parent,name)
 
     def collect(self,*,issue,known_at):
-        from thermal_model.provisional_live import delivery_directory
+        from thermal_model.native_operational_io import delivery_directory
         from native_thermal_live import GOOGLE_SCHEMAS,make_forecast_backend
         if self.settings.get('schema') not in ('earthship-weathernext-thermal-live-config/v1','earthship-weathernext-thermal-live-config/v2'):raise ValueError('Google-only native forecast configuration required')
         if self.parent is not None:raise ValueError('one original issue per backend required')

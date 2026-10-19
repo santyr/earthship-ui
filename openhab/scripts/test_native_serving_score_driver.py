@@ -8,7 +8,7 @@ import pytest
 def fixture(tmp_path,monkeypatch,minute):
     import household_forecast_score as coordinator,native_thermal_live as native
     assert 'deployment_sha256' in inspect.signature(coordinator.run).parameters,'external score pin propagation missing'
-    import thermal_installed_intel as installed,native_inference_pressure as pressure
+    import thermal_model.serial_publication_caps as installed,native_inference_pressure as pressure
     import thermal_model.capture_guard as locks,native_model_serving_receipt as admission
     tmp_path.chmod(0o700);stage=tmp_path/'stage';stage.mkdir(mode=0o700)
     source=stage/'sources/openhab/scripts/household_forecast_score.py';source.parent.mkdir(parents=True);source.write_bytes(Path(coordinator.__file__).read_bytes())
