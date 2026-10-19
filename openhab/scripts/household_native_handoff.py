@@ -41,22 +41,36 @@ def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard,previo
     serving=selected['schema']=='earthship-native-thermal-service-family/v2'
     upgrade=previous_family is not None
     if upgrade!=(previous_deployment_sha256 is not None):raise ValueError('paired previous family and external pin required')
-    old_family=None;old_selected=None
+    old_family=None;old_selected=None;reset=False
+    def previous_family_record():
+        if reset:
+            return family_api.verify_handoff_baseline(old_family,
+                expected_deployment_sha256=previous_deployment_sha256,guard=guard)
+        return family_api.verify(old_family,guard=guard)
     if upgrade:
-        old_family=deploy._directory(previous_family);old_selected=family_api.verify(old_family,guard=guard)
+        # Determine source transition only from the externally pinned original.
+        deploy.verify_handoff_baseline(forecast,expected_deployment_sha256=previous_deployment_sha256)
+        previous_cycle=json.loads(deploy._bytes(forecast/'cycle.json',private=True))
+        previous_settings=json.loads(deploy._bytes(previous_cycle['forecast_config'],private=True,maximum=8192))
+        reset=previous_settings.get('schema') not in deploy.GOOGLE_SCHEMAS
+        old_family=deploy._directory(previous_family);old_selected=previous_family_record()
         if (not serving or old_selected['schema']!='earthship-native-thermal-service-family/v2' or
                 old_selected['deployment_sha256']!=previous_deployment_sha256 or
                 forecast!=score or str(forecast)!=old_selected['stage'] or forecast==stage):
             raise ValueError('explicit previous owned receipt family pin required')
     def stage_record(path):
-        if upgrade and path==forecast:return deploy.verify_stage(path,expected_deployment_sha256=previous_deployment_sha256)
+        if upgrade and path==forecast:
+            verifier=deploy.verify_handoff_baseline if reset else deploy.verify_stage
+            return verifier(path,expected_deployment_sha256=previous_deployment_sha256)
         if path==stage:return deploy.verify_stage(path,**({'expected_deployment_sha256':selected['deployment_sha256']} if serving else {}))
         return deploy.verify_handoff_baseline(path)
     records=[stage_record(path) for path in (stage,forecast,score)]
     if serving:
         from household_forecast_score import read_score_dispatch
         dispatch=read_score_dispatch(stage,deployment_sha256=selected['deployment_sha256'],guard=guard)
-        if upgrade:
+        if reset:
+            if dispatch['historical']:raise ValueError('initial Google cohort requires an empty score history')
+        elif upgrade:
             previous_dispatch=read_score_dispatch(forecast,deployment_sha256=previous_deployment_sha256,guard=guard)
             required=[dict(stage=str(forecast),deployment_sha256=previous_deployment_sha256),*previous_dispatch['historical']]
             if any(row not in dispatch['historical'] for row in required):
@@ -150,7 +164,7 @@ def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard,previo
     if serving:record.update(schema='earthship-native-thermal-handoff/v2',model_verification=selected['model_verification'],score_dispatch=selected['score_dispatch'])
     if upgrade:
         previous_ref,_=_reference(old_family/'family.json',private=True)
-        if family_api.verify(old_family,guard=guard)!=old_selected:raise ValueError('previous native family changed')
+        if previous_family_record()!=old_selected:raise ValueError('previous native family changed')
         record.update(schema='earthship-native-thermal-handoff/v3',previous_family=previous_ref)
     if any(stage_record(path)!=old for path,old in zip((stage,forecast,score),records)):
         raise ValueError('handoff stage originals changed')

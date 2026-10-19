@@ -69,12 +69,21 @@
     "forecast_ml": "SUCCESS",
     "thermal_delivery": "SUCCESS",
     "household_receipts": "SUCCESS",
-    "general": "IN_PROGRESS"
+    "general": "FAILED_ONLY_TWO_OBSOLETE_RECOVERY_BUNDLE_CASES"
   },
   "remaining": [
-    "Finish general CI and concrete reviewed release evidence",
+    "Observe final-head CI and complete concrete reviewed release evidence",
     "Prepare coordinated unit/state/source handoff including morning trainer source selection",
     "Apply exact Item/binding, root source/UI and private learned-state retirement",
     "Verify explicit and natural Google-only serving, degradation and no active incumbent provider"
-  ]
+  ],
+  "native_handoff": {
+    "installed_family_readonly_preparation": "PASS",
+    "seconds": 2.355,
+    "operational_stage_requires_new_coordinator": true,
+    "model_refit_required": false,
+    "final_focused_tests_passed": 32,
+    "independent_review": "NO_CRITICAL_OR_IMPORTANT_FINDINGS",
+    "production_selection_changed": false
+  }
 }

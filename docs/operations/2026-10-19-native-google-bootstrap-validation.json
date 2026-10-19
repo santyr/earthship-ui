@@ -1,0 +1,17 @@
+{
+  "schema": "earthship-native-google-bootstrap-validation/v1",
+  "date": "2026-10-19",
+  "readonly_actual_handoff": "HANDOFF_PREPARED",
+  "seconds": 2.355,
+  "owned_file_preimages": 5,
+  "initial_focused_tests_passed": 77,
+  "final_bootstrap_family_upgrade_tests_passed": 32,
+  "final_seconds": 35.05,
+  "retained_airflow_cases_collected": 14,
+  "retained_function_class_asts_unchanged": 18,
+  "review_patch_sha256": "9b2e3dcc5a06040089d6e71324d61709b2bec32c7707f08ab96e3c2e261d9bf0",
+  "review_critical_or_important_findings": 0,
+  "fit_executed": false,
+  "installed_selection_changed": false,
+  "automatic_actuation": false
+}

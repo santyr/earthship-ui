@@ -194,6 +194,17 @@ def _stage_record(stage,pin=None):
 
 
 def verify(output,*,guard):
+    """Verify an active Google family, including its Google-only score dispatch."""
+    return _verify(output,guard=guard)
+
+
+def verify_handoff_baseline(output,*,expected_deployment_sha256,guard):
+    """Check a retired receipt family's ownership bytes without selecting it."""
+    from thermal_model.graduation_policy import _sha
+    return _verify(output,guard=guard,baseline_deployment_sha256=_sha(expected_deployment_sha256))
+
+
+def _verify(output,*,guard,baseline_deployment_sha256=None):
     """Reconstruct the draft from pinned originals, rather than trusting its hashes."""
     import household_cycle_deploy as deploy
     from household_native_geometry_prepare import _library_paths
@@ -202,29 +213,43 @@ def verify(output,*,guard):
     raw=deploy._bytes(output/'family.json',private=True);family=json.loads(raw)
     stage=deploy._path(family['stage']);libraries=deploy._path(family['libraries_path'])
     pin=family.get('deployment_sha256') if family.get('schema')=='earthship-native-thermal-service-family/v2' else None
-    record=_stage_record(stage,pin)
+    def selected_record():
+        if baseline_deployment_sha256 is not None:
+            if family.get('schema')!='earthship-native-thermal-service-family/v2' or pin!=baseline_deployment_sha256:
+                raise ValueError('external retired-family deployment pin differs')
+            return deploy.verify_handoff_baseline(stage,expected_deployment_sha256=baseline_deployment_sha256)
+        return _stage_record(stage,pin)
+    record=selected_record()
     if record['schema'] not in ('earthship-household-cycle-deployment/v2','earthship-household-cycle-deployment/v3'):
         raise ValueError('explicit native deployment stage required')
     original=deploy._bytes(libraries,private=True);paths=_library_paths(original)
     cycle=json.loads(deploy._bytes(stage/'cycle.json',private=True));config=deploy._path(cycle['forecast_config'])
     settings=json.loads(deploy._bytes(config,private=True))
+    if baseline_deployment_sha256 is not None:
+        if (settings.get('schema') in deploy.GOOGLE_SCHEMAS or
+                set(settings)!=deploy._baseline_configuration_fields(settings.get('schema'))):
+            raise ValueError('closed retired receipt-family configuration required')
     if settings['artifact_sha256']!=record['artifact_sha256'] or settings['runtime_sha256']!=record['runtime_sha256']:
         raise ValueError('native family model selection differs')
     geometry=json.loads(deploy._bytes(record['native_originals']['geometry']['path'],private=True,maximum=4*1024*1024))
-    actual=runtime_identity(paths,binding_version=geometry['native_runtime']['binding_version'],guard=guard)
-    if actual!=geometry['native_runtime']:raise ValueError('native family libraries differ from fitted geometry')
-    if record['schema']=='earthship-household-cycle-deployment/v3':
+    library_runtime=geometry['native_runtime']
+    # A retired family contributes frozen ownership metadata, not executable
+    # geometry. The new family independently verifies today's collector/JARs.
+    if baseline_deployment_sha256 is None:
+        actual=runtime_identity(paths,binding_version=library_runtime['binding_version'],guard=guard)
+        if actual!=library_runtime:raise ValueError('native family libraries differ from fitted geometry')
+    if record['schema']=='earthship-household-cycle-deployment/v3' and baseline_deployment_sha256 is None:
         from household_forecast_score import read_score_dispatch
         read_score_dispatch(stage,deployment_sha256=pin,guard=guard)
     files=_render(stage,config,libraries,deployment_sha256=pin)
-    expected=_metadata(stage,libraries,original,actual,record,files)
+    expected=_metadata(stage,libraries,original,library_runtime,record,files)
     if family!=expected or {path.name for path in output.iterdir()}!=set(files)|{'family.json'}:
         raise ValueError('native family metadata or membership differs')
     if any(deploy._bytes(output/name,private=True)!=content for name,content in files.items()):
         raise ValueError('native family service contract differs')
     guard()
     if (deploy._bytes(output/'family.json',private=True)!=raw or
-        deploy._bytes(libraries,private=True)!=original or _stage_record(stage,pin)!=record or
+        deploy._bytes(libraries,private=True)!=original or selected_record()!=record or
         any(deploy._bytes(output/name,private=True)!=content for name,content in files.items())):
         raise ValueError('native family originals changed during verification')
     return family

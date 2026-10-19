@@ -331,3 +331,29 @@ proposal was still unapplied pending the owner decision; the later approval and
 source application are recorded above. This independent boundary change did not
 apply that proposal or alter recovery functions, templates, installed
 services, resource policy, model state or actuator authority.
+
+
+### Initial Google-family handoff — October 19
+
+The initial handoff now verifies the retired installed family as externally
+pinned ownership metadata, without invoking its retired scorer or requalifying
+its historical collector. The new Google family retains current runtime and
+library checks. Its initial scoring history must be empty; later Google-family
+upgrades still retain all pending Google scoring history and full active-family
+verification. This changes deployment coordination, not numerical model code or
+the fresh candidate, so no refit is required.
+
+The actual installed-family read-only handoff preparation passed in 2.355 seconds,
+with five owned file preimages bound and no service switch. The first focused
+eight-module run passed 77 tests; after adding historical-runtime regressions,
+the complete bootstrap, family and ordinary-upgrade modules passed 32 tests in
+35.05 seconds. An independent review of the final immutable patch found no
+Critical or Important findings. Two obsolete recovery-bundle test cases that
+called an approved retired tool were removed; the other eighteen function/class
+ASTs are unchanged and all fourteen remaining cases collect. Recovery work was
+not resumed. General CI at source 6037b3a passed 6,067 cases with 27 skips and
+failed only those two obsolete cases; final-head CI remains separate evidence.
+
+The operational stage must be rebuilt from this coordinator before activation.
+The fresh model and main publisher bytes remain unchanged. Installed selection
+and root source/UI remain unchanged at this checkpoint.

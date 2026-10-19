@@ -42,9 +42,10 @@ is retained, and unavailable/incompatible input leaves daylight null while
 Google weather remains available. All 19 worker and 220 pinned WeatherNext tests
 pass; a read-only original-source check verified ten days, 232 daylight labels
 and exact native durations. [Typed source/test evidence](2026-10-19-weathernext-native-astro-serving.json).
-The publisher remains uninstalled. No release decision, model fit, production
-write or cutover occurred; fresh downstream fitting and all qualification gates
-remain required.
+The publisher is now installed inactive with its timer disabled and a pending
+release draft. The fresh downstream model has been built; coordinated operational
+release review and cutover remain. Statistical qualification proceeds in production
+under the October 19 policy below.
 
 ## Qualified household evidence
 
