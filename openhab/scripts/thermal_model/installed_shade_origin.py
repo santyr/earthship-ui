@@ -115,8 +115,10 @@ def _forecast_forcing(forecast, issue, available, actions):
         left, right = hourly[index], hourly[index+1]
         fraction = (at-left[0])/(right[0]-left[0])
         if not 0 <= fraction <= 1: raise ValueError('weather interpolation cannot extrapolate')
+        # Google radiation is the mean over the trailing hour ending at
+        # right[0]. Preserve that interval; interpolate only point temperature.
         result.append(InstalledShadeForcing(at, left[1]+fraction*(right[1]-left[1]),
-            left[2]+fraction*(right[2]-left[2]), actions['indoor_shade_closed'],
+            right[2], actions['indoor_shade_closed'],
             actions['outdoor_shade_present'], actions['vent_open']))
     return tuple(result)
 

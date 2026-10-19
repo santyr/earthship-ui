@@ -1,4 +1,4 @@
-import { forecastDisplayDay } from './presentation.js';
+import { forecastDisplayDay } from './forecastRange.js';
 import { HOUSEHOLD_TIMEZONE } from '../site.js';
 export const FORECAST_DETAIL_ITEM = 'Forecast_10Day_JSON';
 export const FORECAST_DETAIL_MAX_BYTES = 64 * 1024;
