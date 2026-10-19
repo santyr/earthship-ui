@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Bounded WeatherNext access proof or private shadow archive collection."""
 import argparse,json,os,pathlib,resource,sys
+from time import monotonic
 from weather_learning.archive import Archive
 from weather_learning.config import AccessPolicy,Site
 from weather_learning.transport import AccessRefused
@@ -14,7 +15,7 @@ def main(argv=None):
     parser.add_argument('--archive',required=True)
     parser.add_argument('--hours',type=int,default=360)
     args=parser.parse_args(argv)
-    reader=None
+    reader=None;started=monotonic()
     try:
         if not 1<=args.hours<=360:raise ValueError('forecast horizon outside bound')
         # Reuse the established private OpenHAB token, but never its site fallback.
@@ -31,7 +32,12 @@ def main(argv=None):
         # No arbitrary exception text: upstream/library errors may contain inputs.
         result=dict(schema='earthship-weathernext-ingest-result/v1',status='UNAVAILABLE',
                     reason=str(exc) if isinstance(exc,AccessRefused) else type(exc).__name__,
-                    production_writes=False,automatic_actuation=False)
+                    production_writes=False,automatic_actuation=False,
+                    elapsed_seconds=max(0.,monotonic()-started))
+        if reader is not None:
+            for name in ('requests','bytes_received'):
+                number=getattr(reader.transport,name,None)
+                if type(number) is int and number>=0:result[name]=number
         print(json.dumps(result));return 1
     finally:
         if reader is not None:reader.transport.close()

@@ -122,3 +122,24 @@ class OpenHABEntrypointTests(unittest.TestCase):
         self.assertEqual(states[0]['reason'], 'NO_ELIGIBLE_SOURCE')
         self.assertFalse(states[0]['automaticActuation'])
         self.assertNotIn(self.token, output.getvalue())
+
+
+    def test_failed_collection_reports_numeric_budget_use_without_upstream_text(self):
+        import requests
+        import weathernext_ingest
+        reader = Mock()
+        reader.discover_run.side_effect = requests.ReadTimeout('upstream diagnostic text must stay private')
+        reader.transport.bytes_received = 123
+        reader.transport.requests = 4
+        output = StringIO()
+        with patch.object(weathernext_ingest, 'EarthEngineReader', return_value=reader), patch.object(weathernext_ingest, 'monotonic', side_effect=[10., 30.], create=True), redirect_stdout(output):
+            result = weathernext_ingest.main(['--collect', '--archive', str(self.root / 'failed-archive')])
+        self.assertEqual(result, 1)
+        value = json.loads(output.getvalue())
+        self.assertEqual(value['status'], 'UNAVAILABLE')
+        self.assertEqual(value['reason'], 'ReadTimeout')
+        self.assertEqual(value['requests'], 4)
+        self.assertEqual(value['bytes_received'], 123)
+        self.assertEqual(value['elapsed_seconds'], 20.)
+        self.assertNotIn('upstream diagnostic text must stay private', output.getvalue())
+        self.assertNotIn(self.token, output.getvalue())

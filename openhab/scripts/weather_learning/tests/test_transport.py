@@ -44,6 +44,38 @@ class TransportTests(unittest.TestCase):
   s=Session(Response(status=302));t=self.transport(s)
   with self.assertRaises(AccessRefused):t.request('https://earthengine.googleapis.com/v1/projects/earthship-weather-research/config')
   self.assertEqual(len(s.calls),1)
+ def test_slow_compute_can_use_remaining_total_acquisition_budget(self):
+  import requests
+  elapsed=[0.]
+  class DelayedSession(Session):
+   def request(self,*args,**kwargs):
+    response=super().request(*args,**kwargs)
+    permitted=kwargs['timeout'][1]
+    elapsed[0]+=min(20.,permitted)
+    if permitted<20.:raise requests.ReadTimeout('simulated slow computation')
+    return response
+  session=DelayedSession(Response(json.dumps({'registrationState':'REGISTERED_NOT_COMMERCIALLY'}).encode()))
+  transport=self.transport(session,clock=lambda:elapsed[0]);elapsed[0]=5.
+  response,_=transport.request('https://earthengine.googleapis.com/v1/projects/earthship-weather-research/config')
+  self.assertEqual(response.status,200)
+  self.assertTrue(transport.noncommercial_verified)
+  self.assertEqual(elapsed[0],25.)
+  self.assertEqual(len(session.calls),1)
+
+ def test_slow_request_cannot_reset_the_remaining_total_deadline(self):
+  import requests
+  elapsed=[0.]
+  class DelayedSession(Session):
+   def request(self,*args,**kwargs):
+    super().request(*args,**kwargs)
+    elapsed[0]+=kwargs['timeout'][1]
+    raise requests.ReadTimeout('simulated deadline exhaustion')
+  session=DelayedSession();transport=self.transport(session,clock=lambda:elapsed[0]);elapsed[0]=65.
+  with self.assertRaises(requests.ReadTimeout):transport.request('https://earthengine.googleapis.com/v1/projects/earthship-weather-research/config')
+  with self.assertRaises(AccessRefused):transport.request('https://earthengine.googleapis.com/v1/projects/earthship-weather-research/config')
+  self.assertEqual(elapsed[0],75.)
+  self.assertEqual(len(session.calls),1)
+
 if __name__=='__main__':unittest.main()
 
 class RegistrationTests(unittest.TestCase):

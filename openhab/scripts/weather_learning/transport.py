@@ -37,8 +37,11 @@ class BoundedTransport:
         limit=self.policy.max_bytes-self.bytes_received
         if limit<=0:raise AccessRefused('transfer budget exhausted')
         self.requests+=1
+        # Earth Engine computations may take more than 15 seconds before
+        # returning headers. The existing process timer still bounds the whole
+        # acquisition, including every request and progressing response read.
         with self.deadline():
-            with self.session.request(method,uri,data=body,headers=headers,timeout=(min(5,remaining),min(15,remaining)),
+            with self.session.request(method,uri,data=body,headers=headers,timeout=(min(5,remaining),remaining),
                     allow_redirects=False,stream=True) as response:
                 data=response.raw.read(limit+1,decode_content=True)
                 self.bytes_received+=len(data)

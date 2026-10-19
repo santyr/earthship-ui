@@ -6,6 +6,16 @@ Implementation date: 2026-10-18. The [private backend](2026-10-18-weathernext-sh
 
 The current migration source removes incumbent capture and comparison controls. It publishes only `earthship-weather-provider-shadow/v2`, retains `earthship-weather-shadow-issue/v2`, and shows raw WeatherNext versus the local candidate in a model/status dialog. Both inference and fitting select the fresh `google-local-v2` child under the configured shadow-state root. The installed f5775f8 release still uses v1 until producer, service and frontend are deployed together. Its original issues/models remain unchanged; v2 does not load them. The source retirement status is documented in [the removal contract](openmeteo-retirement.md).
 
+## Collector source maintenance
+
+The collector can use its own immutable source root through the optional
+source-release drop-in and private collector-release.env. Shadow inference and
+training retain their existing shared runtime root and UI/cohort contract. The
+[October 19 timeout correction](2026-10-19-weathernext-collector-timeout.md) records
+two natural ReadTimeout failures, the unchanged overall/resource bounds and the
+successful 56-second full native capture. Collector maintenance does not activate
+the prepared v2 shadow cohort or change household production forecast ownership.
+
 ## Data and state flow
 
 1. The separate bounded collector writes original WeatherNext snapshots to the private archive.

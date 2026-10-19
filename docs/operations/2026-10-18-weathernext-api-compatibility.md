@@ -120,3 +120,15 @@ standalone legacy publishers; it does not replace a working acquisition path.
 See the [native source selection record](2026-10-18-weathernext-native-selection.md).
 Final provider/worker retirement, fresh Google/local release fitting, qualification
 and coordinated production cutover remain unfinished.
+
+
+## Collector timeout correction — October 19
+
+Two natural ReadTimeout failures exposed a separate transport limit: the
+fifteen-second per-response cutoff expired inside the already-approved
+75-second acquisition budget. The [bounded correction and live evidence](2026-10-19-weathernext-collector-timeout.md)
+use the remaining acquisition time per read while preserving the global timer,
+all transfer/request and host safeguards, and the same source parser/projection.
+A fresh complete capture took 56.094 seconds and reconstructed all 4,320 values.
+This changes no collection IDs, native grid, units, issue clocks or source
+lineage, and does not establish skill or production cutover qualification.
