@@ -13656,7 +13656,7 @@
     "shadow_issue_schema": "earthship-weather-shadow-issue/v2",
     "fresh_shadow_state_child": "google-local-v2",
     "historical_evidence_rewritten": false,
-    "remaining": "Legacy forecast worker and installed-shade/provisional loaders and household entrypoints; root-only AQI consumers; qualified publisher/ownership/shared-lock integration; fresh downstream models and qualification; coordinated cutover. Native production schema selection, forecast SQL and per-metric receipt replay are removed in prepared source. Installed binding/Things/links/old definitions remain until cutover.",
+    "remaining": "Standalone provisional/installed-shade publisher/scorer entrypoints and legacy configuration loaders; remaining forecast worker/provider/tool graph and root-only AQI consumers; fresh downstream release models and qualification; actual reviewed publisher release/ownership handoff; coordinated cutover and installed binding/Things/links removal. Current household factories and score dispatch select only Google profiles; shared resource borrowers no longer import the old publisher CLI. No live retirement has been applied.",
     "neutral_tool_helpers": [
       "scripts/openhab_private_files.py",
       "scripts/HexThingsParse.java"
@@ -13720,7 +13720,7 @@
       "forecast_input_capture.py",
       "forecast_temperature_origin.py"
     ],
-    "native_base_source_count": 83,
+    "native_base_source_count": 85,
     "neutral_native_source_verification": "Five helper function ASTs exactly match original definitions; unchanged 128 KiB default read bound; two isolation regressions RED then 23 packet/isolation GREEN; 84 native/Google/fresh-irradiance/staging tests passed in 19.68 seconds in immutable export.",
     "neutral_openhab_io": "openhab/scripts/openhab_runtime_io.py; existing capture imports remain compatibility exports",
     "prepared_publication_runtime": "weather_learning.production_runtime.run_publication; mandatory external admission/resource guard, fixed Item preflight, shared writer lock and retained attempts/results; operational caller prepared, no live activation",
@@ -13755,7 +13755,49 @@
       "provisional_thermal.py",
       "thermal_installed_intel.py",
       "thermal_model/provisional_live.py",
-      "thermal_model/installed_shade_live_inputs.py"
-    ]
+      "thermal_model/provisional_monitor.py"
+    ],
+    "neutral_native_operational_helpers": [
+      "openhab/scripts/thermal_model/native_operational_io.py",
+      "openhab/scripts/thermal_model/serial_publication_caps.py"
+    ],
+    "shared_resource_dependency_preimage_revision": "ad8fb8582e973d3827fe9d5b981e71c7386ef414",
+    "shared_resource_verifier_borrowers": [
+      "openhab/scripts/astro_geometry_worker.py",
+      "openhab/scripts/thermal_installed_train.py",
+      "openhab/scripts/thermal_installed_calibrate.py",
+      "openhab/scripts/forecast_temperature_collect.py",
+      "openhab/scripts/thermal_installed_score.py",
+      "openhab/scripts/thermal_model/training_pressure_guard.py",
+      "scripts/capture-thermal-inputs.py",
+      "scripts/assemble-thermal-inputs.py",
+      "scripts/qualify-installed-shade.py",
+      "scripts/household_energy_source_install.py"
+    ],
+    "remaining_legacy_config_loader_module": "thermal_model/installed_shade_live_inputs.py; preserve its shared Google/local acquisition and telemetry classes",
+    "shared_resource_old_cli_imports_remaining": [
+      {
+        "path": "openhab/scripts/provisional_thermal.py",
+        "line": 8,
+        "names": [
+          "_resource_preflight"
+        ]
+      },
+      {
+        "path": "openhab/scripts/thermal_model/provisional_live.py",
+        "line": 19,
+        "names": [
+          "_resource_preflight"
+        ]
+      },
+      {
+        "path": "openhab/scripts/thermal_model/provisional_monitor.py",
+        "line": 17,
+        "names": [
+          "_resource_preflight"
+        ]
+      }
+    ],
+    "shared_resource_dependency_verification": "Ten production/tool ASTs match their preimages after only resource-import and manifest-path substitutions. Two import/admission/source-closure regressions RED then GREEN. Final 67-module isolated-export suite: 745 passed, two existing selected-capped-scope smoke skips, 135.76s; pinned WeatherNext package: 211 passed, 8.808s. Export 7db29600ed1859703bb0d6e79a8d6282ea124825. No live configuration, model, resource-policy or service change."
   }
 }

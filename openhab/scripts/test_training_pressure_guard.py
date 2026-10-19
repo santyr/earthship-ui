@@ -116,7 +116,7 @@ def test_supervisor_refuses_oversized_result():
 
 
 def test_collection_worker_requires_strict_caps_before_launch(monkeypatch):
-    import thermal_installed_intel as limits
+    import thermal_model.serial_publication_caps as limits
     def refuse():raise ValueError('strict caps absent')
     monkeypatch.setattr(limits,'_resource_preflight',refuse)
     monkeypatch.setattr(source().subprocess,'Popen',lambda *a,**k:pytest.fail('uncapped collection launched'))
@@ -124,7 +124,7 @@ def test_collection_worker_requires_strict_caps_before_launch(monkeypatch):
 
 
 def test_collection_worker_forces_no_fit_environment(monkeypatch):
-    import thermal_installed_intel as limits
+    import thermal_model.serial_publication_caps as limits
     monkeypatch.setattr(limits,'_resource_preflight',lambda:None)
     monkeypatch.setattr(source().TrainingHeadroom,'preflight',lambda self:None)
     monkeypatch.setattr(source().TrainingHeadroom,'check',lambda self:None)

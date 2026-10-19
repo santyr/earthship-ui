@@ -105,3 +105,32 @@ still need retirement before the final source freeze, fresh release fitting and
 attended cutover. Their files remain present; no broad source deletion occurred.
 Installed services, models, credentials, binding/links, root UI overlays and
 actuator authority were unchanged. No recovery rehearsal ran.
+
+
+### Shared worker and tool import closure
+
+The remaining six shared workers and four capture/qualification/deployment tools
+now import the existing serial verifier directly. Astro collector identity and
+thermal capture revision pin that verifier's actual source path. Every changed
+production/tool AST matches its preimage after only the resource-import and
+manifest-path substitutions. Resource thresholds, supervision and numerical
+functions are unchanged. Only the three obsolete provisional entry points still
+import the old publisher CLI; those entry points remain pending removal.
+
+Two new regressions failed before this change and now prove cold worker imports,
+collection admission and source closure without the old publisher. Relevant test
+fixtures inject the verifier at its new boundary. The raw runtime source count
+assertion is 77, accounting for the two helpers already added in the preceding
+increment; the full native base remains 85. Forecast ML CI now explicitly selects
+the operational import/source-closure regression module.
+
+Final verification: **745 tests across 67 modules passed in 135.76 seconds**,
+with two existing tests requiring a selected capped scope skipped. The pinned
+WeatherNext package passed **211 tests in 8.808 seconds**. Every changed Python
+source/test matches isolated export 7db29600ed1859703bb0d6e79a8d6282ea124825.
+The first expanded run found the stale raw source-count assertion (710 passed,
+one failed, two skipped); its expected count now matches the declared inventory.
+No production resource safeguard or numerical assertion was relaxed. Live
+services, installed sources, models, ownership and actuator authority were not
+changed. This closes the shared CLI resource dependency, not the entire provider
+retirement or production cutover.

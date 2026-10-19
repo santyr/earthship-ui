@@ -7,7 +7,7 @@ from test_installed_raw_score_cli import settings
 
 @pytest.mark.parametrize('batch',[False,True])
 def test_compressed_score_cli_routes_under_shared_lock(settings,monkeypatch,capsys,batch):
-    import thermal_installed_score as cli,thermal_installed_intel as publisher
+    import thermal_installed_score as cli,thermal_model.serial_publication_caps as publisher
     from thermal_model import installed_shade_score_inputs as inputs,installed_shade_score_jobs as jobs
     path,value,lock=settings;value=dict(value,schema='earthship-installed-shade-score-config/v4');path.write_text(json.dumps(value))
     monkeypatch.setattr(publisher,'_resource_preflight',lambda:None)

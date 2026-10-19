@@ -40,7 +40,7 @@ def test_default_raw_score_check_does_not_collect_or_create_archive_files(settin
 
 @pytest.mark.parametrize('batch',[False,True])
 def test_default_score_dispatches_strong_collector_with_live_shared_lock(settings,monkeypatch,capsys,batch):
-    import thermal_installed_score as cli,thermal_installed_intel as publication
+    import thermal_installed_score as cli,thermal_model.serial_publication_caps as publication
     from thermal_model import installed_shade_score_inputs as inputs,installed_shade_score_collection as collection,installed_shade_score_jobs as queueing
     path,value,lock=settings;events=[]
     monkeypatch.setattr(publication,'_resource_preflight',lambda:events.append('guard'))
@@ -63,7 +63,7 @@ def test_default_score_dispatches_strong_collector_with_live_shared_lock(setting
 
 
 def test_raw_score_resource_refusal_precedes_config_and_native_reads(settings,monkeypatch,capsys):
-    import thermal_installed_score as cli,thermal_installed_intel as publication
+    import thermal_installed_score as cli,thermal_model.serial_publication_caps as publication
     from thermal_model import installed_shade_score_inputs as inputs
     path,_,lock=settings
     def refused():raise ValueError('synthetic resource refusal')
@@ -75,7 +75,7 @@ def test_raw_score_resource_refusal_precedes_config_and_native_reads(settings,mo
 
 @pytest.mark.parametrize('batch',[False,True])
 def test_explicit_source_score_cli_routes_to_query_bound_collectors_under_shared_lock(settings,monkeypatch,capsys,batch):
-    import thermal_installed_score as cli,thermal_installed_intel as publication
+    import thermal_installed_score as cli,thermal_model.serial_publication_caps as publication
     from thermal_model import installed_shade_score_inputs as inputs,installed_shade_score_collection as collection,installed_shade_score_jobs as queueing
     path,value,lock=settings;value={**value,'schema':'earthship-installed-shade-score-config/v3'}
     path.write_text(json.dumps(value));guarded=[]

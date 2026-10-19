@@ -123,7 +123,7 @@ def run_training_worker(argv,*,check,seconds=90,env=None):
 
 def run_collection_worker(argv,*,seconds=90):
     """Explicit small acquisition/assembly profile; never authorize fitting."""
-    from thermal_installed_intel import _resource_preflight
+    from thermal_model.serial_publication_caps import _resource_preflight
     _resource_preflight()
     monitor=TrainingHeadroom();monitor.preflight()
     env=dict(os.environ,EARTHSHIP_GUARDED_CAPTURE_WORKER='1',EARTHSHIP_QUALIFICATION_FIT='0',

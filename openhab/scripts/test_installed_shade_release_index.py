@@ -99,7 +99,7 @@ def test_changed_or_incompatible_inputs_refuse_before_pointer_update(index_case,
 @pytest.mark.parametrize('queued',[False,True])
 def test_scorer_explicit_index_update_uses_shared_lock_and_grants_no_release(monkeypatch,tmp_path,capsys,queued):
     import thermal_installed_score as cli
-    import thermal_installed_intel as intel
+    import thermal_model.serial_publication_caps as intel
     from thermal_model import installed_shade_score_inputs as inputs,installed_shade_release_index as index
     from thermal_model import capture_guard
     from thermal_model.capture_guard import SharedScoreLock
@@ -158,7 +158,7 @@ def test_index_retention_replays_actual_compressed_issue_and_outcome_originals(i
 
 def test_index_update_headroom_refusal_precedes_settings_and_qualification(monkeypatch,tmp_path,capsys):
     import thermal_installed_score as cli
-    import thermal_installed_intel as intel
+    import thermal_model.serial_publication_caps as intel
     from thermal_model import capture_guard,installed_shade_score_inputs as inputs
     monkeypatch.setattr(intel,'_resource_preflight',lambda:None)
     def refuse():raise ValueError('insufficient household headroom')

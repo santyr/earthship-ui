@@ -70,7 +70,7 @@ def _worker(parts,dsn_file,root,expected,*,receipt_version=1):
 
 
 def _pressure_preflight():
-    from thermal_installed_intel import _resource_preflight
+    from thermal_model.serial_publication_caps import _resource_preflight
     _resource_preflight()
 
 

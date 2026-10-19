@@ -14,7 +14,7 @@ from forecast_input_capture import _directory
 from forecast_temperature_origin import _read
 from weather_temperature_config import _object,_nonfinite
 from hourly_temperature_runtime import read_db_config
-from thermal_installed_intel import _resource_preflight
+from thermal_model.serial_publication_caps import _resource_preflight
 
 BASES={'http://127.0.0.1:8080/rest','http://localhost:8080/rest','http://127.0.0.1:5190/rest'}
 SCHEMA='earthship-temperature-correction-collect-config/v1'

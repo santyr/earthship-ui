@@ -11,7 +11,7 @@ from uuid import uuid4
 import os,stat,pwd
 import astro_geometry as geometry
 from thermal_model.training_pressure_guard import run_training_worker
-from thermal_installed_intel import _resource_preflight
+from thermal_model.serial_publication_caps import _resource_preflight
 
 ROOT=Path(__file__).resolve().parents[2]
 JAVA_SOURCE=ROOT/'scripts/java/NativeSolarGeometry.java'
@@ -20,7 +20,7 @@ NATIVE_ROOTS=(Path('/var/lib/openhab/tmp/kar'),Path('/usr/share/openhab/runtime'
 MAX_BATCH_POINTS=128 # Native result must fit the original worker's 16 KiB pipe.
 CODE_FILES=('openhab/scripts/astro_geometry_worker.py','openhab/scripts/astro_geometry.py',
             'openhab/scripts/astro_forecast_context.py','scripts/java/NativeSolarGeometry.java',
-            'openhab/scripts/thermal_model/training_pressure_guard.py','openhab/scripts/thermal_installed_intel.py')
+            'openhab/scripts/thermal_model/training_pressure_guard.py','openhab/scripts/thermal_model/serial_publication_caps.py')
 
 
 def _read(path,*,maximum,guard,trusted_owners=None):

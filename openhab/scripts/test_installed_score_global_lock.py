@@ -74,7 +74,7 @@ def test_database_guard_runs_after_connection_pacing(tmp_path,monkeypatch):
 
 def test_cli_busy_global_lock_constructs_no_source_reader(tmp_path,monkeypatch,capsys):
     import thermal_installed_score as cli
-    import thermal_installed_intel as publication_cli
+    import thermal_model.serial_publication_caps as publication_cli
     from thermal_model import installed_shade_score_inputs as inputs
     tmp_path.chmod(0o700);path=tmp_path/'lock';path.touch(mode=0o600)
     monkeypatch.setattr(publication_cli,'_resource_preflight',lambda:None)
@@ -90,7 +90,7 @@ def test_cli_busy_global_lock_constructs_no_source_reader(tmp_path,monkeypatch,c
 
 def test_cli_collection_requires_global_lock_before_preflight(monkeypatch):
     import thermal_installed_score as cli
-    import thermal_installed_intel as publication_cli
+    import thermal_model.serial_publication_caps as publication_cli
     monkeypatch.setattr(publication_cli,'_resource_preflight',lambda:pytest.fail('invalid intent reached resources'))
     with pytest.raises(SystemExit) as error:
         cli.main(['--config','/missing/config','--collect','--origin','/missing/origin','--horizon','1'])
@@ -105,7 +105,7 @@ def test_shared_lock_implementation_is_in_declared_prediction_closure():
     root=Path(cli.__file__).resolve().parent
     name=Path(inspect.getsourcefile(cli.SharedScoreLock)).resolve().relative_to(root).as_posix()
     assert name in RUNTIME_PATHS and name in RAW_RUNTIME_PATHS
-    assert len(RAW_RUNTIME_PATHS)==75
+    assert len(RAW_RUNTIME_PATHS)==77
 
 
 def test_pinned_shared_guard_locks_without_scoring_cli_available(tmp_path):

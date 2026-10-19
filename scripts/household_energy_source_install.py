@@ -7,7 +7,7 @@ from pathlib import Path
 from hashlib import sha256
 import argparse,ast,importlib.util,json,os,stat,subprocess,tempfile
 from thermal_model.capture_guard import SharedScoreLock
-from thermal_installed_intel import _resource_preflight
+from thermal_model.serial_publication_caps import _resource_preflight
 
 BASE=Path('.superpowers/sdd/2026-10-11-household-model-plan-replay/energy-production-stage-f281f4a').resolve()
 LIVE=Path('/home/sat/openhab/scripts')

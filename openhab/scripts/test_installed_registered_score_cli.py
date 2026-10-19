@@ -23,7 +23,7 @@ def test_resolver_rejects_wrong_horizon_jobs(registration_case):
 
 @pytest.mark.parametrize('index',[False,True])
 def test_registered_scorer_routes_under_actual_lock_without_changing_old_defaults(registration_case,monkeypatch,capsys,index):
-    import thermal_installed_score as cli,thermal_installed_intel as intel
+    import thermal_installed_score as cli,thermal_model.serial_publication_caps as intel
     from thermal_model import installed_shade_score_inputs as inputs,installed_shade_score_jobs as jobs,installed_shade_release_index as release,capture_guard
     reg,*_=registration_case;root=reg.parent;lock=root/'lock';lock.touch(mode=0o600)
     monkeypatch.setattr(intel,'_resource_preflight',lambda:None)
@@ -46,7 +46,7 @@ def test_registered_scorer_routes_under_actual_lock_without_changing_old_default
 
 
 def test_registry_change_before_collection_refuses_without_running_source_backend(registration_case,monkeypatch,capsys):
-    import thermal_installed_score as cli,thermal_installed_intel as intel
+    import thermal_installed_score as cli,thermal_model.serial_publication_caps as intel
     from thermal_model import installed_shade_score_inputs as inputs,installed_shade_score_jobs as jobs
     reg,*_=registration_case;root=reg.parent;lock=root/'lock';lock.touch(mode=0o600)
     monkeypatch.setattr(intel,'_resource_preflight',lambda:None)

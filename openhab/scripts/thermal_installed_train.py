@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 def _resource_preflight():
-    from thermal_installed_intel import _resource_preflight as strict_caps
+    from thermal_model.serial_publication_caps import _resource_preflight as strict_caps
     strict_caps()
 
 

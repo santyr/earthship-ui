@@ -73,3 +73,46 @@ def test_current_consumers_import_helpers_without_legacy_runtime():
         tree=ast.parse((ROOT/name).read_bytes())
         modules=[node.module for node in ast.walk(tree) if isinstance(node,ast.ImportFrom)]
         assert not {'thermal_model.provisional_live','thermal_model.provisional_monitor'}&set(modules),name
+
+
+def test_shared_worker_imports_and_collection_admission_do_not_load_old_cli():
+    import ast
+    for name in ('capture-thermal-inputs.py','assemble-thermal-inputs.py','qualify-installed-shade.py','household_energy_source_install.py'):
+        path=ROOT.parents[1]/'scripts'/name
+        imports=[node.module for node in ast.walk(ast.parse(path.read_bytes())) if isinstance(node,ast.ImportFrom)]
+        assert 'thermal_installed_intel' not in imports,name
+    code="""
+import importlib.abc,sys
+class Block(importlib.abc.MetaPathFinder):
+ def find_spec(self,fullname,*args):
+  if fullname=='thermal_installed_intel':raise AssertionError('shared worker imported old publisher CLI')
+sys.meta_path.insert(0,Block())
+import astro_geometry_worker,thermal_installed_train,thermal_installed_calibrate,thermal_installed_score,forecast_temperature_collect
+from thermal_model import serial_publication_caps,training_pressure_guard
+class CurrentPolicy(Exception):pass
+def refuse():raise CurrentPolicy('neutral verifier reached before collection')
+serial_publication_caps._resource_preflight=refuse
+try:training_pressure_guard.run_collection_worker(['/usr/bin/false'])
+except CurrentPolicy:pass
+else:raise AssertionError('collection bypassed its resource verifier')
+"""
+    result=subprocess.run([sys.executable,'-c',code],capture_output=True,text=True,timeout=30)
+    assert result.returncode==0,result.stderr
+
+
+def test_native_geometry_and_capture_source_closures_pin_neutral_verifier():
+    import astro_geometry_worker as geometry
+    neutral='openhab/scripts/thermal_model/serial_publication_caps.py'
+    assert neutral in geometry.CODE_FILES
+    assert 'openhab/scripts/thermal_installed_intel.py' not in geometry.CODE_FILES
+    import importlib.util
+    path=ROOT.parents[1]/'scripts/capture-thermal-inputs.py'
+    spec=importlib.util.spec_from_file_location('_native_capture_source_closure',path)
+    capture=importlib.util.module_from_spec(spec);spec.loader.exec_module(capture)
+    seen=[]
+    from thermal_model import origin_capture
+    from unittest.mock import patch
+    def read(path,**kwargs):seen.append(str(path.relative_to(capture.ROOT)));return b'isolated source closure'
+    with patch.object(origin_capture,'_source_bytes',read):capture._capture_revision()
+    assert neutral in seen
+    assert 'openhab/scripts/thermal_installed_intel.py' not in seen
