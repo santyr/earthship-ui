@@ -15,10 +15,10 @@ def setup(tmp_path,monkeypatch,originals,*,delivered=True,history='available'):
     import native_thermal_artifact as artifact
     import native_thermal_forecast as forecast
     args=queried(tmp_path,monkeypatch,originals,history=history)
-    old=json.loads(Path(args['capture_path']).read_bytes());runtime=deepcopy(args['runtime'])
-    runtime['native_source_manifest'][live.SOURCE]='d'*64;runtime['native_code_revision']=artifact.digest(runtime['native_source_manifest'])
-    candidate=artifact.build_native_candidate(originals={role:Path(ref['path']) for role,ref in old['candidate']['originals'].items()},runtime=runtime,created_at=old['candidate']['created_at'])
-    candidate_path=tmp_path/(candidate['artifact_sha256']+'.native-provisional-candidate-v2.json');candidate_path.write_bytes(_canonical(candidate));candidate_path.chmod(0o600)
+    old=json.loads(Path(args['capture_path']).read_bytes())
+    from test_google_irradiance_model import fresh_candidate
+    candidate,runtime,_=fresh_candidate(tmp_path/'preserved-fit',monkeypatch)
+    candidate_path=tmp_path/'preserved-fit'/(candidate['artifact_sha256']+'.native-provisional-candidate-v4.json')
     geometry=replay_series(_canonical(old['geometry']),request=old['geometry']['request'],expected_series_sha256=old['geometry_series_sha256'],expected_native_runtime=old['geometry']['native_runtime'])
     capture=forecast.build_capture(candidate,old['inputs'],geometry=geometry,runtime=runtime,expected_artifact_sha256=candidate['artifact_sha256'],expected_geometry_sha256=geometry.sha256,
         issue=old['issued_at'],available=old['inputs_available_at'],published=old['published_at'])

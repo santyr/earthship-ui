@@ -281,3 +281,37 @@ The existing skipped multiweek synthetic calibration replay is enabled by its
 `CI=true` marker in hosted CI. The full WeatherNext package separately passed
 **182 tests in 6.302 seconds**. This proves affected source behavior, not full
 repository CI, an actual release candidate, predictive qualification or cutover.
+
+
+Native production configuration now accepts only the Google live v1 and serving
+v2 profiles. Their fields independently require the private Google archive/site;
+they contain no forecast-database path and no legacy backend construction branch.
+Retired provisional v1/v2/v3 profiles refuse before any source lookup.
+
+Deployment staging retains one narrowly scoped historical metadata parser to pin
+the previous configuration/model bytes for the attended handoff. It cannot
+construct a retired worker or supply previous coefficients/evidence to the new
+model. The new model must use the preserved irradiance family and its own complete
+source manifest. The handoff checks the previous forecast and score sources for
+coherence, and keeps local inputs, endpoint/token selection, shared lock, retained
+physical parameters, cache, service ownership and immutable pins. Changing the
+weather source is allowed only when migrating a retired profile; later Google
+upgrades must preserve the Google source selection. Requiring old and new fitted
+source bytes to be identical would prevent the requested fresh Google reset.
+
+Positive publication/serving tests now use genuinely fitted fourteen-coefficient
+synthetic models. Package-only fixture metadata remains explicitly unqualified.
+The older-family refusal test independently builds a real ten-coefficient model,
+so it still proves collection/preparation cannot begin with that family. Focused
+configuration/publication/receipt/geometry/staging verification passed 88 tests;
+corrected handoff/upgrade checks passed 43, pressure/dispatch checks passed 15,
+and the complete corrected native monitor module passed 10.
+
+Verification exercised all 283 transitively affected root test modules in sealed
+Git exports. After the diagnosed handoff and fixture corrections, final resumed
+shards passed 621 tests (148.45 seconds) and 1,501 tests (529.09 seconds), alongside
+previously completed prefixes. Counts overlap at resumed modules and are not a
+single-run aggregate. Four existing tests skipped: multiday synthetic calibration,
+full qualification fitting, and two checks requiring a specifically selected
+capped publication scope. These skips are not release qualification evidence.
+No installed configuration, model or service changed in this source increment.

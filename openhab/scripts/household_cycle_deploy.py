@@ -75,16 +75,27 @@ def _service_contract(raw,config):
 
 
 
-NATIVE_CONFIG_SCHEMA='earthship-provisional-thermal-live-config/v2'
-SERVING_CONFIG_SCHEMA='earthship-provisional-thermal-live-config/v3'
-from native_thermal_live import NATIVE_SCHEMAS,SERVING_SCHEMAS,GOOGLE_SCHEMAS,configuration_fields
+from native_thermal_live import NATIVE_SCHEMAS,SERVING_SCHEMAS,GOOGLE_SCHEMAS,GOOGLE_LIVE_SCHEMA,configuration_fields
 
 NATIVE_DEPLOYMENT_FIELDS={'native_runtime_sources','native_originals','artifact_sha256','runtime_sha256'}
 
 
+def _baseline_configuration_fields(schema):
+    """Read old handoff metadata only; never construct a retired producer."""
+    if schema in NATIVE_SCHEMAS:return configuration_fields(schema)
+    versions={'earthship-provisional-thermal-live-config/v1':1,
+              'earthship-provisional-thermal-live-config/v2':2,
+              'earthship-provisional-thermal-live-config/v3':3}
+    version=versions.get(schema)
+    if version is None:raise ValueError('closed original baseline configuration required')
+    fields=(configuration_fields(GOOGLE_LIVE_SCHEMA)-{'weather_source'})|{'forecast_dsn_file'}
+    if version==1:fields=fields-{'artifact_sha256','runtime_sha256','geometry_directory'}
+    if version==3:fields=fields|{'model_receipt_path','model_receipt_sha256'}
+    return fields
+
+
 def _native_header(candidate,settings):
     from native_thermal_artifact import SCHEMAS,FIELDS,validate_native_runtime,digest,LIMITS
-    from thermal_model.provisional_live import FIELDS as CONFIG_FIELDS
     if (not isinstance(candidate,dict) or set(candidate)!=FIELDS or candidate['schema'] not in SCHEMAS or
         set(settings)!=configuration_fields(settings.get('schema')) or
         settings['schema'] not in NATIVE_SCHEMAS):
@@ -155,21 +166,17 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
     if baseline!=config:
         previous=json.loads(baseline_raw)
         allowed={'candidate_path'} if not native else {'schema','candidate_path','artifact_sha256','runtime_sha256','geometry_directory','evidence_directory'}|({'model_receipt_path','model_receipt_sha256'} if serving else set())
-        if settings.get('schema') in GOOGLE_SCHEMAS:allowed=allowed|{'forecast_dsn_file','weather_source'}
+        if settings.get('schema') in GOOGLE_SCHEMAS:allowed=allowed|{'forecast_dsn_file','weather_source','model_receipt_path','model_receipt_sha256'}
         if (not isinstance(settings,dict) or not isinstance(previous,dict) or
             {k:v for k,v in settings.items() if k not in allowed}!={k:v for k,v in previous.items() if k not in allowed} or
             settings.get('candidate_path')==previous.get('candidate_path')):
             raise ValueError('only explicit model selection may change from the original service configuration')
         if native:
-            from thermal_model.provisional_live import FIELDS as CONFIG_FIELDS,SCHEMA as LEGACY_SCHEMA
-            previous_fields=CONFIG_FIELDS if previous.get('schema')==LEGACY_SCHEMA else configuration_fields(previous.get('schema'))
-            if previous.get('schema') not in (LEGACY_SCHEMA,)+NATIVE_SCHEMAS or set(previous)!=previous_fields:
+            if set(previous)!=_baseline_configuration_fields(previous.get('schema')):
                 raise ValueError('closed original baseline configuration required')
+            # Pin the previous bytes for handoff integrity without loading old
+            # coefficients, evidence or source selection into the fresh runtime.
             baseline_candidate=_path(previous['candidate_path']);baseline_candidate_raw=_bytes(baseline_candidate,private=True)
-            previous_model=json.loads(baseline_candidate_raw);base=previous_model['runtime']
-            if previous.get('schema') in NATIVE_SCHEMAS:base=base['base_runtime']
-            if settings.get('schema') not in GOOGLE_SCHEMAS and _encode(base)!=_encode(declared['runtime']['base_runtime']):
-                raise ValueError('native selection must preserve original fitted base runtime')
     _service_contract(service_raw,baseline)
     # Archive the immutable commit object, not the mutable index/worktree. A
     # concurrent edit after the cleanliness check cannot acquire this identity.

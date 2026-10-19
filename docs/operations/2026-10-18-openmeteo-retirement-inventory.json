@@ -13656,7 +13656,7 @@
     "shadow_issue_schema": "earthship-weather-shadow-issue/v2",
     "fresh_shadow_state_child": "google-local-v2",
     "historical_evidence_rewritten": false,
-    "remaining": "Legacy worker and configuration loaders/factories, obsolete household context entrypoints; root-only AQI consumers; qualified publisher/ownership/shared-lock integration; fresh downstream models and qualification; coordinated cutover. Native forecast SQL acquisition and old per-metric receipt replay are removed in prepared source. Installed binding/Things/links/old definitions remain until cutover.",
+    "remaining": "Legacy forecast worker and installed-shade/provisional loaders and household entrypoints; root-only AQI consumers; qualified publisher/ownership/shared-lock integration; fresh downstream models and qualification; coordinated cutover. Native production schema selection, forecast SQL and per-metric receipt replay are removed in prepared source. Installed binding/Things/links/old definitions remain until cutover.",
     "neutral_tool_helpers": [
       "scripts/openhab_private_files.py",
       "scripts/HexThingsParse.java"
@@ -13703,6 +13703,17 @@
     "native_collection_weather_contract": "validated original Google capsule for exact issue/available_by/24-hour request; explicit reader required",
     "receipt_replay_preimage_revision": "e349d9deace5d143f03c514ad6a71216fddfdcdc",
     "receipt_replay_verification": "125 affected modules covered in immutable export: shard 0 964 passed; shard 1 894 passed/1 existing CI-only skip before fixture failure; complete corrected final airflow module 61 passed. Counts overlap; no single-run aggregate or full-repository claim. WeatherNext package 182 passed.",
-    "native_outcome_origin": "earthship-household-outcome-origin/v2; explicit model/runtime/capture pins and actual native delivery receipts; frozen Google source replay"
+    "native_outcome_origin": "earthship-household-outcome-origin/v2; explicit model/runtime/capture pins and actual native delivery receipts; frozen Google source replay",
+    "native_production_profiles": [
+      "earthship-weathernext-thermal-live-config/v1",
+      "earthship-weathernext-thermal-live-config/v2"
+    ],
+    "retired_native_production_profiles": [
+      "earthship-provisional-thermal-live-config/v1",
+      "earthship-provisional-thermal-live-config/v2",
+      "earthship-provisional-thermal-live-config/v3"
+    ],
+    "retained_baseline_metadata": "Closed read-only previous config/model byte pins for attended handoff only; no producer construction or old model/learning seed.",
+    "native_configuration_verification": "283 affected root modules exercised across sealed exports and resumed shards; final suffixes 621 and 1501 passed, with completed prefixes retained and overlapping counts not aggregated. Four existing skips: two long qualification tests and two selected-publication-scope checks. Focused 88 configuration/publication/staging, 43 handoff/upgrade, 15 pressure/dispatch and 10 monitor cases passed."
   }
 }

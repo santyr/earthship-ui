@@ -67,20 +67,23 @@ from household_cycle_resources import publication_resource_preflight as _publica
 from thermal_model.origin_capture import _source_bytes
 from hashlib import sha256
 from native_thermal_artifact import current_native_runtime as current_runtime,read_native_candidate,digest as runtime_digest
-from thermal_model.provisional_live import _next_issue,delivery_directory,backend_settings,_persisted_after_write
+from thermal_model.provisional_live import _next_issue,delivery_directory,_persisted_after_write
 from thermal_model.runtime_bundle import _owned_bytes
-from thermal_model.installed_shade_live_inputs import CompressedSourceLiveBackend,TelemetryTransport
+from thermal_model.installed_shade_live_inputs import TelemetryTransport
 from thermal_model.installed_shade_published_origin import NUMERIC_ITEM,PUBLICATION_ITEM,_receipt
 from thermal_model.origin_capture import _temperatures
 
-LIVE_SCHEMA='earthship-provisional-thermal-live-config/v2'
-SERVING_SCHEMA='earthship-provisional-thermal-live-config/v3'
-GOOGLE_LIVE_SCHEMA='earthship-weathernext-thermal-live-config/v1'
-GOOGLE_SERVING_SCHEMA='earthship-weathernext-thermal-live-config/v2'
-GOOGLE_SCHEMAS=(GOOGLE_LIVE_SCHEMA,GOOGLE_SERVING_SCHEMA)
-LIVE_SCHEMAS=(LIVE_SCHEMA,GOOGLE_LIVE_SCHEMA)
-SERVING_SCHEMAS=(SERVING_SCHEMA,GOOGLE_SERVING_SCHEMA)
+LIVE_SCHEMA='earthship-weathernext-thermal-live-config/v1'
+SERVING_SCHEMA='earthship-weathernext-thermal-live-config/v2'
+GOOGLE_LIVE_SCHEMA=LIVE_SCHEMA
+GOOGLE_SERVING_SCHEMA=SERVING_SCHEMA
+LIVE_SCHEMAS=(LIVE_SCHEMA,)
+SERVING_SCHEMAS=(SERVING_SCHEMA,)
 NATIVE_SCHEMAS=LIVE_SCHEMAS+SERVING_SCHEMAS
+GOOGLE_SCHEMAS=NATIVE_SCHEMAS
+SOURCE_FIELDS={'candidate_path','token_file','journal_dsn_file','native_db_config','native_policy'}
+CONFIGURATION_FIELDS=SOURCE_FIELDS|{'schema','openhab_base','evidence_directory','shared_lock',
+    'native_cutover','artifact_sha256','runtime_sha256','geometry_directory','weather_source'}
 SOURCE='openhab/scripts/native_thermal_live.py'
 
 RESOURCE_SOURCE_SHA256='092dab2595bb8f8478fd0519118e1e277ab8aa61d887d5ff2fc38d4ea7717f70'
@@ -265,36 +268,29 @@ GEOMETRY_MAX=4*1024*1024+65536
 
 
 def configuration_fields(schema):
-    from thermal_model.provisional_live import FIELDS
-    if schema not in NATIVE_SCHEMAS:raise ValueError('explicit native configuration schema required')
-    fields=FIELDS|{'artifact_sha256','runtime_sha256','geometry_directory'}
-    if schema in GOOGLE_SCHEMAS:fields=(fields-{'forecast_dsn_file'})|{'weather_source'}
+    if schema not in NATIVE_SCHEMAS:raise ValueError('explicit Google native configuration schema required')
+    fields=set(CONFIGURATION_FIELDS)
     if schema in SERVING_SCHEMAS:fields=fields|{'model_receipt_path','model_receipt_sha256'}
     return fields
 
 
 def make_forecast_backend(settings,*,evidence_directory,guard):
-    """The configured native source is authoritative; never switch on failure."""
+    """Only the configured Google archive can provide forecast forcing."""
     guard()
-    if settings.get('schema') in GOOGLE_SCHEMAS:
-        from weather_learning.native_backend import native_source,make_native_backend,SCHEMA
-        from weather_learning.archive import Archive
-        from thermal_model.provisional_live import SOURCE_FIELDS
-        root,site=native_source(settings['weather_source'])
-        translated={key:settings[key] for key in SOURCE_FIELDS-{'candidate_path','forecast_dsn_file'}}
-        translated.update(schema=SCHEMA,release_inputs_path=settings['candidate_path'],
-            openhab_base=settings['openhab_base'],evidence_directory=str(evidence_directory))
-        backend=make_native_backend(translated,archive=Archive.open_readonly(root),site=site,shared_lock_guard=guard)
-    else:
-        if settings.get('schema') not in NATIVE_SCHEMAS:raise ValueError('explicit native source selection required')
-        translated=backend_settings(settings);translated['evidence_directory']=str(evidence_directory)
-        backend=CompressedSourceLiveBackend(translated,shared_lock_guard=guard)
+    if not isinstance(settings,dict) or settings.get('schema') not in NATIVE_SCHEMAS:
+        raise ValueError('explicit Google native source selection required')
+    from weather_learning.native_backend import native_source,make_native_backend,SCHEMA
+    from weather_learning.archive import Archive
+    root,site=native_source(settings['weather_source'])
+    translated={key:settings[key] for key in SOURCE_FIELDS-{'candidate_path'}}
+    translated.update(schema=SCHEMA,release_inputs_path=settings['candidate_path'],
+        openhab_base=settings['openhab_base'],evidence_directory=str(evidence_directory))
+    backend=make_native_backend(translated,archive=Archive.open_readonly(root),site=site,shared_lock_guard=guard)
     guard();return backend
 
 
 def load_settings(path,*,withdraw=False):
-    """Closed native source/model selection; legacy v1 has its own loader."""
-    from thermal_model.provisional_live import FIELDS,SOURCE_FIELDS
+    """Closed Google source/model selection; retired profiles are refused."""
     from thermal_model.forcing_capture import _private_directory
     from thermal_model.policy_registration import _read_private
     from thermal_model.capture_readers import BASES
@@ -303,17 +299,14 @@ def load_settings(path,*,withdraw=False):
     if len(_owned_bytes(path,8192))>8192:raise ValueError('bounded native configuration required')
     value=_read_private(path)
     serving=isinstance(value,dict) and value.get('schema') in SERVING_SCHEMAS
-    google=isinstance(value,dict) and value.get('schema') in GOOGLE_SCHEMAS
     if (not isinstance(value,dict) or set(value)!=configuration_fields(value.get('schema')) or
         value['schema'] not in NATIVE_SCHEMAS or value['openhab_base'] not in BASES):
         raise ValueError('closed native production configuration required')
     _sha(value['artifact_sha256']);_sha(value['runtime_sha256']);_instant(value['native_cutover'])
     if serving:_sha(value['model_receipt_sha256'])
-    if google:
-        from weather_learning.native_backend import native_source
-        native_source(value['weather_source'],withdraw=withdraw)
-    source_fields=SOURCE_FIELDS-{'forecast_dsn_file'} if google else SOURCE_FIELDS
-    for key in source_fields|{'evidence_directory','shared_lock','geometry_directory'}|({'model_receipt_path'} if serving else set()):
+    from weather_learning.native_backend import native_source
+    native_source(value['weather_source'],withdraw=withdraw)
+    for key in SOURCE_FIELDS|{'evidence_directory','shared_lock','geometry_directory'}|({'model_receipt_path'} if serving else set()):
         target=Path(value[key])
         if not target.is_absolute() or target.resolve()!=target:raise ValueError('resolved native source required')
         _private_directory(target.parent)

@@ -37,6 +37,11 @@ def fixture(tmp_path,monkeypatch):
 
 def test_handoff_binds_one_native_family_and_both_previous_owned_stages(tmp_path,monkeypatch):
     m,args,previous,family,out,base=fixture(tmp_path,monkeypatch)
+    import household_cycle_deploy as deploy
+    # A fresh Google fit owns different source bytes from its retired baseline.
+    assert deploy.verify_stage(args['stage'])['protected_runtime_sources']!=deploy.verify_stage(previous)['protected_runtime_sources']
+    selected=json.loads(args['forecast_config'].read_bytes())
+    assert selected['schema']=='earthship-weathernext-thermal-live-config/v1'
     result=m.prepare(family,previous_forecast_stage=previous,previous_score_stage=previous,output=out,guard=lambda:None)
     assert result['status']=='native_handoff_staged' and result['live_units_changed'] is False
     checked=m.verify(out,guard=lambda:None)

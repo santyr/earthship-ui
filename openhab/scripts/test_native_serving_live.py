@@ -35,7 +35,7 @@ def fixture(tmp_path,originals,monkeypatch):
     return live,settings,model,Backend(),earlier_geometry(ISSUE),stage
 
 
-def test_explicit_v3_loader_retains_owned_original_configuration(tmp_path,originals,monkeypatch):
+def test_google_serving_loader_retains_owned_original_configuration(tmp_path,originals,monkeypatch):
     live,settings,model,backend,geometry,stage=fixture(tmp_path,originals,monkeypatch)
     assert live.load_settings(stage/'forecast.json')==settings
 

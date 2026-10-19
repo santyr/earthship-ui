@@ -166,7 +166,23 @@ def test_operational_helpers_load_pinned_current_sources_and_recognize_preserved
 def test_google_execution_refuses_older_model_family_before_collection_or_geometry(tmp_path,monkeypatch,originals,operation):
     from test_native_thermal_live_publication import fixture
     live,settings,backend,clock,candidate,g,runtime=fixture(tmp_path,monkeypatch,originals)
-    settings['schema']=live.GOOGLE_LIVE_SCHEMA
+    # The production fixture now uses the preserved family. Construct the
+    # genuinely older fitted artifact explicitly for this refusal case.
+    from test_native_thermal_forecast import context
+    import native_thermal_artifact as artifacts
+    from thermal_model.forcing_capture import _canonical
+    folder=tmp_path/'older-model';folder.mkdir(mode=0o700)
+    candidate,_,kwargs=context(folder,monkeypatch,originals)
+    runtime=deepcopy(kwargs['runtime'])
+    runtime['native_source_manifest']['openhab/scripts/native_thermal_live.py']='d'*64
+    runtime['native_code_revision']=artifacts.digest(runtime['native_source_manifest'])
+    candidate=artifacts.build_native_candidate(originals={role:Path(ref['path']) for role,ref in candidate['originals'].items()},
+        runtime=runtime,created_at=candidate['created_at'])
+    assert len(candidate['fit']['coefficients'])==10
+    path=folder/'candidate.json';path.write_bytes(_canonical(candidate));path.chmod(0o600)
+    settings.update(schema=live.GOOGLE_LIVE_SCHEMA,candidate_path=str(path),
+        artifact_sha256=candidate['artifact_sha256'],runtime_sha256=candidate['runtime_sha256'])
+    monkeypatch.setattr(live,'current_runtime',lambda **kw:deepcopy(runtime))
     if operation=='publish':
         backend.collect=lambda **kw:pytest.fail('older model reached Google collection')
         with pytest.raises(ValueError,match='irradiance'):live.publish_cycle(settings,geometry=g,backend=backend,guard=lambda:None)
@@ -183,6 +199,13 @@ def test_google_deployment_refuses_the_older_candidate_family(tmp_path):
     from test_google_native_selection import source,GOOGLE_LIVE
     from weather_learning.archive import Archive
     args,files,candidate,settings=native_fixture(tmp_path)
-    settings.pop('forecast_dsn_file');settings.update(schema=GOOGLE_LIVE,weather_source=source(Archive(tmp_path/'google').root))
+    settings.update(schema=GOOGLE_LIVE,weather_source=source(Archive(tmp_path/'google').root))
+    import native_thermal_artifact as artifacts
+    # Deliberately corrupt package-only family metadata, keeping transport
+    # identities coherent. Genuine older-model refusal is tested above.
+    candidate['schema']=artifacts.SCHEMA
+    candidate['artifact_sha256']=artifacts.digest(candidate,'artifact_sha256')
+    settings['artifact_sha256']=candidate['artifact_sha256']
+    write(Path(settings['candidate_path']),encode(candidate))
     write(args['forecast_config'],encode(settings))
     with pytest.raises(ValueError,match='irradiance'):api().stage_deployment(**args)

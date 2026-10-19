@@ -54,7 +54,6 @@ def test_closed_google_settings_replace_old_forecast_credential(tmp_path,monkeyp
     from test_native_thermal_live_publication import fixture
     live,settings,*_=fixture(tmp_path,monkeypatch,originals)
     path,settings=settings_file(tmp_path,settings)
-    Path(settings.pop('forecast_dsn_file')).unlink()
     archive=Archive(tmp_path/'google')
     settings.update(schema=schema,weather_source=source(archive.root))
     if schema==GOOGLE_SERVING:
@@ -114,7 +113,7 @@ def test_configured_backend_and_lazy_household_backend_use_google_only(tmp_path,
     settings.update(candidate_path=str(candidate),openhab_base='http://127.0.0.1:8080/rest',evidence_directory=str(tmp_path))
     archive=Archive(tmp_path/'google');archive.store_snapshot(full_snapshot())
     settings['weather_source']=source(archive.root)
-    monkeypatch.setattr(live,'CompressedSourceLiveBackend',lambda *a,**kw:pytest.fail('incumbent backend selected'))
+    monkeypatch.setattr(live,'CompressedSourceLiveBackend',lambda *a,**kw:pytest.fail('incumbent backend selected'),raising=False)
     backend=live.make_forecast_backend(settings,evidence_directory=tmp_path,guard=lambda:None)
     backend.verify_unchanged()
     assert not hasattr(backend,'forecast_dsn') and 'forecast_dsn_file' not in backend.settings
@@ -149,11 +148,6 @@ def test_google_publication_retains_original_source_and_rejects_incumbent_inputs
     from test_native_thermal_live_publication import fixture
     from weather_learning.native_forecast import make_native_forecast
     live,settings,backend,clock,candidate,geometry,runtime=fixture(tmp_path,monkeypatch,originals)
-    from test_google_irradiance_model import fresh_candidate
-    candidate,runtime,_=fresh_candidate(tmp_path/'preserved-fit',monkeypatch)
-    settings.update(schema=GOOGLE_LIVE,candidate_path=str(tmp_path/'preserved-fit'/(candidate['artifact_sha256']+'.native-provisional-candidate-v4.json')),
-        artifact_sha256=candidate['artifact_sha256'],runtime_sha256=candidate['runtime_sha256'])
-    monkeypatch.setattr(live,'current_runtime',lambda **kw:deepcopy(runtime))
     original_collect=backend.collect
     def collect(**kw):
         inputs=original_collect(**kw)
@@ -195,8 +189,7 @@ def test_google_preparer_keeps_owned_receipt_admission(tmp_path,monkeypatch):
 def test_google_native_deployment_seals_source_selection_without_old_secret(tmp_path):
     from test_native_household_deploy import native_fixture,api,write,encode
     args,files,candidate,settings=native_fixture(tmp_path)
-    settings.pop('forecast_dsn_file');settings.update(schema=GOOGLE_LIVE,weather_source=source(Archive(tmp_path/'google').root))
-    candidate=irradiance_package_candidate(args,settings)
+    settings.update(schema=GOOGLE_LIVE,weather_source=source(Archive(tmp_path/'google').root))
     write(args['forecast_config'],encode(settings))
     before=args['service_file'].read_bytes()
     result=api().stage_deployment(**args)
@@ -217,8 +210,7 @@ def test_google_receipt_deployment_keeps_receipt_and_dispatch_pins(tmp_path,monk
     from test_native_serving_selection import fixture
     from test_household_cycle_deploy import write,encode
     deploy,args,settings,helper,libraries=fixture(tmp_path,monkeypatch)
-    settings.pop('forecast_dsn_file');settings.update(schema=GOOGLE_SERVING,weather_source=source(Archive(tmp_path/'google').root))
-    irradiance_package_candidate(args,settings)
+    settings.update(schema=GOOGLE_SERVING,weather_source=source(Archive(tmp_path/'google').root))
     write(args['forecast_config'],encode(settings))
     from hashlib import sha256
     deploy.stage_deployment(**args)
@@ -247,7 +239,7 @@ def test_score_coordinator_preserves_google_and_retained_old_receipt_profiles(tm
 
 
 @pytest.mark.parametrize('google',[True,False])
-def test_fresh_google_release_may_have_new_source_closure_while_incumbent_switch_stays_fixed(tmp_path,google):
+def test_fresh_google_release_has_its_own_source_closure_and_retired_selection_refuses(tmp_path,google):
     from test_native_household_deploy import native_fixture,api,write,encode
     from hashlib import sha256
     args,files,candidate,settings=native_fixture(tmp_path)
@@ -256,12 +248,13 @@ def test_fresh_google_release_may_have_new_source_closure_while_incumbent_switch
     previous['runtime']['source_manifest']['thermal_intel.py']=sha256(b'previous committed runtime').hexdigest()
     write(old_model,encode(previous))
     if google:
-        settings.pop('forecast_dsn_file');settings.update(schema=GOOGLE_LIVE,weather_source=source(Archive(tmp_path/'google').root))
-        candidate=irradiance_package_candidate(args,settings)
+        settings.update(schema=GOOGLE_LIVE,weather_source=source(Archive(tmp_path/'google').root))
         write(args['forecast_config'],encode(settings))
         assert api().stage_deployment(**args)['status']=='deployment_staged'
         record=api().verify_stage(args['stage'])
         assert record['protected_runtime_sources']==candidate['runtime']['base_runtime']['source_manifest']
     else:
-        with pytest.raises(ValueError,match='original fitted base runtime'):api().stage_deployment(**args)
+        settings['schema']='earthship-provisional-thermal-live-config/v2'
+        write(args['forecast_config'],encode(settings))
+        with pytest.raises(ValueError,match='configuration'):api().stage_deployment(**args)
     # This verifies complete source packaging, never real fit qualification or activation.

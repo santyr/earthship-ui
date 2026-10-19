@@ -27,12 +27,13 @@ def fixture(tmp_path,monkeypatch,originals):
     import native_thermal_live as live
     import native_thermal_artifact as artifact
     c,inputs,k=context(tmp_path,monkeypatch,originals)
-    runtime=deepcopy(k['runtime']);runtime['native_source_manifest']['openhab/scripts/native_thermal_live.py']='d'*64
-    runtime['native_code_revision']=artifact.digest(runtime['native_source_manifest'])
-    c=artifact.build_native_candidate(originals={role:Path(ref['path']) for role,ref in c['originals'].items()},runtime=runtime,created_at=c['created_at'])
-    path=tmp_path/(c['artifact_sha256']+'.native-provisional-candidate-v2.json');path.write_bytes(_canonical(c));path.chmod(0o600)
+    from test_google_irradiance_model import fresh_candidate
+    from test_google_native_selection import source
+    from weather_learning.archive import Archive
+    c,runtime,_=fresh_candidate(tmp_path/'preserved-fit',monkeypatch)
+    path=tmp_path/'preserved-fit'/(c['artifact_sha256']+'.native-provisional-candidate-v4.json')
     archive=tmp_path/'archive';archive.mkdir(mode=0o700)
-    settings=dict(schema='earthship-provisional-thermal-live-config/v2',candidate_path=str(path),artifact_sha256=c['artifact_sha256'],
+    settings=dict(schema=live.LIVE_SCHEMA,weather_source=source(Archive(tmp_path/'google').root),candidate_path=str(path),artifact_sha256=c['artifact_sha256'],
         runtime_sha256=c['runtime_sha256'],evidence_directory=str(archive),native_cutover=(ISSUE-timedelta(days=1)).isoformat())
     clock=[ISSUE-timedelta(seconds=30)]
     monkeypatch.setattr(live,'_clock',lambda:clock[0],raising=False);monkeypatch.setattr(live,'sleep',lambda seconds:clock.__setitem__(0,clock[0]+timedelta(seconds=seconds)),raising=False)

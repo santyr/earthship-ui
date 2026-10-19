@@ -40,11 +40,20 @@ def native_fixture(tmp_path):
     write(baseline,encode(old))
     geom=baseline.parent/'native-geometry';geom.mkdir(mode=0o700)
     origins=baseline.parent/'native-origins';origins.mkdir(mode=0o700)
-    settings={**old,'schema':'earthship-provisional-thermal-live-config/v2','candidate_path':str(model),
+    settings={**old,'schema':'earthship-weathernext-thermal-live-config/v1','candidate_path':str(model),
         'artifact_sha256':candidate['artifact_sha256'],'runtime_sha256':candidate['runtime_sha256'],
         'geometry_directory':str(geom),'evidence_directory':str(origins)}
     config=baseline.parent/'native-config.json';write(config,encode(settings))
     args.update(forecast_config=config,service_forecast_config=baseline)
+    from test_google_native_selection import irradiance_package_candidate,source,GOOGLE_LIVE
+    from weather_learning.archive import Archive
+    settings.pop('forecast_dsn_file')
+    settings.update(schema=GOOGLE_LIVE,weather_source=source(Archive(tmp_path/'google').root))
+    # Package-only metadata; numerical qualification uses fresh_candidate.
+    candidate=irradiance_package_candidate(args,settings)
+    for name in set(candidate['runtime']['native_source_manifest'])|{'openhab/scripts/'+p for p in candidate['runtime']['base_runtime']['source_manifest']}:
+        files[name]=(repo/name).read_bytes()
+    write(config,encode(settings))
     return args,files,candidate,settings
 
 
