@@ -63,13 +63,13 @@ Additional API reference: [ImageCollection.getRegion](https://developers.google.
 
 The subsequent [fixed thermal comparison](2026-10-18-weathernext-fixed-thermal-attribution.md) exposed a downstream assumption unrelated to retrieval: the installed current thermal artifact uses a newer irradiance/shade model family than the older checkout fixture. Its separate comparison adapter now delegates family selection to the original executing runtime; actual fixed-model Google forcing replay succeeds without changing production. This does not change the acquisition decision above or qualify thermal skill.
 
-## Current-code revalidation at 2026-10-19T01:49Z
+## Current-source verification
 
 This pass reread the current official Earth Engine guide, both collection band/property catalogues, dissemination schedule, service-account/scopes documentation and `getRegion` reference against the current reader, normalizer, transport and collector. It found no additional retrieval architecture mismatch. The two API corrections above are existing changes, not changes made in this pass.
 
-Fresh verification of acquisition: **56 focused tests passed in 0.287 seconds**, covering configuration, EE parsing/SDK/scopes, normalization, transport, collector, archive and neutral OpenHAB reads. This is the selected acquisition suite, not a claim that all migration or downstream tests passed.
+After rereading the current official documentation, **all 182 WeatherNext package tests passed in 6.302 seconds** in the pinned Earth Engine environment through the shared resource admission runner. This includes the SDK bootstrap, signed OAuth scope, native projection, source-clock, normalization, transport, collector and archive checks. It is not a claim that the entire migration or downstream suite passed.
 
-The unchanged collector then used the existing service-account credential to retain a separate diagnostic **360-hour / 12-band / 4,320-point** snapshot:
+Retained live evidence from the unchanged collector, using the existing service-account credential, is a separate diagnostic **360-hour / 12-band / 4,320-point** snapshot:
 
 - Initialization: `2026-10-18T12:00:00+00:00`.
 - Collection completed: `2026-10-19T01:49:19.187211+00:00` (October 18 locally).
@@ -78,7 +78,7 @@ The unchanged collector then used the existing service-account credential to ret
 - All 360 values were present for each of the 12 selected bands; both grids returned one stable native cell. Returned row clocks matched original metadata and were initialization clocks; forecast targets remained independently derived from `end_time` and lead hour.
 - Live noncommercial registration verified; production writes and automatic actuation were false. Existing collection admission, transfer and deadline limits were preserved.
 
-Original bytes, index and an aggregate contract check are private under the execution directory's `online-contract-recheck-archive`; nothing was written to the installed collector archive, model state or OpenHAB. No personal-account ADC, IAM change, paid fallback, fitting or service activation was used.
+Original bytes, index and an aggregate contract check are private under the execution directory's `online-contract-recheck-archive`; nothing was written to the installed collector archive, model state or OpenHAB. No personal-account ADC, IAM change, paid fallback, fitting or service activation was used. The current parser also reconstructed all 4,320 normalized points exactly from those retained original responses, and the snapshot identity still matches its archive name. Installed `weathernext_ee.py`, `normalize.py` and `worker.py` are byte-for-byte equal to the reviewed branch. A read-only systemd check found the collector timer active and its last service execution successful (exit 0 at 2026-10-18 20:35:37 MDT). This latest verification reused the retained response and made no new cloud request.
 
 **Decision:** retain the corrected native-cell Earth Engine reader. The generic guide's suggested approximate metre scales do not require resampling an explicitly supplied native projection; the `getRegion` API documents that supplying a scale resizes that projection. Keep the exact native cell for reproducible local learning. Likewise, the WeatherNext guide's `system:time_start` description still differs from actual returned rows; preserve the original clock and validate forecast targets independently.
 
