@@ -353,3 +353,49 @@ execution and the scoring-policy context initialize. No old worker file has
 been deleted in this increment. Standalone CLIs/configuration loaders and the
 remaining provider/worker graph still require retirement before final source
 freeze and fresh release fitting. No installed service or model was changed.
+
+### Current receipt builders no longer pin obsolete weather workers — October 19
+
+The dependency check now covers literal file reads as well as imports. Current
+`household_snapshot`, `household_pipeline` and `household_outcomes` builders had
+still hashed `forecast_input_capture.py`, `forecast_temperature_origin.py` and
+`forecast_intel.py` without executing them. Those unused pins are removed. All
+executed local validators remain pinned, and original receipts still require
+every original source key/hash: an old receipt is refused when its old worker
+files are absent from the current manifest, rather than relabelled. This changes
+source identity, not planning or numerical equations, and is not installed in
+the production household runtime. New receipts must use the current closure.
+
+Four real receipt-generation regressions failed before the change; all six
+source-isolation tests pass afterward. The dated `current_source_closure` delta
+in [the existing inventory](2026-10-18-openmeteo-retirement-inventory.json)
+records 451 tracked non-test Python files, zero external imports of the fourteen
+old worker/evidence modules, and the four remaining operator files containing
+literal worker-file references. Those four files are covered by the existing
+unapplied retirement proposal. This static check does not delete old workers
+or substitute for live cutover verification.
+
+The full affected run covered 111 household/native test modules: **1,764 passed
+and ten failed in 744.80 seconds**. All ten failures independently reproduced
+with the three production edits restored to the published baseline. Earlier
+partial verification exposed thirteen additional baseline fixture failures, also
+independently reproduced. Positive packaging fixtures now use the current Google
+profile. Complete-cycle tests use the same genuinely fitted native capture for
+the coordinator and frozen scenario, preserving runtime/model/source admission.
+The score-pressure fixture now constructs the actual monitor instead of mocking
+it before construction. All corrected modules plus the coordinator integration
+passed **76 tests in 61.83 seconds**. Counts overlap; no fresh single-run full
+repository pass is claimed. The focused receipt CI workflow covers the three
+builders, helper and affected cycle tests omitted by the old path filter.
+
+The long development run filled its initial 1 GiB leaf cap. A further 1 GiB was
+admitted under the existing shared lock and full sibling commitments, with
+8,489,738,240 bytes available, the unchanged 3 GiB host reserve and 6 GiB pool
+ceiling. Only that development scope changed; zero swap and production safeguards
+were preserved. Its process terminated normally after reporting test results.
+
+The eight operator tools, fourteen worker/evidence modules and their remaining
+test/template graph still need authorized retirement. The reviewed 47-path
+operator proposal remains unapplied with unchanged preimages and patch identity.
+Final source freeze, fresh release fitting, qualification and attended provider
+cutover remain unfinished.

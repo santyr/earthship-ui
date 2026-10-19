@@ -25,8 +25,9 @@ pinned separately at `8be69ea`. The live producer/UI use a fresh Google-only
 cohort with **zero training pairs**. All three Items matched the installed
 manual READY generation and source snapshot, and real tablet/laptop browser
 checks passed without equipment requests. The old v1 one-pair candidate remains
-separate and unused. No new fitting, qualified skill, natural v2 trigger or
-production cutover is claimed. Main production still uses the incumbent pending
+separate and unused. The first natural v2 trigger at 09:40:25 UTC is now verified against its retained
+issue, all three Item states and preceding collector snapshot. No new fitting,
+qualified skill, completed prospective day or production cutover is claimed. Main production still uses the incumbent pending
 the release gates below.
 
 ## Qualified household evidence

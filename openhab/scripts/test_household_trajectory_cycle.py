@@ -6,10 +6,9 @@ import pytest
 
 @pytest.mark.parametrize('failure',[False,True])
 def test_new_shadow_domain_retains_an_original_or_isolates_failure_without_changing_v6_and_v1(tmp_path,monkeypatch,originals,failure):
-    from test_household_energy_forecast import fixture
-    from test_household_cycle_coordinator import setup
+    from native_cycle_test_support import energy_cycle
     import household_trajectory_plan as shadow
-    _,source,plan=fixture(tmp_path,monkeypatch,originals);cycle,args,_=setup(tmp_path,monkeypatch)
+    cycle,args,_,source,plan=energy_cycle(tmp_path,monkeypatch,originals)
     args['clock']=lambda:source['now'];args['collection']['originals']=dict(schema='earthship-household-cycle-sources/v8',load_topology_source=source['topology_source'],
         pv_system_source=source['system_source'],solar_horizon_source=source['horizon_source'],ac_load_source=None)
     monkeypatch.setattr(cycle,'derive_cycle',lambda **kw:plan)

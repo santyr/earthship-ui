@@ -28,7 +28,7 @@ def original_plan_runtime(plan,*,actual):
     required={'openhab/scripts/'+name for name in VALIDATORS}
     required.update('openhab/scripts/household/'+name+'.py' for name in PLAN_MODULES)
     required.update('openhab/scripts/'+name for name in ('household_snapshot.py','household_capture.py',
-        'household_plan.py','household_pipeline.py','forecast_intel.py','hourly_temperature_runtime.py'))
+        'household_plan.py','household_pipeline.py','hourly_temperature_runtime.py'))
     required.update(('companion/earthship_energy/db.py','companion/earthship_energy/bms_evidence.py',
         'openhab/managed-resources.json','openhab/file-config/ownership.json'))
     if plan.get('schema') in ('earthship-household-model-plan-receipt/v2','earthship-household-shadow-plan-receipt/v2','earthship-household-model-plan-receipt/v3','earthship-household-shadow-plan-receipt/v3','earthship-household-model-plan-receipt/v4','earthship-household-shadow-plan-receipt/v4','earthship-household-model-plan-receipt/v5','earthship-household-shadow-plan-receipt/v5','earthship-household-model-plan-receipt/v6'):

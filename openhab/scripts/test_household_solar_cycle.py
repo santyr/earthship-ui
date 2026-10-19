@@ -7,9 +7,8 @@ from test_household_native_weather import originals
 
 @pytest.mark.parametrize('blocked_public_target',[False,True])
 def test_scheduled_cycle_materializes_curated_solar_view_after_retaining_originals(tmp_path,monkeypatch,originals,blocked_public_target):
-    from test_household_energy_forecast import fixture
-    from test_household_cycle_coordinator import setup
-    _,source,plan=fixture(tmp_path,monkeypatch,originals);cycle,args,calls=setup(tmp_path,monkeypatch)
+    from native_cycle_test_support import energy_cycle
+    cycle,args,calls,source,plan=energy_cycle(tmp_path,monkeypatch,originals)
     args['clock']=lambda:source['now'];args['collection']['originals']=dict(schema='earthship-household-cycle-sources/v7',
         load_topology_source=source['topology_source'],pv_system_source=source['system_source'],solar_horizon_source=source['horizon_source'])
     monkeypatch.setattr(cycle,'derive_cycle',lambda **kw:plan)

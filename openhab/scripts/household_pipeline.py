@@ -23,7 +23,7 @@ MEASURED_VALIDATORS=('weather_radiation_reader.py','weather_radiation_evidence.p
 
 def pipeline_runtime_manifest(*,expanded=False,configured=False,measured=False):
     result=runtime_manifest();root=Path(__file__).resolve().parent
-    for name in ('household_plan.py','household_pipeline.py','forecast_intel.py'):
+    for name in ('household_plan.py','household_pipeline.py'):
         result['openhab/scripts/'+name]=sha256(_read(root/name,262144)).hexdigest()
     if expanded:
         from earthship_energy import ac_evidence,power_evidence,power_intervals

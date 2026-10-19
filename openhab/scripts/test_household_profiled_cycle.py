@@ -36,10 +36,9 @@ def test_new_load_original_does_not_change_existing_plan_or_v1_projections(tmp_p
 
 @pytest.mark.parametrize('optional_failure',[False,True])
 def test_cycle_keeps_original_energy_and_observation_while_retaining_separate_load_receipt(tmp_path,monkeypatch,originals,optional_failure):
-    from test_household_energy_forecast import fixture
-    from test_household_cycle_coordinator import setup
+    from native_cycle_test_support import energy_cycle
     import household_profiled_forecast as profiled
-    _,source,plan=fixture(tmp_path,monkeypatch,originals);cycle,args,_=setup(tmp_path,monkeypatch)
+    cycle,args,_,source,plan=energy_cycle(tmp_path,monkeypatch,originals)
     args['clock']=lambda:source['now'];args['collection']['originals']=dict(schema='earthship-household-cycle-sources/v8',load_topology_source=source['topology_source'],
         pv_system_source=source['system_source'],solar_horizon_source=source['horizon_source'],ac_load_source=None)
     monkeypatch.setattr(cycle,'derive_cycle',lambda **kw:plan)
@@ -59,9 +58,8 @@ def test_cycle_keeps_original_energy_and_observation_while_retaining_separate_lo
 
 
 def test_profile_observation_uses_its_separate_owned_cache(tmp_path,monkeypatch,originals):
-    from test_household_energy_forecast import fixture
-    from test_household_cycle_coordinator import setup
-    _,source,plan=fixture(tmp_path,monkeypatch,originals);cycle,args,_=setup(tmp_path,monkeypatch)
+    from native_cycle_test_support import energy_cycle
+    cycle,args,_,source,plan=energy_cycle(tmp_path,monkeypatch,originals)
     args['clock']=lambda:source['now'];args['collection']['originals']=dict(schema='earthship-household-cycle-sources/v8',load_topology_source=source['topology_source'],
         pv_system_source=source['system_source'],solar_horizon_source=source['horizon_source'],ac_load_source=None)
     monkeypatch.setattr(cycle,'derive_cycle',lambda **kw:plan)

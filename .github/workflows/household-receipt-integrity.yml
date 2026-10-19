@@ -1,0 +1,61 @@
+name: Household receipt integrity
+
+on:
+  pull_request:
+    paths:
+      - 'openhab/scripts/household_snapshot.py'
+      - 'openhab/scripts/household_pipeline.py'
+      - 'openhab/scripts/household_outcomes.py'
+      - 'openhab/scripts/native_cycle_test_support.py'
+      - 'openhab/scripts/test_google_local_source_isolation.py'
+      - 'openhab/scripts/test_household_*cycle*.py'
+      - 'openhab/scripts/test_household_energy_forecast.py'
+      - 'openhab/scripts/test_household_forecast_score.py'
+      - 'openhab/scripts/test_household_score_pressure.py'
+      - '.github/workflows/household-receipt-integrity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  receipt-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      OPENBLAS_NUM_THREADS: 1
+      OMP_NUM_THREADS: 1
+      MKL_NUM_THREADS: 1
+      NUMEXPR_NUM_THREADS: 1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-test.txt
+      - run: python -m pip install -r requirements-test.txt
+      - name: Fetch pinned Solar_PV analytics dependency
+        uses: actions/checkout@v4
+        with:
+          repository: santyr/Solar_PV
+          ref: 24d2e8984810cb596fe9792768510a356786f709
+          path: .ci/solar-pv
+          persist-credentials: false
+      - name: Current receipts and source-bound cycle regressions
+        env:
+          PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src
+        run: |
+          python -m pytest -q \
+            openhab/scripts/test_google_local_source_isolation.py \
+            openhab/scripts/test_household_cycle_upgrade.py \
+            openhab/scripts/test_household_energy_forecast.py \
+            openhab/scripts/test_household_energy_forecast_cycle.py \
+            openhab/scripts/test_household_power_flow_cycle.py \
+            openhab/scripts/test_household_profiled_cycle.py \
+            openhab/scripts/test_household_score_pressure.py \
+            openhab/scripts/test_household_solar_cycle.py \
+            openhab/scripts/test_household_trajectory_cycle.py \
+            openhab/scripts/test_household_forecast_score.py

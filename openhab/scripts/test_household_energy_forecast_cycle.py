@@ -49,11 +49,9 @@ def test_new_sources_leave_original_plan_and_battery_baseline_identical(tmp_path
 
 
 def test_complete_cycle_retains_original_plan_flows_and_exact_replayable_PV_receipt(tmp_path,monkeypatch,originals):
-    from test_household_energy_forecast import fixture
-    from test_household_cycle_coordinator import setup
+    from native_cycle_test_support import energy_cycle
     import household_energy_forecast as forecast
-    _,original_args,plan=fixture(tmp_path,monkeypatch,originals)
-    cycle,args,_=setup(tmp_path,monkeypatch)
+    cycle,args,_,original_args,plan=energy_cycle(tmp_path,monkeypatch,originals)
     args['clock']=lambda:original_args['now']
     args['collection']['originals']=dict(schema='earthship-household-cycle-sources/v7',load_topology_source=original_args['topology_source'],
         pv_system_source=original_args['system_source'],solar_horizon_source=original_args['horizon_source'])
@@ -70,7 +68,7 @@ def test_complete_cycle_retains_original_plan_flows_and_exact_replayable_PV_rece
 
 @pytest.mark.parametrize('name',['household-pv-system.json','household-solar-horizon.json'])
 def test_committed_packaging_binds_array_and_map_configuration(tmp_path,name):
-    from test_household_cycle_deploy import fixture,api,write
+    from test_household_cycle_deploy import active_fixture as fixture,api,write
     args,_=fixture(tmp_path);repo=args['repo_root'];source=repo/'openhab'/name
     write(source,b'{"original":"provisional configuration"}',0o644)
     subprocess.run(['git','-C',str(repo),'add',str(source)],check=True,capture_output=True)

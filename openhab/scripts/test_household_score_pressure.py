@@ -50,7 +50,7 @@ def native_runtime(tmp_path,monkeypatch):
     import native_thermal_live
     import native_inference_pressure
     from test_household_forecast_score import runtime_setup
-    config,now=runtime_setup(tmp_path,monkeypatch)
+    config,now=runtime_setup(tmp_path,monkeypatch,mock_native_pressure=False)
     settings=json.loads(config.read_text());settings['schema']=native_thermal_live.LIVE_SCHEMA
     config.write_text(json.dumps(settings))
     monkeypatch.setattr(native_thermal_live,'load_settings',lambda path:settings)

@@ -1,6 +1,6 @@
 """Owned observer upgrades preserve originals and never restart services."""
 import pytest
-from test_household_cycle_deploy import api,fixture
+from test_household_cycle_deploy import api,active_fixture as fixture
 
 
 def upgrade_fixture(tmp_path,monkeypatch):

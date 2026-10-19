@@ -49,10 +49,18 @@ errors and no mutating REST requests. The UI service did not restart.
 records source/invocation/generation identity and test results. Raw weather
 responses, screenshots and operational preimages remain private.
 
-Manual qualification is not a natural timer trigger or a prospective shadow
-day. The first natural v2 trigger remains unverified as of this record. The
-approved reliability, training/holdout, variable/regime and model-promotion
-intervals are still incomplete. The broader source retirement status is in
+The first **natural v2 trigger is verified**: timer **09:40:25.398458 UTC**,
+service start **09:40:25.417148**, successful exit **09:40:26.508830**, invocation
+`17464742b2be4110b33a807a9e4037d6`. All three Items exactly match the retained v2
+issue and source snapshot
+`aa8c44c6e21711aba43be3b501efe685206861b8cfefe3517e3492c1f7665e81`,
+which completed during the preceding natural collector invocation at
+**09:36:04 UTC** with all **4,320 values** present. The new issue contains 337
+hours and remains UNTRAINED with zero pairs. Raw systemd timestamps prove the
+18,690-microsecond start-after-trigger ordering; no manual restart established
+this natural run. This is one scheduled cycle, not a completed prospective day.
+The approved reliability, training/holdout, variable/regime and model-promotion
+intervals remain incomplete. The broader source retirement status is in
 [the removal contract](openmeteo-retirement.md).
 
 ## Collector source maintenance

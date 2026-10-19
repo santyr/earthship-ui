@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT/'openhab/scripts'
 VALIDATORS = ('pv_day_evidence.py','weather_temperature_sources.py','weather_temperature_reader.py',
               'weather_temperature_evidence.py','weather_temperature_config.py','weather_temperature_history.py',
-              'forecast_input_capture.py','forecast_temperature_origin.py','thermal_model/temperature_history.py',
+              'thermal_model/temperature_history.py',
               'thermal_model/schema.py')
 
 
