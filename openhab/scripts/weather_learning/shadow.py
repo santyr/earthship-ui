@@ -38,7 +38,7 @@ class ShadowStore:
         self.root=pathlib.Path(root)
         if not self.root.is_absolute():raise ValueError('absolute private shadow state path required')
         _directory(self.root)
-        for name in ('models','issues'):_directory(self.root/name)
+        for name in ('models','issues','weather-outcomes'):_directory(self.root/name)
         self.db=self.root/'issues.sqlite3'
         with self._connect() as db:db.execute('CREATE TABLE IF NOT EXISTS issues (digest TEXT PRIMARY KEY, issued TEXT, completed TEXT, local_day TEXT, epoch TEXT)')
         os.chmod(self.db,0o600)
@@ -54,7 +54,7 @@ class ShadowStore:
         raw=canonical(value)
         if len(raw)>16*1024**2 or shutil.disk_usage(self.root).free<len(raw)+32*1024**2:raise ValueError('shadow disk headroom exhausted')
         count=used=0
-        for directory in ('issues','models'):
+        for directory in ('issues','models','weather-outcomes'):
             for item in (self.root/directory).glob('*.json'):
                 count+=1;used+=item.stat().st_size
                 if count>=10000 or used+len(raw)>2*1024**3:raise ValueError('shadow state capacity exhausted')

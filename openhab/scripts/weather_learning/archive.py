@@ -80,6 +80,25 @@ class Archive:
         value=validate_snapshot(json.loads(raw))
         return value|{'snapshot_sha256':name}
 
+    def completed_run(self,initialized_at,*,horizon,required,as_of):
+        """Reuse one complete original run without renewing its availability."""
+        initialized=instant(initialized_at);as_of=as_of.astimezone(timezone.utc)
+        if type(horizon) is not int or not 1<=horizon<=360 or not required:
+            raise ValueError('bounded complete native run required')
+        if getattr(self,'missing',False):return None
+        with self._connect() as db:
+            rows=db.execute('SELECT digest FROM snapshots WHERE historical=0 AND initialized=? AND completed<=? ORDER BY completed,digest LIMIT 256',
+                (initialized.isoformat(),as_of.isoformat())).fetchall()
+        for (name,) in rows:
+            value=self.read(name)
+            if instant(value['initialized_at'])!=initialized or instant(value['ingestion_completed_at'])>as_of:
+                raise ValueError('original run availability differs from index')
+            index={(p['variable'],p['statistic'],instant(p['valid_at'])):p['value'] for p in value['points']}
+            if all(index.get((variable,statistic,initialized+timedelta(hours=hour))) is not None
+                    for variable,statistic in required for hour in range(1,horizon+1)):
+                return value
+        return None
+
     def eligible_snapshot(self,decision_at,target_end,*,required_variables=None,max_age=timedelta(hours=24)):
         if any(not isinstance(x,datetime) or x.utcoffset() is None for x in (decision_at,target_end)):
             raise ValueError('aware serving clocks required')

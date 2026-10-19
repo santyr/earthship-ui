@@ -2,8 +2,8 @@
 Description=Earthship WeatherNext hourly shadow inference
 
 [Timer]
-OnCalendar=*-*-* *:40:00
-RandomizedDelaySec=60
+OnCalendar=*-*-* *:44:00
+RandomizedDelaySec=30
 Persistent=true
 Unit=local-forecast-shadow.service
 

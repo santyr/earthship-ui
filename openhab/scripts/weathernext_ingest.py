@@ -24,7 +24,7 @@ def main(argv=None):
         policy=AccessPolicy(backend='earthengine',noncommercial_verified=True)
         reader=EarthEngineReader(policy=policy,site=site,credential_path=args.credential)
         archive=Archive(pathlib.Path(args.archive))
-        result=collect_once(reader,archive,probe=not args.collect,horizon=args.hours)
+        result=collect_once(reader,archive,probe=not args.collect,horizon=args.hours,include_interim=args.collect and args.hours==360)
         result.update(bytes_received=reader.transport.bytes_received,requests=reader.transport.requests,
             noncommercial_verified=reader.transport.noncommercial_verified,peak_rss_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
         print(json.dumps(result,allow_nan=False));return 0

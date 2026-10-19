@@ -1,9 +1,9 @@
 [Unit]
-Description=Earthship WeatherNext prospective shadow capture
+Description=Earthship WeatherNext Google full-range and hourly interim capture
 
 [Timer]
-OnCalendar=*-*-* *:35:00
-RandomizedDelaySec=120
+OnCalendar=*-*-* *:41:00
+RandomizedDelaySec=30
 Persistent=true
 Unit=weathernext-ingest.service
 

@@ -3,7 +3,7 @@ Description=Earthship reviewed WeatherNext publication cadence
 
 [Timer]
 OnBootSec=5min
-OnUnitActiveSec=2h
+OnCalendar=*-*-* *:47:00
 Unit=weathernext-publish.service
 
 [Install]
