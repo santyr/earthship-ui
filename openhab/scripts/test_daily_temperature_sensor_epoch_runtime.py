@@ -1,11 +1,10 @@
-"""Native daily migration preserves complete coverage and existing learning."""
-from copy import deepcopy
+"""Native daily receipt coverage, hardware identity and DST boundaries."""
 from datetime import timedelta
 from types import SimpleNamespace
 import json
 import pytest
 import daily_temperature_runtime as runtime
-from test_daily_temperature_runtime import START,END,ASSESSED,REQUEST,ENV,payload,scoring_fixture,fi
+from test_daily_temperature_runtime import START,END,ASSESSED,REQUEST,ENV,payload
 from test_hourly_temperature_sensor_epoch_runtime import private_policy
 from test_temperature_sensor_epoch_windows import PHASE,POLICY,Connection
 from weather_temperature_receiver import TemperatureCollector
@@ -61,29 +60,8 @@ def test_daily_native_bad_child_never_becomes_learning_actuals(tmp_path,monkeypa
     assert runtime.read_daily_actuals(START,END,ASSESSED,native_env(tmp_path))==(None,None,None)
 
 
-def test_daily_native_selection_without_optin_never_uses_numeric_fallback(monkeypatch):
-    monkeypatch.delenv('DAILY_TEMP_QUALIFIED_ENABLE',raising=False)
-    monkeypatch.setenv('DAILY_TEMP_RECEIPT_VERSION','2')
-    monkeypatch.setattr(fi,'measured_day_weather',lambda _:pytest.fail('numeric temperature fallback'))
-    monkeypatch.setattr(fi,'series',lambda *_:[])
-    assert fi.measured_day_weather_with_evidence(START.date())==(None,None,None,None)
 
 
-def test_daily_native_evidence_keeps_existing_daily_and_day3_math(monkeypatch):
-    legacy,_,_=scoring_fixture(monkeypatch)
-    with pytest.raises(RuntimeError,match='after-scoring'):fi.main()
-    expected={key:deepcopy(legacy[key]) for key in ('kalman','temp_hi_errors','temp_lo_errors','day3_hi_errors')}
-    state,_,_=scoring_fixture(monkeypatch)
-    old=fi.measured_day_weather_with_evidence
-    def actuals(day):
-        rain,high,low,evidence=old(day);evidence.update(version=2,sensor_epoch=PHASE)
-        evidence['request'].update(receipt_version=2,sensor_epoch=PHASE)
-        evidence['summary'].update(receiptVersion=2,sensorEpoch=PHASE)
-        return rain,high,low,evidence
-    monkeypatch.setattr(fi,'measured_day_weather_with_evidence',actuals)
-    with pytest.raises(RuntimeError,match='after-scoring'):fi.main()
-    assert {key:state[key] for key in expected}==expected
-    assert all(row['evidence']['summary']['sensorEpoch']==PHASE for row in state['daily_temperature_evidence'])
 
 
 def test_daily_native_phase_change_refuses_before_database(tmp_path,monkeypatch):

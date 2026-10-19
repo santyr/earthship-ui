@@ -14329,5 +14329,161 @@
         "installed_state_changed": false
       }
     }
+  },
+  "approved_source_retirement": {
+    "applied_at": "2026-10-19T12:50:39.503715+00:00",
+    "actual_base_revision": "4cb8a28e22f69b3e301ad7e5785b3c0d48a4f84a",
+    "reviewed_proposal_base": "6ba1cfcf41d631d07dd769810703cc9fffd803c4",
+    "patch_sha256": "9dc8395861ee7284efcfc19f7890c133a182a968d30f6b6990120a2e54177cdb",
+    "patch_bytes": 659083,
+    "paths": 84,
+    "removals": 74,
+    "modifications": 10,
+    "exact_reviewed_postimages_verified": true,
+    "owner_approval": "84 path retirement proposal approved.",
+    "source_only": true,
+    "installed_state_changed": false,
+    "tests_status": "SCOPED_PASS_FULL_REPOSITORY_CI_PENDING",
+    "validation": {
+      "status": "SCOPED_PASS_FULL_REPOSITORY_CI_PENDING",
+      "focused_tests": 285,
+      "focused_seconds": 3.62,
+      "frontend_files": 168,
+      "frontend_tests": 2551,
+      "frontend_seconds": 46.49,
+      "frontend_build_seconds": 1.487,
+      "archive_helper_asts_preserved": 33,
+      "source_closure": {
+        "observed_at": "2026-10-19T12:59:55.147490+00:00",
+        "production_python_files_scanned": 461,
+        "retired_modules": [
+          "forecast_backfill",
+          "forecast_input_capture",
+          "forecast_intel",
+          "forecast_ml_evidence",
+          "forecast_pre_dusk",
+          "forecast_temperature_batch",
+          "forecast_temperature_collect",
+          "forecast_temperature_collection",
+          "forecast_temperature_origin",
+          "forecast_temperature_reads",
+          "forecast_temperature_score",
+          "qualified_soc_forecast",
+          "thermal_legacy_observe",
+          "thermal_legacy_origin"
+        ],
+        "imports": [],
+        "exact_module_file_literals": [],
+        "source_only": true,
+        "installed_state_changed": false
+      },
+      "full_python": {
+        "local_openhab": {
+          "status": "PARTIAL_STOPPED_AFTER_REPRODUCED_FAILURES",
+          "completed_markers": 3000,
+          "passed_markers": 2996,
+          "failed_markers": 3,
+          "skipped_markers": 1,
+          "full_pass_claim": false,
+          "reason": "Stopped failed local duplicate after independently reproducing three failures; existing full CI runs after publication."
+        },
+        "corrected_boundaries": {
+          "passed": 196,
+          "skipped": 0,
+          "seconds": 4.63,
+          "umask": "077",
+          "production_code_changed": false
+        },
+        "operational_tools": {
+          "passed": 1396,
+          "skipped": 3,
+          "seconds": 125.47,
+          "skip_reason": "Explicit opt-in isolated user-systemd retry qualification not enabled."
+        },
+        "full_repository_ci": "PENDING_FOR_PUBLISHED_HEAD",
+        "counts_overlap": true
+      },
+      "completion": {
+        "passed": 603,
+        "skipped": 42,
+        "seconds": 155.66
+      },
+      "pinned_weathernext": {
+        "passed": 216,
+        "seconds": 8.591
+      },
+      "source_review": {
+        "status": "COMPLETE",
+        "result": "No confirmed Critical or Important source findings",
+        "scope": "Committed migration through 4cb8a28 plus immutable staged retirement patch",
+        "patch_sha256": "76cf935cac91b0d7bc63e14a166accde0af9164782f1e035e65bd163089ee6c6",
+        "limitations": "Read-only source review; no service, cloud, fitting or test execution; not production qualification",
+        "subsequent_changes": "Three test-only corrections and final records; reviewed runtime/deployment code unchanged."
+      },
+      "final_source_snapshot": "69b4040f82c452efb5aff95588baaf1b8b844673",
+      "final_scope_check": {
+        "verified_at": "2026-10-19T13:28:16.028473+00:00",
+        "approved_paths": 84,
+        "removed": 74,
+        "exact_reviewed_modified_postimages": 7,
+        "documented_workflow_whitespace_followups": [
+          ".github/workflows/forecast-ml-hardening.yml",
+          "openhab/scripts/test_advisory_capture.py",
+          "openhab/scripts/test_hourly_temperature_sensor_epoch_runtime.py"
+        ],
+        "archive_helper_asts_preserved": 33,
+        "installed_state_changed": false
+      }
+    },
+    "followup_changes": [
+      {
+        "path": ".github/workflows/forecast-ml-hardening.yml",
+        "reason": "remove blank lines that broke one pytest shell continuation"
+      },
+      {
+        "path": "openhab/scripts/test_advisory_capture.py",
+        "reason": "normalize EOF whitespace"
+      },
+      {
+        "path": "openhab/scripts/test_hourly_temperature_sensor_epoch_runtime.py",
+        "reason": "normalize EOF whitespace"
+      },
+      {
+        "path": "scripts/test_forecast_ml_workflow.py",
+        "reason": "regression executes actual workflow shell block safely"
+      },
+      {
+        "path": "tests/deployment-service.test.js",
+        "reason": "remove only three tests for approved retired service templates"
+      },
+      {
+        "path": "openhab/scripts/test_daily_temperature_sensor_epoch_runtime.py",
+        "reason": "remove two integration cases for deleted old forecast workers; preserve eleven native sensor-epoch cases"
+      },
+      {
+        "path": "openhab/scripts/test_google_local_source_isolation.py",
+        "reason": "cold-import retained native temperature test modules while retired workers are blocked"
+      },
+      {
+        "path": "scripts/test_thermal_memory_preflight.py",
+        "reason": "remove eight tests exclusive to approved retired service-template AWK preflight"
+      },
+      {
+        "path": "scripts/test_thermal_shadow_retry.py",
+        "reason": "remove two old template assertions; preserve three opt-in isolated generic systemd cases"
+      },
+      {
+        "path": "openhab/scripts/test_household_models.py",
+        "reason": "remove obsolete AST assertion that reads the retired forecast worker; preserve pure energy parity and all other function ASTs"
+      },
+      {
+        "path": "openhab/scripts/test_household_pipeline.py",
+        "reason": "remove obsolete AST assertion for the retired forecast worker; preserve retained-input and pipeline tests"
+      },
+      {
+        "path": "openhab/scripts/test_installed_score_global_lock.py",
+        "reason": "set the intended public refusal fixture mode explicitly under restrictive umask; preserve production lock guards"
+      }
+    ]
   }
 }

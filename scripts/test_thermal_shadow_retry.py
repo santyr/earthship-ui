@@ -1,10 +1,8 @@
-"""Capped shadow-only retry policy and opt-in real user-systemd rehearsal.
+"""Opt-in generic user-systemd retry fixture; no household worker execution.
 
-The fixture worker has no network, credential, OpenHAB, DM or control callback.
-Production values are retained in the static checks; runtime fixtures scale
-only the clock intervals and replace the entire worker with a counter.
+The fixture uses an isolated counter with no network, credential, OpenHAB, DM
+or control callback. Retired provider unit-template assertions are removed.
 """
-import configparser
 import os
 from pathlib import Path
 import subprocess
@@ -14,28 +12,10 @@ import uuid
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[1]
-DROP = ROOT / 'deploy/thermal-model-shadow.service.d/bounded-retry.conf'
 
 
-def test_retry_policy_contains_no_worker_environment_or_timer_override():
-    policy = configparser.ConfigParser()
-    policy.read(DROP)
-    assert dict(policy['Unit']) == {'startlimitintervalsec': '90min', 'startlimitburst': '2'}
-    assert dict(policy['Service']) == {'restart': 'on-failure', 'restartsec': '15min'}
-    assert policy.sections() == ['Unit', 'Service']
 
 
-def test_original_worker_remains_shadow_only_and_normal_timer_slower_than_budget():
-    policy = configparser.ConfigParser()
-    policy.read(ROOT / 'deploy/thermal-model-shadow.service')
-    assert policy['Service']['ExecStart'] == (
-        '/usr/bin/python3 /home/sat/openhab/scripts/thermal_intel.py shadow --publish')
-    assert policy['Service']['Type'] == 'oneshot'
-    assert policy['Service']['TimeoutStartSec'] == '180'
-    timer = configparser.ConfigParser()
-    timer.read(ROOT / 'deploy/thermal-model-shadow.timer')
-    assert timer['Timer']['OnUnitActiveSec'] == '2h'
 
 
 def command(*arguments):

@@ -99,6 +99,9 @@ for name in ('battery_outcomes','capture','cycle_sources','energy_forecast_cycle
              'resources','snapshot','solar_outcomes'):
     importlib.import_module('test_household_'+name)
 importlib.import_module('test_sunset_soc_profile')
+for name in ('test_daily_temperature_runtime','test_daily_temperature_sensor_epoch_runtime',
+             'test_hourly_temperature_runtime','test_hourly_temperature_sensor_epoch_runtime'):
+    importlib.import_module(name)
 """
     env=dict(os.environ,PYTHONPATH=str(source)+os.pathsep+os.environ.get('PYTHONPATH',''))
     result=subprocess.run([sys.executable,'-c',code],env=env,

@@ -31,6 +31,7 @@ def test_held_global_lock_blocks_second_reader_and_detects_replacement(tmp_path)
 
 def test_public_or_hardlinked_lock_refused(tmp_path):
     tmp_path.chmod(0o700);path=tmp_path/'lock';path.touch(mode=0o644)
+    path.chmod(0o644)  # The refusal fixture must remain public under umask 077.
     with pytest.raises(ValueError):
         with guard(path):pytest.fail('public lock accepted')
     path.chmod(0o600);os.link(path,tmp_path/'alias')

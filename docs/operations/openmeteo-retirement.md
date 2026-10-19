@@ -1,5 +1,7 @@
 # Open-Meteo retirement and fresh weather learning
 
+Current source status: the operator approved the exact 84-path proposal on October 19; it is now applied to branch source, with preserved shared archive functions and scoped verification passed; full repository CI for the published head is pending. [Application evidence](2026-10-19-provider-source-retirement.json). Installed provider/binding/state retirement remains part of the later coordinated cutover. Earlier sections below retain their historical audit status.
+
 Operator decision: 2026-10-18. This is the binding cutover requirement, not a claim that removal has already been deployed. The operator confirmed **Google forecasts + local measurements**.
 
 ## New-model data boundary
@@ -394,8 +396,8 @@ admitted under the existing shared lock and full sibling commitments, with
 ceiling. Only that development scope changed; zero swap and production safeguards
 were preserved. Its process terminated normally after reporting test results.
 
-The eight operator tools, fourteen worker/evidence modules and their remaining
-test/template graph still need authorized retirement. The [complete 84-path proposal](2026-10-19-provider-operator-retirement-review.md) now supersedes the narrower 47-path operator request. Its exact patch and preimage/postimage manifest are prepared; source and installed removals remain unapplied pending the owner decision. Shared archive/prepare functions are preserved.
+At that earlier audit, the eight operator tools, fourteen worker/evidence modules
+and their remaining test/template graph still needed authorized retirement. The [complete 84-path proposal](2026-10-19-provider-operator-retirement-review.md) now supersedes the narrower 47-path operator request. Its exact patch and preimage/postimage manifest were reviewed and subsequently approved. Source removal is now applied; installed removal remains a coordinated cutover requirement. Shared archive/prepare functions are preserved.
 Final source freeze, fresh release fitting, qualification and attended provider
 cutover remain unfinished.
 
@@ -406,7 +408,7 @@ synthetic local battery packet constructors and fixed clocks. These constructors
 now live in `local_measurement_test_support.py`; both complete function ASTs,
 packet field order, defaults, epochs, timestamps and validity behavior match
 the originals. No forecast, learner, seed state or fitted coefficient was moved.
-The old worker files remain untouched pending the removal decision.
+At that fixture-porting stage the old worker files were untouched; the subsequent explicit approval and application retire them from branch source.
 
 A cold-import regression failed through the old forecast test dependency before
 extraction and passes while the retired worker/test modules are blocked. The
@@ -433,8 +435,8 @@ complete acquisition-retirement module passed eight tests. The preserved origin/
 persistence, pure solar comparison, generic archive and provider-isolation scope
 passed 71 tests in 2.39 seconds. No shared mathematical or archive implementation
 was removed, and no installed service, credential, database or model was changed.
-The separate 84-path recovery/operator/worker proposal remains unapplied with
-all preimages unchanged. Its owner question and exact scope are unchanged.
+At that offline-tool audit the separate 84-path proposal was still unapplied.
+Its subsequent explicit approval/application is recorded above; installed services remain unchanged.
 
 The [canonical inventory](2026-10-18-openmeteo-retirement-inventory.json) records
 these six Git preimages and validation. The full surviving operational-tool test

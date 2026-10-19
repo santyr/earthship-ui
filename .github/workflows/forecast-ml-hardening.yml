@@ -3,36 +3,11 @@ name: Forecast ML hardening
 on:
   pull_request:
     paths:
-      - 'openhab/scripts/forecast_intel.py'
-      - 'openhab/scripts/forecast_ml_evidence.py'
-      - 'openhab/scripts/forecast_temperature_origin.py'
-      - 'openhab/scripts/forecast_temperature_score.py'
-      - 'openhab/scripts/forecast_temperature_collection.py'
-      - 'openhab/scripts/forecast_temperature_reads.py'
-      - 'openhab/scripts/forecast_temperature_collect.py'
-      - 'openhab/scripts/forecast_temperature_batch.py'
-      - 'openhab/scripts/test_forecast_temperature_batch.py'
-      - 'openhab/systemd/user/forecast-temperature-score.*'
-      - 'openhab/systemd/user/thermal-model-shadow.service.d/zzzz-legacy-origin-observer.conf'
-      - 'openhab/scripts/test_forecast_temperature_collect.py'
-      - 'openhab/scripts/test_forecast_temperature_reads.py'
-      - 'openhab/scripts/test_forecast_temperature_collection.py'
-      - 'openhab/scripts/test_forecast_temperature_score.py'
-      - 'openhab/scripts/test_forecast_temperature_report.py'
-      - 'openhab/scripts/test_forecast_temperature_origin.py'
-      - 'openhab/scripts/forecast_pre_dusk.py'
-      - 'openhab/scripts/qualified_soc_forecast.py'
       - 'openhab/scripts/thermal_intel.py'
       - 'openhab/scripts/thermal_temperature_runtime.py'
       - 'openhab/scripts/weather_temperature_sources.py'
       - 'openhab/scripts/test_weather_temperature_sources.py'
-      - 'openhab/scripts/thermal_legacy_origin.py'
-      - 'openhab/scripts/thermal_legacy_observe.py'
       - 'openhab/scripts/thermal_model/**'
-      - 'openhab/scripts/test_forecast_ml_*.py'
-      - 'openhab/scripts/test_forecast_pre_dusk.py'
-      - 'openhab/scripts/test_forecast_intel.py'
-      - 'openhab/scripts/test_qualified_soc_forecast.py'
       - 'openhab/scripts/test_thermal_*.py'
       - 'openhab/scripts/test_installed_shade_dynamics.py'
       - 'openhab/scripts/test_installed_shade_inputs.py'
@@ -89,10 +64,8 @@ on:
       - 'openhab/scripts/test_installed_shade_raw_score_sources.py'
       - 'openhab/scripts/test_installed_shade_raw_qualification.py'
       - 'openhab/scripts/test_installed_shade_raw_publication.py'
-      - 'scripts/thermal-replay-bundle.py'
       - 'scripts/qualify-installed-shade.py'
       - 'scripts/test_qualify_installed_shade_cli.py'
-      - 'tests/completion/test_thermal_replay_bundle.py'
       - '.github/workflows/forecast-ml-hardening.yml'
 
 jobs:
@@ -125,18 +98,6 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src
         run: |
           python -m pytest -q \
-            openhab/scripts/test_forecast_ml_evidence.py \
-            openhab/scripts/test_forecast_ml_support.py \
-            openhab/scripts/test_forecast_pre_dusk.py \
-            openhab/scripts/test_forecast_intel.py \
-            openhab/scripts/test_forecast_temperature_origin.py \
-            openhab/scripts/test_forecast_temperature_score.py \
-            openhab/scripts/test_forecast_temperature_report.py \
-            openhab/scripts/test_forecast_temperature_collection.py \
-            openhab/scripts/test_forecast_temperature_reads.py \
-            openhab/scripts/test_forecast_temperature_collect.py \
-            openhab/scripts/test_forecast_temperature_batch.py \
-            openhab/scripts/test_qualified_soc_forecast.py \
             openhab/scripts/test_thermal_identifiability.py \
             openhab/scripts/test_installed_shade_dynamics.py \
             openhab/scripts/test_installed_shade_inputs.py \
@@ -203,8 +164,5 @@ jobs:
             openhab/scripts/test_thermal_vent_default.py \
             openhab/scripts/test_weather_temperature_sources.py \
             openhab/scripts/test_thermal_sensor_epoch_history.py \
-            openhab/scripts/test_thermal_legacy_origin.py \
-            openhab/scripts/test_thermal_legacy_observe.py \
             openhab/scripts/test_thermal_artifacts.py \
             scripts/test_qualify_installed_shade_cli.py \
-            tests/completion/test_thermal_replay_bundle.py

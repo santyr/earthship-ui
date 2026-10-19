@@ -16,13 +16,6 @@ def test_production_energy_parity(case):
     assert energy_api().daily_energy_projection(**case['inputs'])==case['output']
 
 
-def test_production_worker_calls_pure_energy_boundary():
-    import ast
-    tree=ast.parse(Path(__file__).with_name('forecast_intel.py').read_text())
-    main=next(node for node in tree.body if isinstance(node,ast.FunctionDef) and node.name=='main')
-    assert any(isinstance(node,ast.Call) and isinstance(node.func,ast.Name) and node.func.id=='daily_energy_projection' for node in ast.walk(main))
-
-
 def thermal_api():
     assert importlib.util.find_spec('household.thermal_model') is not None,'frozen thermal boundary missing'
     return importlib.import_module('household.thermal_model')

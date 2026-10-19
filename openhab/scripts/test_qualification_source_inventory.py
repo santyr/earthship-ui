@@ -7,14 +7,13 @@ def source(tmp_path,name='source.json',raw=b'{}'):
     tmp_path.chmod(0o700);p=tmp_path/name;p.write_bytes(raw);p.chmod(0o600);return p
 
 
-@pytest.mark.parametrize('reader',['runtime','policy','origin','forecast'])
+@pytest.mark.parametrize('reader',['runtime','policy','origin'])
 def test_every_original_read_seam_is_observed_and_rechecked(tmp_path,reader):
     from thermal_model.replay_budget import capture_source_reads
     from thermal_model.origin_capture import _source_bytes,_private_file
     from thermal_model.policy_registration import _read_private
-    from forecast_input_capture import _read
     p=source(tmp_path)
-    read={'runtime':lambda:_source_bytes(p,maximum=32),'policy':lambda:_read_private(p),'origin':lambda:_private_file(p),'forecast':lambda:_read(p)}[reader]
+    read={'runtime':lambda:_source_bytes(p,maximum=32),'policy':lambda:_read_private(p),'origin':lambda:_private_file(p)}[reader]
     with capture_source_reads() as inventory:read()
     assert inventory.file_count==1
     inventory.verify();p.write_bytes(b'{"changed":true}')
