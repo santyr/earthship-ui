@@ -81,9 +81,18 @@ The inventory helper counts only typed windows supplied by source validators, re
 | `is_day` | Existing native Astro context at the site | Verify timestamps/coverage, no weather-provider approximation |
 | Current AQI, if separately supplied by Open-Meteo | WeatherNext has no qualified AQI replacement in this mapping | Remove Open-Meteo AQI integration at cutover; unsupported display/alerts must become unavailable or be removed |
 
+## Fresh thermal candidate — October 19
+
+The fresh native irradiance/shade candidate now uses qualified local observations
+through **October 19 at 06:00 UTC**, starting from a static physical prior without
+old learned weights or forecast state. Its original inputs and 96 published source
+hashes verify. It remains provisional: 30 endpoints across seven origin dates,
+rank 10/14, no held-out accuracy or graduation claim. The [candidate record](2026-10-19-weathernext-fresh-native-candidate.json)
+is preparation evidence; the installed production model is unchanged.
+
 ## Release gates and current limitations
 
-The approved plan calls for 30 consecutive prospective acquisition days, 60 qualified temperature training days plus an untouched 30-day holdout when available, and 14 days of normal local-model shadow inference. None of that is established by an authentication test or historical download. Preserve the incumbent until required variable/horizon gates pass; remove it in the cutover release with no capture-only service or fallback.
+On October 19 the operator directed prompt monitored production and tuning from production data. The fixed 30-day acquisition wait is removed. Training/holdout and model-shadow windows remain scientific assessment criteria, not prerequisites for explicitly unqualified provider deployment. Cutover now requires current complete manual/scheduled acquisition, verified source/unit/interval/freshness contracts, passing publication/degradation/ownership/resource checks, full deployment-source tests/build and the reviewed coordinated retirement. Accuracy limitations remain explicit; actuation stays disabled. The [current policy](../superpowers/specs/2026-10-05-weathernext-exclusive-forecast-design.md#10-monitored-production-and-model-qualification) supersedes the former calendar gate.
 
 Production forecasts, correction state, thermal/PV coefficients, notification policy and actuator authority are unchanged. Recovery work remains deferred per operator instruction.
 

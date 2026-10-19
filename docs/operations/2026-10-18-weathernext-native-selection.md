@@ -2,7 +2,29 @@
 
 Observed October 18, 2026. This completes another Task 8 preparation increment; production provider selection and the full migration remain unfinished.
 
-**Current source update (October 19):** both obsolete standalone publisher families and their uninstalled schedule templates are removed. Current native observation/receipt tests use the native Google publisher. The old thermal weather commands and their provider import are also removed; journal/schema commands and generic helpers remain. Shared Google/local acquisition classes remain. The base model source binding contains 81 files; the raw shared binding contains 76. The owner-approved 84-path source retirement is applied in `2f02e38`; installed provider/binding/state retirement still awaits coordinated cutover. The prepared production worker now consumes source-qualified native Astro, with [220-test and actual read-only evidence](2026-10-19-weathernext-native-astro-serving.json). Final source freeze, fresh release fitting and qualification remain required. Production has not cut over. Earlier sections below retain their historical audit status.
+**Current source update (October 19):** both obsolete standalone publisher families and their uninstalled schedule templates are removed. Current native observation/receipt tests use the native Google publisher. The old thermal weather commands and their provider import are also removed; journal/schema commands and generic helpers remain. Shared Google/local acquisition classes remain. The base model source binding contains 81 files; the raw shared binding contains 76. The owner-approved 84-path source retirement is applied in `2f02e38`; installed provider/binding/state retirement still awaits coordinated cutover. The prepared production worker now consumes source-qualified native Astro, with [220-test and actual read-only evidence](2026-10-19-weathernext-native-astro-serving.json). A fresh fourteen-parameter candidate is now verified against the published source and local observations through October 19; see below. Operational release and coordinated installed retirement remain. Production has not cut over. Earlier sections below retain their historical audit status.
+
+## Fresh candidate and monitored deployment — October 19
+
+A new fourteen-parameter irradiance/shade thermal candidate was fitted from the
+conservative static physical prior using qualified local measurements/actions and
+native Astro geometry from **October 12–19, ending at 06:00 UTC on October 19**.
+It uses no incumbent learned coefficients or forecast state. All 96 model/base
+source hashes match published `54ec20e`; the original candidate inputs replay and
+the candidate write/read checks pass. There are 30 supported endpoints across
+1/6/12/24 hours and seven origin dates; conditioning rank is 10 of 14.
+
+The fit completed in 1.853 seconds, with collection/assembly/replay taking the
+whole bounded build to 99.817 seconds. This is a **provisional development
+candidate**, with no held-out skill, stability, graduation or as-issued forecast
+claim. No installed model changed. [Sanitized evidence](2026-10-19-weathernext-fresh-native-candidate.json)
+retains identities and support without publishing private originals or coefficients.
+
+The [October 19 policy](../superpowers/specs/2026-10-05-weathernext-exclusive-forecast-design.md#10-monitored-production-and-model-qualification)
+removes the 30-day deployment wait. Current source/contract, publication,
+degradation, ownership, regression and coordinated retirement checks govern
+monitored deployment. Statistical accuracy is assessed from production outcomes;
+actuation remains disabled. Older audit sections below describe earlier stages.
 
 ## Explicit source selection
 

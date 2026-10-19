@@ -1,3 +1,5 @@
+**Owner-directed release update (2026-10-19):** remove the fixed 30-day provider wait and deploy as soon as source/contract/operational checks pass, then assess and tune from production data. Scientific model-qualification windows do not block explicitly unqualified monitored production. Preserve source/physics/resource/actuation safeguards and the existing reviewed release/handoff workflow; see spec section 10.
+
 **Execution update (2026-10-18):** Operator clarified a clean restart of weather-related ML using WeatherNext 3 forecasts plus qualified local measurements. Open-Meteo must be completely removed from OpenHAB and Earthship UI at cutover; later capture-only acquisition is no longer part of the plan. Tasks 8–9 are one attended release with removal prepared in advance. Current access/evidence: `docs/operations/weathernext-readiness.md`; binding reset/removal contract: `docs/operations/openmeteo-retirement.md`.
 
 # WeatherNext 3 Exclusive Forecast Migration Implementation Plan
@@ -226,7 +228,7 @@ Do not refactor unrelated forecast/UI code merely to accommodate this migration.
 - [ ] **Step 8: Verify network loss, access revocation, schema change and interrupted-write refusal.** Recovery rehearsals remain deferred per operator instruction; do not expand this migration into backup/recovery work.
 - [ ] **Step 9: Verify disabling all new units leaves existing Open-Meteo production unchanged, then stage attended deployment.**
 
-**Gate:** At least 30 consecutive days of prospective acquisition are required before provider cutover review; at least 14 days of normal local-model shadow inference are required for that model's promotion review.
+**Gate:** Current complete manual and normal scheduled acquisition, source/contract correctness and operational health are required before monitored provider cutover. No fixed 30-day acquisition wait applies. Training/holdout and normal-shadow evidence remain scientific qualification criteria; explicitly provisional/unqualified monitored production may proceed before those targets are complete.
 
 ---
 
@@ -250,9 +252,9 @@ Do not refactor unrelated forecast/UI code merely to accommodate this migration.
 - [ ] **Step 5: Hold the existing energy model fixed and swap only WeatherNext weather forcing.** Evaluate available PV, harvested PV, full-charge/no-full outcomes, evening SoC and overnight trough at correct issue origins.
 - [ ] **Step 6: Hold the accepted thermal artifact fixed and compare WeatherNext versus incumbent weather forcing on identical windows.** Do not refit building parameters in this attribution step. Audit every weather-dependent learned component and train the new production component afresh on Google/local pairs; a fixed-artifact comparison does not authorize carrying old weather-trained weights into the new model.
 - [ ] **Step 7: Record cloudy, clear, cold/front, precipitation and no-full cases separately.** Unsupported regimes remain explicit gaps.
-- [ ] **Step 8: Keep current PV/thermal release gates unchanged; run tests and commit reports.**
+- [ ] **Step 8: Preserve PV/thermal physics, source and disabled-actuation gates; apply the October 19 monitored-production policy to accuracy qualification; run tests and commit reports.**
 
-**Gate:** Every currently required Open-Meteo consumer must have either a qualified WeatherNext replacement or an explicit decision that it is no longer required before complete provider retirement.
+**Gate:** Every currently required Open-Meteo consumer must have a source/contract-verified WeatherNext path or explicit unavailability/removal before complete retirement. Predictive accuracy can remain unqualified and be assessed in production; missing values cannot become benign conditions or authorize action.
 
 ---
 
@@ -281,11 +283,11 @@ the release/fitting/qualification/installed-cutover steps below.
 - [ ] **Step 4: Write `test_provider_identity_is_bound_to_prediction_and_learning_state`.** Old Open-Meteo issues remain Open-Meteo history.
 - [ ] **Step 5: Extract/introduce only the provider boundary needed for `forecast_intel.py`; leave scoring, PV gates, notifications and downstream contracts unchanged unless the new source requires an explicit reviewed mapping.**
 - [ ] **Step 6: Define correction-state migration.** Use a new WeatherNext namespace with an empty, explicit untrained state, or a separately fitted Google/local artifact. Never call the legacy Kalman/backfill seeder, merge old state defaults, or retain Open-Meteo-trained weather weights. Separate local-only/physical configuration from learned weather state.
-- [ ] **Step 7: Take private rollback preimages, verify all variable gates, then perform an attended WeatherNext production selection.**
+- [ ] **Step 7: Take private rollback preimages, verify source/contract/operational checks under the October 19 monitored-production policy, then perform the reviewed attended WeatherNext production selection.**
 - [ ] **Step 8: Verify natural scheduled publication, forecast JSON identity, UI, energy/thermal consumers, reboot behavior and degraded-mode behavior.**
 - [ ] **Step 9: Apply the prepared Task 9 removal in this same attended cutover.** Stop Open-Meteo writers, detach its state and remove all integrations before qualifying the new runtime. No capture-only acquisition remains after cutover.
 
-**Gate:** WeatherNext is authoritative only after the dated release report records passing access, provenance, variable, regression, rollback and operational-health gates.
+**Gate:** WeatherNext is authoritative only after the dated operational release report records passing access, provenance, variable-contract, regression, rollback-prerequisite and operational-health checks. It must disclose unqualified predictive skill; the former calendar/statistical qualification windows do not block this owner-directed monitored deployment.
 
 ---
 
@@ -372,8 +374,8 @@ Stop rather than proceed when any of the following is true:
 - real retrieval violates the zero-paid-access/resource policy;
 - source availability times cannot be represented honestly;
 - a required WeatherNext variable cannot be mapped correctly;
-- final holdout shows a material regression without an explicitly predeclared non-inferiority justification;
-- precipitation/solar evidence is too weak to retire a still-required Open-Meteo consumer;
+- an evaluated local correction shows a material regression: withhold that correction and serve raw WeatherNext where its operational checks pass;
+- a required precipitation/solar source or unit/interval contract is unavailable and the consumer has not been explicitly withdrawn; insufficient accuracy-event samples alone do not impose a calendar wait;
 - rollout reveals stale-data ambiguity, hidden fallback, or unintended control authority.
 
-Open-Meteo remaining in production longer than hoped is preferable to an evidence-free cutover. Once WeatherNext qualifies, however, the intended architecture is explicit: **retire Open-Meteo rather than operate a permanent dual-provider stack.**
+The operator has accepted monitored production before full statistical qualification. Complete the concrete source/contract/operational checks promptly, then retire Open-Meteo in the reviewed handoff. Record and tune actual production outcomes without claiming unmeasured skill or retaining an incumbent fallback.

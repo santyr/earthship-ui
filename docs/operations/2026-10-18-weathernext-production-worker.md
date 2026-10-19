@@ -27,9 +27,11 @@ The release schema is `earthship-weather-reviewed-release/v1`. It requires the
 explicit external decision `APPROVED_FOR_CUTOVER`, reviewer and nonfuture review
 time, exact source revision/runtime digest, site, 336-hour horizon, Google plus
 qualified-local-only weather lineage, disabled actuation, and the reviewed Item
-ownership digest. Its ten gate categories preserve the approved plan: access,
-provenance, prospective acquisition, temperature, solar, precipitation, downstream,
-regression, rollback prerequisites and operational health. Every gate names a
+ownership digest. Its ten gate categories follow the owner-directed October 19 operational
+release policy: access, provenance, current manual/scheduled acquisition,
+temperature/solar/precipitation source contracts, downstream fresh-state handling,
+regression, rollback prerequisites and operational health. The existing category
+keys remain unchanged. Every gate names a
 retained private original report and its SHA256 alongside the reviewer's `PASS`.
 Recovery rehearsal remains deferred.
 
@@ -37,8 +39,9 @@ Recovery rehearsal remains deferred.
 calculator.** Matching report hashes proves unchanged originals; it does not prove
 the reports establish skill, acquisition intervals or complete cutover. The release
 review must independently establish those requirements from the approved plan.
-No helper creates a passing report, invents evidence or reduces the existing
-qualification periods. Synthetic test decisions are temporary simulation inputs,
+No helper invents passing evidence or unmeasured predictive skill. The operator
+removed the fixed calendar deployment wait on October 19; statistical qualification
+remains explicitly separate from operational provider admission. Synthetic test decisions are temporary simulation inputs,
 never live admission evidence.
 
 The runtime manifest pins 28 source/deployment files, including the worker,
@@ -156,3 +159,16 @@ native daily durations (first day **39,524.209 seconds**). It made no additional
 Google request, production write, fit or installed change. The [typed evidence](2026-10-19-weathernext-native-astro-serving.json)
 binds the sources and tested bytes; it is preparation evidence, not a release
 report. Final-source fitting, all release gates and coordinated cutover remain.
+
+
+## Owner-directed monitored release policy — October 19
+
+The release packet may approve operational provider cutover while model accuracy
+is explicitly unqualified. It must identify the operator's policy decision, prove
+the actual source/contract/runtime checks, and disclose pending outcome evidence.
+The `prospective_acquisition` category requires demonstrated complete current
+manual and natural collection, not 30 elapsed days. Temperature/solar/rain checks
+establish native units, intervals, source identity, freshness and missingness;
+they do not assert held-out predictive skill. Current evaluator reports may remain
+SHADOW_ONLY. No release envelope field, numerical/physical guard, actuator flag,
+source pin or ownership/lock requirement changes in this policy amendment.

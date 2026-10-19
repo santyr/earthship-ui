@@ -1,3 +1,5 @@
+**Owner-directed release update (2026-10-19):** deploy WeatherNext as soon as its source/contract/operational checks pass and assess/tune accuracy from production data. The former 30-day acquisition wait is removed as a provider-cutover prerequisite. Training/holdout and shadow evidence continue to govern scientific qualification claims, not whether an explicitly unqualified, operationally admitted Google-only forecast may enter monitored production. See section 10. Actuation remains disabled.
+
 **Execution update (2026-10-18):** Operator authorized execution and clarified a clean restart of weather-related ML: WeatherNext 3 is the sole external forecast source; qualified local measurements remain training/scoring truth. At production cutover, completely remove Open-Meteo integration and provider-specific learning state from OpenHAB and Earthship UI. No post-cutover capture-only service or fallback. See `docs/operations/openmeteo-retirement.md` for the reset/removal contract and `docs/operations/weathernext-readiness.md` for verified status. Google access and native Earth Engine extraction now work after correcting backing-storage OAuth scope and source-clock handling. Bounded 360-hour private collection/shadow recording are installed and scheduled, with all three precipitation products retained separately. Production remains on the incumbent pending the existing qualification/cutover gates; see the current readiness report.
 
 # WeatherNext 3 exclusive forecast migration — design
@@ -173,27 +175,60 @@ Use the improved weather forecast to test full-charge likelihood, charge timing,
 
 Hold the accepted thermal artifact fixed and compare Open-Meteo-forced versus WeatherNext-forced trajectories on identical windows. Only after that attribution experiment may thermal parameters be refit. Better weather cannot bypass existing thermal graduation/action-evidence rules.
 
-## 10. Shadow comparison and cutover gates
+## 10. Monitored production and model qualification
 
-The migration has two independent questions:
+The operator directed prompt deployment on October 19, followed by assessment and
+tuning from production data. Provider cutover and a claim of validated local-model
+accuracy are separate decisions. There is **no fixed 30-day acquisition wait**.
+The former 60-day training/30-day holdout and 14-day model-shadow targets do not
+block an explicitly unqualified monitored-production deployment.
 
-1. **Can WeatherNext reliably supply the data the Earthship requires?**
-2. **Does WeatherNext + local adaptation perform well enough to replace the incumbent?**
+Provider cutover requires dated evidence that:
 
-Initial minimum evidence policy:
+- bounded Google access succeeds without paid fallback, original run/site/source
+  identities reproduce, and recent complete manual and normal scheduled captures
+  cover the declared horizon;
+- required temperature, solar and precipitation contracts have verified units,
+  native grids/intervals, availability clocks, freshness, DST and missingness;
+  unsupported consumers are explicitly unavailable or removed;
+- weather-dependent learning starts in fresh Google/local state, with no old
+  forecasts, fitted weights, biases, targets or scoring history imported;
+- publication, withdrawal, source/ownership/lock admission and degraded-mode
+  behavior pass; full repository tests/build pass for the exact deployment source;
+- existing aggregate resource safeguards, disabled actuation, private credentials,
+  reviewed release/ownership handoff and coordinated complete provider retirement
+  remain intact. Manual rollback prerequisites remain recorded; recovery rehearsal
+  is deferred.
 
-- at least 30 consecutive days of prospective WeatherNext acquisition before provider cutover review;
-- at least 60 qualified temperature training days and a subsequent untouched 30-day temperature holdout when available;
-- at least 14 days of normal prospective local-model shadow inference;
-- explicit evaluation of cloudy days, clear days, large diurnal swings, frontal/cold events, and precipitation events represented in the sample;
-- no unresolved timestamp/publication-time leakage;
-- no unresolved solar-unit or DST integration issue.
+The existing ten release categories are operational acceptance checks under this
+owner-directed policy. In particular, prospective acquisition means demonstrated
+current manual/scheduled acquisition, not 30 elapsed days; temperature/solar/rain
+reports must distinguish correct source contracts from unmeasured predictive
+skill. No `PASS` may imply that an unobserved accuracy test succeeded. The release
+packet must retain this policy/owner decision and list statistical evidence as
+unavailable where appropriate. Operational release admission grants no new
+physical control authority.
 
-For temperature, target a meaningful improvement over locally corrected Open-Meteo; a proposed promotion threshold is at least 10% lower MAE at the declared horizon. A non-inferiority rule may be used if WeatherNext is effectively tied while materially simplifying the architecture, but the tolerance must be declared before the final holdout is inspected.
+Record original predictions and qualified local outcomes in production, then
+report error by horizon and represented weather regime. Keep chronological
+training/embargo/untouched evaluation boundaries and existing numerical/support,
+physical, source and action-evidence gates. Until evidence supports qualification,
+learned outputs remain explicitly provisional/unqualified, and raw WeatherNext
+can be served while a local correction is unavailable. A `SHADOW_ONLY` evaluator
+result is scientific status, not an automatic block on the monitored provider
+cutover approved here. It cannot be relabelled as validated skill.
 
-For solar resource, require no material regression in daily energy error or high-error tails on qualified irradiance days. For precipitation, require enough actual events to reject a clearly worse WeatherNext head; until that variable is qualified, full Open-Meteo retirement is blocked if precipitation remains an operational dependency.
+Cloudy/clear days, diurnal swings, frontal events and rain events remain useful
+assessment targets as they occur. The previous sample-duration targets may inform
+later review; they are not hidden calendar prerequisites for this deployment.
+Predeclare local-model comparison criteria before examining held-out outcomes.
+The initial research target of 10% lower temperature MAE and any predeclared
+non-inferiority tolerance remain assessment criteria, not mandatory waiting periods
+for the provider change. Precipitation-head selection must retain its native
+product identity and current uncertainty; insufficient event scores are disclosed.
 
-Promotion is by required variable/horizon. This permits a staged cutover, but the end state remains WeatherNext-only.
+The end state remains WeatherNext-only, with visible degradation on source failure
+and no incumbent fallback.
 
 ## 11. Production cutover
 

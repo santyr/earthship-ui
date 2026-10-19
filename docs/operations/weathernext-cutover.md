@@ -1,3 +1,5 @@
+**Release policy update — October 19:** the operator directed deployment as soon as operationally ready and assessment/tuning from production data. No fixed 30-day acquisition wait applies. Existing source/unit/time/freshness, publication/degradation, ownership, resource, regression and coordinated-handoff checks remain; model accuracy stays explicitly unqualified until scored. Statistical training/holdout/shadow windows do not block this monitored provider release. [Authoritative policy](../superpowers/specs/2026-10-05-weathernext-exclusive-forecast-design.md#10-monitored-production-and-model-qualification).
+
 # WeatherNext cutover preparation
 
 Status: **production provider not deployed; release gates unmet**. Collector and shadow schedules are deployed. The Google-only provider adapter is implemented for offline integration, but production still uses its incumbent worker. See [readiness](weathernext-readiness.md), [resolved API findings](2026-10-18-weathernext-api-compatibility.md), [the migration plan](../superpowers/plans/2026-10-05-weathernext-exclusive-forecast.md) and [the binding reset/removal contract](openmeteo-retirement.md).

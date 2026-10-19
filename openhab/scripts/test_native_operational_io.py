@@ -89,9 +89,9 @@ def test_shared_worker_imports_and_collection_admission_do_not_load_old_cli():
 import importlib.abc,sys
 class Block(importlib.abc.MetaPathFinder):
  def find_spec(self,fullname,*args):
-  if fullname=='thermal_installed_intel':raise AssertionError('shared worker imported old publisher CLI')
+  if fullname in ('thermal_installed_intel','forecast_temperature_collect'):raise AssertionError('shared worker imported retired CLI')
 sys.meta_path.insert(0,Block())
-import astro_geometry_worker,thermal_installed_train,thermal_installed_calibrate,thermal_installed_score,forecast_temperature_collect
+import astro_geometry_worker,thermal_installed_train,thermal_installed_calibrate,thermal_installed_score
 from thermal_model import serial_publication_caps,training_pressure_guard
 class CurrentPolicy(Exception):pass
 def refuse():raise CurrentPolicy('neutral verifier reached before collection')
