@@ -8,7 +8,8 @@ import { energyObservation, ENERGY_NOW } from './fixtures/household-energy.js';
 describe('WeatherNext presentation', () => {
   it('uses actual cloud cover and native daylight without manufacturing WMO codes', () => {
     expect(forecastCondition({ cloudPct: 12, isDay: true })).toMatchObject({ icon: 'mdi:weather-sunny', basis: 'cloud-cover' });
-    expect(forecastCondition({ cloudPct: 12, isDay: false }).icon).toBe('mdi:weather-night');
+    expect(forecastCondition({ cloudPct: 12, isDay: false, at: '2026-10-19T22:00:00-06:00' }).icon).toBe('mdi:weather-night');
+    expect(forecastCondition({ cloudPct: 50, isDay: null }).icon).toBe('mdi:weather-cloudy');
     expect(forecastCondition({ cloudPct: 50, isDay: false }).icon).toBe('mdi:weather-night-partly-cloudy');
     expect(forecastCondition({ cloudPct: 40, precipSumIn: 0.01 }).basis).toBe('cloud-cover');
     expect(forecastCondition({ cloudPct: 90 }).icon).toBe('mdi:weather-cloudy');

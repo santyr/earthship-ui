@@ -65,7 +65,7 @@
         socEvidenceRaw: $items.BMS_SOC_Evidence_JSON,
         ...(compact ? {grid:{left:40,right:12,top:6,bottom:22}} : {}),
       });
-      if (compact) { option.legend.show = false; option.yAxis.splitNumber = 3; }
+      if (compact) { option.legend.show = false; option.yAxis.splitNumber = 3; option.yAxis.axisLabel = { ...option.yAxis.axisLabel, hideOverlap: true }; }
       chart.setOption(option, { replaceMerge: ['series'] });
       lastRenderedSocValue = atomicSocFreshness($items.BMS_SOC_Evidence_JSON, nowMs)?.soc ?? null;
       if (sizeChanged) chart.resize();

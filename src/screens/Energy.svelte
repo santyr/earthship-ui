@@ -100,7 +100,7 @@
   <div class="cell hero-cell">
     <Tile label="Battery history" accent={socColor}>
       <div class="hero-body">
-        <div class="hero-chart"><HistoryChart series={socSeries} initialHours={24} refreshMs={30 * 60 * 1_000} /></div>
+        <div class="hero-chart"><HistoryChart series={socSeries} compact={true} initialHours={24} refreshMs={30 * 60 * 1_000} /></div>
         <div class="hero-footer">
           <span class="hero-soc" style="color: {socColor}">SoC {soc === null ? '—' : Math.round(soc) + '%'}</span>
           {#if preDuskEstimate}
@@ -376,15 +376,14 @@
 
   /* ---- 7-day PV outlook ---- */
   .outlook-layout { display: flex; flex-direction: column; height: 100%; min-height: 0; }
-  .outlook-note { color: #94a3b8; font-size: .6rem; line-height: 1.2; margin-top: .3rem; }
+  .outlook-note { flex: 0 0 auto; color: #94a3b8; font-size: .6rem; line-height: 1.2; margin-top: .3rem; }
   .outlook-body {
     flex: 1;
     min-height: 0;
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 0.5rem;
-    height: 100%;
-    align-items: end;
+    align-items: stretch;
   }
   .outlook-empty {
     grid-column: 1 / -1;
@@ -399,20 +398,20 @@
     flex-direction: column;
     align-items: center;
     gap: 0.25rem;
-    height: 100%;
+    min-height: 0;
   }
   .outlook-bar-track {
     flex: 1;
     width: 60%;
     display: flex;
     align-items: flex-end;
-    min-height: 2.5rem;
+    min-height: 1.25rem;
   }
   .outlook-bar-fill {
     width: 100%;
     background: #eab308;
     border-radius: 0.2rem 0.2rem 0 0;
-    min-height: 2px;
+    min-height: 0;
   }
   .outlook-label {
     font-size: 0.65rem;

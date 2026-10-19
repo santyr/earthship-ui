@@ -1,5 +1,4 @@
 import { HOUSEHOLD_TIMEZONE } from '../site.js';
-import { contextualSkyIcon } from './celestial.js';
 import { CONDITION_COLORS, wmoIcon, wmoLabel, wmoColor } from '../ui/wmo.js';
 const finite = value => typeof value === 'number' && Number.isFinite(value);
 
@@ -19,8 +18,8 @@ export function forecastCondition(row = {}) {
   if (finite(row.cloudPct) && row.cloudPct >= 0 && row.cloudPct <= 100) {
     const cloud = row.cloudPct;
     const icon = cloud >= 75 ? 'mdi:weather-cloudy'
-      : cloud >= 25 ? contextualSkyIcon('mdi:weather-partly-cloudy', row)
-        : typeof row.isDay === 'boolean' ? contextualSkyIcon('mdi:weather-sunny', row) : 'mdi:cloud-outline';
+      : cloud >= 25 ? (row.isDay === false ? 'mdi:weather-night-partly-cloudy' : row.isDay === true ? 'mdi:weather-partly-cloudy' : 'mdi:weather-cloudy')
+        : row.isDay === false ? 'mdi:weather-night' : row.isDay === true ? 'mdi:weather-sunny' : 'mdi:cloud-outline';
     const label = cloud >= 75 ? 'Cloudy' : cloud >= 25 ? 'Partly cloudy' : 'Mostly clear';
     return { icon, label: `${label} · ${Math.round(cloud)}% cloud cover`, color: cloud >= 75 ? CONDITION_COLORS.cloudy : cloud < 25 && row.isDay === true ? CONDITION_COLORS.sunny : CONDITION_COLORS.partly, basis: 'cloud-cover' };
   }
