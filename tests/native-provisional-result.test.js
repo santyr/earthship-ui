@@ -79,3 +79,19 @@ describe('native provisional publication compatibility',()=>{
     value.forecast.geometry_series_sha256='c'.repeat(64);expect(parse(value).state).toBe('unavailable');
   });
 });
+
+it('accepts the explicitly versioned four-regime model with exterior shades removed and advice withheld',()=>{
+  const value=payload();value.forecast.model_rule='earthship-native-joint-shade-dynamics/v3';value.forecast.origin_actions.outdoor_shade_present=0;
+  value.reasons.push('65% outdoor shade rating supplies provisional solar priors; unshaded performance is unqualified.');
+  const r=parse(value);expect(r.state).toBe('ready');expect(r.actionConfidence).toBe('withheld');expect(r.confidence).toBe('low');
+  expect(r.reasons.some(x=>x.includes('65%'))).toBe(true);
+});
+it('continues refusing removed-shade state under the installed-only rule',()=>{
+  const value=payload();value.forecast.origin_actions.outdoor_shade_present=0;expect(parse(value).state).toBe('unavailable');
+});
+
+ it('accepts the separately versioned irradiance model with outdoor shades removed',()=>{
+  const value=payload();value.forecast.model_rule='earthship-native-irradiance-shade-dynamics/v4';value.forecast.origin_actions.outdoor_shade_present=0;
+  const result=parse(value);
+  expect(result.state).toBe('ready');
+ });

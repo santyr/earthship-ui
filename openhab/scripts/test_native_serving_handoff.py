@@ -67,3 +67,18 @@ def test_receipt_partial_file_install_restores_original_owned_overrides(tmp_path
     assert (root/'thermal-provisional-forecast.service.d/zzzz-household-cycle.conf').read_bytes()==old_forecast
     assert (root/'thermal-provisional-score.service.d/zzzz-household-score.conf').read_bytes()==old_score
     assert not (root/'thermal-native-geometry-prepare.service').exists()
+
+
+def test_google_reset_handoff_accepts_independently_verified_new_runtime_sources(tmp_path,monkeypatch):
+    deploy,handoff,args,previous,family,output,pin,_,_=fixture(tmp_path,monkeypatch)
+    original_verify=deploy.verify_stage
+    def verified_stage(path,**kwargs):
+        record=original_verify(path,**kwargs)
+        if Path(path)==args['stage']:
+            record['protected_runtime_sources']={**record['protected_runtime_sources'],'new-versioned-selector.py':'d'*64}
+        return record
+    # Package/source admission is tested separately. Supply verified differing
+    # source headers to exercise the Google reset's owned handoff boundary.
+    monkeypatch.setattr(deploy,'verify_stage',verified_stage)
+    handoff.prepare(family,previous_forecast_stage=previous,previous_score_stage=previous,output=output,guard=lambda:None)
+    assert handoff.verify(output,guard=lambda:None)['automatic_actuation'] is False

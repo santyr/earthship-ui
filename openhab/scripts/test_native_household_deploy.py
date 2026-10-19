@@ -142,3 +142,21 @@ def test_native_runtime_probe_uses_external_pins_and_original_pressure_guard(tmp
     result=m.verify_runtime(stage)
     assert result['status']=='runtime_verified' and result['automatic_actuation'] is False
     assert 'preflight' in calls and 'pressure' in calls and calls.count('native_reader')==1
+
+
+@pytest.mark.parametrize('irradiance',[False,True])
+def test_google_stage_accepts_new_base_identity_only_with_preserved_irradiance_family(tmp_path,irradiance):
+    from native_thermal_artifact import digest
+    args,files,candidate,settings=native_fixture(tmp_path)
+    candidate['runtime']['base_runtime']['code_revision']='c'*64
+    if not irradiance:
+        candidate['schema']='earthship-provisional-thermal-candidate/v3'
+        candidate['fit']={'schema':'earthship-native-solar-provisional-fit/v2','model_rule':'earthship-native-joint-shade-dynamics/v3'}
+    candidate['runtime_sha256']=digest(candidate['runtime']);candidate['artifact_sha256']=digest(candidate,'artifact_sha256')
+    settings.update(runtime_sha256=candidate['runtime_sha256'],artifact_sha256=candidate['artifact_sha256'])
+    write(Path(settings['candidate_path']),encode(candidate));write(args['forecast_config'],encode(settings))
+    if not irradiance:
+        with pytest.raises(ValueError,match='Google production requires'):api().stage_deployment(**args)
+    else:
+        api().stage_deployment(**args)
+        assert api().verify_stage(args['stage'])['protected_runtime_sources']==candidate['runtime']['base_runtime']['source_manifest']
