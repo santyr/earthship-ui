@@ -1,4 +1,7 @@
 <script>
+  import { energyForecastRaw, energyForecastClock } from '../lib/energy/forecastState.js';
+  import { energyForecastPresentation } from '../lib/energy/forecastPresentation.js';
+  const liveEnergyForecast = $derived(energyForecastPresentation($energyForecastRaw, { nowMs: $energyForecastClock }));
   import { itemUpdateEvidence, thingStatuses } from '../lib/openhab/store.js';
   import { nativeCurrentSkyContext, nativeDaylightText, siteTimeLabel } from '../lib/weather/astroPresentation.js';
 
@@ -775,7 +778,7 @@
           <span class="solar-icon" style="color: {solarColor}"><OhIcon icon="iconify:mdi:solar-power-variant" size="1.25rem" /></span>
           <div class="solar-main">{fmt($items.MPPT60_EnergyFromPV_Today, '', 1)}<span class="unit"> kWh</span></div>
         </div>
-        <div class="solar-sub">{solarTodayForecast === null ? 'prediction unavailable' : `of ${fmt(solarTodayForecast, '', 1)} predicted`}</div>
+        <div class="solar-sub">{liveEnergyForecast ? `${liveEnergyForecast.potentialRemainingTodayKwh.toFixed(1)} kWh potential left` : solarTodayForecast === null ? 'PV forecast unavailable' : `of ${fmt(solarTodayForecast, '', 1)} predicted`}</div>
         <div class="solar-current" style="color: {solarColor}">{fmt($items.MPPT60_PV_Power, ' W', 0)} now</div>
         <div class="curtail-lamp" style="color: {curtailColor}">
           <span class="lamp-dot" class:active={curtailActive}></span>

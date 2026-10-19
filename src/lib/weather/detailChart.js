@@ -1,3 +1,4 @@
+import { precipitationMetric } from './presentation.js';
 const AXIS_COLOR = '#8b93a1';
 const GRID_COLOR = '#242b38';
 
@@ -15,7 +16,7 @@ function display(value, suffix) {
     : `—${suffix}`;
 }
 
-function tooltipFormatter(params) {
+function tooltipFormatter(params, precipitation) {
   const values = Object.fromEntries(
     (Array.isArray(params) ? params : []).map(({ seriesName, value }) => [seriesName, value]),
   );
@@ -23,7 +24,7 @@ function tooltipFormatter(params) {
   return [
     `<strong>${label}</strong>`,
     `Temperature: ${display(values.Temperature, '°F')}`,
-    `Precipitation: ${display(values.Precipitation, '%')}`,
+    `Precipitation: ${precipitation.format(values.Precipitation)}`,
     `Radiation: ${display(values.Radiation, ' W/m²')}`,
     `Wind: ${display(values.Wind, ' mph')}`,
   ].join('<br>');
@@ -31,6 +32,7 @@ function tooltipFormatter(params) {
 
 export function buildWeatherDetailOption({ hours = [], widthPx = 900 } = {}) {
   const wide = Number(widthPx) >= 760;
+  const precipitation = precipitationMetric(hours);
   return {
     animation: false,
     backgroundColor: 'transparent',
@@ -44,7 +46,7 @@ export function buildWeatherDetailOption({ hours = [], widthPx = 900 } = {}) {
     tooltip: {
       trigger: 'axis',
       confine: true,
-      formatter: tooltipFormatter,
+      formatter: params => tooltipFormatter(params, precipitation),
     },
     xAxis: {
       type: 'category',
@@ -69,11 +71,12 @@ export function buildWeatherDetailOption({ hours = [], widthPx = 900 } = {}) {
         splitLine: { lineStyle: { color: GRID_COLOR } },
       },
       {
-        name: '%',
+        name: precipitation.unit,
+        show: precipitation.hasValues,
         type: 'value',
         position: 'right',
         min: 0,
-        max: 100,
+        max: precipitation.max,
         axisLabel: { color: '#38bdf8', fontSize: 10 },
         nameTextStyle: { color: '#38bdf8' },
         splitLine: { show: false },
@@ -107,7 +110,7 @@ export function buildWeatherDetailOption({ hours = [], widthPx = 900 } = {}) {
         name: 'Precipitation',
         type: 'bar',
         yAxisIndex: 1,
-        data: hours.map(({ precipPct }) => precipPct),
+        data: precipitation.values,
         itemStyle: { color: '#38bdf8', opacity: 0.55 },
       },
       {

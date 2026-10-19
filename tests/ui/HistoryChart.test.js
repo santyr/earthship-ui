@@ -60,6 +60,15 @@ describe('HistoryChart', () => {
 
   afterEach(cleanup);
 
+  it('reserves a readable plot in compact PV tiles without shrinking touch targets', async () => {
+    render(HistoryChart, {series:[{name:'MPPT60_PV_Power',label:'PV Power',color:'#eab308'}],compact:true});
+    await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalled());
+    const option=mocks.chart.setOption.mock.calls.at(-1)[0];
+    expect(option.legend.show).toBe(false);
+    expect(option.grid.top+option.grid.bottom).toBeLessThan(30);
+    expect(screen.getByRole('button',{name:'24h'})).toBeTruthy();
+  });
+
   it('uses the shared period/option pipeline and stays bounded by its parent', async () => {
     const { container } = render(HistoryChart, {
       props: {

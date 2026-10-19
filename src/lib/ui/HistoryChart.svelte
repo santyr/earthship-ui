@@ -9,7 +9,7 @@
   import { items } from '../openhab/store.js';
   import { observeElementSize } from './observeElementSize.js';
 
-  let { series = [], initialHours, hours = 24, refreshMs = 5 * 60 * 1_000 } = $props();
+  let { series = [], initialHours, hours = 24, compact = false, refreshMs = 5 * 60 * 1_000 } = $props();
 
   const SOC_REDRAW_MS = 5 * 60 * 1_000;
   // Parents may recreate the array on an unrelated state tick. Only a real
@@ -57,13 +57,16 @@
     latestWidthPx = widthPx;
     try {
       const nowMs = Date.now();
-      chart.setOption(buildHistoryOption({
+      const option = buildHistoryOption({
         series: latestSeries,
         pointsPerSeries: latestResults,
         widthPx,
         nowMs,
         socEvidenceRaw: $items.BMS_SOC_Evidence_JSON,
-      }), { replaceMerge: ['series'] });
+        ...(compact ? {grid:{left:40,right:12,top:6,bottom:22}} : {}),
+      });
+      if (compact) { option.legend.show = false; option.yAxis.splitNumber = 3; }
+      chart.setOption(option, { replaceMerge: ['series'] });
       lastRenderedSocValue = atomicSocFreshness($items.BMS_SOC_Evidence_JSON, nowMs)?.soc ?? null;
       if (sizeChanged) chart.resize();
     } catch (error) {

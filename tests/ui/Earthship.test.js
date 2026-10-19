@@ -80,11 +80,11 @@ describe('Earthship thermal model integration', () => {
     setItems({ Thermal_Advisory: 'close_up_tomorrow|Stale advice',
       Forecast_Tomorrow_High: '81', Forecast_Tomorrow_Low: '54' });
     const { container } = render(Earthship);
-    expect(container.querySelector('.advisory-text')?.textContent).toBe('Forecast unavailable');
-    expect(container.querySelector('.advisory-footer')?.textContent).toBe('Tomorrow forecast unavailable');
+    expect(container.querySelector('.advisory-text')?.textContent).toBe('Thermal forecast unavailable');
+    expect(container.querySelector('.advisory-footer')?.textContent).toBe('Outdoor forecast unavailable');
   });
 
-  it('adds the shadow model beside existing displays without changing advisory or zone order', () => {
+  it('shows the current model instead of the retired advisory and preserves zone order', () => {
     vi.useFakeTimers();
     vi.setSystemTime(Date.parse(validShadow.generatedAt) + 10 * 60_000);
     setItems({
@@ -106,7 +106,8 @@ describe('Earthship thermal model integration', () => {
 
     expect(container.querySelector('.thermal-model-cell')).not.toBeNull();
     expect(getByText('SHADOW')).toBeTruthy();
-    expect(getByText('Existing thermal advisory remains authoritative')).toBeTruthy();
+    expect(container.querySelector('.advisory-text').textContent).toMatch(/Thermal forecast/);
+    expect(container.querySelector('.advisory-text').textContent).not.toContain('Existing thermal advisory');
     expect([...container.querySelectorAll('.zone-label')].map((node) => node.textContent))
       .toEqual(['North Mass', 'Room Air', 'South Wall', 'Outdoor']);
     expect(container.querySelector('.thermal-model-cell button:not([popovertarget])')).toBeNull();
@@ -201,4 +202,12 @@ describe('Earthship last-run wall clock', () => {
     await tick();
     expect(footer()).toBe('last run 12 m ago');
   });
+});
+
+it('uses the current thermal publication after the retired prediction receipt is withdrawn',()=>{
+  vi.useFakeTimers();vi.setSystemTime(new Date(Date.parse(validShadow.generatedAt)+1000));
+  setItems({Thermal_Model_JSON:JSON.stringify(validShadow),Forecast_Prediction_Receipt_JSON:'UNDEF'});
+  const {container}=render(Earthship);
+  expect(container.querySelector('.advisory-cell').textContent).toMatch(/thermal forecast available/i);
+  expect(container.querySelector('.advisory-cell').textContent).not.toContain('All good');
 });

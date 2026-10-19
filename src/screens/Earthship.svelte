@@ -17,7 +17,7 @@
   import { greywaterState, relativeAgeText } from '../lib/ui/homeCardState.js';
   import { greywaterSchedule } from '../lib/ui/greywaterSchedule.js';
   import { parseThermalModelResult } from '../lib/thermal/modelResult.js';
-  import { parsePredictionReceipt } from '../lib/forecast/predictionReceipt.js';
+  import { parseForecast10Day, forecastDaysFromToday } from '../lib/weather/forecastDetail.js';
   import { items, connection, num, fmt, splitRoundedMinutes } from '../lib/openhab';
   import { openChart } from '../lib/ui/chartStore.js';
 
@@ -128,17 +128,15 @@
   });
 
   // ---- Thermal Advisory ------------------------------------------------------
-  const predictionReceipt = $derived(parsePredictionReceipt($items.Forecast_Prediction_Receipt_JSON,
-    { nowMs: wallClock }));
-  const advisoryParts = $derived(String(predictionReceipt?.thermalAdvisory || '').split('|'));
-  const advisoryCode = $derived(advisoryParts[0] || 'none');
-  const advisoryText = $derived(advisoryParts.slice(1).join('|'));
-  const advisoryActive = $derived(
-    advisoryCode && advisoryCode !== 'none' && advisoryCode !== 'NULL' && advisoryCode !== 'UNDEF'
-  );
-  const tomorrowHiLo = $derived(
-    `H ${fmt($items.Forecast_Tomorrow_High, '°')} / L ${fmt($items.Forecast_Tomorrow_Low, '°')}`
-  );
+  const outdoorForecast = $derived(parseForecast10Day($items.Forecast_10Day_JSON, { nowMs: wallClock }));
+  const tomorrowForecast = $derived(forecastDaysFromToday(outdoorForecast, { nowMs: wallClock }).find(day => day.label === 'Tomorrow'));
+  const tomorrowHiLo = $derived(tomorrowForecast
+    ? `Tomorrow H ${fmt(tomorrowForecast.summary.highF, '°')} / L ${fmt(tomorrowForecast.summary.lowF, '°')}`
+    : 'Outdoor forecast unavailable');
+  const advisoryActive = $derived(thermalModelResult.state === 'ready' && thermalModelResult.actionConfidence === 'confirmed');
+  const advisoryText = $derived(thermalModelResult.state === 'ready'
+    ? `Thermal forecast available · ${thermalModelResult.badge.toLowerCase()}`
+    : thermalModelResult.state === 'stale' ? 'Thermal forecast stale' : 'Thermal forecast unavailable');
   const thermalModelResult = $derived(
     parseThermalModelResult($items.Thermal_Model_JSON, wallClock)
   );
@@ -207,10 +205,10 @@
         <div class="advisory-main">
           <span class="advisory-dot" class:active={advisoryActive}></span>
           <span class="advisory-text" class:active={advisoryActive}>
-            {predictionReceipt ? advisoryActive ? advisoryText || '—' : 'All good' : 'Forecast unavailable'}
+            {advisoryText}
           </span>
         </div>
-        <div class="advisory-footer">{predictionReceipt ? `Tomorrow ${tomorrowHiLo}` : 'Tomorrow forecast unavailable'}</div>
+        <div class="advisory-footer">{tomorrowHiLo}</div>
       </div>
     </Tile>
   </div>

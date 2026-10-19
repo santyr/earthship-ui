@@ -51,3 +51,12 @@ describe('weather detail chart', () => {
     expect(tooltip).toContain('5 mph');
   });
 });
+
+
+it('plots forecast depth in inches when no precipitation probability exists',()=>{
+ const option=buildWeatherDetailOption({hours:hours.map(h=>({...h,precipPct:null,precipIn:0.02}))});
+ expect(option.yAxis[1].name).toBe('in');
+ expect(option.yAxis[1].max).not.toBe(100);
+ expect(option.series.find(s=>s.name==='Precipitation').data).toEqual(Array(10).fill(0.02));
+ expect(option.tooltip.formatter([{axisValue:'8 AM',seriesName:'Precipitation',value:0.02}])).toContain('0.02 in');
+});

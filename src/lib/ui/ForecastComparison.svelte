@@ -20,13 +20,13 @@
   const temperature = (value) => value === null ? '—' : `${value.toFixed(1)}°F`;
   onDestroy(() => { if (open && opener?.isConnected) opener.focus(); });
 </script>
-<button class="comparison-entry" onclick={show}>WeatherNext model · {forecast.status === 'ready' ? 'shadow' : forecast.status}</button>
+<button class="comparison-entry" onclick={show}>Local correction · {forecast.status === 'ready' ? 'shadow' : forecast.status}</button>
 {#if open}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="comparison-backdrop" onclick={(event) => { if (event.target === event.currentTarget) close(); }}>
     <div bind:this={panelEl} class="comparison-panel" role="dialog" aria-modal="true" aria-labelledby="provider-comparison-title" tabindex="-1" onkeydown={keydown}>
-      <header><div><h2 id="provider-comparison-title">WeatherNext model</h2><p>Shadow — not controlling equipment</p></div><button bind:this={closeEl} onclick={close} aria-label="Close forecast details">Close</button></header>
+      <header><div><h2 id="provider-comparison-title">WeatherNext local correction</h2><p>Shadow — not controlling equipment</p></div><button bind:this={closeEl} onclick={close} aria-label="Close forecast details">Close</button></header>
       {#if forecast.status !== 'ready'}
         <p role="status">{forecast.reason}</p>
       {/if}

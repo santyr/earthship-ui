@@ -1,3 +1,4 @@
+import { forecastDisplayDay } from './presentation.js';
 import { HOUSEHOLD_TIMEZONE } from '../site.js';
 export const FORECAST_DETAIL_ITEM = 'Forecast_10Day_JSON';
 export const FORECAST_DETAIL_MAX_BYTES = 64 * 1024;
@@ -89,6 +90,7 @@ function normalizeHour(raw, date) {
     radiationWm2: nullableNumber(raw.radiationWm2, 'radiationWm2'),
     windMph: nullableNumber(raw.windMph, 'windMph'),
     weatherCode: nullableNumber(raw.weatherCode, 'weatherCode'),
+    cloudPct: nullableNumber(raw.cloudPct ?? null, 'cloudPct'),
   });
 }
 
@@ -114,6 +116,7 @@ function normalizeDay(raw) {
       precipSumIn: nullableNumber(summary.precipSumIn ?? null, 'summary.precipSumIn'),
       weatherCode: nullableNumber(summary.weatherCode, 'summary.weatherCode'),
       pvKwh: nullableNumber(summary.pvKwh, 'pvKwh'),
+      cloudPct: nullableNumber(summary.cloudPct ?? null, 'summary.cloudPct'),
     }),
     hours: Object.freeze(hours),
   });
@@ -167,6 +170,7 @@ export function parseForecast10Day(raw, { nowMs = Date.now() } = {}) {
       legacyFallbackAllowed,
       generatedAtMs,
       timezone: parsed.timezone,
+      provider: parsed.provider === 'weathernext3' ? 'weathernext3' : null,
       temperatureAdjustment,
       days: Object.freeze(days),
     });
@@ -237,7 +241,7 @@ export function forecastDaysFromToday(result, { nowMs = Date.now() } = {}) {
   const tomorrow = new Date(Date.parse(`${today}T12:00:00Z`) + 86_400_000)
     .toISOString().slice(0, 10);
   return result.days.filter(({ date }) => date >= today).map((day) => ({
-    ...day,
+    ...forecastDisplayDay(day, { nowMs, timezone: result.timezone }),
     label: day.date === today ? 'Today' : day.date === tomorrow ? 'Tomorrow' : day.label,
   }));
 }
@@ -262,6 +266,7 @@ export function hourlyForecastFromDetail(result, { nowMs = Date.now() } = {}) {
         a: hour.precipIn,
         r: hour.radiationWm2,
         w: hour.weatherCode,
+        c: hour.cloudPct,
       };
     });
 }

@@ -9,7 +9,7 @@ const raw = JSON.stringify(fixture);
 const props = { statusRaw: raw, comparisonRaw: raw, localRaw: raw, nowMs: Date.parse('2026-01-01T00:31:00Z') };
 it('opens an accessible read-only comparison with distinct sources and evidence', async () => {
   render(ForecastComparison, props);
-  await fireEvent.click(screen.getByRole('button', { name: /WeatherNext model/ }));
+  await fireEvent.click(screen.getByRole('button', { name: /Local correction/ }));
   const dialog = screen.getByRole('dialog');
   expect(dialog.textContent).toContain('Shadow — not controlling equipment');
   expect(within(screen.getAllByRole('row')[0]).getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual(['Local time','Raw WeatherNext','Local candidate']);
@@ -23,7 +23,7 @@ it('opens an accessible read-only comparison with distinct sources and evidence'
 });
 it('shows stale status without presenting old temperatures as current', async () => {
   render(ForecastComparison, { ...props, nowMs: props.nowMs + 3 * 3600000 });
-  await fireEvent.click(screen.getByRole('button', { name: /WeatherNext model/ }));
+  await fireEvent.click(screen.getByRole('button', { name: /Local correction/ }));
   expect(screen.getByRole('dialog').textContent).toContain('WeatherNext forecast stale');
   expect(screen.queryByRole('table')).toBeNull();
 });

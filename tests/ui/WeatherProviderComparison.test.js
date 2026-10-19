@@ -12,11 +12,11 @@ it('shows the read-only comparison when shadow Items arrive after initial load',
   vi.useFakeTimers(); vi.setSystemTime(new Date('2026-01-01T00:31:00Z'));
   items.set({ Forecast_Hourly_JSON:'[]', Forecast_Daily_JSON:'[]' }); connection.set('live');
   render(Weather);
-  expect(screen.queryByRole('button', { name:/WeatherNext model/ })).toBeNull();
+  expect(screen.queryByRole('button', { name:/Local correction/ })).toBeNull();
   const raw=JSON.stringify(fixture);
   items.set({ Forecast_Hourly_JSON:'[]', Forecast_Daily_JSON:'[]', Forecast_Provider_Status_JSON:raw, Forecast_Comparison_JSON:raw, Forecast_Local_Shadow_JSON:raw });
   await tick();
-  await fireEvent.click(screen.getByRole('button', { name:/WeatherNext model/ }));
+  await fireEvent.click(screen.getByRole('button', { name:/Local correction/ }));
   const dialog=screen.getByRole('dialog');
   expect(within(dialog).getByText('Raw WeatherNext')).toBeTruthy();
   expect(within(dialog).getByText('Shadow — not controlling equipment')).toBeTruthy();

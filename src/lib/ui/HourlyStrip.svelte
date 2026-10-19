@@ -15,7 +15,7 @@
   import { echartsTheme, colors } from './tokens.js';
   import { num, rainAmountText } from '../openhab/values.js';
   import OhIcon from './OhIcon.svelte';
-  import { wmoIcon, wmoColor } from './wmo.js';
+  import { forecastCondition, precipitationMetric } from '../weather/presentation.js';
 
   let { hours = [], height = 180 } = $props();
 
@@ -27,7 +27,8 @@
   function buildOption(rows) {
     const labels = rows.map((r) => r.h ?? '');
     const temps = rows.map((r) => num(r.t));
-    const precip = rows.map((r) => num(r.p));
+    const precipitation = precipitationMetric(rows.map(r => ({ precipPct: num(r.p), precipIn: num(r.a) })));
+    const precip = precipitation.values;
     const radiation = rows.map((r) => num(r.r));
     const maxRad = Math.max(1, ...radiation.map((v) => v ?? 0));
 
@@ -53,10 +54,11 @@
         {
           type: 'value',
           min: 0,
-          max: 100,
+          max: precipitation.max,
+          show: precipitation.hasValues,
           axisLine: { show: false },
           axisTick: { show: false },
-          axisLabel: { color: colors.rain, fontSize: 10, formatter: '{value}%' },
+          axisLabel: { color: colors.rain, fontSize: 10, formatter: value => precipitation.probability ? `${value}%` : `${Number(value.toPrecision(2))}″` },
           splitLine: { show: false },
         },
         {
@@ -80,7 +82,7 @@
           return [
             `<b>${escapeHtml(row.h ?? '')}</b>`,
             `temp: ${t === null ? '—' : Math.round(t) + '°'}`,
-            `precip: ${p === null ? '—' : Math.round(p) + '%'}`,
+            `precip: ${precipitation.format(precip[i])}`,
             `radiation: ${r === null ? '—' : Math.round(r) + ' W/m²'}`,
           ].join('<br/>');
         },
@@ -97,7 +99,7 @@
           silent: true,
         },
         {
-          name: 'Precip %',
+          name: precipitation.probability ? 'Precip %' : 'Rainfall',
           type: 'bar',
           yAxisIndex: 1,
           data: precip,
@@ -167,8 +169,9 @@
   {:else}
     <div class="hs-icons">
       {#each hours as row, i (i)}
-        <div class="hs-icon-col">
-          <OhIcon icon={wmoIcon(row.w, row)} size="1.1rem" color={wmoColor(row.w, row) ?? 'currentColor'} />
+        {@const condition = forecastCondition({weatherCode:row.w,cloudPct:row.c,precipIn:row.a,isDay:row.isDay,at:row.at})}
+        <div class="hs-icon-col" title={condition.label} data-condition-basis={condition.basis}>
+          <OhIcon icon={condition.icon} size="1.1rem" color={condition.color ?? 'currentColor'} />
           {#if rainAmountText(row.a)}
             <span class="hs-rain" data-testid="hour-rain-amount" style="color: {colors.rain}">{rainAmountText(row.a)}</span>
           {/if}
