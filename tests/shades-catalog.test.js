@@ -36,10 +36,10 @@ describe('shade inventory and report presentation', () => {
     expect(SHADE_SLOTS.every((slot) => slot.positionItem === null && slot.availabilityItem === null && slot.stateItem === null)).toBe(true);
   });
 
-  it('does not substitute Office Hallway for Bedroom; keeps only the approved Living Room proxy', () => {
+  it('uses the approved Office reference for Living Room while Bedroom remains unavailable', () => {
     expect(SHADE_GROUPS.map((group) => [group.temperatureItem, group.temperatureRole])).toEqual([
       [HALLWAY_TEMPERATURE_ITEM, 'hallway_kitchen_reference'],
-      [HALLWAY_TEMPERATURE_ITEM, 'hallway_proxy'],
+      ['Bedroom_Temperature', 'office_reference'],
       [null, 'unavailable'],
       [null, 'unavailable'],
     ]);

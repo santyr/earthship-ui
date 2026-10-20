@@ -2,7 +2,7 @@
   "version": 1,
   "zones": {
     "kitchen": {"item": "AmbientWeatherWS2902A_IndoorSensor_Temperature", "stream": "indoor", "role": "hallway_kitchen_reference"},
-    "living": {"item": "AmbientWeatherWS2902A_IndoorSensor_Temperature", "stream": "indoor", "role": "hallway_proxy"},
+    "living": {"item": "Bedroom_Temperature", "stream": "bedroom", "role": "office_reference", "coverage": ["Living Room", "Office"], "coverage_evidence": "operator_report_2026-10-20"},
     "bathroom": {"item": null, "stream": null, "role": "unavailable"},
     "bedroom": {"item": null, "stream": null, "role": "unavailable"},
     "office_hallway": {

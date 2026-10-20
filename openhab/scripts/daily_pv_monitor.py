@@ -15,6 +15,19 @@ from weather_learning.energy_history import capture_hour,summarize_hour
 from weather_learning.worker import collector_lock
 
 
+def bin_accounting(bins):
+    """Mutually exclusive proxy exclusions; never certify unrestricted MPPT."""
+    out=dict(eligible_bins=0,missing_forecast_bins=0,censored_bins=0,unqualified_bins=0,low_generation_bins=0,unknown_coverage_bins=0)
+    for b in bins:
+        if b['potential_proxy_eligible']:out['eligible_bins']+=1;continue
+        fields=b['fields'];needed=[fields[k] for k in ('pv.input_power_w','pv.output_power_w','battery.dc_power_w')]
+        if b['soc'] is None or min(v['covered_seconds'] for v in needed)<285:out['unqualified_bins']+=1
+        elif max(b['soc'])>90:out['censored_bins']+=1
+        elif fields['pv.input_power_w']['positive_kwh']*3600000/fields['pv.input_power_w']['covered_seconds']<100:out['low_generation_bins']+=1
+        else:out['censored_bins']+=1
+    return out
+
+
 def score_hour(forecast,source,*,assessed_at):
     if (forecast.get('schema')!='earthship-daily-pv-potential-receipt/v1' or forecast.get('receipt_sha256')!=identity({k:v for k,v in forecast.items() if k!='receipt_sha256'})):
         raise ValueError('original forecast identity differs')
@@ -52,7 +65,9 @@ def score_hour(forecast,source,*,assessed_at):
         covered_seconds=weight,baseline_mae_w=mae('baseline_w'),candidate_mae_w=mae('candidate_w'),pairs=pairs,
         outcome_scope='qualified_low_soc_charging_controller_input_proxy',metric_basis='covered_duration_weighted_absolute_power_error',
         prospective_score=True,physical_calibration_qualified=False,automatic_actuation=False)
-    if policy is not None:out.update(schema='earthship-pv-prospective-hour-score/v2',calibration_policy_sha256=policy)
+    if policy is not None:out.update(calibration_policy_sha256=policy)
+    accounting=bin_accounting(bins);accounting.update(eligible_bins=len(pairs),missing_forecast_bins=missing)
+    out.update(schema='earthship-pv-prospective-hour-score/v3',bin_accounting=accounting)
     out['score_sha256']=identity(out);return out
 
 
@@ -68,7 +83,7 @@ def choose_forecast(root,start):
     return None if best is None else best[2]
 
 
-def run(*,forecast_root,state_root,clock=lambda:datetime.now(timezone.utc)):
+def run(*,forecast_root,state_root,performance_output=None,clock=lambda:datetime.now(timezone.utc)):
     state=directory(state_root);now=clock();end=(now-timedelta(minutes=5)).replace(minute=0,second=0,microsecond=0);start=end-timedelta(hours=1)
     with collector_lock(state/'worker.lock'):
         database=state/'scores.sqlite3'
@@ -89,7 +104,7 @@ def run(*,forecast_root,state_root,clock=lambda:datetime.now(timezone.utc)):
                 bank_start=datetime.combine(date.fromisoformat(bank['start_local_date']),time.min,ZoneInfo(epochs['timezone'])).astimezone(timezone.utc).isoformat()
                 import earthship_energy.power_evidence as companion
                 scripts=Path(__file__).resolve().parent
-                runtime={name:scripts/name for name in ('daily_pv_monitor.py','weather_learning/energy_history.py','weather_learning/contracts.py','weather_source_files.py','household_pv_window.py','household/codec.py','household/control_contracts.py','household/evidence.py')}
+                runtime={name:scripts/name for name in ('daily_pv_monitor.py','daily_pv_performance.py','weather_learning/energy_history.py','weather_learning/contracts.py','weather_source_files.py','household_pv_window.py','household/codec.py','household/control_contracts.py','household/evidence.py')}
                 runtime.update({'companion/'+name:Path(companion.__file__).parent/name for name in ('power_evidence.py','power_intervals.py','bms_evidence.py','ac_evidence.py')})
                 originals={name:p.read_bytes() for name,p in runtime.items()}
                 source,path=capture_hour(directory(state/'originals'),start,connect=_connection('/home/sat/.config/hex/energy-power-reader.jdbc','energy_power_reader'),policy_raw=policy,bank_start=bank_start,clock=clock)
@@ -108,12 +123,20 @@ def run(*,forecast_root,state_root,clock=lambda:datetime.now(timezone.utc)):
                 with sqlite3.connect(database,timeout=2) as connection:connection.execute('INSERT INTO hours VALUES(?,?,?)',(start.isoformat(),score['score_sha256'],score['model_sha256']))
                 result={key:score[key] for key in ('status','window_start','window_end','model_sha256','eligible_bins','baseline_mae_w','candidate_mae_w','score_sha256','prospective_score','physical_calibration_qualified','automatic_actuation')}
         if previous is None and forecast is not None and 'calibration_policy_sha256' in score:result['calibration_policy_sha256']=score['calibration_policy_sha256']
+        if performance_output is not None:
+            from daily_pv_performance import publish
+            result['performance']=publish(state,performance_output,clock=clock)['status']
         result['checked_at']=clock().isoformat();save(state/'last-result.json',result);return result
 
 
 def main(argv=None):
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--forecasts',required=True,type=Path);p.add_argument('--state',required=True,type=Path);a=p.parse_args(argv);os.umask(0o077)
-    try:print(json.dumps(run(forecast_root=a.forecasts,state_root=a.state)),flush=True);return 0
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--forecasts',required=True,type=Path);p.add_argument('--state',required=True,type=Path);p.add_argument('--performance-output',type=Path,default=Path.home()/'.local/state/household-intel/daily-pv-performance.json');p.add_argument('--report-only',action='store_true');a=p.parse_args(argv);os.umask(0o077)
+    try:
+        if a.report_only:
+            from daily_pv_performance import publish
+            result=publish(a.state,a.performance_output)
+        else:result=run(forecast_root=a.forecasts,state_root=a.state,performance_output=a.performance_output)
+        print(json.dumps(result),flush=True);return 0
     except Exception as error:
         print(json.dumps(dict(status='pv_monitor_incomplete',reason=type(error).__name__,automatic_actuation=False)),flush=True);return 1
 

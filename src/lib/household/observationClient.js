@@ -33,3 +33,5 @@ export const loadDailyPvPotential = signal => load('/api/daily-pv-potential', si
 export const loadCalibratedEnergy = signal => load('/api/household-calibrated-energy-observation', signal);
 
 export const loadCalibratedPerformance = signal => load('/api/household-calibrated-energy-performance', signal);
+
+export const loadPvPerformance = signal => load('/api/daily-pv-performance', signal);

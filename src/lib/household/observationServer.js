@@ -1,4 +1,5 @@
 import { parseCalibratedEnergy, parseCalibratedPerformance } from './calibratedEnergy.js';
+import { parsePvPerformance } from '../energy/pvPerformance.js';
 import { parseDailyPvPotential } from '../energy/dailyPvPotential.js';
 import { parseChronologicalSummary } from './chronology.js';
 import { constants } from 'node:fs';
@@ -59,6 +60,7 @@ export function householdObservationPlugin({
   profiledCachePath = resolve(homedir(), '.local/state/household-intel/profiled-energy-observation.json'),
   profiledPerformanceCachePath = resolve(homedir(), '.local/state/household-intel/profiled-energy-performance.json'),
   capturedPvCachePath = resolve(homedir(), '.local/state/household-intel/captured-pv-performance.json'),
+  pvPerformanceCachePath = resolve(homedir(), '.local/state/household-intel/daily-pv-performance.json'),
   dailyPvCachePath = resolve(homedir(), '.local/state/household-intel/daily-pv-potential.json'),
   now = Date.now,
 } = {}) {
@@ -66,6 +68,7 @@ export function householdObservationPlugin({
     let url;
     try { url = new URL(req.url || '/', 'http://localhost'); } catch { return next(); }
     const route = {
+      '/api/daily-pv-performance': [pvPerformanceCachePath, parsePvPerformance],
       '/api/daily-pv-potential': [dailyPvCachePath, parseDailyPvPotential],
       '/api/household-chronological-summary': [chronologicalCachePath, parseChronologicalSummary],
       '/api/household-observation': [cachePath, parseHouseholdObservation],

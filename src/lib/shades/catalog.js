@@ -1,3 +1,5 @@
+import { OFFICE_HALLWAY_TEMPERATURE_ITEM } from '../thermal/officeHallwayTemperature.js';
+
 // The adapter remains in santyr/dooya_blinds_openhab. Populate these Item
 // mappings only from the commissioned device inventory, never guessed RF IDs.
 // A Rollershutter report uses 0=open and 100=closed; no optimistic state.
@@ -6,7 +8,7 @@ export const SHADE_GROUPS = Object.freeze([
   Object.freeze({ id: 'kitchen', label: 'Kitchen', first: 1, last: 8,
     temperatureItem: HALLWAY_TEMPERATURE_ITEM, temperatureRole: 'hallway_kitchen_reference' }),
   Object.freeze({ id: 'living', label: 'Living Room', first: 9, last: 17,
-    temperatureItem: HALLWAY_TEMPERATURE_ITEM, temperatureRole: 'hallway_proxy' }),
+    temperatureItem: OFFICE_HALLWAY_TEMPERATURE_ITEM, temperatureRole: 'office_reference' }),
   Object.freeze({ id: 'bathroom', label: 'Bathroom', first: 18, last: 21,
     temperatureItem: null, temperatureRole: 'unavailable' }),
   Object.freeze({ id: 'bedroom', label: 'Bedroom', first: 22, last: 26,

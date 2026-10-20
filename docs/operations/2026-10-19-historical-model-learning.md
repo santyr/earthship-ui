@@ -216,3 +216,14 @@ A directly computed ensemble probability would require preserving member identit
 
 
 Live thermal serving proof: native capture `5977ae044c65dd2419cf518306f5a49b071a0b608cab88ffa2474c4cc47ae6e4` at October 20 13:05:15 UTC uses original outdoor model `c2497e00...` and freshly learned irradiance model `60a4f616...`. Exact pure household projection matches the published conditioned trajectory. The prepared weather/PV grid and original Google rows remain raw. Both forecast and same-issue calibrated-energy services exited successfully; their fixed GETs show the same issue and disabled actuation. Production release `3f5d8cb` also owns the morning and next six-hour refreshes. The actual morning job succeeded and reused unchanged comparison/serving model bytes and creation clocks; retained experiment `b6699696...` has 20,694 pairs with six recorded operational Google runs. Retained original calibrated scores replay with exact input/output parity. No physical refitting was required for the code-only handoff.
+
+
+## Dedicated PV-potential production accuracy
+
+The hourly PV monitor now retains mutually exclusive five-minute accounting for eligible/scored, missing forecast, charging/clipping proxy, missing/unqualified measurements, low generation and unknown older coverage. Version 3 score receipts preserve the existing numerical comparisons and original private sources. Earlier receipts remain unchanged; their omitted coverage categories stay explicitly unknown. Duration-weighted raw/corrected power MAE is recalculated from exact retained pairs, with null metrics at zero eligible coverage. No missing duration is treated as zero production.
+
+The separate seven-day, bounded 32 KiB public report groups model, calibration-policy and original scoring-runtime identities, rather than pooling incompatible versions. It distinguishes hours with no recorded score from measured exclusions. A fixed GET `/api/daily-pv-performance` and Earthship-page PV-potential accuracy tile are implemented independently of the existing calibrated-load/storage accuracy table. Actual retained data currently has 11 scored hours, three source cohorts and zero eligible bins; it correctly reports collecting rather than a fabricated error estimate. Deployment/rendered verification is recorded after activation.
+
+## Living Room shade temperature reference
+
+Operator instruction on October 20: Living Room shades also cover the Office area and should use its temperature. The indoor Living Room shade group now references the existing Office Hallway WH31E sensor (sensor 223; legacy `Bedroom_Temperature` Item / `bedroom` evidence stream). The shade page displays the qualified Office value and expires it with its original receipt. Missing or stale Office evidence is unavailable; the main hallway is not substituted. Bedroom and Bathroom remain without temperature mappings. This observation/display change adds no actuation authority or physical room-model claim.

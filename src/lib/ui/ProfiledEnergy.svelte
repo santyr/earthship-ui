@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import Tile from './Tile.svelte';
+  import PvPotentialAccuracy from './PvPotentialAccuracy.svelte';
   import { parseProfiledObservation, parseProfiledPerformance } from '../household/profiledObservation.js';
   import { loadProfiledObservation, loadProfiledPerformance } from '../household/observationClient.js';
   import { parseCalibratedEnergy, parseCalibratedPerformance } from '../household/calibratedEnergy.js';
@@ -125,6 +126,7 @@
     {:else if !calibrated}<p>Collecting comparisons for this model</p>{/if}
     <p>These observations do not establish calibrated storage or benefits from equipment actions.</p>
   </Tile>
+  <PvPotentialAccuracy />
 </section>
 
 <style>
