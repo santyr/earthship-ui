@@ -3,9 +3,12 @@
   import Tile from './Tile.svelte';
   import { parseProfiledObservation, parseProfiledPerformance } from '../household/profiledObservation.js';
   import { loadProfiledObservation, loadProfiledPerformance } from '../household/observationClient.js';
-  import { parseCalibratedEnergy } from '../household/calibratedEnergy.js';
-  import { loadCalibratedEnergy } from '../household/observationClient.js';
-  let calibratedRaw = $state(null);
+  import { parseCalibratedEnergy, parseCalibratedPerformance } from '../household/calibratedEnergy.js';
+  import { loadCalibratedEnergy, loadCalibratedPerformance } from '../household/observationClient.js';
+  let calibratedRaw = $state(null), calibratedReportRaw = $state(null);
+  const calibratedReport = $derived(parseCalibratedPerformance(calibratedReportRaw, { nowMs }));
+  const sameCalibratedModel = $derived(Boolean(calibrated && calibratedReport?.calibration_model_sha256 === calibrated.calibration_model_sha256));
+  const error = (v, places) => v === null ? "—" : v.toFixed(places);
   const calibrated = $derived(parseCalibratedEnergy(calibratedRaw, { nowMs }));
   let raw = $state(null), reportRaw = $state(null), nowMs = $state(Date.now()), selectedHour = $state(1);
   const forecast = $derived(parseProfiledObservation(raw, { nowMs }));
@@ -21,11 +24,12 @@
     async function refresh() {
       controller?.abort(); clearTimeout(deadline); const current = new AbortController(); controller = current;
       deadline = setTimeout(() => current.abort(), 10000);
-      const results = await Promise.allSettled([loadProfiledObservation(current.signal), loadProfiledPerformance(current.signal), loadCalibratedEnergy(current.signal)]);
+      const results = await Promise.allSettled([loadProfiledObservation(current.signal), loadProfiledPerformance(current.signal), loadCalibratedEnergy(current.signal), loadCalibratedPerformance(current.signal)]);
       if (!stopped && controller === current) {
         raw = results[0].status === 'fulfilled' ? results[0].value : null;
         reportRaw = results[1].status === 'fulfilled' ? results[1].value : null;
         calibratedRaw = results[2].status === 'fulfilled' ? results[2].value : null;
+        calibratedReportRaw = results[3].status === 'fulfilled' ? results[3].value : null;
         nowMs = Date.now(); clearTimeout(deadline);
       }
     }
@@ -82,7 +86,6 @@
         <p class="legend"><span>— Calibrated PV</span> <span>┄ Raw physics PV</span></p>
         <p>Conditional nominal storage from {calibrated.initial_soc_pct.toFixed(1)}% SoC; conversion losses and usable capacity remain provisional.</p>
       {:else}<p>Storage forecast is unavailable; the PV potential remains independent.</p>{/if}
-      <p>Calibrated scenario accuracy is collecting.</p>
     {:else if forecast?.status === 'conditional'}
       <p>Modeled PV capture: {kwh(forecast.profiled_captured_pv_24h_kwh)} with learned demand; {kwh(forecast.constant_captured_pv_24h_kwh)} with current demand held constant.</p>
       <svg viewBox="0 0 710 215" role="img" aria-label="Nominal battery SoC with learned and constant AC demand">
@@ -95,6 +98,19 @@
       <p class="legend"><span>— Learned demand</span> <span>┄ Constant demand</span></p>
       <p>Conditional nominal storage from {forecast.initial_soc_pct.toFixed(1)}% SoC; conversion losses and usable capacity remain provisional.</p>
     {:else}<p>Learned-load storage scenario is collecting.</p>{/if}
+    {#if calibrated && sameCalibratedModel}
+      {#if calibratedReport.expired}<p class="notice">Calibrated accuracy report is stale</p>{/if}
+      <p>Mean absolute forecast error; lower is better. SoC errors are percentage points. AC energy compares the hour ending at each lead time.</p>
+      <div class="table"><table aria-label="Calibrated PV and storage forecast accuracy"><thead><tr><th>Lead</th><th>Learned AC<br />(kWh)</th><th>Current AC<br />(kWh)</th><th>AC samples<br />(current)</th><th>Calibrated PV SoC</th><th>Raw PV SoC</th><th>Hold SoC</th><th>SoC samples</th></tr></thead><tbody>
+        {#each ['1', '6', '12', '24'] as h}
+          {@const row = calibratedReport.by_horizon[h]}
+          <tr><td>{h}h</td><td>{error(row.load.mae_kwh.learned_ac, 3)}</td><td>{error(row.load.mae_kwh.current_ac, 3)}</td><td>{row.load.count} / {row.load.attempted_count} ({row.load.current_count})</td>
+            {#each ['calibrated_pv', 'raw_pv', 'hold_soc'] as model}<td>{error(row.soc.mae_soc_pct[model], 2)}</td>{/each}<td>{row.soc.count} / {row.soc.attempted_count}</td></tr>
+        {/each}
+      </tbody></table></div>
+      <p>Samples / mature forecasts; a dash means unavailable. AC samples require at least 99% measured coverage.</p>
+      {#if calibratedReport.first_issue}<p>Forecasts issued {date(calibratedReport.first_issue)}–{date(calibratedReport.last_issue)} across {calibratedReport.independent_origin_days} issue date(s). Updated {date(calibratedReport.generated_at)}.</p>{/if}
+    {:else if calibrated}<p>Calibrated scenario accuracy is collecting.</p>{/if}
     {#if !calibrated && report && sameModel}
       {#if report.expired}<p class="notice">Demand accuracy report is stale</p>{/if}
       <p>Mean absolute error; lower is better. AC energy compares the hour ending at each lead time.</p>

@@ -38,3 +38,30 @@ export function parseCalibratedEnergy(raw,{nowMs=Date.now()}={}) {
   return {...v,expired:nowMs>=until};
  } catch {return null;}
 }
+
+const performanceFields='schema generated_at valid_until cohort_id calibration_model_sha256 model_version_count independent_origin_days first_issue last_issue by_horizon physical_calibration_qualified causal_benefit_qualified graduated automatic_actuation view_sha256'.split(' ');
+const count=v=>Number.isInteger(v)&&v>=0&&v<=512;
+export function parseCalibratedPerformance(raw,{nowMs=Date.now()}={}) {
+ try {
+  if(typeof raw!=='string'||new TextEncoder().encode(raw).length>32768||!Number.isFinite(nowMs))return null;
+  uniqueObjectKeys(raw);const v=JSON.parse(raw);
+  if(!shape(v,performanceFields)||v.schema!=='earthship-household-calibrated-energy-performance/v1'||['cohort_id','calibration_model_sha256','view_sha256'].some(k=>!digest(v[k]))
+    ||['physical_calibration_qualified','causal_benefit_qualified','graduated','automatic_actuation'].some(k=>v[k]!==false)
+    ||!count(v.model_version_count)||!Number.isInteger(v.independent_origin_days)||v.independent_origin_days<0||v.independent_origin_days>8)return null;
+  const generated=time(v.generated_at),until=time(v.valid_until),first=v.first_issue===null?null:time(v.first_issue),last=v.last_issue===null?null:time(v.last_issue);
+  if(generated===null||until===null||generated>nowMs||until-generated!==3600000)return null;
+  if(v.independent_origin_days===0?(v.first_issue!==null||v.last_issue!==null):(first===null||last===null||first>last||last>generated||generated-first>7*86400000))return null;
+  if(!shape(v.by_horizon,['1','6','12','24']))return null;
+  for(const row of Object.values(v.by_horizon)) {
+   if(!shape(row,['soc','load'])||!shape(row.soc,['attempted_count','count','mae_soc_pct'])||!shape(row.load,['attempted_count','count','current_count','mae_kwh']))return null;
+   const soc=row.soc,load=row.load;
+   if(!count(soc.count)||!count(soc.attempted_count)||soc.count>soc.attempted_count||!count(load.count)||!count(load.attempted_count)||load.count>load.attempted_count||!count(load.current_count)||load.current_count>load.count||soc.attempted_count!==load.attempted_count)return null;
+   if(!shape(soc.mae_soc_pct,['calibrated_pv','raw_pv','hold_soc'])||!shape(load.mae_kwh,['learned_ac','current_ac']))return null;
+   if(Object.values(soc.mae_soc_pct).some(n=>soc.count?!num(n,0,100):n!==null)||
+     (load.count?!num(load.mae_kwh.learned_ac,0,20):load.mae_kwh.learned_ac!==null)||
+     (load.current_count?!num(load.mae_kwh.current_ac,0,20):load.mae_kwh.current_ac!==null))return null;
+   if((soc.count||load.count)&&(!v.model_version_count||!v.independent_origin_days))return null;
+  }
+  return {...v,expired:nowMs>=until};
+ } catch {return null;}
+}

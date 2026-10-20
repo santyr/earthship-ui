@@ -1,0 +1,15 @@
+[Unit]
+Description=Earthship calibrated PV/storage outcome reporting (read-only)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=%h/.config/earthship-weather/calibrated-score.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONPATH=%h/Solar_PV/analytics/src
+ExecStart=/usr/bin/python3 ${EARTHSHIP_CALIBRATED_SCORE_ROOT}/scripts/run-household-job.py --production --minimum-mib 256 --preferred-mib 768 --tasks 24 --seconds 90 -- /usr/bin/python3 ${EARTHSHIP_CALIBRATED_SCORE_ROOT}/openhab/scripts/household_calibrated_score.py
+TimeoutStartSec=110
+UMask=0077
+StandardOutput=journal
+StandardError=journal

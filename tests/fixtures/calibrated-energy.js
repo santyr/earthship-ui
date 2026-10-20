@@ -9,3 +9,12 @@ export function calibratedEnergy() {
     trajectory: Array.from({ length: 24 }, (_, i) => ({ at: new Date(issue + (i + 1) * 3600000).toISOString(), mean_ac_w: 400, minimum_support_days: 12, training_spread_ac_w: [300, 600], calibrated_soc_pct: 96, raw_soc_pct: 97 })),
     source_freshness_basis: 'qualified_original_issue_with_120_second_publication_deadline', confidence: 'provisional_empirical_short_horizon', physical_calibration_qualified: false, automatic_actuation: false };
 }
+export function calibratedPerformance() {
+ const digest='a'.repeat(64),issue=new Date(CALIBRATED_NOW-70*60000).toISOString();
+ return {schema:'earthship-household-calibrated-energy-performance/v1',generated_at:new Date(CALIBRATED_NOW).toISOString(),valid_until:new Date(CALIBRATED_NOW+3600000).toISOString(),
+  cohort_id:digest,calibration_model_sha256:digest,view_sha256:digest,model_version_count:1,independent_origin_days:1,first_issue:issue,last_issue:issue,
+  by_horizon:Object.fromEntries([1,6,12,24].map(h=>[String(h),{
+   soc:{attempted_count:h===1?1:0,count:h===1?1:0,mae_soc_pct:{calibrated_pv:h===1?1:null,raw_pv:h===1?1.2:null,hold_soc:h===1?2:null}},
+   load:{attempted_count:h===1?1:0,count:h===1?1:0,current_count:0,mae_kwh:{learned_ac:h===1?.05:null,current_ac:null}},
+  }])),physical_calibration_qualified:false,causal_benefit_qualified:false,graduated:false,automatic_actuation:false};
+}

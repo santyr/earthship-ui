@@ -1,0 +1,11 @@
+[Unit]
+Description=Earthship calibrated storage outcome updates
+
+[Timer]
+OnCalendar=*-*-* *:00/5:50
+RandomizedDelaySec=10
+Persistent=true
+Unit=household-calibrated-score.service
+
+[Install]
+WantedBy=timers.target

@@ -5,15 +5,15 @@ import { join } from 'node:path';
 import { createServer } from 'node:http';
 import { profiledObservation, profiledPerformance, PROFILE_NOW } from './fixtures/household-profiled-energy.js';
 import { householdObservationPlugin } from '../src/lib/household/observationServer.js';
-import { calibratedEnergy } from './fixtures/calibrated-energy.js';
+import { calibratedEnergy, calibratedPerformance } from './fixtures/calibrated-energy.js';
 const cleanup = [];
 afterEach(async () => { for (const task of cleanup.splice(0).reverse()) await task(); });
-it.each([['/api/household-profiled-energy-observation', profiledObservation], ['/api/household-profiled-energy-performance', profiledPerformance], ['/api/household-calibrated-energy-observation', calibratedEnergy]])(
+it.each([['/api/household-profiled-energy-observation', profiledObservation], ['/api/household-profiled-energy-performance', profiledPerformance], ['/api/household-calibrated-energy-observation', calibratedEnergy], ['/api/household-calibrated-energy-performance', calibratedPerformance]])(
   'serves fixed curated GET %s without allowing file selection or authority', async (endpoint, fixture) => {
     const dir = await mkdtemp(join(tmpdir(), 'energy-monitoring-')); await chmod(dir, 0o700); cleanup.push(() => rm(dir, { recursive: true, force: true }));
     const path = join(dir, 'value.json'); await writeFile(path, JSON.stringify(fixture()), { mode: 0o600 });
     let handler;
-    householdObservationPlugin({ profiledCachePath: path, profiledPerformanceCachePath: path, calibratedCachePath: path, now: () => PROFILE_NOW })
+    householdObservationPlugin({ profiledCachePath: path, profiledPerformanceCachePath: path, calibratedCachePath: path, calibratedPerformanceCachePath: path, now: () => PROFILE_NOW })
       .configureServer({ middlewares: { use(fn) { handler = fn; } } });
     const server = createServer((req, res) => handler(req, res, () => res.writeHead(404).end()));
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve)); cleanup.push(() => new Promise(resolve => { server.close(resolve); server.closeAllConnections(); }));

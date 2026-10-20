@@ -31,3 +31,5 @@ async function load(path, signal) {
 export const loadDailyPvPotential = signal => load('/api/daily-pv-potential', signal);
 
 export const loadCalibratedEnergy = signal => load('/api/household-calibrated-energy-observation', signal);
+
+export const loadCalibratedPerformance = signal => load('/api/household-calibrated-energy-performance', signal);
