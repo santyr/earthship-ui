@@ -1,6 +1,7 @@
 """Advertised verification gates discover real tests and cover shared changes."""
 from pathlib import Path
 import csv
+import ast
 import fnmatch
 import os
 import re
@@ -190,7 +191,40 @@ def test_registered_scorer_fixture_preserves_later_qualification_fit(tmp_path):
     env={**os.environ,'EARTHSHIP_REMOTE_QUALIFICATION_FIT':'1',
          'EARTHSHIP_QUALIFICATION_FIT':'1',
          'PYTHONPATH':str(ROOT/'openhab/scripts')+os.pathsep+os.environ.get('PYTHONPATH','')}
+    callers=[]
+    for path in sorted((ROOT/'openhab/scripts').glob('test_*.py')):
+        source=path.read_text()
+        if 'thermal_installed_score as cli' not in source:continue
+        for node in ast.parse(source).body:
+            if isinstance(node,ast.FunctionDef) and node.name.startswith('test_'):
+                if any(isinstance(call,ast.Call) and isinstance(call.func,ast.Attribute)
+                       and call.func.attr=='main' and isinstance(call.func.value,ast.Name)
+                       and call.func.value.id=='cli' for call in ast.walk(node)):
+                    callers.append(str(path)+'::'+node.name)
+    assert callers,'no in-process scorer CLI tests discovered'
     result=subprocess.run([sys.executable,'-m','pytest','-q','-p','no:cacheprovider',
-        str(ROOT/'openhab/scripts/test_installed_registered_score_cli.py'),str(sentinel)],
-        cwd=ROOT,env=env,capture_output=True,text=True,timeout=30)
+        *callers,str(sentinel)],cwd=ROOT,env=env,capture_output=True,text=True,timeout=30)
     assert result.returncode==0,result.stdout+result.stderr
+
+
+def test_hosted_qualification_fit_has_a_non_skippable_dedicated_gate(tmp_path):
+    text=(ROOT/'.github/workflows/forecast-ml-hardening.yml').read_text()
+    target='openhab/scripts/test_thermal_fit_evidence.py::test_real_qualification_fit_is_exercised_only_on_the_hosted_runner'
+    assert '--deselect='+target in text
+    dedicated=text.split('  qualification-fit:\n',1)[1]
+    assert 'EARTHSHIP_REMOTE_QUALIFICATION_FIT: "1"' in dedicated
+    lines=dedicated.splitlines()
+    start=lines.index('      - name: Require one executed full qualification fit')
+    start=lines.index('        run: |',start)+1
+    script='\n'.join(line[10:] for line in lines[start:] if line.startswith('          '))
+    assert target in script and '--junitxml=' in script
+    for outcome in ('passed','skipped','absent'):
+        # Use a structured XML generator so shell quoting cannot change the fixture.
+        generator=tmp_path/'emit-result.py'
+        generator.write_text("import os,pathlib,xml.etree.ElementTree as E\nr=E.Element('testsuites');s=E.SubElement(r,'testsuite')\nif os.environ['A18_OUTCOME']!='absent':\n c=E.SubElement(s,'testcase',name='test_real_qualification_fit_is_exercised_only_on_the_hosted_runner')\n if os.environ['A18_OUTCOME']=='skipped':E.SubElement(c,'skipped')\nE.ElementTree(r).write(pathlib.Path(os.environ['RUNNER_TEMP'])/'qualification-fit.xml')\n")
+        prelude='python() { if [ "$1" = "-m" ]; then "$A18_PYTHON" "$A18_GENERATOR"; else "$A18_PYTHON" "$@"; fi; }\n'
+        result=subprocess.run(['/bin/bash','-e','-c',prelude+script],cwd=ROOT,
+            env={**os.environ,'A18_PYTHON':sys.executable,'A18_GENERATOR':str(generator),
+                 'A18_OUTCOME':outcome,'RUNNER_TEMP':str(tmp_path)},
+            capture_output=True,text=True,timeout=10)
+        assert (result.returncode==0)==(outcome=='passed'),result.stdout+result.stderr

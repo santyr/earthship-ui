@@ -2,6 +2,13 @@
 import os
 import pytest
 
+@pytest.fixture(autouse=True)
+def preserve_score_cli_fit_environment(monkeypatch):
+    # Standalone scorer policy must not escape its in-process test invocation.
+    for key in ('EARTHSHIP_QUALIFICATION_FIT','EARTHSHIP_REMOTE_QUALIFICATION_FIT'):
+        monkeypatch.setenv(key,os.environ.get(key,'0'))
+
+
 
 def guard(path):
     import thermal_installed_score as cli

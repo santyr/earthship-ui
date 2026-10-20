@@ -693,18 +693,22 @@
     {
       "id": "A18",
       "severity": "P2",
-      "title": "Registered scorer fixtures disable the later hosted qualification-fit gate",
+      "title": "Scorer CLI fixtures silently disable the later hosted qualification fit",
       "confidence": "confirmed",
       "affected_revision": "96247d26494c553e7debba065a0263d6b9fcae97",
       "files": [
         "openhab/scripts/test_installed_registered_score_cli.py",
-        "tests/completion/test_verification_gates.py"
+        "openhab/scripts/test_installed_score_global_lock.py",
+        "openhab/scripts/test_installed_score_jobs.py",
+        "openhab/scripts/test_installed_shade_release_index.py",
+        "tests/completion/test_verification_gates.py",
+        ".github/workflows/forecast-ml-hardening.yml"
       ],
       "expected_actual": "The explicitly enabled hosted fit must execute. In-process registered scorer tests left both qualification environment flags at0; the later fit silently skipped despite the workflow enabling it.",
       "reproduction": "Native subprocess runs all11 registered-scorer tests followed by an enabled-fit sentinel:1failed/11passed before repair; normal parent regression fails. Matching final ML progress identifies the skipped fit case at index1136.",
-      "root_cause": "The standalone scorer intentionally disables fitting. Unlike the other CLI test fixtures, registered-scorer fixtures did not register those environment writes for monkeypatch restoration.",
-      "repair_commit": "this commit",
-      "regression_evidence": "23passed/12.44s/exit0 for maintained verification gates plus registered-scorer tests after autouse environment preservation; production scorer and resource guard unchanged. Final hosted fit rerun required.",
+      "root_cause": "The standalone scorer intentionally disables fitting in-process. Four CLI fixture modules failed to restore those environment writes; repairing only the registered module left queue/index/busy-lock leakage. The monolithic CI suite allowed a skipped fit to pass.",
+      "repair_commit": "494213c; this follow-up commit",
+      "regression_evidence": "Expanded source-derived caller regression executes all22 actual in-process scorer CLI cases then an enabled-fit sentinel:1failed/22passed before complete fixture repair. Maintained workflow test initially fails absent dedicated gate, then executes its actual shell against passed/skipped/absent receipts; skipped and absent fail. Full affected gate+six CLI module suite109passed/23.95s/exit0, including pinned actionlint with ShellCheck. Dedicated hosted real fit still required.",
       "status": "fixed_focused_verified",
       "severity_reason": "A maintained important numerical qualification gate was omitted from successful CI, without demonstrating a production model error.",
       "deployment_status": "test-only repair; no production change"
