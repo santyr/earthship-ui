@@ -15,6 +15,7 @@ from household_calibrated_outcomes import seal_outcomes,summarize_score,validate
 from household_solar_score import read_forecast as read_energy,unchanged as energy_unchanged
 from household_profiled_score import read_forecast as read_profile,unchanged as profile_unchanged
 from weather_learning.worker import collector_lock
+from calibrated_score_runtime import producer_roots,select_source_root,model_operation
 
 FORECAST_SUFFIX='.calibrated-energy-v1.json'
 SCORE_SUFFIX='.calibrated-score-v1.json.gz'
@@ -87,7 +88,8 @@ def run(*,state,view,clock=lambda:datetime.now(timezone.utc)):
         stages=[Path(selection['stage']),*[Path(r['stage']) for r in dispatch['historical']]]
         inventory=_inventory(state/'forecasts',now=now,guard=guard)
         if not inventory:return dict(status='awaiting_calibrated_forecast',automatic_actuation=False)
-        latest=inventory[-1];energy,plan,profile,_=resolve_originals(latest[2],stages=stages);replay(latest[2],energy=energy,plan=plan,profiled=profile);origin=_predictions(latest[2],plan,profile);guard()
+        roots=producer_roots();latest=inventory[-1];energy,plan,profile,_=resolve_originals(latest[2],stages=stages)
+        origin=model_operation(producer_root=select_source_root(latest[2],roots),mode='origin',inputs=dict(forecast=latest[2],energy=energy,plan=plan,profiled=profile),state=store,deadline=deadline,guard=guard);guard()
         index_path=store/'index.json'
         try:index=loads(_private_file(index_path,1048576)[0])
         except FileNotFoundError:index=dict(schema='earthship-calibrated-outcome-index/v1',origins={})
@@ -129,7 +131,7 @@ def run(*,state,view,clock=lambda:datetime.now(timezone.utc)):
                     try:endpoints[key]=fetch_endpoint(lambda:connect(remaining=remaining),target_at=target,remaining=remaining,clock=clock)
                     except Exception as error:deferred.append(type(error).__name__)
                 break
-            guard();score=seal_outcomes(forecast=forecast,energy=energy,plan=plan,profiled=profile,hour_sources=hours,endpoint_sources=endpoints,assessed_at=clock());guard()
+            guard();score=model_operation(producer_root=select_source_root(forecast,roots),mode='score',inputs=dict(forecast=forecast,energy=energy,plan=plan,profiled=profile,hour_sources=hours,endpoint_sources=endpoints,assessed_at=clock()),state=store,deadline=deadline,guard=guard);guard()
             raw=canonical(score);compressed=gzip.compress(raw,compresslevel=3,mtime=0);file_pin=sha256(compressed).hexdigest();_immutable(store/(file_pin+SCORE_SUFFIX),compressed)
             sample=summarize_score(score,verified_at=clock(),score_file_sha256=file_pin);sample_raw=canonical(sample);sample_pin=sha256(sample_raw).hexdigest();_immutable(store/(sample_pin+SAMPLE_SUFFIX),sample_raw)
             pending=[]

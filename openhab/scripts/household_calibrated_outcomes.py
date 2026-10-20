@@ -2,7 +2,7 @@
 from datetime import timedelta
 from pathlib import Path
 from hashlib import sha256
-import json
+import json,importlib
 from household.codec import canonical,loads,identity
 from household.control_contracts import instant
 from household.evidence import utc
@@ -19,8 +19,10 @@ FLAGS=dict(physical_calibration_qualified=False,causal_benefit_qualified=False,g
 
 def runtime_manifest():
     result=forecast_runtime();root=Path(__file__).resolve().parent
-    for name in ('household_calibrated_outcomes.py','household_calibrated_score.py','household_battery_source.py','household/battery_outcomes.py','household_ac_load_window.py','household_ac_load_model.py'):
+    for name in ('household_calibrated_outcomes.py','household_calibrated_score.py','calibrated_score_runtime.py','household_battery_source.py'):
         result['openhab/scripts/'+name]=sha256((root/name).read_bytes()).hexdigest()
+    for name,module in [('household/battery_outcomes.py','household.battery_outcomes'),('household_ac_load_window.py','household_ac_load_window'),('household_ac_load_model.py','household_ac_load_model')]:
+        result['openhab/scripts/'+name]=sha256(Path(importlib.import_module(module).__file__).read_bytes()).hexdigest()
     return result
 
 
