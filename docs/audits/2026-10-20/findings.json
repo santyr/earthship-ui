@@ -87,7 +87,7 @@
         "New reconciliation/deadline/catalog group:25 failed/66 passed; App original:2 failed and unhandled503."
       ],
       "root_cause": "Merged snapshots without epoch/per-resource ordering; no independent resync retry, first-open reconciliation, bounded reads or owned teardown.",
-      "repair_commit": null,
+      "repair_commit": "c53fbcc",
       "regression_evidence": [
         "Complete interim unit run:182files/2743passed, Node24 with test-only .codex import adapter; standard Node22 final clone gate pending."
       ],
@@ -111,7 +111,7 @@
         "Original Home:3 lifecycle failures; catalog mode regressions included in25-failure group."
       ],
       "root_cause": "Correlated controls missed release-mode gate; outdoor/battery/pressure histories assigned direct asynchronous results outside coordinator.",
-      "repair_commit": null,
+      "repair_commit": "c53fbcc",
       "regression_evidence": [
         "Complete interim unit run182files/2743passed. Energy overlay expiration and delayed-start existing cases retained."
       ],
@@ -153,7 +153,7 @@
         "New local-day/DST/mixed-offset/no-op tests:7failed/3passed."
       ],
       "root_cause": "Mixed UTC timestamp prefixes and a separate Denver holdout path.",
-      "repair_commit": null,
+      "repair_commit": "c53fbcc",
       "regression_evidence": [
         "Combined numerical gate103passed. Actual737-pair retained model retains29local training days,5holdout days and identical sector support; see pv-retained-reassessment.json."
       ],
@@ -177,7 +177,7 @@
         "Original shared-baseline tests7failed/2passed; old-dataset gate1failed/10passed; exact-unit1failed/11passed."
       ],
       "root_cause": "Duplicated interval arithmetic and rounded wind-unit conversion; old pair dataset could be reused for a newly sourced model.",
-      "repair_commit": null,
+      "repair_commit": "c53fbcc",
       "regression_evidence": [
         "Combined numerical gate103passed.16complete live projections exactly equal original serving implementation.737retained pairs rebuilt from55verified Google sources/29verified geometry series;671baselines changed, meanabs5.836047893W/max59.088710966W. Same124-pair/5day development split still selects corrected model; no new prospective skill claimed."
       ],
@@ -229,9 +229,10 @@
       "root_cause": "Missing geometry spec and stale QA references; no general browser gate; shared dependency path omissions; sensor spec targeted deliberately retired route; native PG support directory omitted from CI.",
       "repair_commit": null,
       "regression_evidence": [
-        "Seven gate checks pass; one native dependency failure remains under active repair. General71tests/7files, geometry65tests/5files, sensor2tests/1file discovered. Missing sensor env explicitly fails before startup, no silent skip. QA2cases passed after staleSet assertion corrected."
+        "Seven gate checks pass; one native dependency failure remains under active repair. General71tests/7files, geometry65tests/5files, sensor2tests/1file discovered. Missing sensor env explicitly fails before startup, no silent skip. QA2cases passed after staleSet assertion corrected.",
+        "Separate pinned BMS profile preserves general pin and normal file partitions.11gatecases pass including actual shard shell success/general-failure/BMS-failure;7nativePGtests passed0skips. Browserruntime stillpending."
       ],
-      "status": "partially_fixed_native_dependency_under_repair"
+      "status": "fixed_profile_gates_verified_browser_pending"
     },
     {
       "id": "A10",
@@ -269,7 +270,7 @@
         "npm audit --json against original lockfile: exit1,7findings;27unique advisoryIDs."
       ],
       "root_cause": "Pinned vulnerable transitive/test packages; deployed Vite is LAN-facing but affected mocker handlers are not configured; no reachable app exploit demonstrated.",
-      "repair_commit": null,
+      "repair_commit": "f03f6a9",
       "regression_evidence": [
         "npm audit fix --package-lock-only --ignore-scripts:exit0,15package entries updated,noneadded/removed; package.json/ranges unchanged; fresh npmci/fullfrontendgates pending."
       ],
@@ -290,7 +291,7 @@
         "Independent actual owner harness: 600-character bracket zone accepted/completed; persisted identity640characters; next normal request denied ledger_invalid. Normal regression:2failed/31passed for both request streams."
       ],
       "root_cause": "New reader identity512-character bound was not enforced by admission; tolerant timestamp normalizer accepted a long zone suffix.",
-      "repair_commit": null,
+      "repair_commit": "cb4f16b",
       "regression_evidence": [
         "Timestamp text capped128characters before ledger access; writer also validates exact same identity bound as reader. Both streams reject before persistence/commands and admit a subsequent valid request after volatile loss. Review-fix group119passed/7files."
       ],
@@ -311,7 +312,7 @@
         "Independent small store reproduction10d\u21929d\u2192old snapshot10d; normal regression1failed/10passed."
       ],
       "root_cause": "applyUpdateEvidence mutated Item state before replacement snapshot constructed preserved entries.",
-      "repair_commit": null,
+      "repair_commit": "cb4f16b",
       "regression_evidence": [
         "Snapshot updates evidence without Item mutation; replacement snapshot alone owns state. Source evidence keeps old original clock/state until matching evidence arrives. Review-fix group119passed/7files."
       ],

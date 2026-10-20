@@ -5,6 +5,8 @@ import fnmatch
 import os
 import re
 import subprocess
+import sys
+import pytest
 
 ROOT=Path(__file__).resolve().parents[2]
 
@@ -90,10 +92,10 @@ def test_specialist_python_gates_follow_shared_sources_and_requirements():
 
 
 def test_native_postgres_families_collect_with_ci_declared_companion_support():
-    import sys
     files=sorted(path for path in (ROOT/'openhab/scripts').glob('test_*postgres.py')
         if 'advisory_db_fixture' in path.read_text())
-    assert files,'native PostgreSQL regression families must be discovered'
+    special=ROOT/'openhab/scripts/test_bms_aux_producer_consumer_postgres.py'
+    assert special in files
     for workflow in ['ci.yml','forecast-ml-hardening.yml','household-receipt-integrity.yml']:
         lines=[line.split('PYTHONPATH:',1)[1].strip() for line in
             (ROOT/'.github/workflows'/workflow).read_text().splitlines()
@@ -102,12 +104,65 @@ def test_native_postgres_families_collect_with_ci_declared_companion_support():
         for declared in lines:
             declared=declared.replace('${{ github.workspace }}',str(ROOT))
             assert str(ROOT/'.ci/solar-pv/analytics/tests') in declared.split(':'),workflow
-    # Collection imports every native module without starting PostgreSQL. A
-    # missing helper must fail this gate instead of silently skipping them.
-    declared=lines[0].replace('${{ github.workspace }}',str(ROOT))
-    result=subprocess.run([sys.executable,'-m','pytest','--collect-only','-q','-p','no:cacheprovider',
-        *[str(path) for path in files]],cwd=ROOT,env={**os.environ,'PYTHONPATH':declared},
-        capture_output=True,text=True,timeout=30)
-    assert result.returncode==0,result.stdout+result.stderr
-    for path in files:assert path.name+'::' in result.stdout,result.stdout+result.stderr
-    assert 'skipped' not in result.stdout,result.stdout
+    workflow=(ROOT/'.github/workflows/ci.yml').read_text()
+    assert 'ref: 24d2e8984810cb596fe9792768510a356786f709' in workflow
+    assert 'ref: 7b70117bcfb9599a12d0325771ed1103f083fa5c' in workflow
+    assert 'path: .ci/solar-pv-bms-aux' in workflow
+    for folder,selected in [('solar-pv',[path for path in files if path!=special]),('solar-pv-bms-aux',[special])]:
+        declared=':'.join(str(path) for path in [ROOT/'openhab/scripts',
+            ROOT/'.ci'/folder/'analytics/src',ROOT/'.ci'/folder/'analytics/tests'])
+        result=subprocess.run([sys.executable,'-m','pytest','--collect-only','-q','-p','no:cacheprovider',
+            *[str(path) for path in selected]],cwd=ROOT,env={**os.environ,'PYTHONPATH':declared},
+            capture_output=True,text=True,timeout=30)
+        assert result.returncode==0,result.stdout+result.stderr
+        for path in selected:assert path.name+'::' in result.stdout,result.stdout+result.stderr
+        assert 'skipped' not in result.stdout,result.stdout
+
+
+def shard_shell():
+    lines=(ROOT/'.github/workflows/ci.yml').read_text().splitlines()
+    step=lines.index('      - name: Existing OpenHAB Python tests (disjoint file partition)')
+    start=lines.index('        run: |',step)+1
+    script=[]
+    for line in lines[start:]:
+        if line and not line.startswith('          '):break
+        script.append(line[10:] if line else '')
+    return '\n'.join(script)
+
+
+@pytest.mark.parametrize('general_exit,bms_exit',[(0,0),(3,0),(0,7)])
+def test_shards_execute_every_file_once_with_separate_companion_profiles(tmp_path,general_exit,bms_exit):
+    import json
+    from hashlib import sha256
+    special='openhab/scripts/test_bms_aux_producer_consumer_postgres.py'
+    expected={p.relative_to(ROOT).as_posix() for p in (ROOT/'openhab/scripts').rglob('*.py')
+        if p.name.startswith('test_') or p.name.endswith('_test.py')}
+    seen=[]
+    for shard in range(3):
+        record=tmp_path/str(shard)
+        prelude=r'''
+python() {
+  if [ "$1" = '-' ]; then "$A09_PYTHON" "$@"; return; fi
+  "$A09_PYTHON" -c 'import json,os,sys;open(os.environ["A09_RECORD"],"a").write(json.dumps({"path":os.environ["PYTHONPATH"],"args":sys.argv[1:]})+"\n")' "$@"
+  case "$PYTHONPATH" in *solar-pv-bms-aux*) return "$A09_BMS_EXIT";; *) return "$A09_GENERAL_EXIT";; esac
+}
+'''
+        general=f'{ROOT}/openhab/scripts:{ROOT}/.ci/solar-pv/analytics/src:{ROOT}/.ci/solar-pv/analytics/tests'
+        env={**os.environ,'TEST_SHARD':str(shard),'GITHUB_WORKSPACE':str(ROOT),'PYTHONPATH':general,
+            'A09_PYTHON':sys.executable,'A09_RECORD':str(record),'A09_GENERAL_EXIT':str(general_exit),'A09_BMS_EXIT':str(bms_exit)}
+        result=subprocess.run(['/bin/bash','-c',prelude+shard_shell()],cwd=ROOT,env=env,
+            capture_output=True,text=True,timeout=10)
+        calls=[json.loads(line) for line in record.read_text().splitlines()]
+        owns_special=int(sha256(special.encode()).hexdigest(),16)%3==shard
+        assert len(calls)==1+owns_special
+        for call in calls:
+            assert call['args'][:3]==['-m','pytest','-q']
+            files=call['args'][3:];seen.extend(files)
+            if files==[special]:
+                assert call['path']==f'{ROOT}/openhab/scripts:{ROOT}/.ci/solar-pv-bms-aux/analytics/src:{ROOT}/.ci/solar-pv-bms-aux/analytics/tests'
+            else:
+                assert special not in files and call['path']==general
+        assert result.returncode==(1 if general_exit or owns_special and bms_exit else 0),result.stdout+result.stderr
+        assert f'general_pytest_exit={general_exit}' in result.stdout
+        assert f'bms_aux_pytest_exit={bms_exit if owns_special else 0}' in result.stdout
+    assert len(seen)==len(set(seen)) and set(seen)==expected

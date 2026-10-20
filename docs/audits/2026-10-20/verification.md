@@ -69,3 +69,14 @@ Fresh reviewer inspected65ee7e95..f03f6a9 and ran two bounded original-code repr
 A12 original regressions:2failed/31passed. Reject timestamp text over128characters before durable work and enforce the reader's512-character identity limit on admission. A13 original regression:1failed/10passed; snapshot evidence updates no longer mutate preserved Item state.
 
 `python3 scripts/run-household-job.py --minimum-mib 768 --preferred-mib 1536 --tasks 96 --seconds 600 -- /usr/bin/env RAYON_NUM_THREADS=1 GOMAXPROCS=2 UV_THREADPOOL_SIZE=2 node_modules/.bin/vitest run --maxWorkers=1 tests/openhab/night-load-override-rule.test.js tests/openhab/night-load-recovery.test.js tests/openhab/request-ledger.test.js tests/openhab-reconciliation.test.js tests/store.test.js tests/alert-staleness.test.js tests/astro-presentation.test.js` → exit0,**119passed/7files**,1.18s. An earlier unbounded-worker attempt hit the unchanged task cap and exited1; it is not a passing result. The successful final command uses one test worker and bounded native thread fan-out.
+
+## Clean standard Node22 frontend gate
+
+Clean clone `/tmp/earthship-audit-worker` at **cb4f16bb10c9e397486dc7eef0f2e9ab9dc2b1bb**, Node22.22.0, lock refreshed by standard `npm ci` (exit0,zeroauditfindings). Under shared admission1024–2048MiB/128tasks/900seconds and RAYON_NUM_THREADS=1/GOMAXPROCS=2/UV_THREADPOOL_SIZE=2:
+
+- `npm run test:unit -- --maxWorkers=1 --reporter=default --reporter=junit --outputFile=/tmp/earthship-audit-final-results/cb4f16bb10c9e397486dc7eef0f2e9ab9dc2b1bb/unit.xml` → exit0,**182files/2746tests passed**,52.14s. Standard repository config; no .codex adapter.
+- `npm run build` → exit0,1.47s. Existing chunk-size warning retained; no build error.
+
+These exact runtime/frontend bytes are committed. Subsequent CI-only orchestration/documentation changes still require final-revision hosted checks; no full-completion claim yet.
+
+A09 profile runner checks pass11cases (2.86s), including execution of the actual maintained shard shell under success/general-failure/BMS-failure injection. Every discovered file executes exactly once under its declared profile. General24d2pin remains unchanged; only the current BMS consumer test uses7b70117 in a fresh process. Both statuses control the shard exit.
