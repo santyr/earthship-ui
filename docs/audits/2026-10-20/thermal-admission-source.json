@@ -10,7 +10,7 @@
   "fit_clocks_renewed": false,
   "expiry_renewed": false,
   "authority_changed": false,
-  "companion_runtime_source": "520bdd8",
+  "companion_runtime_source": "520bdd81ba94a14908655bda2e83138131bb1986",
   "companion_base_source": "85e80137adc731d1728c8e5b00a125e5cf6837aa",
   "companion_changed_files": [
     "openhab/scripts/historical_weather_daily.py"
