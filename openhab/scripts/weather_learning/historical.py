@@ -30,21 +30,35 @@ def _historical_only(archive):
             raise ValueError('historical acquisition cannot use an operational archive')
 
 
-def _record_coverage(archive,snapshot,ref,horizon,required):
-    bands=identity(sorted(required))
+def coverage_key(required,allow_missing=False):
+    return identity(dict(core=sorted(required),missing_values='retained_without_fill')) if allow_missing else identity(sorted(required))
+
+
+def missing_counts(snapshot,initialized,horizon,required):
+    index={(r['variable'],r['statistic'],instant(r['valid_at'])):r['value'] for r in snapshot['points']}
+    return {v+':'+s:sum(index.get((v,s,initialized+timedelta(hours=h))) is None for h in range(1,horizon+1)) for v,s in sorted(required)}
+
+
+def usable_coverage(snapshot,initialized,horizon,required,allow_missing):
+    counts=missing_counts(snapshot,initialized,horizon,required)
+    return all(n<horizon if allow_missing else n==0 for n in counts.values())
+
+
+def _record_coverage(archive,snapshot,ref,horizon,required,allow_missing=False):
+    bands=coverage_key(required,allow_missing)
     with archive._connect() as connection:
         connection.execute('CREATE TABLE IF NOT EXISTS historical_coverage (initialized TEXT NOT NULL,horizon INTEGER NOT NULL,bands TEXT NOT NULL,digest TEXT NOT NULL,PRIMARY KEY(initialized,horizon,bands))')
         connection.execute('INSERT OR IGNORE INTO historical_coverage VALUES(?,?,?,?)',(snapshot['initialized_at'],horizon,bands,ref))
 
 
-def indexed_history(archive,*,horizon,required=None):
+def indexed_history(archive,*,horizon,required=None,allow_missing=False):
     """Fresh byte hashes, without repeating normalized numerical derivation."""
     from .contracts import digest
     from weather_source_files import _read
     required=required or {tuple(b.rsplit('_',1)) for values in DEFAULT_BANDS.values() for b in values}
     with archive._connect() as connection:
         if not connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='historical_coverage'").fetchone():return {}
-        refs=connection.execute('SELECT initialized,digest FROM historical_coverage WHERE horizon>=? AND bands=? ORDER BY initialized,horizon',(horizon,identity(sorted(required)))).fetchall()
+        refs=connection.execute('SELECT initialized,digest FROM historical_coverage WHERE horizon>=? AND bands=? ORDER BY initialized,horizon',(horizon,coverage_key(required,allow_missing))).fetchall()
     result={}
     if len(refs)>10000:raise ValueError('bounded historical coverage index required')
     for initialized,ref in refs:
@@ -55,20 +69,21 @@ def indexed_history(archive,*,horizon,required=None):
     return result
 
 
-def cached_history(archive,initialized,horizon,*,required=None):
+def cached_history(archive,initialized,horizon,*,required=None,allow_missing=False):
     required=required or {tuple(b.rsplit('_',1)) for values in DEFAULT_BANDS.values() for b in values}
     with archive._connect() as connection:
         refs=connection.execute('SELECT digest FROM snapshots WHERE initialized=? AND historical=1 ORDER BY completed,digest LIMIT 256',(initialized.isoformat(),)).fetchall()
     for (ref,) in refs:
         snapshot=archive.read(ref);index={(r['variable'],r['statistic'],instant(r['valid_at'])):r['value'] for r in snapshot['points']}
         if instant(snapshot['initialized_at'])!=initialized:raise ValueError('historical index run differs')
-        if all(index.get((v,s,initialized+timedelta(hours=h))) is not None for v,s in required for h in range(1,horizon+1)):
-            verify_history(snapshot);_record_coverage(archive,snapshot,ref,horizon,required);return snapshot,ref
+        if usable_coverage(snapshot,initialized,horizon,required,allow_missing):
+            verify_history(snapshot);_record_coverage(archive,snapshot,ref,horizon,required,allow_missing);return snapshot,ref
     return None
 
 
-def collect_history(reader,archive,*,initializations,horizon=360,now=None,bands_by_grid=None,required=None):
+def collect_history(reader,archive,*,initializations,horizon=360,now=None,bands_by_grid=None,required=None,allow_missing=False):
     now=now or datetime.now(timezone.utc)
+    if type(allow_missing) is not bool:raise ValueError('explicit historical gap policy required')
     if (not isinstance(initializations,list) or not 1<=len(initializations)<=4 or
         type(horizon) is not int or not 1<=horizon<=360):raise ValueError('one to four bounded historical runs required')
     if any(not isinstance(at,datetime) or at.utcoffset() is None or at.utcoffset()!=timedelta(0) or
@@ -82,7 +97,7 @@ def collect_history(reader,archive,*,initializations,horizon=360,now=None,bands_
     with collector_lock(archive.root/'collector.lock'):
         _historical_only(archive);result=[];downloads=0;ready=False
         for at in initializations:
-            cached=cached_history(archive,at,horizon,required=required)
+            cached=cached_history(archive,at,horizon,required=required,allow_missing=allow_missing)
             if cached is not None:
                 snapshot,name=cached
             else:
@@ -92,10 +107,10 @@ def collect_history(reader,archive,*,initializations,horizon=360,now=None,bands_
                 snapshot=verify_history(raw)
                 if instant(snapshot['initialized_at'])!=at:raise ValueError('historical fetch returned another run')
                 index={(r['variable'],r['statistic'],instant(r['valid_at'])):r['value'] for r in snapshot['points']}
-                if not all(index.get((v,s,at+timedelta(hours=h))) is not None for v,s in required for h in range(1,horizon+1)):
+                if not usable_coverage(snapshot,at,horizon,required,allow_missing):
                     raise ValueError('complete historical requested coverage required: '+at.isoformat()+' '+str({v+':'+s:sum(index.get((v,s,at+timedelta(hours=h))) is None for h in range(1,horizon+1)) for v,s in required if any(index.get((v,s,at+timedelta(hours=h))) is None for h in range(1,horizon+1))}))
                 snapshot['historical']=True;name=archive.store_snapshot(snapshot);downloads+=1
-                archive.read(name);_record_coverage(archive,snapshot,name,horizon,required)
-            result.append(dict(initialized_at=at.isoformat(),sha256=name))
+                archive.read(name);_record_coverage(archive,snapshot,name,horizon,required,allow_missing)
+            result.append(dict(initialized_at=at.isoformat(),sha256=name,missing_targets=missing_counts(snapshot,at,horizon,required),coverage_policy='training_with_explicit_gaps' if allow_missing else 'complete_requested_values'))
         return dict(schema='earthship-weathernext-historical-batch/v1',status='historical_batch_complete',downloaded=downloads,
             snapshots=result,production_writes=False,automatic_actuation=False)

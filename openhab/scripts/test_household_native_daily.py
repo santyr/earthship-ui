@@ -158,3 +158,31 @@ def test_load_refresh_precedes_thermal_selection_and_retains_its_own_status():
     with pytest.raises(ValueError,match='thermal selection unavailable'):
         daily().run_daily(b,now=datetime(2026,10,15,13,tzinfo=timezone.utc),timezone_name='America/Denver')
     assert calls==['load','thermal']
+
+
+@pytest.mark.parametrize('now,expected',[
+    ('2026-10-19T23:50:00+00:00','2026-10-19T18:00:00+00:00'),
+    ('2026-10-20T00:50:00+00:00','2026-10-20T00:00:00+00:00'),
+    ('2026-11-02T13:50:00+00:00','2026-11-02T13:00:00+00:00'),
+    ('2026-11-01T08:30:00+00:00','2026-11-01T06:00:00+00:00'),
+])
+def test_six_hour_cutoff_respects_local_time_and_dst(now,expected):
+    assert daily().training_cutoff(datetime.fromisoformat(now),'America/Denver',cadence='six_hourly').isoformat()==expected
+
+
+def test_intraday_thermal_refresh_keeps_daily_load_cutoff():
+    b=Backend('2026-10-15T06:00:00+00:00');loads=[]
+    b.prepare_ac_load=lambda cutoff:loads.append(cutoff) or {'status':'load_profile_already_current'}
+    result=daily().run_daily(b,now=datetime(2026,10,15,19,tzinfo=timezone.utc),timezone_name='America/Denver',cadence='six_hourly')
+    assert b.calls[0][1]==datetime(2026,10,15,18,tzinfo=timezone.utc)
+    assert loads==[datetime(2026,10,15,6,tzinfo=timezone.utc)]
+    assert result['fit_executed'] is True
+
+
+def test_intraday_state_uses_long_original_prefix_without_mutating_it():
+    from copy import deepcopy
+    rows=[{'path':str(i),'start':f'2026-10-{10+i*2:02d}T06:00:00+00:00','end':f'2026-10-{12+i*2:02d}T06:00:00+00:00','sha256':str(i)*64} for i in range(3)]
+    original=deepcopy(rows);selected=daily().long_part_prefix(rows)
+    assert selected==rows[:2] and rows==original
+    short=dict(rows[0],end='2026-10-10T12:00:00+00:00')
+    assert daily().long_part_prefix([short])==[]

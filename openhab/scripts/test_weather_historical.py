@@ -112,3 +112,19 @@ def test_explicit_core_training_coverage_can_retain_optional_field_gaps(tmp_path
     retained=archive.read(result['snapshots'][0]['sha256'])
     assert any(p['value'] is None for p in retained['points'])
     assert retained['source_originals']==source['source_originals']
+
+
+def test_explicit_training_gap_mode_keeps_partial_core_and_caches_it_honestly(tmp_path):
+    from weather_learning.historical import collect_history,indexed_history
+    from weather_learning.weathernext_ee import parse_collection_response
+    from weather_learning.config import Site
+    archive=Archive(tmp_path/'history');reader=Mock();source=native_snapshot(hours=2)
+    original=source['source_originals'][0];original['payload']['region'][1][4]=None
+    _,source['points']=parse_collection_response(original['payload'],collection=original['collection'],bands=original['payload']['region'][0][4:],site=Site(**source['site']),initialized_at=T,horizon=2)
+    reader.fetch_points.return_value=source;required={('station_head_temperature_2m','mean')};bands={'station':('station_head_temperature_2m_mean','station_head_temperature_2m_p10','station_head_temperature_2m_p90')}
+    first=collect_history(reader,archive,initializations=[T],horizon=2,now=T+timedelta(days=2),required=required,bands_by_grid=bands,allow_missing=True)
+    assert first['snapshots'][0]['missing_targets']['station_head_temperature_2m:mean']==1
+    assert collect_history(reader,archive,initializations=[T],horizon=2,now=T+timedelta(days=3),required=required,bands_by_grid=bands,allow_missing=True)['downloaded']==0
+    assert reader.fetch_points.call_count==1
+    assert len(indexed_history(archive,horizon=2,required=required,allow_missing=True))==1
+    assert indexed_history(archive,horizon=2,required=required)=={}

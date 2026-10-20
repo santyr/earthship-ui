@@ -1,4 +1,4 @@
-"""Morning native-model refresh: missing measurements through local midnight.
+"""Native-model refresh through the completed local daily or six-hour cutoff.
 
 Private training runs beside serving. Only the final owned handoff briefly
 quiesces the three serving timers. A failed refresh leaves the selected model.
@@ -7,11 +7,25 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 
-def training_cutoff(now, timezone_name):
+def training_cutoff(now, timezone_name, *, cadence='daily'):
     if now.tzinfo is None:
         raise ValueError('aware daily training clock required')
-    return now.astimezone(ZoneInfo(timezone_name)).replace(
-        hour=0, minute=0, second=0, microsecond=0).astimezone(timezone.utc)
+    if cadence not in ('daily','six_hourly'):raise ValueError('supported native training cadence required')
+    local=now.astimezone(ZoneInfo(timezone_name));step=24 if cadence=='daily' else 6
+    return local.replace(hour=(local.hour//step)*step,minute=0,second=0,microsecond=0).astimezone(timezone.utc)
+
+
+def long_part_prefix(rows):
+    """Reuse at most two contiguous day-or-longer originals before a new day.
+
+    At most three fresh two-day captures plus three intraday increments then
+    fit within the unchanged eight-part limit. All old files remain retained.
+    """
+    result=[]
+    for row in rows:
+        if len(result)==2 or datetime.fromisoformat(row['end'])-datetime.fromisoformat(row['start'])<timedelta(days=1):break
+        result.append(row)
+    return result
 
 
 def capture_windows(start, end):
@@ -38,13 +52,14 @@ def retained_parts(rows, cutoff):
     return rows
 
 
-def run_daily(backend, *, now, timezone_name):
-    cutoff = training_cutoff(now, timezone_name)
+def run_daily(backend, *, now, timezone_name, cadence='daily'):
+    cutoff = training_cutoff(now, timezone_name,cadence=cadence)
+    load_cutoff=training_cutoff(now,timezone_name)
     load = None
     prepare_load = getattr(backend, 'prepare_ac_load', None)
     if prepare_load is not None:
         try:
-            load = prepare_load(cutoff)
+            load = prepare_load(load_cutoff)
         except Exception:
             load = dict(status='deferred', reason='load_profile_refresh_failed', automatic_actuation=False)
     def result(value):
@@ -84,7 +99,7 @@ def main(argv=None):
             backend = NativeTraining(config)
             with daily_lock(backend.state / 'daily.lock'):
                 result = run_daily(backend, now=datetime.now(timezone.utc),
-                                   timezone_name=config['timezone'])
+                                   timezone_name=config['timezone'],cadence=config.get('training_cadence','daily'))
     except Exception as error:
         status = 1
         result = dict(status='daily_native_refresh_failed', error=type(error).__name__,

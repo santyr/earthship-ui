@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh native thermal learning every six local hours
+
+[Timer]
+OnCalendar=*-*-* 00,06,12,18:50:00 America/Denver
+AccuracySec=1min
+Persistent=true
+Unit=thermal-native-daily.service
+
+[Install]
+WantedBy=timers.target

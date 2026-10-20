@@ -12,7 +12,8 @@ import time
 from uuid import uuid4
 
 from household_cycle_pressure import PublicationHeadroom
-from household_native_daily import capture_windows, retained_parts
+from household_native_daily import capture_windows, retained_parts,long_part_prefix
+from zoneinfo import ZoneInfo
 from thermal_model.runtime_bundle import _owned_bytes
 
 
@@ -132,6 +133,7 @@ def retained_model_admission(candidate, *, selections, guard):
 
 class NativeTraining:
     def __init__(self, config):
+        if config.get('training_cadence','daily') not in ('daily','six_hourly'):raise ValueError('supported native training cadence required')
         self.config = config
         self.repo = Path(__file__).resolve().parents[2]
         self.state = directory(config['state_directory'])
@@ -180,16 +182,29 @@ class NativeTraining:
             # The public CLI intentionally omits credential values from errors.
             raise RuntimeError('daily measurement worker failed: ' + output.decode(errors='replace')[-800:])
 
+    def capture_index(self,cutoff):
+        if getattr(self,'config',{}).get('training_cadence','daily')=='daily':return self.state/'raw-parts.json',None
+        day=cutoff.astimezone(ZoneInfo(self.config['timezone'])).date()
+        root=directory(self.state/'capture-days'/day.isoformat());index=root/'raw-parts.json'
+        if index.exists():return index,None
+        previous=self.state/'capture-days'/(day-timedelta(days=1)).isoformat()/'raw-parts.json'
+        anchor=previous if previous.exists() else self.state/'raw-parts.json'
+        return index,anchor if anchor.exists() else None
+
     def raw_parts(self, cutoff):
         from thermal_model.training_inputs import read_training_inputs_v2
-        index = self.state / 'raw-parts.json'
-        rows = read(index) if index.exists() else []
+        index,anchor=self.capture_index(cutoff)
+        existing=index.exists()
+        rows=read(index) if existing else read(anchor) if anchor is not None else []
         if not rows:
             for path in self.config['seed_parts']:
                 record = read_training_inputs_v2(Path(path))
                 rows.append(dict(path=path, start=record['start'], end=record['end'],
                                  sha256=sha256(Path(path).read_bytes()).hexdigest()))
         rows = retained_parts(rows, cutoff)
+        if not existing and getattr(self,'config',{}).get('training_cadence','daily')=='six_hourly':rows=long_part_prefix(rows)
+        for row in rows:
+            if sha256(_owned_bytes(Path(row['path']),32000000)).hexdigest()!=row['sha256']:raise ValueError('retained raw measurement bytes changed')
         start = datetime.fromisoformat(rows[-1]['end']) if rows else max(
             cutoff - timedelta(days=7), datetime.fromisoformat(self.capture_config['native_cutover']))
         for left, right in capture_windows(start, cutoff):
@@ -317,6 +332,49 @@ class NativeTraining:
         originals = dict(snapshot=snapshot, dataset=dataset, geometry=geometry_path, fit_evidence=evidence_path)
         return self.package(run, originals, runtime, previous, libraries, commit)
 
+    def active_score_history(self,references,*,now):
+        """Keep explicit stages used by the scorer's existing active folders.
+
+        Unknown frozen archive policies remain retained. Binding discovery only
+        filters already owned selections; it never authorizes another model.
+        No forecast, completion, score, stage or original source is removed.
+        """
+        import household_cycle_deploy as deploy
+        from native_thermal_artifact import _read as read_binding
+        from thermal_model.native_operational_io import _folders
+        from thermal_model.graduation_policy import _sha
+        if type(references) is not tuple or len(references)>63:raise ValueError('bounded explicit score history required')
+        policy='openhab/scripts/thermal_model/native_operational_io.py'
+        current=sha256((Path(__file__).parent/'thermal_model/native_operational_io.py').read_bytes()).hexdigest()
+        roots=set();unknown=set();seen=set()
+        for ref in references:
+            self.guard();stage=Path(ref['stage']);key=(str(stage),_sha(ref['deployment_sha256']))
+            if key in seen:raise ValueError('unique owned score history required')
+            seen.add(key)
+            manifest=deploy._bytes(stage/'deployment.json',private=True,maximum=131072)
+            if sha256(manifest).hexdigest()!=key[1]:raise ValueError('retained score stage pin differs')
+            record=deploy.verify_stage(stage,expected_deployment_sha256=key[1])
+            if record['source_manifest'].get(policy)!=current:
+                unknown.add(key);continue
+            cycle=read(stage/'cycle.json',8192);settings=read(cycle['forecast_config'],8192)
+            roots.add(Path(settings['evidence_directory']))
+        needed=set(unknown);fields={'schema','capture_sha256','artifact_sha256','runtime_sha256','issued_at','stage','deployment_sha256',
+            'model_receipt_path','model_receipt_sha256','automatic_actuation','binding_sha256'}
+        for root in roots:
+            self.guard()
+            if root.is_symlink():raise ValueError('original scoring archive cannot be a symlink')
+            if not root.exists():continue
+            paths=[p for folder in _folders(root,'origins',now) for p in folder.glob('*.native-serving-model-binding-v1.json')]
+            if len(paths)>4096:raise ValueError('bounded original scoring binding inventory required')
+            for path in paths:
+                self.guard();_,value=read_binding(path,8192)
+                if (set(value)!=fields or value['schema']!='earthship-native-serving-model-binding/v1' or value['automatic_actuation'] is not False or
+                    value['binding_sha256']!=sha256(json.dumps({k:v for k,v in value.items() if k!='binding_sha256'},sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest() or
+                    path.name!=_sha(value['capture_sha256'])+'.native-serving-model-binding-v1.json'):
+                    raise ValueError('original scoring capture binding differs')
+                needed.add((value['stage'],_sha(value['deployment_sha256'])))
+        return tuple(ref for ref in references if (ref['stage'],ref['deployment_sha256']) in needed)
+
     def package(self, run, originals, runtime, previous, libraries, commit):
         from native_thermal_artifact import write_native_candidate
         from native_model_serving_receipt import admit_model
@@ -351,7 +409,10 @@ class NativeTraining:
         config = run / 'final-config.json'
         save(config, settings)
         save(run / 'geometry-libraries.json', libraries)
-        historical = tuple([*old['historical'], {k: previous[k] for k in ('stage', 'deployment_sha256')}])
+        active=self.active_score_history(tuple(old['historical']),now=datetime.now(timezone.utc))
+        save(run/'score-history-window.json',dict(schema='earthship-native-score-history-window/v1',checked_at=datetime.now(timezone.utc).isoformat(),
+            scope='existing_three_UTC_date_scoring_window',retained=list(active),retired_from_active_queue=[v for v in old['historical'] if v not in active],archives_modified=False,automatic_actuation=False))
+        historical = tuple([*active, {k: previous[k] for k in ('stage', 'deployment_sha256')}])
         dispatch = prepare_score_dispatch(historical_selections=historical,
             output=run / 'score-dispatch.json', guard=self.guard)
         stage = run / 'final'

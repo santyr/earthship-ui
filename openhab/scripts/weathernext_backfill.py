@@ -28,6 +28,7 @@ def main(argv=None):
     parser.add_argument('--day-step',type=int,default=1)
     parser.add_argument('--batch-runs',type=int,default=4)
     parser.add_argument('--index-only',action='store_true')
+    parser.add_argument('--allow-core-gaps',action='store_true',help='retain explicit historical core gaps; train only available targets')
     parser.add_argument('--allow-optional-gaps',action='store_true',help='require complete mean temperature and GHI; retain missing optional fields explicitly')
     parser.add_argument('--credential',default='/home/sat/.config/earthship-weather/weathernext-reader.json')
     args=parser.parse_args(argv);os.umask(0o077)
@@ -38,10 +39,10 @@ def main(argv=None):
         cycles=[int(h) for h in args.cycle_hours.split(',')]
         requested=requested_initializations(args.start,args.days,cycles=cycles,day_step=args.day_step,now=now)
         archive=Archive(args.archive);_historical_only(archive)
-        required={('station_head_temperature_2m','mean'),('surface_solar_radiation_downwards_1hr','mean')} if args.allow_optional_gaps else None
+        required={('station_head_temperature_2m','mean'),('surface_solar_radiation_downwards_1hr','mean')} if args.allow_optional_gaps or args.allow_core_gaps else None
         if args.index_only:
-            for at in requested:cached_history(archive,at,args.hours,required=required)
-        indexed=indexed_history(archive,horizon=args.hours,required=required)
+            for at in requested:cached_history(archive,at,args.hours,required=required,allow_missing=args.allow_core_gaps)
+        indexed=indexed_history(archive,horizon=args.hours,required=required,allow_missing=args.allow_core_gaps)
         pending=sorted([at for at in reversed(requested) if at.isoformat() not in indexed][:args.batch_runs])
         retained=sum(at.isoformat() in indexed for at in requested)
         if args.index_only:
@@ -52,7 +53,7 @@ def main(argv=None):
         else:
             site=Site.from_openhab_config(oh_get(I18N_CONFIG_PATH))
             reader=EarthEngineReader(policy=AccessPolicy(backend='earthengine',noncommercial_verified=True),site=site,credential_path=args.credential)
-            result=collect_history(reader,archive,initializations=pending,horizon=args.hours,now=now,required=required)
+            result=collect_history(reader,archive,initializations=pending,horizon=args.hours,now=now,required=required,allow_missing=args.allow_core_gaps)
             result.update(retained_runs=retained+result['downloaded'],total_runs=len(requested),requests=reader.transport.requests,
                 bytes_received=reader.transport.bytes_received,peak_rss_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
         save(archive.root/'last-backfill.json',result)
