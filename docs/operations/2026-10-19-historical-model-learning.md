@@ -124,3 +124,10 @@ Frozen release `34d3189` now owns daily historical weather learning, hourly shad
 A second actual daily refresh reused all five candidate identities (outdoor, indoor, wall, wind and rain); both comparison/serving fit flags were false, and model training clocks stayed unchanged. Shadow publication, the frontend contract parser and the weather evaluation service were checked live. All are read-only forecasts; new ML actuation remains false.
 
 Remaining completion work includes calibrated-storage outcome scoring/display, the final thermal forcing decision, ongoing PV-calibration training/expiry behavior, and branch review/main integration. These remain required and are not closed by the weather rollout.
+
+
+## Owner-requested PV calibration completion scope
+
+The active goal explicitly includes automatic PV calibration refresh, chronological raw/current/candidate comparisons by supported lead and solar/season group, supported terrain-horizon assessment, and production PV plus calibrated-storage outcome reporting. The detailed completion checklist is in `docs/superpowers/plans/2026-10-19-historical-learning-pv.md` under “PV completion clarification requested by the owner.” Historical WeatherNext data is already retained and will be paired with qualified local measurements; additional seasonal forecasts alone cannot create missing uncensored electrical or qualified irradiance observations.
+
+The directional correction and calibrated-storage display remain live. The PV monitor's 2026-10-20 02:55 UTC result was `awaiting_eligible_evidence` (zero eligible bins; both MAEs null). Its next useful measurements depend on eligible production, not an arbitrary calendar waiting requirement. Automatic refitting must preserve unchanged training clocks, retain a better existing model, respect the current expiry/fallback contract, and share host resource admission. Physical GHI/array-loss separation remains conditional on available metrology and censoring evidence; this limitation does not prevent provisional production forecasting. ML actuation remains disabled.
