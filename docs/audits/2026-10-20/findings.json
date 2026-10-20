@@ -208,15 +208,30 @@
       "id": "A09",
       "severity": "P2",
       "title": "Executable verification coverage",
-      "confidence": "handoff_reproduction_pending_local_revalidation",
+      "confidence": "confirmed",
       "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
-      "files": [],
-      "expected_actual": "See approved handoff; local reproduction pending",
-      "reproduction": [],
-      "root_cause": null,
+      "files": [
+        "package.json",
+        "playwright.config.js",
+        ".github/workflows/ci.yml",
+        ".github/workflows/sensors.yml",
+        ".github/workflows/forecast-ml-hardening.yml",
+        ".github/workflows/household-receipt-integrity.yml",
+        "tests/e2e/fixture-test.js",
+        "tests/completion/test_verification_gates.py",
+        "docs/qa/ui-audit-matrix.csv",
+        "README.md"
+      ],
+      "expected_actual": "Advertised geometry must discover real tests; normal browser/sensor/native PG families need effective main/PR/release coverage and explicit dependencies.",
+      "reproduction": [
+        "Six new executable gate regressions failed originally. Seven PG modules silently importskipped missing advisory_db_fixture; adding pinned support exposes absent bms_aux_quality API at the general companion pin."
+      ],
+      "root_cause": "Missing geometry spec and stale QA references; no general browser gate; shared dependency path omissions; sensor spec targeted deliberately retired route; native PG support directory omitted from CI.",
       "repair_commit": null,
-      "regression_evidence": [],
-      "status": "open"
+      "regression_evidence": [
+        "Seven gate checks pass; one native dependency failure remains under active repair. General71tests/7files, geometry65tests/5files, sensor2tests/1file discovered. Missing sensor env explicitly fails before startup, no silent skip. QA2cases passed after staleSet assertion corrected."
+      ],
+      "status": "partially_fixed_native_dependency_under_repair"
     },
     {
       "id": "A10",

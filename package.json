@@ -10,8 +10,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:unit": "vitest run",
-    "test:e2e": "playwright test",
-    "test:geometry": "playwright test tests/e2e/geometry.spec.js"
+    "test:e2e": "playwright test --project=fixtures",
+    "test:geometry": "playwright test --project=fixtures tests/e2e/home-runtime.spec.js tests/e2e/controls-layout.spec.js tests/e2e/energy-layout.spec.js tests/e2e/weather-earthship-layout.spec.js tests/e2e/shades-layout.spec.js",
+    "test:e2e:sensors": "playwright test --project=sensors"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",

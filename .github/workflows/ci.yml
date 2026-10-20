@@ -64,11 +64,11 @@ jobs:
           docker tag mirror.gcr.io/library/postgres:16 postgres:16
       - name: Completion regression tests
         env:
-          PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src
+          PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src:${{ github.workspace }}/.ci/solar-pv/analytics/tests
         run: python -m pytest tests/completion/ -q
       - name: Operational tooling regression tests
         env:
-          PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src
+          PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src:${{ github.workspace }}/.ci/solar-pv/analytics/tests
         run: python -m pytest scripts/ -q
 
   openhab:
@@ -121,7 +121,7 @@ jobs:
           docker tag mirror.gcr.io/library/postgres:16 postgres:16
       - name: Existing OpenHAB Python tests (disjoint file partition)
         env:
-          PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src
+          PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src:${{ github.workspace }}/.ci/solar-pv/analytics/tests
           TEST_SHARD: ${{ matrix.shard }}
         shell: bash
         run: |
@@ -185,3 +185,28 @@ jobs:
           python="$(command -v python)"
           sudo unshare --net -- "$python" scripts/qualify-thermal-nak.py \
             --nak "$RUNNER_TEMP/nak-qualification"
+
+  browser-fixtures:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/pw-browsers
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: General console browser fixtures without upstream network
+        shell: bash
+        run: |
+          set -euo pipefail
+          ci_node="$(command -v node)"
+          ci_npm="$(command -v npm)"
+          sudo --preserve-env=PLAYWRIGHT_BROWSERS_PATH unshare --net -- sh -c \
+            'ip link set lo up; cd "$1"; exec "$2" "$3" run test:e2e -- --workers=2' \
+            _ "$GITHUB_WORKSPACE" "$ci_node" "$ci_npm"

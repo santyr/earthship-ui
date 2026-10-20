@@ -84,7 +84,8 @@
     "thermal-native-daily.timer": {
       "Result": "success",
       "ActiveState": "inactive",
-      "SubState": "dead"
+      "SubState": "dead",
+      "interpretation": "superseded inactive timer; active thermal-native-six-hourly.timer runs thermal-native-daily.service"
     },
     "daily-pv-potential.timer": {
       "Result": "success",
@@ -110,6 +111,12 @@
       "Result": "success",
       "ActiveState": "active",
       "SubState": "waiting"
+    },
+    "thermal-native-six-hourly.timer": {
+      "ActiveState": "active",
+      "SubState": "waiting",
+      "Result": "success",
+      "natural_next": "2026-10-20T12:50:00 America/Denver"
     }
   }
 }

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixture-test.js';
 import { createServer } from 'vite';
 import { readFileSync } from 'node:fs';
 
