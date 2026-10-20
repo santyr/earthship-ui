@@ -73,13 +73,10 @@ def run(*,archive_path,measurement_path,output_path,train_end,holdout_end,numeri
             guard();selected=[r for r in rows if r['kind']==kind]
             if not selected:
                 reports[kind]=dict(status='unavailable',reason='qualified_pairs_missing');continue
-            dataset=dict(schema='earthship-historical-learning-dataset/v1',kind=kind,pairs=selected,
-                forecast_sha256s=forecast_manifest,measurement_manifest=measurement_manifest,numeric_manifest=numeric_manifest,prospective_score=False,automatic_actuation=False)
-            dataset['dataset_sha256']=identity(dataset);data[kind]=dataset['dataset_sha256']
-            raw=canonical(dataset)
-            if len(raw)>32*1024**2:raise ValueError('bounded original paired dataset required')
-            path=run/(dataset['dataset_sha256']+'.pairs.json.gz')
-            path.write_bytes(gzip.compress(raw,compresslevel=3,mtime=0));path.chmod(0o600)
+            from weather_learning.training_dataset import retain_dataset
+            dataset=retain_dataset(run,metadata=dict(kind=kind,forecast_sha256s=forecast_manifest,measurement_manifest=measurement_manifest,
+                numeric_manifest=numeric_manifest,prospective_score=False,automatic_actuation=False),pairs=selected)
+            data[kind]=dataset['dataset_sha256']
             model=fit_residual(selected,kind=kind,cutoff=train_end,trained_at=now,correction_limit=limit)
             report=evaluate(model,selected,holdout_start=train_end,holdout_end=holdout_end)
             reports[kind]=report

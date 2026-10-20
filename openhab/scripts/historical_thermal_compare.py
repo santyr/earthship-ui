@@ -44,7 +44,7 @@ def load_fits(path,geometry):
     return models
 
 
-def run(*,stage,fit_index,archive_path,output_path,start,end):
+def run(*,stage,fit_index,archive_path,output_path,start,end,irradiance_experiment=None):
     from native_irradiance_shade import NativeIrradianceShadeDynamics,RULE
     from household_cycle_pressure import PublicationHeadroom
     began=time.monotonic();pressure=PublicationHeadroom();root=Path(__file__).resolve().parents[2];sources=capture_sources(root)
@@ -55,6 +55,22 @@ def run(*,stage,fit_index,archive_path,output_path,start,end):
     with collector_lock(output/'comparison.lock'):
         data,originals,record=load_development(stage);guard();models=load_fits(fit_index,data.geometry)
         if len(models)!=12:raise ValueError('complete predeclared twelve-fit cadence schedule required')
+        irradiation=None;irradiance_context=None;horizon=None;position_rows={}
+        if irradiance_experiment is not None:
+            from weather_learning.site_calibration import _model
+            raw=_read(Path(irradiance_experiment)/'experiment.json',262144);experiment=json.loads(raw)
+            if experiment['receipt_sha256']!=identity({k:v for k,v in experiment.items() if k!='receipt_sha256'}) or experiment['automatic_actuation'] is not False:raise ValueError('original irradiance experiment required')
+            raw_model=_read(Path(irradiance_experiment)/'training-model.json',4*1024**2);irradiation=_model(json.loads(raw_model))
+            if irradiation['model_sha256']!=experiment['training_model_sha256']:raise ValueError('original earlier irradiance model differs')
+            dataset=json.loads(_read(Path(irradiance_experiment)/(experiment['dataset_sha256']+'.dataset.json'),32*1024**2))
+            if dataset['dataset_sha256']!=experiment['dataset_sha256'] or dataset['dataset_sha256']!=identity({k:v for k,v in dataset.items() if k!='dataset_sha256'}):raise ValueError('irradiance dataset identity differs')
+            horizon_raw=(root/'openhab/household-solar-horizon.json').read_bytes()
+            if sha256(horizon_raw).hexdigest()!=dataset['horizon_sha256']:raise ValueError('irradiance horizon declaration changed')
+            horizon=json.loads(horizon_raw)['profile']
+            position_rows={r['at']:r for cache in data.geometry.to_dict()['caches'] for r in cache['positions']}
+            irradiance_context=dict(experiment_sha256=experiment['receipt_sha256'],model_sha256=irradiation['model_sha256'],model_original_sha256=sha256(raw_model).hexdigest(),
+                cutoff=irradiation['cutoff'],actual_trained_at=irradiation['trained_at'],horizon_sha256=dataset['horizon_sha256'],metrology_calibrated=False,
+                readiness_basis='retrospective_assumed_cutoff_plus_10_minutes')
         samples={instant(r['at']):r for r in data.to_dict()['samples']};archive=Archive.open_readonly(str(archive_path));pairs=[];sources_used=[];skipped={}
         with archive._connect() as c:refs=c.execute('SELECT digest FROM snapshots WHERE historical=1 AND initialized>=? AND initialized<? ORDER BY initialized,completed,digest',( (start-timedelta(hours=9)).isoformat(),end.isoformat())).fetchall()
         seen=set()
@@ -69,11 +85,17 @@ def run(*,stage,fit_index,archive_path,output_path,start,end):
             forecast=google_forcings(hours,origin=origin,actions={k:initial[k] for k in ACTIONS},horizon_hours=24)
             chosen={name:select_fit(models,origin=origin,cadence=cadence) for name,cadence in (('daily_physics','daily'),('six_hourly_physics','six_hourly'))}
             if any(value is None for value in chosen.values()):continue
+            corrected=None
+            if irradiation is not None:
+                from weather_learning.irradiance_learning import correct_forcing_hours
+                corrected_hours=correct_forcing_hours(hours,model=irradiation,origin=origin,positions=position_rows,horizon_profile=horizon,horizon_hours=24)
+                corrected=google_forcings(corrected_hours,origin=origin,actions={k:initial[k] for k in ACTIONS},horizon_hours=24)
+                chosen['six_hourly_local_irradiance']=chosen['six_hourly_physics']
             predictions={}
             for name,value in chosen.items():
                 if value['fit']['model_rule']!=RULE:raise ValueError('physical model numerical rule differs')
                 model=NativeIrradianceShadeDynamics(tuple(value['fit']['coefficients']),geometry=data.geometry,expected_series_sha256=data.geometry.sha256)
-                predictions[name]=model.rollout(origin_at=origin,air_f=initial['air_f'],mass_f=initial['mass_f'],forcings=forecast,guard=guard).states
+                predictions[name]=model.rollout(origin_at=origin,air_f=initial['air_f'],mass_f=initial['mass_f'],forcings=corrected if name=='six_hourly_local_irradiance' else forecast,guard=guard).states
             for lead in (1,6,12,24):
                 target=origin+timedelta(hours=lead);actual=samples.get(target)
                 if actual is None:continue
@@ -88,19 +110,26 @@ def run(*,stage,fit_index,archive_path,output_path,start,end):
         dataset=dict(schema='earthship-historical-thermal-comparison-data/v1',pairs=pairs,fit_sources=[dict(cutoff=v['cutoff'],receipt_sha256=v['receipt_sha256'],originals=v['originals']) for v in models],
             measurement_originals=originals,forecast_sha256s=sources_used,forecast_availability_basis='retrospective_assumed_full_cycle_9h',model_availability_basis='retrospective_assumed_cutoff_plus_10_minutes',
             action_state_basis='retained_collective_journal_not_individual_shade_sensors',current_selected_weights_used=False,prospective_score=False,automatic_actuation=False)
+        if irradiance_context is not None:
+            dataset.update(schema='earthship-historical-thermal-comparison-data/v2',irradiance_context=irradiance_context)
+            group=report['stable_known_actions'];a=group.get('six_hourly_physics');b=group.get('six_hourly_local_irradiance')
+            report['irradiance_correction_selected']=bool(a and b and a['pairs']==b['pairs'] and b['origin_days']>=2 and b['air']['mae_c']<a['air']['mae_c'] and b['mass']['mae_c']<=a['mass']['mae_c'])
+            report['irradiance_selection_rule']='improve_air_MAE_without_worsening_mass_on_same_stable_known_action_pairs'
         dataset['dataset_sha256']=identity(dataset);save(run/'dataset.json',dataset)
         verify_sources(root,sources);manifest=retain_sources(run,sources)
         receipt=dict(schema='earthship-historical-thermal-cadence-comparison/v1',created_at=now.isoformat(),start=start.isoformat(),end=end.isoformat(),dataset_sha256=dataset['dataset_sha256'],report=report,skipped=skipped,
             fit_count=len(models),forecast_runs=len(sources_used),runtime_manifest=manifest,prospective_score=False,production_model_changed=False,automatic_actuation=False)
+        if irradiance_context is not None:receipt.update(schema='earthship-historical-thermal-irradiance-comparison/v1',irradiance_context=irradiance_context)
         receipt['receipt_sha256']=identity(receipt);save(run/'comparison.json',receipt);save(output/'last-comparison.json',dict(path=str(run),receipt_sha256=receipt['receipt_sha256']));return receipt
 
 
 def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__)
     for key in ('stage','fit-index','archive','output'):p.add_argument('--'+key,type=Path,required=True)
+    p.add_argument('--irradiance-experiment',type=Path)
     p.add_argument('--start',required=True);p.add_argument('--end',required=True);a=p.parse_args(argv);os.umask(0o077)
     try:
-        result=run(stage=a.stage,fit_index=a.fit_index,archive_path=a.archive,output_path=a.output,start=instant(a.start),end=instant(a.end))
+        result=run(stage=a.stage,fit_index=a.fit_index,archive_path=a.archive,output_path=a.output,start=instant(a.start),end=instant(a.end),irradiance_experiment=a.irradiance_experiment)
         print(json.dumps(dict(status='thermal_cadence_assessed',report=result['report'],forecast_runs=result['forecast_runs'],production_model_changed=False)));return 0
     except Exception as error:
         import traceback
