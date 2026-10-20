@@ -25,7 +25,7 @@ def qualified_hour(rows,*,start,history_start,cutover,policy,assessed_at):
         measurement_health_qualified=value['status']=='ok',accounting=value,metrology_calibrated=False)
 
 
-def pair_irradiance(snapshot,targets,positions,*,target_end):
+def pair_irradiance(snapshot,targets,positions,*,target_end,allow_recorded_availability=False):
     """Daylight examples against ending-hour local exposure-proxy means.
 
     Geometry is evaluated at the hour midpoint. This is a local lux-proxy
@@ -35,8 +35,12 @@ def pair_irradiance(snapshot,targets,positions,*,target_end):
     from .historical import verify_history
     from .contracts import identity,instant
     source=verify_history(snapshot)
-    if source['historical'] is not True:raise ValueError('explicit historical irradiance source required')
-    pin=identity(source);origin=instant(source['initialized_at'])+timedelta(hours=9);rows=[]
+    if source['historical'] is not True and not allow_recorded_availability:raise ValueError('explicit historical irradiance source required')
+    pin=identity(source);origin=instant(source['initialized_at'])+timedelta(hours=9);basis='retrospective_assumed_full_cycle_9h';rows=[]
+    if source['historical'] is not True:
+        available=instant(source['ingestion_completed_at']);origin=available.replace(minute=0,second=0,microsecond=0)
+        if origin<available:origin+=timedelta(hours=1)
+        basis='recorded_ingestion_completed_rounded_to_next_hour'
     for p in source['points']:
         if p['variable']!='surface_solar_radiation_downwards_1hr' or p['statistic']!='mean' or not finite(p['value']):continue
         end=instant(p['valid_at']);lead=(end-origin).total_seconds()/3600
@@ -46,7 +50,7 @@ def pair_irradiance(snapshot,targets,positions,*,target_end):
         if p['value']<0 or not 0<=label['mean_w_m2']<=1200:raise ValueError('nonnegative plausible irradiance required')
         features=irradiance_features(p['value'],lead_hours=lead,target=end,position=position)
         row=dict(schema='earthship-historical-learning-pair/v1',kind='irradiance_w_m2',origin=origin.isoformat(),target_at=end.isoformat(),lead_hours=lead,
-            availability_basis='retrospective_assumed_full_cycle_9h',forecast_sha256=pin,features=features,baseline=p['value'],outcome=label['mean_w_m2'],
+            availability_basis=basis,forecast_sha256=pin,features=features,baseline=p['value'],outcome=label['mean_w_m2'],
             label=dict(label),origin_labels={},prospective_score=False,automatic_actuation=False)
         row['pair_sha256']=identity(row);rows.append(row)
     return rows

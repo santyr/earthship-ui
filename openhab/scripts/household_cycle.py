@@ -93,12 +93,12 @@ def derive_cycle(*,originals,capture,receipts,thermal,weather,parameter_record,r
     from household.energy_model import freeze_energy_inputs,bind_energy_inputs
     from household.capabilities import CapabilityRegistry
     from household.pipeline import seal_pipeline,replay_pipeline
-    if capture.get('schema')=='earthship-provisional-thermal-origin/v2':
+    if capture.get('schema') in ('earthship-provisional-thermal-origin/v2','earthship-provisional-thermal-origin/v3'):
         from native_thermal_score import validate_delivery
         from astro_geometry import _instant
         instant=_instant
         if (not isinstance(thermal,PreparedProjection) or not isinstance(weather,PreparedWeatherContext) or
-            thermal.to_dict()['schema']!='earthship-household-prepared-thermal/v2' or
+            thermal.to_dict()['schema'] not in ('earthship-household-prepared-thermal/v2','earthship-household-prepared-thermal/v3') or
             weather.to_dict()['schema'] not in ('earthship-household-prepared-weather/v2','earthship-household-prepared-weather/v3','earthship-household-prepared-weather/v4')):
             raise ValueError('native issue requires separately prepared native models')
     elif capture.get('schema')=='earthship-provisional-thermal-origin/v1':

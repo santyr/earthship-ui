@@ -16,6 +16,15 @@ from thermal_model.installed_shade_dynamics import InstalledShadeDynamics,Instal
 FIELDS={'schema','original_capture_sha256','artifact_sha256','runtime_sha256','issue','initial','actions',
         'forcings','horizon_hours','coefficients','snapshot','executing_runtime','prepared_sha256'}
 NATIVE_FIELDS=FIELDS|{'geometry','geometry_series_sha256','model_rule'}
+CONDITIONED_FIELDS=NATIVE_FIELDS|{'weather_conditioning','inputs_available_at'}
+NATIVE_SCHEMAS=('earthship-household-prepared-thermal/v2','earthship-household-prepared-thermal/v3')
+
+
+def _execution_sources(conditioned):
+    if conditioned:
+        from thermal_weather_source import RUNTIME_SOURCES
+        return tuple(sorted(set(EXECUTION_SOURCES)|set(RUNTIME_SOURCES)))
+    return EXECUTION_SOURCES
 EXECUTION_SOURCES=('household/__init__.py','household/thermal_model.py','household/codec.py','household/evidence.py','household/snapshot.py')
 ROLES={'air':'air_temperature','mass':'mass_temperature','outdoor':'outdoor_temperature'}
 
@@ -31,9 +40,10 @@ class PreparedProjection:
         if not isinstance(self.content,bytes) or len(self.content)>262144:raise ValueError('bounded frozen thermal inputs required')
         value=loads(self.content)
         if not isinstance(value,dict):raise ValueError('closed prepared thermal object required')
-        native=value.get('schema')=='earthship-household-prepared-thermal/v2'
-        if (set(value)!=(NATIVE_FIELDS if native else FIELDS) or
-                value['schema'] not in ('earthship-household-prepared-thermal/v1','earthship-household-prepared-thermal/v2')):
+        native=value.get('schema') in NATIVE_SCHEMAS
+        conditioned=value.get('schema')==NATIVE_SCHEMAS[1]
+        if (set(value)!=(CONDITIONED_FIELDS if conditioned else NATIVE_FIELDS if native else FIELDS) or
+                value['schema'] not in ('earthship-household-prepared-thermal/v1',*NATIVE_SCHEMAS)):
             raise ValueError('closed prepared thermal context required')
         if native:_native_prepared(value)
         if identity({key:item for key,item in value.items() if key!='prepared_sha256'})!=value['prepared_sha256']:
@@ -92,7 +102,7 @@ def project(prepared):
     """Pure deterministic math; original qualification happened before freezing."""
     if not isinstance(prepared,PreparedProjection):raise ValueError('frozen original thermal context required')
     value=prepared.to_dict()
-    if value['schema']=='earthship-household-prepared-thermal/v2':return _project_native(value)
+    if value['schema'] in NATIVE_SCHEMAS:return _project_native(value)
     initial=value['initial']
     forcings=tuple(InstalledShadeForcing(**{**row,'at':_at(row['at'])}) for row in value['forcings'])
     model=InstalledShadeDynamics(tuple(value['coefficients']))
@@ -127,30 +137,35 @@ def _native_prepared(value):
     from native_thermal_artifact import validate_native_runtime,digest as native_digest
     from native_irradiance_shade import RULE as IRRADIANCE_RULE
     if value['model_rule'] not in (RULE,JOINT_RULE,IRRADIANCE_RULE):raise ValueError('native prepared model rule required')
-    runtime=value['executing_runtime']
+    runtime=value['executing_runtime'];conditioned=value['schema']==NATIVE_SCHEMAS[1]
     if (not isinstance(runtime,dict) or set(runtime)!={'schema','thermal_runtime','household_source_manifest'} or
-            runtime['schema']!='earthship-household-model-runtime/v2'):
+            runtime['schema']!=('earthship-household-model-runtime/v3' if conditioned else 'earthship-household-model-runtime/v2')):
         raise ValueError('native prepared execution runtime required')
     sources=runtime['household_source_manifest']
-    if not isinstance(sources,dict) or set(sources)!=set(EXECUTION_SOURCES):raise ValueError('complete native household source closure required')
+    if not isinstance(sources,dict) or set(sources)!=set(_execution_sources(conditioned)):raise ValueError('complete native household source closure required')
     for sha in sources.values():digest(sha)
     validated=validate_native_runtime(runtime['thermal_runtime'])
     if native_digest(validated)!=value['runtime_sha256']:raise ValueError('native prepared runtime identity differs')
     _geometry(value)
+    if conditioned:
+        from .thermal_weather_conditioning import validate_context
+        proof=validate_context(value['weather_conditioning'],issue=_at(value['issue']),available=_at(value['inputs_available_at']))
+        from thermal_weather_source import RUNTIME_SOURCES
+        if set(proof['admission']['runtime_manifest'])!=set(RUNTIME_SOURCES) or any(sources.get(k)!=sha for k,sha in proof['admission']['runtime_manifest'].items()):raise ValueError('conditioned source admission differs from execution')
 
 
-def _native_execution_runtime(root,runtime,guard):
+def _native_execution_runtime(root,runtime,guard,*,conditioned=False):
     from native_thermal_artifact import current_native_runtime,validate_native_runtime
     from thermal_model.origin_capture import _source_bytes
     expected=validate_native_runtime(runtime);guard()
     if canonical(current_native_runtime(guard=guard))!=canonical(expected):raise ValueError('native executing runtime differs from selected model')
-    paths=EXECUTION_SOURCES
+    paths=_execution_sources(conditioned)
     manifest={name:sha256(_source_bytes(root/name,maximum=262144)).hexdigest() for name in paths}
     for name,sha in manifest.items():
         guard()
         if sha256(_source_bytes(root/name,maximum=262144)).hexdigest()!=sha:raise ValueError('native household source changed during preparation')
     if canonical(current_native_runtime(guard=guard))!=canonical(expected):raise ValueError('native executing runtime changed during preparation')
-    return dict(schema='earthship-household-model-runtime/v2',thermal_runtime=expected,household_source_manifest=manifest)
+    return dict(schema='earthship-household-model-runtime/v3' if conditioned else 'earthship-household-model-runtime/v2',thermal_runtime=expected,household_source_manifest=manifest)
 
 
 def _prepare_native_projection(capture,*,code_revision,runtime,expected_artifact_sha256,expected_capture_sha256,check_budget,capture_validator):
@@ -160,7 +175,8 @@ def _prepare_native_projection(capture,*,code_revision,runtime,expected_artifact
     from thermal_model.installed_shade_origin import _origin_actions,_forecast_forcing
     from thermal_model.origin_capture import _temperatures
     capture,runtime=map(deepcopy,(capture,runtime));root=Path(__file__).resolve().parents[1]
-    execution=_native_execution_runtime(root,runtime,check_budget)
+    conditioned=capture.get('schema')=='earthship-provisional-thermal-origin/v3'
+    execution=_native_execution_runtime(root,runtime,check_budget,conditioned=conditioned)
     original=capture_validator(capture,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
         expected_capture_sha256=expected_capture_sha256,check_budget=check_budget)
     issue,published,available=map(_instant,(original['issued_at'],original['published_at'],original['inputs_available_at']))
@@ -181,9 +197,10 @@ def _prepare_native_projection(capture,*,code_revision,runtime,expected_artifact
         actions=actions,forcings=[asdict(row) for row in forcings],horizon_hours=inputs['forecast']['horizon_hours'],
         coefficients=list(candidate['fit']['coefficients']),snapshot=snapshot.to_dict(),executing_runtime=execution,
         geometry=original['geometry'],geometry_series_sha256=original['geometry_series_sha256'],model_rule=original['output']['model_rule'])
+    if conditioned:value.update(schema=NATIVE_SCHEMAS[1],weather_conditioning=original['weather_conditioning'],inputs_available_at=original['inputs_available_at'])
     value['prepared_sha256']=identity(value);prepared=PreparedProjection(canonical(value))
     if canonical(project(prepared)['output'])!=canonical(original['output']):raise ValueError('native frozen projection differs from original forecast')
-    if canonical(_native_execution_runtime(root,runtime,check_budget))!=canonical(execution):raise ValueError('native executing source closure changed')
+    if canonical(_native_execution_runtime(root,runtime,check_budget,conditioned=conditioned))!=canonical(execution):raise ValueError('native executing source closure changed')
     check_budget();return prepared
 
 
@@ -216,6 +233,9 @@ def _project_native(value):
     from astro_geometry import _instant
     geometry=_geometry(value);initial=value['initial']
     forcings=tuple(InstalledShadeForcing(**{**row,'at':_instant(row['at'])}) for row in value['forcings'])
+    if value['schema']==NATIVE_SCHEMAS[1]:
+        from .thermal_weather_conditioning import apply_conditioning
+        forcings=apply_conditioning(forcings,value['weather_conditioning'],issue=_instant(value['issue']),available=_instant(value['inputs_available_at']),initial_outdoor_f=initial['outdoor'])
     from native_irradiance_shade import NativeIrradianceShadeDynamics,RULE as IRRADIANCE_RULE
     model_type=NativeIrradianceShadeDynamics if value['model_rule']==IRRADIANCE_RULE else NativeJointShadeDynamics if value['model_rule']==JOINT_RULE else NativeInstalledShadeDynamics
     model=model_type(tuple(value['coefficients']),geometry=geometry,expected_series_sha256=value['geometry_series_sha256'])

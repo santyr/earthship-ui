@@ -184,7 +184,18 @@ def publish_cycle(settings,*,guard,geometry=None,backend=None,serving_model=None
         archive=delivery_directory(settings,issue)
         if backend is None:
             backend=make_forecast_backend(settings,evidence_directory=archive,guard=within_deadline)
-        inputs=backend.collect(issue=issue,known_at=known);available=_clock()
+        inputs=backend.collect(issue=issue,known_at=known)
+        weather_conditioning=None
+        if inputs.get('forecast',{}).get('source')=='weathernext3':
+            from thermal_weather_source import collect_context
+            try:
+                weather_conditioning=collect_context(selection=Path.home()/'.config/earthship-weather/thermal-weather-selection.json',
+                    forecast=inputs['forecast'],geometry=geometry,issue=issue,sensor_epoch=candidate['fit']['sensor_epochs']['outdoor'],
+                    guard=within_deadline,clock=_clock)
+            except (OSError,ValueError,KeyError):
+                # Optional correction never withdraws otherwise valid raw inputs.
+                within_deadline()
+        available=_clock()
         if settings.get('schema') in GOOGLE_SCHEMAS and inputs.get('forecast',{}).get('source')!='weathernext3':
             raise ValueError('explicit Google weather inputs required')
         if available>issue:raise ValueError('original native sources arrived after issue')
@@ -194,11 +205,11 @@ def publish_cycle(settings,*,guard,geometry=None,backend=None,serving_model=None
         if receipt_profile:
             capture=forecasts.build_serving_capture(serving_model,inputs,geometry=geometry,
                 expected_geometry_sha256=geometry.sha256,issue=issue,available=available,published=_clock(),
-                check_budget=within_deadline,monitoring_report=report)
+                check_budget=within_deadline,monitoring_report=report,weather_conditioning=weather_conditioning)
         else:
             capture=forecasts.build_capture(candidate,inputs,geometry=geometry,runtime=runtime,
                 expected_artifact_sha256=expected_artifact,expected_geometry_sha256=geometry.sha256,
-                issue=issue,available=available,published=_clock(),check_budget=within_deadline,monitoring_report=report)
+                issue=issue,available=available,published=_clock(),check_budget=within_deadline,monitoring_report=report,weather_conditioning=weather_conditioning)
         origin_path=forecasts.persist(archive,capture)
         if receipt_profile:
             _serving_settings(serving_model,settings,assessed_at=_clock(),guard=within_deadline)
@@ -216,6 +227,9 @@ def publish_cycle(settings,*,guard,geometry=None,backend=None,serving_model=None
                 raise ValueError('serving capture association readback differs')
             within_deadline()
         def send_guard():
+            if weather_conditioning is not None:
+                from thermal_weather_source import verify_bindings
+                verify_bindings(weather_conditioning,guard=within_deadline)
             within_deadline();_resource_preflight();backend.verify_unchanged()
             if receipt_profile:_serving_settings(serving_model,settings,assessed_at=_clock(),guard=within_deadline)
             if (_owned_bytes(candidate_path,16384)!=candidate_raw or

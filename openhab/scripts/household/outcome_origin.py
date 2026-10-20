@@ -27,7 +27,7 @@ class PreparedOutcomeOrigin:
         prepared=PreparedProjection(canonical(value['prepared_thermal']));projection=project(prepared)
         capture=value['original_capture'];source=prepared.to_dict()
         native=value['schema']=='earthship-household-outcome-origin/v2'
-        if (source['schema']=='earthship-household-prepared-thermal/v2')!=native:
+        if (source['schema'] in ('earthship-household-prepared-thermal/v2','earthship-household-prepared-thermal/v3'))!=native:
             raise ValueError('delivered origin and prepared model versions differ')
         if (not isinstance(capture,dict) or capture.get('capture_sha256')!=capture_digest(capture,'capture_sha256') or
             capture['capture_sha256']!=source['original_capture_sha256'] or capture['issued_at']!=source['issue'] or

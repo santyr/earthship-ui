@@ -13,8 +13,8 @@ from household.thermal_model import _execution_runtime,_native_execution_runtime
 def thermal_execution_runtime(root,value):
     if value is None:return None
     prepared=PreparedProjection(canonical(value));record=prepared.to_dict()
-    if record['schema']=='earthship-household-prepared-thermal/v2':
-        return _native_execution_runtime(root,record['executing_runtime']['thermal_runtime'],lambda:None)
+    if record['schema'] in ('earthship-household-prepared-thermal/v2','earthship-household-prepared-thermal/v3'):
+        return _native_execution_runtime(root,record['executing_runtime']['thermal_runtime'],lambda:None,conditioned=record['schema']=='earthship-household-prepared-thermal/v3')
     return _execution_runtime(root)
 
 

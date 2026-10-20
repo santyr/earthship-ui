@@ -45,11 +45,24 @@ def run(*,runtime_env,code_revision,root=None,clock=lambda:datetime.now(timezone
             pointer=json.loads(_read(base/experiment_dir/'last-experiment.json',65536))
             try:results[kind]=select(Path(pointer['path']),kind=kind,state=shadow,sensor_epoch=epoch if kind=='outdoor_temperature_c' else None,clock=clock)
             except ValueError:results[kind]=dict(status='candidate_not_selected_previous_preserved',automatic_actuation=False)
+        thermal_weather='refreshed_or_already_current'
+        try:
+            pv_env=_read(Path.home()/'.config/earthship-weather/daily-pv.env',16384).decode();libraries=None
+            for line in pv_env.splitlines():
+                key,sep,value=line.partition('=')
+                if key=='EARTHSHIP_DAILY_PV_LIBRARIES':libraries=Path(value.strip().strip('\"\''))
+            if libraries is None or not libraries.is_absolute():raise ValueError('existing native geometry libraries required')
+            ri=json.loads(_read(base/'historical-radiation/radiation-index.json',65536));radiation_start=datetime.fromisoformat(ri['days'][0]['date']).replace(tzinfo=timezone.utc)
+            radiation_start=max(radiation_start,end-timedelta(days=90))
+            command('historical_radiation_capture.py',['--state',base/'historical-radiation','--start',radiation_start.date().isoformat(),'--days',(end-radiation_start).days])
+            command('historical_irradiance_train.py',['--archive',base/'historical-2026','--operational-archive',cfg['EARTHSHIP_WEATHER_ARCHIVE'],'--numeric',base/'historical-numeric','--receipts',base/'historical-radiation','--libraries',libraries,'--output',base/'irradiance-calibration','--train-end',cutoff.isoformat(),'--holdout-end',end.isoformat()])
+            command('thermal_weather_admit.py',[])
+        except (OSError,ValueError,RuntimeError):thermal_weather='deferred_previous_preserved_or_raw_thermal_inputs'
         fallback='refreshed_or_already_current'
         try:
             command('local_forecast_train.py',['--archive',cfg['EARTHSHIP_WEATHER_ARCHIVE'],'--state',cfg['EARTHSHIP_WEATHER_SHADOW_STATE'],'--temperature-policy',cfg['EARTHSHIP_WEATHER_TEMPERATURE_POLICY'],'--temperature-db-config',cfg['EARTHSHIP_WEATHER_TEMPERATURE_DB_CONFIG'],'--code-revision',code_revision,'--apply'])
         except RuntimeError:fallback='deferred_previous_preserved'
-        outcome=dict(legacy_fallback=fallback,status='historical_daily_refreshed',training_cutoff=end.isoformat(),selections=results,rain='raw_google_preserved_pending_improved_qualified_comparison',automatic_actuation=False)
+        outcome=dict(legacy_fallback=fallback,thermal_weather=thermal_weather,status='historical_daily_refreshed',training_cutoff=end.isoformat(),selections=results,rain='raw_google_preserved_pending_improved_qualified_comparison',automatic_actuation=False)
         save(state/'last-result.json',outcome);return outcome
 
 

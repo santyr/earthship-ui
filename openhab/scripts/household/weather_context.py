@@ -59,13 +59,16 @@ def _original(value):
     native=value['schema'] in ('earthship-household-prepared-weather/v2','earthship-household-prepared-weather/v3',GOOGLE_SCHEMA)
     fields,schema=CAPTURE_FIELDS,CAPTURE_SCHEMA
     if native:
-        from native_thermal_forecast import CAPTURE_FIELDS as fields,CAPTURE_SCHEMA as schema
-    if model['schema']!='earthship-household-prepared-thermal/v'+str(2 if native else 1):
+        from native_thermal_forecast import capture_fields
+        fields=capture_fields(capture);schema=capture.get('schema')
+    expected_model='earthship-household-prepared-thermal/v3' if native and schema=='earthship-provisional-thermal-origin/v3' else 'earthship-household-prepared-thermal/v'+str(2 if native else 1)
+    if model['schema']!=expected_model:
         raise ValueError('original weather and prepared model versions differ')
     if (not isinstance(capture,dict) or set(capture)!=fields or capture['schema']!=schema or
         capture_digest(capture,'capture_sha256')!=capture['capture_sha256'] or
         capture['capture_sha256']!=model['original_capture_sha256']):
         raise ValueError('original capture identity differs from prepared model')
+    if model['schema']=='earthship-household-prepared-thermal/v3' and (canonical(model['weather_conditioning'])!=canonical(capture['weather_conditioning']) or model['inputs_available_at']!=capture['inputs_available_at']):raise ValueError('original thermal correction context differs')
     issue=instant(model['issue']);available=instant(capture['inputs_available_at']);published=instant(capture['published_at'])
     if (instant(capture['issued_at'])!=issue or not available<=issue<=published or
         instant(model['snapshot']['as_of'])!=issue or instant(model['snapshot']['created_at'])!=published or
@@ -193,7 +196,7 @@ def project_weather(context):
 
 
 def prepare_native_weather_context(capture,*,prepared_thermal,runtime,expected_artifact_sha256,expected_capture_sha256,check_budget=lambda:None):
-    if not isinstance(prepared_thermal,PreparedProjection) or prepared_thermal.to_dict()['schema']!='earthship-household-prepared-thermal/v2':
+    if not isinstance(prepared_thermal,PreparedProjection) or prepared_thermal.to_dict()['schema'] not in ('earthship-household-prepared-thermal/v2','earthship-household-prepared-thermal/v3'):
         raise ValueError('separately prepared native model required')
     from native_thermal_forecast import validate_capture
     capture,runtime=map(deepcopy,(capture,runtime))

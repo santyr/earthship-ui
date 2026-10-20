@@ -17,12 +17,19 @@ from thermal_model import provisional_forecast as legacy
 from thermal_model.runtime_bundle import _owned_bytes
 
 CAPTURE_SCHEMA='earthship-provisional-thermal-origin/v2'
+CONDITIONED_CAPTURE_SCHEMA='earthship-provisional-thermal-origin/v3'
 NUMERIC_SCHEMA='earthship-provisional-thermal-forecast/v2'
 PUBLICATION_SCHEMA='earthship-provisional-thermal-publication/v2'
 INPUT_FIELDS=legacy.INPUT_FIELDS
 CAPTURE_FIELDS=legacy.CAPTURE_FIELDS|{'geometry','geometry_series_sha256'}
 MAX_CAPTURE_BYTES=6*1024*1024
 SOURCE='openhab/scripts/native_thermal_forecast.py'
+
+def capture_fields(value):
+    if value.get('schema')==CAPTURE_SCHEMA:return CAPTURE_FIELDS
+    if value.get('schema')==CONDITIONED_CAPTURE_SCHEMA:return CAPTURE_FIELDS|{'weather_conditioning'}
+    raise ValueError('explicit original native forecast version required')
+
 
 def digest(value,field):return sha256(_canonical({k:v for k,v in value.items() if k!=field})).hexdigest()
 
@@ -34,7 +41,7 @@ def _candidate(value,runtime,identity,issue,check):
     return checked
 
 
-def _numeric(candidate,inputs,geometry,*,issue,available,published,check_budget):
+def _numeric(candidate,inputs,geometry,*,issue,available,published,check_budget,weather_conditioning=None):
     check_budget()
     if not available<=issue<=published<issue+timedelta(seconds=90) or issue.second not in (0,15) or issue.microsecond or issue.minute%5:
         raise ValueError('aligned causal native provisional issue required')
@@ -61,6 +68,11 @@ def _numeric(candidate,inputs,geometry,*,issue,available,published,check_budget)
             descriptor['timezone']!=training['request']['timezone']):
         raise ValueError('native forecast calculation differs from fitted geometry')
     model=profile['model'](tuple(candidate['fit']['coefficients']),geometry=geometry,expected_series_sha256=geometry.sha256)
+    if weather_conditioning is not None:
+        from household.thermal_weather_conditioning import validate_context,apply_conditioning
+        validate_context(weather_conditioning,issue=issue,available=available,forecast=inputs['forecast'],sensor_epoch=phases['outdoor'])
+        if _canonical(weather_conditioning['native_runtime'])!=_canonical(packet['native_runtime']) or _canonical(weather_conditioning['site'])!=_canonical(descriptor['site']):raise ValueError('thermal conditioning native runtime or site differs')
+        forcings=apply_conditioning(forcings,weather_conditioning,issue=issue,available=available,initial_outdoor_f=initial['outdoor'])
     rolled=model.rollout(origin_at=issue,air_f=initial['air'],mass_f=initial['mass'],forcings=forcings,guard=check_budget)
     trajectory=[dict(at=row.at.isoformat(),air_f=state[0],mass_f=state[1]) for i,(row,state) in enumerate(zip(forcings,rolled.states),1) if i%12==0]
     check_budget()
@@ -70,7 +82,7 @@ def _numeric(candidate,inputs,geometry,*,issue,available,published,check_budget)
         origin_actions=actions,trajectory=trajectory,confidence='low',prediction_intervals=None,advice=[],graduated=False,automatic_actuation=False)
 
 
-def _build_capture(candidate,inputs,*,geometry,runtime,expected_artifact_sha256,expected_geometry_sha256,issue,available,published,check_budget,monitoring_report,candidate_validator):
+def _build_capture(candidate,inputs,*,geometry,runtime,expected_artifact_sha256,expected_geometry_sha256,issue,available,published,check_budget,monitoring_report,candidate_validator,weather_conditioning=None):
     issue,available,published=map(_instant,(issue,available,published));check_budget()
     candidate=candidate_validator(candidate,runtime,expected_artifact_sha256,issue,check_budget)
     if type(geometry) is not NativeGeometrySeries or geometry.sha256!=_sha(expected_geometry_sha256):
@@ -79,10 +91,17 @@ def _build_capture(candidate,inputs,*,geometry,runtime,expected_artifact_sha256,
     if not isinstance(inputs,dict) or set(inputs)!=INPUT_FIELDS:
         raise ValueError('complete original native sources required')
     binding=build_binding(inputs['origin_temperatures'],source_paths=inputs['native_source_paths'],issue_at=issue,check_budget=check_budget)
-    output=_numeric(candidate,inputs,geometry,issue=issue,available=available,published=published,check_budget=check_budget)
+    if weather_conditioning is not None:
+        weather_conditioning=json.loads(_canonical(weather_conditioning))
+        from thermal_weather_source import verify_bindings
+        verify_bindings(weather_conditioning,guard=check_budget)
+    output=_numeric(candidate,inputs,geometry,issue=issue,available=available,published=published,check_budget=check_budget,weather_conditioning=weather_conditioning)
     legacy._validate_report(monitoring_report,candidate['artifact_sha256'],available)
     value=json.loads(_canonical(dict(schema=CAPTURE_SCHEMA,issued_at=issue.isoformat(),inputs_available_at=available.isoformat(),published_at=published.isoformat(),
         candidate=candidate,inputs=inputs,native_origin_binding=binding,geometry=geometry.to_dict(),geometry_series_sha256=geometry.sha256,output=output,monitoring_report=monitoring_report)))
+    if weather_conditioning is not None:
+        value.update(schema=CONDITIONED_CAPTURE_SCHEMA,weather_conditioning=weather_conditioning)
+        verify_bindings(weather_conditioning,guard=check_budget)
     value['capture_sha256']=digest(value,'capture_sha256');check_budget()
     if len(_canonical(value))>MAX_CAPTURE_BYTES:raise ValueError('bounded retained native forecast required')
     return value
@@ -92,7 +111,7 @@ def _validate_capture(value,*,runtime,expected_artifact_sha256,expected_capture_
     # Callbacks and concurrent callers must never alter the validated snapshot.
     value=deepcopy(value);runtime=deepcopy(runtime)
     check_budget()
-    if (not isinstance(value,dict) or set(value)!=CAPTURE_FIELDS or value['schema']!=CAPTURE_SCHEMA or
+    if (not isinstance(value,dict) or set(value)!=capture_fields(value) or
             value['capture_sha256']!=_sha(expected_capture_sha256) or digest(value,'capture_sha256')!=value['capture_sha256'] or
             len(_canonical(value))>MAX_CAPTURE_BYTES):
         raise ValueError('closed original native forecast identity required')
@@ -101,18 +120,23 @@ def _validate_capture(value,*,runtime,expected_artifact_sha256,expected_capture_
     replay_binding(value['native_origin_binding'],value['inputs']['origin_temperatures'],issue_at=issue,check_budget=check_budget)
     packet=value['geometry']
     geometry=replay_series(_canonical(packet),request=packet['request'],expected_series_sha256=value['geometry_series_sha256'],expected_native_runtime=packet['native_runtime'])
-    output=_numeric(candidate,value['inputs'],geometry,issue=issue,available=available,published=published,check_budget=check_budget)
+    weather_conditioning=value.get('weather_conditioning')
+    if value['schema']==CONDITIONED_CAPTURE_SCHEMA and not isinstance(weather_conditioning,dict):raise ValueError('conditioned native capture requires original proof')
+    if weather_conditioning is not None:
+        from thermal_weather_source import verify_bindings
+        verify_bindings(weather_conditioning,guard=check_budget)
+    output=_numeric(candidate,value['inputs'],geometry,issue=issue,available=available,published=published,check_budget=check_budget,weather_conditioning=weather_conditioning)
     if _canonical(output)!=_canonical(value['output']):raise ValueError('original native forecast trajectory differs')
     legacy._validate_report(value['monitoring_report'],candidate['artifact_sha256'],available)
     check_budget();return deepcopy(value)
 
 
 
-def build_capture(candidate,inputs,*,geometry,runtime,expected_artifact_sha256,expected_geometry_sha256,issue,available,published,check_budget=lambda:None,monitoring_report=None):
+def build_capture(candidate,inputs,*,geometry,runtime,expected_artifact_sha256,expected_geometry_sha256,issue,available,published,check_budget=lambda:None,monitoring_report=None,weather_conditioning=None):
     return _build_capture(candidate,inputs,geometry=geometry,runtime=runtime,
         expected_artifact_sha256=expected_artifact_sha256,expected_geometry_sha256=expected_geometry_sha256,
         issue=issue,available=available,published=published,check_budget=check_budget,
-        monitoring_report=monitoring_report,candidate_validator=_candidate)
+        monitoring_report=monitoring_report,candidate_validator=_candidate,weather_conditioning=weather_conditioning)
 
 
 def validate_capture(value,*,runtime,expected_artifact_sha256,expected_capture_sha256,check_budget=lambda:None):
@@ -131,7 +155,7 @@ def _serving_candidate(value,runtime,identity,issue,check,model):
     return checked
 
 
-def build_serving_capture(model,inputs,*,geometry,expected_geometry_sha256,issue,available,published,check_budget=lambda:None,monitoring_report=None):
+def build_serving_capture(model,inputs,*,geometry,expected_geometry_sha256,issue,available,published,check_budget=lambda:None,monitoring_report=None,weather_conditioning=None):
     from native_model_serving_receipt import _require_model
     _require_model(model)
     inputs=deepcopy(inputs)
@@ -141,7 +165,7 @@ def build_serving_capture(model,inputs,*,geometry,expected_geometry_sha256,issue
     return _build_capture(candidate,inputs,geometry=geometry,runtime=model.runtime,
         expected_artifact_sha256=candidate['artifact_sha256'],expected_geometry_sha256=expected_geometry_sha256,
         issue=issue,available=available,published=published,check_budget=check_budget,
-        monitoring_report=deepcopy(monitoring_report),candidate_validator=verified)
+        monitoring_report=deepcopy(monitoring_report),candidate_validator=verified,weather_conditioning=weather_conditioning)
 
 
 def validate_serving_capture(value,model,*,expected_capture_sha256,check_budget=lambda:None):

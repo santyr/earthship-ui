@@ -93,3 +93,21 @@ def test_thermal_irradiance_replay_preserves_originals_night_and_training_latenc
  assert correct_forcing_hours(hours,model=model,origin=origin,positions=positions,horizon_profile=None,horizon_hours=1)==original
  model['cutoff']=origin.isoformat()
  with pytest.raises(ValueError,match='ready'):correct_forcing_hours(hours,model=model,origin=origin,positions=positions,horizon_profile=None,horizon_hours=1)
+
+
+def test_recorded_irradiance_uses_actual_ingestion_and_preserves_source(monkeypatch):
+ from copy import deepcopy
+ from weather_learning.irradiance_learning import pair_irradiance
+ from weather_learning.contracts import identity
+ import weather_learning.historical as history
+ origin=START.replace(minute=0,second=0,microsecond=0);end=origin+timedelta(hours=2)
+ source=dict(historical=False,initialized_at=(origin-timedelta(hours=4)).isoformat(),ingestion_completed_at=(origin+timedelta(minutes=12)).isoformat(),points=[dict(variable='surface_solar_radiation_downwards_1hr',statistic='mean',valid_at=end.isoformat(),value=500.)])
+ original=deepcopy(source);monkeypatch.setattr(history,'verify_history',lambda x:x)
+ labels={end.isoformat():dict(mean_w_m2=400.,quality='clean_v2_elapsed_lux_proxy')}
+ positions={(end-timedelta(minutes=30)).isoformat():dict(elevation_degrees=30.,azimuth_degrees=165.,horizon_elevation_degrees=0.)}
+ with pytest.raises(ValueError):pair_irradiance(source,labels,positions,target_end=end+timedelta(hours=1))
+ rows=pair_irradiance(source,labels,positions,target_end=end+timedelta(hours=1),allow_recorded_availability=True)
+ assert len(rows)==1 and rows[0]['lead_hours']==1
+ assert rows[0]['origin']==(origin+timedelta(hours=1)).isoformat()
+ assert rows[0]['availability_basis']=='recorded_ingestion_completed_rounded_to_next_hour'
+ assert source==original and rows[0]['forecast_sha256']==identity(original)
