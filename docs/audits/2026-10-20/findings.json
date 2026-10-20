@@ -23,16 +23,17 @@
         "Same files plus test_household_cycle_resources.py: 101 passed in 3.41s. Test-scoped preflight injection only; production modules unchanged. Normal shard verification pending.",
         "All three normal OpenHAB shards completed successfully atd549886; complete final-source gates separately required."
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "test/workflow-only repair; maintained hosted gates execute it, no physical runtime change required",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "A01",
@@ -54,16 +55,17 @@
       "regression_evidence": [
         "Original source: 6 failed / 44 passed. Repaired owner suites: 52 passed, 3 files; max-ID exhaustion and OFF failure included. Full final revision suite pending."
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Important control/source integrity or recovery defect; reproduced impact is described in expected_actual. No physical safety incident asserted.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "installed; exact surface/source, actual execution and independent qualification limits in deployment.md and deployment-runtime.json",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "A02",
@@ -85,16 +87,17 @@
       "regression_evidence": [
         "Original source: 6 failed / 44 passed. Repaired owner suites: 52 passed, 3 files; max-ID exhaustion and OFF failure included. Full final revision suite pending."
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Important control/source integrity or recovery defect; reproduced impact is described in expected_actual. No physical safety incident asserted.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "installed; exact surface/source, actual execution and independent qualification limits in deployment.md and deployment-runtime.json",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "A03",
@@ -119,16 +122,17 @@
       "regression_evidence": [
         "Complete interim unit run:182files/2743passed, Node24 with test-only .codex import adapter; standard Node22 final clone gate pending."
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Important control/source integrity or recovery defect; reproduced impact is described in expected_actual. No physical safety incident asserted.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "installed; exact surface/source, actual execution and independent qualification limits in deployment.md and deployment-runtime.json",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "A04",
@@ -152,16 +156,17 @@
       "regression_evidence": [
         "Complete interim unit run182files/2743passed. Energy overlay expiration and delayed-start existing cases retained."
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "installed; exact surface/source, actual execution and independent qualification limits in deployment.md and deployment-runtime.json",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "A05",
@@ -180,16 +185,17 @@
       "regression_evidence": [
         "Initial corrected regression: 9 failed/7 passed; added recovery order: 3 failed/17 passed; current sensor contracts: 66 passed/11 explicit container integration skips, pytest 8.3.5."
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "installed; exact surface/source, actual execution and independent qualification limits in deployment.md and deployment-runtime.json",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "A06",
@@ -212,16 +218,17 @@
       "regression_evidence": [
         "Combined numerical gate103passed. Actual737-pair retained model retains29local training days,5holdout days and identical sector support; see pv-retained-reassessment.json."
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "Corrected scheduled candidate generation installed under explicit retain-selection policy. Original selected-v1 serving/numerics/clocks preserved; no new candidate promotion. First scheduled corrected learning execution remains clock-dependent; see deployment.md.",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "A07",
@@ -248,16 +255,17 @@
         "Combined numerical gate103passed.16complete live projections exactly equal original serving implementation.737retained pairs rebuilt from55verified Google sources/29verified geometry series;671baselines changed, meanabs5.836047893W/max59.088710966W. Same124-pair/5day development split still selects corrected model; no new prospective skill claimed.",
         "Horizon follow-through7numeric failures before shared-helper repair;147affectedPVtests passed/0skips1.38s. Exact4692horizon+161olderpairs rebuilt; newv2datasets only; qualification.md/model-reassessment.json."
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "Corrected scheduled candidate generation installed under explicit retain-selection policy. Original selected-v1 serving/numerics/clocks preserved; no new candidate promotion. First scheduled corrected learning execution remains clock-dependent; see deployment.md.",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "A08",
@@ -278,16 +286,17 @@
       "regression_evidence": [
         "Original: 5 failed/6 passed. Repaired raw/corrected native capture plus frozen household replay: 68 passed in 17.85s across four files."
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "installed; exact surface/source, actual execution and independent qualification limits in deployment.md and deployment-runtime.json",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "A09",
@@ -317,16 +326,17 @@
         "Seven gate checks pass; one native dependency failure remains under active repair. General71tests/7files, geometry65tests/5files, sensor2tests/1file discovered. Missing sensor env explicitly fails before startup, no silent skip. QA2cases passed after staleSet assertion corrected.",
         "Separate pinned BMS profile preserves general pin and normal file partitions.11gatecases pass including actual shard shell success/general-failure/BMS-failure;7nativePGtests passed0skips. Browserruntime stillpending."
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "test/workflow-only repair; maintained hosted gates execute it, no physical runtime change required",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "A10",
@@ -348,16 +358,17 @@
       "regression_evidence": [
         "Affected Python gate: 285 passed, no skips, 84.55s. Frontend parser/render/legacy gate: 108 passed, six files, no skips; interim test-only .codex adapter used. Final standard gate pending."
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "installed; exact surface/source, actual execution and independent qualification limits in deployment.md and deployment-runtime.json",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "A11",
@@ -377,16 +388,17 @@
       "regression_evidence": [
         "npm audit fix --package-lock-only --ignore-scripts:exit0,15package entries updated,noneadded/removed; package.json/ranges unchanged; fresh npmci/fullfrontendgates pending."
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "installed; exact surface/source, actual execution and independent qualification limits in deployment.md and deployment-runtime.json",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "A12",
@@ -407,16 +419,17 @@
       "regression_evidence": [
         "Timestamp text capped128characters before ledger access; writer also validates exact same identity bound as reader. Both streams reject before persistence/commands and admit a subsequent valid request after volatile loss. Review-fix group119passed/7files."
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Important control/source integrity or recovery defect; reproduced impact is described in expected_actual. No physical safety incident asserted.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "installed; exact surface/source, actual execution and independent qualification limits in deployment.md and deployment-runtime.json",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "A13",
@@ -437,16 +450,17 @@
       "regression_evidence": [
         "Snapshot updates evidence without Item mutation; replacement snapshot alone owns state. Source evidence keeps old original clock/state until matching evidence arrives. Review-fix group119passed/7files."
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "installed; exact surface/source, actual execution and independent qualification limits in deployment.md and deployment-runtime.json",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "A14",
@@ -468,16 +482,17 @@
         "Initial browser71:14failed/57passed, including two overflow cases. Repair retains44px controls, full advisory and64px minimum; measured laptop plots67px each.",
         "Complete7spec71passed and geometry5spec65passed, Node22.22.0, exact8-file source patch; final integrated revision pending."
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "installed; exact surface/source, actual execution and independent qualification limits in deployment.md and deployment-runtime.json",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "A15",
@@ -499,16 +514,17 @@
         "Unchanged180px assertion failed; gap correction produces180.6875px and preserves all26 shade previews.",
         "Complete7spec71passed and geometry5spec65passed, Node22.22.0, exact8-file source patch; final integrated revision pending."
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "installed; exact surface/source, actual execution and independent qualification limits in deployment.md and deployment-runtime.json",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "A16",
@@ -530,16 +546,17 @@
         "Existing browser click/bounds assertion failed; open-state overflow:clip restores panel origin at both supported sizes without lifecycle work.",
         "Complete7spec71passed and geometry5spec65passed, Node22.22.0, exact8-file source patch; final integrated revision pending."
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "installed; exact surface/source, actual execution and independent qualification limits in deployment.md and deployment-runtime.json",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "C01",
@@ -558,16 +575,17 @@
       "root_cause": "See associated native regression and consolidated phase mapping.",
       "repair_commit": "df742cd; e6b4997",
       "regression_evidence": [],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "installed; exact surface/source, actual execution and independent qualification limits in deployment.md and deployment-runtime.json",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "C02",
@@ -588,16 +606,17 @@
       "regression_evidence": [
         "Native matched/fallback and zero-support regressions; durable target-window coverage28queue tests; separate correction horizon/month/regime and artifact/procedure diagnostics; final candidate full gates pending."
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "installed; exact surface/source, actual execution and independent qualification limits in deployment.md and deployment-runtime.json",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "C03",
@@ -618,16 +637,17 @@
       "regression_evidence": [
         "Artifact versus policy cohort regression, legacy unidentified provenance, actual-fit training-policy retention and no-op identity; correction procedure cohorts preserve null unknown legacy fields and never claim newest-artifact qualification."
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "installed; exact surface/source, actual execution and independent qualification limits in deployment.md and deployment-runtime.json",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "C04",
@@ -646,16 +666,17 @@
       "root_cause": "See associated native regression and consolidated phase mapping.",
       "repair_commit": "4d1259c; df742cd",
       "regression_evidence": [],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "Corrected weighted PV candidate generation installed in retain-selection mode. Weather retains its explicitly declared original uniform-row procedure; corrected weather weighted method is implemented/tested/reassessed but not promoted. No borrowed current-procedure skill.",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "C05",
@@ -678,17 +699,18 @@
       "regression_evidence": [
         "Horizon follow-through7numeric failures before shared-helper repair;147affectedPVtests passed/0skips1.38s. Exact4692horizon+161olderpairs rebuilt; newv2datasets only; qualification.md/model-reassessment.json."
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "reassessment": "qualification.md and model-reassessment.json; original artifacts/producers unchanged",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "Corrected scheduled candidate generation installed under explicit retain-selection policy. Original selected-v1 serving/numerics/clocks preserved; no new candidate promotion. First scheduled corrected learning execution remains clock-dependent; see deployment.md.",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "C06",
@@ -707,17 +729,18 @@
       "root_cause": "See associated native regression and consolidated phase mapping.",
       "repair_commit": "3126544",
       "regression_evidence": [],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "reassessment": "qualification.md and model-reassessment.json; original artifacts/producers unchanged",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "installed; exact surface/source, actual execution and independent qualification limits in deployment.md and deployment-runtime.json",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "C07",
@@ -757,16 +780,17 @@
       "regression_evidence": [
         "test_database_reader_adapter_supplies_shared_remaining_deadline; focused correction/wind/monitor/worker55passed,11.48s,exit0"
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "installed; exact surface/source, actual execution and independent qualification limits in deployment.md and deployment-runtime.json",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "C08",
@@ -787,16 +811,17 @@
         "four missing/corrupt intake/due regressions and actual proxy transport outage RED\u2192GREEN; focused correction/wind/monitor/worker55passed,11.48s,exit0",
         "Future-original intake also reproduced independent-work starvation; durable not-yet-available retry and cursor progression fixed it. Complete affected suite56passed11.68s,exit0."
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "installed; exact surface/source, actual execution and independent qualification limits in deployment.md and deployment-runtime.json",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "C09",
@@ -816,16 +841,17 @@
       "regression_evidence": [
         "test_arrival_allowance_uses_original_availability_not_processing_time RED\u2192GREEN; focused correction/wind/monitor/worker55passed,11.48s,exit0"
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "installed; exact surface/source, actual execution and independent qualification limits in deployment.md and deployment-runtime.json",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "C10",
@@ -846,16 +872,17 @@
       "regression_evidence": [
         "durable tamper and16cohort projection regressions RED\u2192GREEN; originals preserved, bad score withheld, omissions explicit; focused correction/wind/monitor/worker55passed,11.48s,exit0"
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "installed; exact surface/source, actual execution and independent qualification limits in deployment.md and deployment-runtime.json",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "C11",
@@ -875,16 +902,17 @@
       "regression_evidence": [
         "test_legacy_window_reads_also_consume_the_job_observation_budget reproduced72>64 then passed; focused correction/wind/monitor/worker55passed,11.48s,exit0"
       ],
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
-      "deployment_status": "candidate_not_installed",
+      "deployment_status": "installed; exact surface/source, actual execution and independent qualification limits in deployment.md and deployment-runtime.json",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "candidate_not_installed"
     },
     {
       "id": "A18",
@@ -905,16 +933,17 @@
       "root_cause": "The standalone scorer intentionally disables fitting in-process. Four CLI fixture modules failed to restore those environment writes; repairing only the registered module left queue/index/busy-lock leakage. The monolithic CI suite allowed a skipped fit to pass.",
       "repair_commit": "494213c; 6ecd37f; 8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
       "regression_evidence": "Expanded source-derived caller regression executes all22 actual in-process scorer CLI cases then an enabled-fit sentinel:1failed/22passed before complete fixture repair. Maintained workflow test initially fails absent dedicated gate, then executes its actual shell against passed/skipped/absent receipts; skipped and absent fail. Full affected gate+six CLI module suite109passed/23.95s/exit0, including pinned actionlint with ShellCheck. Dedicated hosted real fit still required. Final dedicated hosted ML partitions1414plus1passed/zero skips; actual synthetic full-qualification-fit regression executed.",
-      "status": "fixed_integrated_verified_not_deployed",
+      "status": "fixed_integrated_verified",
       "severity_reason": "A maintained important numerical qualification gate was omitted from successful CI, without demonstrating a production model error.",
-      "deployment_status": "test-only repair; no production change",
+      "deployment_status": "test/workflow-only repair; maintained hosted gates execute it, no physical runtime change required",
       "closure_status": "software_verified",
       "integrated_regression_evidence": {
         "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
         "hosted": "ci-final.json",
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
-      }
+      },
+      "preapproval_deployment_status": "test-only repair; no production change"
     },
     {
       "id": "A19",
@@ -929,22 +958,88 @@
       "expected_actual": "A source/model cutover should retain a valid next forecast. activate() installed the new family without preparing its model-bound geometry; the preceding scheduled preparation still belonged to the old artifact. The first new-source forecast was correctly withheld and withdrawn.",
       "reproduction": "Actual authorized rollout: old-stage geometry prepared18:43:08Z, activation18:43:46Z, new-stage first18:45:15Zissue lacked geometry and was withdrawn. Normal native harness reaches installation with no new-model packet before the repair; RED assertion.",
       "root_cause": "NativeTraining.package creates an empty geometry-live directory; automatic activate had no preparation/read_geometry step before replacing the source family. This also existed in earlier operational evidence and was not specific to manual parent ordering.",
-      "repair_commit": "pending integration commit; exact source delta is19lines plus9normal regressions",
-      "regression_evidence": "143related native tests passed in56.95s under existing256/768MiB24task300second launcher; focused9activation+28preparer cases include preparation failure, wrong artifact/issue/path, late handoff and transactional byte/clock drift. No native acquisition in fixtures.",
-      "status": "fixed_focused_verified_pending_integration",
+      "repair_commit": "1f23c674d03f7eb4b4100b72e2b094a4733cdc13",
+      "regression_evidence": "143related native tests passed in56.95s under existing256/768MiB24task300second launcher; focused9activation+28preparer cases include preparation failure, wrong artifact/issue/path, late handoff and transactional byte/clock drift. No native acquisition in fixtures. New normal-discovered file belongs to CI OpenHAB shard0; deployment-ci.json records integrated results separately.",
+      "status": "fixed_integrated_verified_installed",
       "severity_reason": "A six-hour model refresh can temporarily remove an otherwise useful forecast; source/runtime validation correctly refuses the missing input and no actuator authority is involved.",
-      "deployment_status": "Actual first new issue recovered by its next natural warm slot; automatic source repair awaits integrated gate and controller installation.",
-      "closure_status": "focused_verified_pending_integration"
+      "deployment_status": "Controller source bef677e1f9a8fe353f9b0c504ba19c48a1cc0c7a installed/read back19:31:57Z with existing active18Zfit unchanged. Guarded actual current-model reader passed. No fit/activation/start requested. Next automatic handoff18:50Denver remains clock-dependent execution qualification.",
+      "closure_status": "software_verified_installed_natural_handoff_pending",
+      "integrated_regression_evidence": {
+        "source_revision": "1f23c674d03f7eb4b4100b72e2b094a4733cdc13",
+        "merge_revision": "bef677e1f9a8fe353f9b0c504ba19c48a1cc0c7a",
+        "hosted": "deployment-ci.json",
+        "native": "deployment-native.json",
+        "scope": "all five workflows complete; normal shard0 includes9newcases; six disposable rollout-guard cases; actual future cutover distinct"
+      }
+    },
+    {
+      "id": "A20",
+      "severity": "P2",
+      "confidence": "confirmed",
+      "title": "Retain-incumbent rollout leaves defective scheduled PV selection active",
+      "affected_revision": "bef677e1f9a8fe353f9b0c504ba19c48a1cc0c7a deployment with old pv-learning-release-4560cf1",
+      "files": [
+        "openhab/scripts/historical_pv_daily.py",
+        "openhab/scripts/test_pv_learning_refresh.py",
+        "deploy/pv-calibration-train.service"
+      ],
+      "expected_actual": "Keeping an incumbent must not let an older scheduled learner mint new models using known incorrect UTC-day support or train/serve baseline arithmetic. The preserved old daily owner fits and can overwrite selected-directional.json; its original numerical hashes match current compatibility serving, so those new v1models would be admitted.",
+      "reproduction": "Pure original scheduled-module fixture:24training rows on two Denver dates report3days and supported=True;24holdout rows on one Denver date report2independent days; both assessment and incumbent-comparison selection pass (candidateMAE100W/incumbent200W). Source inspection confirms daily selector can publish the result. No production data/write or actual bad operational selection asserted.",
+      "root_cause": "Deployment classified the learning unit as incumbent retention, but it is an active automatic selection writer. Compatible old numerical hashes preserve original serving and also admit newly fitted old-semantics models.",
+      "repair_commit": "6a4ab8f1c6e251bc3ca5901fd40902307620f628",
+      "regression_evidence": "Normal RED7failed0.24s, then focused18passed0.34s; final affected87passed1.02s/exit0/zero skips, including20PVlearning cases (10new). Actual corrected baseline/horizon/weighting/calibration/source/policy suites included. Private logs/JUnit and commands retained; independent source/helper review approved. New cases belong to existing normal shard0file.",
+      "status": "fixed_integrated_verified_installed",
+      "severity_reason": "A future scheduled selection can repeat confirmed analytical support/baseline defects, without actuator authority or demonstrated physical incident.",
+      "deployment_status": "Corrected full-source learner installed with explicit --retain-selection; exact source/argv/env/profile/timer and original 6192 selected bytes read back. No manual fit or selection. Next natural October 21 about 07:16 Denver execution remains clock-dependent.",
+      "closure_status": "software_verified_installed_natural_learning_pending",
+      "integrated_regression_evidence": {
+        "source_revision": "444d7e9550a742d9662cc9bd85a68d4c5dafb8c1",
+        "merge_revision": "0b3f6fc0a5ec0e86cd4af65604241d9532b2f1ad",
+        "hosted": "deployment-a20-ci.json",
+        "native": "deployment-a20-native.json",
+        "runtime": "deployment-runtime.json"
+      }
+    },
+    {
+      "id": "A21",
+      "severity": "P2",
+      "confidence": "confirmed",
+      "title": "In-process PV CLI tests leak private umask into the normal shard",
+      "affected_revision": "6a4ab8f1c6e251bc3ca5901fd40902307620f628",
+      "files": [
+        "openhab/scripts/test_pv_learning_refresh.py",
+        "tests/completion/test_verification_gates.py"
+      ],
+      "expected_actual": "CLI fixtures must restore process-global settings so later privacy checks exercise their declared file modes. The two new CLI tests called real main(), left umask077 and changed later mkdir755 into700, causing the full normal pending-score privacy test to fail.",
+      "reproduction": "CI39486153706 shard0:1failed/2161passed/8skipped/68subtests; test_preview_refuses_public_directory_and_symlink_database expectedValueError absent. New normal child gate starting022 runs actual20PVcases, realpendingprivacycase andmask sentinel: privacycasefails andactualmask077ratherthan022.",
+      "root_cause": "Correct standalone production main() intentionally sets private umask077. In-process CLI tests did not restore the caller mask; another new private-file fixture also implicitly depended on the leakedmask.",
+      "repair_commit": "444d7e9550a742d9662cc9bd85a68d4c5dafb8c1",
+      "regression_evidence": "Normal child regression RED reproduces actual downstream privacy failure plus077mask sentinel; final ordered50cases passed16.90s/exit0/zero skips. ActualCLIstillasserts077; fixturefinallyrestoresincomingmask, explicit600concurrentfile matches realwriter. Production/privacycode unchanged. Newcase is in maintained completion gate.",
+      "status": "fixed_integrated_verified",
+      "severity_reason": "A process-global fixture leak invalidates filesystem-privacy verification and blocks the normal required shard; no production privacy weakness was demonstrated.",
+      "deployment_status": "Test fixture isolation only; production umask and privacy rejection unchanged.",
+      "closure_status": "closed_software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "444d7e9550a742d9662cc9bd85a68d4c5dafb8c1",
+        "hosted": "deployment-a20-ci.json",
+        "native": "deployment-a20-native.json"
+      }
     }
   ],
-  "current_source_candidate": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+  "current_source_candidate": "444d7e9550a742d9662cc9bd85a68d4c5dafb8c1",
   "final_integrated_verification": {
     "status": "passed",
-    "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
-    "hosted_evidence": "ci-final.json",
-    "native_evidence": "native-final.json",
-    "deployment": "not performed; existing installed sources recorded separately",
+    "source_revision": "444d7e9550a742d9662cc9bd85a68d4c5dafb8c1",
+    "merge_revision": "0b3f6fc0a5ec0e86cd4af65604241d9532b2f1ad",
+    "hosted_evidence": "deployment-a20-ci.json",
+    "native_evidence": "deployment-a20-native.json",
+    "deployment": "deployment.md and deployment-runtime.json identify actual per-surface installed/runtime sources",
     "physical_and_statistical_qualification": "qualification.md and release.md"
   },
-  "evidence_supersession": "Final integrated evidence supersedes earlier pending text in preserved focused regression history."
+  "evidence_supersession": "Final integrated evidence supersedes earlier pending text in preserved focused regression history.",
+  "approved_deployment_evidence": "deployment.md; deployment-a20-source-freeze.json; deployment-a20-ci.json; deployment-a20-native.json; deployment-runtime.json; deployment-pipeline-proof.json; deployment-calibrated-proof.json; deployment-daily-pv-proof.json; deployment-weather-proof.json",
+  "deployment_status_supersession": "Current per-finding deployment_status supersedes preapproval candidate_not_installed. Historical source/native gates remain unchanged; deployment-ci.json extends verification for A19.",
+  "current_integrated_source": "0b3f6fc0a5ec0e86cd4af65604241d9532b2f1ad",
+  "final_deployment_repair_verification": "deployment-a20-ci.json/deployment-a20-native.json bind final corrected source; earlier source/native evidence preserved",
+  "current_repair_candidate": "444d7e9550a742d9662cc9bd85a68d4c5dafb8c1"
 }

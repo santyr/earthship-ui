@@ -1,7 +1,7 @@
 {
   "schema": "earthship-audit-source-inventory/v1",
   "base_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
-  "public_tracked_files": 2134,
+  "public_tracked_files": 2140,
   "routes": [
     "home",
     "energy",
@@ -336,6 +336,7 @@
     "openhab/scripts/test_household_model_pipeline.py",
     "openhab/scripts/test_household_model_snapshot.py",
     "openhab/scripts/test_household_models.py",
+    "openhab/scripts/test_household_native_activation.py",
     "openhab/scripts/test_household_native_cycle.py",
     "openhab/scripts/test_household_native_cycle_driver.py",
     "openhab/scripts/test_household_native_daily.py",
@@ -820,7 +821,7 @@
     "tests/completion/test_thermal_state_backup.py",
     "tests/completion/test_verification_gates.py"
   ],
-  "audited_source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+  "audited_source_revision": "444d7e9550a742d9662cc9bd85a68d4c5dafb8c1",
   "inventory_method": "tracked public source only; discovery does not prove activation, execution or qualification",
   "components": [
     "src/App.svelte",
@@ -1267,6 +1268,9 @@
     ],
     "openhab/scripts/historical_physics_train.py": [
       "earthship-historical-native-physics-fit/v1"
+    ],
+    "openhab/scripts/historical_pv_daily.py": [
+      "earthship-historical-pv-directional-experiment/v1"
     ],
     "openhab/scripts/historical_pv_directional_train.py": [
       "earthship-historical-pv-directional-experiment/v1"

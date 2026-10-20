@@ -1,0 +1,123 @@
+{
+  "schema": "earthship-postdeploy-retained-pipeline-proof/v1",
+  "deployment_sha256": "8d639bd736e74b90b5216b58b5e16789f1ad9756d3eca75a4151a85097ea8938",
+  "source_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+  "companion_revision": "7b70117bcfb9599a12d0325771ed1103f083fa5c",
+  "source_closure": {
+    "original_runtime_manifest_sha256": "835afacde8a7fd7327561c3f1b3cb3eb3d96662f0dad97de30ab794c66d825d5",
+    "pipeline_files": 68,
+    "pipeline_manifest_sha256": "835afacde8a7fd7327561c3f1b3cb3eb3d96662f0dad97de30ab794c66d825d5",
+    "stage_files": 362,
+    "stage_manifest_sha256": "beed9bf024faa0fdfdb4c6c6d22437b46b039236ba96ced3d0a66a9e06b8b9e9"
+  },
+  "decision_at": "2026-10-20T18:55:29.436738+00:00",
+  "pipeline_document_sha256": "dd2d08a0ba7199291602aa1e4a46c73d37b739f2c3a644213c9676bdc862daa0",
+  "pipeline_receipt_sha256": "98638cb347437396dfc95b14c6b2e2dea5cc08d1e786d6402b383a3cb08ec22b",
+  "snapshot_id": "8fe8f8f1a5d36f8607696efd41ca34585612a8ae18296e061250d16357b1b0b2",
+  "snapshot_document_sha256": "22e40ac0cef9f50fcb8ee2ea4fe0a869a8d17f609ee47f56cfe605f1f4aec89c",
+  "snapshot_schema": "earthship-household-snapshot/v6",
+  "model_projections": {
+    "energy": {
+      "artifact_sha256": null,
+      "document_sha256": "8aa8b38ab6ad1d4a100fbc09367b686ea98cbebd4e6df5e18e3162565bd432fe",
+      "projection_sha256": "c6e906209336fd0f03e8fb6e017ae52f207acae5ab79a2bf0158515bcfe2147a",
+      "runtime_sha256": null
+    },
+    "energy_configuration": {
+      "artifact_sha256": null,
+      "document_sha256": "c473dcff7551fe0488793efb965323951b6f96181986c5497ddacd73fc50d039",
+      "projection_sha256": "29372fed77b4f3d485d1bcf8e01bcb4a69b6e6aee2c5355eb6712e7a06f0a7bf",
+      "runtime_sha256": null
+    },
+    "energy_persistence": {
+      "artifact_sha256": null,
+      "document_sha256": "0b3bf75bedd40c22920c3ef77f401c469e8a514fb2ced5ad88ba04d455d022f7",
+      "projection_sha256": "89d1a27834f0fe99de6c8765ea31a6891ec55f9a653d434acd4ebc7ff69dc2bd",
+      "runtime_sha256": null
+    },
+    "measured_weather": {
+      "artifact_sha256": null,
+      "document_sha256": "f2c78ef15e9d6fcc8fba6955c65907e17ddffb4a1904181cf6550767d3e0eade",
+      "projection_sha256": "185d1aefad8a56c0b73c659ec2f69062448d721ca8a88145947ff0959aeec5d6",
+      "runtime_sha256": null
+    },
+    "thermal": {
+      "artifact_sha256": "4e2709c8bf23e594dac516b815575f2cdbe2d7f52d5af55e0863108579406e9a",
+      "document_sha256": "3db4cabc8ebfe1c3cb9a3d734fb63dae91ed67a6a5cb82d1f914356db3b40220",
+      "projection_sha256": "efc643bf4a17dedea77636eae24587d00a5099a920a5ebe0c2184e175d7e761d",
+      "runtime_sha256": "b6736cd9f631736515b027676c7052c86fa6bd62b4e3ab7272b325bd3036d23f"
+    },
+    "weather": {
+      "artifact_sha256": null,
+      "document_sha256": "0b3209679e05fc956310d8277059c9c847ccd2da6cd85475def0ca98345d4889",
+      "projection_sha256": "98e1fa19281935a24de28b40edc1f4f6a434dde43915da9c885872ff338d3294",
+      "runtime_sha256": null
+    }
+  },
+  "candidate_types": [
+    "SET_NIGHT_LOAD_OVERRIDE",
+    "RUN_GREYWATER_CYCLE"
+  ],
+  "candidate_count": 2,
+  "plan_receipt_sha256": "dad124b5d1ccd840f06c4a24369724d364d275d84c350e1e929bbf306e0417f9",
+  "plan_sha256": "18101f24e514eff8f79a56cdf555da67b5358be034c3deecc5f5de2d3a7c4fd4",
+  "plan_status": "input_incomplete",
+  "selected_count": 0,
+  "candidate_decisions": [
+    {
+      "reason": "source_unavailable",
+      "status": "unknown",
+      "unknown_checks": 6
+    },
+    {
+      "reason": "busy",
+      "status": "rejected",
+      "unknown_checks": 5
+    }
+  ],
+  "curated_public_report_sha256": "216e954b3caba7a594635c71a1abd80544aee7eb5e3ba15e12286e5bd75edfbe",
+  "curated_public_report_schema": "earthship-household-observation/v4",
+  "archived_admission_sha256": "94164975bc8af31b873da5fb0b3bb0579e6aa194d939b7442a7890ed877a291f",
+  "archived_admission_document_sha256": "3c80f27c8731d6a1aeae6da7e41d14ce37d6208a65c8f7dd02944e2570b829bd",
+  "original_pipeline_parity": true,
+  "original_nested_plan_parity": true,
+  "original_public_report_parity": true,
+  "original_admission_parity": true,
+  "original_inputs_and_stage_unchanged": true,
+  "executed_socket_connections_or_bindings": 0,
+  "translator": "permanently_disabled_refused_before_transport",
+  "elapsed_seconds": 3.329972989158705,
+  "automatic_actuation": false,
+  "release_authorized": false,
+  "scope": "deterministic_original_source_snapshot_models_intents_arbitration_and_curated_view_replay_not_physical_effect_or_release_qualification",
+  "replay_resources": {
+    "ancestor_cpu_limits": [
+      {
+        "cpu_max": "800000 100000",
+        "cpu_weight": "100"
+      },
+      {
+        "cpu_max": "max 100000",
+        "cpu_weight": "100"
+      }
+    ],
+    "cpu.max": "max 100000",
+    "cpu_weight": "25",
+    "memory.max": "268435456",
+    "memory.swap.max": "0",
+    "nice": 15,
+    "pids.max": "24"
+  },
+  "script_sha256": "73ac369b2b35ac5b24176410b5606c30f873953849c5a8f32d1ad41007a65164",
+  "private_proof_sha256": "b7dae853a4e446538deeb0a36adfa043fe9429b65a0466e0ed246f7a436b1464",
+  "prevented_import_socket_probe_count": 1,
+  "feeder_candidate_present": false,
+  "same_stage_source_scope": [
+    "RUN_GREYWATER_CYCLE",
+    "SET_NIGHT_LOAD_OVERRIDE",
+    "SET_NIGHT_LOAD_DEVICE"
+  ],
+  "code_and_numerics_deployed_proof": true,
+  "physical_effect_or_action_qualification": false,
+  "proof_sha256": "afb6167e396da1b84131b1a43c63040d5fc92887c39cb4056bdd9d54bf884091"
+}

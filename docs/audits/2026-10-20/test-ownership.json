@@ -1,5 +1,5 @@
 {
-  "source_head": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+  "source_head": "444d7e9550a742d9662cc9bd85a68d4c5dafb8c1",
   "uncommitted_source_paths": [],
   "workflow_sha256": {
     "ci.yml": "36623b9bd430f6b92066f7e7bab863e8b3055a0eb1d8931c28820bc44fef7ebc",
@@ -652,6 +652,13 @@
       "workflow_gate": "ci.yml:openhab shard 1",
       "companion_profile": "24d2e8984810cb596fe9792768510a356786f709",
       "test_file_sha256": "5695b2962c4a363c15941281e46528bac69c05c8d01734b430708476f60f06f8"
+    },
+    {
+      "path": "openhab/scripts/test_household_native_activation.py",
+      "family": "python",
+      "workflow_gate": "ci.yml:openhab shard 0",
+      "companion_profile": "24d2e8984810cb596fe9792768510a356786f709",
+      "test_file_sha256": "ae3ab042974a287862d39f536f7539921f59604b28aece25b0d6f089f29baae3"
     },
     {
       "path": "openhab/scripts/test_household_native_cycle.py",
@@ -1939,7 +1946,7 @@
       "family": "python",
       "workflow_gate": "ci.yml:openhab shard 0",
       "companion_profile": "24d2e8984810cb596fe9792768510a356786f709",
-      "test_file_sha256": "827dd0e0fc1cbb9e1bfc0ebbed1fe3f4a48ae18398da5d4085d601235c4bec35"
+      "test_file_sha256": "3416fd082af5e4bfd416d8f0d2df1ebbdad0afab8de26da79db2047e07a2ab68"
     },
     {
       "path": "openhab/scripts/test_pv_legacy_history.py",
@@ -4021,7 +4028,7 @@
       "path": "tests/completion/test_verification_gates.py",
       "family": "python",
       "workflow_gate": "ci.yml:test completion",
-      "test_file_sha256": "6376685f92b7b973570f7b4db3bb358af2ec0df26192a085e10f1f5d30230d7a"
+      "test_file_sha256": "1372b70c8bb45ce0a25d12f429ce80784b9a668db11a7187938746d4a0aa303c"
     },
     {
       "path": "tests/config.test.js",
@@ -5095,7 +5102,7 @@
   "entry_file_counts": {
     "ci.yml:openhab shard 2": 152,
     "ci.yml:openhab shard 1": 140,
-    "ci.yml:openhab shard 0": 152,
+    "ci.yml:openhab shard 0": 153,
     "ci.yml:test provisional thermal contract": 1,
     "ci.yml:test operational tooling": 100,
     "sensors.yml:contracts": 4,
@@ -5105,5 +5112,6 @@
     "ci.yml:browser-fixtures": 7,
     "sensors.yml:software-path sensor component": 1
   },
-  "entry_file_count": 766
+  "entry_file_count": 767,
+  "historical_evidence": "source-freeze.json/ci-final.json retain earlier766-file gate; deployment-source-freeze.json/deployment-ci.json retainA19; deployment-a20-source-freeze.json/deployment-a20-ci.json extend final767-file ownership forA20."
 }

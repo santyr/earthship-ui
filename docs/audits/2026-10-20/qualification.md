@@ -1,5 +1,7 @@
 # Qualification and retained-data reassessment
 
+This is the frozen pre-deployment numerical reassessment. Its original no-deployment statements describe that comparison phase. The owner later approved merging and scoped deployment; [current deployment evidence](deployment.md) records the installed surfaces and new native model separately. Selected weather/PV originals remain retained, and none of the statistical or physical qualification limits below is lifted by installation.
+
 No model selection, production deployment, physical calibration or actuator authority was granted. [model-reassessment.json](model-reassessment.json) contains bounded metrics, support, source identities, strata and uncertainty; original rows, models and archive paths remain private. The [evaluation contract](model-evaluation-spec.md) was frozen before comparisons. The [follow-on brief](challenger-comparison-brief.md) is planning only.
 
 | Existing family / target | Matched retained comparison | Disposition and exact qualification limit |

@@ -10288,7 +10288,20 @@
     "requirements": "docs/audits/2026-10-20/requirements.md",
     "verification": "docs/audits/2026-10-20/verification.md",
     "release": "docs/audits/2026-10-20/release.md",
-    "status": "in_progress",
-    "historical_requirement_flags_preserved": true
+    "status": "software_verified_deployment_and_physical_qualification_separate",
+    "historical_requirement_flags_preserved": true,
+    "source_revision": "444d7e9550a742d9662cc9bd85a68d4c5dafb8c1"
+  },
+  "current_audit_supersession": {
+    "date": "2026-10-20",
+    "source_repair_revision": "444d7e9550a742d9662cc9bd85a68d4c5dafb8c1",
+    "requirements": "docs/audits/2026-10-20/requirements.md",
+    "verification": "docs/audits/2026-10-20/verification.md",
+    "deployment": "docs/audits/2026-10-20/deployment.md",
+    "scope": "historical phase flags preserved; current source/automation/installed/physical distinctions are authoritative in linked matrix",
+    "planner_actuation": false,
+    "automatic_feeder": false,
+    "integrated_revision": "0b3f6fc0a5ec0e86cd4af65604241d9532b2f1ad",
+    "final_verification": "docs/audits/2026-10-20/deployment-a20-ci.json; docs/audits/2026-10-20/deployment-a20-native.json"
   }
 }
