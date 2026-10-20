@@ -1,5 +1,6 @@
 # Verification evidence
 
+Current final-candidate evidence is appended below. Earlier pending/failing statements are preserved chronological evidence and are superseded only by an explicit later result for the identified revision.
 Audit base: `65ee7e95d58e6a6101700da3eccea67c9fea0ec7`. Initial remote CI [39434796248](https://github.com/santyr/earthship-ui/actions/runs/39434796248) failed OpenHAB shards 0/1; separate [thermal delivery](https://github.com/santyr/earthship-ui/actions/runs/39434796413) passed. Remote main and no open PRs verified at start. Local complete baseline not yet established.
 
 Environments: host Node v24.13.0 / npm 11.17.0 (general CI requires Node 22); Python 3.12.3; Docker 29.8.0. Fresh `/tmp/earthship-audit-20261020-venv` uses requirements-test.txt. Companion source extracted at exact `24d2e8984810cb596fe9792768510a356786f709` into `.ci/solar-pv` (the live companion checkout differs and is untouched). `npm ci` ran only in isolated checkout. WeatherNext and sensor environments remain separate.
@@ -122,3 +123,23 @@ New numerical source permissions were tightened only in the isolated checkout af
 Independent whole-branch review of `df742cd2f796a33b81824146f735feba2bd94c95` found two P2 correction-monitor failures: missing original model objects stalled unrelated work, and late-arriving outcomes escaped the seven-day allowance. Actual solar transport exceptions were also outside the handler. Native regressions reproduced all cases before repair. The repair adds durable per-original retry/dependency records, continued independent work, explicit transport handling and exact availability bounds; guards still propagate deadlines. Procedure/horizon/month/regime coverage was completed under correction evaluationv2 with unknown legacy policy provenance preserved. Additional native regressions cover durable score tampering, bounded detail and full64-label accounting. Final focused correction/wind/monitor/worker group: **55 passed,11.48s,exit0**.
 
 Clean Node22.22.0 checkout at `df742cd`: `npm ci` →156packages installed,0audit vulnerabilities,exit0. Initial default-worker run terminated with exit241 before results under the disposable resource cap; it is not a passing suite. Bounded retry `npm run test:unit -- --maxWorkers=1` → **182files/2746tests passed,50.77s,exit0**; `npm run build` →exit0,1.49s, existing large-chunk warning. Shared launcher1024–2048MiB/128tasks/no-swap, native thread caps preserved. No frontend source changed in the subsequent correction-only review fixes. Hosted final revision results remain pending.
+
+
+## Final boundary and geometry checks after review fixes
+
+At `e6b4997`, pinned foundation suite completed **291tests,37.495s,exit0**. Standard Node22 Chromium `npm run test:geometry -- --workers=1` completed **65tests,1.2min,exit0** in a network namespace with loopback only, using1024–2048MiB/128tasks and native thread caps. General71-case browser and sensor11-container/2-browser suites completed successfully on hosted `df742cd`; final source reruns remain required. These browser families overlap; no sum is presented as distinct tests.
+
+Real resource smoke under shared approved256–512MiB/64task/300second leaf, `EARTHSHIP_RESOURCE_SMOKE=1` and one numerical thread: `python -m pytest -q -ra openhab/scripts/test_native_resource_admission.py openhab/scripts/test_weather_receiver_characterization.py` →4passed/5skipped,0.48s,exit0. Five receiver skips name missing `flask_cors` in the general test venv. The existing host Python environment supplies Flask-Cors4.0.0: isolated `python -m pytest -q -ra openhab/scripts/test_weather_receiver_characterization.py` →**5passed,0.18s,exit0**. That characterization asserts known legacy source limitations with all network/state writes stubbed; it does not qualify legacy retained values as fresh measurements. General hosted receiver skips additionally name the absent host-only source; SDK skips are covered by the separate pinned foundation environment; native resource smoke is explicitly opt-in because it requires a real admitted scope. Final CI now emits full skip summaries through `PYTEST_ADDOPTS=-ra`.
+
+Read-only final source/deployment projection: [runtime-final.json](runtime-final.json),16:45UTC; protected sensor counts read16:46UTC. No production mutation.
+
+
+## Horizon/older-history PV completion
+
+An additional source sweep reproduced a remaining next-hour arithmetic path in the horizon assessor. Native numeric regressions failed7cases/2passed before repair; final affected suite147passed/0skips/1.38s,exit0,Python3.12.3/pytest9.1.1. Exact admitted command:
+
+```bash
+python3 scripts/run-household-job.py --minimum-mib 256 --preferred-mib 768 --tasks 64 --seconds 600 -- /usr/bin/env OPENBLAS_NUM_THREADS=1 PYTHONPATH=openhab/scripts:.ci/solar-pv/analytics/src /tmp/earthship-audit-20261020-venv/bin/python -m pytest -q openhab/scripts/test_pv_horizon_pair_baseline.py openhab/scripts/test_pv_pair_baseline.py openhab/scripts/test_pv_horizon_assessment.py openhab/scripts/test_pv_calibration_policy.py openhab/scripts/test_weather_pv_calibration.py openhab/scripts/test_weather_directional_pv.py openhab/scripts/test_target_weighting.py openhab/scripts/test_pv_learning_refresh.py openhab/scripts/test_pv_local_days.py openhab/scripts/test_pv_legacy_history.py openhab/scripts/test_household_pv_model.py openhab/scripts/test_weather_pv_calibration_source.py
+```
+
+The shared calibration/horizon datasets now require explicitv2 baseline identity; oldv1 originals stay original-only. Exact retained-source horizon/legacy reconstruction and discontinuity metrics are in qualification/model-reassessment. All131retained original files checked unchanged; no selected pointer or production source changed.

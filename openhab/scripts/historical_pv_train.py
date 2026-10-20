@@ -44,7 +44,7 @@ def validate_pair_dataset(data,expected):
     from household_pv_model import INTERVAL_BASELINE_RULE
     if data.get('dataset_sha256')!=expected or expected!=identity({k:v for k,v in data.items() if k!='dataset_sha256'}):
         raise ValueError('original PV paired data differ')
-    if (data.get('schema')!='earthship-historical-pv-calibration-data/v2' or
+    if (data.get('schema') not in ('earthship-historical-pv-calibration-data/v2','earthship-pv-horizon-data/v2') or
         data.get('baseline_rule')!=INTERVAL_BASELINE_RULE or
         any(row.get('baseline_rule')!=INTERVAL_BASELINE_RULE for row in data['pairs'])):
         raise ValueError('current shared PV baseline arithmetic required; rebuild original-bound pairs')

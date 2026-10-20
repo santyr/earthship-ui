@@ -20,9 +20,12 @@
       "root_cause": "Test fixtures injected geometry and guard but not the publication resource boundary. The actual guard correctly refuses ordinary CI process caps.",
       "repair_commit": "4ec462d",
       "regression_evidence": [
-        "Same files plus test_household_cycle_resources.py: 101 passed in 3.41s. Test-scoped preflight injection only; production modules unchanged. Normal shard verification pending."
+        "Same files plus test_household_cycle_resources.py: 101 passed in 3.41s. Test-scoped preflight injection only; production modules unchanged. Normal shard verification pending.",
+        "All three normal OpenHAB shards completed successfully atd549886; complete final-source gates separately required."
       ],
-      "status": "fixed_focused_verified"
+      "status": "fixed_focused_verified",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed"
     },
     {
       "id": "A01",
@@ -44,7 +47,9 @@
       "regression_evidence": [
         "Original source: 6 failed / 44 passed. Repaired owner suites: 52 passed, 3 files; max-ID exhaustion and OFF failure included. Full final revision suite pending."
       ],
-      "status": "fixed_focused_verified"
+      "status": "fixed_focused_verified",
+      "severity_reason": "Important control/source integrity or recovery defect; reproduced impact is described in expected_actual. No physical safety incident asserted.",
+      "deployment_status": "candidate_not_installed"
     },
     {
       "id": "A02",
@@ -66,7 +71,9 @@
       "regression_evidence": [
         "Original source: 6 failed / 44 passed. Repaired owner suites: 52 passed, 3 files; max-ID exhaustion and OFF failure included. Full final revision suite pending."
       ],
-      "status": "fixed_focused_verified"
+      "status": "fixed_focused_verified",
+      "severity_reason": "Important control/source integrity or recovery defect; reproduced impact is described in expected_actual. No physical safety incident asserted.",
+      "deployment_status": "candidate_not_installed"
     },
     {
       "id": "A03",
@@ -91,7 +98,9 @@
       "regression_evidence": [
         "Complete interim unit run:182files/2743passed, Node24 with test-only .codex import adapter; standard Node22 final clone gate pending."
       ],
-      "status": "fixed_focused_verified"
+      "status": "fixed_focused_verified",
+      "severity_reason": "Important control/source integrity or recovery defect; reproduced impact is described in expected_actual. No physical safety incident asserted.",
+      "deployment_status": "candidate_not_installed"
     },
     {
       "id": "A04",
@@ -115,7 +124,9 @@
       "regression_evidence": [
         "Complete interim unit run182files/2743passed. Energy overlay expiration and delayed-start existing cases retained."
       ],
-      "status": "fixed_focused_verified"
+      "status": "fixed_focused_verified",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed"
     },
     {
       "id": "A05",
@@ -134,7 +145,9 @@
       "regression_evidence": [
         "Initial corrected regression: 9 failed/7 passed; added recovery order: 3 failed/17 passed; current sensor contracts: 66 passed/11 explicit container integration skips, pytest 8.3.5."
       ],
-      "status": "fixed_focused_verified"
+      "status": "fixed_focused_verified",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed"
     },
     {
       "id": "A06",
@@ -157,7 +170,9 @@
       "regression_evidence": [
         "Combined numerical gate103passed. Actual737-pair retained model retains29local training days,5holdout days and identical sector support; see pv-retained-reassessment.json."
       ],
-      "status": "fixed_focused_verified"
+      "status": "fixed_focused_verified",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed"
     },
     {
       "id": "A07",
@@ -166,10 +181,12 @@
       "confidence": "confirmed",
       "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
       "files": [
-        "openhab/scripts/household_pv_model.py",
-        "openhab/scripts/historical_pv_train.py",
         "openhab/scripts/historical_pv_directional_train.py",
+        "openhab/scripts/historical_pv_horizon_assess.py",
         "openhab/scripts/historical_pv_legacy_assess.py",
+        "openhab/scripts/historical_pv_train.py",
+        "openhab/scripts/household_pv_model.py",
+        "openhab/scripts/test_pv_horizon_pair_baseline.py",
         "openhab/scripts/test_pv_pair_baseline.py"
       ],
       "expected_actual": "Same retained weather/geometry/array/terrain produces exact served-interval baseline in calibration; original training used next-hour point temperature/wind.",
@@ -179,9 +196,12 @@
       "root_cause": "Duplicated interval arithmetic and rounded wind-unit conversion; old pair dataset could be reused for a newly sourced model.",
       "repair_commit": "c53fbcc",
       "regression_evidence": [
-        "Combined numerical gate103passed.16complete live projections exactly equal original serving implementation.737retained pairs rebuilt from55verified Google sources/29verified geometry series;671baselines changed, meanabs5.836047893W/max59.088710966W. Same124-pair/5day development split still selects corrected model; no new prospective skill claimed."
+        "Combined numerical gate103passed.16complete live projections exactly equal original serving implementation.737retained pairs rebuilt from55verified Google sources/29verified geometry series;671baselines changed, meanabs5.836047893W/max59.088710966W. Same124-pair/5day development split still selects corrected model; no new prospective skill claimed.",
+        "Horizon follow-through7numeric failures before shared-helper repair;147affectedPVtests passed/0skips1.38s. Exact4692horizon+161olderpairs rebuilt; newv2datasets only; qualification.md/model-reassessment.json."
       ],
-      "status": "fixed_focused_verified"
+      "status": "source_fixed_retained_reassessment_verified_final_gate_pending",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed"
     },
     {
       "id": "A08",
@@ -202,7 +222,9 @@
       "regression_evidence": [
         "Original: 5 failed/6 passed. Repaired raw/corrected native capture plus frozen household replay: 68 passed in 17.85s across four files."
       ],
-      "status": "fixed_focused_verified"
+      "status": "fixed_focused_verified",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed"
     },
     {
       "id": "A09",
@@ -227,12 +249,14 @@
         "Six new executable gate regressions failed originally. Seven PG modules silently importskipped missing advisory_db_fixture; adding pinned support exposes absent bms_aux_quality API at the general companion pin."
       ],
       "root_cause": "Missing geometry spec and stale QA references; no general browser gate; shared dependency path omissions; sensor spec targeted deliberately retired route; native PG support directory omitted from CI.",
-      "repair_commit": null,
+      "repair_commit": "917ad77; eb9d22d; d549886; e74cba9",
       "regression_evidence": [
         "Seven gate checks pass; one native dependency failure remains under active repair. General71tests/7files, geometry65tests/5files, sensor2tests/1file discovered. Missing sensor env explicitly fails before startup, no silent skip. QA2cases passed after staleSet assertion corrected.",
         "Separate pinned BMS profile preserves general pin and normal file partitions.11gatecases pass including actual shard shell success/general-failure/BMS-failure;7nativePGtests passed0skips. Browserruntime stillpending."
       ],
-      "status": "fixed_profile_gates_verified_browser_pending"
+      "status": "source_fixed_integrated_candidate_verification_pending",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed"
     },
     {
       "id": "A10",
@@ -254,7 +278,9 @@
       "regression_evidence": [
         "Affected Python gate: 285 passed, no skips, 84.55s. Frontend parser/render/legacy gate: 108 passed, six files, no skips; interim test-only .codex adapter used. Final standard gate pending."
       ],
-      "status": "fixed_focused_verified"
+      "status": "fixed_focused_verified",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed"
     },
     {
       "id": "A11",
@@ -274,7 +300,9 @@
       "regression_evidence": [
         "npm audit fix --package-lock-only --ignore-scripts:exit0,15package entries updated,noneadded/removed; package.json/ranges unchanged; fresh npmci/fullfrontendgates pending."
       ],
-      "status": "fixed_lock_audit_verified"
+      "status": "fixed_lock_audit_verified",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed"
     },
     {
       "id": "A12",
@@ -295,7 +323,9 @@
       "regression_evidence": [
         "Timestamp text capped128characters before ledger access; writer also validates exact same identity bound as reader. Both streams reject before persistence/commands and admit a subsequent valid request after volatile loss. Review-fix group119passed/7files."
       ],
-      "status": "fixed_focused_verified"
+      "status": "fixed_focused_verified",
+      "severity_reason": "Important control/source integrity or recovery defect; reproduced impact is described in expected_actual. No physical safety incident asserted.",
+      "deployment_status": "candidate_not_installed"
     },
     {
       "id": "A13",
@@ -316,7 +346,9 @@
       "regression_evidence": [
         "Snapshot updates evidence without Item mutation; replacement snapshot alone owns state. Source evidence keeps old original clock/state until matching evidence arrives. Review-fix group119passed/7files."
       ],
-      "status": "fixed_focused_verified"
+      "status": "fixed_focused_verified",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed"
     },
     {
       "id": "A14",
@@ -333,12 +365,14 @@
       "reproduction": [
         "Maintained real Playwright fixture suite under isolated loopback network; Initial browser71:14failed/57passed, including two overflow cases. Repair retains44px controls, full advisory and64px minimum; measured laptop plots67px each."
       ],
-      "repair_commit": "pending",
+      "repair_commit": "e74cba9",
       "regression_evidence": [
         "Initial browser71:14failed/57passed, including two overflow cases. Repair retains44px controls, full advisory and64px minimum; measured laptop plots67px each.",
         "Complete7spec71passed and geometry5spec65passed, Node22.22.0, exact8-file source patch; final integrated revision pending."
       ],
-      "status": "fixed_browser_verified_not_deployed"
+      "status": "fixed_browser_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed"
     },
     {
       "id": "A15",
@@ -355,12 +389,14 @@
       "reproduction": [
         "Maintained real Playwright fixture suite under isolated loopback network; Unchanged180px assertion failed; gap correction produces180.6875px and preserves all26 shade previews."
       ],
-      "repair_commit": "pending",
+      "repair_commit": "e74cba9",
       "regression_evidence": [
         "Unchanged180px assertion failed; gap correction produces180.6875px and preserves all26 shade previews.",
         "Complete7spec71passed and geometry5spec65passed, Node22.22.0, exact8-file source patch; final integrated revision pending."
       ],
-      "status": "fixed_browser_verified_not_deployed"
+      "status": "fixed_browser_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed"
     },
     {
       "id": "A16",
@@ -377,12 +413,14 @@
       "reproduction": [
         "Maintained real Playwright fixture suite under isolated loopback network; Existing browser click/bounds assertion failed; open-state overflow:clip restores panel origin at both supported sizes without lifecycle work."
       ],
-      "repair_commit": "pending",
+      "repair_commit": "e74cba9",
       "regression_evidence": [
         "Existing browser click/bounds assertion failed; open-state overflow:clip restores panel origin at both supported sizes without lifecycle work.",
         "Complete7spec71passed and geometry5spec65passed, Node22.22.0, exact8-file source patch; final integrated revision pending."
       ],
-      "status": "fixed_browser_verified_not_deployed"
+      "status": "fixed_browser_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed"
     },
     {
       "id": "C01",
@@ -399,9 +437,11 @@
         "See native regressions and consolidated model-evaluation-spec.md; C05/A07 and C06/A08 share prior repair evidence."
       ],
       "root_cause": "See associated native regression and consolidated phase mapping.",
-      "repair_commit": null,
+      "repair_commit": "df742cd; e6b4997",
       "regression_evidence": [],
-      "status": "in_progress"
+      "status": "source_fixed_integrated_candidate_verification_pending",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed"
     },
     {
       "id": "C02",
@@ -418,9 +458,13 @@
         "See native regressions and consolidated model-evaluation-spec.md; C05/A07 and C06/A08 share prior repair evidence."
       ],
       "root_cause": "See associated native regression and consolidated phase mapping.",
-      "repair_commit": null,
-      "regression_evidence": [],
-      "status": "in_progress"
+      "repair_commit": "df742cd; e6b4997",
+      "regression_evidence": [
+        "Native matched/fallback and zero-support regressions; durable target-window coverage28queue tests; separate correction horizon/month/regime and artifact/procedure diagnostics; final candidate full gates pending."
+      ],
+      "status": "source_fixed_integrated_candidate_verification_pending",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed"
     },
     {
       "id": "C03",
@@ -437,9 +481,13 @@
         "See native regressions and consolidated model-evaluation-spec.md; C05/A07 and C06/A08 share prior repair evidence."
       ],
       "root_cause": "See associated native regression and consolidated phase mapping.",
-      "repair_commit": null,
-      "regression_evidence": [],
-      "status": "in_progress"
+      "repair_commit": "df742cd; e6b4997",
+      "regression_evidence": [
+        "Artifact versus policy cohort regression, legacy unidentified provenance, actual-fit training-policy retention and no-op identity; correction procedure cohorts preserve null unknown legacy fields and never claim newest-artifact qualification."
+      ],
+      "status": "source_fixed_integrated_candidate_verification_pending",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed"
     },
     {
       "id": "C04",
@@ -456,9 +504,11 @@
         "See native regressions and consolidated model-evaluation-spec.md; C05/A07 and C06/A08 share prior repair evidence."
       ],
       "root_cause": "See associated native regression and consolidated phase mapping.",
-      "repair_commit": null,
+      "repair_commit": "4d1259c; df742cd",
       "regression_evidence": [],
-      "status": "in_progress"
+      "status": "source_fixed_retained_reassessment_verified",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed"
     },
     {
       "id": "C05",
@@ -467,17 +517,24 @@
       "confidence": "confirmed",
       "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
       "files": [
+        "openhab/scripts/historical_pv_horizon_assess.py",
         "openhab/scripts/historical_pv_train.py",
-        "openhab/scripts/household_pv_model.py"
+        "openhab/scripts/household_pv_model.py",
+        "openhab/scripts/test_pv_horizon_pair_baseline.py"
       ],
       "expected_actual": "Same as A07; preserve shared versioned interval kernel and reassess after C04 weighting.",
       "reproduction": [
         "See native regressions and consolidated model-evaluation-spec.md; C05/A07 and C06/A08 share prior repair evidence."
       ],
       "root_cause": "See associated native regression and consolidated phase mapping.",
-      "repair_commit": null,
-      "regression_evidence": [],
-      "status": "linked_existing_repair_reassessment_pending"
+      "repair_commit": "c53fbcc",
+      "regression_evidence": [
+        "Horizon follow-through7numeric failures before shared-helper repair;147affectedPVtests passed/0skips1.38s. Exact4692horizon+161olderpairs rebuilt; newv2datasets only; qualification.md/model-reassessment.json."
+      ],
+      "status": "source_fixed_retained_reassessment_verified_final_gate_pending",
+      "reassessment": "qualification.md and model-reassessment.json; original artifacts/producers unchanged",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed"
     },
     {
       "id": "C06",
@@ -494,9 +551,12 @@
         "See native regressions and consolidated model-evaluation-spec.md; C05/A07 and C06/A08 share prior repair evidence."
       ],
       "root_cause": "See associated native regression and consolidated phase mapping.",
-      "repair_commit": null,
+      "repair_commit": "3126544",
       "regression_evidence": [],
-      "status": "linked_existing_repair_reassessment_pending"
+      "status": "source_fixed_retained_reassessment_verified",
+      "reassessment": "qualification.md and model-reassessment.json; original artifacts/producers unchanged",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed"
     },
     {
       "id": "C07",
@@ -514,7 +574,122 @@
       "root_cause": "See associated native regression and consolidated phase mapping.",
       "repair_commit": null,
       "regression_evidence": [],
-      "status": "preserved_intentional_boundary"
+      "status": "preserved_intentional_boundary",
+      "severity_reason": "Presentation/documentation impact or intentionally preserved boundary as described.",
+      "deployment_status": "authority_boundary_preserved"
+    },
+    {
+      "id": "A17",
+      "severity": "P2",
+      "title": "Budgeted monitor database reader called without required deadline",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "openhab/scripts/weather_learning/monitor_worker.py"
+      ],
+      "expected_actual": "The solar/rain readers need a no-argument factory; the existing factory requires remaining= and failed before opening a connection.",
+      "reproduction": [
+        "test_database_reader_adapter_supplies_shared_remaining_deadline"
+      ],
+      "root_cause": "Production callback type mismatch caused valid local outcomes to be withheld.",
+      "repair_commit": "df742cd",
+      "regression_evidence": [
+        "test_database_reader_adapter_supplies_shared_remaining_deadline; focused correction/wind/monitor/worker55passed,11.48s,exit0"
+      ],
+      "status": "fixed_focused_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed"
+    },
+    {
+      "id": "C08",
+      "severity": "P2",
+      "title": "Correction original dependency and transport failures stall independent work",
+      "confidence": "confirmed",
+      "affected_revision": "df742cd",
+      "files": [
+        "openhab/scripts/weather_learning/correction_monitor.py"
+      ],
+      "expected_actual": "A missing/corrupt frozen model before intake or during due work aborted every correction pass; RadiationHistoryUnavailable also escaped.",
+      "reproduction": [
+        "four missing/corrupt intake/due regressions and actual proxy transport outage RED\u2192GREEN"
+      ],
+      "root_cause": "Original reads occurred before durable failure/cursor handling; the real transport exception was outside the handler.",
+      "repair_commit": "e6b4997",
+      "regression_evidence": [
+        "four missing/corrupt intake/due regressions and actual proxy transport outage RED\u2192GREEN; focused correction/wind/monitor/worker55passed,11.48s,exit0"
+      ],
+      "status": "fixed_focused_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed"
+    },
+    {
+      "id": "C09",
+      "severity": "P2",
+      "title": "Correction outcomes ignored the declared arrival allowance",
+      "confidence": "confirmed",
+      "affected_revision": "df742cd",
+      "files": [
+        "openhab/scripts/weather_learning/correction_monitor.py"
+      ],
+      "expected_actual": "An outcome first available ten days later completed despite target_end+7day contract; processing timely retained evidence later must remain possible.",
+      "reproduction": [
+        "test_arrival_allowance_uses_original_availability_not_processing_time RED\u2192GREEN"
+      ],
+      "root_cause": "Expiry was considered only after failed scoring, not while validating source availability.",
+      "repair_commit": "e6b4997",
+      "regression_evidence": [
+        "test_arrival_allowance_uses_original_availability_not_processing_time RED\u2192GREEN; focused correction/wind/monitor/worker55passed,11.48s,exit0"
+      ],
+      "status": "fixed_focused_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed"
+    },
+    {
+      "id": "C10",
+      "severity": "P2",
+      "title": "Correction durable score integrity and bounded public detail",
+      "confidence": "confirmed",
+      "affected_revision": "df742cd",
+      "files": [
+        "openhab/scripts/weather_learning/correction_monitor.py",
+        "openhab/scripts/weather_learning/correction_performance.py"
+      ],
+      "expected_actual": "A changed numeric value in durable score JSON was aggregated without checking its immutable score hash;16source cohorts also exceeded64KiB detail.",
+      "reproduction": [
+        "durable tamper and16cohort projection regressions RED\u2192GREEN; originals preserved, bad score withheld, omissions explicit"
+      ],
+      "root_cause": "Persisted score hashes were not revalidated and report aggregation had no per-module detail cap.",
+      "repair_commit": "e6b4997",
+      "regression_evidence": [
+        "durable tamper and16cohort projection regressions RED\u2192GREEN; originals preserved, bad score withheld, omissions explicit; focused correction/wind/monitor/worker55passed,11.48s,exit0"
+      ],
+      "status": "fixed_focused_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed"
+    },
+    {
+      "id": "C11",
+      "severity": "P2",
+      "title": "Complete monitor batch budget omitted legacy reads",
+      "confidence": "confirmed",
+      "affected_revision": "df742cd",
+      "files": [
+        "openhab/scripts/weather_learning/monitoring.py"
+      ],
+      "expected_actual": "Default monitor API attempted64temperature labels plus8legacy reads against a64-label job budget.",
+      "reproduction": [
+        "test_legacy_window_reads_also_consume_the_job_observation_budget reproduced72>64 then passed"
+      ],
+      "root_cause": "Temperature quota did not subtract prior solar/rain work when no correction callback was supplied.",
+      "repair_commit": "e6b4997",
+      "regression_evidence": [
+        "test_legacy_window_reads_also_consume_the_job_observation_budget reproduced72>64 then passed; focused correction/wind/monitor/worker55passed,11.48s,exit0"
+      ],
+      "status": "fixed_focused_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed"
     }
-  ]
+  ],
+  "current_source_candidate": "e6b4997",
+  "final_integrated_verification": "pending final source freeze and gates; verification.md is authoritative"
 }
