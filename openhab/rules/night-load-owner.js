@@ -299,7 +299,7 @@ function isStale(request, currentMs) {
   );
 }
 
-// ---- durable ledger (shared verbatim with feeder-owner.js) ----------------
+// ---- durable ledger (night-load admission-window retention) ---------------
 
 function validLedgerEntry(entry) {
   return Boolean(
@@ -310,6 +310,7 @@ function validLedgerEntry(entry) {
     && /^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/.test(entry.requestId)
     && typeof entry.status === 'string'
     && ['accepted', 'running', ...TERMINAL_STATUSES].includes(entry.status)
+    && (entry.identity === undefined || (typeof entry.identity === 'string' && entry.identity.length <= 512))
     && typeof entry.reason === 'string'
     && typeof entry.at === 'string'
     && Number.isFinite(epochMillis(entry.at))
@@ -355,9 +356,9 @@ function parseLedger(requestItem) {
 function writeLedger(requestItem, ledger, requestId, expectedStatus) {
   const encoded = JSON.stringify({
     version: LEDGER_VERSION,
-    entries: ledger.entries.slice(0, MAX_LEDGER_ENTRIES),
+    entries: ledger.entries,
   });
-  if (utf8Bytes(encoded) > MAX_LEDGER_BYTES) throw new Error('ledger_invalid');
+  if (ledger.entries.length > MAX_LEDGER_ENTRIES || utf8Bytes(encoded) > MAX_LEDGER_BYTES) throw new Error('ledger_invalid');
   requestItem.postUpdate(encoded);
   settleItemUpdate();
   requestItem.persistence.persist('jdbc');
@@ -387,17 +388,39 @@ function writeLedger(requestItem, ledger, requestId, expectedStatus) {
   throw new Error('ledger_readback_failed');
 }
 
-function acceptedLedger(ledger, requestId, at) {
-  return {
-    version: LEDGER_VERSION,
-    entries: [{
-      requestId,
-      status: 'accepted',
-      reason: 'accepted',
-      at,
-    }, ...ledger.entries.filter((entry) => entry.requestId !== requestId)]
-      .slice(0, MAX_LEDGER_ENTRIES),
-  };
+function requestIdentity(request) {
+  return JSON.stringify([request.requestedAt, request.device || null, request.command]);
+}
+
+function duplicateReason(ledger, request) {
+  const entry = ledger.entries.find((record) => record.requestId === request.requestId);
+  if (!entry) return null;
+  // v1 legacy records have no original payload: conservatively suppress reuse.
+  return entry.identity === undefined || entry.identity === requestIdentity(request)
+    ? 'duplicate' : 'request_id_conflict';
+}
+
+function acceptedLedger(ledger, request, at) {
+  const candidate = { version: LEDGER_VERSION, entries: [{
+    requestId: request.requestId, identity: requestIdentity(request),
+    status: 'accepted', reason: 'accepted', at,
+  }, ...ledger.entries] };
+  const currentMs = epochMillis(at);
+  const expired = (entry) => TERMINAL_STATUSES.has(entry.status)
+    && currentMs - Math.max(epochMillis(entry.at), epochMillis(entry.updatedAt || entry.at))
+      > MAX_REQUEST_AGE_MS + MAX_REQUEST_FUTURE_SKEW_MS;
+  // Acceptance clocks in old ledgers may be 120 s after or 30 s before the
+  // original request. Keep identities at least 150 s after acceptance (and,
+  // conservatively, terminal updates). Pending/uncertain work is never evicted
+  // by count. Reserve room for its terminal status, reason and update clock.
+  const fits = () => candidate.entries.length <= MAX_LEDGER_ENTRIES
+    && utf8Bytes(JSON.stringify(candidate)) + candidate.entries.filter(
+      e => ['accepted', 'running'].includes(e.status)).length * 128 <= MAX_LEDGER_BYTES;
+  for (let i = candidate.entries.length - 1; !fits() && i > 0; i -= 1) {
+    if (expired(candidate.entries[i])) candidate.entries.splice(i, 1);
+  }
+  if (!fits()) throw new Error('ledger_capacity');
+  return candidate;
 }
 
 function updateLedger(ledger, requestId, status, reason, updatedAt) {
@@ -407,7 +430,7 @@ function updateLedger(ledger, requestId, status, reason, updatedAt) {
       entry.requestId === requestId
         ? { ...entry, status, reason, updatedAt }
         : entry
-    )).slice(0, MAX_LEDGER_ENTRIES),
+    )),
   };
 }
 
@@ -440,15 +463,24 @@ function nextSeq() {
 // readback.
 function commitOverrideSwitch(target) {
   const sw = items.getItem(OVERRIDE_SWITCH);
-  sw.postUpdate(target);
-  settleItemUpdate();
-  for (let attempt = 0; attempt < SWITCH_READBACK_ATTEMPTS; attempt += 1) {
-    if (String(sw.state) === target) {
-      sw.persistence.persist('jdbc');
-      return;
-    }
+  try {
+    sw.postUpdate(target);
     settleItemUpdate();
+    let persisted = false;
+    for (let attempt = 0; attempt < SWITCH_READBACK_ATTEMPTS; attempt += 1) {
+      if (String(sw.state) === target) {
+        if (!persisted) { sw.persistence.persist('jdbc'); persisted = true; }
+        const durable = sw.persistence.previousState(false, 'jdbc');
+        if (durable !== null && String(durable.state) === target) return;
+      }
+      if (attempt + 1 < SWITCH_READBACK_ATTEMPTS) settleItemUpdate();
+    }
+  } catch {
+    // A JDBC exception is a failed policy commitment, not provider completion.
   }
+  // A failed OFF commitment must not release visible ownership. ON failure
+  // also retains conservative ON while the exact durable state is uncertain.
+  try { sw.postUpdate('ON'); settleItemUpdate(); } catch { /* receipt fails */ }
   throw new Error('override_commit_failed');
 }
 
@@ -484,7 +516,7 @@ function scheduleOverrideVerify(request, initialLedger, token) {
   let ledger = initialLedger;
 
   const fail = (rawReason) => {
-    const reason = ['provider_mismatch', 'coupling_pending'].includes(rawReason)
+    const reason = ['provider_mismatch', 'coupling_pending', 'override_commit_failed'].includes(rawReason)
       ? rawReason
       : 'execution_error';
     try {
@@ -613,8 +645,9 @@ function handleOverride(triggerEvent, syntheticId) {
   }
   recoverLedgerItem(DEVICE_REQUEST);
 
-  if (ledger.entries.some((entry) => entry.requestId === request.requestId)) {
-    safeResult(OVERRIDE_RESULT, request.requestId, 'denied', 'duplicate');
+  const duplicate = duplicateReason(ledger, request);
+  if (duplicate) {
+    safeResult(OVERRIDE_RESULT, request.requestId, 'denied', duplicate);
     return;
   }
 
@@ -624,7 +657,13 @@ function handleOverride(triggerEvent, syntheticId) {
     return;
   }
 
-  ledger = acceptedLedger(ledger, request.requestId, nowInstantText());
+  try {
+    ledger = acceptedLedger(ledger, request, nowInstantText());
+  } catch (error) {
+    releaseBusy(token);
+    safeResult(OVERRIDE_RESULT, request.requestId, 'denied', error.message);
+    return;
+  }
   try {
     writeLedger(requestItem, ledger, request.requestId, 'accepted');
   } catch (error) {
@@ -664,7 +703,7 @@ function scheduleDeviceVerify(request, initialLedger, token) {
   let ledger = initialLedger;
 
   const fail = (rawReason) => {
-    const reason = ['provider_mismatch', 'coupling_pending'].includes(rawReason)
+    const reason = ['provider_mismatch', 'coupling_pending', 'override_commit_failed'].includes(rawReason)
       ? rawReason
       : 'execution_error';
     try {
@@ -747,8 +786,9 @@ function handleDevice(triggerEvent) {
   }
   recoverLedgerItem(OVERRIDE_REQUEST);
 
-  if (ledger.entries.some((entry) => entry.requestId === request.requestId)) {
-    safeResult(DEVICE_RESULT, request.requestId, 'denied', 'duplicate');
+  const duplicate = duplicateReason(ledger, request);
+  if (duplicate) {
+    safeResult(DEVICE_RESULT, request.requestId, 'denied', duplicate);
     return;
   }
 
@@ -781,7 +821,13 @@ function handleDevice(triggerEvent) {
     return;
   }
 
-  ledger = acceptedLedger(ledger, request.requestId, nowInstantText());
+  try {
+    ledger = acceptedLedger(ledger, request, nowInstantText());
+  } catch (error) {
+    releaseBusy(token);
+    safeResult(DEVICE_RESULT, request.requestId, 'denied', error.message);
+    return;
+  }
   try {
     writeLedger(requestItem, ledger, request.requestId, 'accepted');
   } catch (error) {

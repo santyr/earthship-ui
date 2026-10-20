@@ -28,29 +28,45 @@
       "id": "A01",
       "severity": "P1",
       "title": "Night-load idempotency retention",
-      "confidence": "handoff_reproduction_pending_local_revalidation",
+      "confidence": "confirmed",
       "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
-      "files": [],
-      "expected_actual": "See approved handoff; local reproduction pending",
-      "reproduction": [],
-      "root_cause": null,
-      "repair_commit": null,
-      "regression_evidence": [],
-      "status": "open"
+      "files": [
+        "openhab/rules/night-load-owner.js",
+        "tests/openhab/night-load-override-rule.test.js",
+        "tests/openhab/rule-harness.js"
+      ],
+      "expected_actual": "A still-admissible request must never execute after ledger count eviction or volatile loss. Original rule re-executed after >32 newer requests.",
+      "reproduction": [
+        "tests/openhab/night-load-override-rule.test.js: admissible identity retention and policy durability"
+      ],
+      "root_cause": "Unconditional slice(0,32) on acceptance discarded unexpired durable identities; no payload conflict or pre-admission byte budget.",
+      "repair_commit": "pending integration",
+      "regression_evidence": [
+        "Original source: 6 failed / 44 passed. Repaired owner suites: 52 passed, 3 files; max-ID exhaustion and OFF failure included. Full final revision suite pending."
+      ],
+      "status": "fixed_focused_verified"
     },
     {
       "id": "A02",
       "severity": "P1",
       "title": "Durable override-policy commit",
-      "confidence": "handoff_reproduction_pending_local_revalidation",
+      "confidence": "confirmed",
       "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
-      "files": [],
-      "expected_actual": "See approved handoff; local reproduction pending",
-      "reproduction": [],
-      "root_cause": null,
-      "repair_commit": null,
-      "regression_evidence": [],
-      "status": "open"
+      "files": [
+        "openhab/rules/night-load-owner.js",
+        "tests/openhab/night-load-override-rule.test.js",
+        "tests/openhab/rule-harness.js"
+      ],
+      "expected_actual": "Normal ON device matrix and completion require exact durable OverrideSwitch ON. Original policy persistence could remain OFF while owner completed.",
+      "reproduction": [
+        "tests/openhab/night-load-override-rule.test.js: selectively held/delayed OverrideSwitch persistence"
+      ],
+      "root_cause": "commitOverrideSwitch verified live Item then returned immediately after asynchronous persist; no JDBC readback.",
+      "repair_commit": "pending integration",
+      "regression_evidence": [
+        "Original source: 6 failed / 44 passed. Repaired owner suites: 52 passed, 3 files; max-ID exhaustion and OFF failure included. Full final revision suite pending."
+      ],
+      "status": "fixed_focused_verified"
     },
     {
       "id": "A03",

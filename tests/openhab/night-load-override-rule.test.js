@@ -430,7 +430,7 @@ describe('malformed, duplicate, and stale requests', () => {
       itemName: 'NightLoadOverride_Request',
       receivedCommand: overrideRequest('nl-20260718-dup', 'ON', '2026-07-18T12:00:01.000Z'),
     });
-    expect(overrideResults(h).at(-1)).toMatchObject({ status: 'denied', reason: 'duplicate' });
+    expect(overrideResults(h).at(-1)).toMatchObject({ status: 'denied', reason: 'request_id_conflict' });
     expect(allDeviceCommands(h).map((c) => c.value)).toEqual(['OFF', 'OFF']);
   });
 
@@ -549,5 +549,118 @@ describe('bounded provider/coupling verification re-poll', () => {
     expect(ran).toBe(20); // VERIFY_ATTEMPTS bounded, then fail-closed
     expect(deviceResults(h).at(-1)).toMatchObject({ status: 'failed', reason: 'provider_mismatch' });
     expect(h.pendingTimers()).toBe(0);
+  });
+});
+
+
+describe('admissible identity retention and policy durability', () => {
+  it('cannot evict an admissible identity after more than 32 newer requests and volatile loss', () => {
+    const h = harness({ Dish_Washer_Power: 'OFF' });
+    const original = deviceRequest('nl-original-retained', 'dishwasher', 'ON');
+    h.execute({ itemName: 'NightLoadDevice_Request', receivedCommand: original });
+    h.runTimersUntilIdle();
+    for (let i = 0; i < 33; i += 1) {
+      h.execute({ itemName: 'NightLoadDevice_Request', receivedCommand: deviceRequest(`nl-newer-${i}`, 'dishwasher', 'OFF') });
+      h.runTimersUntilIdle();
+    }
+    h.clearVolatileCache();
+    const before = allDeviceCommands(h).length;
+    h.execute({ itemName: 'NightLoadDevice_Request', receivedCommand: original });
+    expect(allDeviceCommands(h)).toHaveLength(before);
+    expect(h.state('Dish_Washer_Power')).toBe('OFF');
+    expect(deviceResults(h).at(-1)).toMatchObject({ status: 'denied', reason: 'duplicate' });
+  });
+
+  it('denies a full protected ledger before acceptance or any policy/device mutation', () => {
+    const entries = Array.from({ length: 32 }, (_, i) => ({ requestId: `nl-full-${i}`, status: 'completed', reason: 'completed', at: '2026-07-18T12:00:00.000Z' }));
+    const h = harness({ NightLoadOverride_Request: overrideLedger(entries) });
+    h.execute({ itemName: 'NightLoadOverride_Request', receivedCommand: overrideRequest('nl-capacity-new', 'ON') });
+    expect(allDeviceCommands(h)).toEqual([]);
+    expect(h.state('OverrideSwitch')).toBe('OFF');
+    expect(overrideResults(h).at(-1)).toMatchObject({ status: 'denied', reason: 'ledger_capacity' });
+    expect(overrideResults(h).some(r => r.status === 'accepted')).toBe(false);
+  });
+
+  it('retains pending and still-admissible legacy records and reclaims only expired terminal records', () => {
+    const entries = Array.from({ length: 32 }, (_, i) => ({ requestId: `nl-expired-${i}`, status: i === 31 ? 'running' : 'completed', reason: 'fixture', at: '2026-07-18T11:00:00.000Z' }));
+    const h = harness({ NightLoadDevice_Request: overrideLedger(entries) });
+    h.execute({ itemName: 'NightLoadDevice_Request', receivedCommand: deviceRequest('nl-after-expiry', 'dishwasher', 'OFF') });
+    h.runTimersUntilIdle();
+    expect(deviceResults(h).at(-1)).toMatchObject({ status: 'completed' });
+    // Recovery makes the old pending receipt terminal/uncertain, with its identity retained for this admission.
+    expect(deviceLedgerState(h).entries.some(e => e.requestId === 'nl-expired-31')).toBe(true);
+    expect(deviceLedgerState(h).entries.some(e => e.requestId === 'nl-after-expiry')).toBe(true);
+  });
+
+  it('denies conflicting identity reuse explicitly without more commands', () => {
+    const h = harness();
+    h.execute({ itemName: 'NightLoadDevice_Request', receivedCommand: deviceRequest('nl-conflicting-id', 'dishwasher', 'OFF') });
+    h.runTimersUntilIdle();
+    const before = allDeviceCommands(h).length;
+    h.execute({ itemName: 'NightLoadDevice_Request', receivedCommand: deviceRequest('nl-conflicting-id', 'dishwasher', 'ON') });
+    expect(allDeviceCommands(h)).toHaveLength(before);
+    expect(deviceResults(h).at(-1)).toMatchObject({ status: 'denied', reason: 'request_id_conflict' });
+  });
+
+  it('does not command the ON matrix when the durable policy stays OFF', () => {
+    const h = harness();
+    h.holdPersistence('OverrideSwitch');
+    h.execute({ itemName: 'NightLoadOverride_Request', receivedCommand: overrideRequest('nl-policy-missing', 'ON') });
+    h.runTimersUntilIdle();
+    expect(allDeviceCommands(h)).toEqual([]);
+    expect(overrideResults(h).at(-1)).toMatchObject({ status: 'failed', reason: 'override_commit_failed' });
+    expect(overrideResults(h).some(r => r.status === 'completed')).toBe(false);
+  });
+
+  it('waits for exact delayed durable ON before issuing any matrix command', () => {
+    const h = harness();
+    h.delayPersistence('OverrideSwitch', 3);
+    h.execute({ itemName: 'NightLoadOverride_Request', receivedCommand: overrideRequest('nl-policy-delayed', 'ON') });
+    h.runTimersUntilIdle();
+    expect(overrideResults(h).at(-1)).toMatchObject({ status: 'completed' });
+    const first = h.events.findIndex(e => e.type === 'command');
+    expect(h.events.slice(0, first).filter(e => e.type === 'history' && e.item === 'OverrideSwitch').length).toBeGreaterThanOrEqual(4);
+    expect(h.history('OverrideSwitch').at(-1)).toBe('ON');
+  });
+});
+
+
+describe('night-load ledger byte budget and OFF commitment', () => {
+  it('refuses maximum-length IDs at the byte bound while preserving every accepted identity', () => {
+    const h = harness();
+    let accepted = 0;
+    for (let i = 0; i < 40; i += 1) {
+      const id = `nl-long-${i}-`.padEnd(128, 'x');
+      const before = allDeviceCommands(h).length;
+      h.execute({ itemName: 'NightLoadDevice_Request', receivedCommand: deviceRequest(id, 'dishwasher', 'OFF') });
+      h.runTimersUntilIdle();
+      const result = deviceResults(h).at(-1);
+      if (result.status === 'denied') {
+        expect(result.reason).toBe('ledger_capacity');
+        expect(allDeviceCommands(h)).toHaveLength(before);
+      } else {
+        accepted += 1;
+        expect(result.status).toBe('completed');
+      }
+      expect(new TextEncoder().encode(h.state('NightLoadDevice_Request')).length).toBeLessThanOrEqual(8192);
+    }
+    expect(accepted).toBeGreaterThan(0);
+    expect(accepted).toBeLessThan(32);
+    expect(deviceLedgerState(h).entries).toHaveLength(accepted);
+    h.advance(151000);
+    h.execute({ itemName: 'NightLoadDevice_Request', receivedCommand: deviceRequest('nl-reclaim-byte-budget', 'dishwasher', 'OFF', new Date(h.nowMs()).toISOString()) });
+    h.runTimersUntilIdle();
+    expect(deviceResults(h).at(-1).status).toBe('completed');
+  });
+
+  it('retains ownership ON if OFF policy cannot be durably committed after Shureflo confirmation', () => {
+    const h = harness({ OverrideSwitch: 'ON', ShurefloPump_Power: 'OFF' });
+    h.holdPersistence('OverrideSwitch');
+    h.execute({ itemName: 'NightLoadOverride_Request', receivedCommand: overrideRequest('nl-off-policy-failure', 'OFF') });
+    h.runTimersUntilIdle();
+    expect(h.state('ShurefloPump_Power')).toBe('ON');
+    expect(h.state('OverrideSwitch')).toBe('ON');
+    expect(overrideResults(h).at(-1)).toMatchObject({ status: 'failed', reason: 'override_commit_failed' });
+    expect(overrideResults(h).some(r => r.status === 'completed')).toBe(false);
   });
 });
