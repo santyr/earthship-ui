@@ -58,7 +58,34 @@ def load_candidate(state):
     return candidate,dataset,training,run
 
 
-def run(*,archive_path,libraries_path,base=None,root=None,clock=lambda:datetime.now(timezone.utc)):
+def selection_bytes(path):
+    """Read an optional original without following links or accepting large files."""
+    try:return _read(path,262144)
+    except FileNotFoundError:return None
+
+
+def retained_selection(raw):
+    """Identify opaque original bytes; numerical serving admission stays separate."""
+    result=dict(status='incumbent_unavailable',selected_model_sha256=None,
+        selected_receipt_sha256=None,previous_file_sha256=None,promotion_permitted=False,
+        serving_availability='unavailable',automatic_actuation=False)
+    if raw is None:return result
+    value=json.loads(raw);model=value.get('final_model')
+    if (value.get('schema')!='earthship-historical-pv-directional-experiment/v1' or
+        value.get('receipt_sha256')!=identity({k:v for k,v in value.items() if k!='receipt_sha256'}) or
+        value.get('automatic_actuation') is not False or not isinstance(model,dict) or
+        model.get('model_sha256')!=identity({k:v for k,v in model.items() if k!='model_sha256'}) or
+        model.get('automatic_actuation') is not False or model.get('physical_calibration_qualified') is not False):
+        raise ValueError('unchanged retained PV selection identity required')
+    # Deliberately do not load old numerics into today's producer or renew its
+    # clocks. Only the actual serving producer can assess original availability.
+    result.update(status='incumbent_retained_by_policy',selected_model_sha256=model['model_sha256'],
+        selected_receipt_sha256=value['receipt_sha256'],previous_file_sha256=sha256(raw).hexdigest(),
+        serving_availability='not_assessed')
+    return result
+
+
+def run(*,archive_path,libraries_path,base=None,root=None,clock=lambda:datetime.now(timezone.utc),retain_selection=False):
     base=Path.home()/'.local/state/earthship-weather' if base is None else Path(base)
     root=Path(__file__).resolve().parents[2] if root is None else Path(root)
     state=directory(base/'pv-calibration');status=directory(base/'pv-learning-daily');end=clock().replace(hour=0,minute=0,second=0,microsecond=0)
@@ -75,24 +102,30 @@ def run(*,archive_path,libraries_path,base=None,root=None,clock=lambda:datetime.
         log=status/(name+'.last.log');log.write_bytes(result.stdout+result.stderr);log.chmod(0o600)
         if result.returncode:raise RuntimeError('PV learning step failed: '+name)
     with collector_lock(status/'daily.lock'):
+        selected=state/'selected-directional.json'
+        if retain_selection:
+            selected_before=selection_bytes(selected)
+            decision=retained_selection(selected_before)
         command('historical_energy_capture.py',['--state',base/'historical-energy','--start',start.date().isoformat(),'--days',days,'--batch-hours',48,'--rolling-index'])
         command('historical_pv_train.py',['--archive',base/'historical-2026','--operational-archive',archive_path,'--energy',base/'historical-energy','--output',state,'--geometry',base/'pv-calibration-geometry','--libraries',libraries_path,'--train-end',(end-timedelta(days=6)).isoformat(),'--holdout-end',end.isoformat()])
         command('historical_pv_directional_train.py',['--state',state])
         candidate,dataset,training,origin=load_candidate(state)
-        selected=state/'selected-directional.json'
-        system_raw,horizon_raw=geometry_declarations(root)
-        if candidate['report']['selected'] is True:
-            decision=select_candidate(candidate,dataset['pairs'],training_model=training,selected_path=selected,now=clock(),system_raw=system_raw,horizon_raw=horizon_raw)
-        else:decision=dict(status='candidate_not_improved_incumbent_preserved',automatic_actuation=False)
+        if not retain_selection:
+            system_raw,horizon_raw=geometry_declarations(root)
+            if candidate['report']['selected'] is True:
+                decision=select_candidate(candidate,dataset['pairs'],training_model=training,selected_path=selected,now=clock(),system_raw=system_raw,horizon_raw=horizon_raw)
+            else:decision=dict(status='candidate_not_improved_incumbent_preserved',automatic_actuation=False)
         updated=json.loads(_read(base/'historical-energy/energy-index.json',1048576));retained={r['start'] for r in updated['hours']};missing=sum((start+timedelta(hours=i)).isoformat() not in retained for i in range(days*24))
+        if retain_selection and selection_bytes(selected)!=selected_before:
+            raise ValueError('selected PV model changed during retained-selection run')
         result=dict(status='daily_pv_learning_complete',checked_at=clock().isoformat(),cutoff=end.isoformat(),missing_energy_hours=missing,
             candidate_experiment_path=str(origin),fit_executed=candidate['fit_executed'],selection=decision,automatic_actuation=False)
         result['result_sha256']=identity(result);save(status/(result['result_sha256']+'.result.json'),result);save(status/'last-result.json',result);return result
 
 
 def main(argv=None):
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--archive',type=Path,required=True);p.add_argument('--libraries',type=Path,required=True);a=p.parse_args(argv);os.umask(0o077)
-    try:print(json.dumps(run(archive_path=a.archive,libraries_path=a.libraries)),flush=True);return 0
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--archive',type=Path,required=True);p.add_argument('--libraries',type=Path,required=True);p.add_argument('--retain-selection',action='store_true',help='retain the original selected model while refreshing candidate evidence');a=p.parse_args(argv);os.umask(0o077)
+    try:print(json.dumps(run(archive_path=a.archive,libraries_path=a.libraries,retain_selection=a.retain_selection)),flush=True);return 0
     except Exception as error:
         state=directory(Path.home()/'.local/state/earthship-weather/pv-learning-daily');save(state/'last-error.json',dict(at=datetime.now(timezone.utc).isoformat(),reason=type(error).__name__,message=str(error)[:2048],traceback=traceback.format_exc()[-8192:]))
         print(json.dumps(dict(status='daily_pv_learning_incomplete',reason=type(error).__name__,automatic_actuation=False)),flush=True);return 1

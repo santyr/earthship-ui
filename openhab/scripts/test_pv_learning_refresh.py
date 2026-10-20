@@ -1,4 +1,6 @@
 from copy import deepcopy
+import os
+import pytest
 from datetime import timedelta
 from test_household_pv_window import START
 from test_weather_directional_pv import rows
@@ -157,3 +159,163 @@ def test_daily_geometry_reads_readonly_repository_sources_without_weakening_priv
     with pytest.raises(ValueError,match='owned bounded'):_read(system,16384)
     system.unlink();system.symlink_to(horizon)
     with pytest.raises(ValueError,match='owned bounded'):geometry_declarations(tmp_path)
+
+
+def daily_run_fixture(tmp_path,monkeypatch,*,incumbent=True):
+    """Keep real private checkpoints/locking; replace only external worker jobs."""
+    import json
+    from datetime import datetime,timezone
+    from pathlib import Path
+    from types import SimpleNamespace
+    import historical_pv_daily as daily
+    from household_native_training import save
+    base=tmp_path/'weather';base.mkdir(mode=0o700)
+    state=base/'pv-calibration';state.mkdir(mode=0o700)
+    energy=base/'historical-energy';energy.mkdir(mode=0o700)
+    index=dict(hours=[dict(start=(datetime(2026,10,10,tzinfo=timezone.utc)+timedelta(hours=i)).isoformat()) for i in range(240)])
+    index['index_sha256']=identity(index);save(energy/'energy-index.json',index)
+    selected=state/'selected-directional.json'
+    if incumbent:
+        from test_weather_pv_calibration_source import source
+        _,original,_=source(tmp_path)
+        value=json.loads(original.read_bytes())
+        # Retention must not replay a selected original through today's producer.
+        value['runtime_manifest']['openhab/scripts/weather_learning/pv_calibration.py']='f'*64
+        value['receipt_sha256']=identity({k:v for k,v in value.items() if k!='receipt_sha256'})
+        save(selected,value)
+    origin=state/'new-candidate';origin.mkdir(mode=0o700)
+    candidate=dict(report=dict(selected=True),fit_executed=dict(comparison=True,serving=True),final_model=dict(model_sha256='e'*64))
+    calls=[];after_step=[]
+    def worker(argv,**kwargs):
+        name=Path(argv[1]).name;calls.append(name)
+        assert kwargs['timeout']<=600 and 'PYTHONDONTWRITEBYTECODE' in kwargs['env']
+        if name=='historical_pv_directional_train.py':save(origin/'experiment.json',candidate)
+        for callback in after_step:callback(name)
+        return SimpleNamespace(returncode=0,stdout=b'',stderr=b'')
+    monkeypatch.setattr(daily.subprocess,'run',worker)
+    monkeypatch.setattr(daily,'load_candidate',lambda actual:(candidate,dict(pairs=[]),dict(model_sha256='d'*64),origin))
+    def forbidden(*a,**kw):raise AssertionError('retention mode reached automatic selector')
+    monkeypatch.setattr(daily,'select_candidate',forbidden)
+    monkeypatch.setattr(daily,'restore_calibration',lambda *a,**kw:(_ for _ in ()).throw(AssertionError('legacy selected model was rebound')))
+    kwargs=dict(archive_path=base/'archive',libraries_path=tmp_path/'libraries.json',base=base,
+        root=Path(__file__).resolve().parents[2],clock=lambda:datetime(2026,10,20,12,tzinfo=timezone.utc))
+    return SimpleNamespace(daily=daily,kwargs=kwargs,selected=selected,candidate=candidate,origin=origin,calls=calls,after_step=after_step)
+
+
+def test_daily_retention_never_promotes_preliminarily_selected_candidate(tmp_path,monkeypatch):
+    import json
+    from hashlib import sha256
+    case=daily_run_fixture(tmp_path,monkeypatch);before=case.selected.read_bytes();old=json.loads(before)
+    result=case.daily.run(**case.kwargs,retain_selection=True)
+    assert result['selection']['status']=='incumbent_retained_by_policy'
+    assert result['selection']['selected_model_sha256']==old['final_model']['model_sha256']
+    assert result['selection']['previous_file_sha256']==sha256(before).hexdigest()
+    assert result['selection']['promotion_permitted'] is False
+    assert result['selection']['serving_availability']=='not_assessed'
+    assert result['fit_executed']==dict(comparison=True,serving=True)
+    assert case.calls==['historical_energy_capture.py','historical_pv_train.py','historical_pv_directional_train.py']
+    assert (case.origin/'experiment.json').exists() and case.selected.read_bytes()==before
+
+
+def test_daily_retention_with_no_incumbent_does_not_create_selection(tmp_path,monkeypatch):
+    case=daily_run_fixture(tmp_path,monkeypatch,incumbent=False)
+    result=case.daily.run(**case.kwargs,retain_selection=True)
+    assert result['selection']['status']=='incumbent_unavailable'
+    assert result['selection']['selected_model_sha256'] is None
+    assert result['selection']['promotion_permitted'] is False
+    assert not case.selected.exists() and (case.origin/'experiment.json').exists()
+
+
+@pytest.fixture
+def preserve_cli_umask():
+    # The real CLI deliberately sets 077. Restore the caller's process policy,
+    # including when a CLI assertion fails, so later privacy fixtures stay real.
+    original=os.umask(0o077)
+    os.umask(original)
+    try:yield
+    finally:os.umask(original)
+
+
+def test_daily_retention_cli_passes_explicit_flag(tmp_path,monkeypatch,capsys,preserve_cli_umask):
+    import historical_pv_daily as daily
+    calls=[]
+    def run(**kwargs):calls.append(kwargs);return dict(status='daily_pv_learning_complete')
+    monkeypatch.setattr(daily,'run',run)
+    assert daily.main(['--archive',str(tmp_path/'archive'),'--libraries',str(tmp_path/'libraries'),'--retain-selection'])==0
+    assert os.umask(0o077)==0o077
+    assert calls[0]['retain_selection'] is True
+    assert 'daily_pv_learning_complete' in capsys.readouterr().out
+
+
+def test_daily_retention_cli_default_preserves_legacy_selection_mode(tmp_path,monkeypatch,preserve_cli_umask):
+    import historical_pv_daily as daily
+    calls=[]
+    monkeypatch.setattr(daily,'run',lambda **kw:calls.append(kw) or dict(status='complete'))
+    assert daily.main(['--archive',str(tmp_path/'archive'),'--libraries',str(tmp_path/'libraries')])==0
+    assert os.umask(0o077)==0o077
+    assert calls[0]['retain_selection'] is False
+
+
+def test_daily_default_still_reaches_existing_candidate_selector(tmp_path,monkeypatch):
+    from household_native_training import save
+    case=daily_run_fixture(tmp_path,monkeypatch)
+    before=case.selected.read_bytes()
+    def promote(candidate,rows,**kwargs):
+        assert candidate==case.candidate and kwargs['selected_path']==case.selected
+        save(case.selected,candidate)
+        return dict(status='candidate_selected',automatic_actuation=False)
+    monkeypatch.setattr(case.daily,'select_candidate',promote)
+    result=case.daily.run(**case.kwargs)
+    assert result['selection']['status']=='candidate_selected' and case.selected.read_bytes()!=before
+
+
+def test_daily_retention_refuses_changed_incumbent_without_repairing_it(tmp_path,monkeypatch):
+    import pytest
+    case=daily_run_fixture(tmp_path,monkeypatch)
+    replacement=b'opaque bytes owned by a concurrent selector'
+    def replace(name):
+        if name=='historical_pv_directional_train.py':case.selected.write_bytes(replacement)
+    case.after_step.append(replace)
+    with pytest.raises(ValueError,match='selected PV model changed'):case.daily.run(**case.kwargs,retain_selection=True)
+    assert case.selected.read_bytes()==replacement
+    assert (case.origin/'experiment.json').exists()
+
+
+def test_daily_retention_refuses_removed_incumbent_without_restoring_it(tmp_path,monkeypatch):
+    import pytest
+    case=daily_run_fixture(tmp_path,monkeypatch)
+    case.after_step.append(lambda name:case.selected.unlink() if name=='historical_pv_directional_train.py' else None)
+    with pytest.raises(ValueError,match='selected PV model changed'):case.daily.run(**case.kwargs,retain_selection=True)
+    assert not case.selected.exists()
+
+
+def test_daily_retention_refuses_new_concurrent_selection_when_initially_absent(tmp_path,monkeypatch):
+    import pytest
+    case=daily_run_fixture(tmp_path,monkeypatch,incumbent=False)
+    replacement=b'concurrent selection must remain untouched'
+    def publish(name):
+        if name=='historical_pv_directional_train.py':
+            case.selected.write_bytes(replacement)
+            case.selected.chmod(0o600)  # Match a real concurrent selector's private file.
+    case.after_step.append(publish)
+    with pytest.raises(ValueError,match='selected PV model changed'):case.daily.run(**case.kwargs,retain_selection=True)
+    assert case.selected.read_bytes()==replacement
+
+
+def test_daily_retention_rejects_modified_original_receipt_before_workers(tmp_path,monkeypatch):
+    import json,pytest
+    case=daily_run_fixture(tmp_path,monkeypatch)
+    value=json.loads(case.selected.read_bytes());value['created_at']='2026-10-21T00:00:00+00:00'
+    case.selected.write_text(json.dumps(value));before=case.selected.read_bytes()
+    with pytest.raises(ValueError,match='retained PV selection identity'):case.daily.run(**case.kwargs,retain_selection=True)
+    assert case.calls==[] and case.selected.read_bytes()==before
+
+
+def test_daily_retention_rejects_modified_model_inside_resealed_receipt(tmp_path,monkeypatch):
+    import json,pytest
+    case=daily_run_fixture(tmp_path,monkeypatch)
+    value=json.loads(case.selected.read_bytes());value['final_model']['trained_at']='2026-10-21T00:00:00+00:00'
+    value['receipt_sha256']=identity({k:v for k,v in value.items() if k!='receipt_sha256'})
+    case.selected.write_text(json.dumps(value));before=case.selected.read_bytes()
+    with pytest.raises(ValueError,match='retained PV selection identity'):case.daily.run(**case.kwargs,retain_selection=True)
+    assert case.calls==[] and case.selected.read_bytes()==before
