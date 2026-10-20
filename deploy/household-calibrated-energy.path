@@ -1,0 +1,9 @@
+[Unit]
+Description=Refresh calibrated PV/storage after original household forecasts
+
+[Path]
+PathChanged=%h/.local/state/household-intel/observation.json
+Unit=household-calibrated-energy.service
+
+[Install]
+WantedBy=default.target

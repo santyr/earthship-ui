@@ -1,0 +1,11 @@
+[Unit]
+Description=Earthship same-issue calibrated PV/storage (read-only)
+
+[Service]
+Type=oneshot
+EnvironmentFile=%h/.config/earthship-weather/calibrated-energy.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONPATH=%h/Solar_PV/analytics/src
+ExecStart=/usr/bin/python3 ${EARTHSHIP_CALIBRATED_ENERGY_ROOT}/scripts/run-household-job.py --production --minimum-mib 256 --preferred-mib 768 --tasks 24 --seconds 90 -- /usr/bin/python3 ${EARTHSHIP_CALIBRATED_ENERGY_ROOT}/openhab/scripts/household_calibrated_energy_worker.py
+TimeoutStartSec=110
+UMask=0077

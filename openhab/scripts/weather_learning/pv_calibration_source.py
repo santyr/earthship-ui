@@ -9,7 +9,12 @@ from .pv_directional_calibration import validate_model
 
 
 def load_calibration(path,*,origin,system_raw,horizon_raw):
-    raw=_read(path,262144);value=json.loads(raw)
+    return restore_calibration(_read(path,262144),origin=origin,system_raw=system_raw,horizon_raw=horizon_raw)
+
+
+def restore_calibration(raw,*,origin,system_raw,horizon_raw):
+    if not isinstance(raw,bytes) or len(raw)>262144:raise ValueError('bounded retained calibration bytes required')
+    value=json.loads(raw)
     if (value.get('schema')!='earthship-historical-pv-directional-experiment/v1' or value.get('automatic_actuation') is not False or
         value.get('receipt_sha256')!=identity({k:v for k,v in value.items() if k!='receipt_sha256'})):raise ValueError('unchanged selected PV experiment required')
     model=validate_model(value['final_model']);report=value['report']
