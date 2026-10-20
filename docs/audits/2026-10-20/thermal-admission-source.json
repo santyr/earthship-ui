@@ -1,0 +1,38 @@
+{
+  "schema": "earthship-thermal-admission-release-source/v1",
+  "source_revision": "c31d067a6e79f8e5fe23d26365de9a8a2e8a0018",
+  "non_documentation_files": 1723,
+  "git_mode_type_object_path_inventory_sha256": "2b0048b647418e6ac4fd50a1d48b11f8f9a8b58d9160bb599020b23823d50642",
+  "test_entry_files": 767,
+  "orphans": [],
+  "consumer_runtime_changed": false,
+  "models_changed": false,
+  "fit_clocks_renewed": false,
+  "expiry_renewed": false,
+  "authority_changed": false,
+  "companion_runtime_source": "520bdd8",
+  "companion_base_source": "85e80137adc731d1728c8e5b00a125e5cf6837aa",
+  "companion_changed_files": [
+    "openhab/scripts/historical_weather_daily.py"
+  ],
+  "evidence": "https://github.com/santyr/earthship-ui/pull/41",
+  "local_related": {
+    "passed": 98,
+    "skipped": 0,
+    "exit": 0
+  },
+  "local_orchestration": {
+    "passed": 9,
+    "exit": 0
+  },
+  "actual_original_replay": {
+    "outdoor_pairs": 19686,
+    "irradiance_pairs": 20694,
+    "python": "3.12.3",
+    "numpy": "1.26.4",
+    "prediction_parity": true,
+    "scope": "original_residual_and_feature_functions_only",
+    "global_selector_written": false,
+    "original_expiry": "2026-11-03T03:04:40.299381+00:00"
+  }
+}

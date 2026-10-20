@@ -1,7 +1,7 @@
 {
   "schema": "earthship-audit-source-inventory/v1",
   "base_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
-  "public_tracked_files": 2159,
+  "public_tracked_files": 2161,
   "routes": [
     "home",
     "energy",
@@ -821,7 +821,7 @@
     "tests/completion/test_thermal_state_backup.py",
     "tests/completion/test_verification_gates.py"
   ],
-  "audited_source_revision": "bc4667790545804e81fdeff565823ae46fb18873",
+  "audited_source_revision": "c31d067a6e79f8e5fe23d26365de9a8a2e8a0018",
   "inventory_method": "tracked public source only; discovery does not prove activation, execution or qualification",
   "components": [
     "src/App.svelte",
@@ -2146,6 +2146,14 @@
       "earthship-thermal-weather-admission/v1",
       "earthship-thermal-weather-selection/v1"
     ],
+    "openhab/scripts/thermal_weather_readmit.py": [
+      "earthship-site-calibration/v1",
+      "earthship-thermal-weather-compatibility-proof/v1",
+      "earthship-thermal-weather-selection/v1"
+    ],
+    "openhab/scripts/thermal_weather_readmit_post.py": [
+      "earthship-thermal-weather-readmit-post/v1"
+    ],
     "openhab/scripts/thermal_weather_source.py": [
       "earthship-thermal-weather-context/v1",
       "earthship-thermal-weather-selection/v1"
@@ -2530,6 +2538,8 @@
     "openhab/scripts/thermal_state_backup.py",
     "openhab/scripts/thermal_temperature_runtime.py",
     "openhab/scripts/thermal_weather_admit.py",
+    "openhab/scripts/thermal_weather_readmit.py",
+    "openhab/scripts/thermal_weather_readmit_post.py",
     "openhab/scripts/validate_thermal_shadow.py",
     "openhab/scripts/weather_forecast_monitor.py",
     "openhab/scripts/weather_publish.py",
