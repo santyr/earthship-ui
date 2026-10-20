@@ -27,14 +27,14 @@ for(const target of targets){
       return route.fulfill({json:path.endsWith('/items')?items:[]});
     });
     await page.goto(baseURL+'#/weather',{waitUntil:'domcontentloaded'});
-    const button=page.getByRole('button',{name:'WeatherNext model · shadow',exact:true});
+    const button=page.getByRole('button',{name:'Local correction · shadow',exact:true});
     await expect(button).toBeVisible();
     const entry=await button.boundingBox(),tile=await page.locator('.daily-cell').boundingBox();
     expect(entry.y).toBeGreaterThanOrEqual(tile.y);
     expect(entry.x).toBeGreaterThanOrEqual(tile.x);
     expect(entry.x+entry.width).toBeLessThanOrEqual(tile.x+tile.width+1);
     await button.click({timeout:5000});
-    const dialog=page.getByRole('dialog',{name:'WeatherNext model'});
+    const dialog=page.getByRole('dialog',{name:'WeatherNext local correction'});
     await expect(dialog.getByRole('columnheader',{name:'Raw WeatherNext',exact:true})).toBeVisible();
     const bounds=await dialog.boundingBox();
     expect(bounds.x).toBeGreaterThanOrEqual(0);expect(bounds.y).toBeGreaterThanOrEqual(0);

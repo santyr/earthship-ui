@@ -317,6 +317,204 @@
         "Snapshot updates evidence without Item mutation; replacement snapshot alone owns state. Source evidence keeps old original clock/state until matching evidence arrives. Review-fix group119passed/7files."
       ],
       "status": "fixed_focused_verified"
+    },
+    {
+      "id": "A14",
+      "severity": "P2",
+      "title": "Energy advisory and chart container overflow",
+      "confidence": "confirmed",
+      "affected_revision": "d549886d08ce4ef91aaf62cea95a733eb98bf223",
+      "files": [
+        "src/screens/Energy.svelte",
+        "tests/e2e/energy-layout.spec.js"
+      ],
+      "expected_actual": "Both supported viewports overflowed the battery hero; laptop charts lost their64px minimum after advisory content was included.",
+      "root_cause": "A height100% history body plus sibling advisory exceeded its Tile body; the short laptop row could not accommodate all fixed controls/footer/advisory.",
+      "reproduction": [
+        "Maintained real Playwright fixture suite under isolated loopback network; Initial browser71:14failed/57passed, including two overflow cases. Repair retains44px controls, full advisory and64px minimum; measured laptop plots67px each."
+      ],
+      "repair_commit": "pending",
+      "regression_evidence": [
+        "Initial browser71:14failed/57passed, including two overflow cases. Repair retains44px controls, full advisory and64px minimum; measured laptop plots67px each.",
+        "Complete7spec71passed and geometry5spec65passed, Node22.22.0, exact8-file source patch; final integrated revision pending."
+      ],
+      "status": "fixed_browser_verified_not_deployed"
+    },
+    {
+      "id": "A15",
+      "severity": "P2",
+      "title": "Lenovo shade preview slider below touch layout minimum",
+      "confidence": "confirmed",
+      "affected_revision": "d549886d08ce4ef91aaf62cea95a733eb98bf223",
+      "files": [
+        "src/screens/Shades.svelte",
+        "tests/e2e/shades-layout.spec.js"
+      ],
+      "expected_actual": "Lenovo M9 zone slider measured179.40625px against the existing180px minimum.",
+      "root_cause": "Two outer row gaps consumed2.56px of the available grid height after preview header additions.",
+      "reproduction": [
+        "Maintained real Playwright fixture suite under isolated loopback network; Unchanged180px assertion failed; gap correction produces180.6875px and preserves all26 shade previews."
+      ],
+      "repair_commit": "pending",
+      "regression_evidence": [
+        "Unchanged180px assertion failed; gap correction produces180.6875px and preserves all26 shade previews.",
+        "Complete7spec71passed and geometry5spec65passed, Node22.22.0, exact8-file source patch; final integrated revision pending."
+      ],
+      "status": "fixed_browser_verified_not_deployed"
+    },
+    {
+      "id": "A16",
+      "severity": "P2",
+      "title": "Expanded thermal details inherit scrolled container offset",
+      "confidence": "confirmed",
+      "affected_revision": "d549886d08ce4ef91aaf62cea95a733eb98bf223",
+      "files": [
+        "src/lib/ui/ThermalModelCard.svelte",
+        "tests/e2e/weather-earthship-layout.spec.js"
+      ],
+      "expected_actual": "Laptop details opened above its card origin (45.78125px versus52.796875px), clipping the panel.",
+      "root_cause": "The absolute inset details overlay inherited the scrollable body offset created by clicking its bottom summary.",
+      "reproduction": [
+        "Maintained real Playwright fixture suite under isolated loopback network; Existing browser click/bounds assertion failed; open-state overflow:clip restores panel origin at both supported sizes without lifecycle work."
+      ],
+      "repair_commit": "pending",
+      "regression_evidence": [
+        "Existing browser click/bounds assertion failed; open-state overflow:clip restores panel origin at both supported sizes without lifecycle work.",
+        "Complete7spec71passed and geometry5spec65passed, Node22.22.0, exact8-file source patch; final integrated revision pending."
+      ],
+      "status": "fixed_browser_verified_not_deployed"
+    },
+    {
+      "id": "C01",
+      "severity": "P2",
+      "title": "Long-horizon pending target maturity",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "openhab/scripts/weather_learning/monitoring.py",
+        "openhab/scripts/weather_learning/pending_scores.py"
+      ],
+      "expected_actual": "A genuine retained336h issue lost its240h/336h targets at maturity because issue retrieval ended after7days.",
+      "reproduction": [
+        "See native regressions and consolidated model-evaluation-spec.md; C05/A07 and C06/A08 share prior repair evidence."
+      ],
+      "root_cause": "See associated native regression and consolidated phase mapping.",
+      "repair_commit": null,
+      "regression_evidence": [],
+      "status": "in_progress"
+    },
+    {
+      "id": "C02",
+      "severity": "P2",
+      "title": "Matched comparison and fallback populations",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "openhab/scripts/weather_learning/performance.py",
+        "openhab/scripts/weather_learning/monitoring.py"
+      ],
+      "expected_actual": "Two raw absolute errors10/1 and one corrected error2 lacked per-horizon matched baseline1; raw-all5.5 was a different population.",
+      "reproduction": [
+        "See native regressions and consolidated model-evaluation-spec.md; C05/A07 and C06/A08 share prior repair evidence."
+      ],
+      "root_cause": "See associated native regression and consolidated phase mapping.",
+      "repair_commit": null,
+      "regression_evidence": [],
+      "status": "in_progress"
+    },
+    {
+      "id": "C03",
+      "severity": "P2",
+      "title": "Artifact versus operational policy attribution",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "openhab/scripts/weather_learning/performance.py",
+        "openhab/scripts/weather_learning/shadow.py"
+      ],
+      "expected_actual": "Six older zero-error models pooled with a current4C-error model; aggregate4/7C must not describe the current artifact.",
+      "reproduction": [
+        "See native regressions and consolidated model-evaluation-spec.md; C05/A07 and C06/A08 share prior repair evidence."
+      ],
+      "root_cause": "See associated native regression and consolidated phase mapping.",
+      "repair_commit": null,
+      "regression_evidence": [],
+      "status": "in_progress"
+    },
+    {
+      "id": "C04",
+      "severity": "P2",
+      "title": "Measured-target support and acquisition-density weighting",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "openhab/scripts/weather_learning/weights.py",
+        "openhab/scripts/weather_learning/pv_directional_calibration.py"
+      ],
+      "expected_actual": "Distinct forecast rows for unchanged measured targets changed prior strength and fitted gains without new outcomes; UTC support overlaps A06.",
+      "reproduction": [
+        "See native regressions and consolidated model-evaluation-spec.md; C05/A07 and C06/A08 share prior repair evidence."
+      ],
+      "root_cause": "See associated native regression and consolidated phase mapping.",
+      "repair_commit": null,
+      "regression_evidence": [],
+      "status": "in_progress"
+    },
+    {
+      "id": "C05",
+      "severity": "P2",
+      "title": "PV baseline training and serving parity",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "openhab/scripts/historical_pv_train.py",
+        "openhab/scripts/household_pv_model.py"
+      ],
+      "expected_actual": "Same as A07; preserve shared versioned interval kernel and reassess after C04 weighting.",
+      "reproduction": [
+        "See native regressions and consolidated model-evaluation-spec.md; C05/A07 and C06/A08 share prior repair evidence."
+      ],
+      "root_cause": "See associated native regression and consolidated phase mapping.",
+      "repair_commit": null,
+      "regression_evidence": [],
+      "status": "linked_existing_repair_reassessment_pending"
+    },
+    {
+      "id": "C06",
+      "severity": "P2",
+      "title": "Thermal irradiation crossing intervals",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "openhab/scripts/thermal_model/installed_shade_origin.py",
+        "openhab/scripts/household/thermal_weather_conditioning.py"
+      ],
+      "expected_actual": "Same as A08; overlap140W/m2 replaces endpoint900W/m2 for the stated constructed interval.",
+      "reproduction": [
+        "See native regressions and consolidated model-evaluation-spec.md; C05/A07 and C06/A08 share prior repair evidence."
+      ],
+      "root_cause": "See associated native regression and consolidated phase mapping.",
+      "repair_commit": null,
+      "regression_evidence": [],
+      "status": "linked_existing_repair_reassessment_pending"
+    },
+    {
+      "id": "C07",
+      "severity": "P3",
+      "title": "Qualification and actuator authority boundary",
+      "confidence": "intentional_boundary",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "docs/audits/2026-10-20/qualification.md"
+      ],
+      "expected_actual": "Deliberate unqualified/default-off flags are authority boundaries; a new evidence record must not silently grant deployment, distribution or actuator qualification.",
+      "reproduction": [
+        "See native regressions and consolidated model-evaluation-spec.md; C05/A07 and C06/A08 share prior repair evidence."
+      ],
+      "root_cause": "See associated native regression and consolidated phase mapping.",
+      "repair_commit": null,
+      "regression_evidence": [],
+      "status": "preserved_intentional_boundary"
     }
   ]
 }

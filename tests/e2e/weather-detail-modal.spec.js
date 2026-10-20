@@ -109,7 +109,13 @@ async function openFixture(page, route, target) {
   const consoleErrors = [];
   const pageErrors = [];
   page.on('console', (message) => {
-    if (message.type() === 'error') consoleErrors.push(message.text());
+    if (message.type() !== 'error') return;
+    // The common fixture deliberately returns 503 for these optional reports.
+    // Keep unexpected asset failures and JavaScript console errors observable.
+    const pathname = new URL(message.location().url || '/', baseURL).pathname;
+    const unavailableReport = ['/api/daily-pv-potential', '/api/household-energy-observation'].includes(pathname);
+    if (unavailableReport && message.text() === 'Failed to load resource: the server responded with a status of 503 (Service Unavailable)') return;
+    consoleErrors.push({ message: message.text(), url: message.location().url });
   });
   page.on('pageerror', (error) => pageErrors.push(error.message));
 
@@ -137,6 +143,7 @@ async function openFixture(page, route, target) {
   await page.route('**/fixture-openhab/rest/items?*', (request) => request.fulfill({
     json: ITEMS,
   }));
+  await page.route('**/fixture-openhab/rest/things', route => route.fulfill({ json: [] }));
   await page.route('**/fixture-openhab/rest/persistence/items/**', (request) => {
     const now = Date.now();
     return request.fulfill({

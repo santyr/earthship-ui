@@ -315,7 +315,7 @@
   .adjustment-dialog button:disabled { opacity: .5; cursor: not-allowed; }
   .adjustment-dialog button:not(:disabled):active { background: #6b9baa; border-color: #d1f2f7; }
   .adjustment-dialog :focus-visible { outline: 2px solid #b6e9f0; outline-offset: 2px; }
-  .shades-page { display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: .48rem; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; }
+  .shades-page { display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: .4rem; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; }
   .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 54px; }
   h1 { margin: 0; font-size: 1.26rem; font-weight: 650; letter-spacing: .01em; }
   .page-heading p { margin: .18rem 0 0; color: #9aa7b8; font-size: .76rem; }

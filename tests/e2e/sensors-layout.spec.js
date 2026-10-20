@@ -1,13 +1,16 @@
 import {expect,test} from '@playwright/test';
 import {createServer} from 'vite';
 import {execFileSync} from 'node:child_process';
-import {mkdirSync} from 'node:fs';
+import {mkdirSync,readFileSync} from 'node:fs';
 const enabled=process.env.SENSOR_INTEGRATION==='1';
 
 let server;
 test.beforeAll(async()=>{
  expect(enabled,'sensor project requires SENSOR_INTEGRATION=1 and the isolated Compose stack').toBe(true);
  process.env.OPENHAB_PROXY_TARGET='http://127.0.0.1:18084';
+ delete process.env.OPENHAB_TOKEN;
+ execFileSync('/tmp/earthship-sensor-test-venv/bin/python',['-m','services.lorawan.tests.browser_auth'],{timeout:20000});
+ process.env.OPENHAB_TOKEN=JSON.parse(readFileSync('.superpowers/lorawan-private/browser-auth.json','utf8')).token;
  server=await createServer({plugins:[{name:'isolated-sensor-qualification',configureServer(vite){
   vite.middlewares.use('/sensor-qualification.html',(_request,response)=>{
    response.setHeader('Content-Type','text/html');
@@ -23,6 +26,12 @@ for(const [width,height] of [[1340,800],[1280,720]]) {
   await page.route('**/config.json',route=>route.fulfill({json:{openhabUrl:'',apiToken:'',staleBannerSeconds:90}}));
   const privateResponse=await page.request.get('http://127.0.0.1:5194/.superpowers/lorawan-private/ingest.json');
   expect(privateResponse.status()).toBe(403);
+  const providers=await page.request.get('http://127.0.0.1:5194/rest/things');
+  expect(providers.status()).toBe(200);
+  const things=await providers.json();
+  expect(Array.isArray(things)).toBe(true);
+  expect(things.length).toBeGreaterThan(0);
+  expect(things.every(thing=>Object.keys(thing).every(key=>['UID','label','statusInfo'].includes(key)))).toBe(true);
   const errors=[],mutations=[];
   page.on('pageerror',error=>errors.push(error.message));
   page.on('request',request=>{if(!['GET','HEAD'].includes(request.method()))mutations.push(request.method()+' '+request.url());});
