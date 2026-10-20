@@ -1,0 +1,33 @@
+{
+  "automatic_actuation": false,
+  "base_source_commit": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+  "fitting_allowed": false,
+  "model_selection_changed": false,
+  "overlays": [
+    {
+      "merged_sha256": "2a0d532e7831c138a7c7b94f4a3c13dfb61f6ffb78afdb054851f33220a48678",
+      "origin": "exact retained selected-model runtime_manifest; matching installed publisher and thermal producer",
+      "original_sha256": "e947bb668963bcd1f9edc2bfc5a4dfc5e6135bf1f236742264d00b05e4cd1eb6",
+      "path": "openhab/scripts/weather_learning/pv_directional_calibration.py"
+    },
+    {
+      "merged_sha256": "c28daefe89fdccede70f74a5e2fd3a4c5ec0430c5b906baf1cad4ce327c9b408",
+      "origin": "exact retained selected-model runtime_manifest; matching installed publisher and thermal producer",
+      "original_sha256": "323a058622a150ce032fb31ffc98f16db3a964529fed70f8fb1ee1c97d971b28",
+      "path": "openhab/scripts/weather_learning/pv_calibration.py"
+    }
+  ],
+  "policy": "existing336hour5degreeaboveskylineunsupported_raw unchanged",
+  "schema": "earthship-pv-serving-compatibility-profile/v1",
+  "scope": "serving_only_original_selected_v1_numerics_current_writers",
+  "selected_model_schema": "earthship-pv-directional-calibration/v1",
+  "selected_model_sha256": "f7ed8273c8ee8c2e5c07961165659fe803fa318a1ec55bdebb1ae2078428ad83",
+  "selected_original_file_sha256": "6192f8fc407d57d99e916c7fb7ff9d23aaaad8071820155e77536b32d4a5f2ee",
+  "selected_original_receipt_sha256": "cb35190177692c70fac55d6a9ead6607a9100f991ab360acbe63560d1cc8dbe5",
+  "selected_original_trained_at": "2026-10-20T00:24:56.108301+00:00",
+  "training_source": "existing separately pinned learner unchanged",
+  "unchanged_dependency": {
+    "path": "openhab/scripts/weather_learning/contracts.py",
+    "sha256": "da661a56a4d0d3d012d643d007538c54ccb2ce0511ff5f6a29ec32392eb71543"
+  }
+}
