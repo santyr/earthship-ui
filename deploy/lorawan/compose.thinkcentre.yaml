@@ -23,8 +23,8 @@ services:
     depends_on: {redis: {condition: service_healthy}}
     logging: *logging
   ingest:
-    build: {context: /var/snap/docker/common/earthship-sensors/releases/2deca464ac8a, dockerfile: services/lorawan/Dockerfile}
-    image: earthship-observations:2deca464ac8a
+    build: {context: /var/snap/docker/common/earthship-sensors/releases/8f3747aef3d8a80bef8b638e712af099981a5d4f, dockerfile: services/lorawan/Dockerfile}
+    image: earthship-observations:8f3747aef3d8a80bef8b638e712af099981a5d4f
     user: "10001:10001"
     network_mode: host
     volumes:

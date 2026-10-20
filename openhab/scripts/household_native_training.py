@@ -469,10 +469,29 @@ def activate(run):
     from household_cycle_deploy import verify_stage
     record = verify_stage(stage, expected_deployment_sha256=selection['deployment_sha256'])
     unit_root = Path(record['service_file']).parent
+    # The old preparer's last packet belongs to the old artifact. Warm this
+    # exact staged model before replacing its source or pausing serving timers.
+    from household_native_geometry_prepare import run as prepare_geometry
+    from native_thermal_live import geometry_path, read_geometry, GEOMETRY_MAX
+    from thermal_model.native_operational_io import _next_issue
+    prepared = prepare_geometry(run / 'final-config.json', run / 'geometry-libraries.json',
+        stage=stage, deployment_sha256=selection['deployment_sha256'])
+    issue = _next_issue(datetime.now(timezone.utc))
+    geometry = geometry_path(settings, issue)
+    if prepared.get('status') != 'prepared' or prepared.get('path') != str(geometry):
+        raise ValueError('next-issue model-bound geometry required before handoff')
+    geometry_original = _owned_bytes(geometry, GEOMETRY_MAX)
     with SharedScoreLock(settings['shared_lock']) as lock:
         def check():
             lock.verify()
             guard()
+            # Preserve the preparer's existing 35-second boundary, before the
+            # forecast warm slot. A late transaction must restore the old files.
+            if datetime.now(timezone.utc) >= issue - timedelta(seconds=35):
+                raise ValueError('prepared geometry handoff window elapsed')
+            if _owned_bytes(geometry, GEOMETRY_MAX) != geometry_original:
+                raise ValueError('prepared handoff geometry changed')
+        read_geometry(settings, issue=issue, guard=check)
         with install._quiesce_timers(unit_root, guard=check, include_preparer=True) as restoration:
             try:
                 if effective_selection() != expected:

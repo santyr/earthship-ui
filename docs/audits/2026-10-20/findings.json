@@ -915,6 +915,26 @@
         "native": "native-final.json",
         "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
       }
+    },
+    {
+      "id": "A19",
+      "severity": "P2",
+      "title": "Automatic native model cutover selects a cold new-model geometry cache",
+      "confidence": "confirmed",
+      "affected_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+      "files": [
+        "openhab/scripts/household_native_training.py",
+        "openhab/scripts/test_household_native_activation.py"
+      ],
+      "expected_actual": "A source/model cutover should retain a valid next forecast. activate() installed the new family without preparing its model-bound geometry; the preceding scheduled preparation still belonged to the old artifact. The first new-source forecast was correctly withheld and withdrawn.",
+      "reproduction": "Actual authorized rollout: old-stage geometry prepared18:43:08Z, activation18:43:46Z, new-stage first18:45:15Zissue lacked geometry and was withdrawn. Normal native harness reaches installation with no new-model packet before the repair; RED assertion.",
+      "root_cause": "NativeTraining.package creates an empty geometry-live directory; automatic activate had no preparation/read_geometry step before replacing the source family. This also existed in earlier operational evidence and was not specific to manual parent ordering.",
+      "repair_commit": "pending integration commit; exact source delta is19lines plus9normal regressions",
+      "regression_evidence": "143related native tests passed in56.95s under existing256/768MiB24task300second launcher; focused9activation+28preparer cases include preparation failure, wrong artifact/issue/path, late handoff and transactional byte/clock drift. No native acquisition in fixtures.",
+      "status": "fixed_focused_verified_pending_integration",
+      "severity_reason": "A six-hour model refresh can temporarily remove an otherwise useful forecast; source/runtime validation correctly refuses the missing input and no actuator authority is involved.",
+      "deployment_status": "Actual first new issue recovered by its next natural warm slot; automatic source repair awaits integrated gate and controller installation.",
+      "closure_status": "focused_verified_pending_integration"
     }
   ],
   "current_source_candidate": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
