@@ -21,5 +21,8 @@ def test_retired_paths_do_not_break_the_pytest_shell_continuation(tmp_path):
     args=result.stdout.splitlines()
     assert args.count('PYTHON_CALL')==1
     assert args[:4]==['PYTHON_CALL','-m','pytest','-q']
-    assert len(args)>4
-    assert all((root/name).is_file() for name in args[4:]),args[4:]
+    excluded='openhab/scripts/test_thermal_fit_evidence.py::test_real_qualification_fit_is_exercised_only_on_the_hosted_runner'
+    assert args[4]=='--deselect='+excluded
+    assert len(args)>5
+    assert all((root/name).is_file() for name in args[5:]),args[5:]
+    assert excluded.split('::')[0] in args[5:]
