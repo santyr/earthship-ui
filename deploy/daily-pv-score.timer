@@ -1,0 +1,11 @@
+[Unit]
+Description=Score original PV forecasts against newly completed controller input
+
+[Timer]
+OnCalendar=*-*-* *:55:00
+RandomizedDelaySec=15
+Persistent=true
+Unit=daily-pv-score.service
+
+[Install]
+WantedBy=timers.target

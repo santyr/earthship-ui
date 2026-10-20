@@ -1,0 +1,11 @@
+[Unit]
+Description=Earthship prospective PV potential scoring (read-only)
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=%h/.config/earthship-weather/daily-pv.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 ${EARTHSHIP_DAILY_PV_ROOT}/scripts/run-household-job.py --production --minimum-mib 256 --preferred-mib 512 --tasks 24 --seconds 90 -- /usr/bin/python3 ${EARTHSHIP_DAILY_PV_ROOT}/openhab/scripts/daily_pv_monitor.py --forecasts %h/.local/state/earthship-weather/daily-pv --state %h/.local/state/earthship-weather/pv-monitor
+TimeoutStartSec=110
+UMask=0077
