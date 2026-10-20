@@ -82,12 +82,22 @@ def run(*,forecast_root,state_root,clock=lambda:datetime.now(timezone.utc)):
                 policy=_read('/home/sat/Solar_PV/analytics/config/power-evidence.json',4096).decode()
                 epochs=json.loads(public_read('/home/sat/Solar_PV/analytics/config/system-epochs.json',16384));bank=next(r for r in epochs['epochs'] if r['current_analytics'])
                 bank_start=datetime.combine(date.fromisoformat(bank['start_local_date']),time.min,ZoneInfo(epochs['timezone'])).astimezone(timezone.utc).isoformat()
-                source,path=capture_hour(directory(state/'originals'),start,connect=_connection('/home/sat/.config/hex/energy-power-reader.jdbc','energy_power_reader'),policy_raw=policy,bank_start=bank_start,clock=clock)
-                score=score_hour(forecast,source,assessed_at=clock())
                 import earthship_energy.power_evidence as companion
                 runtime={'daily_pv_monitor.py':Path(__file__),'weather_learning/energy_history.py':Path(__file__).with_name('weather_learning')/'energy_history.py'}
                 runtime.update({'companion/'+name:Path(companion.__file__).parent/name for name in ('power_evidence.py','power_intervals.py','bms_evidence.py','ac_evidence.py')})
-                score.pop('score_sha256');score['runtime_manifest']={name:sha256(p.read_bytes()).hexdigest() for name,p in runtime.items()};score['original_file_sha256']=sha256(_read(path,8*1024**2)).hexdigest();score['score_sha256']=identity(score)
+                originals={name:p.read_bytes() for name,p in runtime.items()}
+                source,path=capture_hour(directory(state/'originals'),start,connect=_connection('/home/sat/.config/hex/energy-power-reader.jdbc','energy_power_reader'),policy_raw=policy,bank_start=bank_start,clock=clock)
+                score=score_hour(forecast,source,assessed_at=clock())
+                if any(p.read_bytes()!=originals[name] for name,p in runtime.items()):raise ValueError('PV scoring runtime changed during acquisition')
+                score.pop('score_sha256');score['runtime_manifest']={name:sha256(raw).hexdigest() for name,raw in originals.items()};score['original_file_sha256']=sha256(_read(path,8*1024**2)).hexdigest();score['score_sha256']=identity(score)
+                source_root=directory(state/'sources')
+                for raw in originals.values():
+                    path=source_root/(sha256(raw).hexdigest()+'.py')
+                    try:fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+                    except FileExistsError:
+                        if _read(path,262144)!=raw:raise ValueError('retained scoring source differs')
+                    else:
+                        with os.fdopen(fd,'wb') as handle:handle.write(raw)
                 save(state/(score['score_sha256']+'.score.json'),score)
                 with sqlite3.connect(database,timeout=2) as connection:connection.execute('INSERT INTO hours VALUES(?,?,?)',(start.isoformat(),score['score_sha256'],score['model_sha256']))
                 result={key:score[key] for key in ('status','window_start','window_end','model_sha256','eligible_bins','baseline_mae_w','candidate_mae_w','score_sha256','prospective_score','physical_calibration_qualified','automatic_actuation')}
