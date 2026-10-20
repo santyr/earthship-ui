@@ -1,5 +1,5 @@
 {
-  "source_head": "bc4667790545804e81fdeff565823ae46fb18873",
+  "source_head": "c31d067a6e79f8e5fe23d26365de9a8a2e8a0018",
   "uncommitted_source_paths": [],
   "workflow_sha256": {
     "ci.yml": "36623b9bd430f6b92066f7e7bab863e8b3055a0eb1d8931c28820bc44fef7ebc",
@@ -315,7 +315,7 @@
       "family": "python",
       "workflow_gate": "ci.yml:openhab shard 0",
       "companion_profile": "24d2e8984810cb596fe9792768510a356786f709",
-      "test_file_sha256": "21ac8c16bb53b5bfa37d034e76c774a92828e38416273c74244b73a3d67343a0"
+      "test_file_sha256": "fde3f6bf398ba8a625b78b8606bb58ad125b1b174568a91fdc6e2fe8811f0b69"
     },
     {
       "path": "openhab/scripts/test_historical_weather_serving.py",
@@ -2590,14 +2590,14 @@
       "family": "python",
       "workflow_gate": "ci.yml:openhab shard 2",
       "companion_profile": "24d2e8984810cb596fe9792768510a356786f709",
-      "test_file_sha256": "907900d7b35dcc2d6c81f460ea188e2ea9687613408006d2dc3bb899ed406949"
+      "test_file_sha256": "ad039821e3663a206c7c112e8d251e77043c83a4f11f74053ea46e4a115d608e"
     },
     {
       "path": "openhab/scripts/test_thermal_weather_conditioning.py",
       "family": "python",
       "workflow_gate": "ci.yml:openhab shard 1",
       "companion_profile": "24d2e8984810cb596fe9792768510a356786f709",
-      "test_file_sha256": "7bb5834d7e741d575dd20197442ef914571b1694564c9d0898f4cfd45e335033"
+      "test_file_sha256": "17dde849781d51daba735e5327ffbb556c0a8b0f0c6ae8ad73bf9a82b0f6d84b"
     },
     {
       "path": "openhab/scripts/test_tplink_switch_evidence.py",

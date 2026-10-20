@@ -1024,6 +1024,30 @@
         "hosted": "deployment-a20-ci.json",
         "native": "deployment-a20-native.json"
       }
+    },
+    {
+      "id": "A22",
+      "severity": "P2",
+      "confidence": "confirmed",
+      "title": "Thermal correction admission not rebound after consumer runtime handoff",
+      "affected_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+      "files": [
+        "openhab/scripts/thermal_weather_readmit.py",
+        "openhab/scripts/historical_weather_daily.py",
+        "openhab/scripts/thermal_weather_readmit_post.py",
+        "openhab/scripts/test_thermal_weather_admit.py",
+        "openhab/scripts/test_thermal_weather_conditioning.py",
+        "openhab/scripts/test_historical_weather_daily.py"
+      ],
+      "expected_actual": "A source upgrade must preserve beneficial admitted local thermal forcing through an explicit source-compatible cold handoff. The immutable native consumer correctly rejects the old nine-source admission against its eleven-source closure, and falls back to raw Google forcing.",
+      "reproduction": "Actual 21:05/10/15/20Z native captures use origin/v2 without conditioning. File-only collect_context on capture bf7d7b30b4746a37873fd25f843199e42e96b86d5a0e88ecfe0011eeb97efa33 raises thermal weather runtime or sensor phase changed. Sensor phase, original model/data references and terrain profile match; five changed hashes and two missing source entries explain refusal.",
+      "root_cause": "The serving runtime moved while the shared admission and its legacy daily producer retained older runtime bindings. Retaining an old fitting procedure did not provide a consumer-compatible admission transition.",
+      "repair_commit": "c31d067a6e79f8e5fe23d26365de9a8a2e8a0018",
+      "regression_evidence": "Normal runtime/protocol RED plus expired-target and immutable-proof REDs; final eight-module related98passed11.18s, separate daily/post9passed0.15s, actual compatibility orchestration3passed. Original system-Python1.26.4 NumPy fitter reproduces both genuine retained models and exact feature/residual predictions on19686outdoor+20694irradiance pairs in a loopback-only namespace; serving selector unchanged during qualification.",
+      "status": "fixed_candidate_verified",
+      "severity_reason": "Loss of the admitted analytical correction degrades provisional thermal forecasts. No physical incident, controller-authority change or failed safety gate is demonstrated.",
+      "deployment_status": "Pending final complete hosted/native gates and scoped cold-selector/legacy-owner handoff. Actual deployment and next natural capture evidence will be recorded in PR41.",
+      "closure_status": "software_local_verified_release_pending"
     }
   ],
   "current_source_candidate": "444d7e9550a742d9662cc9bd85a68d4c5dafb8c1",
@@ -1041,5 +1065,7 @@
   "deployment_status_supersession": "Current per-finding deployment_status supersedes preapproval candidate_not_installed. Historical source/native gates remain unchanged; deployment-ci.json extends verification for A19.",
   "current_integrated_source": "0b3f6fc0a5ec0e86cd4af65604241d9532b2f1ad",
   "final_deployment_repair_verification": "deployment-a20-ci.json/deployment-a20-native.json bind final corrected source; earlier source/native evidence preserved",
-  "current_repair_candidate": "444d7e9550a742d9662cc9bd85a68d4c5dafb8c1"
+  "current_repair_candidate": "444d7e9550a742d9662cc9bd85a68d4c5dafb8c1",
+  "post_audit_refinement_source": "c31d067a6e79f8e5fe23d26365de9a8a2e8a0018",
+  "post_audit_supersession": "A22 supplements earlier complete-source/installed statements with a newly reproduced release integration defect; original evidence remains historical, not erased."
 }

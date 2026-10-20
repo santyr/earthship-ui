@@ -187,3 +187,22 @@ def test_conditioning_runtime_binds_new_target_weight_dependency(tmp_path,monkey
     assert before!=after
     assert before.keys()==after.keys()
     assert {name for name in before if before[name]!=after[name]}=={relative}
+
+
+def test_runtime_mismatched_admission_is_refused_without_rebinding_serving(tmp_path,monkeypatch):
+    from thermal_weather_source import collect_context
+    from household_native_training import save
+    from hashlib import sha256
+    args,_=bound_fixture(tmp_path,monkeypatch)
+    import json
+    from pathlib import Path
+    pointer=json.loads(args['selection'].read_bytes())
+    admission_path=Path(pointer['admission_path'])
+    original=json.loads(admission_path.read_bytes())
+    original['runtime_manifest']['weather_learning/site_calibration.py']='f'*64
+    original['runtime_manifest'].pop('weather_learning/weights.py')
+    original['runtime_manifest'].pop('thermal_model/installed_shade_origin.py')
+    original['admission_sha256']=identity({k:v for k,v in original.items() if k!='admission_sha256'})
+    save(admission_path,original);pointer['admission_file_sha256']=sha256(admission_path.read_bytes()).hexdigest()
+    pointer['selection_sha256']=identity({k:v for k,v in pointer.items() if k!='selection_sha256'});save(args['selection'],pointer)
+    with pytest.raises(ValueError,match='runtime or sensor'):collect_context(**args)
