@@ -1,7 +1,7 @@
 {
   "schema": "earthship-audit-source-inventory/v1",
   "base_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
-  "public_tracked_files": 2140,
+  "public_tracked_files": 2159,
   "routes": [
     "home",
     "energy",
@@ -821,7 +821,7 @@
     "tests/completion/test_thermal_state_backup.py",
     "tests/completion/test_verification_gates.py"
   ],
-  "audited_source_revision": "444d7e9550a742d9662cc9bd85a68d4c5dafb8c1",
+  "audited_source_revision": "bc4667790545804e81fdeff565823ae46fb18873",
   "inventory_method": "tracked public source only; discovery does not prove activation, execution or qualification",
   "components": [
     "src/App.svelte",
@@ -1169,7 +1169,8 @@
       "/api/household-energy-performance",
       "/api/household-observation",
       "/api/household-profiled-energy-observation",
-      "/api/household-profiled-energy-performance"
+      "/api/household-profiled-energy-performance",
+      "/api/terrain-daylight"
     ],
     "src/lib/household/observationServer.js": [
       "/api/daily-pv-performance",
@@ -1199,6 +1200,9 @@
     ],
     "src/lib/shades/previewServer.js": [
       "/api/shades-preview"
+    ],
+    "src/lib/weather/terrainDaylightServer.js": [
+      "/api/terrain-daylight"
     ],
     "src/screens/Shades.svelte": [
       "/api/shades-preview",
@@ -1812,6 +1816,9 @@
       "earthship-native-thermal-score-query-binding/v1",
       "earthship-native-thermal-score-sources/v1",
       "earthship-provisional-thermal-scored-pair/v2"
+    ],
+    "openhab/scripts/site_daylight.py": [
+      "earthship-terrain-daylight/v1"
     ],
     "openhab/scripts/thermal_installed_calibrate.py": [
       "earthship-installed-shade-calibration-build-receipt/v1",
@@ -2441,6 +2448,9 @@
     ],
     "src/lib/weather/providerForecast.js": [
       "earthship-weather-provider-shadow/v2"
+    ],
+    "src/lib/weather/terrainDaylight.js": [
+      "earthship-terrain-daylight/v1"
     ]
   },
   "model_entry_points": [
@@ -2507,6 +2517,7 @@
     "openhab/scripts/pre_dusk_notification_cli.py",
     "openhab/scripts/provision_temperature_reader.py",
     "openhab/scripts/rtl_weather.py",
+    "openhab/scripts/site_daylight.py",
     "openhab/scripts/thermal_confirmation.py",
     "openhab/scripts/thermal_installed_calibrate.py",
     "openhab/scripts/thermal_installed_register.py",

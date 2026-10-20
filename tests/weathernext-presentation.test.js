@@ -53,3 +53,65 @@ describe('live PV potential presentation',()=>{
     expect(energyForecastPresentation(JSON.stringify(raw),{nowMs:ENERGY_NOW+16*60000})).toBeNull();
   });
 });
+
+describe('daily predominant conditions', () => {
+  const hours = (rain = [], cloud = 45) => Array.from({ length: 24 }, (_, h) => ({
+    at: `2026-10-23T${String(h).padStart(2, '0')}:00:00-06:00`,
+    isDay: h >= 8 && h < 18, cloudPct: h >= 8 && h < 18 ? cloud : 100,
+    precipIn: (rain[h] ?? 0) / 25.4,
+  }));
+  const daily = (rows, extra = {}) => ({ cloudPct: 90, precipSumIn: 3 / 25.4, isDay: true, hours: rows, ...extra });
+  it('keeps the daytime sky when daily rain is mostly overnight or brief', () => {
+    expect(forecastCondition(daily(hours({ 2: 2.5, 12: 0.5 })))).toMatchObject({ icon: 'mdi:weather-partly-cloudy', basis: 'cloud-cover' });
+    expect(forecastCondition(daily(hours({ 2: 2.5, 12: 0.5 }))).label).toMatch(/outside daylight/i);
+    expect(forecastCondition(daily(hours({ 12: 0.5 }), { precipSumIn: 0.5 / 25.4 })).icon).toBe('mdi:weather-partly-cloudy');
+    expect(forecastCondition(daily(hours([], 10))).icon).toBe('mdi:weather-sunny');
+  });
+  it('distinguishes sustained from intermittent material daytime precipitation', () => {
+    const sustained = Object.fromEntries([8, 9, 10, 11, 12, 13].map(h => [h, 0.3]));
+    expect(forecastCondition(daily(hours(sustained, 90))).icon).toBe('mdi:weather-rainy');
+    expect(forecastCondition(daily(hours({ 8: 0.4, 10: 0.4, 12: 0.4 }))).icon).toBe('mdi:weather-partly-cloudy');
+    const mixed = hours({ 14: 0.3, 15: 0.3, 16: 0.3, 17: 0.3 }).map((h,i) => i>=8&&i<11 ? {...h,cloudPct:5} : i>=11&&i<14 ? {...h,cloudPct:95} : h);
+    expect(forecastCondition(daily(mixed)).icon).toBe('mdi:weather-partly-rainy');
+    expect(forecastCondition(daily(hours({ 12: 3 }))).icon).toBe('mdi:weather-partly-cloudy');
+    expect(forecastCondition(daily(hours({ 8: 0.4, 10: 0.4, 12: 0.4 }, 90))).icon).toBe('mdi:weather-cloudy');
+  });
+  it('chooses the majority sky category rather than a misleading cloud average', () => {
+    const sunny = hours([], 100).map((h, i) => i >= 8 && i < 14 ? { ...h, cloudPct: 5 } : h);
+    expect(forecastCondition(daily(sunny, { precipSumIn: 0 })).icon).toBe('mdi:weather-sunny');
+    sunny[16].precipIn = 1.5 / 25.4;
+    expect(forecastCondition(daily(sunny)).icon).toBe('mdi:weather-sunny');
+    const cloudy = hours([], 0).map((h, i) => i >= 8 && i < 14 ? { ...h, cloudPct: 95 } : h);
+    expect(forecastCondition(daily(cloudy, { precipSumIn: 0 })).icon).toBe('mdi:weather-cloudy');
+    const tied = hours([], 100).map((h, i) => i >= 8 && i < 13 ? { ...h, cloudPct: 0 } : h);
+    expect(forecastCondition(daily(tied, { precipSumIn: 0 })).icon).toBe('mdi:weather-partly-cloudy');
+  });
+  it('does not turn many tiny traces into a rainy day', () => {
+    const traces = Object.fromEntries(Array.from({ length: 10 }, (_, i) => [i + 8, 0.09]));
+    expect(forecastCondition(daily(hours(traces))).icon).toBe('mdi:weather-partly-cloudy');
+  });
+  it('keeps missing precipitation, missing daylight and timing gaps explicit', () => {
+    const rows = hours({ 8: 0.5, 9: 0.5, 10: 0.5, 11: 0.5, 12: 0.5 });
+    rows[13].precipIn = null;
+    expect(forecastCondition(daily(rows))).toMatchObject({ icon: 'mdi:weather-partly-cloudy' });
+    expect(forecastCondition(daily(rows)).label).toMatch(/timing unavailable/i);
+    expect(forecastCondition(daily(hours().filter(h => !h.at.includes('T13:')))).label).toMatch(/timing unavailable/i);
+    expect(forecastCondition(daily(hours().map(h => ({ ...h, isDay: null }))))).toMatchObject({ icon: 'mdi:weather-cloudy' });
+    expect(forecastCondition(daily([], { cloudPct: null })).icon).toBe('mdi:weather-rainy');
+  });
+  it('uses only declared remaining complete intervals without altering source data', () => {
+    const rows = hours({ 8: 3, 9: 3, 10: 3, 11: 3, 12: 3 });
+    const row = daily(rows, { precipitationScope: 'remaining', precipitationFromAt: '2026-10-23T13:00:00-06:00', precipitationThroughAt: '2026-10-24T00:00:00-06:00', precipSumIn: 0 });
+    const before = JSON.stringify(row);
+    expect(forecastCondition(row).icon).toBe('mdi:weather-partly-cloudy');
+    expect(JSON.stringify(row)).toBe(before);
+  });
+  it.each([1,2,3])('classifies a complete short remaining window of %i rainy periods', count => {
+    const rows = hours(Object.fromEntries(Array.from({length:count},(_,i)=>[15+i,1])),5);
+    expect(forecastCondition(daily(rows,{precipitationScope:'remaining',precipitationFromAt:'2026-10-23T14:00:00-06:00',precipitationThroughAt:`2026-10-23T${14+count}:00:00-06:00`,precipSumIn:count/25.4})).icon).toBe('mdi:weather-rainy');
+  });
+  it('preserves an actual source condition and leaves hourly classification unchanged', () => {
+    expect(forecastCondition(daily(hours(), { weatherCode: 95 })).icon).toBe('mdi:weather-lightning');
+    expect(forecastCondition({ cloudPct: 45, precipIn: 0.5 / 25.4, isDay: true }).icon).toBe('mdi:weather-rainy');
+  });
+});

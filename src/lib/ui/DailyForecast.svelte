@@ -18,7 +18,7 @@
   const accessibleName = (day) => [
     day.label,
     ...(dailyPvForDate(dailyPv, day.date) ? [`PV potential ${dailyPvForDate(dailyPv, day.date).potentialKwh.toFixed(1)} kilowatt hours`] : []),
-    forecastCondition({ ...day.summary, isDay: true }).label,
+    forecastCondition({ ...day.summary, isDay: true, hours: day.hours ?? [] }).label,
     day.summary.temperatureScope === 'remaining' ? 'remaining hours' : 'full day',
     `high ${value(day.summary.highF, ' degrees')}`,
     `low ${value(day.summary.lowF, ' degrees')}`,
@@ -32,7 +32,7 @@
     <div class="forecast-empty" role="status">Forecast unavailable</div>
   {/if}
   {#each days as day, index (`${day.date ?? 'legacy'}-${day.label}-${index}`)}
-    {@const condition = forecastCondition({ ...day.summary, isDay: true })}
+    {@const condition = forecastCondition({ ...day.summary, isDay: true, hours: day.hours ?? [] })}
     {@const pv = dailyPvForDate(dailyPv, day.date)}
     <button
       type="button"

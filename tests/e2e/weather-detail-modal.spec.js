@@ -105,7 +105,7 @@ test.afterAll(async () => {
   await server?.close();
 });
 
-async function openFixture(page, route, target) {
+async function openFixture(page, route, target, detail = null) {
   const consoleErrors = [];
   const pageErrors = [];
   page.on('console', (message) => {
@@ -113,7 +113,7 @@ async function openFixture(page, route, target) {
     // The common fixture deliberately returns 503 for these optional reports.
     // Keep unexpected asset failures and JavaScript console errors observable.
     const pathname = new URL(message.location().url || '/', baseURL).pathname;
-    const unavailableReport = ['/api/daily-pv-potential', '/api/household-energy-observation'].includes(pathname);
+    const unavailableReport = ['/api/daily-pv-potential', '/api/household-energy-observation', '/api/terrain-daylight'].includes(pathname);
     if (unavailableReport && message.text() === 'Failed to load resource: the server responded with a status of 503 (Service Unavailable)') return;
     consoleErrors.push({ message: message.text(), url: message.location().url });
   });
@@ -141,7 +141,7 @@ async function openFixture(page, route, target) {
     },
   }));
   await page.route('**/fixture-openhab/rest/items?*', (request) => request.fulfill({
-    json: ITEMS,
+    json: detail ? ITEMS.map(item => item.name === 'Forecast_10Day_JSON' ? {...item,state:detail} : item) : ITEMS,
   }));
   await page.route('**/fixture-openhab/rest/things', route => route.fulfill({ json: [] }));
   await page.route('**/fixture-openhab/rest/persistence/items/**', (request) => {
@@ -207,4 +207,54 @@ for (const target of TARGETS) {
       expect(errors.pageErrors).toEqual([]);
     });
   }
+}
+
+for (const target of TARGETS) {
+  for (const route of ['home', 'weather']) {
+    test(`${route} summarizes predominant daily sky instead of any daily rain at ${target.name}`, async ({page}) => {
+      await page.clock.install({time:new Date('2026-07-18T13:00:00-06:00')});
+      const mutations=[];page.on('request',request=>{if(!['GET','HEAD'].includes(request.method()))mutations.push(request.url());});
+      const detail=JSON.parse(forecastDetail());
+      for(const [index,day] of detail.days.entries()) {
+        day.summary={...day.summary,weatherCode:null,cloudPct:90,precipPct:null,precipSumIn:0.12};
+        day.hours=Array.from({length:24},(_,h)=>({at:`${day.date}T${String(h).padStart(2,'0')}:00:00-06:00`,isDay:h>=8&&h<18,tempF:65,precipPct:null,precipIn:0,radiationWm2:300,windMph:3,weatherCode:null,cloudPct:100}));
+        for(let h=8;h<18;h++) {
+          day.hours[h].cloudPct=index===1?(h<14?5:95):index===2?45:95;
+          if(index===1&&h===16)day.hours[h].precipIn=0.05;
+          if(index===2&&h>=15)day.hours[h].precipIn=0.4/25.4;
+          if(index===3&&h<14)day.hours[h].precipIn=0.3/25.4;
+        }
+      }
+      const errors=await openFixture(page,route,target,JSON.stringify(detail));
+      const days=page.locator('[data-forecast-day]');await expect(days).toHaveCount(10);
+      await expect(days.nth(1).locator('.day-icon')).toHaveAttribute('title',/^Mostly sunny/);
+      await expect(days.nth(2).locator('.day-icon')).toHaveAttribute('title',/^Partly cloudy/);
+      await expect(days.nth(3).locator('.day-icon')).toHaveAttribute('title',/^Precipitation through most daylight/);
+      for(const index of [1,2,3]) {await expect(days.nth(index).locator('.day-icon svg')).toBeVisible();await expect(days.nth(index)).toContainText('0.12″');}
+      await days.nth(2).click();
+      const dialog=page.getByRole('dialog',{name:/forecast/i});await expect(dialog).toBeVisible();
+      await expect(dialog.locator('.weather-detail-summary')).toContainText('Partly cloudy');
+      await page.keyboard.press('Escape');await expect(dialog).toBeHidden();
+      expect(errors.pageErrors).toEqual([]);expect(errors.consoleErrors).toEqual([]);expect(mutations).toEqual([]);
+      expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+2&&document.documentElement.scrollWidth<=innerWidth+2)).toBe(true);
+    });
+  }
+}
+
+for (const target of TARGETS) {
+  test(`Home displays terrain direct sun and expires it at local midnight at ${target.name}`,async({page})=>{
+    await page.clock.install({time:new Date('2026-07-18T13:00:00-06:00')});
+    const report={schema:'earthship-terrain-daylight/v1',method:'native-five-minute-terrain-endpoint-mask/v1',day:'2026-07-18',timezone:'America/Denver',calculatedAt:'2026-07-18T18:00:00Z',dayStartAt:'2026-07-18T06:00:00Z',validUntil:'2026-07-19T06:00:00Z',geometryAvailableAt:'2026-07-17T18:00:00Z',geometrySha256:'a'.repeat(64),horizonSha256:'b'.repeat(64),sourceRuntimeSha256:'c'.repeat(64),daySeconds:86400,terrainSunlightSeconds:32400,unobstructedSunlightSeconds:39600,firstSunAt:'2026-07-18T14:00:00Z',lastSunAt:'2026-07-18T23:00:00Z',resolutionSeconds:300,confidence:'unvalidated_map_estimate',physical_calibration_qualified:false,automatic_actuation:false};
+    await page.route('**/api/terrain-daylight',route=>route.fulfill({json:report}));
+    const errors=await openFixture(page,'home',target);
+    const sunlight=page.getByTestId('terrain-daylight');
+    await expect(sunlight).toHaveText('direct sun ~9h 0m');
+    await expect(sunlight).toHaveAttribute('title',/local terrain.*five-minute resolution.*Astronomical daylight/);
+    await expect(page.locator('.sm-times')).toHaveText('↑8:00a ↓5:00p');
+    await page.clock.fastForward(11*3600000);
+    await expect(sunlight).toHaveText('direct sun —');
+    await expect(page.locator('.sm-times')).toHaveText('↑— ↓—');
+    expect(errors.pageErrors).toEqual([]);expect(errors.consoleErrors).toEqual([]);
+    expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+2&&document.documentElement.scrollWidth<=innerWidth+2)).toBe(true);
+  });
 }

@@ -104,3 +104,12 @@ it('shows cloud-derived Google conditions and rainfall without empty probability
  expect(container.textContent).toContain('<0.01″');expect(container.textContent).not.toContain('remaining');
  expect(container.textContent).not.toContain('PV —');expect(container.textContent).not.toContain('—');
 });
+
+it.each(['home', 'weather'])('shows predominant daylight conditions with unchanged rain amounts in %s', (variant) => {
+ const forecast = [{ ...days[0], summary: { highF: 65, lowF: 46, precipPct: null, precipSumIn: 0.12, pvKwh: null, weatherCode: null, cloudPct: 90 }, hours: Array.from({ length: 24 }, (_, h) => ({ at: `2026-07-18T${String(h).padStart(2, '0')}:00:00-06:00`, isDay: h>=8&&h<18, cloudPct: h>=8&&h<18?45:100, precipIn: h===2?0.1:h===12?0.02:0 })) }];
+ const {container}=render(DailyForecast,{days:forecast,variant});
+ expect(container.querySelector('.day-icon').getAttribute('title')).toMatch(/^Partly cloudy/);
+ expect(container.querySelector('.day-icon svg')).not.toBeNull();
+ expect(screen.getByTestId('day-rain-amount').textContent).toBe('0.12″');
+ expect(screen.getByRole('button').getAttribute('aria-label')).toMatch(/Partly cloudy/);
+});

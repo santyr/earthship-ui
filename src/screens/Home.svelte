@@ -3,6 +3,8 @@
   import { energyForecastPresentation } from '../lib/energy/forecastPresentation.js';
   const liveEnergyForecast = $derived(energyForecastPresentation($energyForecastRaw, { nowMs: $energyForecastClock }));
   import { itemUpdateEvidence, thingStatuses } from '../lib/openhab/store.js';
+  import {parseTerrainDaylight,terrainDaylightText} from '../lib/weather/terrainDaylight.js';
+  import {terrainDaylightRaw,terrainDaylightClock} from '../lib/weather/terrainDaylightState.js';
   import { nativeCurrentSkyContext, nativeDaylightText, siteTimeLabel } from '../lib/weather/astroPresentation.js';
 
   // Task 3.1 — LIVE dense Home console. Binds real openHAB items (Task 0.1-3.0
@@ -421,10 +423,12 @@
   const btcPctText = $derived(btcPct === null ? '—' : `${btcPct >= 0 ? '+' : ''}${btcPct.toFixed(2)}%`);
   const btcPctColor = $derived(bitcoinStateColor(btcPct));
 
-  const sunRiseText = $derived(siteTimeLabel($items.Sun_Rise_Start));
-  const sunSetText = $derived(siteTimeLabel($items.Sun_Set_End));
+  const terrainSun = $derived(parseTerrainDaylight($terrainDaylightRaw,{nowMs:$terrainDaylightClock}));
+  const sunRiseText = $derived(siteTimeLabel(terrainSun?.firstSunAt));
+  const sunSetText = $derived(siteTimeLabel(terrainSun?.lastSunAt));
   const moonText = $derived(prettifyMoon($items.Moon_MoonPhaseName));
-  const daylight = $derived(nativeDaylightText(astroContext));
+  const daylight = $derived(terrainDaylightText(terrainSun));
+  const daylightTitle = $derived(`Estimated direct sunlight above local terrain, at five-minute resolution. Astronomical daylight: ${nativeDaylightText(astroContext)}. Terrain is a map estimate.`);
 
   // ---- Click-to-chart handlers ----------------------------------------------
   function openOutdoorChart() {
@@ -751,13 +755,13 @@
       <div class="sunmoon-body">
         <div class="sm-row">
           <span class="sm-icon"><OhIcon icon={$items.SunPhaseIcon} size="1em" /></span>
-          <span class="sm-times">&uarr;{sunRiseText} &darr;{sunSetText}</span>
+          <span class="sm-times" title={daylightTitle}>&uarr;{sunRiseText} &darr;{sunSetText}</span>
         </div>
         <div class="sm-row">
           <span class="sm-icon"><OhIcon icon={$items.MoonPhaseicon} size="1em" /></span>
           <span class="sm-moon" title={moonText}>{moonText}</span>
         </div>
-        <div class="sm-row sm-daylight">daylight {daylight}</div>
+        <div class="sm-row sm-daylight" data-testid="terrain-daylight" title={daylightTitle}>direct sun {daylight}</div>
         <SeasonCountdown />
       </div>
     </Tile>

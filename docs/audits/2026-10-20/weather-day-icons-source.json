@@ -1,0 +1,33 @@
+{
+  "schema": "earthship-weather-day-icons-source/v1",
+  "source_revision": "ff1a0f35881cd402db223807729660abd91e6c59",
+  "base_source": "444d7e9550a742d9662cc9bd85a68d4c5dafb8c1",
+  "non_documentation_files": 1717,
+  "non_documentation_inventory_sha256": "2dc98d7de998b2c0705ef6e3f7a6036036454364bfcf603840fa8bdbde6efb17",
+  "changed_runtime_files": [
+    "src/lib/weather/presentation.js",
+    "src/lib/ui/DailyForecast.svelte",
+    "src/lib/ui/WeatherDetailModal.svelte",
+    "src/lib/ui/icons/mdi-common.json"
+  ],
+  "normal_test_files": [
+    "tests/weathernext-presentation.test.js",
+    "tests/ui/DailyForecast.test.js",
+    "tests/e2e/weather-detail-modal.spec.js"
+  ],
+  "automated_local": {
+    "focused_passed": 41,
+    "focused_exit": 0,
+    "browser_passed": 8,
+    "browser_exit": 0,
+    "browser_sizes": [
+      "1340x800",
+      "1280x720"
+    ],
+    "browser_network": "loopback-only isolated fixture",
+    "red_original": "8 failed,13passed/exit1",
+    "red_short_remaining": "3 failed before follow-up repair"
+  },
+  "authority_changed": false,
+  "quantitative_predictions_changed": false
+}
