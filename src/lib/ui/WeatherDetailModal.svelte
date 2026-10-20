@@ -44,7 +44,7 @@
     (() => { const day = forecast.days.find(({ date }) => date === $weatherDetailStore.date);
       return day ? forecastDisplayDay(day, { nowMs: $weatherDetailStore.openedAtMs || Date.now(), timezone: forecast.timezone }) : null; })(),
   );
-  const selectedCondition = $derived(forecastCondition({ ...selectedDay?.summary, isDay: true }));
+  const selectedCondition = $derived(forecastCondition({ ...selectedDay?.summary, isDay: true, hours: selectedDay?.hours ?? [] }));
   const selectedWindow = $derived(
     selectedDay
       ? selectForecastWindow(forecast, selectedDay.date, {

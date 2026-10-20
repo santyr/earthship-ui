@@ -105,7 +105,7 @@ test.afterAll(async () => {
   await server?.close();
 });
 
-async function openFixture(page, route, target) {
+async function openFixture(page, route, target, detail = null) {
   const consoleErrors = [];
   const pageErrors = [];
   page.on('console', (message) => {
@@ -141,7 +141,7 @@ async function openFixture(page, route, target) {
     },
   }));
   await page.route('**/fixture-openhab/rest/items?*', (request) => request.fulfill({
-    json: ITEMS,
+    json: detail ? ITEMS.map(item => item.name === 'Forecast_10Day_JSON' ? {...item,state:detail} : item) : ITEMS,
   }));
   await page.route('**/fixture-openhab/rest/things', route => route.fulfill({ json: [] }));
   await page.route('**/fixture-openhab/rest/persistence/items/**', (request) => {
@@ -205,6 +205,38 @@ for (const target of TARGETS) {
       await expect(opener).toBeFocused();
       expect(errors.consoleErrors).toEqual([]);
       expect(errors.pageErrors).toEqual([]);
+    });
+  }
+}
+
+for (const target of TARGETS) {
+  for (const route of ['home', 'weather']) {
+    test(`${route} summarizes predominant daily sky instead of any daily rain at ${target.name}`, async ({page}) => {
+      await page.clock.install({time:new Date('2026-07-18T13:00:00-06:00')});
+      const mutations=[];page.on('request',request=>{if(!['GET','HEAD'].includes(request.method()))mutations.push(request.url());});
+      const detail=JSON.parse(forecastDetail());
+      for(const [index,day] of detail.days.entries()) {
+        day.summary={...day.summary,weatherCode:null,cloudPct:90,precipPct:null,precipSumIn:0.12};
+        day.hours=Array.from({length:24},(_,h)=>({at:`${day.date}T${String(h).padStart(2,'0')}:00:00-06:00`,isDay:h>=8&&h<18,tempF:65,precipPct:null,precipIn:0,radiationWm2:300,windMph:3,weatherCode:null,cloudPct:100}));
+        for(let h=8;h<18;h++) {
+          day.hours[h].cloudPct=index===1?(h<14?5:95):index===2?45:95;
+          if(index===1&&h===16)day.hours[h].precipIn=0.05;
+          if(index===2&&h>=15)day.hours[h].precipIn=0.4/25.4;
+          if(index===3&&h<14)day.hours[h].precipIn=0.3/25.4;
+        }
+      }
+      const errors=await openFixture(page,route,target,JSON.stringify(detail));
+      const days=page.locator('[data-forecast-day]');await expect(days).toHaveCount(10);
+      await expect(days.nth(1).locator('.day-icon')).toHaveAttribute('title',/^Mostly sunny/);
+      await expect(days.nth(2).locator('.day-icon')).toHaveAttribute('title',/^Partly cloudy/);
+      await expect(days.nth(3).locator('.day-icon')).toHaveAttribute('title',/^Precipitation through most daylight/);
+      for(const index of [1,2,3]) {await expect(days.nth(index).locator('.day-icon svg')).toBeVisible();await expect(days.nth(index)).toContainText('0.12″');}
+      await days.nth(2).click();
+      const dialog=page.getByRole('dialog',{name:/forecast/i});await expect(dialog).toBeVisible();
+      await expect(dialog.locator('.weather-detail-summary')).toContainText('Partly cloudy');
+      await page.keyboard.press('Escape');await expect(dialog).toBeHidden();
+      expect(errors.pageErrors).toEqual([]);expect(errors.consoleErrors).toEqual([]);expect(mutations).toEqual([]);
+      expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+2&&document.documentElement.scrollWidth<=innerWidth+2)).toBe(true);
     });
   }
 }
