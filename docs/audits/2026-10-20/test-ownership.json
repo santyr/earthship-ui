@@ -1,5 +1,5 @@
 {
-  "source_head": "444d7e9550a742d9662cc9bd85a68d4c5dafb8c1",
+  "source_head": "ff1a0f35881cd402db223807729660abd91e6c59",
   "uncommitted_source_paths": [],
   "workflow_sha256": {
     "ci.yml": "36623b9bd430f6b92066f7e7bab863e8b3055a0eb1d8931c28820bc44fef7ebc",
@@ -4118,7 +4118,7 @@
       "path": "tests/e2e/weather-detail-modal.spec.js",
       "family": "browser",
       "workflow_gate": "ci.yml:browser-fixtures",
-      "test_file_sha256": "1c1c93cafdb68e779b9aefa9bf98f41d707bc81a244330ab9ade4194d7b331a4"
+      "test_file_sha256": "8f9dcb10b9778c83a787ec7d49be3f5c1e8b8fbbb35e84230ad11f49889e7f3f"
     },
     {
       "path": "tests/e2e/weather-earthship-layout.spec.js",
@@ -4838,7 +4838,7 @@
       "path": "tests/ui/DailyForecast.test.js",
       "family": "javascript",
       "workflow_gate": "ci.yml:test vitest",
-      "test_file_sha256": "68d0aa11f91b9863c3ae6f1c8ed80dfdd1381944439020eed70a46053dde2d90"
+      "test_file_sha256": "5ea07f064546073041789f518000bcb5b640c9b502a882bddd47e15b6e525dbe"
     },
     {
       "path": "tests/ui/DailyPvForecast.test.js",
@@ -5048,7 +5048,7 @@
       "path": "tests/weathernext-presentation.test.js",
       "family": "javascript",
       "workflow_gate": "ci.yml:test vitest",
-      "test_file_sha256": "b0bd6df9f11b206e8f5bc5bd1582e72c2251b38da8c70e7e7ec4f1b960ed9f0e"
+      "test_file_sha256": "54cff1b0dd551e90b1548062251ae82a69ef6a5f18898f8a134c4b6163ac3e07"
     },
     {
       "path": "tests/wmo.test.js",

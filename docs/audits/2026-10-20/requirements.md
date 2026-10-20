@@ -138,3 +138,6 @@ Current A19 disposition: source repaired, all five hosted workflows plus fresh n
 
 
 Final A20 supersession: keeping an incumbent did not justify leaving the old future-selection writer active. Corrected current-source PV candidate capture/pairs/fitting/evaluation is now installed with explicit retain-selection; current model bytes/clocks and original-compatible serving remain unchanged. The new source has completed all five hosted workflows and fresh native profiles. This supersedes earlier references to an unchanged PV learner. Weather's separately declared legacy uniform-row training procedure remains a valid explicit retain-policy disposition, not a deployment of corrected target-weighted weather fitting. Next actual daily learning executions and later numerical outcomes remain independently unobserved clock/data dependencies.
+
+
+Post-audit user refinement: [predominant daily weather icons](../../operations/2026-10-20-weather-day-icons.md) extends the Home/Weather presentation contract and its current source/test ownership. Earlier source freezes remain historical evidence. This changes four UI source files; numerical models, controls, sensor services and their qualification limits remain separately identified. Its final hosted and scoped-installation evidence follows that linked release record.
