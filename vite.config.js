@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite'
+import { terrainDaylightPlugin } from './src/lib/weather/terrainDaylightServer.js'
 import { configDefaults } from 'vitest/config'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import {
@@ -80,7 +81,7 @@ export default defineConfig(() => {
     throw new Error(`Control catalog invalid: ${catalogErrors.join('; ')}`)
   }
   return {
-    plugins: [openhabProxyGuard(releaseMode, OPENHAB, proxyAuthorization), shadePreviewPlugin(), householdObservationPlugin(), svelte()],
+    plugins: [openhabProxyGuard(releaseMode, OPENHAB, proxyAuthorization), shadePreviewPlugin(), householdObservationPlugin(), terrainDaylightPlugin(), svelte()],
     define: {
       __EARTHSHIP_RELEASE_MODE__: JSON.stringify(releaseMode),
     },

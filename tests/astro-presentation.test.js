@@ -72,3 +72,49 @@ describe('coherent unavailable native durations', () => {
     expect(nativeDaylightText({...context,states,evidence:e})).toBe('—');
   });
 });
+
+// The Home sunlight card is a terrain projection, not the flat Astro duration.
+import { parseTerrainDaylight, terrainDaylightText } from '../src/lib/weather/terrainDaylight.js';
+export const terrainFixture = () => ({
+ schema:'earthship-terrain-daylight/v1',method:'native-five-minute-terrain-endpoint-mask/v1',day:'2026-10-20',timezone:'America/Denver',
+ calculatedAt:'2026-10-20T18:00:00+00:00',dayStartAt:'2026-10-20T06:00:00+00:00',validUntil:'2026-10-21T06:00:00+00:00',
+ geometryAvailableAt:'2026-10-19T18:00:00+00:00',geometrySha256:'a'.repeat(64),horizonSha256:'b'.repeat(64),sourceRuntimeSha256:'c'.repeat(64),
+ daySeconds:86400,terrainSunlightSeconds:32400,unobstructedSunlightSeconds:39600,firstSunAt:'2026-10-20T14:00:00+00:00',lastSunAt:'2026-10-20T23:00:00+00:00',
+ resolutionSeconds:300,confidence:'unvalidated_map_estimate',physical_calibration_qualified:false,automatic_actuation:false,
+});
+describe('terrain sunlight presentation',()=>{
+ const at=Date.parse('2026-10-20T20:00:00Z');
+ it('shows the terrain duration and original source identities as a provisional estimate',()=>{
+  const report=parseTerrainDaylight(JSON.stringify(terrainFixture()),{nowMs:at});
+  expect(report).not.toBeNull();expect(terrainDaylightText(report)).toBe('~9h 0m');
+  expect(terrainDaylightText(null)).toBe('—');
+ });
+ it.each(['future','expired','wrong-day','wrong-zone','authority','qualification','extra','bad-duration','bad-window','bad-source','bad-method'])('refuses %s source',kind=>{
+  const raw=terrainFixture();
+  if(kind==='future')raw.calculatedAt='2026-10-20T23:00:00Z';
+  if(kind==='expired')raw.validUntil='2026-10-20T19:00:00Z';
+  if(kind==='wrong-day')raw.day='2026-10-19';
+  if(kind==='wrong-zone')raw.timezone='UTC';
+  if(kind==='authority')raw.automatic_actuation=true;
+  if(kind==='qualification')raw.physical_calibration_qualified=true;
+  if(kind==='extra')raw.privatePath='/private';
+  if(kind==='bad-duration')raw.terrainSunlightSeconds=40000;
+  if(kind==='bad-window')raw.lastSunAt='2026-10-20T13:00:00Z';
+  if(kind==='bad-source')raw.geometryAvailableAt='2026-10-20T19:00:00Z';
+  if(kind==='bad-method')raw.method='flat-horizon';
+  expect(parseTerrainDaylight(JSON.stringify(raw),{nowMs:at})).toBeNull();
+ });
+ it('keeps a known zero-sun day distinct from an unavailable source',()=>{
+  const raw={...terrainFixture(),terrainSunlightSeconds:0,firstSunAt:null,lastSunAt:null};
+  expect(terrainDaylightText(parseTerrainDaylight(JSON.stringify(raw),{nowMs:at}))).toBe('~0h 0m');
+ });
+});
+
+it.each([
+ ['2026-03-08','2026-03-08T07:00:00Z','2026-03-09T06:00:00Z',82800],
+ ['2026-11-01','2026-11-01T06:00:00Z','2026-11-02T07:00:00Z',90000],
+])('terrain daylight uses the Denver DST day %s',(day,start,end,seconds)=>{
+ const nowMs=Date.parse(day+'T20:00:00Z');
+ const raw={...terrainFixture(),day,dayStartAt:start,validUntil:end,daySeconds:seconds,calculatedAt:day+'T18:00:00Z',geometryAvailableAt:day+'T12:00:00Z',firstSunAt:day+'T14:00:00Z',lastSunAt:day+'T23:00:00Z'};
+ expect(parseTerrainDaylight(JSON.stringify(raw),{nowMs})?.daySeconds).toBe(seconds);
+});

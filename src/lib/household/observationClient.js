@@ -35,3 +35,5 @@ export const loadCalibratedEnergy = signal => load('/api/household-calibrated-en
 export const loadCalibratedPerformance = signal => load('/api/household-calibrated-energy-performance', signal);
 
 export const loadPvPerformance = signal => load('/api/daily-pv-performance', signal);
+
+export const loadTerrainDaylight = signal => load('/api/terrain-daylight', signal);

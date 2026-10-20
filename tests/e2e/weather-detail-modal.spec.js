@@ -113,7 +113,7 @@ async function openFixture(page, route, target, detail = null) {
     // The common fixture deliberately returns 503 for these optional reports.
     // Keep unexpected asset failures and JavaScript console errors observable.
     const pathname = new URL(message.location().url || '/', baseURL).pathname;
-    const unavailableReport = ['/api/daily-pv-potential', '/api/household-energy-observation'].includes(pathname);
+    const unavailableReport = ['/api/daily-pv-potential', '/api/household-energy-observation', '/api/terrain-daylight'].includes(pathname);
     if (unavailableReport && message.text() === 'Failed to load resource: the server responded with a status of 503 (Service Unavailable)') return;
     consoleErrors.push({ message: message.text(), url: message.location().url });
   });
@@ -239,4 +239,22 @@ for (const target of TARGETS) {
       expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+2&&document.documentElement.scrollWidth<=innerWidth+2)).toBe(true);
     });
   }
+}
+
+for (const target of TARGETS) {
+  test(`Home displays terrain direct sun and expires it at local midnight at ${target.name}`,async({page})=>{
+    await page.clock.install({time:new Date('2026-07-18T13:00:00-06:00')});
+    const report={schema:'earthship-terrain-daylight/v1',method:'native-five-minute-terrain-endpoint-mask/v1',day:'2026-07-18',timezone:'America/Denver',calculatedAt:'2026-07-18T18:00:00Z',dayStartAt:'2026-07-18T06:00:00Z',validUntil:'2026-07-19T06:00:00Z',geometryAvailableAt:'2026-07-17T18:00:00Z',geometrySha256:'a'.repeat(64),horizonSha256:'b'.repeat(64),sourceRuntimeSha256:'c'.repeat(64),daySeconds:86400,terrainSunlightSeconds:32400,unobstructedSunlightSeconds:39600,firstSunAt:'2026-07-18T14:00:00Z',lastSunAt:'2026-07-18T23:00:00Z',resolutionSeconds:300,confidence:'unvalidated_map_estimate',physical_calibration_qualified:false,automatic_actuation:false};
+    await page.route('**/api/terrain-daylight',route=>route.fulfill({json:report}));
+    const errors=await openFixture(page,'home',target);
+    const sunlight=page.getByTestId('terrain-daylight');
+    await expect(sunlight).toHaveText('direct sun ~9h 0m');
+    await expect(sunlight).toHaveAttribute('title',/local terrain.*five-minute resolution.*Astronomical daylight/);
+    await expect(page.locator('.sm-times')).toHaveText('↑8:00a ↓5:00p');
+    await page.clock.fastForward(11*3600000);
+    await expect(sunlight).toHaveText('direct sun —');
+    await expect(page.locator('.sm-times')).toHaveText('↑— ↓—');
+    expect(errors.pageErrors).toEqual([]);expect(errors.consoleErrors).toEqual([]);
+    expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+2&&document.documentElement.scrollWidth<=innerWidth+2)).toBe(true);
+  });
 }
