@@ -94,6 +94,8 @@ const BUSY_KEY = 'earthship.night-load-owner.busy';
 const SEQ_KEY = 'earthship.night-load-owner.seq';
 const MAX_LEDGER_BYTES = 8192;
 const MAX_LEDGER_ENTRIES = 32;
+const MAX_REQUEST_TIMESTAMP_LENGTH = 128;
+const MAX_REQUEST_IDENTITY_LENGTH = 512;
 const LEDGER_READBACK_ATTEMPTS = 20;
 const LEDGER_READBACK_POLL_MS = 50;
 const SWITCH_READBACK_ATTEMPTS = 20;
@@ -253,7 +255,7 @@ function parseBase(raw) {
   ) {
     throw new Error('request_invalid');
   }
-  if (typeof parsed.requestedAt !== 'string' || !Number.isFinite(epochMillis(parsed.requestedAt))) {
+  if (typeof parsed.requestedAt !== 'string' || parsed.requestedAt.length > MAX_REQUEST_TIMESTAMP_LENGTH || !Number.isFinite(epochMillis(parsed.requestedAt))) {
     throw new Error('request_invalid');
   }
   return parsed;
@@ -310,7 +312,7 @@ function validLedgerEntry(entry) {
     && /^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/.test(entry.requestId)
     && typeof entry.status === 'string'
     && ['accepted', 'running', ...TERMINAL_STATUSES].includes(entry.status)
-    && (entry.identity === undefined || (typeof entry.identity === 'string' && entry.identity.length <= 512))
+    && (entry.identity === undefined || (typeof entry.identity === 'string' && entry.identity.length <= MAX_REQUEST_IDENTITY_LENGTH))
     && typeof entry.reason === 'string'
     && typeof entry.at === 'string'
     && Number.isFinite(epochMillis(entry.at))
@@ -401,8 +403,10 @@ function duplicateReason(ledger, request) {
 }
 
 function acceptedLedger(ledger, request, at) {
+  const identity = requestIdentity(request);
+  if (identity.length > MAX_REQUEST_IDENTITY_LENGTH) throw new Error('request_invalid');
   const candidate = { version: LEDGER_VERSION, entries: [{
-    requestId: request.requestId, identity: requestIdentity(request),
+    requestId: request.requestId, identity,
     status: 'accepted', reason: 'accepted', at,
   }, ...ledger.entries] };
   const currentMs = epochMillis(at);

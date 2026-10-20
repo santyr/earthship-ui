@@ -32,7 +32,7 @@ export function getClientOnce() {
 // ordinary statechanged receipt times never do.
 export const itemUpdateEvidence = writable({});
 
-export function applyUpdateEvidence(name, rawTimestamp, state) {
+export function applyUpdateEvidence(name, rawTimestamp, state, { updateState = true } = {}) {
   if (!EVIDENCE_ITEMS.includes(name)) return;
   const timestamp = parseSourceTimestamp(rawTimestamp);
   const prior = get(itemUpdateEvidence)[name];
@@ -42,7 +42,7 @@ export function applyUpdateEvidence(name, rawTimestamp, state) {
     [name]: { lastKnown: timestamp ?? prior?.lastKnown ?? null, available: timestamp !== null,
       ...(ASTRO_EVIDENCE_ITEMS.includes(name) ? { state } : {}) },
   }));
-  if (ASTRO_EVIDENCE_ITEMS.includes(name) && timestamp !== null && typeof state === 'string') applyState(name, state);
+  if (updateState && ASTRO_EVIDENCE_ITEMS.includes(name) && timestamp !== null && typeof state === 'string') applyState(name, state);
   return true;
 }
 
@@ -52,7 +52,7 @@ export function applySnapshot(arr, { preserve = new Set(), preserveEvidence = pr
   const rows = new Map(arr.map(item => [item.name, item]));
   const accepted = new Map();
   for (const name of EVIDENCE_ITEMS) {
-    if (!preserveEvidence.has(name)) accepted.set(name, applyUpdateEvidence(name, rows.get(name)?.lastStateUpdate, rows.get(name)?.state));
+    if (!preserveEvidence.has(name)) accepted.set(name, applyUpdateEvidence(name, rows.get(name)?.lastStateUpdate, rows.get(name)?.state, { updateState: false }));
   }
   items.update(current => {
     const next = {};

@@ -274,6 +274,48 @@
         "npm audit fix --package-lock-only --ignore-scripts:exit0,15package entries updated,noneadded/removed; package.json/ranges unchanged; fresh npmci/fullfrontendgates pending."
       ],
       "status": "fixed_lock_audit_verified"
+    },
+    {
+      "id": "A12",
+      "severity": "P1",
+      "confidence": "confirmed",
+      "affected_revision": "208f652",
+      "title": "Oversized accepted identity poisoned durable owner ledger",
+      "files": [
+        "openhab/rules/night-load-owner.js",
+        "tests/openhab/night-load-override-rule.test.js"
+      ],
+      "expected_actual": "Requests must never persist identities the same owner cannot restore; original repair admitted a long bracketed timestamp and then denied all ordinary requests as ledger_invalid.",
+      "reproduction": [
+        "Independent actual owner harness: 600-character bracket zone accepted/completed; persisted identity640characters; next normal request denied ledger_invalid. Normal regression:2failed/31passed for both request streams."
+      ],
+      "root_cause": "New reader identity512-character bound was not enforced by admission; tolerant timestamp normalizer accepted a long zone suffix.",
+      "repair_commit": null,
+      "regression_evidence": [
+        "Timestamp text capped128characters before ledger access; writer also validates exact same identity bound as reader. Both streams reject before persistence/commands and admit a subsequent valid request after volatile loss. Review-fix group119passed/7files."
+      ],
+      "status": "fixed_focused_verified"
+    },
+    {
+      "id": "A13",
+      "severity": "P2",
+      "confidence": "confirmed",
+      "affected_revision": "c53fbcc",
+      "title": "Astro evidence side effect overwrote preserved statechanged delta",
+      "files": [
+        "src/lib/openhab/store.js",
+        "tests/openhab-reconciliation.test.js"
+      ],
+      "expected_actual": "A statechanged Astro delta without its later stateupdated event must survive an older snapshot; repair initially preserved state only after evidence handling already rewrote it.",
+      "reproduction": [
+        "Independent small store reproduction10d\u21929d\u2192old snapshot10d; normal regression1failed/10passed."
+      ],
+      "root_cause": "applyUpdateEvidence mutated Item state before replacement snapshot constructed preserved entries.",
+      "repair_commit": null,
+      "regression_evidence": [
+        "Snapshot updates evidence without Item mutation; replacement snapshot alone owns state. Source evidence keeps old original clock/state until matching evidence arrives. Review-fix group119passed/7files."
+      ],
+      "status": "fixed_focused_verified"
     }
   ]
 }

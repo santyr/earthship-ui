@@ -664,3 +664,19 @@ describe('night-load ledger byte budget and OFF commitment', () => {
     expect(overrideResults(h).some(r => r.status === 'completed')).toBe(false);
   });
 });
+
+it.each(['override', 'device'])('rejects an oversized timestamp identity before poisoning the %s ledger', kind => {
+  const h = harness();
+  const requestedAt = `2026-07-18T12:00:00.000Z[${'x'.repeat(600)}]`;
+  const item = kind === 'override' ? 'NightLoadOverride_Request' : 'NightLoadDevice_Request';
+  const request = (id, at) => kind === 'override' ? overrideRequest(id, 'OFF', at) : deviceRequest(id, 'dishwasher', 'OFF', at);
+  h.execute({ itemName: item, receivedCommand: request('nl-oversized-identity', requestedAt) });
+  h.runTimersUntilIdle();
+  expect(allDeviceCommands(h)).toEqual([]);
+  expect(h.events.some(e => e.type === 'persist' && e.item === item)).toBe(false);
+  expect(results(h, kind === 'override' ? 'NightLoadOverride_Result' : 'NightLoadDevice_Result').at(-1)).toMatchObject({ status: 'failed', reason: 'request_invalid' });
+  h.clearVolatileCache();
+  h.execute({ itemName: item, receivedCommand: request('nl-normal-after-long-time', '2026-07-18T12:00:00.000Z') });
+  h.runTimersUntilIdle();
+  expect(results(h, kind === 'override' ? 'NightLoadOverride_Result' : 'NightLoadDevice_Result').at(-1).status).toBe('completed');
+});

@@ -167,3 +167,20 @@ it('reconciles a change in the boot snapshot to first stream open gap', async ()
     expect(client.sendCommand).not.toHaveBeenCalled();
   } finally { store.stopOpenhab(); vi.unstubAllGlobals(); }
 });
+
+it('preserves an Astro statechanged delta before its matching stateupdated evidence arrives', async () => {
+  const client = makeClient();
+  const old = { name: 'Sun_TimeLeft', state: '10 d', lastStateUpdate: 1770000000000 };
+  client.getAllItems.mockResolvedValue([old]);
+  await boot(client);
+  const snapshot = deferred();
+  client.getAllItems.mockReturnValueOnce(snapshot.promise);
+  hooks.onReconnect();
+  hooks.onState('Sun_TimeLeft', '9 d');
+  snapshot.resolve([old]);
+  await vi.advanceTimersByTimeAsync(0);
+  expect(get(store.items).Sun_TimeLeft).toBe('9 d');
+  // Old evidence must retain its original state/clock; no evidence timestamp
+  // is manufactured for the newer transport delta.
+  expect(get(store.itemUpdateEvidence).Sun_TimeLeft).toMatchObject({ lastKnown: 1770000000000, state: '10 d' });
+});
