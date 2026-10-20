@@ -103,7 +103,7 @@
 
 <div class="energy-grid">
   <div class="cell hero-cell">
-    <Tile label="Battery history" accent={socColor}>
+    <Tile label="Battery history" accent={socColor} padding="0.65rem 0.9rem">
       <div class="hero-body">
         <div class="hero-chart"><HistoryChart series={socSeries} {socForecast} compact={true} initialHours={24} refreshMs={30 * 60 * 1_000} /></div>
         <div class="hero-footer">
@@ -119,13 +119,13 @@
             </span>
           {/if}
         </div>
+        <RecommendationPreview group="loads" />
       </div>
-      <RecommendationPreview group="loads" />
     </Tile>
   </div>
 
   <div class="cell pv-cell">
-    <Tile label="Solar PV" accent={colors.solar}>
+    <Tile label="Solar PV" accent={colors.solar} padding="0.65rem 0.9rem">
       <div class="pv-body">
         <div class="pv-top">
           <div class="pv-numbers">
@@ -489,8 +489,10 @@
 
   @media (min-width: 1280px) and (max-height: 720px) {
     .energy-grid {
-      grid-template-rows: 12.5rem minmax(11.75rem, 1fr) 8.125rem 5.625rem;
-      gap: 0.65rem;
+      /* Keep 44px history controls, readable plots, and the advisory inside
+         the hero. The outlook yields bar height while retaining its labels. */
+      grid-template-rows: 14.75rem minmax(12rem, 1fr) 7.125rem 5.625rem;
+      gap: 0.55rem;
     }
   }
 </style>

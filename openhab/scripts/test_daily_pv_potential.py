@@ -62,7 +62,9 @@ def test_night_is_zero_and_terrain_masks_direct_beam():
     assert 0<project(**args)[0]['potentialKwh']<clear
 
 
-def test_day_geometry_cache_reuses_original_availability_and_rejects_tampering(tmp_path):
+def test_day_geometry_cache_reuses_original_availability_and_rejects_tampering(tmp_path,monkeypatch):
+    # This fixture supplies synthetic geometry, not a native publication job.
+    monkeypatch.setattr("household_cycle_resources.publication_resource_preflight",lambda:None)
     from daily_pv_worker import day_geometry
     from astro_geometry import build_cache
     from weather_learning.config import Site

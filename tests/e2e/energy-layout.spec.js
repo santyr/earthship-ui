@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixture-test.js';
 import { createServer } from 'vite';
 
 import { energyAnalyticsFixture, energyAnalyticsV2Fixture, energyAnalyticsCurrentV3Fixture } from '../fixtures/energyAnalytics.js';
@@ -88,6 +88,7 @@ async function openEnergyFixture(page, target, analytics = energyAnalyticsFixtur
       ...states, Energy_Analytics_JSON: JSON.stringify(analytics) })
       .map(([name, state]) => ({ name, state, type: 'String' })),
   }));
+  await page.route('**/fixture-openhab/rest/things', route => route.fulfill({ json: [] }));
   await page.route('**/fixture-openhab/rest/persistence/items/**', async (route) => {
     const url = new URL(route.request().url());
     historyRequests.push(url);
@@ -178,8 +179,9 @@ test('Energy withholds a morning PV comparison before its dated issue while reta
   });
   await expect(page.locator('.pv-sub')).toHaveText('morning forecast unavailable');
   await expect(page.locator('.outlook-value')).toHaveText(['3.3', '5.5']);
-  await expect(page.locator('.curtail-value')).toHaveText('—');
-  await expect(page.locator('.hero-trough')).toHaveCount(0);
+  await expect(page.locator('.curtail-value')).toHaveText('Unavailable');
+  await expect(page.locator('.hero-trough').filter({ hasText: /^Estimated trough / })).toHaveCount(0);
+  await expect(page.locator('.hero-trough').filter({ hasText: /^Predicted SoC / })).toHaveText('Predicted SoC unavailable');
 });
 
 test('Energy marks realized PV above the immutable morning forecast', async ({ page }) => {
@@ -206,7 +208,8 @@ test('Energy keeps morning curtailment but does not display the morning trough',
     }),
   });
   await expect(page.locator('.curtail-value')).toHaveText('1.5 h');
-  await expect(page.locator('.hero-trough')).toHaveCount(0);
+  await expect(page.locator('.hero-trough').filter({ hasText: /^Estimated trough / })).toHaveCount(0);
+  await expect(page.locator('.hero-trough').filter({ hasText: /^Predicted SoC / })).toHaveText('Predicted SoC unavailable');
 });
 
 test('Energy shows one dated pre-dusk estimate without mixing forecasts into measured history', async ({ page }) => {
@@ -227,7 +230,7 @@ test('Energy shows one dated pre-dusk estimate without mixing forecasts into mea
       socAtIssuePct: 99, overnightDropPct: 19.333, overnightTroughSocPct: 80,
     }),
   });
-  await expect(page.locator('.hero-trough')).toHaveText('Estimated trough 80%');
+  await expect(page.locator('.hero-trough').filter({ hasText: /^Estimated trough / })).toHaveText('Estimated trough 80%');
   await expect(page.getByText('Battery history', { exact: true })).toHaveCount(1);
   await expect(page.locator('.hero-chart svg text').filter({ hasText: /^Pre-dusk trough$/ })).toHaveCount(0);
   expect(historyRequests.some(url => url.pathname.includes('Predicted_SoC_Trough'))).toBe(false);
@@ -235,15 +238,15 @@ test('Energy shows one dated pre-dusk estimate without mixing forecasts into mea
   // Retain the last estimate until replaced, marking completed target windows.
   await page.clock.setSystemTime(new Date('2026-09-25T06:40:00-06:00'));
   await page.clock.runFor(31_000);
-  await expect(page.locator('.hero-trough')).toHaveText('Estimated trough 80%');
+  await expect(page.locator('.hero-trough').filter({ hasText: /^Estimated trough / })).toHaveText('Estimated trough 80%');
   await page.clock.setSystemTime(new Date('2026-09-25T11:00:00-06:00'));
   await page.clock.runFor(31_000);
-  await expect(page.locator('.hero-trough')).toHaveText('Estimated trough 80% · Sep 24 night');
+  await expect(page.locator('.hero-trough').filter({ hasText: /^Estimated trough / })).toHaveText('Estimated trough 80% · Sep 24 night');
   await expect(page.locator('.hero-chart svg text').filter({ hasText: /^Pre-dusk trough$/ })).toHaveCount(0);
 });
 
 for (const target of TARGETS) {
-  test(`Energy keeps both history plots readable at ${target.name}`, async ({ page }) => {
+  test(`Energy keeps both history plots readable at ${target.name}`, async ({ page }, testInfo) => {
     await openEnergyFixture(page, target);
 
     const geometry = await page.evaluate(() => {
@@ -253,6 +256,10 @@ for (const target of TARGETS) {
       };
       return {
         grid: box(document.querySelector('.energy-grid')),
+        layout: [...document.querySelectorAll('.energy-grid, .energy-grid > .cell, .hero-body, .hero-chart, .hero-footer, .hero-cell .recommendation')].map(element => ({
+          className: element.className, ...box(element),
+          clientHeight: element.clientHeight, scrollHeight: element.scrollHeight,
+        })),
         heroPlot: box(document.querySelector('.hero-chart svg')),
         pvPlot: box(document.querySelector('.pv-chart svg')),
         overflowingCells: [...document.querySelectorAll('.energy-grid > .cell')]
@@ -263,6 +270,7 @@ for (const target of TARGETS) {
       };
     });
 
+    await testInfo.attach('energy-layout.json', { body: JSON.stringify(geometry), contentType: 'application/json' });
     expect(geometry.heroPlot.height).toBeGreaterThanOrEqual(64);
     expect(geometry.pvPlot.height).toBeGreaterThanOrEqual(64);
     expect(geometry.overflowingCells).toEqual([]);

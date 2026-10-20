@@ -267,7 +267,7 @@ describe('typed controls UI', () => {
       SouthOutlet_Outlet2_Switch: 'OFF',
     });
     thingStatuses.set({});
-    render(Controls);
+    render(Controls, { props: { releaseMode: 'safe-compat' } });
 
     const feed = screen.getByRole('button', { name: /Feed once/i });
     const circulation = screen.getByRole('button', { name: /Request circulation/i });
@@ -422,5 +422,23 @@ describe('typed controls UI', () => {
     expect(screen.getByRole('button', { name: /Night Load Override/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /Feed once/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /Request circulation/i })).toBeDisabled();
+  });
+});
+
+describe('catalog-wide disabled mode submission protection', () => {
+  beforeEach(() => {
+    vi.useFakeTimers(); mocks.sendCommand.mockReset(); connection.set('live');
+  });
+  afterEach(() => { cleanup(); vi.useRealTimers(); });
+  it.each(Object.entries(CONTROL_CATALOG).flatMap(([id, control]) =>
+    ['maintenance', 'unknown'].map(mode => [id, mode, control]),
+  ))('%s cannot submit after a completed hold in %s mode', async (_id, mode, control) => {
+    items.set({ OverrideSwitch: 'OFF', [control.stateItem]: 'OFF' });
+    render(Toggle, { props: { control, releaseMode: mode, providerStatus: { status: 'ONLINE' }, capabilities: { [control.capability]: true } } });
+    const button = screen.getByRole('button', { name: new RegExp(control.label) });
+    expect(button).toBeDisabled();
+    button.dispatchEvent(pointer('pointerdown')); await vi.advanceTimersByTimeAsync(1200);
+    button.dispatchEvent(pointer('pointerup')); await fireEvent.click(button);
+    expect(mocks.sendCommand).not.toHaveBeenCalled();
   });
 });

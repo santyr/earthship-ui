@@ -3,7 +3,15 @@ import json
 from pathlib import Path
 from datetime import datetime,timezone
 import pytest
+import os
 from test_installed_shade_raw_origin import source_origin_case,raw_math_capture,candidate
+
+@pytest.fixture(autouse=True)
+def preserve_score_cli_fit_environment(monkeypatch):
+    # Standalone scorer policy must not escape its in-process test invocation.
+    for key in ('EARTHSHIP_QUALIFICATION_FIT','EARTHSHIP_REMOTE_QUALIFICATION_FIT'):
+        monkeypatch.setenv(key,os.environ.get(key,'0'))
+
 
 def capture_routing_runtime(archives,runtime_sources,monkeypatch):
     """Host toolcache permissions are not the fixture's archived environment."""

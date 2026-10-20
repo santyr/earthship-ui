@@ -3,7 +3,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'release/**']
   pull_request:
 
 permissions:
@@ -18,9 +18,20 @@ jobs:
       OMP_NUM_THREADS: "1"
       MKL_NUM_THREADS: "1"
       NUMEXPR_NUM_THREADS: "1"
+      PYTEST_ADDOPTS: "-ra"
       EARTHSHIP_REMOTE_QUALIFICATION_FIT: "1"
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: false
+      - name: Install pinned workflow validator
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Validate every GitHub Actions workflow
+        run: actionlint -color=false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -55,6 +66,13 @@ jobs:
           ref: 24d2e8984810cb596fe9792768510a356786f709
           path: .ci/solar-pv
           persist-credentials: false
+      - name: Fetch pinned BMS auxiliary consumer qualification profile
+        uses: actions/checkout@v4
+        with:
+          repository: santyr/Solar_PV
+          ref: 7b70117bcfb9599a12d0325771ed1103f083fa5c
+          path: .ci/solar-pv-bms-aux
+          persist-credentials: false
       - name: Verify disposable PostgreSQL image availability
         timeout-minutes: 3
         run: |
@@ -64,11 +82,11 @@ jobs:
           docker tag mirror.gcr.io/library/postgres:16 postgres:16
       - name: Completion regression tests
         env:
-          PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src
+          PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src:${{ github.workspace }}/.ci/solar-pv/analytics/tests
         run: python -m pytest tests/completion/ -q
       - name: Operational tooling regression tests
         env:
-          PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src
+          PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src:${{ github.workspace }}/.ci/solar-pv/analytics/tests
         run: python -m pytest scripts/ -q
 
   openhab:
@@ -84,6 +102,7 @@ jobs:
       OMP_NUM_THREADS: "1"
       MKL_NUM_THREADS: "1"
       NUMEXPR_NUM_THREADS: "1"
+      PYTEST_ADDOPTS: "-ra"
       EARTHSHIP_REMOTE_QUALIFICATION_FIT: "1"
     steps:
       - uses: actions/checkout@v4
@@ -112,6 +131,14 @@ jobs:
           ref: 24d2e8984810cb596fe9792768510a356786f709
           path: .ci/solar-pv
           persist-credentials: false
+      - name: Fetch pinned BMS auxiliary consumer qualification profile
+        if: matrix.shard == 2
+        uses: actions/checkout@v4
+        with:
+          repository: santyr/Solar_PV
+          ref: 7b70117bcfb9599a12d0325771ed1103f083fa5c
+          path: .ci/solar-pv-bms-aux
+          persist-credentials: false
       - name: Verify disposable PostgreSQL image availability
         timeout-minutes: 3
         run: |
@@ -121,7 +148,7 @@ jobs:
           docker tag mirror.gcr.io/library/postgres:16 postgres:16
       - name: Existing OpenHAB Python tests (disjoint file partition)
         env:
-          PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src
+          PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src:${{ github.workspace }}/.ci/solar-pv/analytics/tests
           TEST_SHARD: ${{ matrix.shard }}
         shell: bash
         run: |
@@ -138,7 +165,29 @@ jobs:
           PYFILES
           )
           test "${#test_files[@]}" -gt 0
-          python -m pytest -q "${test_files[@]}"
+          # Keep the normal disjoint hash assignment. This one cross-repo
+          # integration contract uses its own immutable consumer/SQL profile
+          # in a fresh process; never mix companion modules between profiles.
+          general_files=()
+          bms_aux_file=''
+          for test_file in "${test_files[@]}"; do
+            if [[ "$test_file" == 'openhab/scripts/test_bms_aux_producer_consumer_postgres.py' ]]; then
+              bms_aux_file="$test_file"
+            else
+              general_files+=("$test_file")
+            fi
+          done
+          general_status=0
+          if [[ "${#general_files[@]}" -gt 0 ]]; then
+            python -m pytest -q "${general_files[@]}" || general_status=$?
+          fi
+          bms_aux_status=0
+          if [[ -n "$bms_aux_file" ]]; then
+            PYTHONPATH="$GITHUB_WORKSPACE/openhab/scripts:$GITHUB_WORKSPACE/.ci/solar-pv-bms-aux/analytics/src:$GITHUB_WORKSPACE/.ci/solar-pv-bms-aux/analytics/tests" \
+              python -m pytest -q "$bms_aux_file" || bms_aux_status=$?
+          fi
+          printf 'general_pytest_exit=%s bms_aux_pytest_exit=%s\n' "$general_status" "$bms_aux_status"
+          [[ "$general_status" -eq 0 && "$bms_aux_status" -eq 0 ]]
 
   weathernext-foundation:
     runs-on: ubuntu-latest
@@ -185,3 +234,30 @@ jobs:
           python="$(command -v python)"
           sudo unshare --net -- "$python" scripts/qualify-thermal-nak.py \
             --nak "$RUNNER_TEMP/nak-qualification"
+
+  browser-fixtures:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/pw-browsers
+      - name: General console browser fixtures without upstream network
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/pw-browsers
+        shell: bash
+        run: |
+          set -euo pipefail
+          ci_node="$(command -v node)"
+          ci_npm="$(command -v npm)"
+          sudo --preserve-env=PLAYWRIGHT_BROWSERS_PATH unshare --net -- sh -c \
+            'ip link set lo up; cd "$1"; exec "$2" "$3" run test:e2e -- --workers=2' \
+            _ "$GITHUB_WORKSPACE" "$ci_node" "$ci_npm"

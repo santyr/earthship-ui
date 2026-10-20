@@ -48,27 +48,27 @@ def _dataset(path,expected):
     with gzip.GzipFile(fileobj=BytesIO(raw)) as f:body=f.read(32*1024**2+1)
     if len(body)>32*1024**2:raise ValueError('bounded original PV pairs required')
     data=json.loads(body)
-    if data['dataset_sha256']!=expected or data['dataset_sha256']!=identity({k:v for k,v in data.items() if k!='dataset_sha256'}):raise ValueError('original PV paired data differ')
+    from historical_pv_train import validate_pair_dataset
+    validate_pair_dataset(data,expected)
     return data,sha256(raw).hexdigest()
 
 
 def pair_older(labels,*,runs,positions,array,horizon):
-    from household_pv_model import array_power,ASSUMPTIONS
+    from household_pv_model import INTERVAL_BASELINE_RULE
+    from historical_pv_train import pair_baseline
     from household_solar_horizon import horizon_height
     origins=[row[0] for row in runs];pairs=[];missing=0
     for label in labels:
         start,end=instant(label['start']),instant(label['end']);i=bisect_left(origins,start)-1
         if i<0:missing+=1;continue
         origin,pin,hours,basis=runs[i];lead=(end-origin).total_seconds()/3600
-        hour=end.replace(minute=0,second=0,microsecond=0)
-        if hour<end:hour+=timedelta(hours=1)
-        weather=hours.get(hour.isoformat(),{});position=positions.get(end.isoformat());ghi=weather.get('surface_solar_radiation_downwards_1hr');temp=weather.get('station_head_temperature_2m');wind=weather.get('wind_speed_10m')
-        if not 0<lead<=48 or position is None or not finite(ghi) or not finite(temp):missing+=1;continue
+        position=positions.get(end.isoformat())
+        if not 0<lead<=48 or position is None:missing+=1;continue
         az=position['azimuth_degrees'];terrain=horizon_height(horizon,az)
-        baseline=array_power(array=array,assumptions=ASSUMPTIONS,ghi_wm2=ghi,elevation_degrees=position['elevation_degrees'],azimuth_degrees=az,
-            day_of_year=end.timetuple().tm_yday,temp_f=temp*9/5+32,wind_mph=None if wind is None else wind*2.2369362921,horizon_elevation_degrees=terrain)['potential_dc_w']
+        try:baseline=pair_baseline(start=start,end=end,hours=hours,position=position,array=array,horizon=horizon)
+        except (ValueError,KeyError,TypeError):missing+=1;continue
         row=dict(start=label['start'],end=label['end'],origin=origin.isoformat(),baseline_w=baseline,outcome_w=label['outcome_w'],azimuth_degrees=az,lead_hours=lead,
-            forecast_sha256=pin,energy_source_sha256=label['source_sha256'],potential_proxy_eligible=True,availability_basis=basis,
+            forecast_sha256=pin,energy_source_sha256=label['source_sha256'],potential_proxy_eligible=True,availability_basis=basis,baseline_rule=INTERVAL_BASELINE_RULE,
             elevation_degrees=position['elevation_degrees'],horizon_elevation_degrees=terrain,measurement_health_qualified=False,
             censoring_basis=label['censoring_basis'],positive_charge_basis=label['positive_charge_basis'],label_duration_seconds=(end-start).total_seconds())
         row['pair_sha256']=identity(row);pairs.append(row)
@@ -136,7 +136,8 @@ def run(a):
         base_report=assess_policy(earlier,tests['pairs'],cutoff=cutoff,end=end);augmented_report=assess_policy(augmented,tests['pairs'],cutoff=cutoff,end=end)
         selected=augmented_report['aggregate']['pairs']>=24 and augmented_report['aggregate']['independent_target_days']>=2 and augmented_report['aggregate']['policy_mae_w']<base_report['aggregate']['policy_mae_w']
         run=directory(output/('experiment-'+now.strftime('%Y%m%dT%H%M%S%fZ')))
-        dataset=dict(schema='earthship-pv-legacy-augmented-pairs/v1',older_pairs=older,legacy_source_index_sha256=source_index['index_sha256'],recent_dataset_sha256=recent['dataset_sha256'],holdout_dataset_sha256=tests['dataset_sha256'],geometry_series=geometry.to_dict(),geometry_sha256=geometry.sha256,
+        from household_pv_model import INTERVAL_BASELINE_RULE
+        dataset=dict(schema='earthship-pv-legacy-augmented-pairs/v2',baseline_rule=INTERVAL_BASELINE_RULE,older_pairs=older,legacy_source_index_sha256=source_index['index_sha256'],recent_dataset_sha256=recent['dataset_sha256'],holdout_dataset_sha256=tests['dataset_sha256'],geometry_series=geometry.to_dict(),geometry_sha256=geometry.sha256,
             system_raw=system_raw.decode(),horizon_raw=horizon_raw.decode(),bank_epochs_raw=epochs_raw.decode(),bank_start=bank_start.isoformat(),unit_and_mapping_basis=units,by_date=by_date,missing_forecast_pairs=missing,geometry_basis='current_operator_array_and_terrain_declarations_assumed_constant_retrospectively',source_quality='older_numeric_controller_input_with_recent_SoC_rise_and_assumed_held_Bulk_episode',
             measurement_health_qualified=False,physical_calibration_qualified=False,prospective_score=False,automatic_actuation=False)
         dataset['dataset_sha256']=identity(dataset);save(run/'dataset.json',dataset);save(run/'recent-training-model.json',earlier);save(run/'augmented-training-model.json',augmented)

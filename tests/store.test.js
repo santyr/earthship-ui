@@ -41,13 +41,11 @@ describe('store', () => {
     expect(get(items).A).toBe('1');
   });
 
-  it('applySnapshot merges into existing items rather than replacing the whole map', () => {
+  it('applySnapshot replaces resources absent from the authoritative collection', () => {
     applySnapshot([{ name: 'A', state: '1' }]);
     applyState('Z', '99');
     applySnapshot([{ name: 'B', state: '2' }]);
-    expect(get(items).A).toBe('1');
-    expect(get(items).Z).toBe('99');
-    expect(get(items).B).toBe('2');
+    expect(get(items)).toEqual({ B: '2' });
   });
 
   it('applySnapshot overwrites an existing item state', () => {

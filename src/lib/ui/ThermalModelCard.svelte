@@ -137,6 +137,11 @@
     min-height: 0;
     gap: 0.2rem;
   }
+  /* Opening the inset panel must leave the scrolling summary's offset behind.
+     clip makes the open card non-scrolling and restores the panel's origin. */
+  .card-body:has(details[open]) {
+    overflow: clip;
+  }
   .status-row {
     display: flex;
     align-items: center;

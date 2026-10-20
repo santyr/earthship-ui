@@ -1,0 +1,2532 @@
+{
+  "schema": "earthship-audit-source-inventory/v1",
+  "base_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+  "public_tracked_files": 2134,
+  "routes": [
+    "home",
+    "energy",
+    "weather",
+    "earthship",
+    "shades",
+    "controls"
+  ],
+  "superseded_route_aliases": {
+    "household": "earthship",
+    "ventilation": "earthship"
+  },
+  "auxiliary_components": {
+    "Gallery": "not routed",
+    "Ventilation": "retained software component; hardware-blocked active route removed October19"
+  },
+  "services": [
+    "deploy/daily-pv-potential.service",
+    "deploy/daily-pv-potential.timer",
+    "deploy/daily-pv-score.service",
+    "deploy/daily-pv-score.timer",
+    "deploy/earthship-ui.service",
+    "deploy/household-calibrated-energy.service",
+    "deploy/household-calibrated-score.service",
+    "deploy/household-calibrated-score.timer",
+    "deploy/local-forecast-shadow.service",
+    "deploy/local-forecast-shadow.timer",
+    "deploy/local-forecast-train.service",
+    "deploy/local-forecast-train.timer",
+    "deploy/lorawan/compose.production.yaml",
+    "deploy/lorawan/compose.test.yaml",
+    "deploy/lorawan/compose.thinkcentre.yaml",
+    "deploy/nostr-bunker/nostr-bunker@.service",
+    "deploy/pv-calibration-train.service",
+    "deploy/pv-calibration-train.timer",
+    "deploy/thermal-native-six-hourly.timer",
+    "deploy/thermal-primal.service",
+    "deploy/thermal-primal.timer",
+    "deploy/weathernext-evaluate.service",
+    "deploy/weathernext-evaluate.timer",
+    "deploy/weathernext-ingest.service",
+    "deploy/weathernext-ingest.timer",
+    "deploy/weathernext-publish.service",
+    "deploy/weathernext-publish.timer"
+  ],
+  "schemas": [
+    "services/observations/schemas/observation.schema.json",
+    "services/observations/schemas/registry.schema.json"
+  ],
+  "javascript_tests": [
+    "tests/alert-staleness.test.js",
+    "tests/astro-forecast-context-rule.test.js",
+    "tests/astro-presentation.test.js",
+    "tests/astro-sse-evidence.test.js",
+    "tests/atomic-soc-freshness.test.js",
+    "tests/audit-matrix.test.js",
+    "tests/bedroom-temperature.test.js",
+    "tests/bitcoin-24h-rule-file.test.js",
+    "tests/bitcoin-candles.test.js",
+    "tests/bitcoin-receipt.test.js",
+    "tests/bms-aux-temperature.test.js",
+    "tests/celestial.test.js",
+    "tests/chart-call-sites.test.js",
+    "tests/chart-extrema-markers.test.js",
+    "tests/chart-imports.test.js",
+    "tests/chart-options.test.js",
+    "tests/chart-store.test.js",
+    "tests/client.test.js",
+    "tests/compass-presentation.test.js",
+    "tests/config.test.js",
+    "tests/console-alerts.test.js",
+    "tests/control-catalog.test.js",
+    "tests/control-state.test.js",
+    "tests/current-soc.test.js",
+    "tests/daily-pv-performance.test.js",
+    "tests/daily-pv-potential.test.js",
+    "tests/daily-pv-server.test.js",
+    "tests/deployment-service.test.js",
+    "tests/e2e/controls-layout.spec.js",
+    "tests/e2e/energy-layout.spec.js",
+    "tests/e2e/home-runtime.spec.js",
+    "tests/e2e/sensors-layout.spec.js",
+    "tests/e2e/shades-layout.spec.js",
+    "tests/e2e/weather-detail-modal.spec.js",
+    "tests/e2e/weather-earthship-layout.spec.js",
+    "tests/e2e/weathernext-comparison.spec.js",
+    "tests/energy-analytics-config.test.js",
+    "tests/energy-analytics-result.test.js",
+    "tests/energy-bms-health.test.js",
+    "tests/energy-pv-forecast-comparison.test.js",
+    "tests/expect-failure.test.js",
+    "tests/forecast-detail.test.js",
+    "tests/forecast-parser-dependencies.test.js",
+    "tests/greywater-schedule.test.js",
+    "tests/history-periods.test.js",
+    "tests/history-pipeline.test.js",
+    "tests/history-request.test.js",
+    "tests/hold-action.test.js",
+    "tests/home-card-state.test.js",
+    "tests/home-tablet-contract.test.js",
+    "tests/household-battery-performance.test.js",
+    "tests/household-battery-server.test.js",
+    "tests/household-calibrated-energy.test.js",
+    "tests/household-calibrated-performance.test.js",
+    "tests/household-captured-pv-server.test.js",
+    "tests/household-captured-pv.test.js",
+    "tests/household-chronology.test.js",
+    "tests/household-energy-server.test.js",
+    "tests/household-energy.test.js",
+    "tests/household-observation-client.test.js",
+    "tests/household-observation-server.test.js",
+    "tests/household-observation.test.js",
+    "tests/household-policy-comparison.test.js",
+    "tests/household-private-files.test.js",
+    "tests/household-profiled-energy-server.test.js",
+    "tests/household-profiled-energy.test.js",
+    "tests/household-qualification.test.js",
+    "tests/household-recommendation-store.test.js",
+    "tests/household-recommendations.test.js",
+    "tests/icon-import.test.js",
+    "tests/installed-shade-compressed-publication.test.js",
+    "tests/installed-shade-publication.test.js",
+    "tests/installed-shade-raw-publication.test.js",
+    "tests/latest-refresh.test.js",
+    "tests/native-provisional-result.test.js",
+    "tests/observe-element-size.test.js",
+    "tests/openhab-init.test.js",
+    "tests/openhab-proxy-policy.test.js",
+    "tests/openhab-reconciliation.test.js",
+    "tests/openhab/bitcoin-output-receipt.test.js",
+    "tests/openhab/bms-aux-evidence.test.js",
+    "tests/openhab/bms-night-load-audit.test.js",
+    "tests/openhab/bms-observation-transforms.test.js",
+    "tests/openhab/bms-runtime-estimator-evidence.test.js",
+    "tests/openhab/bms-runtime-estimator.test.js",
+    "tests/openhab/bms-runtime-input-evidence.test.js",
+    "tests/openhab/bms-runtime-shadow-replay.test.js",
+    "tests/openhab/bms-soc-evidence.test.js",
+    "tests/openhab/feeder-compatibility.test.js",
+    "tests/openhab/feeder-ingress.test.js",
+    "tests/openhab/feeder-rule.test.js",
+    "tests/openhab/greywater-astro-freshness.test.js",
+    "tests/openhab/greywater-current.test.js",
+    "tests/openhab/greywater-daylight.test.js",
+    "tests/openhab/greywater-durable-recovery.test.js",
+    "tests/openhab/greywater-recovery.test.js",
+    "tests/openhab/greywater-rule.test.js",
+    "tests/openhab/greywater-schedule.test.js",
+    "tests/openhab/inverter-ac-evidence.test.js",
+    "tests/openhab/inverter-ac-output-observation.test.js",
+    "tests/openhab/living-room-circadian.test.js",
+    "tests/openhab/mainui-safety.test.js",
+    "tests/openhab/mppt60-pv-day-evidence.test.js",
+    "tests/openhab/mppt60-pv-day-observation.test.js",
+    "tests/openhab/night-load-override-rule.test.js",
+    "tests/openhab/night-load-recovery.test.js",
+    "tests/openhab/openhab-config-subsets.test.js",
+    "tests/openhab/override-graph.test.js",
+    "tests/openhab/power-evidence.test.js",
+    "tests/openhab/power-install-action.test.js",
+    "tests/openhab/power-observation-transforms.test.js",
+    "tests/openhab/production-timestamps.test.js",
+    "tests/openhab/request-ledger.test.js",
+    "tests/openhab/rest-safety.test.js",
+    "tests/openhab/runtime-cache-deploy.test.js",
+    "tests/openhab/runtime-cache-release.test.js",
+    "tests/openhab/sky-condition-icon-config.test.js",
+    "tests/openhab/thermal-model-config-hardening.test.js",
+    "tests/openhab/thermal-model-config.test.js",
+    "tests/openhab/tplink-switch-evidence.test.js",
+    "tests/openhab/tplink-switch-observation.test.js",
+    "tests/outcome-store.test.js",
+    "tests/playwright-config.test.js",
+    "tests/prediction-receipt.test.js",
+    "tests/prior-efc-estimate.test.js",
+    "tests/provider-forecast.test.js",
+    "tests/read-timeouts.test.js",
+    "tests/readme-documentation.test.js",
+    "tests/release-mode.test.js",
+    "tests/request-client.test.js",
+    "tests/routes.test.js",
+    "tests/safe-controls.test.js",
+    "tests/season-rule-file.test.js",
+    "tests/sensor-view.test.js",
+    "tests/series-policy.test.js",
+    "tests/shades-catalog.test.js",
+    "tests/sky-condition-rule-file.test.js",
+    "tests/soc-sparkline.test.js",
+    "tests/sse.test.js",
+    "tests/state-window-client.test.js",
+    "tests/storage-forecast.test.js",
+    "tests/store.test.js",
+    "tests/temperature-forecast.test.js",
+    "tests/temperature-highlow-rule-file.test.js",
+    "tests/thermal-model-result.test.js",
+    "tests/thermal-photosensor-config.test.js",
+    "tests/thermal-release-result.test.js",
+    "tests/timestamp.test.js",
+    "tests/ui/AppStartup.test.js",
+    "tests/ui/Arc.test.js",
+    "tests/ui/BitcoinCandles.test.js",
+    "tests/ui/ChartModal.test.js",
+    "tests/ui/CompassRose.test.js",
+    "tests/ui/DailyForecast.test.js",
+    "tests/ui/DailyPvForecast.test.js",
+    "tests/ui/Earthship.test.js",
+    "tests/ui/EnergyAnalyticsDetail.test.js",
+    "tests/ui/EnergyForecast.test.js",
+    "tests/ui/ForecastComparison.test.js",
+    "tests/ui/ForecastWithdrawal.test.js",
+    "tests/ui/GoatFeedingsCard.test.js",
+    "tests/ui/HeaderAlerts.test.js",
+    "tests/ui/HistoryChart.test.js",
+    "tests/ui/HomeHistory.test.js",
+    "tests/ui/HomeTilePrimitives.test.js",
+    "tests/ui/HourlyStrip.test.js",
+    "tests/ui/Household.test.js",
+    "tests/ui/OhIcon.test.js",
+    "tests/ui/ProfiledEnergy.test.js",
+    "tests/ui/PvPotentialAccuracy.test.js",
+    "tests/ui/RecommendationPreview.test.js",
+    "tests/ui/SeasonCountdown.test.js",
+    "tests/ui/Shell.test.js",
+    "tests/ui/Sparkline.test.js",
+    "tests/ui/ThermalLoop.test.js",
+    "tests/ui/ThermalModelCard.test.js",
+    "tests/ui/ThermalModelPlot.test.js",
+    "tests/ui/Ventilation.test.js",
+    "tests/ui/Weather.test.js",
+    "tests/ui/WeatherDetailModal.test.js",
+    "tests/ui/WeatherProviderComparison.test.js",
+    "tests/ui/dailyLoad.test.js",
+    "tests/ui/typed-controls.test.js",
+    "tests/ui/weather-icon-colors.test.js",
+    "tests/ui/wmo-colors.test.js",
+    "tests/values.test.js",
+    "tests/weather-detail-chart.test.js",
+    "tests/weather-detail-store.test.js",
+    "tests/weathernext-presentation.test.js",
+    "tests/wmo.test.js"
+  ],
+  "python_tests": [
+    "openhab/scripts/test_advisory_capture.py",
+    "openhab/scripts/test_advisory_records.py",
+    "openhab/scripts/test_advisory_role_provisioning.py",
+    "openhab/scripts/test_advisory_windows.py",
+    "openhab/scripts/test_astro_forecast_context.py",
+    "openhab/scripts/test_astro_geometry.py",
+    "openhab/scripts/test_astro_geometry_series.py",
+    "openhab/scripts/test_astro_geometry_worker.py",
+    "openhab/scripts/test_astro_map_source.py",
+    "openhab/scripts/test_battery_score_opportunity.py",
+    "openhab/scripts/test_bedroom_temperature.py",
+    "openhab/scripts/test_bitcoin_legacy.py",
+    "openhab/scripts/test_bitcoin_price.py",
+    "openhab/scripts/test_bms_aux_evidence.py",
+    "openhab/scripts/test_bms_aux_history.py",
+    "openhab/scripts/test_bms_aux_history_postgres.py",
+    "openhab/scripts/test_bms_aux_producer_consumer_postgres.py",
+    "openhab/scripts/test_calibrated_score_runtime.py",
+    "openhab/scripts/test_completed_trough_score.py",
+    "openhab/scripts/test_config_inventory.py",
+    "openhab/scripts/test_daily_pv_monitor.py",
+    "openhab/scripts/test_daily_pv_performance.py",
+    "openhab/scripts/test_daily_pv_potential.py",
+    "openhab/scripts/test_daily_temperature_runtime.py",
+    "openhab/scripts/test_daily_temperature_sensor_epoch_runtime.py",
+    "openhab/scripts/test_extrema_item_source.py",
+    "openhab/scripts/test_forecast_fetch_recovery.py",
+    "openhab/scripts/test_forecast_solar_ablation.py",
+    "openhab/scripts/test_full_backup_fingerprint.py",
+    "openhab/scripts/test_google_config_retirement.py",
+    "openhab/scripts/test_google_forecast_acquisition_retirement.py",
+    "openhab/scripts/test_google_irradiance_model.py",
+    "openhab/scripts/test_google_local_source_isolation.py",
+    "openhab/scripts/test_google_native_inputs.py",
+    "openhab/scripts/test_google_native_outcome_origin.py",
+    "openhab/scripts/test_google_native_selection.py",
+    "openhab/scripts/test_google_only_operational_callers.py",
+    "openhab/scripts/test_google_receipt_retirement.py",
+    "openhab/scripts/test_google_thermal_cli_retirement.py",
+    "openhab/scripts/test_google_thermal_intervals.py",
+    "openhab/scripts/test_google_trajectory_energy.py",
+    "openhab/scripts/test_historical_physics_state.py",
+    "openhab/scripts/test_historical_selection_sources.py",
+    "openhab/scripts/test_historical_weather_daily.py",
+    "openhab/scripts/test_historical_weather_serving.py",
+    "openhab/scripts/test_hourly_temperature_runtime.py",
+    "openhab/scripts/test_hourly_temperature_sensor_epoch_runtime.py",
+    "openhab/scripts/test_household_ac_load_artifact.py",
+    "openhab/scripts/test_household_ac_load_model.py",
+    "openhab/scripts/test_household_ac_load_refresh_revision.py",
+    "openhab/scripts/test_household_ac_load_sources.py",
+    "openhab/scripts/test_household_ac_load_store.py",
+    "openhab/scripts/test_household_ac_load_transport.py",
+    "openhab/scripts/test_household_ac_load_window.py",
+    "openhab/scripts/test_household_battery_outcomes.py",
+    "openhab/scripts/test_household_battery_score.py",
+    "openhab/scripts/test_household_battery_source.py",
+    "openhab/scripts/test_household_calibrated_energy.py",
+    "openhab/scripts/test_household_calibrated_outcomes.py",
+    "openhab/scripts/test_household_capabilities.py",
+    "openhab/scripts/test_household_capture.py",
+    "openhab/scripts/test_household_chronology.py",
+    "openhab/scripts/test_household_control_contracts.py",
+    "openhab/scripts/test_household_cycle.py",
+    "openhab/scripts/test_household_cycle_coordinator.py",
+    "openhab/scripts/test_household_cycle_deadline.py",
+    "openhab/scripts/test_household_cycle_deploy.py",
+    "openhab/scripts/test_household_cycle_driver.py",
+    "openhab/scripts/test_household_cycle_pressure.py",
+    "openhab/scripts/test_household_cycle_resources.py",
+    "openhab/scripts/test_household_cycle_sources.py",
+    "openhab/scripts/test_household_cycle_upgrade.py",
+    "openhab/scripts/test_household_daily_energy_source.py",
+    "openhab/scripts/test_household_energy_configuration.py",
+    "openhab/scripts/test_household_energy_configuration_capture.py",
+    "openhab/scripts/test_household_energy_forecast.py",
+    "openhab/scripts/test_household_energy_forecast_cycle.py",
+    "openhab/scripts/test_household_energy_outcomes.py",
+    "openhab/scripts/test_household_energy_persistence.py",
+    "openhab/scripts/test_household_energy_source_pipeline.py",
+    "openhab/scripts/test_household_evidence.py",
+    "openhab/scripts/test_household_forecast_score.py",
+    "openhab/scripts/test_household_intents.py",
+    "openhab/scripts/test_household_job_budget.py",
+    "openhab/scripts/test_household_job_launch.py",
+    "openhab/scripts/test_household_job_pool.py",
+    "openhab/scripts/test_household_measured_weather.py",
+    "openhab/scripts/test_household_measured_weather_capture.py",
+    "openhab/scripts/test_household_measured_weather_pipeline.py",
+    "openhab/scripts/test_household_model_pipeline.py",
+    "openhab/scripts/test_household_model_snapshot.py",
+    "openhab/scripts/test_household_models.py",
+    "openhab/scripts/test_household_native_cycle.py",
+    "openhab/scripts/test_household_native_cycle_driver.py",
+    "openhab/scripts/test_household_native_daily.py",
+    "openhab/scripts/test_household_native_family.py",
+    "openhab/scripts/test_household_native_geometry_prepare.py",
+    "openhab/scripts/test_household_native_handoff.py",
+    "openhab/scripts/test_household_native_install_composition.py",
+    "openhab/scripts/test_household_native_install_files.py",
+    "openhab/scripts/test_household_native_install_lifecycle.py",
+    "openhab/scripts/test_household_native_preparer_enable.py",
+    "openhab/scripts/test_household_native_score_queries.py",
+    "openhab/scripts/test_household_native_thermal.py",
+    "openhab/scripts/test_household_native_weather.py",
+    "openhab/scripts/test_household_observation.py",
+    "openhab/scripts/test_household_outcomes.py",
+    "openhab/scripts/test_household_owner_policy.py",
+    "openhab/scripts/test_household_owner_sources.py",
+    "openhab/scripts/test_household_pipeline.py",
+    "openhab/scripts/test_household_planning.py",
+    "openhab/scripts/test_household_power_capture.py",
+    "openhab/scripts/test_household_power_flow_cycle.py",
+    "openhab/scripts/test_household_power_flow_receipt.py",
+    "openhab/scripts/test_household_power_flow_review.py",
+    "openhab/scripts/test_household_power_flows.py",
+    "openhab/scripts/test_household_power_snapshot.py",
+    "openhab/scripts/test_household_profiled_cycle.py",
+    "openhab/scripts/test_household_profiled_forecast.py",
+    "openhab/scripts/test_household_profiled_outcomes.py",
+    "openhab/scripts/test_household_profiled_samples.py",
+    "openhab/scripts/test_household_profiled_score.py",
+    "openhab/scripts/test_household_profiled_state.py",
+    "openhab/scripts/test_household_profiled_storage.py",
+    "openhab/scripts/test_household_pv_admission.py",
+    "openhab/scripts/test_household_pv_context.py",
+    "openhab/scripts/test_household_pv_model.py",
+    "openhab/scripts/test_household_pv_outcomes.py",
+    "openhab/scripts/test_household_pv_review.py",
+    "openhab/scripts/test_household_pv_samples.py",
+    "openhab/scripts/test_household_pv_score.py",
+    "openhab/scripts/test_household_pv_window.py",
+    "openhab/scripts/test_household_qualification.py",
+    "openhab/scripts/test_household_recent_cycle_batch_reader.py",
+    "openhab/scripts/test_household_recommendation_details.py",
+    "openhab/scripts/test_household_replay.py",
+    "openhab/scripts/test_household_resources.py",
+    "openhab/scripts/test_household_resources_cli.py",
+    "openhab/scripts/test_household_retained_native_score.py",
+    "openhab/scripts/test_household_score_diagnostics.py",
+    "openhab/scripts/test_household_score_pressure.py",
+    "openhab/scripts/test_household_score_report_reuse.py",
+    "openhab/scripts/test_household_sensor_observations.py",
+    "openhab/scripts/test_household_snapshot.py",
+    "openhab/scripts/test_household_snapshot_composition.py",
+    "openhab/scripts/test_household_solar_cycle.py",
+    "openhab/scripts/test_household_solar_horizon.py",
+    "openhab/scripts/test_household_solar_outcomes.py",
+    "openhab/scripts/test_household_solar_score.py",
+    "openhab/scripts/test_household_trajectory_cycle.py",
+    "openhab/scripts/test_household_trajectory_plan.py",
+    "openhab/scripts/test_household_weather_context.py",
+    "openhab/scripts/test_household_weather_pipeline.py",
+    "openhab/scripts/test_install_temperature_resources.py",
+    "openhab/scripts/test_installed_calibration_cli.py",
+    "openhab/scripts/test_installed_candidate_build.py",
+    "openhab/scripts/test_installed_compressed_score_jobs.py",
+    "openhab/scripts/test_installed_publication_registration.py",
+    "openhab/scripts/test_installed_raw_score_cli.py",
+    "openhab/scripts/test_installed_raw_score_jobs.py",
+    "openhab/scripts/test_installed_registered_score_cli.py",
+    "openhab/scripts/test_installed_registration_cli.py",
+    "openhab/scripts/test_installed_replay_budget.py",
+    "openhab/scripts/test_installed_score_global_lock.py",
+    "openhab/scripts/test_installed_score_jobs.py",
+    "openhab/scripts/test_installed_shade_artifact.py",
+    "openhab/scripts/test_installed_shade_bootstrap_live.py",
+    "openhab/scripts/test_installed_shade_calibrated.py",
+    "openhab/scripts/test_installed_shade_calibrated_qualification.py",
+    "openhab/scripts/test_installed_shade_calibration.py",
+    "openhab/scripts/test_installed_shade_complete_raw_live.py",
+    "openhab/scripts/test_installed_shade_complete_raw_publication.py",
+    "openhab/scripts/test_installed_shade_complete_raw_qualification.py",
+    "openhab/scripts/test_installed_shade_compressed_bootstrap.py",
+    "openhab/scripts/test_installed_shade_compressed_live.py",
+    "openhab/scripts/test_installed_shade_compressed_publication.py",
+    "openhab/scripts/test_installed_shade_compressed_qualification.py",
+    "openhab/scripts/test_installed_shade_dynamics.py",
+    "openhab/scripts/test_installed_shade_fit.py",
+    "openhab/scripts/test_installed_shade_inputs.py",
+    "openhab/scripts/test_installed_shade_live.py",
+    "openhab/scripts/test_installed_shade_live_inputs.py",
+    "openhab/scripts/test_installed_shade_origin.py",
+    "openhab/scripts/test_installed_shade_publication.py",
+    "openhab/scripts/test_installed_shade_published_origin.py",
+    "openhab/scripts/test_installed_shade_qualification.py",
+    "openhab/scripts/test_installed_shade_raw_calibration.py",
+    "openhab/scripts/test_installed_shade_raw_candidate.py",
+    "openhab/scripts/test_installed_shade_raw_origin.py",
+    "openhab/scripts/test_installed_shade_raw_publication.py",
+    "openhab/scripts/test_installed_shade_raw_publication_capture.py",
+    "openhab/scripts/test_installed_shade_raw_qualification.py",
+    "openhab/scripts/test_installed_shade_raw_registration.py",
+    "openhab/scripts/test_installed_shade_raw_score_sources.py",
+    "openhab/scripts/test_installed_shade_release_index.py",
+    "openhab/scripts/test_installed_shade_score_collection.py",
+    "openhab/scripts/test_installed_shade_score_inputs.py",
+    "openhab/scripts/test_installed_shade_withdrawal.py",
+    "openhab/scripts/test_migrate_season_countdown_rule.py",
+    "openhab/scripts/test_native_active_score_history.py",
+    "openhab/scripts/test_native_admission_continuity.py",
+    "openhab/scripts/test_native_deployment_model_identity.py",
+    "openhab/scripts/test_native_forecast_cpu_budget.py",
+    "openhab/scripts/test_native_future_geometry.py",
+    "openhab/scripts/test_native_google_bootstrap.py",
+    "openhab/scripts/test_native_household_collection_timing.py",
+    "openhab/scripts/test_native_household_deploy.py",
+    "openhab/scripts/test_native_household_receipt_budget.py",
+    "openhab/scripts/test_native_irradiance_shade.py",
+    "openhab/scripts/test_native_joint_artifact.py",
+    "openhab/scripts/test_native_joint_fit.py",
+    "openhab/scripts/test_native_joint_forecast.py",
+    "openhab/scripts/test_native_joint_shade.py",
+    "openhab/scripts/test_native_model_report_storage.py",
+    "openhab/scripts/test_native_model_serving_receipt.py",
+    "openhab/scripts/test_native_monitor.py",
+    "openhab/scripts/test_native_operational_io.py",
+    "openhab/scripts/test_native_paired_score_reader.py",
+    "openhab/scripts/test_native_production_ram_admission.py",
+    "openhab/scripts/test_native_resource_admission.py",
+    "openhab/scripts/test_native_score_coordinator.py",
+    "openhab/scripts/test_native_score_dispatch_capacity.py",
+    "openhab/scripts/test_native_serving_association.py",
+    "openhab/scripts/test_native_serving_cycle.py",
+    "openhab/scripts/test_native_serving_dispatch.py",
+    "openhab/scripts/test_native_serving_dispatch_package.py",
+    "openhab/scripts/test_native_serving_driver.py",
+    "openhab/scripts/test_native_serving_effective.py",
+    "openhab/scripts/test_native_serving_forecast.py",
+    "openhab/scripts/test_native_serving_geometry.py",
+    "openhab/scripts/test_native_serving_handoff.py",
+    "openhab/scripts/test_native_serving_historical_model.py",
+    "openhab/scripts/test_native_serving_history.py",
+    "openhab/scripts/test_native_serving_household.py",
+    "openhab/scripts/test_native_serving_legacy_exec.py",
+    "openhab/scripts/test_native_serving_live.py",
+    "openhab/scripts/test_native_serving_materialize.py",
+    "openhab/scripts/test_native_serving_preparer.py",
+    "openhab/scripts/test_native_serving_queue.py",
+    "openhab/scripts/test_native_serving_queue_completed.py",
+    "openhab/scripts/test_native_serving_retained_dispatch.py",
+    "openhab/scripts/test_native_serving_review.py",
+    "openhab/scripts/test_native_serving_runtime.py",
+    "openhab/scripts/test_native_serving_score.py",
+    "openhab/scripts/test_native_serving_score_driver.py",
+    "openhab/scripts/test_native_serving_score_lifetime.py",
+    "openhab/scripts/test_native_serving_score_window.py",
+    "openhab/scripts/test_native_serving_selection.py",
+    "openhab/scripts/test_native_serving_upgrade.py",
+    "openhab/scripts/test_native_thermal_artifact.py",
+    "openhab/scripts/test_native_thermal_completion.py",
+    "openhab/scripts/test_native_thermal_fit.py",
+    "openhab/scripts/test_native_thermal_forecast.py",
+    "openhab/scripts/test_native_thermal_inputs.py",
+    "openhab/scripts/test_native_thermal_live_publication.py",
+    "openhab/scripts/test_native_thermal_model.py",
+    "openhab/scripts/test_native_thermal_score.py",
+    "openhab/scripts/test_native_thermal_score_sources.py",
+    "openhab/scripts/test_openhab_sanity_check.py",
+    "openhab/scripts/test_persistence_source.py",
+    "openhab/scripts/test_pre_dusk_issue_source.py",
+    "openhab/scripts/test_pre_dusk_release.py",
+    "openhab/scripts/test_pre_dusk_tuning.py",
+    "openhab/scripts/test_pre_dusk_tuning_history.py",
+    "openhab/scripts/test_pre_dusk_tuning_outcome.py",
+    "openhab/scripts/test_provisional_thermal_artifact.py",
+    "openhab/scripts/test_provisional_thermal_fit.py",
+    "openhab/scripts/test_provisional_thermal_forecast.py",
+    "openhab/scripts/test_provisional_thermal_scoring.py",
+    "openhab/scripts/test_pv_calibration_policy.py",
+    "openhab/scripts/test_pv_day_evidence.py",
+    "openhab/scripts/test_pv_day_history.py",
+    "openhab/scripts/test_pv_day_history_postgres.py",
+    "openhab/scripts/test_pv_horizon_assessment.py",
+    "openhab/scripts/test_pv_horizon_pair_baseline.py",
+    "openhab/scripts/test_pv_learning_refresh.py",
+    "openhab/scripts/test_pv_legacy_history.py",
+    "openhab/scripts/test_pv_local_days.py",
+    "openhab/scripts/test_pv_pair_baseline.py",
+    "openhab/scripts/test_qualification_source_inventory.py",
+    "openhab/scripts/test_retired_schedule_calls.py",
+    "openhab/scripts/test_rtl_weather_identity.py",
+    "openhab/scripts/test_score_monitoring_cadence.py",
+    "openhab/scripts/test_score_production_cpu.py",
+    "openhab/scripts/test_score_reader_lifetime.py",
+    "openhab/scripts/test_shared_daily_resources.py",
+    "openhab/scripts/test_shared_production_family.py",
+    "openhab/scripts/test_sunset_soc_profile.py",
+    "openhab/scripts/test_target_weighting.py",
+    "openhab/scripts/test_temperature_grid.py",
+    "openhab/scripts/test_temperature_sensor_epoch_windows.py",
+    "openhab/scripts/test_temperature_window.py",
+    "openhab/scripts/test_thermal_action_history.py",
+    "openhab/scripts/test_thermal_actions.py",
+    "openhab/scripts/test_thermal_airflow.py",
+    "openhab/scripts/test_thermal_airflow_capture.py",
+    "openhab/scripts/test_thermal_airflow_forecast.py",
+    "openhab/scripts/test_thermal_airflow_migration.py",
+    "openhab/scripts/test_thermal_airflow_training.py",
+    "openhab/scripts/test_thermal_artifacts.py",
+    "openhab/scripts/test_thermal_behavior.py",
+    "openhab/scripts/test_thermal_capture_backends.py",
+    "openhab/scripts/test_thermal_capture_guard.py",
+    "openhab/scripts/test_thermal_capture_headroom.py",
+    "openhab/scripts/test_thermal_capture_journal.py",
+    "openhab/scripts/test_thermal_capture_readers.py",
+    "openhab/scripts/test_thermal_conditioning_comparison.py",
+    "openhab/scripts/test_thermal_confirmation_journal.py",
+    "openhab/scripts/test_thermal_confirmation_receipt.py",
+    "openhab/scripts/test_thermal_dataset.py",
+    "openhab/scripts/test_thermal_deploy_files.py",
+    "openhab/scripts/test_thermal_dynamics.py",
+    "openhab/scripts/test_thermal_endpoint_materialization.py",
+    "openhab/scripts/test_thermal_environment_bundle.py",
+    "openhab/scripts/test_thermal_evaluation.py",
+    "openhab/scripts/test_thermal_evaluation_prefixes.py",
+    "openhab/scripts/test_thermal_fit_evidence.py",
+    "openhab/scripts/test_thermal_fit_measurements.py",
+    "openhab/scripts/test_thermal_fit_pipeline.py",
+    "openhab/scripts/test_thermal_forcing_capture.py",
+    "openhab/scripts/test_thermal_glazing_reuse.py",
+    "openhab/scripts/test_thermal_graduation_policy.py",
+    "openhab/scripts/test_thermal_graduation_statistics.py",
+    "openhab/scripts/test_thermal_identifiability.py",
+    "openhab/scripts/test_thermal_interval_overlap.py",
+    "openhab/scripts/test_thermal_invalid_barriers.py",
+    "openhab/scripts/test_thermal_joint_solar.py",
+    "openhab/scripts/test_thermal_journal.py",
+    "openhab/scripts/test_thermal_legacy_recovery.py",
+    "openhab/scripts/test_thermal_native_dependencies.py",
+    "openhab/scripts/test_thermal_native_shadow_activation.py",
+    "openhab/scripts/test_thermal_offline_training.py",
+    "openhab/scripts/test_thermal_operational_origin.py",
+    "openhab/scripts/test_thermal_origin_capture.py",
+    "openhab/scripts/test_thermal_pipeline.py",
+    "openhab/scripts/test_thermal_publish.py",
+    "openhab/scripts/test_thermal_radiation_runtime.py",
+    "openhab/scripts/test_thermal_release.py",
+    "openhab/scripts/test_thermal_release_capture.py",
+    "openhab/scripts/test_thermal_release_publish.py",
+    "openhab/scripts/test_thermal_release_regimes.py",
+    "openhab/scripts/test_thermal_release_runtime.py",
+    "openhab/scripts/test_thermal_rollback.py",
+    "openhab/scripts/test_thermal_runtime_bundle.py",
+    "openhab/scripts/test_thermal_schema.py",
+    "openhab/scripts/test_thermal_sensor_epoch_assembly.py",
+    "openhab/scripts/test_thermal_sensor_epoch_capture.py",
+    "openhab/scripts/test_thermal_sensor_epoch_history.py",
+    "openhab/scripts/test_thermal_sensor_epoch_origins.py",
+    "openhab/scripts/test_thermal_sensor_epoch_qualification.py",
+    "openhab/scripts/test_thermal_sensor_epoch_release.py",
+    "openhab/scripts/test_thermal_sensor_epoch_training.py",
+    "openhab/scripts/test_thermal_shade_history.py",
+    "openhab/scripts/test_thermal_shade_history_postgres.py",
+    "openhab/scripts/test_thermal_shade_observations.py",
+    "openhab/scripts/test_thermal_shadow_receipts.py",
+    "openhab/scripts/test_thermal_solar.py",
+    "openhab/scripts/test_thermal_solar_fix.py",
+    "openhab/scripts/test_thermal_stage_a_assumptions.py",
+    "openhab/scripts/test_thermal_systemd_state.py",
+    "openhab/scripts/test_thermal_temperature_history.py",
+    "openhab/scripts/test_thermal_training_assembly.py",
+    "openhab/scripts/test_thermal_training_inputs.py",
+    "openhab/scripts/test_thermal_training_retention.py",
+    "openhab/scripts/test_thermal_training_sources.py",
+    "openhab/scripts/test_thermal_v2.py",
+    "openhab/scripts/test_thermal_vent_default.py",
+    "openhab/scripts/test_thermal_weather_admit.py",
+    "openhab/scripts/test_thermal_weather_conditioning.py",
+    "openhab/scripts/test_tplink_switch_evidence.py",
+    "openhab/scripts/test_tplink_switch_history.py",
+    "openhab/scripts/test_training_pressure_guard.py",
+    "openhab/scripts/test_weather_correction_monitor.py",
+    "openhab/scripts/test_weather_directional_pv.py",
+    "openhab/scripts/test_weather_energy_history.py",
+    "openhab/scripts/test_weather_historical.py",
+    "openhab/scripts/test_weather_historical_measurements.py",
+    "openhab/scripts/test_weather_historical_pairs.py",
+    "openhab/scripts/test_weather_history_index.py",
+    "openhab/scripts/test_weather_household_calibration.py",
+    "openhab/scripts/test_weather_irradiance_learning.py",
+    "openhab/scripts/test_weather_numeric_history.py",
+    "openhab/scripts/test_weather_pv_calibration.py",
+    "openhab/scripts/test_weather_pv_calibration_source.py",
+    "openhab/scripts/test_weather_radiation_config.py",
+    "openhab/scripts/test_weather_radiation_evidence.py",
+    "openhab/scripts/test_weather_radiation_grid.py",
+    "openhab/scripts/test_weather_radiation_history.py",
+    "openhab/scripts/test_weather_radiation_history_postgres.py",
+    "openhab/scripts/test_weather_radiation_reader.py",
+    "openhab/scripts/test_weather_radiation_receiver.py",
+    "openhab/scripts/test_weather_rain_config.py",
+    "openhab/scripts/test_weather_rain_day.py",
+    "openhab/scripts/test_weather_rain_evidence.py",
+    "openhab/scripts/test_weather_rain_history.py",
+    "openhab/scripts/test_weather_rain_history_postgres.py",
+    "openhab/scripts/test_weather_rain_receiver.py",
+    "openhab/scripts/test_weather_rain_resources.py",
+    "openhab/scripts/test_weather_reassessment.py",
+    "openhab/scripts/test_weather_receiver_characterization.py",
+    "openhab/scripts/test_weather_site_calibration.py",
+    "openhab/scripts/test_weather_site_response.py",
+    "openhab/scripts/test_weather_source_bundle.py",
+    "openhab/scripts/test_weather_temperature_config.py",
+    "openhab/scripts/test_weather_temperature_evidence.py",
+    "openhab/scripts/test_weather_temperature_history.py",
+    "openhab/scripts/test_weather_temperature_history_postgres.py",
+    "openhab/scripts/test_weather_temperature_reader.py",
+    "openhab/scripts/test_weather_temperature_receiver.py",
+    "openhab/scripts/test_weather_temperature_receiver_integration.py",
+    "openhab/scripts/test_weather_temperature_resources.py",
+    "openhab/scripts/test_weather_temperature_sensor_epochs.py",
+    "openhab/scripts/test_weather_temperature_sources.py",
+    "openhab/scripts/test_weather_thermal_comparison.py",
+    "openhab/scripts/test_weather_training_cache.py",
+    "openhab/scripts/test_weather_training_dataset.py",
+    "openhab/scripts/test_weather_wind_history.py",
+    "openhab/scripts/weather_learning/tests/test_archive.py",
+    "openhab/scripts/weather_learning/tests/test_config.py",
+    "openhab/scripts/weather_learning/tests/test_dual_horizon.py",
+    "openhab/scripts/weather_learning/tests/test_ee.py",
+    "openhab/scripts/weather_learning/tests/test_energy_shadow.py",
+    "openhab/scripts/weather_learning/tests/test_evaluation.py",
+    "openhab/scripts/weather_learning/tests/test_evidence.py",
+    "openhab/scripts/weather_learning/tests/test_features.py",
+    "openhab/scripts/weather_learning/tests/test_hourly_collection.py",
+    "openhab/scripts/weather_learning/tests/test_issue_provenance.py",
+    "openhab/scripts/weather_learning/tests/test_monitor_worker.py",
+    "openhab/scripts/weather_learning/tests/test_monitoring.py",
+    "openhab/scripts/weather_learning/tests/test_native_forecast.py",
+    "openhab/scripts/weather_learning/tests/test_normalize.py",
+    "openhab/scripts/weather_learning/tests/test_openhab.py",
+    "openhab/scripts/weather_learning/tests/test_pending_scores.py",
+    "openhab/scripts/weather_learning/tests/test_performance.py",
+    "openhab/scripts/weather_learning/tests/test_production_publish.py",
+    "openhab/scripts/weather_learning/tests/test_production_runtime.py",
+    "openhab/scripts/weather_learning/tests/test_production_worker.py",
+    "openhab/scripts/weather_learning/tests/test_provider.py",
+    "openhab/scripts/weather_learning/tests/test_runtime.py",
+    "openhab/scripts/weather_learning/tests/test_shadow.py",
+    "openhab/scripts/weather_learning/tests/test_solar_shadow.py",
+    "openhab/scripts/weather_learning/tests/test_training.py",
+    "openhab/scripts/weather_learning/tests/test_transport.py",
+    "openhab/scripts/weather_learning/tests/test_worker.py",
+    "scripts/test_assemble_thermal_inputs.py",
+    "scripts/test_audit_thermal_shadow_publications.py",
+    "scripts/test_battery_icon_file_rule.py",
+    "scripts/test_battery_icon_history.py",
+    "scripts/test_bitcoin_item_migration.py",
+    "scripts/test_bitcoin_price_history_digest.py",
+    "scripts/test_build_pre_dusk_notification_bundle.py",
+    "scripts/test_capture_thermal_inputs.py",
+    "scripts/test_deploy_bms_runtime_estimator_evidence.py",
+    "scripts/test_deploy_greywater_durable_recovery.py",
+    "scripts/test_deploy_greywater_soc_evidence.py",
+    "scripts/test_deploy_sky_control_input.py",
+    "scripts/test_deploy_tplink_switch_evidence_v2.py",
+    "scripts/test_energy_quality_files.py",
+    "scripts/test_export_thermal_journal.py",
+    "scripts/test_export_thermal_journal_database.py",
+    "scripts/test_file_migration_batch.py",
+    "scripts/test_forecast_ml_workflow.py",
+    "scripts/test_install_pre_dusk_notification_bundle.py",
+    "scripts/test_isolated_sky_transaction.py",
+    "scripts/test_migrate_astro_moon_thing.py",
+    "scripts/test_migrate_battery_charging_status_item.py",
+    "scripts/test_migrate_battery_icon.py",
+    "scripts/test_migrate_bitcoin_exec_thing.py",
+    "scripts/test_migrate_bitcoin_price_item.py",
+    "scripts/test_migrate_jdbc_persistence.py",
+    "scripts/test_migrate_moon_phase_readings.py",
+    "scripts/test_migrate_moon_weather_batch.py",
+    "scripts/test_migrate_season_countdown_item.py",
+    "scripts/test_migrate_sky_condition_icon.py",
+    "scripts/test_openhab_linked_item_qualification.py",
+    "scripts/test_openhab_qualification_support.py",
+    "scripts/test_preflight_astro_moon_consumers.py",
+    "scripts/test_preflight_bitcoin_exec_thing.py",
+    "scripts/test_preflight_bitcoin_price_item.py",
+    "scripts/test_prepare_thermal_collector_baseline.py",
+    "scripts/test_prepare_thermal_legacy_recovery.py",
+    "scripts/test_prepare_thermal_route_snapshot.py",
+    "scripts/test_private_receipt.py",
+    "scripts/test_qualify_astro_forecast_actions.py",
+    "scripts/test_qualify_astro_moon_handoff.py",
+    "scripts/test_qualify_astro_moon_thing_provider.py",
+    "scripts/test_qualify_bitcoin_exec_provider.py",
+    "scripts/test_qualify_bitcoin_price_jdbc.py",
+    "scripts/test_qualify_bitcoin_price_provider.py",
+    "scripts/test_qualify_bms_runtime_delivery.py",
+    "scripts/test_qualify_bms_runtime_estimator.py",
+    "scripts/test_qualify_bms_transport.py",
+    "scripts/test_qualify_curtailment_prediction.py",
+    "scripts/test_qualify_forecast_correction.py",
+    "scripts/test_qualify_forecast_energy.py",
+    "scripts/test_qualify_forecast_quality.py",
+    "scripts/test_qualify_forecast_tomorrow.py",
+    "scripts/test_qualify_forecast_trough_error.py",
+    "scripts/test_qualify_greywater_recovery_jdbc.py",
+    "scripts/test_qualify_installed_shade_cli.py",
+    "scripts/test_qualify_moon_display_jdbc.py",
+    "scripts/test_qualify_moon_phase_jdbc.py",
+    "scripts/test_qualify_moon_phase_provider.py",
+    "scripts/test_qualify_pre_dusk_natural_issue.py",
+    "scripts/test_qualify_season_rule_provider.py",
+    "scripts/test_qualify_thermal_advisory.py",
+    "scripts/test_qualify_thermal_journal_live_restore.py",
+    "scripts/test_qualify_tplink_transport.py",
+    "scripts/test_qualify_weather_radiation_jdbc.py",
+    "scripts/test_recovery_archives.py",
+    "scripts/test_recovery_number_undef.py",
+    "scripts/test_sky_control_probe.py",
+    "scripts/test_sky_diagnostic_items.py",
+    "scripts/test_south_planter_fan.py",
+    "scripts/test_sun_calendar_handoff.py",
+    "scripts/test_sun_calendar_items.py",
+    "scripts/test_temperature_extrema_migration.py",
+    "scripts/test_thermal_cold_reader.py",
+    "scripts/test_thermal_graduation_audit.py",
+    "scripts/test_thermal_graduation_decision.py",
+    "scripts/test_thermal_graduation_evidence.py",
+    "scripts/test_thermal_item_migration.py",
+    "scripts/test_thermal_journal_dump.py",
+    "scripts/test_thermal_journal_dump_database.py",
+    "scripts/test_thermal_journal_export_bounds.py",
+    "scripts/test_thermal_journal_export_bounds_database.py",
+    "scripts/test_thermal_journal_restore_transfer.py",
+    "scripts/test_thermal_journal_restore_transfer_database.py",
+    "scripts/test_thermal_journal_source_receipt.py",
+    "scripts/test_thermal_journal_transfer.py",
+    "scripts/test_thermal_policy_registration.py",
+    "scripts/test_thermal_primal_recurring_release.py",
+    "scripts/test_thermal_primal_runtime.py",
+    "scripts/test_thermal_qualification_deadline.py",
+    "scripts/test_thermal_qualification_evidence.py",
+    "scripts/test_thermal_recent_cycles.py",
+    "scripts/test_thermal_shadow_retry.py",
+    "scripts/test_train_thermal_snapshot.py",
+    "scripts/test_update_bms_runtime_input_evidence.py",
+    "scripts/test_verify_live_bms_night_average.py",
+    "scripts/test_verify_thermal_legacy_action_support.py",
+    "scripts/test_verify_thermal_restored_consumer.py",
+    "scripts/test_weather_health_age_items.py",
+    "scripts/test_weather_health_group.py",
+    "services/lorawan/tests/test_browser_auth.py",
+    "services/lorawan/tests/test_core.py",
+    "services/lorawan/tests/test_extensions.py",
+    "services/lorawan/tests/test_integration.py",
+    "services/lorawan/tests/test_supervised_history.py",
+    "tests/completion/test_bms_aux_source_cadence.py",
+    "tests/completion/test_collector_public_key.py",
+    "tests/completion/test_nak_build_policy.py",
+    "tests/completion/test_nak_client_identity.py",
+    "tests/completion/test_nak_qualification.py",
+    "tests/completion/test_nostr_bunker_challenge.py",
+    "tests/completion/test_nostr_bunker_template.py",
+    "tests/completion/test_nostr_notify_source.py",
+    "tests/completion/test_persistence_boundary.py",
+    "tests/completion/test_pre_dusk_notification.py",
+    "tests/completion/test_pre_dusk_notification_cli.py",
+    "tests/completion/test_pre_dusk_notification_source.py",
+    "tests/completion/test_pre_dusk_notification_worker.py",
+    "tests/completion/test_season_countdown_item_migration.py",
+    "tests/completion/test_thermal_confirmation.py",
+    "tests/completion/test_thermal_followup.py",
+    "tests/completion/test_thermal_followup_cli.py",
+    "tests/completion/test_thermal_messaging.py",
+    "tests/completion/test_thermal_nip04.py",
+    "tests/completion/test_thermal_nip04_delivery.py",
+    "tests/completion/test_thermal_nip04_ledger.py",
+    "tests/completion/test_thermal_primal_backup.py",
+    "tests/completion/test_thermal_primal_cli.py",
+    "tests/completion/test_thermal_primal_signer.py",
+    "tests/completion/test_thermal_state_backup.py",
+    "tests/completion/test_verification_gates.py"
+  ],
+  "audited_source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+  "inventory_method": "tracked public source only; discovery does not prove activation, execution or qualification",
+  "components": [
+    "src/App.svelte",
+    "src/lib/ui/Arc.svelte",
+    "src/lib/ui/BitcoinCandles.svelte",
+    "src/lib/ui/BtcTicker.svelte",
+    "src/lib/ui/ChartModal.svelte",
+    "src/lib/ui/CompassRose.svelte",
+    "src/lib/ui/DailyForecast.svelte",
+    "src/lib/ui/EnergyAnalyticsDetail.svelte",
+    "src/lib/ui/EnergyForecast.svelte",
+    "src/lib/ui/ForecastComparison.svelte",
+    "src/lib/ui/GoatFeedingsCard.svelte",
+    "src/lib/ui/Header.svelte",
+    "src/lib/ui/HeaderAlerts.svelte",
+    "src/lib/ui/HistoryChart.svelte",
+    "src/lib/ui/HourlyStrip.svelte",
+    "src/lib/ui/HouseholdObservation.svelte",
+    "src/lib/ui/OhIcon.svelte",
+    "src/lib/ui/ProfiledEnergy.svelte",
+    "src/lib/ui/PvPotentialAccuracy.svelte",
+    "src/lib/ui/RecommendationPreview.svelte",
+    "src/lib/ui/SeasonCountdown.svelte",
+    "src/lib/ui/Shell.svelte",
+    "src/lib/ui/Sparkline.svelte",
+    "src/lib/ui/StatTile.svelte",
+    "src/lib/ui/ThermalLoop.svelte",
+    "src/lib/ui/ThermalModelCard.svelte",
+    "src/lib/ui/ThermalModelPlot.svelte",
+    "src/lib/ui/Tile.svelte",
+    "src/lib/ui/Toggle.svelte",
+    "src/lib/ui/WeatherDetailModal.svelte",
+    "src/screens/Controls.svelte",
+    "src/screens/Earthship.svelte",
+    "src/screens/Energy.svelte",
+    "src/screens/Gallery.svelte",
+    "src/screens/Home.svelte",
+    "src/screens/Shades.svelte",
+    "src/screens/Ventilation.svelte",
+    "src/screens/Weather.svelte"
+  ],
+  "service_units": [
+    "deploy/daily-pv-potential.service",
+    "deploy/daily-pv-potential.timer",
+    "deploy/daily-pv-score.service",
+    "deploy/daily-pv-score.timer",
+    "deploy/earthship-ui.service",
+    "deploy/household-calibrated-energy.service",
+    "deploy/household-calibrated-score.service",
+    "deploy/household-calibrated-score.timer",
+    "deploy/local-forecast-shadow.service",
+    "deploy/local-forecast-shadow.timer",
+    "deploy/local-forecast-train.service",
+    "deploy/local-forecast-train.timer",
+    "deploy/nostr-bunker/nostr-bunker@.service",
+    "deploy/pv-calibration-train.service",
+    "deploy/pv-calibration-train.timer",
+    "deploy/thermal-native-six-hourly.timer",
+    "deploy/thermal-primal-recurring.service.in",
+    "deploy/thermal-primal.service",
+    "deploy/thermal-primal.timer",
+    "deploy/weathernext-evaluate.service",
+    "deploy/weathernext-evaluate.timer",
+    "deploy/weathernext-ingest.service",
+    "deploy/weathernext-ingest.timer",
+    "deploy/weathernext-publish.service",
+    "deploy/weathernext-publish.timer"
+  ],
+  "item_definitions": {
+    "openhab/file-config/items/astro-circadian-temperature.items": [
+      "Sun_Circadian_Temperature"
+    ],
+    "openhab/file-config/items/astro-forecast-context.items": [
+      "Astro_Forecast_Context_JSON"
+    ],
+    "openhab/file-config/items/astro-icons.items": [
+      "SunPhaseIcon",
+      "MoonPhaseicon"
+    ],
+    "openhab/file-config/items/battery-charging-status.items": [
+      "BatteryChargingStatus"
+    ],
+    "openhab/file-config/items/battery-icon.items": [
+      "BatteryIcon"
+    ],
+    "openhab/file-config/items/bedroom-temperature.items": [
+      "Bedroom_Temperature"
+    ],
+    "openhab/file-config/items/bitcoin-change.items": [
+      "BTC_Price_24h_PercentChange"
+    ],
+    "openhab/file-config/items/bitcoin-price.items": [
+      "BTC_USD_Price"
+    ],
+    "openhab/file-config/items/bitcoin-receipt.items": [
+      "BTC_Output_Receipt_JSON"
+    ],
+    "openhab/file-config/items/bms-aux-evidence.items": [
+      "BMS_Aux_Evidence_JSON"
+    ],
+    "openhab/file-config/items/bms-runtime-input-evidence.items": [
+      "BMS_Runtime_Input_Evidence_JSON"
+    ],
+    "openhab/file-config/items/days-until-next-season.items": [
+      "DaysUntilNextSeason"
+    ],
+    "openhab/file-config/items/energy-analytics.items": [
+      "Energy_Analytics_JSON"
+    ],
+    "openhab/file-config/items/forecast-corrections.items": [
+      "Forecast_HighCorrection_F",
+      "Forecast_LowCorrection_F"
+    ],
+    "openhab/file-config/items/forecast-energy.items": [
+      "Predicted_PV_Today_kWh",
+      "Predicted_SoC_Trough_Tomorrow"
+    ],
+    "openhab/file-config/items/forecast-group.items": [
+      "gForecast"
+    ],
+    "openhab/file-config/items/forecast-json.items": [
+      "Forecast_Hourly_JSON",
+      "Forecast_Daily_JSON",
+      "Forecast_10Day_JSON"
+    ],
+    "openhab/file-config/items/forecast-pre-dusk.items": [
+      "Predicted_SoC_Trough_PreDusk",
+      "Forecast_PreDusk_Trough_Receipt_JSON"
+    ],
+    "openhab/file-config/items/forecast-prediction-receipt.items": [
+      "Forecast_Prediction_Receipt_JSON"
+    ],
+    "openhab/file-config/items/forecast-provider-shadow.items": [
+      "Forecast_Provider_Status_JSON",
+      "Forecast_Comparison_JSON",
+      "Forecast_Local_Shadow_JSON"
+    ],
+    "openhab/file-config/items/forecast-quality.items": [
+      "Forecast_PV_Error_7d",
+      "Forecast_Precip_Error_7d",
+      "Forecast_TempHigh_Error_7d",
+      "Forecast_TempHigh_Bias_7d",
+      "Forecast_TempLow_Error_7d",
+      "Forecast_Day3_High_Error_7d",
+      "Forecast_Day3_Precip_Error_7d"
+    ],
+    "openhab/file-config/items/forecast-tomorrow.items": [
+      "Forecast_Tomorrow_High",
+      "Forecast_Tomorrow_Low"
+    ],
+    "openhab/file-config/items/forecast-trough-error.items": [
+      "Forecast_Trough_Error_7d"
+    ],
+    "openhab/file-config/items/forecast-weather.items": [
+      "Forecast_Temp",
+      "Forecast_Daily_High",
+      "Forecast_Daily_Low",
+      "Forecast_Cloudiness",
+      "Forecast_Radiation",
+      "Forecast_Daily_PrecipSum"
+    ],
+    "openhab/file-config/items/inverter-ac-evidence.items": [
+      "Inverter_AC_Evidence_JSON"
+    ],
+    "openhab/file-config/items/inverter-ac-output-observation.items": [
+      "Inverter_AC_Output_Observation_JSON"
+    ],
+    "openhab/file-config/items/moon-display-readings.items": [
+      "Moon_Apogee_Date",
+      "Moon_Apogee_Distance",
+      "Moon_Azimuth",
+      "Moon_Distance_Date",
+      "Moon_Distance_Distance",
+      "Moon_Eclipse_PartialElevation",
+      "Moon_Eclipse_TotalElevation",
+      "Moon_FirstQuarter",
+      "Moon_FullMoon",
+      "Moon_NewMoon",
+      "Moon_PartialMoonEclipse",
+      "Moon_Perigee_Date",
+      "Moon_Perigee_Distance",
+      "Moon_Phase_Age",
+      "Moon_Phase_AgeDegree",
+      "Moon_Phase_AgePercent",
+      "Moon_Position_Elevation",
+      "Moon_Rise_End",
+      "Moon_Rise_Start",
+      "Moon_Set_End",
+      "Moon_Set_Start",
+      "Moon_ShadeLengthRatio",
+      "Moon_Sign",
+      "Moon_ThirdQuarter",
+      "Moon_TotalMoonEclipse"
+    ],
+    "openhab/file-config/items/moon-phase-readings.items": [
+      "Moon_MoonPhaseName",
+      "Moon_MoonIllumination"
+    ],
+    "openhab/file-config/items/mppt60-pv-day-evidence.items": [
+      "MPPT60_PV_Day_Evidence_JSON"
+    ],
+    "openhab/file-config/items/mppt60-pv-day-observation.items": [
+      "MPPT60_PV_Day_Observation_JSON"
+    ],
+    "openhab/file-config/items/predicted-curtailment.items": [
+      "Predicted_Curtailment_Hours"
+    ],
+    "openhab/file-config/items/sky-condition-icon.items": [
+      "SkyConditionIcon"
+    ],
+    "openhab/file-config/items/sky-diagnostics.items": [
+      "SkyCondition_Diagnostic",
+      "SkyCondition_LastEval"
+    ],
+    "openhab/file-config/items/sun-calendar.items": [
+      "Sun_Autumn",
+      "Sun_Eclipse_PartialElevation",
+      "Sun_PartialEclipse",
+      "Sun_RingEclipse",
+      "Sun_Spring",
+      "Sun_Summer",
+      "Sun_TotalEclipse",
+      "Sun_Winter"
+    ],
+    "openhab/file-config/items/temperature-extrema.items": [
+      "IndoorTemp_24h_High",
+      "IndoorTemp_24h_Low",
+      "OutdoorTemp_24h_High",
+      "OutdoorTemp_24h_Low"
+    ],
+    "openhab/file-config/items/thermal-advisory.items": [
+      "Thermal_Advisory"
+    ],
+    "openhab/file-config/items/thermal-model-original.items": [
+      "Thermal_OriginalForecast_JSON"
+    ],
+    "openhab/file-config/items/thermal-model-shadow.items": [
+      "Thermal_Model_JSON"
+    ],
+    "openhab/file-config/items/tplink-switch-evidence.items": [
+      "TPLink_Switch_Evidence_JSON"
+    ],
+    "openhab/file-config/items/tplink-switch-observation.items": [
+      "Dishwasher_Switch_Observation_JSON",
+      "Cistern_Pump_Switch_Observation_JSON"
+    ],
+    "openhab/file-config/items/weather-health-ages.items": [
+      "WeatherData_WH31E_AgeSeconds",
+      "WeatherData_WH32B_AgeSeconds"
+    ],
+    "openhab/file-config/items/weather-health-group.items": [
+      "gWeatherHealth"
+    ],
+    "openhab/file-config/items/weather-radiation-evidence.items": [
+      "Weather_Radiation_Evidence_JSON"
+    ],
+    "openhab/file-config/items/weather-rain-evidence.items": [
+      "Weather_Rain_Evidence_JSON"
+    ]
+  },
+  "binding_link_files": {
+    "openhab/file-config/items/astro-circadian-temperature.items": {
+      "links": 1,
+      "identities": "see original tracked source; identifiers not duplicated in audit"
+    },
+    "openhab/file-config/items/astro-icons.items": {
+      "links": 2,
+      "identities": "see original tracked source; identifiers not duplicated in audit"
+    },
+    "openhab/file-config/items/bitcoin-price.items": {
+      "links": 1,
+      "identities": "see original tracked source; identifiers not duplicated in audit"
+    },
+    "openhab/file-config/items/bitcoin-receipt.items": {
+      "links": 1,
+      "identities": "see original tracked source; identifiers not duplicated in audit"
+    },
+    "openhab/file-config/items/inverter-ac-output-observation.items": {
+      "links": 1,
+      "identities": "see original tracked source; identifiers not duplicated in audit"
+    },
+    "openhab/file-config/items/moon-display-readings.items": {
+      "links": 25,
+      "identities": "see original tracked source; identifiers not duplicated in audit"
+    },
+    "openhab/file-config/items/moon-phase-readings.items": {
+      "links": 2,
+      "identities": "see original tracked source; identifiers not duplicated in audit"
+    },
+    "openhab/file-config/items/mppt60-pv-day-observation.items": {
+      "links": 1,
+      "identities": "see original tracked source; identifiers not duplicated in audit"
+    },
+    "openhab/file-config/items/sun-calendar.items": {
+      "links": 8,
+      "identities": "see original tracked source; identifiers not duplicated in audit"
+    },
+    "openhab/file-config/items/tplink-switch-observation.items": {
+      "links": 2,
+      "identities": "see original tracked source; identifiers not duplicated in audit"
+    },
+    "openhab/file-config/items/weather-health-ages.items": {
+      "links": 2,
+      "identities": "see original tracked source; identifiers not duplicated in audit"
+    },
+    "openhab/file-config/items/weather-radiation-evidence.items": {
+      "links": 1,
+      "identities": "see original tracked source; identifiers not duplicated in audit"
+    },
+    "openhab/file-config/items/weather-rain-evidence.items": {
+      "links": 1,
+      "identities": "see original tracked source; identifiers not duplicated in audit"
+    },
+    "openhab/file-config/things/astro-moon.things": {
+      "thing_declarations": 1,
+      "identities": "see original tracked source"
+    },
+    "openhab/file-config/things/bitcoin-price.things": {
+      "thing_declarations": 1,
+      "identities": "see original tracked source"
+    },
+    "openhab/file-config/things/weather-radiation-evidence.things": {
+      "thing_declarations": 1,
+      "identities": "see original tracked source"
+    },
+    "openhab/file-config/things/weather-rain-evidence.things": {
+      "thing_declarations": 1,
+      "identities": "see original tracked source"
+    },
+    "openhab/file-config/things/weather-temperature-evidence.things": {
+      "thing_declarations": 1,
+      "identities": "see original tracked source"
+    }
+  },
+  "proxy_and_report_paths": {
+    "src/lib/household/observationClient.js": [
+      "/api/daily-pv-performance",
+      "/api/daily-pv-potential",
+      "/api/household-battery-performance",
+      "/api/household-calibrated-energy-observation",
+      "/api/household-calibrated-energy-performance",
+      "/api/household-captured-pv-performance",
+      "/api/household-chronological-summary",
+      "/api/household-energy-observation",
+      "/api/household-energy-performance",
+      "/api/household-observation",
+      "/api/household-profiled-energy-observation",
+      "/api/household-profiled-energy-performance"
+    ],
+    "src/lib/household/observationServer.js": [
+      "/api/daily-pv-performance",
+      "/api/daily-pv-potential",
+      "/api/household-battery-performance",
+      "/api/household-calibrated-energy-observation",
+      "/api/household-calibrated-energy-performance",
+      "/api/household-captured-pv-performance",
+      "/api/household-chronological-summary",
+      "/api/household-energy-observation",
+      "/api/household-energy-performance",
+      "/api/household-observation",
+      "/api/household-profiled-energy-observation",
+      "/api/household-profiled-energy-performance"
+    ],
+    "src/lib/openhab/client.js": [
+      "/rest/things"
+    ],
+    "src/lib/openhab/proxyPolicy.js": [
+      "/rest/events",
+      "/rest/events/",
+      "/rest/items",
+      "/rest/items/",
+      "/rest/persistence/items/",
+      "/rest/things",
+      "/rest/things/"
+    ],
+    "src/lib/shades/previewServer.js": [
+      "/api/shades-preview"
+    ],
+    "src/screens/Shades.svelte": [
+      "/api/shades-preview",
+      "/api/shades-preview/events"
+    ]
+  },
+  "schema_contracts": {
+    "openhab/scripts/astro_geometry.py": [
+      "earthship-astro-geometry-request/v1",
+      "earthship-astro-geometry-source/v1",
+      "earthship-native-solar-elevation/v2",
+      "earthship-native-solar-geometry/v1"
+    ],
+    "openhab/scripts/astro_geometry_series.py": [
+      "earthship-astro-geometry-series-request/v1",
+      "earthship-native-solar-geometry-series/v1"
+    ],
+    "openhab/scripts/calibrated_score_runtime.py": [
+      "earthship-calibrated-producers/v1"
+    ],
+    "openhab/scripts/completed_trough_score.py": [
+      "earthship-soc-prospective-error-evidence/v1"
+    ],
+    "openhab/scripts/daily_pv_monitor.py": [
+      "earthship-daily-pv-potential-receipt/v1",
+      "earthship-daily-pv-potential/v2",
+      "earthship-daily-pv-potential/v3",
+      "earthship-pv-prospective-hour-score/v1",
+      "earthship-pv-prospective-hour-score/v3"
+    ],
+    "openhab/scripts/daily_pv_performance.py": [
+      "earthship-pv-potential-performance/v1",
+      "earthship-pv-prospective-hour-score/v1",
+      "earthship-pv-prospective-hour-score/v2",
+      "earthship-pv-prospective-hour-score/v3"
+    ],
+    "openhab/scripts/daily_pv_worker.py": [
+      "earthship-daily-pv-potential-receipt/v1",
+      "earthship-daily-pv-potential/v1",
+      "earthship-daily-pv-potential/v3"
+    ],
+    "openhab/scripts/fixtures/household-feeder-plan-original-v1.json": [
+      "earthship-control-registry/v1",
+      "earthship-household-intent/v1",
+      "earthship-household-shadow-plan-receipt/v1",
+      "earthship-household-shadow-plan/v1",
+      "earthship-household-snapshot/v1",
+      "earthship-shadow-coordination-fact/v1",
+      "earthship-shadow-coordination/v1"
+    ],
+    "openhab/scripts/historical_energy_capture.py": [
+      "earthship-historical-energy-index/v1",
+      "earthship-historical-energy-summary/v1"
+    ],
+    "openhab/scripts/historical_household_train.py": [
+      "earthship-historical-household-dataset/v1",
+      "earthship-historical-household-experiment/v1"
+    ],
+    "openhab/scripts/historical_irradiance_train.py": [
+      "earthship-historical-irradiance-training/v1"
+    ],
+    "openhab/scripts/historical_measurement_capture.py": [
+      "earthship-historical-temperature-index/v1"
+    ],
+    "openhab/scripts/historical_numeric_capture.py": [
+      "earthship-historical-numeric-index/v1"
+    ],
+    "openhab/scripts/historical_physics_train.py": [
+      "earthship-historical-native-physics-fit/v1"
+    ],
+    "openhab/scripts/historical_pv_directional_train.py": [
+      "earthship-historical-pv-directional-experiment/v1"
+    ],
+    "openhab/scripts/historical_pv_horizon_assess.py": [
+      "earthship-pv-horizon-data/v2",
+      "earthship-pv-horizon-experiment/v1"
+    ],
+    "openhab/scripts/historical_pv_legacy_assess.py": [
+      "earthship-pv-legacy-augmentation-comparison/v1",
+      "earthship-pv-legacy-augmentation-experiment/v1",
+      "earthship-pv-legacy-augmented-pairs/v2"
+    ],
+    "openhab/scripts/historical_pv_legacy_capture.py": [
+      "earthship-pv-legacy-source-index/v1"
+    ],
+    "openhab/scripts/historical_pv_policy_assess.py": [
+      "earthship-pv-policy-experiment/v1"
+    ],
+    "openhab/scripts/historical_pv_train.py": [
+      "earthship-historical-pv-calibration-data/v2",
+      "earthship-historical-pv-training/v1",
+      "earthship-pv-horizon-data/v2"
+    ],
+    "openhab/scripts/historical_radiation_capture.py": [
+      "earthship-historical-radiation-index/v1",
+      "earthship-historical-radiation-source/v1"
+    ],
+    "openhab/scripts/historical_thermal_compare.py": [
+      "earthship-historical-thermal-cadence-comparison/v1",
+      "earthship-historical-thermal-comparison-data/v1",
+      "earthship-historical-thermal-comparison-data/v2",
+      "earthship-historical-thermal-irradiance-comparison/v1"
+    ],
+    "openhab/scripts/historical_thermal_conditioning_compare.py": [
+      "earthship-thermal-conditioning-comparison-data/v1",
+      "earthship-thermal-conditioning-comparison/v1"
+    ],
+    "openhab/scripts/historical_training.py": [
+      "earthship-historical-training-experiment/v1"
+    ],
+    "openhab/scripts/historical_weather_capture.py": [
+      "earthship-historical-weather-inventory-source/v1",
+      "earthship-historical-weather-inventory/v1"
+    ],
+    "openhab/scripts/historical_weather_select.py": [
+      "earthship-historical-weather-selection/v1"
+    ],
+    "openhab/scripts/historical_wind_rain_train.py": [
+      "earthship-historical-site-weather-experiment/v1"
+    ],
+    "openhab/scripts/household/battery_outcomes.py": [
+      "earthship-household-battery-endpoint-source/v1",
+      "earthship-household-battery-outcome-receipt/v1",
+      "earthship-household-battery-performance/v1",
+      "earthship-household-model-plan-receipt/v6"
+    ],
+    "openhab/scripts/household/capabilities.py": [
+      "earthship-control-registry/v1",
+      "earthship-openhab-managed-resources/v1"
+    ],
+    "openhab/scripts/household/capture.py": [
+      "earthship-household-inputs/v1"
+    ],
+    "openhab/scripts/household/control_contracts.py": [
+      "earthship-control-reasons/v1",
+      "earthship-control-request/v2",
+      "earthship-control-result/v2"
+    ],
+    "openhab/scripts/household/daily_energy_source.py": [
+      "earthship-household-daily-energy-source/v1"
+    ],
+    "openhab/scripts/household/energy_configuration.py": [
+      "earthship-household-energy-configuration-projection/v1",
+      "earthship-household-energy-configuration/v1"
+    ],
+    "openhab/scripts/household/energy_model.py": [
+      "earthship-household-energy-inputs/v1",
+      "earthship-household-energy-projection/v1",
+      "earthship-household-prepared-energy/v1",
+      "earthship-household-prepared-energy/v2",
+      "earthship-household-prepared-energy/v3",
+      "earthship-household-snapshot/v5",
+      "earthship-household-snapshot/v6"
+    ],
+    "openhab/scripts/household/energy_outcome_sources.py": [
+      "earthship-household-energy-night-source/v1"
+    ],
+    "openhab/scripts/household/energy_outcomes.py": [
+      "earthship-household-energy-outcome-receipt/v1"
+    ],
+    "openhab/scripts/household/energy_persistence.py": [
+      "earthship-household-battery-metric-source/v1",
+      "earthship-household-energy-persistence/v1"
+    ],
+    "openhab/scripts/household/energy_source_snapshot.py": [
+      "earthship-household-energy-source-context/v1",
+      "earthship-household-snapshot/v5"
+    ],
+    "openhab/scripts/household/fixtures/energy-production-v1.json": [
+      "earthship-production-energy-parity/v1"
+    ],
+    "openhab/scripts/household/intents.py": [
+      "earthship-household-intent/v1",
+      "earthship-household-snapshot/v1",
+      "earthship-household-snapshot/v3",
+      "earthship-household-snapshot/v4",
+      "earthship-household-snapshot/v5",
+      "earthship-household-snapshot/v6"
+    ],
+    "openhab/scripts/household/measured_weather.py": [
+      "earthship-household-measured-weather-projection/v1",
+      "earthship-household-measured-weather/v1"
+    ],
+    "openhab/scripts/household/measured_weather_snapshot.py": [
+      "earthship-household-measured-source-context/v1",
+      "earthship-household-snapshot/v6"
+    ],
+    "openhab/scripts/household/model_snapshot.py": [
+      "earthship-household-snapshot/v1",
+      "earthship-household-snapshot/v3",
+      "earthship-household-snapshot/v4",
+      "earthship-household-snapshot/v5",
+      "earthship-household-snapshot/v6"
+    ],
+    "openhab/scripts/household/outcome_origin.py": [
+      "earthship-household-outcome-origin/v1",
+      "earthship-household-outcome-origin/v2",
+      "earthship-household-prepared-thermal/v2",
+      "earthship-household-prepared-thermal/v3"
+    ],
+    "openhab/scripts/household/outcomes.py": [
+      "earthship-household-chronological-summary/v1",
+      "earthship-household-outcome-receipt/v1"
+    ],
+    "openhab/scripts/household/owner_policy.py": [
+      "earthship-greywater-policy-source/v1"
+    ],
+    "openhab/scripts/household/owner_sources.py": [
+      "earthship-household-owner-source/v1",
+      "earthship-shadow-coordination-fact/v1",
+      "earthship-shadow-coordination/v1",
+      "earthship-shadow-coordination/v2",
+      "earthship-shadow-coordination/v3"
+    ],
+    "openhab/scripts/household/pipeline.py": [
+      "earthship-household-intent/v1",
+      "earthship-household-model-plan-receipt/v1",
+      "earthship-household-model-plan-receipt/v2",
+      "earthship-household-model-plan-receipt/v3",
+      "earthship-household-model-plan-receipt/v4",
+      "earthship-household-model-plan-receipt/v5",
+      "earthship-household-model-plan-receipt/v6",
+      "earthship-household-prepared-energy/v2",
+      "earthship-household-prepared-energy/v3",
+      "earthship-household-snapshot/v3",
+      "earthship-household-snapshot/v4",
+      "earthship-household-snapshot/v5",
+      "earthship-household-snapshot/v6",
+      "earthship-household-trajectory-energy-projection/v1"
+    ],
+    "openhab/scripts/household/planning.py": [
+      "earthship-household-shadow-plan-receipt/v1",
+      "earthship-household-shadow-plan-receipt/v2",
+      "earthship-household-shadow-plan-receipt/v3",
+      "earthship-household-shadow-plan-receipt/v4",
+      "earthship-household-shadow-plan-receipt/v5",
+      "earthship-household-shadow-plan/v1",
+      "earthship-household-snapshot/v3",
+      "earthship-household-snapshot/v4",
+      "earthship-household-snapshot/v5",
+      "earthship-household-snapshot/v6",
+      "earthship-shadow-coordination-fact/v1",
+      "earthship-shadow-coordination/v1",
+      "earthship-shadow-coordination/v2",
+      "earthship-shadow-coordination/v3"
+    ],
+    "openhab/scripts/household/power_capture.py": [
+      "earthship-household-power-inputs/v1"
+    ],
+    "openhab/scripts/household/power_flows.py": [
+      "earthship-household-load-topology-source/v1",
+      "earthship-household-load-topology/v1",
+      "earthship-household-power-flows/v1"
+    ],
+    "openhab/scripts/household/power_snapshot.py": [
+      "earthship-household-power-inputs/v1",
+      "earthship-household-power-snapshot-receipt/v1",
+      "earthship-household-snapshot/v2"
+    ],
+    "openhab/scripts/household/replay.py": [
+      "earthship-household-foundation-receipt/v1",
+      "earthship-household-inputs/v1"
+    ],
+    "openhab/scripts/household/resources.py": [
+      "earthship-household-resource-drift/v1",
+      "earthship-household-resource-receipt/v1"
+    ],
+    "openhab/scripts/household/sensor_observations.py": [
+      "earthship-household-sensor-snapshot/v1",
+      "earthship-observation/v1",
+      "earthship-prepared-sensor-observations/v1",
+      "earthship-sensor-view/v1"
+    ],
+    "openhab/scripts/household/snapshot.py": [
+      "earthship-household-snapshot/v1"
+    ],
+    "openhab/scripts/household/thermal_model.py": [
+      "earthship-household-model-runtime/v1",
+      "earthship-household-model-runtime/v2",
+      "earthship-household-model-runtime/v3",
+      "earthship-household-prepared-thermal/v1",
+      "earthship-household-prepared-thermal/v2",
+      "earthship-household-prepared-thermal/v3",
+      "earthship-household-thermal-projection/v1",
+      "earthship-household-thermal-projection/v2",
+      "earthship-native-irradiance-shade-dynamics/v4",
+      "earthship-native-joint-shade-dynamics/v3",
+      "earthship-provisional-thermal-forecast/v1",
+      "earthship-provisional-thermal-forecast/v2",
+      "earthship-provisional-thermal-origin/v3"
+    ],
+    "openhab/scripts/household/thermal_weather_conditioning.py": [
+      "earthship-thermal-weather-admission/v1",
+      "earthship-thermal-weather-context/v1",
+      "earthship-thermal-weather-model-capsule/v1"
+    ],
+    "openhab/scripts/household/trajectory_energy.py": [
+      "earthship-household-prepared-trajectory-energy/v1",
+      "earthship-household-trajectory-energy-projection/v1"
+    ],
+    "openhab/scripts/household/weather_context.py": [
+      "earthship-household-prepared-thermal/v2",
+      "earthship-household-prepared-thermal/v3",
+      "earthship-household-prepared-weather/v1",
+      "earthship-household-prepared-weather/v2",
+      "earthship-household-prepared-weather/v3",
+      "earthship-household-prepared-weather/v4",
+      "earthship-provisional-thermal-origin/v3"
+    ],
+    "openhab/scripts/household/weather_snapshot.py": [
+      "earthship-household-snapshot/v4",
+      "earthship-household-weather-source-context/v1"
+    ],
+    "openhab/scripts/household_ac_load_artifact.py": [
+      "earthship-ac-load-model-artifact/v1"
+    ],
+    "openhab/scripts/household_ac_load_model.py": [
+      "earthship-ac-load-forecast/v1",
+      "earthship-ac-load-profile/v1"
+    ],
+    "openhab/scripts/household_ac_load_sources.py": [
+      "earthship-ac-load-day-accounting/v1",
+      "earthship-ac-load-day-source/v1"
+    ],
+    "openhab/scripts/household_ac_load_store.py": [
+      "earthship-ac-load-admission/v1",
+      "earthship-ac-load-admitted-source/v1",
+      "earthship-ac-load-current/v1"
+    ],
+    "openhab/scripts/household_ac_load_window.py": [
+      "earthship-ac-load-hour-source/v1"
+    ],
+    "openhab/scripts/household_battery_score.py": [
+      "earthship-household-battery-performance/v1",
+      "earthship-household-battery-sample-index/v1",
+      "earthship-household-model-plan-receipt/v6"
+    ],
+    "openhab/scripts/household_calibrated_energy.py": [
+      "earthship-household-calibrated-energy-receipt/v1"
+    ],
+    "openhab/scripts/household_calibrated_energy_worker.py": [
+      "earthship-household-calibrated-energy-observation/v1",
+      "earthship-household-calibrated-energy-observation/v2",
+      "earthship-household-calibrated-energy-observation/v3"
+    ],
+    "openhab/scripts/household_calibrated_outcomes.py": [
+      "earthship-calibrated-energy-verified-sample/v1",
+      "earthship-household-calibrated-energy-outcome/v1",
+      "earthship-household-calibrated-energy-performance/v1",
+      "earthship-household-calibrated-energy-performance/v2"
+    ],
+    "openhab/scripts/household_calibrated_score.py": [
+      "earthship-calibrated-outcome-index/v1",
+      "earthship-household-calibrated-energy-performance/v1"
+    ],
+    "openhab/scripts/household_capture.py": [
+      "earthship-household-capture-config/v1"
+    ],
+    "openhab/scripts/household_chronology.py": [
+      "earthship-household-chronological-admission/v1",
+      "earthship-household-chronological-summary/v1"
+    ],
+    "openhab/scripts/household_cycle.py": [
+      "earthship-household-cycle-sources/v1",
+      "earthship-household-cycle-sources/v2",
+      "earthship-household-cycle-sources/v3",
+      "earthship-household-cycle-sources/v4",
+      "earthship-household-cycle-sources/v5",
+      "earthship-household-cycle-sources/v6",
+      "earthship-household-cycle-sources/v7",
+      "earthship-household-cycle-sources/v8",
+      "earthship-household-model-plan-receipt/v6",
+      "earthship-household-prepared-thermal/v2",
+      "earthship-household-prepared-thermal/v3",
+      "earthship-household-prepared-weather/v2",
+      "earthship-household-prepared-weather/v3",
+      "earthship-household-prepared-weather/v4",
+      "earthship-provisional-thermal-delivery/v1",
+      "earthship-provisional-thermal-delivery/v2",
+      "earthship-provisional-thermal-origin/v1",
+      "earthship-provisional-thermal-origin/v2",
+      "earthship-provisional-thermal-origin/v3",
+      "earthship-shadow-coordination/v1",
+      "earthship-weathernext-thermal-live-config/v1",
+      "earthship-weathernext-thermal-live-config/v2"
+    ],
+    "openhab/scripts/household_cycle_deploy.py": [
+      "earthship-household-cycle-config/v1",
+      "earthship-household-cycle-deployment/v1",
+      "earthship-household-cycle-deployment/v2",
+      "earthship-household-cycle-deployment/v3",
+      "earthship-provisional-thermal-live-config/v1",
+      "earthship-provisional-thermal-live-config/v2",
+      "earthship-provisional-thermal-live-config/v3",
+      "earthship-weathernext-thermal-live-config/v1",
+      "earthship-weathernext-thermal-live-config/v2"
+    ],
+    "openhab/scripts/household_cycle_sources.py": [
+      "earthship-greywater-policy-source/v1",
+      "earthship-household-battery-metric-source/v1",
+      "earthship-household-cycle-config/v1",
+      "earthship-household-cycle-sources/v8",
+      "earthship-household-owner-source/v1"
+    ],
+    "openhab/scripts/household_energy_forecast.py": [
+      "earthship-household-energy-forecast-receipt/v1",
+      "earthship-household-energy-forecast/v1",
+      "earthship-household-model-plan-receipt/v4",
+      "earthship-household-model-plan-receipt/v5",
+      "earthship-household-model-plan-receipt/v6"
+    ],
+    "openhab/scripts/household_energy_state.py": [
+      "earthship-household-energy-forecast-receipt/v1",
+      "earthship-household-energy-observation/v1",
+      "earthship-household-solar-storage-performance/v1",
+      "earthship-household-solar-storage-samples/v1"
+    ],
+    "openhab/scripts/household_forecast_score.py": [
+      "earthship-household-cycle-deployment/v3",
+      "earthship-native-score-dispatch/v2",
+      "earthship-weathernext-thermal-live-config/v1",
+      "earthship-weathernext-thermal-live-config/v2"
+    ],
+    "openhab/scripts/household_native_family.py": [
+      "earthship-household-cycle-deployment/v2",
+      "earthship-household-cycle-deployment/v3",
+      "earthship-native-score-dispatch/v2",
+      "earthship-native-thermal-service-family/v1",
+      "earthship-native-thermal-service-family/v2",
+      "earthship-weathernext-thermal-live-config/v2"
+    ],
+    "openhab/scripts/household_native_geometry_prepare.py": [
+      "earthship-native-geometry-libraries/v1"
+    ],
+    "openhab/scripts/household_native_handoff.py": [
+      "earthship-native-thermal-handoff/v1",
+      "earthship-native-thermal-handoff/v2",
+      "earthship-native-thermal-handoff/v3",
+      "earthship-native-thermal-service-family/v2"
+    ],
+    "openhab/scripts/household_native_install.py": [
+      "earthship-native-thermal-handoff/v3",
+      "earthship-native-thermal-service-family/v2"
+    ],
+    "openhab/scripts/household_native_training.py": [
+      "earthship-native-development-fit-evidence/v4",
+      "earthship-native-score-history-window/v1",
+      "earthship-native-serving-model-binding/v1"
+    ],
+    "openhab/scripts/household_observation.py": [
+      "earthship-household-intent-qualification/v2",
+      "earthship-household-model-plan-receipt/v2",
+      "earthship-household-model-plan-receipt/v3",
+      "earthship-household-model-plan-receipt/v4",
+      "earthship-household-model-plan-receipt/v5",
+      "earthship-household-model-plan-receipt/v6",
+      "earthship-household-observation/v1",
+      "earthship-household-observation/v2",
+      "earthship-household-observation/v3",
+      "earthship-household-observation/v4",
+      "earthship-household-policy-block-comparison/v1",
+      "earthship-shadow-coordination/v3"
+    ],
+    "openhab/scripts/household_outcomes.py": [
+      "earthship-household-model-plan-receipt/v2",
+      "earthship-household-model-plan-receipt/v3",
+      "earthship-household-model-plan-receipt/v4",
+      "earthship-household-model-plan-receipt/v5",
+      "earthship-household-model-plan-receipt/v6",
+      "earthship-household-shadow-plan-receipt/v2",
+      "earthship-household-shadow-plan-receipt/v3",
+      "earthship-household-shadow-plan-receipt/v4",
+      "earthship-household-shadow-plan-receipt/v5"
+    ],
+    "openhab/scripts/household_pipeline.py": [
+      "earthship-household-energy-source-context/v1",
+      "earthship-household-measured-source-context/v1",
+      "earthship-household-model-plan-receipt/v2",
+      "earthship-household-model-plan-receipt/v3",
+      "earthship-household-model-plan-receipt/v4",
+      "earthship-household-model-plan-receipt/v5",
+      "earthship-household-model-plan-receipt/v6",
+      "earthship-household-prepared-thermal/v2",
+      "earthship-household-prepared-thermal/v3",
+      "earthship-household-weather-source-context/v1"
+    ],
+    "openhab/scripts/household_plan.py": [
+      "earthship-household-shadow-plan-receipt/v2",
+      "earthship-household-shadow-plan-receipt/v3",
+      "earthship-household-shadow-plan-receipt/v4",
+      "earthship-household-shadow-plan-receipt/v5"
+    ],
+    "openhab/scripts/household_power_flows.py": [
+      "earthship-household-model-plan-receipt/v4",
+      "earthship-household-model-plan-receipt/v5",
+      "earthship-household-model-plan-receipt/v6",
+      "earthship-household-power-flow-receipt/v1"
+    ],
+    "openhab/scripts/household_profiled_forecast.py": [
+      "earthship-household-profiled-energy-receipt/v1"
+    ],
+    "openhab/scripts/household_profiled_outcomes.py": [
+      "earthship-household-profiled-energy-outcome/v1"
+    ],
+    "openhab/scripts/household_profiled_samples.py": [
+      "earthship-household-profiled-energy-performance/v1",
+      "earthship-profiled-energy-verified-sample/v1"
+    ],
+    "openhab/scripts/household_profiled_state.py": [
+      "earthship-household-profiled-energy-observation/v1",
+      "earthship-household-profiled-energy-samples/v1"
+    ],
+    "openhab/scripts/household_profiled_storage.py": [
+      "earthship-ac-load-forecast/v1"
+    ],
+    "openhab/scripts/household_pv_model.py": [
+      "earthship-household-pv-projection/v1",
+      "earthship-household-pv-system-source/v1",
+      "earthship-household-pv-system/v1"
+    ],
+    "openhab/scripts/household_pv_outcomes.py": [
+      "earthship-household-captured-pv-outcome/v1",
+      "earthship-household-captured-pv-performance/v1"
+    ],
+    "openhab/scripts/household_pv_samples.py": [
+      "earthship-household-captured-pv-verified-sample/v1"
+    ],
+    "openhab/scripts/household_pv_score.py": [
+      "earthship-household-captured-pv-samples/v1",
+      "earthship-household-solar-storage-samples/v1"
+    ],
+    "openhab/scripts/household_pv_window.py": [
+      "earthship-controller-pv-hour-source/v1"
+    ],
+    "openhab/scripts/household_retained_native_score.py": [
+      "earthship-provisional-thermal-delivery/v2"
+    ],
+    "openhab/scripts/household_solar_horizon.py": [
+      "earthship-household-solar-horizon-source/v1",
+      "earthship-household-solar-horizon/v1"
+    ],
+    "openhab/scripts/household_solar_outcomes.py": [
+      "earthship-household-solar-storage-outcome/v1",
+      "earthship-household-solar-storage-performance/v1"
+    ],
+    "openhab/scripts/household_solar_score.py": [
+      "earthship-household-energy-forecast-receipt/v1"
+    ],
+    "openhab/scripts/household_trajectory_plan.py": [
+      "earthship-household-model-plan-receipt/v6",
+      "earthship-household-trajectory-shadow-receipt/v1"
+    ],
+    "openhab/scripts/native_irradiance_shade.py": [
+      "earthship-native-daylight-irradiance/v1",
+      "earthship-native-irradiance-shade-dynamics/v4"
+    ],
+    "openhab/scripts/native_joint_shade.py": [
+      "earthship-native-joint-shade-dynamics/v3",
+      "earthship-thermal-shade-context/v1"
+    ],
+    "openhab/scripts/native_model_serving_receipt.py": [
+      "earthship-household-cycle-deployment/v3",
+      "earthship-native-candidate-full-replay/v1",
+      "earthship-native-model-verification-receipt/v1"
+    ],
+    "openhab/scripts/native_thermal_artifact.py": [
+      "earthship-native-development-fit-evidence/v2",
+      "earthship-native-development-fit-evidence/v3",
+      "earthship-native-development-fit-evidence/v4",
+      "earthship-native-solar-provisional-fit/v2",
+      "earthship-native-solar-provisional-fit/v3",
+      "earthship-native-thermal-runtime-binding/v1",
+      "earthship-provisional-thermal-candidate/v1",
+      "earthship-provisional-thermal-candidate/v2",
+      "earthship-provisional-thermal-candidate/v3",
+      "earthship-provisional-thermal-candidate/v4"
+    ],
+    "openhab/scripts/native_thermal_fit.py": [
+      "earthship-native-solar-provisional-fit/v1",
+      "earthship-native-solar-provisional-fit/v2",
+      "earthship-native-solar-provisional-fit/v3"
+    ],
+    "openhab/scripts/native_thermal_forecast.py": [
+      "earthship-provisional-thermal-forecast/v2",
+      "earthship-provisional-thermal-origin/v2",
+      "earthship-provisional-thermal-origin/v3",
+      "earthship-provisional-thermal-publication/v2"
+    ],
+    "openhab/scripts/native_thermal_inputs.py": [
+      "earthship-native-clear-sky-fraction/v2",
+      "earthship-native-solar-development-data/v1"
+    ],
+    "openhab/scripts/native_thermal_live.py": [
+      "earthship-native-forecast-geometry/v1",
+      "earthship-native-serving-model-binding/v1",
+      "earthship-native-thermal-gap/v1",
+      "earthship-provisional-thermal-delivery/v2",
+      "earthship-provisional-thermal-forecast/v2",
+      "earthship-provisional-thermal-publication/v2",
+      "earthship-weathernext-thermal-live-config/v1",
+      "earthship-weathernext-thermal-live-config/v2"
+    ],
+    "openhab/scripts/native_thermal_model.py": [
+      "earthship-native-installed-shade-dynamics/v2"
+    ],
+    "openhab/scripts/native_thermal_score.py": [
+      "earthship-native-thermal-completion/v1",
+      "earthship-native-thermal-score-query-binding/v1",
+      "earthship-native-thermal-score-sources/v1",
+      "earthship-provisional-thermal-scored-pair/v2"
+    ],
+    "openhab/scripts/thermal_installed_calibrate.py": [
+      "earthship-installed-shade-calibration-build-receipt/v1",
+      "earthship-installed-shade-calibration-config/v1"
+    ],
+    "openhab/scripts/thermal_installed_register.py": [
+      "earthship-installed-shade-candidate/v3",
+      "earthship-installed-shade-registration-build-receipt/v1",
+      "earthship-installed-shade-registration-config/v1"
+    ],
+    "openhab/scripts/thermal_intel.py": [
+      "earthship-thermal-origin-temperatures/v2"
+    ],
+    "openhab/scripts/thermal_model/action_history.py": [
+      "earthship-held-shade-forcing/v1"
+    ],
+    "openhab/scripts/thermal_model/airflow.py": [
+      "earthship-split-airflow-dataset/v2"
+    ],
+    "openhab/scripts/thermal_model/airflow_artifact.py": [
+      "earthship-split-airflow-dataset/v2",
+      "earthship-split-airflow-shadow-artifact/v2"
+    ],
+    "openhab/scripts/thermal_model/airflow_capture.py": [
+      "earthship-split-airflow-archive-reference/v1"
+    ],
+    "openhab/scripts/thermal_model/airflow_forecast.py": [
+      "earthship-split-airflow-forecast-capture/v2",
+      "earthship-split-airflow-forecast/v2"
+    ],
+    "openhab/scripts/thermal_model/airflow_training.py": [
+      "earthship-split-airflow-retrospective-fold/v2"
+    ],
+    "openhab/scripts/thermal_model/artifacts.py": [
+      "earthship-thermal-backtest/v3",
+      "earthship-thermal-model/v5",
+      "earthship-thermal-model/v6"
+    ],
+    "openhab/scripts/thermal_model/environment_bundle.py": [
+      "earthship-thermal-environment-files/v1",
+      "earthship-thermal-environment-restore/v1"
+    ],
+    "openhab/scripts/thermal_model/fit_evidence.py": [
+      "earthship-thermal-fit-evidence/v1"
+    ],
+    "openhab/scripts/thermal_model/forcing_capture.py": [
+      "earthship-thermal-shadow-forcing-capture/v1",
+      "earthship-thermal-shadow-forcing-capture/v2"
+    ],
+    "openhab/scripts/thermal_model/graduation_decision.py": [
+      "earthship-thermal-model/v5",
+      "earthship-thermal-model/v6",
+      "earthship-thermal-origin-capture/v3",
+      "earthship-thermal-origin-capture/v4",
+      "earthship-thermal-qualification-report/v3",
+      "earthship-thermal-qualification-report/v4",
+      "earthship-thermal-source-scored-pair/v2",
+      "earthship-thermal-training-source-assessment/v2"
+    ],
+    "openhab/scripts/thermal_model/graduation_evidence.py": [
+      "earthship-thermal-origin-capture/v3",
+      "earthship-thermal-origin-capture/v4",
+      "earthship-thermal-source-scored-pair/v1",
+      "earthship-thermal-source-scored-pair/v2"
+    ],
+    "openhab/scripts/thermal_model/graduation_policy.py": [
+      "earthship-thermal-graduation-policy/v1"
+    ],
+    "openhab/scripts/thermal_model/graduation_statistics.py": [
+      "earthship-thermal-statistical-assessment/v1",
+      "earthship-thermal-statistical-assessment/v2"
+    ],
+    "openhab/scripts/thermal_model/installed_shade_artifact.py": [
+      "earthship-installed-shade-candidate/v1",
+      "earthship-installed-shade-fit-evidence/v1"
+    ],
+    "openhab/scripts/thermal_model/installed_shade_calibrated_artifact.py": [
+      "earthship-installed-shade-candidate/v2",
+      "earthship-installed-shade-candidate/v3",
+      "earthship-installed-shade-candidate/v4",
+      "earthship-installed-shade-candidate/v5"
+    ],
+    "openhab/scripts/thermal_model/installed_shade_calibrated_origin.py": [
+      "earthship-installed-shade-forecast/v2",
+      "earthship-installed-shade-forecast/v3",
+      "earthship-installed-shade-forecast/v4",
+      "earthship-installed-shade-forecast/v7",
+      "earthship-installed-shade-origin/v12",
+      "earthship-installed-shade-origin/v2",
+      "earthship-installed-shade-origin/v4",
+      "earthship-installed-shade-origin/v6",
+      "earthship-installed-shade-source-scored-pair/v12",
+      "earthship-installed-shade-source-scored-pair/v2",
+      "earthship-installed-shade-source-scored-pair/v4",
+      "earthship-installed-shade-source-scored-pair/v6"
+    ],
+    "openhab/scripts/thermal_model/installed_shade_calibration.py": [
+      "earthship-installed-shade-calibration/v1",
+      "earthship-installed-shade-calibration/v2",
+      "earthship-installed-shade-calibration/v3",
+      "earthship-installed-shade-calibration/v4",
+      "earthship-installed-shade-score-sources/v2",
+      "earthship-installed-shade-score-sources/v4",
+      "earthship-installed-shade-score-sources/v6"
+    ],
+    "openhab/scripts/thermal_model/installed_shade_live.py": [
+      "earthship-installed-shade-candidate/v1",
+      "earthship-installed-shade-candidate/v2",
+      "earthship-installed-shade-candidate/v3",
+      "earthship-installed-shade-candidate/v5",
+      "earthship-installed-shade-origin/v10",
+      "earthship-installed-shade-qualification-report/v1",
+      "earthship-installed-shade-qualification-report/v2",
+      "earthship-installed-shade-qualification-report/v3",
+      "earthship-installed-shade-qualification-report/v4",
+      "earthship-installed-shade-qualification-report/v5",
+      "earthship-installed-shade-qualification-report/v7"
+    ],
+    "openhab/scripts/thermal_model/installed_shade_origin.py": [
+      "earthship-installed-shade-forecast/v1",
+      "earthship-installed-shade-forecast/v5",
+      "earthship-installed-shade-forecast/v6",
+      "earthship-installed-shade-origin/v1",
+      "earthship-installed-shade-origin/v10",
+      "earthship-installed-shade-origin/v8",
+      "earthship-installed-shade-source-scored-pair/v1",
+      "earthship-installed-shade-source-scored-pair/v10",
+      "earthship-installed-shade-source-scored-pair/v8"
+    ],
+    "openhab/scripts/thermal_model/installed_shade_publication.py": [
+      "earthship-installed-shade-candidate/v1",
+      "earthship-installed-shade-forecast/v1",
+      "earthship-installed-shade-forecast/v2",
+      "earthship-installed-shade-forecast/v3",
+      "earthship-installed-shade-forecast/v4",
+      "earthship-installed-shade-forecast/v5",
+      "earthship-installed-shade-forecast/v6",
+      "earthship-installed-shade-forecast/v7",
+      "earthship-installed-shade-publication/v1",
+      "earthship-installed-shade-publication/v2",
+      "earthship-installed-shade-publication/v3",
+      "earthship-installed-shade-publication/v4",
+      "earthship-installed-shade-qualification-report/v2",
+      "earthship-installed-shade-qualification-report/v3",
+      "earthship-installed-shade-qualification-report/v4",
+      "earthship-installed-shade-qualification-report/v5",
+      "earthship-installed-shade-qualification-report/v6",
+      "earthship-installed-shade-qualification-report/v7",
+      "earthship-installed-shade-release-inputs/v1",
+      "earthship-installed-shade-release-inputs/v2",
+      "earthship-installed-shade-release-inputs/v3",
+      "earthship-installed-shade-release-inputs/v4",
+      "earthship-installed-shade-release/v1",
+      "earthship-installed-shade-release/v2",
+      "earthship-installed-shade-release/v3",
+      "earthship-installed-shade-release/v4"
+    ],
+    "openhab/scripts/thermal_model/installed_shade_published_origin.py": [
+      "earthship-installed-shade-origin/v10",
+      "earthship-installed-shade-origin/v11",
+      "earthship-installed-shade-origin/v12",
+      "earthship-installed-shade-origin/v13",
+      "earthship-installed-shade-origin/v3",
+      "earthship-installed-shade-origin/v5",
+      "earthship-installed-shade-origin/v7",
+      "earthship-installed-shade-origin/v9",
+      "earthship-installed-shade-source-scored-pair/v11",
+      "earthship-installed-shade-source-scored-pair/v13",
+      "earthship-installed-shade-source-scored-pair/v3",
+      "earthship-installed-shade-source-scored-pair/v5",
+      "earthship-installed-shade-source-scored-pair/v7",
+      "earthship-installed-shade-source-scored-pair/v9"
+    ],
+    "openhab/scripts/thermal_model/installed_shade_qualification.py": [
+      "earthship-installed-shade-candidate/v5",
+      "earthship-installed-shade-origin/v11",
+      "earthship-installed-shade-origin/v13",
+      "earthship-installed-shade-origin/v7",
+      "earthship-installed-shade-origin/v9",
+      "earthship-installed-shade-policy-registration/v3",
+      "earthship-installed-shade-policy-registration/v4",
+      "earthship-installed-shade-qualification-report/v1",
+      "earthship-installed-shade-qualification-report/v2",
+      "earthship-installed-shade-qualification-report/v3",
+      "earthship-installed-shade-qualification-report/v4",
+      "earthship-installed-shade-qualification-report/v5",
+      "earthship-installed-shade-qualification-report/v7",
+      "earthship-installed-shade-score-sources/v2",
+      "earthship-installed-shade-score-sources/v6"
+    ],
+    "openhab/scripts/thermal_model/installed_shade_raw_score_sources.py": [
+      "earthship-installed-shade-native-origin-binding/v1",
+      "earthship-installed-shade-native-score-binding/v1",
+      "earthship-installed-shade-origin/v11",
+      "earthship-installed-shade-origin/v13",
+      "earthship-installed-shade-origin/v7",
+      "earthship-installed-shade-origin/v9",
+      "earthship-thermal-origin-temperatures/v2"
+    ],
+    "openhab/scripts/thermal_model/installed_shade_release_index.py": [
+      "earthship-installed-shade-score-sources/v7"
+    ],
+    "openhab/scripts/thermal_model/installed_shade_score_inputs.py": [
+      "earthship-installed-score-jobs/v4",
+      "earthship-installed-score-registration/v1",
+      "earthship-installed-shade-score-config/v1",
+      "earthship-installed-shade-score-config/v2",
+      "earthship-installed-shade-score-config/v3",
+      "earthship-installed-shade-score-config/v4"
+    ],
+    "openhab/scripts/thermal_model/installed_shade_score_jobs.py": [
+      "earthship-installed-score-job-completion/v1",
+      "earthship-installed-score-job-completion/v2",
+      "earthship-installed-score-job-completion/v3",
+      "earthship-installed-score-job-completion/v4",
+      "earthship-installed-score-jobs/v1",
+      "earthship-installed-score-jobs/v2",
+      "earthship-installed-score-jobs/v3",
+      "earthship-installed-score-jobs/v4"
+    ],
+    "openhab/scripts/thermal_model/installed_shade_training.py": [
+      "earthship-installed-shade-build-receipt/v1",
+      "earthship-installed-shade-training-config/v1"
+    ],
+    "openhab/scripts/thermal_model/joint_solar.py": [
+      "earthship-monotone-joint-shade-solar/v1"
+    ],
+    "openhab/scripts/thermal_model/legacy_recovery.py": [
+      "earthship-thermal-legacy-recovery-generation/v1",
+      "earthship-thermal-model/v4"
+    ],
+    "openhab/scripts/thermal_model/native_dependencies.py": [
+      "earthship-thermal-native-closure/v1",
+      "earthship-thermal-native-closure/v2"
+    ],
+    "openhab/scripts/thermal_model/offline_training.py": [
+      "earthship-thermal-model/v6",
+      "earthship-thermal-training-input-binding/v1",
+      "earthship-thermal-training-input-binding/v2",
+      "earthship-thermal-training-input-binding/v3",
+      "earthship-thermal-training-input-binding/v4"
+    ],
+    "openhab/scripts/thermal_model/origin_capture.py": [
+      "earthship-thermal-known-actions/v1",
+      "earthship-thermal-model/v5",
+      "earthship-thermal-model/v6",
+      "earthship-thermal-origin-capture/v1",
+      "earthship-thermal-origin-capture/v2",
+      "earthship-thermal-origin-capture/v3",
+      "earthship-thermal-origin-capture/v4",
+      "earthship-thermal-runtime-binding/v1"
+    ],
+    "openhab/scripts/thermal_model/policy_registration.py": [
+      "earthship-installed-shade-candidate/v1",
+      "earthship-installed-shade-candidate/v2",
+      "earthship-installed-shade-candidate/v3",
+      "earthship-installed-shade-candidate/v5",
+      "earthship-installed-shade-origin/v1",
+      "earthship-installed-shade-origin/v2",
+      "earthship-installed-shade-policy-registration/v1",
+      "earthship-installed-shade-policy-registration/v2",
+      "earthship-installed-shade-policy-registration/v3",
+      "earthship-installed-shade-policy-registration/v4",
+      "earthship-installed-shade-score-sources/v2",
+      "earthship-installed-shade-score-sources/v6",
+      "earthship-installed-shade-source-scored-pair/v1",
+      "earthship-installed-shade-source-scored-pair/v2",
+      "earthship-thermal-origin-capture/v1",
+      "earthship-thermal-origin-capture/v2",
+      "earthship-thermal-origin-capture/v3",
+      "earthship-thermal-origin-capture/v4",
+      "earthship-thermal-policy-registration/v1",
+      "earthship-thermal-policy-registration/v2",
+      "earthship-thermal-source-scored-pair/v2"
+    ],
+    "openhab/scripts/thermal_model/provisional_artifact.py": [
+      "earthship-provisional-thermal-candidate/v1"
+    ],
+    "openhab/scripts/thermal_model/provisional_forecast.py": [
+      "earthship-provisional-thermal-forecast/v1",
+      "earthship-provisional-thermal-origin/v1",
+      "earthship-provisional-thermal-performance/v1",
+      "earthship-provisional-thermal-publication/v1"
+    ],
+    "openhab/scripts/thermal_model/provisional_score.py": [
+      "earthship-provisional-thermal-performance/v1",
+      "earthship-provisional-thermal-scored-pair/v1"
+    ],
+    "openhab/scripts/thermal_model/release.py": [
+      "earthship-thermal-qualification-report/v3",
+      "earthship-thermal-qualification-report/v4",
+      "earthship-thermal-release/v1",
+      "earthship-thermal-release/v2"
+    ],
+    "openhab/scripts/thermal_model/rollback.py": [
+      "earthship-thermal-rollback-preparation/v1",
+      "earthship-thermal-rollback-snapshot/v1"
+    ],
+    "openhab/scripts/thermal_model/runtime_bundle.py": [
+      "earthship-thermal-runtime-bundle/v1"
+    ],
+    "openhab/scripts/thermal_model/solar.py": [
+      "earthship-clear-sky-fraction/v1",
+      "earthship-solar-elevation/v1"
+    ],
+    "openhab/scripts/thermal_model/training_assembly.py": [
+      "earthship-thermal-training-assembly/v1",
+      "earthship-thermal-training-assembly/v2"
+    ],
+    "openhab/scripts/thermal_model/training_inputs.py": [
+      "earthship-thermal-model/v5",
+      "earthship-thermal-model/v6",
+      "earthship-thermal-training-inputs/v1",
+      "earthship-thermal-training-inputs/v2"
+    ],
+    "openhab/scripts/thermal_model/training_sources.py": [
+      "earthship-thermal-training-sources/v1",
+      "earthship-thermal-training-sources/v2"
+    ],
+    "openhab/scripts/thermal_temperature_runtime.py": [
+      "earthship-thermal-origin-temperatures/v1",
+      "earthship-thermal-origin-temperatures/v2"
+    ],
+    "openhab/scripts/thermal_weather_admit.py": [
+      "earthship-thermal-weather-admission/v1",
+      "earthship-thermal-weather-selection/v1"
+    ],
+    "openhab/scripts/thermal_weather_source.py": [
+      "earthship-thermal-weather-context/v1",
+      "earthship-thermal-weather-selection/v1"
+    ],
+    "openhab/scripts/weather_learning/contracts.py": [
+      "earthship-weathernext-snapshot/v1"
+    ],
+    "openhab/scripts/weather_learning/correction_monitor.py": [
+      "earthship-correction-performance/v2",
+      "earthship-correction-procedure/v1",
+      "earthship-issued-correction-evaluation/v2",
+      "earthship-issued-correction/v1",
+      "earthship-native-irradiance-shade-dynamics/v4",
+      "earthship-native-joint-shade-dynamics/v3",
+      "earthship-native-serving-model-binding/v1",
+      "earthship-provisional-thermal-delivery/v2",
+      "earthship-provisional-thermal-origin/v3"
+    ],
+    "openhab/scripts/weather_learning/correction_performance.py": [
+      "earthship-correction-procedure/v1"
+    ],
+    "openhab/scripts/weather_learning/energy_history.py": [
+      "earthship-historical-energy-hour/v1"
+    ],
+    "openhab/scripts/weather_learning/energy_shadow.py": [
+      "earthship-qualified-rain-source/v1",
+      "earthship-weathernext-rain-comparison/v1",
+      "earthship-weathernext-rain-day/v1"
+    ],
+    "openhab/scripts/weather_learning/evaluation.py": [
+      "earthship-weathernext-temperature-evaluation/v2"
+    ],
+    "openhab/scripts/weather_learning/evidence.py": [
+      "earthship-weather-evidence-inventory/v1"
+    ],
+    "openhab/scripts/weather_learning/historical.py": [
+      "earthship-weathernext-historical-batch/v1"
+    ],
+    "openhab/scripts/weather_learning/historical_measurements.py": [
+      "earthship-historical-temperature-day/v1",
+      "earthship-historical-temperature-grid/v1"
+    ],
+    "openhab/scripts/weather_learning/historical_pairs.py": [
+      "earthship-historical-learning-pair/v1"
+    ],
+    "openhab/scripts/weather_learning/historical_serving.py": [
+      "earthship-historical-weather-selection/v1",
+      "earthship-site-calibration/v2",
+      "earthship-site-weather-gain/v2",
+      "earthship-site-wind-shadow/v1"
+    ],
+    "openhab/scripts/weather_learning/household_calibration.py": [
+      "earthship-apparent-storage-calibration/v1",
+      "earthship-controller-conversion-calibration/v1",
+      "earthship-hourly-load-adjustment/v2"
+    ],
+    "openhab/scripts/weather_learning/irradiance_learning.py": [
+      "earthship-historical-learning-pair/v1",
+      "earthship-local-irradiance-comparison/v2"
+    ],
+    "openhab/scripts/weather_learning/monitor_worker.py": [
+      "earthship-weather-observation-policy/v2"
+    ],
+    "openhab/scripts/weather_learning/monitoring.py": [
+      "earthship-weathernext-weather-performance/v2"
+    ],
+    "openhab/scripts/weather_learning/native_backend.py": [
+      "earthship-weathernext-native-backend/v1",
+      "earthship-weathernext-native-source/v1"
+    ],
+    "openhab/scripts/weather_learning/native_forecast.py": [
+      "earthship-weathernext-native-forecast/v1"
+    ],
+    "openhab/scripts/weather_learning/numeric_history.py": [
+      "earthship-historical-numeric-source/v1"
+    ],
+    "openhab/scripts/weather_learning/performance.py": [
+      "earthship-weather-evaluation/v2",
+      "earthship-weather-temperature-score/v2"
+    ],
+    "openhab/scripts/weather_learning/production_publish.py": [
+      "earthship-weathernext-publication-result/v1"
+    ],
+    "openhab/scripts/weather_learning/production_runtime.py": [
+      "earthship-weather-publication-attempt/v1",
+      "earthship-weather-publication-run/v1"
+    ],
+    "openhab/scripts/weather_learning/production_worker.py": [
+      "earthship-weather-production-config/v1",
+      "earthship-weather-reviewed-release/v1",
+      "earthship-weathernext-publication-provider/v2"
+    ],
+    "openhab/scripts/weather_learning/provenance.py": [
+      "earthship-weather-issue-provenance/v1",
+      "earthship-weather-method-policy/v1",
+      "earthship-weather-selection-policy/v1",
+      "earthship-weather-training-policy/v1"
+    ],
+    "openhab/scripts/weather_learning/provider.py": [
+      "earthship-weathernext-provider/v1",
+      "earthship-weathernext-publication-provider/v2"
+    ],
+    "openhab/scripts/weather_learning/publish.py": [
+      "earthship-weather-provider-shadow/v2"
+    ],
+    "openhab/scripts/weather_learning/pv_calibration.py": [
+      "earthship-pv-calibration-comparison/v3",
+      "earthship-pv-effective-calibration/v1",
+      "earthship-pv-effective-calibration/v2",
+      "earthship-pv-effective-calibration/v3"
+    ],
+    "openhab/scripts/weather_learning/pv_calibration_policy.py": [
+      "earthship-pv-calibration-policy/v1"
+    ],
+    "openhab/scripts/weather_learning/pv_calibration_source.py": [
+      "earthship-historical-pv-directional-experiment/v1",
+      "earthship-pv-directional-calibration/v3"
+    ],
+    "openhab/scripts/weather_learning/pv_directional_calibration.py": [
+      "earthship-pv-directional-calibration/v1",
+      "earthship-pv-directional-calibration/v2",
+      "earthship-pv-directional-calibration/v3",
+      "earthship-pv-directional-comparison/v3"
+    ],
+    "openhab/scripts/weather_learning/pv_horizon_assessment.py": [
+      "earthship-pv-horizon-assessment/v1",
+      "earthship-pv-policy-assessment/v1"
+    ],
+    "openhab/scripts/weather_learning/pv_legacy_history.py": [
+      "earthship-pv-history-http-original/v1"
+    ],
+    "openhab/scripts/weather_learning/pv_refresh.py": [
+      "earthship-pv-incumbent-comparison/v3"
+    ],
+    "openhab/scripts/weather_learning/reassessment.py": [
+      "earthship-paired-model-reassessment/v1"
+    ],
+    "openhab/scripts/weather_learning/shadow.py": [
+      "earthship-weather-provider-shadow/v2",
+      "earthship-weather-shadow-issue/v2",
+      "earthship-weather-shadow-issue/v3",
+      "earthship-weather-shadow-model-receipt/v1",
+      "earthship-weather-shadow-model-receipt/v2"
+    ],
+    "openhab/scripts/weather_learning/site_calibration.py": [
+      "earthship-historical-learning-pair/v1",
+      "earthship-site-calibration-comparison/v2",
+      "earthship-site-calibration/v1",
+      "earthship-site-calibration/v2"
+    ],
+    "openhab/scripts/weather_learning/solar_shadow.py": [
+      "earthship-qualified-solar-proxy-source/v1",
+      "earthship-weathernext-solar-proxy-comparison/v1",
+      "earthship-weathernext-solar-window/v1"
+    ],
+    "openhab/scripts/weather_learning/thermal_conditioning_comparison.py": [
+      "earthship-thermal-conditioning-selection/v1"
+    ],
+    "openhab/scripts/weather_learning/training.py": [
+      "earthship-weathernext-temperature-model/v1",
+      "earthship-weathernext-temperature-model/v2"
+    ],
+    "openhab/scripts/weather_learning/training_dataset.py": [
+      "earthship-historical-learning-dataset/v2",
+      "earthship-historical-learning-pair-chunk/v1"
+    ],
+    "openhab/scripts/weather_learning/weather_response.py": [
+      "earthship-site-weather-gain-comparison/v2",
+      "earthship-site-weather-gain/v1",
+      "earthship-site-weather-gain/v2"
+    ],
+    "openhab/scripts/weather_learning/weathernext_ee.py": [
+      "earthship-weathernext-snapshot/v1"
+    ],
+    "openhab/scripts/weather_learning/wind_history.py": [
+      "earthship-station-wind-http-source/v1"
+    ],
+    "openhab/scripts/weather_learning/worker.py": [
+      "earthship-weathernext-ingest-result/v1"
+    ],
+    "openhab/scripts/weather_temperature_sources.py": [
+      "earthship-native-temperature-query-container/v2",
+      "earthship-native-temperature-query-sources/v1"
+    ],
+    "openhab/scripts/weathernext_ingest.py": [
+      "earthship-weathernext-ingest-result/v1"
+    ],
+    "services/lorawan/engine.py": [
+      "earthship-contact-observation/v1",
+      "earthship-sensor-view/v1"
+    ],
+    "services/lorawan/generate_openhab.py": [
+      "earthship-sensor-view/v1"
+    ],
+    "services/lorawan/runtime.py": [
+      "earthship-observation/v1",
+      "earthship-synthetic-event/v1"
+    ],
+    "services/lorawan/simulate.py": [
+      "earthship-sensor-registry/v1",
+      "earthship-synthetic-event/v1"
+    ],
+    "services/observations/contract.py": [
+      "earthship-observation/v1"
+    ],
+    "services/observations/registry.py": [
+      "earthship-sensor-registry/v1"
+    ],
+    "services/observations/replay.py": [
+      "earthship-observation-replay/v1"
+    ],
+    "services/observations/schemas/observation.schema.json": [
+      "earthship-observation/v1"
+    ],
+    "services/observations/schemas/registry.schema.json": [
+      "earthship-sensor-registry/v1"
+    ],
+    "services/observations/water.py": [
+      "earthship-volume-calibration/v1",
+      "earthship-water-volume-estimate/v1"
+    ],
+    "src/lib/energy/analyticsResult.js": [
+      "earthship-energy-ui/v1",
+      "earthship-energy-ui/v2",
+      "earthship-energy-ui/v3",
+      "earthship-energy-ui/v4"
+    ],
+    "src/lib/energy/dailyPvPotential.js": [
+      "earthship-daily-pv-potential/v1",
+      "earthship-daily-pv-potential/v2",
+      "earthship-daily-pv-potential/v3"
+    ],
+    "src/lib/energy/pvPerformance.js": [
+      "earthship-pv-potential-performance/v1"
+    ],
+    "src/lib/household/batteryPerformance.js": [
+      "earthship-household-battery-performance/v1"
+    ],
+    "src/lib/household/calibratedEnergy.js": [
+      "earthship-household-calibrated-energy-observation/v2",
+      "earthship-household-calibrated-energy-observation/v3",
+      "earthship-household-calibrated-energy-performance/v1",
+      "earthship-household-calibrated-energy-performance/v2"
+    ],
+    "src/lib/household/capturedPvPerformance.js": [
+      "earthship-household-captured-pv-performance/v1"
+    ],
+    "src/lib/household/chronology.js": [
+      "earthship-household-chronological-summary/v1"
+    ],
+    "src/lib/household/energyObservation.js": [
+      "earthship-household-energy-observation/v1",
+      "earthship-household-solar-storage-performance/v1"
+    ],
+    "src/lib/household/observation.js": [
+      "earthship-household-observation/v1",
+      "earthship-household-observation/v2",
+      "earthship-household-observation/v3",
+      "earthship-household-observation/v4"
+    ],
+    "src/lib/household/policyComparison.js": [
+      "earthship-household-policy-block-comparison/v1"
+    ],
+    "src/lib/household/profiledObservation.js": [
+      "earthship-household-profiled-energy-observation/v1",
+      "earthship-household-profiled-energy-performance/v1"
+    ],
+    "src/lib/household/qualification.js": [
+      "earthship-household-intent-qualification/v1",
+      "earthship-household-intent-qualification/v2"
+    ],
+    "src/lib/sensors/view.js": [
+      "earthship-sensor-view/v1"
+    ],
+    "src/lib/thermal/installedShadeResult.js": [
+      "earthship-installed-shade-forecast/v1",
+      "earthship-installed-shade-forecast/v2",
+      "earthship-installed-shade-forecast/v3",
+      "earthship-installed-shade-forecast/v6",
+      "earthship-installed-shade-forecast/v7",
+      "earthship-installed-shade-publication/v1",
+      "earthship-installed-shade-publication/v2",
+      "earthship-installed-shade-publication/v4",
+      "earthship-installed-shade-qualification-report/v7",
+      "earthship-installed-shade-release/v1",
+      "earthship-installed-shade-release/v2",
+      "earthship-installed-shade-release/v4"
+    ],
+    "src/lib/thermal/modelResult.js": [
+      "earthship-thermal-release/v1",
+      "earthship-thermal-release/v2"
+    ],
+    "src/lib/thermal/provisionalResult.js": [
+      "earthship-native-installed-shade-dynamics/v2",
+      "earthship-native-irradiance-shade-dynamics/v4",
+      "earthship-native-joint-shade-dynamics/v3"
+    ],
+    "src/lib/ui/DailyForecast.svelte": [
+      "earthship-daily-pv-potential/v3"
+    ],
+    "src/lib/weather/providerForecast.js": [
+      "earthship-weather-provider-shadow/v2"
+    ]
+  },
+  "model_entry_points": [
+    "openhab/scripts/bitcoin_legacy.py",
+    "openhab/scripts/calibrated_score_runtime.py",
+    "openhab/scripts/config_inventory.py",
+    "openhab/scripts/daily_pv_monitor.py",
+    "openhab/scripts/daily_pv_worker.py",
+    "openhab/scripts/daily_temperature_runtime.py",
+    "openhab/scripts/extrema_item_source.py",
+    "openhab/scripts/forecast_fetch_recovery.py",
+    "openhab/scripts/historical_energy_capture.py",
+    "openhab/scripts/historical_household_train.py",
+    "openhab/scripts/historical_irradiance_train.py",
+    "openhab/scripts/historical_measurement_capture.py",
+    "openhab/scripts/historical_numeric_capture.py",
+    "openhab/scripts/historical_physics_train.py",
+    "openhab/scripts/historical_pv_daily.py",
+    "openhab/scripts/historical_pv_directional_train.py",
+    "openhab/scripts/historical_pv_horizon_assess.py",
+    "openhab/scripts/historical_pv_legacy_assess.py",
+    "openhab/scripts/historical_pv_legacy_capture.py",
+    "openhab/scripts/historical_pv_policy_assess.py",
+    "openhab/scripts/historical_pv_train.py",
+    "openhab/scripts/historical_radiation_capture.py",
+    "openhab/scripts/historical_thermal_compare.py",
+    "openhab/scripts/historical_thermal_conditioning_compare.py",
+    "openhab/scripts/historical_training.py",
+    "openhab/scripts/historical_weather_capture.py",
+    "openhab/scripts/historical_weather_daily.py",
+    "openhab/scripts/historical_weather_select.py",
+    "openhab/scripts/historical_wind_rain_train.py",
+    "openhab/scripts/hourly_temperature_runtime.py",
+    "openhab/scripts/household_battery_outcomes.py",
+    "openhab/scripts/household_calibrated_energy_worker.py",
+    "openhab/scripts/household_calibrated_score.py",
+    "openhab/scripts/household_capture.py",
+    "openhab/scripts/household_cycle.py",
+    "openhab/scripts/household_cycle_deploy.py",
+    "openhab/scripts/household_energy_forecast.py",
+    "openhab/scripts/household_energy_outcomes.py",
+    "openhab/scripts/household_forecast_score.py",
+    "openhab/scripts/household_job_run.py",
+    "openhab/scripts/household_job_start.py",
+    "openhab/scripts/household_native_daily.py",
+    "openhab/scripts/household_native_geometry_prepare.py",
+    "openhab/scripts/household_observation.py",
+    "openhab/scripts/household_outcomes.py",
+    "openhab/scripts/household_pipeline.py",
+    "openhab/scripts/household_plan.py",
+    "openhab/scripts/household_power_flows.py",
+    "openhab/scripts/household_profiled_forecast.py",
+    "openhab/scripts/household_profiled_outcomes.py",
+    "openhab/scripts/household_pv_outcomes.py",
+    "openhab/scripts/household_resources.py",
+    "openhab/scripts/household_snapshot.py",
+    "openhab/scripts/household_solar_outcomes.py",
+    "openhab/scripts/household_trajectory_plan.py",
+    "openhab/scripts/install_temperature_resources.py",
+    "openhab/scripts/local_forecast_shadow.py",
+    "openhab/scripts/local_forecast_train.py",
+    "openhab/scripts/openhab_sanity_check.py",
+    "openhab/scripts/persistence_source.py",
+    "openhab/scripts/pre_dusk_notification_cli.py",
+    "openhab/scripts/provision_temperature_reader.py",
+    "openhab/scripts/rtl_weather.py",
+    "openhab/scripts/thermal_confirmation.py",
+    "openhab/scripts/thermal_installed_calibrate.py",
+    "openhab/scripts/thermal_installed_register.py",
+    "openhab/scripts/thermal_installed_score.py",
+    "openhab/scripts/thermal_installed_train.py",
+    "openhab/scripts/thermal_intel.py",
+    "openhab/scripts/thermal_messaging.py",
+    "openhab/scripts/thermal_primal.py",
+    "openhab/scripts/thermal_radiation_runtime.py",
+    "openhab/scripts/thermal_state_backup.py",
+    "openhab/scripts/thermal_temperature_runtime.py",
+    "openhab/scripts/thermal_weather_admit.py",
+    "openhab/scripts/validate_thermal_shadow.py",
+    "openhab/scripts/weather_forecast_monitor.py",
+    "openhab/scripts/weather_publish.py",
+    "openhab/scripts/weathernext_backfill.py",
+    "openhab/scripts/weathernext_ingest.py"
+  ],
+  "archive_contract_modules": [
+    "openhab/scripts/household/replay.py",
+    "openhab/scripts/native_model_serving_receipt.py",
+    "openhab/scripts/thermal_model/replay_budget.py",
+    "openhab/scripts/weather_learning/archive.py",
+    "openhab/scripts/weather_learning/source_bundle.py",
+    "openhab/scripts/weather_learning/training_dataset.py"
+  ]
+}

@@ -136,8 +136,10 @@ it('expires the displayed owner observation at its original clock independently 
   expect(container.textContent).toContain('Owner policy observation is stale');
 });
 
-it('shows twelve evidence gates for each intent while keeping every family unqualified',async()=>{
- const {qualificationObservation}=await import('../fixtures/household-qualification.js');serve(qualificationObservation());
+it.each(['v1','v2'])('shows twelve gates per automated family and excludes feeder in qualification %s',async version=>{
+ const {qualificationObservation}=await import('../fixtures/household-qualification.js');const view=qualificationObservation();
+ if(version==='v2'){view.qualification_report.schema='earthship-household-intent-qualification/v2';view.qualification_report.families=view.qualification_report.families.filter(f=>f.intent_type!=='RUN_FEEDER_CYCLE');}
+ serve(view);
  const {container,getByText}=render(HouseholdObservation);
  await waitFor(()=>expect(getByText('Intent qualification')).toBeTruthy());
  const region=container.querySelector('section[aria-label="Intent qualification"]');

@@ -11,6 +11,9 @@ from zoneinfo import ZoneInfo
 from .contracts import canonical,digest,finite,identity,instant
 from .evidence import utc
 from .features import FEATURE_NAMES,feature_vector,training_pair,validate_target,unique_pairs
+from .weights import temperature_weights,validate_support
+
+SCHEMA='earthship-weathernext-temperature-model/v2'
 
 FIELDS={'schema','provider','algorithm','grid_digest','sensor_epoch','site_timezone','code_revision','cutoff','training_start','training_end',
     'sample_count','target_dates','training_manifest','feature_names','feature_centers','feature_scales','coefficients',
@@ -26,7 +29,8 @@ def _artifact(pairs,*,cutoff,code_revision,max_correction_c,algorithm,ridge):
     manifest=[dict(pair_sha256=pair.pair_digest,snapshot_sha256=pair.forecast.snapshot_digest,issue_sha256=pair.forecast.issue_digest,
                    outcome_sha256=pair.outcome.receipt_digest,target_at=pair.outcome.target_at.isoformat(),issued_at=pair.forecast.issued_at.isoformat()) for pair in pairs]
     days={pair.outcome.target_at.astimezone(ZoneInfo(pair.forecast.site_timezone)).date() for pair in pairs}
-    return pairs,dict(schema='earthship-weathernext-temperature-model/v1',provider='weathernext3',algorithm=algorithm,
+    _,support=temperature_weights(pairs)
+    return pairs,dict(schema=SCHEMA,support=support,provider='weathernext3',algorithm=algorithm,
         grid_digest=pairs[0].forecast.grid_digest if pairs else None,sensor_epoch=pairs[0].outcome.sensor_epoch if pairs else None,
         site_timezone=pairs[0].forecast.site_timezone if pairs else None,
         code_revision=code_revision,cutoff=cutoff.isoformat(),training_start=pairs[0].outcome.target_at.isoformat() if pairs else None,
@@ -37,7 +41,9 @@ def _artifact(pairs,*,cutoff,code_revision,max_correction_c,algorithm,ridge):
 
 def fit_bias(pairs,*,cutoff,code_revision,max_correction_c=6):
     pairs,model=_artifact(pairs,cutoff=cutoff,code_revision=code_revision,max_correction_c=max_correction_c,algorithm='bounded_bias',ridge=0)
-    if pairs:model['intercept_c']=sum(pair.outcome.value_c-pair.forecast.mean_c for pair in pairs)/len(pairs)
+    if pairs:
+        weights,support=temperature_weights(pairs)
+        model['intercept_c']=math.fsum(w*(pair.outcome.value_c-pair.forecast.mean_c) for w,pair in zip(weights,pairs))/support['target_weight_sum']
     return model|{'artifact_sha256':identity(model)}
 
 
@@ -63,21 +69,23 @@ def fit_residual(pairs,*,cutoff,code_revision,ridge=1.,max_correction_c=6):
     if not finite(ridge) or not 0<ridge<=1000000:raise ValueError('positive bounded ridge regularization required')
     pairs,model=_artifact(pairs,cutoff=cutoff,code_revision=code_revision,max_correction_c=max_correction_c,algorithm='ridge_residual',ridge=ridge)
     if pairs:
-        matrix=[feature_vector(pair.forecast) for pair in pairs];count=len(pairs);n=len(FEATURE_NAMES)
-        centers=[sum(row[j] for row in matrix)/count for j in range(n)]
-        scales=[math.sqrt(sum((row[j]-centers[j])**2 for row in matrix)/count) or 1. for j in range(n)]
+        matrix=[feature_vector(pair.forecast) for pair in pairs];weights,support=temperature_weights(pairs);count=support['target_weight_sum'];n=len(FEATURE_NAMES)
+        centers=[math.fsum(w*row[j] for w,row in zip(weights,matrix))/count for j in range(n)]
+        scales=[math.sqrt(math.fsum(w*(row[j]-centers[j])**2 for w,row in zip(weights,matrix))/count) or 1. for j in range(n)]
         matrix=[[(value-centers[j])/scales[j] for j,value in enumerate(row)] for row in matrix]
-        errors=[pair.outcome.value_c-pair.forecast.mean_c for pair in pairs];intercept=sum(errors)/count
-        gram=[[sum(row[i]*row[j] for row in matrix)+(ridge if i==j else 0) for j in range(n)] for i in range(n)]
-        rhs=[sum(row[j]*(error-intercept) for row,error in zip(matrix,errors)) for j in range(n)]
+        errors=[pair.outcome.value_c-pair.forecast.mean_c for pair in pairs];intercept=math.fsum(w*e for w,e in zip(weights,errors))/count
+        gram=[[math.fsum(w*row[i]*row[j] for w,row in zip(weights,matrix))+(ridge if i==j else 0) for j in range(n)] for i in range(n)]
+        rhs=[math.fsum(w*row[j]*(error-intercept) for w,row,error in zip(weights,matrix,errors)) for j in range(n)]
         model.update(feature_names=list(FEATURE_NAMES),feature_centers=centers,feature_scales=scales,coefficients=_solve(gram,rhs),intercept_c=intercept)
     return model|{'artifact_sha256':identity(model)}
 
 
 def validate_artifact(model):
     from weather_temperature_evidence import sensor_epoch_id
-    if not isinstance(model,dict) or set(model)!=FIELDS or model['schema']!='earthship-weathernext-temperature-model/v1' or model['provider']!='weathernext3':
+    current=isinstance(model,dict) and model.get('schema')==SCHEMA
+    if not isinstance(model,dict) or set(model)!=(FIELDS|{'support'} if current else FIELDS) or model['schema'] not in (SCHEMA,'earthship-weathernext-temperature-model/v1') or model['provider']!='weathernext3':
         raise ValueError('closed WeatherNext-only artifact required')
+    if current:validate_support(model['support'])
     digest(model['artifact_sha256'])
     if model['artifact_sha256']!=identity({key:value for key,value in model.items() if key!='artifact_sha256'}):raise ValueError('model artifact digest differs')
     if model['algorithm'] not in ('bounded_bias','ridge_residual') or model['qualification']!='SHADOW_ONLY':raise ValueError('known shadow model required')
@@ -104,6 +112,8 @@ def validate_artifact(model):
         if model['target_dates']!=len({at.astimezone(zone).date() for at in starts}):raise ValueError('target-date count differs from sources')
     elif any(model[key] is not None for key in ('grid_digest','sensor_epoch','site_timezone','training_start','training_end')) or model['intercept_c']!=0 or model['target_dates']!=0:
         raise ValueError('empty model must be explicitly untrained')
+    if current and (model['support']['forecast_pairs']!=count or model['support']['local_target_dates']!=model['target_dates'] or model['support']['unique_measured_targets']!=(len(set(starts)) if count else 0)):
+        raise ValueError('target support differs from original manifest')
     n=len(FEATURE_NAMES) if model['algorithm']=='ridge_residual' and count else 0
     if model['feature_names']!=(list(FEATURE_NAMES) if n else []) or any(not isinstance(model[key],list) or len(model[key])!=n for key in ('feature_centers','feature_scales','coefficients')):
         raise ValueError('frozen preprocessing/features required')

@@ -70,7 +70,7 @@ it('getHistory bounds and parses a non-streaming arrayBuffer before preserving r
   expect(arrayBuffer).toHaveBeenCalledOnce();
   expect(json).not.toHaveBeenCalled();
 });
-it('getHistory forwards one cancellation signal to fetch and safely reads text fallback', async () => {
+it('getHistory uses a bounded cancellation signal and safely reads text fallback', async () => {
   const text = vi.fn().mockResolvedValue(JSON.stringify({ data: [] }));
   const json = vi.fn();
   fetch.mockResolvedValue({ ok: true, headers: new Headers(), body: null, text, json });
@@ -83,7 +83,7 @@ it('getHistory forwards one cancellation signal to fetch and safely reads text f
 
   expect(fetch).toHaveBeenCalledWith(
     expect.stringContaining('/rest/persistence/items/BMS_SOC?'),
-    expect.objectContaining({ signal: controller.signal }),
+    expect.objectContaining({ signal: expect.any(AbortSignal) }),
   );
   expect(text).toHaveBeenCalledOnce();
   expect(json).not.toHaveBeenCalled();

@@ -5,10 +5,14 @@ weather, battery/solar, passive-thermal loop, and greywater on one pane of
 glass, styled after the Ambient Weather WS-2000 console.
 
 **Primary device:** Lenovo Tab M9 (2023), landscape (1340×800), wall-mounted.
-Laptop and phone are secondary. Tablet-first, no-scroll console layout.
+The supported laptop floor is 1280×720. These landscape targets use bounded console
+layouts; Earthship diagnostics scroll inside their page. Phone layouts are not
+qualified.
 
 **Stack:** Svelte + Vite + Tailwind, ECharts. Talks only to openHAB REST +
-SSE on the LAN. PWA-installable.
+SSE through the same-origin LAN proxy, with curated local forecast reports.
+This is a browser dashboard; no PWA manifest, service worker or offline-control
+cache is implemented.
 
 **Status:** implemented and running on the household LAN. Six tablet-first
 screens provide live monitoring, safety-gated controls, and a shade preview.
@@ -138,7 +142,10 @@ shadow evidence does not graduate the model to advice.
 ## Current household ML and PV work
 
 The [household program tracker](docs/operations/household-program-progress.json)
-records the active PR #3 scope and deployed native ML evidence. The earlier
+records the architectural scope and October 16 checkpoint. The newer
+[October 20 learning closure](docs/operations/2026-10-19-historical-model-learning.md)
+and [WeatherNext closure](docs/operations/2026-10-19-forecast-closure.md) supersede
+its historical forecast/PV implementation pending notes. The earlier
 thermal shadow instructions above describe their original first-install path.
 
 - [Consumption and battery storage](docs/operations/2026-10-15-household-power-flows.md): deployed source-bound flow separation and natural replay evidence.
@@ -147,20 +154,38 @@ thermal shadow instructions above describe their original first-install path.
 
 Canonical electrical-system meaning and measured array geometry also live in
 Solar_PV's `docs/architecture/current-system.md` and
-`docs/operations/pv-forecasting.md`. A geometry-aware PV forecast remains pending;
-recorded geometry and flow observations do not establish forecasting skill.
+`docs/operations/pv-forecasting.md`. Geometry-aware PV, same-issue storage forecasts
+and dedicated PV-potential accuracy reporting are implemented. Their provisional
+physical assumptions and prospectively eligible outcome coverage remain explicit;
+software deployment does not establish forecasting skill.
 
 ## Config (not committed)
 
-Runtime config lives in `config.json` (openHAB base URL + API token),
-served alongside the static bundle. It is gitignored — never commit it.
-Copy `config.example.json` and fill in your own values.
+Browser config lives in `config.json` and is browser-readable. Use an empty
+`openhabUrl` for the same-origin proxy and keep `apiToken` empty. Set any actual
+OpenHAB credential only in the server's private `OPENHAB_TOKEN` environment.
+Copy `config.example.json` for non-secret browser settings; keep private host
+configuration outside the repository.
 
 ## Distributed sensor observations
 
-The staged local LoRaWAN path and transport-independent registry are documented in
-[the sensor runbook](docs/operations/lorawan-sensors.md). The new `#/ventilation`
-screen reads OpenHAB REST/SSE, keeps last-known contacts separate from validity,
-and supports an isolated synthetic demonstration. Production services and model
-behavior remain unchanged. See [validation](docs/operations/lorawan-validation.md)
-and [future water, greenhouse and property sensing](docs/operations/sensor-expansion.md).
+The retained LoRaWAN service and transport-independent registry are documented in
+[the sensor runbook](docs/operations/lorawan-sensors.md). The uncommissioned sensor
+tab was [retired on October 19](docs/operations/2026-10-19-home-energy-chart-recovery.md);
+old `#/ventilation` links open Earthship. The retained `Ventilation.svelte`
+component is exercised separately in a disposable synthetic harness, without
+restoring the retired route or claiming physical commissioning. See
+[validation](docs/operations/lorawan-validation.md) and
+[future water, greenhouse and property sensing](docs/operations/sensor-expansion.md).
+
+## Verification
+
+`npm run test:unit` and `npm run build` verify the frontend. With Chromium
+installed, `npm run test:e2e` runs the isolated general browser fixtures and
+`npm run test:geometry` runs the existing console layout suites. These commands
+exclude the separately owned sensor integration project explicitly.
+
+`SENSOR_INTEGRATION=1 npm run test:e2e:sensors` requires the disposable sensor
+Compose stack and its pinned Python environment from the sensor runbook. Without
+that explicit integration environment, sensor execution fails rather than silently
+skipping. Synthetic software qualification does not commission real radios.

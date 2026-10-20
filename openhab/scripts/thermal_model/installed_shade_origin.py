@@ -86,6 +86,25 @@ def _origin_actions(snapshot, issue, *, allow_removed=False):
         mode=mode, action_knowledge='as_of_snapshot_not_outcome_confirmation')
 
 
+# Numerical producer identity: source-bound by every native/base runtime.
+FORCING_RULE = 'ending_hour_overlap_mean_point_temperature/v2'
+
+
+def ending_hour_mean(times, values, start, end):
+    """Overlap mean of piecewise trailing-hour intervals; never extrapolate."""
+    from bisect import bisect_right
+    from math import fsum
+    if (len(times) != len(values) or len(times) < 2 or not times[0] <= start < end <= times[-1]
+            or any(b-a != timedelta(hours=1) for a,b in zip(times,times[1:]))):
+        raise ValueError('complete ending-hour interval coverage required')
+    index = bisect_right(times,start);at = start;energy = []
+    while at < end:
+        stop = min(end,times[index])
+        energy.append(_number(values[index])*(stop-at).total_seconds())
+        at = stop;index += 1
+    return fsum(energy)/(end-start).total_seconds()
+
+
 def _forecast_forcing(forecast, issue, available, actions):
     verify_origin_forecast_receipts(forecast)
     from weather_learning.native_forecast import FIELDS as google_fields
@@ -109,16 +128,18 @@ def _forecast_forcing(forecast, issue, available, actions):
             raise ValueError('original weather outside physical bounds')
         hourly.append((target, outside, radiation))
     result = []; index = 0
+    times = [row[0] for row in hourly]; radiation_means = [row[2] for row in hourly]
     for step in range(1, hours*12+1):
         at = issue+step*STEP
         while index+1 < len(hourly)-1 and hourly[index+1][0] < at: index += 1
         left, right = hourly[index], hourly[index+1]
         fraction = (at-left[0])/(right[0]-left[0])
         if not 0 <= fraction <= 1: raise ValueError('weather interpolation cannot extrapolate')
-        # Google radiation is the mean over the trailing hour ending at
-        # right[0]. Preserve that interval; interpolate only point temperature.
+        # Preserve each trailing-hour mean over its actual overlap with this
+        # step. Permitted :15 issue seconds can cross the UTC boundary.
+        radiation = ending_hour_mean(times, radiation_means, at-STEP, at)
         result.append(InstalledShadeForcing(at, left[1]+fraction*(right[1]-left[1]),
-            right[2], actions['indoor_shade_closed'],
+            radiation, actions['indoor_shade_closed'],
             actions['outdoor_shade_present'], actions['vent_open']))
     return tuple(result)
 

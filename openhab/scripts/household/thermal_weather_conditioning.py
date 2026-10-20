@@ -99,14 +99,21 @@ def apply_conditioning(forcings,context,*,issue,available,initial_outdoor_f):
             features=irradiance_features(raw,lead_hours=(at-issue).total_seconds()/3600,target=at,position=position)
             corrected=max(0.,min(1600.,_calculate(solar,features,raw)))
         irradiance[at]=corrected
-    first_future=next(at for at in times if at>issue);result=[]
+    from thermal_model.installed_shade_origin import ending_hour_mean
+    from thermal_model.installed_shade_dynamics import STEP
+    raw_radiation=[r["radiationWm2"] for r in rows]
+    corrected_radiation=[irradiance.get(at,r["radiationWm2"]) for r,at in zip(rows,times)]
+    first_future=next(at for at in times if at>issue);result=[];start=issue
     for row in forcings:
         i=bisect_left(times,row.at)
         if not 1<=i<len(times):raise ValueError('complete original thermal brackets required')
         left,right=rows[i-1],rows[i];fraction=(row.at-times[i-1])/(times[i]-times[i-1]);raw_outside=left['tempF']+fraction*(right['tempF']-left['tempF'])
-        if abs(raw_outside-row.outdoor_f)>1e-9 or abs(right['radiationWm2']-row.radiation_wm2)>1e-9:raise ValueError('unchanged original thermal forcing grid required')
+        if row.at!=start+STEP:raise ValueError('complete original five-minute thermal grid required')
+        raw_mean=ending_hour_mean(times,raw_radiation,start,row.at)
+        if abs(raw_outside-row.outdoor_f)>1e-9 or abs(raw_mean-row.radiation_wm2)>1e-9:raise ValueError('unchanged original thermal forcing grid required')
         if row.at<=first_future:
             fraction=(row.at-issue)/(first_future-issue);outdoor=initial_outdoor_f+fraction*(temperatures[first_future]-initial_outdoor_f)
         else:outdoor=temperatures[times[i-1]]+fraction*(temperatures[times[i]]-temperatures[times[i-1]])
-        result.append(replace(row,outdoor_f=outdoor,radiation_wm2=irradiance[times[i]]))
+        result.append(replace(row,outdoor_f=outdoor,radiation_wm2=ending_hour_mean(times,corrected_radiation,start,row.at)))
+        start=row.at
     return tuple(result)

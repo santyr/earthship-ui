@@ -76,12 +76,12 @@ describe('canonical UI audit matrix', () => {
   it('tracks every critical user requirement and remaining sign-off explicitly', async () => {
     const { rows } = await loadMatrix();
     const ids = new Set(rows.map(({ id }) => id));
-    expect(ids).toEqual(expect.objectContaining(new Set([
+    const required = [
       'GLOBAL-TARGETS',
       'GLOBAL-NOSCROLL',
       'HOME-SPARK-COLOR',
       'HOME-GOAT',
-      'HOME-SEASON',
+      'HOME-SUNMOON',
       'ENERGY-PREDICTED-TROUGH',
       'ENERGY-PV-PLOT',
       'CHART-PERIODS',
@@ -92,6 +92,7 @@ describe('canonical UI audit matrix', () => {
       'DEPLOY-USER-SERVICE',
       'DEVICE-M9-SIGNOFF',
       'WEATHER-DETAIL-MODAL',
-    ])));
+    ];
+    for (const id of required) expect(ids.has(id), id).toBe(true);
   });
 });

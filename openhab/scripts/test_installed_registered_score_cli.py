@@ -1,8 +1,17 @@
 """Registered queue resolution is scheduling metadata, never release permission."""
 import json
+import os
 from pathlib import Path
 import pytest
 from test_installed_publication_registration import registration_case
+
+@pytest.fixture(autouse=True)
+def preserve_fit_environment(monkeypatch):
+    # The scorer intentionally disables fitting for its standalone invocation.
+    # In-process CLI tests must restore that process policy for later tests.
+    for key in ('EARTHSHIP_QUALIFICATION_FIT','EARTHSHIP_REMOTE_QUALIFICATION_FIT'):
+        monkeypatch.setenv(key,os.environ.get(key,'0'))
+
 
 @pytest.mark.parametrize('hours',[1,6,12,24])
 def test_resolver_selects_explicit_horizon_and_rechecks_registry(registration_case,hours):

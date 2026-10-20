@@ -52,7 +52,7 @@ def _qualification_report(view,registry):
     Called only after complete pipeline rederivation. Separate outcome,
     uncertainty, owner and release audits are not part of an as-issued plan.
     """
-    from household.planning import CAPABILITIES
+    from household.planning import AUTOMATED_CAPABILITIES
     missing=(('independent_windows','intent_windows_not_qualified'),
         ('input_stability','input_sensitivity_not_qualified'),
         ('model_error_uncertainty','action_model_error_not_qualified'),
@@ -64,7 +64,7 @@ def _qualification_report(view,registry):
     families=[]
     def gate(key,observed,reason):
         return dict(id=key,evidence_status='observed' if observed else 'unavailable',reason=reason)
-    for kind,capability_id in CAPABILITIES.items():
+    for kind,capability_id in AUTOMATED_CAPABILITIES.items():
         capability=registry['capabilities'].get(capability_id)
         proposals=[row for row in view['proposals'] if row['type']==kind]
         unknown=[row for row in proposals if any(check['status']=='unknown' for check in row['hard_checks'])]
@@ -76,7 +76,7 @@ def _qualification_report(view,registry):
         gates.extend(gate(key,False,reason) for key,reason in missing)
         families.append(dict(intent_type=kind,capability_id=capability_id,owner=None if capability is None else capability['ownerRule'],
             proposal_count=len(proposals),status='not_qualified',release_authorized=False,gates=gates))
-    return dict(schema='earthship-household-intent-qualification/v1',scope='original_plan_evidence',status='not_qualified',
+    return dict(schema='earthship-household-intent-qualification/v2',scope='original_plan_evidence',status='not_qualified',
         receipt_sha256=view['receipt_sha256'],snapshot_id=view['snapshot_id'],decision_at=view['decision_at'],
         release_authorized=False,automatic_actuation=False,families=families)
 

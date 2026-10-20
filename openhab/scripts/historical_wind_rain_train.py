@@ -123,7 +123,7 @@ def run(a):
         if pointer.exists():
             selected=json.loads(_read(pointer,65536));previous_run=Path(selected['path']);previous=json.loads(_read(previous_run/'experiment.json',262144))
             if previous['receipt_sha256']!=selected['receipt_sha256'] or previous['receipt_sha256']!=identity({k:v for k,v in previous.items() if k!='receipt_sha256'}):raise ValueError('previous weather experiment differs')
-            names=('weather_response.py','contracts.py','training_cache.py')
+            names=('weather_response.py','contracts.py','training_cache.py','weights.py')
             if any(previous['runtime_manifest'].get('openhab/scripts/weather_learning/'+name)!=sha256(sources['openhab/scripts/weather_learning/'+name]).hexdigest() for name in names):previous=None
         from weather_learning.training_cache import gain_if_changed
         dataset=retain_dataset(run,metadata=dict(kind='site_wind_rain',measurement_manifest=manifest,forecast_sha256s=[r[1] for r in runs],availability_basis='retrospective_mixed_recorded_and_assumed_availability' if a.operational_archive is not None else 'retrospective_assumed_full_cycle_9h',wind_target='hour_mean_m_s_from_adjacent_native_instant_forecasts',rain_target='qualified_UTC_24h_total_mm',prospective_score=False,automatic_actuation=False),pairs=wind_pairs+rain_pairs)

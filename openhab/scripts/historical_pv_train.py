@@ -37,14 +37,45 @@ def energy_bins(root,guard):
     return bins,index
 
 
+
+
+def validate_pair_dataset(data,expected):
+    """A new fit requires corrected baselines; legacy originals stay replayable."""
+    from household_pv_model import INTERVAL_BASELINE_RULE
+    if data.get('dataset_sha256')!=expected or expected!=identity({k:v for k,v in data.items() if k!='dataset_sha256'}):
+        raise ValueError('original PV paired data differ')
+    if (data.get('schema') not in ('earthship-historical-pv-calibration-data/v2','earthship-pv-horizon-data/v2') or
+        data.get('baseline_rule')!=INTERVAL_BASELINE_RULE or
+        any(row.get('baseline_rule')!=INTERVAL_BASELINE_RULE for row in data['pairs'])):
+        raise ValueError('current shared PV baseline arithmetic required; rebuild original-bound pairs')
+    return data
+
+
+def pair_baseline(*,start,end,hours,position,array,horizon):
+    """Convert original Google units once, then use served interval arithmetic."""
+    from math import fsum
+    from household_pv_model import interval_power_segments,ASSUMPTIONS
+    floor=start.replace(minute=0,second=0,microsecond=0)
+    ceiling=end.replace(minute=0,second=0,microsecond=0)
+    if ceiling<end:ceiling+=timedelta(hours=1)
+    rows=[];at=floor
+    while at<=ceiling:
+        weather=hours.get(at.isoformat(),{});temp=weather.get('station_head_temperature_2m');wind=weather.get('wind_speed_10m')
+        rows.append(dict(at=at.isoformat(),radiationWm2=weather.get('surface_solar_radiation_downwards_1hr'),
+            tempF=None if not finite(temp) else temp*9/5+32,windMph=None if wind is None else wind*(3600/1609.344)))
+        at+=timedelta(hours=1)
+    segments=interval_power_segments(array=array,assumptions=ASSUMPTIONS,hourly_forecast=rows,
+        position=position,start=start,end=end,horizon_profile=horizon)
+    return fsum(value['potential_dc_w']*(stop-at).total_seconds() for at,stop,ghi,value in segments)/(end-start).total_seconds()
+
+
 def run(*,archive_path,energy_path,output_path,geometry_path,libraries_path,train_end,holdout_end,operational_archive_path=None):
     from weather_learning.config import Site
     from weather_learning.openhab import oh_get,I18N_CONFIG_PATH
     from daily_pv_worker import day_geometry
     from household_native_geometry_prepare import _library_paths
     from astro_geometry_worker import runtime_identity
-    from household_pv_model import array_power,ASSUMPTIONS,_array
-    from household_solar_horizon import horizon_height
+    from household_pv_model import _array,INTERVAL_BASELINE_RULE
     from household_cycle_pressure import PublicationHeadroom
     started=time.monotonic();pressure=PublicationHeadroom();root=Path(__file__).resolve().parents[2];sources=capture_sources(root)
     def guard():
@@ -77,24 +108,20 @@ def run(*,archive_path,energy_path,output_path,geometry_path,libraries_path,trai
             if i<0:continue
             origin,ref,hours,basis=runs[i];lead=(end-origin).total_seconds()/3600
             if not 0<lead<=48:continue
-            hour=end.replace(minute=0,second=0,microsecond=0)
-            if hour<end:hour+=timedelta(hours=1)
-            weather=hours.get(hour.isoformat(),{});position=positions.get(end.isoformat())
-            ghi=weather.get('surface_solar_radiation_downwards_1hr');temperature=weather.get('station_head_temperature_2m');wind=weather.get('wind_speed_10m')
-            if position is None or not finite(ghi) or not finite(temperature):continue
-            baseline=array_power(array=array,assumptions=ASSUMPTIONS,ghi_wm2=ghi,elevation_degrees=position['elevation_degrees'],azimuth_degrees=position['azimuth_degrees'],
-                day_of_year=end.timetuple().tm_yday,temp_f=temperature*9/5+32,wind_mph=None if wind is None else wind*2.2369362921,
-                horizon_elevation_degrees=horizon_height(horizon,position['azimuth_degrees']))['potential_dc_w']
+            position=positions.get(end.isoformat())
+            if position is None:continue
+            try:baseline=pair_baseline(start=start,end=end,hours=hours,position=position,array=array,horizon=horizon)
+            except (ValueError,KeyError,TypeError):continue
             observed=b['fields']['pv.input_power_w'];mean=observed['positive_kwh']*3600000/observed['covered_seconds']
             row=dict(start=b['start'],end=b['end'],origin=origin.isoformat(),baseline_w=baseline,outcome_w=mean,azimuth_degrees=position['azimuth_degrees'],lead_hours=lead,
-                forecast_sha256=ref,energy_source_sha256=b['source_sha256'],potential_proxy_eligible=True,availability_basis=basis)
+                forecast_sha256=ref,energy_source_sha256=b['source_sha256'],potential_proxy_eligible=True,availability_basis=basis,baseline_rule=INTERVAL_BASELINE_RULE)
             row['pair_sha256']=identity(row);pairs.append(row)
         now=datetime.now(timezone.utc);previous=previous_models(output,sources)
         model,comparison_fit=effective_if_changed(previous.get('training_model'),pairs,cutoff=train_end,trained_at=now)
         report=assess_gain(model,pairs,holdout_start=train_end,holdout_end=holdout_end)
         final,serving_fit=effective_if_changed(previous.get('final_model'),pairs,cutoff=holdout_end,trained_at=now)
         run=directory(output/('experiment-'+now.strftime('%Y%m%dT%H%M%S%fZ')))
-        dataset=dict(schema='earthship-historical-pv-calibration-data/v1',pairs=pairs,energy_index_sha256=index['index_sha256'],forecast_sha256s=forecast_manifest,
+        dataset=dict(schema='earthship-historical-pv-calibration-data/v2',baseline_rule=INTERVAL_BASELINE_RULE,pairs=pairs,energy_index_sha256=index['index_sha256'],forecast_sha256s=forecast_manifest,
             geometry_series_sha256s=geometries,system_raw=system_raw.decode(),horizon_raw=horizon_raw.decode(),
             geometry_basis='current_operator_array_and_terrain_declarations_assumed_constant_retrospectively',availability_basis='mixed_explicit_per_pair' if operational_archive_path is not None else 'retrospective_assumed_full_cycle_9h',prospective_score=False,automatic_actuation=False)
         dataset['dataset_sha256']=identity(dataset)

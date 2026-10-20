@@ -1,0 +1,930 @@
+{
+  "schema": "earthship-completion-audit/v1",
+  "audit_base": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+  "findings": [
+    {
+      "id": "A00",
+      "severity": "P2",
+      "title": "CI geometry fixture isolation",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "openhab/scripts/test_daily_pv_potential.py",
+        "openhab/scripts/test_pv_legacy_history.py",
+        "openhab/scripts/test_thermal_weather_conditioning.py"
+      ],
+      "expected_actual": "Synthetic geometry fixtures must not require production cgroup resources. Six tests failed on the real publication preflight outside the production launcher.",
+      "reproduction": [
+        "PYTHONPATH=openhab/scripts:.ci/solar-pv/analytics/src OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 /tmp/earthship-audit-20261020-venv/bin/python -m pytest -q openhab/scripts/test_daily_pv_potential.py openhab/scripts/test_pv_legacy_history.py openhab/scripts/test_thermal_weather_conditioning.py: 6 failed, 30 passed"
+      ],
+      "root_cause": "Test fixtures injected geometry and guard but not the publication resource boundary. The actual guard correctly refuses ordinary CI process caps.",
+      "repair_commit": "4ec462d",
+      "regression_evidence": [
+        "Same files plus test_household_cycle_resources.py: 101 passed in 3.41s. Test-scoped preflight injection only; production modules unchanged. Normal shard verification pending.",
+        "All three normal OpenHAB shards completed successfully atd549886; complete final-source gates separately required."
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "A01",
+      "severity": "P1",
+      "title": "Night-load idempotency retention",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "openhab/rules/night-load-owner.js",
+        "tests/openhab/night-load-override-rule.test.js",
+        "tests/openhab/rule-harness.js"
+      ],
+      "expected_actual": "A still-admissible request must never execute after ledger count eviction or volatile loss. Original rule re-executed after >32 newer requests.",
+      "reproduction": [
+        "tests/openhab/night-load-override-rule.test.js: admissible identity retention and policy durability"
+      ],
+      "root_cause": "Unconditional slice(0,32) on acceptance discarded unexpired durable identities; no payload conflict or pre-admission byte budget.",
+      "repair_commit": "208f652",
+      "regression_evidence": [
+        "Original source: 6 failed / 44 passed. Repaired owner suites: 52 passed, 3 files; max-ID exhaustion and OFF failure included. Full final revision suite pending."
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Important control/source integrity or recovery defect; reproduced impact is described in expected_actual. No physical safety incident asserted.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "A02",
+      "severity": "P1",
+      "title": "Durable override-policy commit",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "openhab/rules/night-load-owner.js",
+        "tests/openhab/night-load-override-rule.test.js",
+        "tests/openhab/rule-harness.js"
+      ],
+      "expected_actual": "Normal ON device matrix and completion require exact durable OverrideSwitch ON. Original policy persistence could remain OFF while owner completed.",
+      "reproduction": [
+        "tests/openhab/night-load-override-rule.test.js: selectively held/delayed OverrideSwitch persistence"
+      ],
+      "root_cause": "commitOverrideSwitch verified live Item then returned immediately after asynchronous persist; no JDBC readback.",
+      "repair_commit": "208f652",
+      "regression_evidence": [
+        "Original source: 6 failed / 44 passed. Repaired owner suites: 52 passed, 3 files; max-ID exhaustion and OFF failure included. Full final revision suite pending."
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Important control/source integrity or recovery defect; reproduced impact is described in expected_actual. No physical safety incident asserted.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "A03",
+      "severity": "P1",
+      "title": "Coherent OpenHAB reconciliation",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "src/lib/openhab/store.js",
+        "src/lib/openhab/sse.js",
+        "src/lib/openhab/client.js",
+        "src/lib/openhab/readRequest.js",
+        "src/lib/config.js",
+        "src/App.svelte"
+      ],
+      "expected_actual": "Snapshots/deltas must reconcile in order, remove withdrawn providers and recover while stream stays live; original older snapshots overwrote deltas and hangs/failures prevented recovery.",
+      "reproduction": [
+        "New reconciliation/deadline/catalog group:25 failed/66 passed; App original:2 failed and unhandled503."
+      ],
+      "root_cause": "Merged snapshots without epoch/per-resource ordering; no independent resync retry, first-open reconciliation, bounded reads or owned teardown.",
+      "repair_commit": "c53fbcc",
+      "regression_evidence": [
+        "Complete interim unit run:182files/2743passed, Node24 with test-only .codex import adapter; standard Node22 final clone gate pending."
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Important control/source integrity or recovery defect; reproduced impact is described in expected_actual. No physical safety incident asserted.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "A04",
+      "severity": "P2",
+      "title": "Control modes and history lifecycle",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "src/lib/controls/controlState.js",
+        "src/screens/Home.svelte",
+        "tests/control-state.test.js",
+        "tests/ui/HomeHistory.test.js",
+        "tests/ui/typed-controls.test.js"
+      ],
+      "expected_actual": "Maintenance/unknown controls cannot submit after hold; obsolete/stalled Home history must not overwrite new data or survive unmount.",
+      "reproduction": [
+        "Original Home:3 lifecycle failures; catalog mode regressions included in25-failure group."
+      ],
+      "root_cause": "Correlated controls missed release-mode gate; outdoor/battery/pressure histories assigned direct asynchronous results outside coordinator.",
+      "repair_commit": "c53fbcc",
+      "regression_evidence": [
+        "Complete interim unit run182files/2743passed. Energy overlay expiration and delayed-start existing cases retained."
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "A05",
+      "severity": "P2",
+      "title": "Supervised sensor duration",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "services/lorawan/history.py",
+        "services/lorawan/tests/test_supervised_history.py"
+      ],
+      "expected_actual": "1000 elapsed contact seconds must count only 120 supervised seconds when communication expires at 120; original counted 1000.",
+      "reproduction": [],
+      "root_cause": "History clipped contact validity but ignored communication intervals; timestamp-only barriers also suppressed valid later recovery.",
+      "repair_commit": "3126544",
+      "regression_evidence": [
+        "Initial corrected regression: 9 failed/7 passed; added recovery order: 3 failed/17 passed; current sensor contracts: 66 passed/11 explicit container integration skips, pytest 8.3.5."
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "A06",
+      "severity": "P2",
+      "title": "PV independent local-day support",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "openhab/scripts/weather_learning/pv_calibration.py",
+        "openhab/scripts/weather_learning/pv_directional_calibration.py",
+        "openhab/scripts/weather_learning/pv_refresh.py",
+        "openhab/scripts/test_pv_local_days.py"
+      ],
+      "expected_actual": "Independent support days are America/Denver interval-start dates; original UTC/string-prefix counts can inflate support and selection.",
+      "reproduction": [
+        "New local-day/DST/mixed-offset/no-op tests:7failed/3passed."
+      ],
+      "root_cause": "Mixed UTC timestamp prefixes and a separate Denver holdout path.",
+      "repair_commit": "c53fbcc",
+      "regression_evidence": [
+        "Combined numerical gate103passed. Actual737-pair retained model retains29local training days,5holdout days and identical sector support; see pv-retained-reassessment.json."
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "A07",
+      "severity": "P2",
+      "title": "PV train/serve baseline parity",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "openhab/scripts/historical_pv_directional_train.py",
+        "openhab/scripts/historical_pv_horizon_assess.py",
+        "openhab/scripts/historical_pv_legacy_assess.py",
+        "openhab/scripts/historical_pv_train.py",
+        "openhab/scripts/household_pv_model.py",
+        "openhab/scripts/test_pv_horizon_pair_baseline.py",
+        "openhab/scripts/test_pv_pair_baseline.py"
+      ],
+      "expected_actual": "Same retained weather/geometry/array/terrain produces exact served-interval baseline in calibration; original training used next-hour point temperature/wind.",
+      "reproduction": [
+        "Original shared-baseline tests7failed/2passed; old-dataset gate1failed/10passed; exact-unit1failed/11passed."
+      ],
+      "root_cause": "Duplicated interval arithmetic and rounded wind-unit conversion; old pair dataset could be reused for a newly sourced model.",
+      "repair_commit": "c53fbcc; 5094cdf",
+      "regression_evidence": [
+        "Combined numerical gate103passed.16complete live projections exactly equal original serving implementation.737retained pairs rebuilt from55verified Google sources/29verified geometry series;671baselines changed, meanabs5.836047893W/max59.088710966W. Same124-pair/5day development split still selects corrected model; no new prospective skill claimed.",
+        "Horizon follow-through7numeric failures before shared-helper repair;147affectedPVtests passed/0skips1.38s. Exact4692horizon+161olderpairs rebuilt; newv2datasets only; qualification.md/model-reassessment.json."
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "A08",
+      "severity": "P2",
+      "title": "Thermal crossing-interval irradiation",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "openhab/scripts/thermal_model/installed_shade_origin.py",
+        "openhab/scripts/household/thermal_weather_conditioning.py",
+        "openhab/scripts/thermal_weather_source.py",
+        "openhab/scripts/test_thermal_interval_overlap.py"
+      ],
+      "expected_actual": "A 285-second overlap at 100 plus 15 seconds at 900 W/m\u00b2 yields 140 W/m\u00b2, not 900. Both raw and corrected intervals must conserve hourly irradiation.",
+      "reproduction": [],
+      "root_cause": "The five-minute endpoint chose a single trailing-hour mean for a crossing step; conditioned forcing repeated that endpoint selection.",
+      "repair_commit": "3126544",
+      "regression_evidence": [
+        "Original: 5 failed/6 passed. Repaired raw/corrected native capture plus frozen household replay: 68 passed in 17.85s across four files."
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "A09",
+      "severity": "P2",
+      "title": "Executable verification coverage",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "package.json",
+        "playwright.config.js",
+        ".github/workflows/ci.yml",
+        ".github/workflows/sensors.yml",
+        ".github/workflows/forecast-ml-hardening.yml",
+        ".github/workflows/household-receipt-integrity.yml",
+        "tests/e2e/fixture-test.js",
+        "tests/completion/test_verification_gates.py",
+        "docs/qa/ui-audit-matrix.csv",
+        "README.md"
+      ],
+      "expected_actual": "Advertised geometry must discover real tests; normal browser/sensor/native PG families need effective main/PR/release coverage and explicit dependencies.",
+      "reproduction": [
+        "Six new executable gate regressions failed originally. Seven PG modules silently importskipped missing advisory_db_fixture; adding pinned support exposes absent bms_aux_quality API at the general companion pin."
+      ],
+      "root_cause": "Missing geometry spec and stale QA references; no general browser gate; shared dependency path omissions; sensor spec targeted deliberately retired route; native PG support directory omitted from CI.",
+      "repair_commit": "917ad77; eb9d22d; d549886; e74cba9",
+      "regression_evidence": [
+        "Seven gate checks pass; one native dependency failure remains under active repair. General71tests/7files, geometry65tests/5files, sensor2tests/1file discovered. Missing sensor env explicitly fails before startup, no silent skip. QA2cases passed after staleSet assertion corrected.",
+        "Separate pinned BMS profile preserves general pin and normal file partitions.11gatecases pass including actual shard shell success/general-failure/BMS-failure;7nativePGtests passed0skips. Browserruntime stillpending."
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "A10",
+      "severity": "P2",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "title": "Feeder excluded from new optimization and qualification",
+      "files": [
+        "openhab/scripts/household/planning.py",
+        "openhab/scripts/household_observation.py",
+        "src/lib/household/qualification.js"
+      ],
+      "expected_actual": "Feeder is manual/payment only; original shadow planner selected it and qualification v1 included it. Automatic actuation was false.",
+      "reproduction": [
+        "Original helper produced one accepted feeder candidate, automatic_actuation=false. New regressions failed before repair."
+      ],
+      "root_cause": "Historical/manual capability catalog reused as current automated allowlist.",
+      "repair_commit": "3126544",
+      "regression_evidence": [
+        "Affected Python gate: 285 passed, no skips, 84.55s. Frontend parser/render/legacy gate: 108 passed, six files, no skips; interim test-only .codex adapter used. Final standard gate pending."
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "A11",
+      "severity": "P2",
+      "confidence": "confirmed_dependency_report_no_application_exploit_demonstrated",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "title": "Compatible dependency security refresh",
+      "files": [
+        "package-lock.json"
+      ],
+      "expected_actual": "Lockfile must use compatible fixed releases for reported advisories. Original npm audit exits1 with7package findings(3moderate,4high); current lock audit exits0withzero.",
+      "reproduction": [
+        "npm audit --json against original lockfile: exit1,7findings;27unique advisoryIDs."
+      ],
+      "root_cause": "Pinned vulnerable transitive/test packages; deployed Vite is LAN-facing but affected mocker handlers are not configured; no reachable app exploit demonstrated.",
+      "repair_commit": "f03f6a9",
+      "regression_evidence": [
+        "npm audit fix --package-lock-only --ignore-scripts:exit0,15package entries updated,noneadded/removed; package.json/ranges unchanged; fresh npmci/fullfrontendgates pending."
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "A12",
+      "severity": "P1",
+      "confidence": "confirmed",
+      "affected_revision": "208f652",
+      "title": "Oversized accepted identity poisoned durable owner ledger",
+      "files": [
+        "openhab/rules/night-load-owner.js",
+        "tests/openhab/night-load-override-rule.test.js"
+      ],
+      "expected_actual": "Requests must never persist identities the same owner cannot restore; original repair admitted a long bracketed timestamp and then denied all ordinary requests as ledger_invalid.",
+      "reproduction": [
+        "Independent actual owner harness: 600-character bracket zone accepted/completed; persisted identity640characters; next normal request denied ledger_invalid. Normal regression:2failed/31passed for both request streams."
+      ],
+      "root_cause": "New reader identity512-character bound was not enforced by admission; tolerant timestamp normalizer accepted a long zone suffix.",
+      "repair_commit": "cb4f16b",
+      "regression_evidence": [
+        "Timestamp text capped128characters before ledger access; writer also validates exact same identity bound as reader. Both streams reject before persistence/commands and admit a subsequent valid request after volatile loss. Review-fix group119passed/7files."
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Important control/source integrity or recovery defect; reproduced impact is described in expected_actual. No physical safety incident asserted.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "A13",
+      "severity": "P2",
+      "confidence": "confirmed",
+      "affected_revision": "c53fbcc",
+      "title": "Astro evidence side effect overwrote preserved statechanged delta",
+      "files": [
+        "src/lib/openhab/store.js",
+        "tests/openhab-reconciliation.test.js"
+      ],
+      "expected_actual": "A statechanged Astro delta without its later stateupdated event must survive an older snapshot; repair initially preserved state only after evidence handling already rewrote it.",
+      "reproduction": [
+        "Independent small store reproduction10d\u21929d\u2192old snapshot10d; normal regression1failed/10passed."
+      ],
+      "root_cause": "applyUpdateEvidence mutated Item state before replacement snapshot constructed preserved entries.",
+      "repair_commit": "cb4f16b",
+      "regression_evidence": [
+        "Snapshot updates evidence without Item mutation; replacement snapshot alone owns state. Source evidence keeps old original clock/state until matching evidence arrives. Review-fix group119passed/7files."
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "A14",
+      "severity": "P2",
+      "title": "Energy advisory and chart container overflow",
+      "confidence": "confirmed",
+      "affected_revision": "d549886d08ce4ef91aaf62cea95a733eb98bf223",
+      "files": [
+        "src/screens/Energy.svelte",
+        "tests/e2e/energy-layout.spec.js"
+      ],
+      "expected_actual": "Both supported viewports overflowed the battery hero; laptop charts lost their64px minimum after advisory content was included.",
+      "root_cause": "A height100% history body plus sibling advisory exceeded its Tile body; the short laptop row could not accommodate all fixed controls/footer/advisory.",
+      "reproduction": [
+        "Maintained real Playwright fixture suite under isolated loopback network; Initial browser71:14failed/57passed, including two overflow cases. Repair retains44px controls, full advisory and64px minimum; measured laptop plots67px each."
+      ],
+      "repair_commit": "e74cba9",
+      "regression_evidence": [
+        "Initial browser71:14failed/57passed, including two overflow cases. Repair retains44px controls, full advisory and64px minimum; measured laptop plots67px each.",
+        "Complete7spec71passed and geometry5spec65passed, Node22.22.0, exact8-file source patch; final integrated revision pending."
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "A15",
+      "severity": "P2",
+      "title": "Lenovo shade preview slider below touch layout minimum",
+      "confidence": "confirmed",
+      "affected_revision": "d549886d08ce4ef91aaf62cea95a733eb98bf223",
+      "files": [
+        "src/screens/Shades.svelte",
+        "tests/e2e/shades-layout.spec.js"
+      ],
+      "expected_actual": "Lenovo M9 zone slider measured179.40625px against the existing180px minimum.",
+      "root_cause": "Two outer row gaps consumed2.56px of the available grid height after preview header additions.",
+      "reproduction": [
+        "Maintained real Playwright fixture suite under isolated loopback network; Unchanged180px assertion failed; gap correction produces180.6875px and preserves all26 shade previews."
+      ],
+      "repair_commit": "e74cba9",
+      "regression_evidence": [
+        "Unchanged180px assertion failed; gap correction produces180.6875px and preserves all26 shade previews.",
+        "Complete7spec71passed and geometry5spec65passed, Node22.22.0, exact8-file source patch; final integrated revision pending."
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "A16",
+      "severity": "P2",
+      "title": "Expanded thermal details inherit scrolled container offset",
+      "confidence": "confirmed",
+      "affected_revision": "d549886d08ce4ef91aaf62cea95a733eb98bf223",
+      "files": [
+        "src/lib/ui/ThermalModelCard.svelte",
+        "tests/e2e/weather-earthship-layout.spec.js"
+      ],
+      "expected_actual": "Laptop details opened above its card origin (45.78125px versus52.796875px), clipping the panel.",
+      "root_cause": "The absolute inset details overlay inherited the scrollable body offset created by clicking its bottom summary.",
+      "reproduction": [
+        "Maintained real Playwright fixture suite under isolated loopback network; Existing browser click/bounds assertion failed; open-state overflow:clip restores panel origin at both supported sizes without lifecycle work."
+      ],
+      "repair_commit": "e74cba9",
+      "regression_evidence": [
+        "Existing browser click/bounds assertion failed; open-state overflow:clip restores panel origin at both supported sizes without lifecycle work.",
+        "Complete7spec71passed and geometry5spec65passed, Node22.22.0, exact8-file source patch; final integrated revision pending."
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "C01",
+      "severity": "P2",
+      "title": "Long-horizon pending target maturity",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "openhab/scripts/weather_learning/monitoring.py",
+        "openhab/scripts/weather_learning/pending_scores.py"
+      ],
+      "expected_actual": "A genuine retained336h issue lost its240h/336h targets at maturity because issue retrieval ended after7days.",
+      "reproduction": [
+        "See native regressions and consolidated model-evaluation-spec.md; C05/A07 and C06/A08 share prior repair evidence."
+      ],
+      "root_cause": "See associated native regression and consolidated phase mapping.",
+      "repair_commit": "df742cd; e6b4997",
+      "regression_evidence": [],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "C02",
+      "severity": "P2",
+      "title": "Matched comparison and fallback populations",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "openhab/scripts/weather_learning/performance.py",
+        "openhab/scripts/weather_learning/monitoring.py"
+      ],
+      "expected_actual": "Two raw absolute errors10/1 and one corrected error2 lacked per-horizon matched baseline1; raw-all5.5 was a different population.",
+      "reproduction": [
+        "See native regressions and consolidated model-evaluation-spec.md; C05/A07 and C06/A08 share prior repair evidence."
+      ],
+      "root_cause": "See associated native regression and consolidated phase mapping.",
+      "repair_commit": "df742cd; e6b4997",
+      "regression_evidence": [
+        "Native matched/fallback and zero-support regressions; durable target-window coverage28queue tests; separate correction horizon/month/regime and artifact/procedure diagnostics; final candidate full gates pending."
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "C03",
+      "severity": "P2",
+      "title": "Artifact versus operational policy attribution",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "openhab/scripts/weather_learning/performance.py",
+        "openhab/scripts/weather_learning/shadow.py"
+      ],
+      "expected_actual": "Six older zero-error models pooled with a current4C-error model; aggregate4/7C must not describe the current artifact.",
+      "reproduction": [
+        "See native regressions and consolidated model-evaluation-spec.md; C05/A07 and C06/A08 share prior repair evidence."
+      ],
+      "root_cause": "See associated native regression and consolidated phase mapping.",
+      "repair_commit": "df742cd; e6b4997",
+      "regression_evidence": [
+        "Artifact versus policy cohort regression, legacy unidentified provenance, actual-fit training-policy retention and no-op identity; correction procedure cohorts preserve null unknown legacy fields and never claim newest-artifact qualification."
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "C04",
+      "severity": "P2",
+      "title": "Measured-target support and acquisition-density weighting",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "openhab/scripts/weather_learning/weights.py",
+        "openhab/scripts/weather_learning/pv_directional_calibration.py"
+      ],
+      "expected_actual": "Distinct forecast rows for unchanged measured targets changed prior strength and fitted gains without new outcomes; UTC support overlaps A06.",
+      "reproduction": [
+        "See native regressions and consolidated model-evaluation-spec.md; C05/A07 and C06/A08 share prior repair evidence."
+      ],
+      "root_cause": "See associated native regression and consolidated phase mapping.",
+      "repair_commit": "4d1259c; df742cd",
+      "regression_evidence": [],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "C05",
+      "severity": "P2",
+      "title": "PV baseline training and serving parity",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "openhab/scripts/historical_pv_horizon_assess.py",
+        "openhab/scripts/historical_pv_train.py",
+        "openhab/scripts/household_pv_model.py",
+        "openhab/scripts/test_pv_horizon_pair_baseline.py"
+      ],
+      "expected_actual": "Same as A07; preserve shared versioned interval kernel and reassess after C04 weighting.",
+      "reproduction": [
+        "See native regressions and consolidated model-evaluation-spec.md; C05/A07 and C06/A08 share prior repair evidence."
+      ],
+      "root_cause": "See associated native regression and consolidated phase mapping.",
+      "repair_commit": "c53fbcc; 5094cdf",
+      "regression_evidence": [
+        "Horizon follow-through7numeric failures before shared-helper repair;147affectedPVtests passed/0skips1.38s. Exact4692horizon+161olderpairs rebuilt; newv2datasets only; qualification.md/model-reassessment.json."
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "reassessment": "qualification.md and model-reassessment.json; original artifacts/producers unchanged",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "C06",
+      "severity": "P2",
+      "title": "Thermal irradiation crossing intervals",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "openhab/scripts/thermal_model/installed_shade_origin.py",
+        "openhab/scripts/household/thermal_weather_conditioning.py"
+      ],
+      "expected_actual": "Same as A08; overlap140W/m2 replaces endpoint900W/m2 for the stated constructed interval.",
+      "reproduction": [
+        "See native regressions and consolidated model-evaluation-spec.md; C05/A07 and C06/A08 share prior repair evidence."
+      ],
+      "root_cause": "See associated native regression and consolidated phase mapping.",
+      "repair_commit": "3126544",
+      "regression_evidence": [],
+      "status": "fixed_integrated_verified_not_deployed",
+      "reassessment": "qualification.md and model-reassessment.json; original artifacts/producers unchanged",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "C07",
+      "severity": "P3",
+      "title": "Qualification and actuator authority boundary",
+      "confidence": "intentional_boundary",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "docs/audits/2026-10-20/qualification.md"
+      ],
+      "expected_actual": "Deliberate unqualified/default-off flags are authority boundaries; a new evidence record must not silently grant deployment, distribution or actuator qualification.",
+      "reproduction": [
+        "See native regressions and consolidated model-evaluation-spec.md; C05/A07 and C06/A08 share prior repair evidence."
+      ],
+      "root_cause": "See associated native regression and consolidated phase mapping.",
+      "repair_commit": null,
+      "regression_evidence": [],
+      "status": "intentional_boundary_preserved_verified",
+      "severity_reason": "Presentation/documentation impact or intentionally preserved boundary as described.",
+      "deployment_status": "authority_boundary_preserved"
+    },
+    {
+      "id": "A17",
+      "severity": "P2",
+      "title": "Budgeted monitor database reader called without required deadline",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "openhab/scripts/weather_learning/monitor_worker.py"
+      ],
+      "expected_actual": "The solar/rain readers need a no-argument factory; the existing factory requires remaining= and failed before opening a connection.",
+      "reproduction": [
+        "test_database_reader_adapter_supplies_shared_remaining_deadline"
+      ],
+      "root_cause": "Production callback type mismatch caused valid local outcomes to be withheld.",
+      "repair_commit": "df742cd",
+      "regression_evidence": [
+        "test_database_reader_adapter_supplies_shared_remaining_deadline; focused correction/wind/monitor/worker55passed,11.48s,exit0"
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "C08",
+      "severity": "P2",
+      "title": "Correction original dependency and transport failures stall independent work",
+      "confidence": "confirmed",
+      "affected_revision": "df742cd",
+      "files": [
+        "openhab/scripts/weather_learning/correction_monitor.py"
+      ],
+      "expected_actual": "A missing/corrupt frozen model before intake or during due work aborted every correction pass; RadiationHistoryUnavailable also escaped.",
+      "reproduction": [
+        "four missing/corrupt intake/due regressions and actual proxy transport outage RED\u2192GREEN"
+      ],
+      "root_cause": "Original reads occurred before durable failure/cursor handling; the real transport exception was outside the handler.",
+      "repair_commit": "e6b4997; 96247d2",
+      "regression_evidence": [
+        "four missing/corrupt intake/due regressions and actual proxy transport outage RED\u2192GREEN; focused correction/wind/monitor/worker55passed,11.48s,exit0",
+        "Future-original intake also reproduced independent-work starvation; durable not-yet-available retry and cursor progression fixed it. Complete affected suite56passed11.68s,exit0."
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "C09",
+      "severity": "P2",
+      "title": "Correction outcomes ignored the declared arrival allowance",
+      "confidence": "confirmed",
+      "affected_revision": "df742cd",
+      "files": [
+        "openhab/scripts/weather_learning/correction_monitor.py"
+      ],
+      "expected_actual": "An outcome first available ten days later completed despite target_end+7day contract; processing timely retained evidence later must remain possible.",
+      "reproduction": [
+        "test_arrival_allowance_uses_original_availability_not_processing_time RED\u2192GREEN"
+      ],
+      "root_cause": "Expiry was considered only after failed scoring, not while validating source availability.",
+      "repair_commit": "e6b4997",
+      "regression_evidence": [
+        "test_arrival_allowance_uses_original_availability_not_processing_time RED\u2192GREEN; focused correction/wind/monitor/worker55passed,11.48s,exit0"
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "C10",
+      "severity": "P2",
+      "title": "Correction durable score integrity and bounded public detail",
+      "confidence": "confirmed",
+      "affected_revision": "df742cd",
+      "files": [
+        "openhab/scripts/weather_learning/correction_monitor.py",
+        "openhab/scripts/weather_learning/correction_performance.py"
+      ],
+      "expected_actual": "A changed numeric value in durable score JSON was aggregated without checking its immutable score hash;16source cohorts also exceeded64KiB detail.",
+      "reproduction": [
+        "durable tamper and16cohort projection regressions RED\u2192GREEN; originals preserved, bad score withheld, omissions explicit"
+      ],
+      "root_cause": "Persisted score hashes were not revalidated and report aggregation had no per-module detail cap.",
+      "repair_commit": "e6b4997",
+      "regression_evidence": [
+        "durable tamper and16cohort projection regressions RED\u2192GREEN; originals preserved, bad score withheld, omissions explicit; focused correction/wind/monitor/worker55passed,11.48s,exit0"
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "C11",
+      "severity": "P2",
+      "title": "Complete monitor batch budget omitted legacy reads",
+      "confidence": "confirmed",
+      "affected_revision": "df742cd",
+      "files": [
+        "openhab/scripts/weather_learning/monitoring.py"
+      ],
+      "expected_actual": "Default monitor API attempted64temperature labels plus8legacy reads against a64-label job budget.",
+      "reproduction": [
+        "test_legacy_window_reads_also_consume_the_job_observation_budget reproduced72>64 then passed"
+      ],
+      "root_cause": "Temperature quota did not subtract prior solar/rain work when no correction callback was supplied.",
+      "repair_commit": "e6b4997",
+      "regression_evidence": [
+        "test_legacy_window_reads_also_consume_the_job_observation_budget reproduced72>64 then passed; focused correction/wind/monitor/worker55passed,11.48s,exit0"
+      ],
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
+      "deployment_status": "candidate_not_installed",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    },
+    {
+      "id": "A18",
+      "severity": "P2",
+      "title": "Scorer CLI fixtures silently disable the later hosted qualification fit",
+      "confidence": "confirmed",
+      "affected_revision": "96247d26494c553e7debba065a0263d6b9fcae97",
+      "files": [
+        "openhab/scripts/test_installed_registered_score_cli.py",
+        "openhab/scripts/test_installed_score_global_lock.py",
+        "openhab/scripts/test_installed_score_jobs.py",
+        "openhab/scripts/test_installed_shade_release_index.py",
+        "tests/completion/test_verification_gates.py",
+        ".github/workflows/forecast-ml-hardening.yml"
+      ],
+      "expected_actual": "The explicitly enabled hosted fit must execute. In-process registered scorer tests left both qualification environment flags at0; the later fit silently skipped despite the workflow enabling it.",
+      "reproduction": "Native subprocess runs all11 registered-scorer tests followed by an enabled-fit sentinel:1failed/11passed before repair; normal parent regression fails. Matching final ML progress identifies the skipped fit case at index1136.",
+      "root_cause": "The standalone scorer intentionally disables fitting in-process. Four CLI fixture modules failed to restore those environment writes; repairing only the registered module left queue/index/busy-lock leakage. The monolithic CI suite allowed a skipped fit to pass.",
+      "repair_commit": "494213c; 6ecd37f; 8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+      "regression_evidence": "Expanded source-derived caller regression executes all22 actual in-process scorer CLI cases then an enabled-fit sentinel:1failed/22passed before complete fixture repair. Maintained workflow test initially fails absent dedicated gate, then executes its actual shell against passed/skipped/absent receipts; skipped and absent fail. Full affected gate+six CLI module suite109passed/23.95s/exit0, including pinned actionlint with ShellCheck. Dedicated hosted real fit still required. Final dedicated hosted ML partitions1414plus1passed/zero skips; actual synthetic full-qualification-fit regression executed.",
+      "status": "fixed_integrated_verified_not_deployed",
+      "severity_reason": "A maintained important numerical qualification gate was omitted from successful CI, without demonstrating a production model error.",
+      "deployment_status": "test-only repair; no production change",
+      "closure_status": "software_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+        "hosted": "ci-final.json",
+        "native": "native-final.json",
+        "scope": "test-ownership.json file partitions; physical/deployment claims excluded"
+      }
+    }
+  ],
+  "current_source_candidate": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+  "final_integrated_verification": {
+    "status": "passed",
+    "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+    "hosted_evidence": "ci-final.json",
+    "native_evidence": "native-final.json",
+    "deployment": "not performed; existing installed sources recorded separately",
+    "physical_and_statistical_qualification": "qualification.md and release.md"
+  },
+  "evidence_supersession": "Final integrated evidence supersedes earlier pending text in preserved focused regression history."
+}

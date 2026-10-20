@@ -1,4 +1,5 @@
-import { CURRENT_RELEASE_MODE, isDirectControlAllowed } from '../releaseMode.js';
+import { isCorrelatedControl } from './catalog.js';
+import { CURRENT_RELEASE_MODE, isDirectControlAllowed, resolveReleaseMode } from '../releaseMode.js';
 
 export const CONTROL_PHASES = Object.freeze([
   'confirmed',
@@ -141,6 +142,9 @@ export function deriveControlState(control, context = {}) {
   }
 
   if (!value) return unavailable('State unavailable');
+  if (isCorrelatedControl(control) && !['safe-compat', 'full'].includes(resolveReleaseMode(releaseMode))) {
+    return disabledStatus(value, 'Maintenance release — commands unavailable');
+  }
 
   if (control.kind === 'binary-policy') {
     const health = circadianHealth(items[control.healthItem], context.nowMs);

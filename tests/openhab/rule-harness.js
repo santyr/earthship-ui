@@ -106,6 +106,8 @@ export function createRuleHarness({
   let suppressRequestReadback = false;
   const commandFailures = [];
   const heldProviders = new Set();
+  const heldPersistence = new Set();
+  const persistenceDelays = new Map();
   const events = [];
   const timers = [];
   const shared = new Map();
@@ -165,6 +167,12 @@ export function createRuleHarness({
             value: itemStates.get(name),
           });
           if (persistFailure) throw persistFailure;
+          if (heldPersistence.has(name)) return;
+          if (persistenceDelays.has(name)) {
+            pendingPersist = { item: name, value: itemStates.get(name), remaining: persistenceDelays.get(name) };
+            persistenceDelays.delete(name);
+            return;
+          }
           if (delayedPersistReads > 0) {
             pendingPersist = { item: name, value: itemStates.get(name), remaining: delayedPersistReads };
             delayedPersistReads = 0;
@@ -349,6 +357,8 @@ export function createRuleHarness({
     failNextCommand(itemName, value, error = new Error('injected command failure')) {
       commandFailures.push({ item: itemName, value: String(value), error });
     },
+    holdPersistence(itemName) { heldPersistence.add(itemName); },
+    delayPersistence(itemName, reads) { persistenceDelays.set(itemName, reads); },
     holdProvider(itemName) {
       heldProviders.add(itemName);
     },

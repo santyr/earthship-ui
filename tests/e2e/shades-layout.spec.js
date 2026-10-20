@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixture-test.js';
 import { createServer } from 'vite';
 
 const TARGETS = [
@@ -70,7 +70,7 @@ test('shared preview accepts all 26 slots but rejects the removed 27th shade', a
 });
 
 for (const target of TARGETS) {
-  test(`${target.name}: 26 local-preview shades fit and never submit movement`, async ({ page }) => {
+  test(`${target.name}: 26 local-preview shades fit and never submit movement`, async ({ page }, testInfo) => {
     const writes = [];
     const errors = [];
     page.on('request', (request) => { if (request.method() !== 'GET') writes.push(request.url()); });
@@ -130,7 +130,11 @@ for (const target of TARGETS) {
         const master = document.querySelector('.master-card').getBoundingClientRect();
         const masterControl = document.querySelector('.master-card .window-control').getBoundingClientRect();
         const masterSlider = document.querySelector('.master-card input[type="range"]').getBoundingClientRect();
-        return { viewport, documentWidth: document.documentElement.scrollWidth, documentHeight: document.documentElement.scrollHeight,
+        return { viewport,
+          outerRowGap: getComputedStyle(pageLayout).rowGap,
+          rootFontSize: getComputedStyle(document.documentElement).fontSize,
+          zonesHeight: document.querySelector('.zones').getBoundingClientRect().height,
+          documentWidth: document.documentElement.scrollWidth, documentHeight: document.documentElement.scrollHeight,
           pageHeight: pageLayout.clientHeight, pageScrollHeight: pageLayout.scrollHeight,
           cards, window: { width: window.width, height: window.height }, controlWidth: control.width,
           sliderHeight: slider.height, sliderWidth: slider.width,
@@ -141,6 +145,9 @@ for (const target of TARGETS) {
           vertical: getComputedStyle(document.querySelector('.shade-grid input[type="range"]')).writingMode,
           truncatedCardLabels: [...document.querySelectorAll('.card-name')]
             .filter((label) => label.scrollWidth > label.clientWidth).map((label) => label.textContent) };
+      });
+      await testInfo.attach(`shades-layout-${view}.json`, {
+        body: JSON.stringify(geometry), contentType: 'application/json',
       });
       expect(geometry.documentWidth).toBeLessThanOrEqual(geometry.viewport.width);
       expect(geometry.documentHeight).toBeLessThanOrEqual(geometry.viewport.height);

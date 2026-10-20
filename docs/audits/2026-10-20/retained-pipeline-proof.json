@@ -1,0 +1,54 @@
+{
+  "schema": "earthship-private-retained-household-pipeline-proof/v1",
+  "source_revision": "3f5d8cbdbe84b6d470a5f7ab91b64789742fa836",
+  "deployment_sha256": "f793f84e53b965218688dc23054eecb4a7836cc3b2f3c86d6a4a2a9306dd10ef",
+  "decision_at": "2026-10-20T13:25:26.538881+00:00",
+  "pipeline_document_sha256": "03681b1c55d4bbb71a679e77b270956a070df3a3d8d8e8806eab45673a05d20c",
+  "pipeline_receipt_sha256": "6fd35abe09be7d0d23d70d8e2cb68f19d5c653c8be48ebd0813336fe5bebbe2e",
+  "snapshot_id": "cf72d48ff6494f8cba10db77b0fc33e85b717045b78174e25df20ff2355b74a7",
+  "plan_sha256": "8341f29d308a588a636f127f224fd8d3caa33fbe2ae1436e5d5a9acc2f3ebdc6",
+  "curated_public_report_sha256": "a2c78961fbb9232c71cf8382945a7826613a6742b5bff87e946f22f8a0c42aac",
+  "archived_admission_sha256": "35a7e567b9a2a83df738fa7e90c09d3b80e08632b392a8ec305f34244622e8e7",
+  "candidate_types": [
+    "SET_NIGHT_LOAD_OVERRIDE",
+    "RUN_GREYWATER_CYCLE"
+  ],
+  "candidate_count": 2,
+  "selected_count": 0,
+  "candidate_decisions": [
+    {
+      "reason": "source_unavailable",
+      "status": "unknown",
+      "unknown_checks": 6
+    },
+    {
+      "reason": "source_unavailable",
+      "status": "unknown",
+      "unknown_checks": 6
+    }
+  ],
+  "original_pipeline_parity": true,
+  "original_nested_plan_parity": true,
+  "original_public_report_parity": true,
+  "original_admission_parity": true,
+  "original_inputs_and_stage_unchanged": true,
+  "source_closure": {
+    "original_runtime_manifest_sha256": "0118e2bf951b1138765e990ea28b2c813f9f9f404a44552d24fc748e26855b47",
+    "pipeline_files": 68,
+    "pipeline_manifest_sha256": "0118e2bf951b1138765e990ea28b2c813f9f9f404a44552d24fc748e26855b47",
+    "stage_files": 353,
+    "stage_manifest_sha256": "b6f76a7fb50e8b4a021fc3ae2afeef08002e149860557b074fcee6dc7665340e"
+  },
+  "elapsed_seconds": 3.5297608620021492,
+  "translator": "permanently_disabled_refused_before_transport",
+  "automatic_actuation": false,
+  "release_authorized": false,
+  "executed_socket_connections_or_bindings": 0,
+  "report_sha256": "188cf1d4e6d8629b12835fed837ba5816d3a9cb6f6185cb59be536ece5852961",
+  "scope": "deterministic_original_source_snapshot_models_intents_arbitration_and_curated_view_replay_not_physical_effect_or_release_qualification",
+  "original_package_proof": true,
+  "feeder": {
+    "retained_candidate_present": false,
+    "current_exclusion": "separate normal source/regression gate; original historical report preserved"
+  }
+}

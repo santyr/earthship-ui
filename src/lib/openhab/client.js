@@ -1,3 +1,5 @@
+import { withReadTimeout, READ_TIMEOUT_MS } from './readRequest.js';
+
 export const MAX_HISTORY_RESPONSE_BYTES = 5 * 1024 * 1024;
 export const MAX_HISTORY_ROWS = 300_000;
 
@@ -9,7 +11,7 @@ export class HistoryResponseError extends Error {
   }
 }
 
-async function readBoundedJson(response) {
+async function readBoundedJson(response, signal) {
   const declared = Number(response.headers?.get?.('content-length'));
   if (Number.isFinite(declared) && declared > MAX_HISTORY_RESPONSE_BYTES) {
     throw new HistoryResponseError('History response is too large', 'history-response-too-large');
@@ -17,6 +19,8 @@ async function readBoundedJson(response) {
 
   if (response.body?.getReader) {
     const reader = response.body.getReader();
+    const cancel = () => { Promise.resolve(reader.cancel(signal.reason)).catch(() => {}); };
+    signal?.addEventListener('abort', cancel, { once: true });
     const decoder = new TextDecoder();
     let bytes = 0;
     let text = '';
@@ -34,6 +38,7 @@ async function readBoundedJson(response) {
       text += decoder.decode();
       return JSON.parse(text);
     } finally {
+      signal?.removeEventListener('abort', cancel);
       reader.releaseLock?.();
     }
   }
@@ -73,31 +78,39 @@ async function readBoundedJson(response) {
   );
 }
 
-export function createClient({ openhabUrl, apiToken }) {
+export function createClient({ openhabUrl, apiToken, readTimeoutMs = READ_TIMEOUT_MS }) {
   const h = apiToken ? { Authorization: `Bearer ${apiToken}` } : {};
   const base = openhabUrl.replace(/\/$/, '');
+  const read = (path, label, options = {}, parse = response => response.json()) => withReadTimeout(async signal => {
+    const response = await fetch(`${base}${path}`, { headers: h, signal });
+    if (signal.aborted) throw signal.reason;
+    if (!response.ok) throw new Error(`${label} ${response.status}`);
+    return parse(response, signal);
+  }, { signal: options.signal, timeoutMs: options.timeoutMs ?? readTimeoutMs });
+  const collection = async (path, label, options) => {
+    const rows = await read(path, label, options);
+    const key = label === 'getAllItems' ? 'name' : 'UID';
+    if (!Array.isArray(rows) || rows.some(row => typeof row?.[key] !== 'string' || !row[key])) {
+      throw new Error(`${label} invalid snapshot`);
+    }
+    return rows;
+  };
   return {
-    async getAllItems() {
-      const r = await fetch(`${base}/rest/items?fields=name,state,type,lastStateUpdate`, { headers: h });
-      if (!r.ok) throw new Error(`getAllItems ${r.status}`);
-      return r.json();
+    getAllItems(options = {}) {
+      return collection('/rest/items?fields=name,state,type,lastStateUpdate', 'getAllItems', options);
     },
-    async getAllThings() {
-      const r = await fetch(`${base}/rest/things`, { headers: h });
-      if (!r.ok) throw new Error(`getAllThings ${r.status}`);
-      return r.json();
+    getAllThings(options = {}) {
+      return collection('/rest/things', 'getAllThings', options);
     },
-    async getItem(name) {
-      const r = await fetch(`${base}/rest/items/${encodeURIComponent(name)}`, { headers: h });
-      if (!r.ok) throw new Error(`getItem ${name} ${r.status}`);
-      return r.json();
+    getItem(name, options = {}) {
+      return read(`/rest/items/${encodeURIComponent(name)}`, `getItem ${name}`, options);
     },
     async sendCommand(name, value) {
       const r = await fetch(`${base}/rest/items/${encodeURIComponent(name)}`, {
         method: 'POST', headers: { ...h, 'Content-Type': 'text/plain' }, body: String(value) });
       if (!r.ok) throw new Error(`sendCommand ${name} ${r.status}`);
     },
-    async getHistory(name, { starttime, endtime, signal, includeStartState = false } = {}) {
+    async getHistory(name, { starttime, endtime, signal, timeoutMs, includeStartState = false } = {}) {
       let startMs;
       let endMs;
       if (includeStartState) {
@@ -112,12 +125,8 @@ export function createClient({ openhabUrl, apiToken }) {
       }
       const q = new URLSearchParams({ starttime, endtime });
       if (includeStartState) q.set('boundary', 'true');
-      const r = await fetch(`${base}/rest/persistence/items/${encodeURIComponent(name)}?${q}`, {
-        headers: h,
-        signal,
-      });
-      if (!r.ok) throw new Error(`getHistory ${name} ${r.status}`);
-      const d = await readBoundedJson(r);
+      const d = await read(`/rest/persistence/items/${encodeURIComponent(name)}?${q}`, `getHistory ${name}`,
+        { signal, timeoutMs }, readBoundedJson);
       if (!Array.isArray(d?.data)) {
         throw new HistoryResponseError('Malformed history response data', 'invalid-history-response');
       }

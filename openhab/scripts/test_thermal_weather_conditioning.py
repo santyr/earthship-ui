@@ -60,7 +60,9 @@ def test_conditioning_rejects_noncausal_or_changed_original_context(damage):
     with pytest.raises(ValueError):apply_conditioning((raw,),proof,issue=ISSUE,available=ISSUE-timedelta(seconds=1),initial_outdoor_f=53.6)
 
 
-def bound_fixture(tmp_path,*,forecast=None,geometry=None,sensor_epoch=None):
+def bound_fixture(tmp_path,monkeypatch,*,forecast=None,geometry=None,sensor_epoch=None):
+    # Synthetic geometry is isolated from kernel admission; real guards have their own suite.
+    monkeypatch.setattr("household_cycle_resources.publication_resource_preflight",lambda:None)
     from household_native_training import directory,save
     from thermal_weather_source import conditioning_runtime
     from daily_pv_worker import day_geometry
@@ -85,9 +87,9 @@ def bound_fixture(tmp_path,*,forecast=None,geometry=None,sensor_epoch=None):
     return dict(selection=selected,geometry_root=cache,forecast=forecast,geometry=future(ISSUE,hours=1) if geometry is None else geometry,issue=ISSUE,sensor_epoch=admission['source_sensor_epoch'],clock=lambda:ISSUE-timedelta(seconds=2),guard=lambda:None),models
 
 
-def test_bound_context_uses_existing_native_cache_and_detects_changed_model(tmp_path):
+def test_bound_context_uses_existing_native_cache_and_detects_changed_model(tmp_path,monkeypatch):
     from thermal_weather_source import collect_context,verify_bindings
-    args,models=bound_fixture(tmp_path);proof=collect_context(**args)
+    args,models=bound_fixture(tmp_path,monkeypatch);proof=collect_context(**args)
     assert proof['midpoint_positions'][0]['azimuth_degrees']==165.
     assert proof['prepared_at']==(ISSUE-timedelta(seconds=2)).isoformat()
     verify_bindings(proof,guard=lambda:None)
@@ -98,7 +100,7 @@ def test_bound_context_uses_existing_native_cache_and_detects_changed_model(tmp_
 def test_missing_or_late_cached_geometry_never_starts_native_acquisition(tmp_path,monkeypatch):
     from thermal_weather_source import collect_context
     import astro_geometry_worker
-    args,_=bound_fixture(tmp_path)
+    args,_=bound_fixture(tmp_path,monkeypatch)
     def unexpected(*a,**kw):raise AssertionError('cold geometry acquisition in serving')
     monkeypatch.setattr(astro_geometry_worker,'capture_batch',unexpected)
     for p in args['geometry_root'].glob('*.geometry.json'):p.unlink()
@@ -116,7 +118,7 @@ def test_native_conditioned_capture_replays_and_keeps_original_google_rows(tmp_p
     c,inputs,kwargs=native_context(tmp_path,monkeypatch,originals);before=deepcopy(inputs)
     raw=api.build_capture(c,inputs,**kwargs)
     monkeypatch.setattr(sys.modules[__name__],'ISSUE',native_issue)
-    args,_=bound_fixture(tmp_path/'weather',forecast=inputs['forecast'],geometry=kwargs['geometry'],sensor_epoch=c['fit']['sensor_epochs']['outdoor'])
+    args,_=bound_fixture(tmp_path/'weather',monkeypatch,forecast=inputs['forecast'],geometry=kwargs['geometry'],sensor_epoch=c['fit']['sensor_epochs']['outdoor'])
     proof=collect_context(**args)
     value=api.build_capture(c,inputs,weather_conditioning=proof,**kwargs)
     assert value['schema']=='earthship-provisional-thermal-origin/v3'
@@ -137,7 +139,7 @@ def test_conditioned_native_context_freezes_only_thermal_correction(tmp_path,mon
     from household.thermal_model import project,PreparedProjection
     c,inputs,kwargs=native_context(tmp_path,monkeypatch,originals)
     monkeypatch.setattr(sys.modules[__name__],'ISSUE',native_issue)
-    args,_=bound_fixture(tmp_path/'weather',forecast=inputs['forecast'],geometry=kwargs['geometry'],sensor_epoch=c['fit']['sensor_epochs']['outdoor'])
+    args,_=bound_fixture(tmp_path/'weather',monkeypatch,forecast=inputs['forecast'],geometry=kwargs['geometry'],sensor_epoch=c['fit']['sensor_epochs']['outdoor'])
     proof=collect_context(**args)
     capture=native.build_capture(c,inputs,weather_conditioning=proof,**kwargs)
     monkeypatch.setattr(native_thermal_artifact,'current_native_runtime',lambda **kw:deepcopy(kwargs['runtime']))
@@ -168,3 +170,20 @@ def test_conditioned_capture_requires_actual_proof(tmp_path,monkeypatch,original
     capture.update(schema=native.CONDITIONED_CAPTURE_SCHEMA,weather_conditioning=None)
     capture['capture_sha256']=native.digest(capture,'capture_sha256')
     with pytest.raises(ValueError):native.validate_capture(capture,runtime=kwargs['runtime'],expected_artifact_sha256=c['artifact_sha256'],expected_capture_sha256=capture['capture_sha256'])
+
+
+def test_conditioning_runtime_binds_new_target_weight_dependency(tmp_path,monkeypatch):
+    import thermal_weather_source as source
+    from hashlib import sha256
+    from pathlib import Path
+    before=source.conditioning_runtime()
+    relative='weather_learning/weights.py'
+    assert before.get(relative)==sha256((Path(source.__file__).parent/relative).read_bytes()).hexdigest()
+    for name in source.RUNTIME_SOURCES:
+        path=tmp_path/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes((Path(source.__file__).parent/name).read_bytes())
+    changed=tmp_path/relative;changed.write_bytes(changed.read_bytes()+b'\n# changed numerical support contract\n')
+    monkeypatch.setattr(source,'SCRIPTS',tmp_path)
+    after=source.conditioning_runtime()
+    assert before!=after
+    assert before.keys()==after.keys()
+    assert {name for name in before if before[name]!=after[name]}=={relative}

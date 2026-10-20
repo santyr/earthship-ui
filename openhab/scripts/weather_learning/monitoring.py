@@ -3,48 +3,75 @@ from datetime import datetime,time,timedelta
 from zoneinfo import ZoneInfo
 from .contracts import canonical,identity,instant,digest
 from .evidence import utc
-from .evaluation import _metrics,_horizon
-from .features import temperature_targets,local_temperature_outcome,training_pair
-from .shadow import TRAIN_OFFSETS,_read
+from .performance import (score_temperature,summarize_temperature_scores,validate_temperature_score,
+    EVALUATION_VERSION,EVALUATION_CONTRACT_SHA256)
+from .pending_scores import PendingScores
+from .features import local_temperature_outcome
+from .shadow import _read
 from .solar_shadow import solar_window_forecast,compare_solar_windows,_source as validate_solar
 from .energy_shadow import rain_day_forecast,compare_rain_products,_rain_source as validate_rain
 
 
 def monitor_once(archive,state,*,now,site,sensor_epoch,code_revision,observation_policy_sha256,
-                 read_temperature,read_solar,read_rain,apply=False,guard=lambda:None):
+                 read_temperature,read_solar,read_rain,apply=False,guard=lambda:None,read_corrections=None):
+    import tempfile
+    from pathlib import Path
+    if type(apply) is not bool:raise ValueError('explicit monitor publication required')
+    arguments=dict(now=now,site=site,sensor_epoch=sensor_epoch,code_revision=code_revision,
+        observation_policy_sha256=observation_policy_sha256,read_temperature=read_temperature,
+        read_solar=read_solar,read_rain=read_rain,apply=apply,guard=guard,read_corrections=read_corrections)
+    context=dict(sensor_epoch=sensor_epoch,observation_policy_sha256=observation_policy_sha256,
+        evaluation_version=EVALUATION_VERSION,evaluation_contract_sha256=EVALUATION_CONTRACT_SHA256)
+    if apply:
+        return _monitor_once(archive,state,queue=PendingScores(state,**context),**arguments)
+    # Preview performs the same bounded discovery/scoring against a disposable
+    # index; it never advances the production cursor or completes durable work.
+    with tempfile.TemporaryDirectory(prefix='monitor-preview-',dir=state.root) as temporary:
+        queue=PendingScores(state,db_path=Path(temporary)/'queue.sqlite3',**context)
+        return _monitor_once(archive,state,queue=queue,**arguments)
+
+
+def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,observation_policy_sha256,
+                 read_temperature,read_solar,read_rain,apply,guard,read_corrections):
     now=utc(now);digest(observation_policy_sha256)
     if type(apply) is not bool:raise ValueError('explicit monitor publication required')
-    issues=state.training_issues(now-timedelta(days=7),now,sensor_epoch=sensor_epoch)
-    if len(issues)>8:raise ValueError('bounded original daily issues required')
-    selected=[];solar_forecasts=[];rain_forecasts=[];solar_sources=[];rain_sources=[]
+    names=state.training_issue_names(now-timedelta(days=7),now,sensor_epoch=sensor_epoch)
+    if len(names)>8:raise ValueError('bounded original daily issues required')
+    solar_forecasts=[];rain_forecasts=[];solar_sources=[];rain_sources=[]
     pending=dict(solar=0,rain=0);withheld=[];zone=ZoneInfo(site.timezone)
+    source_attempts=0
+    if read_corrections is not None and not callable(read_corrections):raise ValueError('callable correction monitor required')
     def source(kind,target,read,validate):
+        nonlocal source_attempts
         key=identity(dict(kind=kind,target=target,policy_sha256=observation_policy_sha256))
         path=state.root/'weather-outcomes'/(key+'.json')
-        if path.exists():
-            value=validate(_read(path,16*1024**2))
-            if instant(value['assessed_at'])>now:raise ValueError('future retained outcome refused')
+        try:
+            if path.exists():
+                value=validate(_read(path,16*1024**2))
+                if instant(value['assessed_at'])>now:raise ValueError('future retained outcome refused')
+                return value
+            source_attempts+=1
+            value=read();guard()
+            if value is None:return None
+            value=validate(value)
+            if instant(value['assessed_at'])>now:raise ValueError('future local outcome refused')
+            if apply:state._write(path,value,immutable=True)
             return value
-        try:value=read()
         except Exception as error:
             guard();withheld.append(dict(kind=kind,target=target,reason=type(error).__name__));return None
+    issues=[]
+    for name in names:
         guard()
-        if value is None:return None
-        value=validate(value)
-        if instant(value['assessed_at'])>now:raise ValueError('future local outcome refused')
-        if apply:state._write(path,value,immutable=True)
-        return value
-    for original in issues:
+        try:
+            original=state.read_issue(name);payload=original['payload']
+            snapshot=archive.read(payload['source']['snapshotSha256'])
+            if snapshot['site']!=dict(latitude=site.latitude,longitude=site.longitude,timezone=site.timezone):
+                raise ValueError('weather monitoring site differs')
+        except (OSError,ValueError,KeyError,TypeError) as error:
+            withheld.append(dict(kind='original_issue',issue_sha256=name,reason=type(error).__name__));continue
+        issues.append((original,snapshot))
+    for original,snapshot in issues:
         guard();payload=original['payload'];issued=instant(payload['decisionAt']);completed=instant(payload['generatedAt'])
-        snapshot=archive.read(payload['source']['snapshotSha256'])
-        if snapshot['site']!=dict(latitude=site.latitude,longitude=site.longitude,timezone=site.timezone):raise ValueError('weather monitoring site differs')
-        targets={row.target_at:row for row in temperature_targets(snapshot,issued_at=issued)}
-        first=min(targets)
-        for row in payload['hours']:
-            at=instant(row['at']);target=targets.get(at)
-            if target is None or abs(target.mean_c-row['rawC'])>1e-9:raise ValueError('original issued temperature differs from Google source')
-            offset=int((at-first).total_seconds()/3600)+1
-            if at<=now-timedelta(minutes=2) and offset in TRAIN_OFFSETS:selected.append((target,row,payload['generation'],payload['model']['sha256']))
         next_day=issued.astimezone(zone).date()+timedelta(days=1)
         end=datetime.combine(next_day,time.min,zone).astimezone(now.tzinfo)
         start=completed.replace(minute=0,second=0,microsecond=0)+timedelta(hours=1)
@@ -62,27 +89,53 @@ def monitor_once(archive,state,*,now,site,sensor_epoch,code_revision,observation
             value=source('rain',next_day.isoformat(),lambda:read_rain(next_day,now),validate_rain)
             if value is not None:rain_sources.append(value)
         else:pending['rain']+=1
-    if len(selected)>320:raise ValueError('bounded prospective weather targets required')
-    guard();metadata=read_temperature(sorted({target.target_at for target,_,_,_ in selected}),now) if selected else {};guard()
-    raw=[];candidate=[];paired_raw=[];manifest=[];horizons={};missing=0
-    for target,row,generation,model in selected:
-        record=metadata.get(target.target_at)
-        if record is None:missing+=1;continue
-        try:outcome=local_temperature_outcome(record,target_at=target.target_at,assessed_at=now,sensor_epoch=sensor_epoch);pair=training_pair(target,outcome)
-        except ValueError:missing+=1;continue
-        day=target.target_at.astimezone(zone).date().isoformat();error=target.mean_c-outcome.value_c
-        raw.append((error,day));horizon=horizons.setdefault(_horizon(target),dict(raw=[],candidate=[]));horizon['raw'].append((error,day))
-        if row['localC'] is not None:
-            candidate.append((row['localC']-outcome.value_c,day));paired_raw.append((error,day));horizon['candidate'].append((row['localC']-outcome.value_c,day))
-        manifest.append(dict(pair_sha256=pair.pair_digest,issue_generation=generation,snapshot_sha256=target.snapshot_digest,
-            model_sha256=model,outcome_sha256=outcome.receipt_digest,issued_at=target.issued_at.isoformat(),target_at=target.target_at.isoformat(),
-            outcome_available_at=outcome.available_at.isoformat(),raw_c=target.mean_c,issued_local_c=row['localC'],observed_c=outcome.value_c))
+    bootstrap=queue.bootstrap(archive,site=site,now=now,guard=guard)
+    temperature_limit=min(32 if read_corrections is not None else 64,max(1,64-source_attempts))
+    due=queue.due(now,limit=temperature_limit);loaded=[]
+    for work in due:
+        guard()
+        try:original,target,row=queue.load(work,archive,site=site)
+        except FileNotFoundError:
+            queue.defer(work,reason='missing_original',now=now);continue
+        except (ValueError,KeyError,TypeError):
+            queue.defer(work,reason='invalid_original',now=now);continue
+        loaded.append((work,original,target,row))
+    try:
+        guard();metadata=read_temperature(sorted({target.target_at for _,_,target,_ in loaded}),now) if loaded else {};guard()
+        if not isinstance(metadata,dict):raise ValueError('explicit temperature observation mapping required')
+    except Exception as error:
+        guard();metadata={};withheld.append(dict(kind='temperature',reason=type(error).__name__))
+    missing=0
+    for work,original,target,row in loaded:
+        guard();record=metadata.get(target.target_at)
+        if record is None:
+            missing+=1;queue.defer(work,reason='observation_missing',now=now);continue
+        try:
+            outcome=local_temperature_outcome(record,target_at=target.target_at,assessed_at=now,sensor_epoch=sensor_epoch)
+            score=score_temperature(original=original,target=target,row=row,outcome=outcome,
+                observation_policy_sha256=observation_policy_sha256)
+        except (ValueError,KeyError,TypeError):
+            missing+=1;queue.defer(work,reason='quality_withheld',now=now);continue
+        queue.commit(work,score,validator=validate_temperature_score)
+    scores=list(queue.iter_scores(now-timedelta(days=7),now))
+    temperature=summarize_temperature_scores(scores,withheld=missing)
+    temperature['coverage_window']=queue.window_counts(now-timedelta(days=7),now,now=now)
+    temperature['work']=dict(bootstrap=bootstrap,states=queue.counts(),dependencies=queue.source_dependencies(),
+        batch_limit=temperature_limit,observation_arrival_allowance_days=7,report_target_window_days=7)
+    corrections=None
+    if read_corrections is not None:
+        # Legacy daily windows and every attempted queue label share one budget.
+        # Reserve temperature work, then lend only the remaining quota.
+        remaining=min(32,max(0,64-source_attempts-len(loaded)))
+        try:
+            guard();corrections=read_corrections(now=now,limit=remaining,apply=apply,guard=guard);guard()
+        except Exception as error:
+            guard();corrections=dict(status='unavailable',reason=type(error).__name__,automatic_actuation=False)
     guard()
-    report=dict(schema='earthship-weathernext-weather-performance/v1',provider='weathernext3',generated_at=now.isoformat(),
+    report=dict(schema='earthship-weathernext-weather-performance/v2',provider='weathernext3',generated_at=now.isoformat(),
         valid_until=(now+timedelta(hours=2)).isoformat(),code_revision=code_revision,observation_policy_sha256=observation_policy_sha256,
         scoring_scope='original_daily_issues_and_frozen_local_predictions',issues=len(issues),
-        temperature=dict(raw=_metrics(raw),candidate=_metrics(candidate),candidate_paired_raw=_metrics(paired_raw),withheld=missing,
-            by_horizon={k:{name:_metrics(values) for name,values in v.items()} for k,v in horizons.items()},pair_manifest=manifest),
+        temperature=temperature,corrections=corrections,
         solar=compare_solar_windows(solar_forecasts,solar_sources),rain=compare_rain_products(rain_forecasts,rain_sources),
         pending=pending,source_withheld=withheld,calibration_qualified=False,release_authorized=False,automatic_actuation=False)
     report['report_sha256']=identity(report)

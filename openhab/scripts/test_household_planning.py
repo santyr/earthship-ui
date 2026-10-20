@@ -72,7 +72,7 @@ def test_missing_coordination_never_defaults_to_permission():
 
 
 def test_cumulative_reserve_blocks_pair_that_each_passes_individually():
-    result=run(candidates=lambda snap:[candidate(snap,delta=-2),candidate(snap,'RUN_FEEDER_CYCLE',delta=-2)])
+    result=run(candidates=lambda snap:[candidate(snap,delta=-2),candidate(snap,'SET_NIGHT_LOAD_DEVICE',delta=-2,device='dishwasher')])
     assert len(result['selected_intent_ids'])==1
     assert result['reserve_checks']['selected_floor_soc']==10
 
@@ -102,7 +102,7 @@ def test_bad_original_fact_binding_cannot_pass_a_hard_gate(damage):
 
 
 def test_exhaustive_selection_beats_a_greedy_first_action():
-    def items(snap):return [candidate(snap,delta=-2),candidate(snap,'RUN_FEEDER_CYCLE',delta=-1),candidate(snap,'SET_NIGHT_LOAD_DEVICE',delta=-1,device='dishwasher')]
+    def items(snap):return [candidate(snap,delta=-2),candidate(snap,'SET_NIGHT_LOAD_DEVICE',delta=-1,device='dishwasher'),candidate(snap,delta=-1)]
     def utilities(items):return {item.intent_id:score for item,score in zip(items,(10.,6.,6.))}
     result=run(candidates=items,utilities=utilities)
     assert result['objective']['total']==12. and result['baseline_scores']['greedy']==10.
@@ -248,3 +248,40 @@ def test_replay_refuses_changed_original_candidate_context_even_when_resealed(da
     else:entry['validated_at']=(NOW+timedelta(seconds=120)).isoformat()
     receipt['receipt_sha256']=identity({key:value for key,value in receipt.items() if key!='receipt_sha256'})
     with pytest.raises(ValueError):api().replay_plan(receipt,runtime_manifest={'household/planning.py':'a'*64})
+
+
+def test_feeder_is_excluded_from_new_shadow_optimization_even_with_complete_facts():
+    result=run(candidates=lambda snap:[candidate(snap,'RUN_FEEDER_CYCLE',delta=0)],
+        utilities=lambda items:{item.intent_id:1e6 for item in items})
+    assert result['selected_intent_ids']==[]
+    decision=result['candidate_decisions'][0]
+    assert decision['status']=='rejected' and decision['reason']=='planner_authority_disabled'
+    assert result['automatic_actuation'] is False
+    declared={row['rule'] for row in result['constraint_catalog']}
+    assert all(check['rule'] in declared for check in decision['hard_checks'])
+
+
+def test_excluded_feeder_cannot_displace_an_in_scope_optional_candidate():
+    def items(snap):return [candidate(snap),candidate(snap,'RUN_FEEDER_CYCLE',delta=0)]
+    result=run(candidates=items,utilities=lambda rows:{item.intent_id:score for item,score in zip(rows,(10.,1e6))})
+    snap,_=setup();greywater=candidate(snap)
+    assert result['selected_intent_ids']==[greywater.intent_id]
+    feeder=next(row for row in result['candidate_decisions'] if row['intent_id']!=greywater.intent_id)
+    assert feeder['status']=='rejected' and feeder['reason']=='planner_authority_disabled'
+
+
+def test_retained_feeder_plan_requires_its_original_producer_instead_of_reinterpretation():
+    from pathlib import Path
+    from household.codec import loads
+    original=loads((Path(__file__).with_name('fixtures')/'household-feeder-plan-original-v1.json').read_bytes())
+    assert original['inputs']['candidates'][0]['intent']['type']=='RUN_FEEDER_CYCLE'
+    assert len(original['plan']['selected_intent_ids'])==1
+    before=__import__('copy').deepcopy(original)
+    current={'household/planning.py':sha256(Path(api().__file__).read_bytes()).hexdigest()}
+    with pytest.raises(ValueError,match='executing planner runtime differs'):
+        api().replay_plan(original,runtime_manifest=current)
+    # Merely claiming the old hash must not turn a historical acceptance into
+    # a current rejection with the original receipt identity.
+    with pytest.raises(ValueError,match='rederived original plan differs'):
+        api().replay_plan(original,runtime_manifest=original['runtime_manifest'])
+    assert original==before

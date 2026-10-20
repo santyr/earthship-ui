@@ -85,7 +85,9 @@ def test_receipt_soc_can_support_old_pv_without_promoting_numeric_meter_health()
     assert not any(r['potential_proxy_eligible'] for r in atomic_proxy_intervals(**dict(args,soc=[])))
 
 
-def test_selected_geometry_reuses_exact_minute_instants_and_original_clocks(tmp_path):
+def test_selected_geometry_reuses_exact_minute_instants_and_original_clocks(tmp_path,monkeypatch):
+    # This fixture supplies synthetic geometry, not a native publication job.
+    monkeypatch.setattr("household_cycle_resources.publication_resource_preflight",lambda:None)
     from historical_pv_legacy_assess import target_geometry
     from weather_learning.config import Site
     from astro_geometry import build_cache
@@ -115,7 +117,7 @@ def test_pairing_uses_an_earlier_google_issue_and_does_not_fill_missing_geometry
     from historical_pv_legacy_assess import pair_older
     from test_daily_pv_potential import ARRAY
     end=START+timedelta(minutes=1);hour=START.replace(minute=0,second=0,microsecond=0)+timedelta(hours=1)
-    weather={hour.isoformat():{'station_head_temperature_2m':20.,'surface_solar_radiation_downwards_1hr':500.,'wind_speed_10m':1.}}
+    weather={at.isoformat():{'station_head_temperature_2m':20.,'surface_solar_radiation_downwards_1hr':500.,'wind_speed_10m':1.} for at in (hour-timedelta(hours=1),hour)}
     runs=[(START-timedelta(hours=2),'a'*64,weather,'historical_assumption'),(START+timedelta(minutes=1),'b'*64,weather,'historical_assumption')]
     label=dict(start=START.isoformat(),end=end.isoformat(),outcome_w=800.,source_sha256='c'*64,censoring_basis='numeric_proxy',positive_charge_basis='recent_soc_rise')
     horizon=[dict(azimuth_degrees=i*7.5,elevation_degrees=5.) for i in range(48)];positions={end.isoformat():dict(elevation_degrees=30.,azimuth_degrees=110.)}

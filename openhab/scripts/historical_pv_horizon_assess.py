@@ -17,6 +17,26 @@ from weather_learning.pv_horizon_assessment import assess_horizons,BANDS
 from weather_learning.pv_calibration import _pair
 from weather_learning.source_bundle import capture_sources,verify_sources,retain_sources
 from weather_learning.worker import collector_lock
+from historical_pv_train import pair_baseline,validate_pair_dataset
+from household_pv_model import INTERVAL_BASELINE_RULE
+
+
+def expand_horizon_pairs(pairs,*,runs,positions,array,horizon,guard=lambda:None):
+    """Pure expansion of source-bound forecast pairs across declared lead bands."""
+    from household_solar_horizon import horizon_height
+    runs=ordered_runs(runs);expanded=[]
+    for original in pairs:
+        guard();start,end=instant(original['start']),instant(original['end']);position=positions[end.isoformat()];az=position['azimuth_degrees'];terrain=horizon_height(horizon,az)
+        for lo,hi in BANDS:
+            choices=[r for r in runs if r[0]<start and lo<(end-r[0]).total_seconds()/3600<=hi]
+            if not choices:continue
+            origin,pin,hours,basis=max(choices,key=lambda r:r[0])
+            try:baseline=pair_baseline(start=start,end=end,hours=hours,position=position,array=array,horizon=horizon)
+            except (ValueError,KeyError,TypeError):continue
+            if lo==0 and (pin!=original['forecast_sha256'] or abs(baseline-original['baseline_w'])>1e-7):raise ValueError('original near-term physics pairing differs')
+            row={k:v for k,v in original.items() if k!='pair_sha256'};row.update(origin=origin.isoformat(),baseline_w=baseline,baseline_rule=INTERVAL_BASELINE_RULE,lead_hours=(end-origin).total_seconds()/3600,forecast_sha256=pin,availability_basis=basis,elevation_degrees=position['elevation_degrees'],horizon_elevation_degrees=terrain)
+            row['pair_sha256']=identity(row);expanded.append(row)
+    return expanded
 
 
 def run(a):
@@ -25,7 +45,7 @@ def run(a):
     from daily_pv_worker import day_geometry
     from household_native_geometry_prepare import _library_paths
     from astro_geometry_worker import runtime_identity
-    from household_pv_model import array_power,ASSUMPTIONS,_array
+    from household_pv_model import _array
     from household_solar_horizon import horizon_height
     from household_cycle_pressure import PublicationHeadroom
     root=Path(__file__).resolve().parents[2];sources=capture_sources(root);began=time.monotonic();pressure=PublicationHeadroom()
@@ -39,7 +59,7 @@ def run(a):
         with gzip.open(parent/(experiment['dataset_sha256']+'.pairs.json.gz'),'rb') as handle:raw=handle.read(32*1024**2+1)
         if len(raw)>32*1024**2:raise ValueError('bounded original PV paired data required')
         dataset=json.loads(raw)
-        if dataset['dataset_sha256']!=experiment['dataset_sha256'] or dataset['dataset_sha256']!=identity({k:v for k,v in dataset.items() if k!='dataset_sha256'}):raise ValueError('original PV data differ')
+        validate_pair_dataset(dataset,experiment['dataset_sha256'])
         # Check original electrical file bytes and summary identities, without
         # reparsing the same electrical streams already sealed by the fitter.
         index_raw=_read(a.energy/'energy-index.json',1048576);index=json.loads(index_raw)
@@ -68,21 +88,9 @@ def run(a):
             for p in snapshot['points']:
                 if p['statistic']=='mean' and p['variable'] in ('station_head_temperature_2m','surface_solar_radiation_downwards_1hr','wind_speed_10m'):hours.setdefault(p['valid_at'],{})[p['variable']]=p['value']
             runs.append((origin,pin,hours,'recorded_ingestion' if snapshot['historical'] is False else 'assumed_full_cycle_9h'))
-        runs=ordered_runs(runs);expanded=[]
-        for original in pairs:
-            guard();start,end=instant(original['start']),instant(original['end']);position=positions[end.isoformat()];az=position['azimuth_degrees'];terrain=horizon_height(horizon,az);hour=end.replace(minute=0,second=0,microsecond=0)
-            if hour<end:hour+=timedelta(hours=1)
-            for lo,hi in BANDS:
-                choices=[r for r in runs if r[0]<start and lo<(end-r[0]).total_seconds()/3600<=hi]
-                if not choices:continue
-                origin,pin,hours,basis=max(choices,key=lambda r:r[0]);weather=hours.get(hour.isoformat(),{});ghi=weather.get('surface_solar_radiation_downwards_1hr');temp=weather.get('station_head_temperature_2m');wind=weather.get('wind_speed_10m')
-                if not finite(ghi) or not finite(temp):continue
-                baseline=array_power(array=array,assumptions=ASSUMPTIONS,ghi_wm2=ghi,elevation_degrees=position['elevation_degrees'],azimuth_degrees=az,day_of_year=end.timetuple().tm_yday,temp_f=temp*9/5+32,wind_mph=None if wind is None else wind*2.2369362921,horizon_elevation_degrees=terrain)['potential_dc_w']
-                if lo==0 and (pin!=original['forecast_sha256'] or abs(baseline-original['baseline_w'])>1e-7):raise ValueError('original near-term physics pairing differs')
-                row={k:v for k,v in original.items() if k!='pair_sha256'};row.update(origin=origin.isoformat(),baseline_w=baseline,lead_hours=(end-origin).total_seconds()/3600,forecast_sha256=pin,availability_basis=basis,elevation_degrees=position['elevation_degrees'],horizon_elevation_degrees=terrain)
-                row['pair_sha256']=identity(row);expanded.append(row)
+        expanded=expand_horizon_pairs(pairs,runs=runs,positions=positions,array=array,horizon=horizon,guard=guard)
         now=datetime.now(timezone.utc);model=fit_directional(pairs,cutoff=a.cutoff,trained_at=now);report=assess_horizons(model,expanded,cutoff=a.cutoff,end=a.end);run=directory(output/('assessment-'+now.strftime('%Y%m%dT%H%M%S%fZ')))
-        data=dict(schema='earthship-pv-horizon-data/v1',pairs=expanded,parent_dataset_sha256=dataset['dataset_sha256'],parent_experiment_sha256=experiment['receipt_sha256'],system_raw=system_raw.decode(),horizon_raw=horizon_raw.decode());data['dataset_sha256']=identity(data)
+        data=dict(schema='earthship-pv-horizon-data/v2',baseline_rule=INTERVAL_BASELINE_RULE,pairs=expanded,parent_dataset_sha256=dataset['dataset_sha256'],parent_experiment_sha256=experiment['receipt_sha256'],system_raw=system_raw.decode(),horizon_raw=horizon_raw.decode());data['dataset_sha256']=identity(data)
         raw=canonical(data)
         if len(raw)>32*1024**2:raise ValueError('bounded PV horizon dataset required')
         path=run/(data['dataset_sha256']+'.pairs.json.gz');path.write_bytes(gzip.compress(raw,compresslevel=3,mtime=0));path.chmod(0o600)

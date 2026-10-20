@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixture-test.js';
 import { createServer } from 'vite';
 import { readFileSync } from 'node:fs';
 
@@ -332,7 +332,7 @@ for (const target of TARGETS) {
       'Greywater Circulation',
       'Zone Humidity',
     ]);
-    await expect(page.getByText('SHADOW')).toBeVisible();
+    await expect(page.getByText('SHADOW', { exact: true })).toBeVisible();
     await expect(page.getByText('Baseline vent assumption · not observed')).toBeVisible();
     await expect(page.getByText('Candidate vent window')).toBeVisible();
     await expect(page.locator('nav.rail')).toBeVisible();

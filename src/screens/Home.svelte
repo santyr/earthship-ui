@@ -63,27 +63,20 @@
     todayPvForecastKwh,
   } from '../lib/weather/forecastDetail.js';
 
-  // ---- History fetch helper for hero sparklines ----------------------------
-  // getClientOnce() can briefly be null right at boot (initOpenhab() in
-  // App.svelte's onMount hasn't resolved yet), so retry a few times instead
-  // of giving up on the first miss.
+  // History starts after clientReady, including delayed OpenHAB startup.
+  // The shared client bounds each GET and the refresh coordinators own aborts.
   async function fetchHistorySafe(name, hours = 6, signal) {
-    for (let attempt = 0; attempt < 10; attempt++) {
-      if (signal?.aborted) return [];
-      const client = getClientOnce();
-      if (client) {
-        const now = Date.now();
-        const starttime = new Date(now - hours * 3600 * 1000).toISOString();
-        const endtime = new Date(now).toISOString();
-        try {
-          return await client.getHistory(name, { starttime, endtime, signal, includeStartState: true });
-        } catch {
-          return [];
-        }
-      }
-      await new Promise((r) => setTimeout(r, 300));
+    if (signal?.aborted) return [];
+    const client = getClientOnce();
+    if (!client) return [];
+    const now = Date.now();
+    const starttime = new Date(now - hours * 3600 * 1000).toISOString();
+    const endtime = new Date(now).toISOString();
+    try {
+      return await client.getHistory(name, { starttime, endtime, signal, includeStartState: true });
+    } catch {
+      return [];
     }
-    return [];
   }
 
   let outdoorSpark = $state([]);
@@ -99,29 +92,25 @@
   let windGustMaxToday = $state(null);
   let loadToday = $state(null);
 
+  const outdoorRefresh = createLatestRefreshCoordinator();
+  const batteryRefresh = createLatestRefreshCoordinator();
+  const pressureRefresh = createLatestRefreshCoordinator();
   const temperatureRefresh = createLatestRefreshCoordinator();
   const bitcoinRefresh = createLatestRefreshCoordinator();
   const loadRefresh = createLatestRefreshCoordinator();
   const gustRefresh = createLatestRefreshCoordinator();
 
   let wallClock = $state(Date.now());
-  // Same retry pattern as fetchHistorySafe, but with explicit start/end
-  // (used for the "today so far" load-energy integration, which needs
-  // local-midnight-to-now rather than a rolling N-hour window).
+  // Explicit ranges preserve local-midnight integration semantics.
   async function fetchHistoryRange(name, starttime, endtime, signal, includeStartState = false) {
-    for (let attempt = 0; attempt < 10; attempt++) {
-      if (signal?.aborted) return [];
-      const client = getClientOnce();
-      if (client) {
-        try {
-          return await client.getHistory(name, { starttime, endtime, signal, includeStartState });
-        } catch {
-          return [];
-        }
-      }
-      await new Promise((r) => setTimeout(r, 300));
+    if (signal?.aborted) return [];
+    const client = getClientOnce();
+    if (!client) return [];
+    try {
+      return await client.getHistory(name, { starttime, endtime, signal, includeStartState });
+    } catch {
+      return [];
     }
-    return [];
   }
 
   async function refreshLoadToday() {
@@ -140,7 +129,10 @@
   // on the always-on wall display stay current (tile numeric values already
   // update live via $items — this is only for the sparkline history).
   async function refreshOutdoorSpark() {
-    outdoorSpark = await fetchHistorySafe('AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', 6);
+    return outdoorRefresh.run(
+      signal => fetchHistorySafe('AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', 6, signal),
+      data => { outdoorSpark = data; },
+    );
   }
   async function refreshTemperatureHistory() {
     const range = localDayHistoryRange(new Date());
@@ -161,10 +153,13 @@
     );
   }
   async function refreshBattSpark() {
-    battSpark = await fetchHistorySafe('BMS_SOC', 6);
+    return batteryRefresh.run(signal => fetchHistorySafe('BMS_SOC', 6, signal), data => { battSpark = data; });
   }
   async function refreshBaroSpark() {
-    baroSpark = await fetchHistorySafe('AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative', 6);
+    return pressureRefresh.run(
+      signal => fetchHistorySafe('AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative', 6, signal),
+      data => { baroSpark = data; },
+    );
   }
 
   async function refreshBitcoinHistory() {
@@ -228,6 +223,7 @@
   }
 
   function refreshHomeHistory() {
+    if (!$clientReady) return;
     refreshOutdoorSpark();
     refreshTemperatureHistory();
     refreshBattSpark();
@@ -253,6 +249,9 @@
   });
 
   onDestroy(() => {
+    outdoorRefresh.destroy();
+    batteryRefresh.destroy();
+    pressureRefresh.destroy();
     temperatureRefresh.destroy();
     bitcoinRefresh.destroy();
     loadRefresh.destroy();

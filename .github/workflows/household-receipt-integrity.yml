@@ -1,18 +1,13 @@
 name: Household receipt integrity
 
 on:
+  push:
+    branches: [main]
   pull_request:
     paths:
-      - 'openhab/scripts/household_snapshot.py'
-      - 'openhab/scripts/household_pipeline.py'
-      - 'openhab/scripts/household_outcomes.py'
-      - 'openhab/scripts/native_cycle_test_support.py'
-      - 'openhab/scripts/local_measurement_test_support.py'
-      - 'openhab/scripts/test_google_local_source_isolation.py'
-      - 'openhab/scripts/test_household_*cycle*.py'
-      - 'openhab/scripts/test_household_energy_forecast.py'
-      - 'openhab/scripts/test_household_forecast_score.py'
-      - 'openhab/scripts/test_household_score_pressure.py'
+      - 'openhab/**'
+      - 'scripts/**'
+      - 'requirements*.txt'
       - '.github/workflows/household-receipt-integrity.yml'
   workflow_dispatch:
 
@@ -47,7 +42,7 @@ jobs:
           persist-credentials: false
       - name: Current receipts and source-bound cycle regressions
         env:
-          PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src
+          PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src:${{ github.workspace }}/.ci/solar-pv/analytics/tests
         run: |
           python -m pytest -q \
             openhab/scripts/test_google_local_source_isolation.py \

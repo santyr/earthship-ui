@@ -3,6 +3,14 @@ from datetime import datetime,timedelta,timezone
 import json
 from pathlib import Path
 import pytest
+import os
+
+@pytest.fixture(autouse=True)
+def preserve_score_cli_fit_environment(monkeypatch):
+    # Standalone scorer policy must not escape its in-process test invocation.
+    for key in ('EARTHSHIP_QUALIFICATION_FIT','EARTHSHIP_REMOTE_QUALIFICATION_FIT'):
+        monkeypatch.setenv(key,os.environ.get(key,'0'))
+
 
 NOW=datetime(2026,10,9,23,tzinfo=timezone.utc)
 

@@ -3,13 +3,14 @@
 //    kiosk that boots alongside openHAB self-heals instead of showing "—"
 //    everywhere until a manual reload.
 // 2. SSE starts only after the first successful snapshot (ordering preserved).
-// 3. On SSE reconnect after a drop, the item + thing snapshots are re-fetched
+// 3. On every SSE open, the item + thing snapshots are re-fetched
 //    so items that changed during an outage cannot stay stale under a green
 //    "live" badge.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { get } from 'svelte/store';
 import {
   initOpenhab,
+  stopOpenhab,
   items,
   thingStatuses,
   connection,
@@ -57,6 +58,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  stopOpenhab();
   vi.useRealTimers();
 });
 

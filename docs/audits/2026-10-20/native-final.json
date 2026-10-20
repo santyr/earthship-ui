@@ -1,0 +1,112 @@
+{
+  "schema": "earthship-native-verification/v1",
+  "source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+  "profiles": {
+    "completion-isolated": {
+      "passed": 655,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "exit_code": 0,
+      "testcase_ids_sha256": "3b3ca1ce212f3c2821bfb9cbebdf3b9f936eef792d314a4acf0502e6027e222d",
+      "junit_sha256": "ba1c4973c9119fcc35ca1003c9be7d8709a322a7b95fbd46d702153d19415180",
+      "file_partitions": {
+        "tests.completion.test_bms_aux_source_cadence": 9,
+        "tests.completion.test_collector_public_key": 118,
+        "tests.completion.test_nak_build_policy": 4,
+        "tests.completion.test_nak_client_identity": 10,
+        "tests.completion.test_nak_qualification": 19,
+        "tests.completion.test_nostr_bunker_challenge": 2,
+        "tests.completion.test_nostr_bunker_template": 5,
+        "tests.completion.test_nostr_notify_source": 1,
+        "tests.completion.test_persistence_boundary": 33,
+        "tests.completion.test_pre_dusk_notification": 20,
+        "tests.completion.test_pre_dusk_notification_cli": 9,
+        "tests.completion.test_pre_dusk_notification_source": 10,
+        "tests.completion.test_pre_dusk_notification_worker": 5,
+        "tests.completion.test_season_countdown_item_migration": 2,
+        "tests.completion.test_thermal_confirmation": 114,
+        "tests.completion.test_thermal_followup": 57,
+        "tests.completion.test_thermal_followup_cli": 10,
+        "tests.completion.test_thermal_messaging": 80,
+        "tests.completion.test_thermal_nip04": 35,
+        "tests.completion.test_thermal_nip04_delivery": 18,
+        "tests.completion.test_thermal_nip04_ledger": 18,
+        "tests.completion.test_thermal_primal_backup": 15,
+        "tests.completion.test_thermal_primal_cli": 21,
+        "tests.completion.test_thermal_primal_signer": 13,
+        "tests.completion.test_thermal_state_backup": 14,
+        "tests.completion.test_verification_gates": 13
+      },
+      "completion_summary": "655 passed, 3 deselected in 165.88s (0:02:45)",
+      "log_sha256": "ae9ce197551a159dd899832af5b08d8652706863c879d4bc8627cff489302f88"
+    },
+    "completion-pg": {
+      "passed": 3,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "exit_code": 0,
+      "testcase_ids_sha256": "7ff476f4276f3114c5497ed35649cb813f04f1cad0ba37f02f6e9f67643caeb3",
+      "junit_sha256": "566a30ce0ed39b9c6dc2e3192a15594b7da52d54807f64499154d49ed53518d0",
+      "file_partitions": {
+        "tests.completion.test_thermal_nip04_ledger": 2,
+        "tests.completion.test_thermal_primal_backup": 1
+      },
+      "completion_summary": "3 passed in 25.33s",
+      "log_sha256": "8e69dc6d9f63c0c185c263ba96fa33ac735744a70794f274a3e876fc7c1e0ff5"
+    },
+    "host": {
+      "passed": 19,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "exit_code": 0,
+      "testcase_ids_sha256": "20742c2b32dfc89296838b3fff6217190278d5630b671e88b49c271f547f77d7",
+      "junit_sha256": "a4904646b4a6182d5b0c4d47e211718f3bbcae806ef8257067e607abb3f57914",
+      "file_partitions": {
+        "scripts.test_thermal_shadow_retry": 3,
+        "openhab.scripts.test_native_resource_admission": 4,
+        "openhab.scripts.test_score_production_cpu": 12
+      },
+      "completion_summary": "19 passed in 29.72s",
+      "log_sha256": "30e64bb03a2f4f252bd5891e1edf7e8c84c2a236eb03832a141fac1c67faea2c"
+    },
+    "receiver": {
+      "passed": 5,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "exit_code": 0,
+      "testcase_ids_sha256": "3de08cdf396c2996ab198413f48ed39adcae965f53a62fc71859b37cd6cf28bf",
+      "junit_sha256": "cf650bd0eab84d6de64640e3cb0499e2de55e20aae3467bad80ee6891dfc433e",
+      "file_partitions": {
+        "openhab.scripts.test_weather_receiver_characterization": 5
+      },
+      "completion_summary": "5 passed in 0.18s",
+      "log_sha256": "31aea369e724e06e40899f30e41b4d08322eb801791b7267f074241d775f0735"
+    }
+  },
+  "completion_partitions_disjoint": true,
+  "completion_distinct_cases": 658,
+  "general_interpreter": "Python3.12.3/pytest9.1.1",
+  "receiver_interpreter": "Python3.12.3/pytest9.0.2/Flask-Cors4.0.0; separate existing host environment",
+  "binary_pins": {
+    "stock_nak_v0.20.7": "ba918fafd1b030bc50958a5b218c6386f4c3a57c1e469562d3947e858e0ba56e",
+    "nak_v0.20.7_earthship_nip04_stdin.1": "2620c86f7a2b466a41977ae7e318d1810c727503deaf53ea1c76a5ac24e6f927"
+  },
+  "authority": "synthetic keys, disposable databases and transient counter units only; no household relay delivery or actuator commands",
+  "commands": "verification.md final native commands",
+  "counting": "Native completion partitions are disjoint. Other profiles and hosted gates overlap; no repository-wide distinct total is inferred.",
+  "geometry": {
+    "passed": 65,
+    "exit_code": 0,
+    "seconds_reported": "1.2m",
+    "node": "22.22.0",
+    "npm": "11.8.0",
+    "playwright": "1.61.1",
+    "command": "npm run test:geometry -- --workers=1 --output=/tmp/earthship-audit-8f6e-geometry-ci-user-results",
+    "profile": "maintained sudo loopback-only namespace identity; one worker and bounded native thread fanout",
+    "log_sha256": "6ec4e239f72c8d209cdf23195e42ec64f9a83d722f1fc56d43e2c7ca1e27e673"
+  }
+}

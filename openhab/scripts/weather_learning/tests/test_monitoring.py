@@ -53,3 +53,57 @@ class MonitoringTests(unittest.TestCase):
         import json
         self.assertEqual(json.loads((self.state.root/'weather-performance.json').read_text()),report)
         self.assertEqual(len(report['temperature']['pair_manifest']),2)
+    def test_missing_original_is_a_named_dependency_not_whole_monitor_failure(self):
+        path=next((self.state.root/'issues').glob('*.json'));path.unlink()
+        report=self.run_monitor(apply=True)
+        self.assertIsNone(report['temperature']['raw'])
+        self.assertEqual(report['temperature']['work']['states']['missing_original'],1)
+        self.assertTrue(any(row['kind']=='original_issue' for row in report['source_withheld']))
+    def test_durable_completed_scores_survive_restart_without_reading_or_reposting(self):
+        first=self.run_monitor(apply=True)
+        self.temperature.reset_mock()
+        second=self.run_monitor(apply=True)
+        self.temperature.assert_not_called()
+        self.assertEqual(second['temperature']['pair_manifest'],first['temperature']['pair_manifest'])
+        self.assertEqual(second['temperature']['work']['states']['completed'],2)
+    def test_preview_never_creates_or_advances_persistent_scoring_index(self):
+        self.run_monitor()
+        self.assertFalse((self.state.root/'pending-scores.sqlite3').exists())
+        self.assertEqual(list(self.state.root.glob('monitor-preview-*')),[])
+    def test_temperature_reader_outage_is_scoped_and_defers_instead_of_zero(self):
+        self.temperature.side_effect=ConnectionError('fixture dependency outage')
+        report=self.run_monitor(apply=True)
+        self.assertIsNone(report['temperature']['raw'])
+        self.assertTrue(any(row['kind']=='temperature' for row in report['source_withheld']))
+        self.assertEqual(report['temperature']['work']['states']['work_dependency_reasons']['observation_missing'],2)
+    def test_malformed_optional_solar_source_does_not_suppress_valid_temperature(self):
+        self.solar.return_value={'invalid':'source'}
+        report=self.run_monitor(now=T+timedelta(days=2))
+        self.assertIsNotNone(report['temperature']['raw'])
+        self.assertTrue(any(row['kind']=='solar' for row in report['source_withheld']))
+
+    def test_correction_pipeline_shares_deadline_budget_and_optional_failure_is_scoped(self):
+        corrections=Mock(return_value={'schema':'fixture-corrections','observations_attempted':0})
+        report=self.run_monitor(read_corrections=corrections)
+        self.assertEqual(report['corrections']['schema'],'fixture-corrections')
+        args=corrections.call_args.kwargs
+        self.assertLessEqual(args['limit'],32)
+        self.assertLessEqual(report['temperature']['work']['batch_limit'],32)
+        self.assertEqual(args['apply'],False)
+        corrections.side_effect=ConnectionError('optional diagnostic unavailable')
+        report=self.run_monitor(read_corrections=corrections)
+        self.assertIsNotNone(report['temperature']['raw'])
+        self.assertEqual(report['corrections']['status'],'unavailable')
+        self.assertFalse(report['automatic_actuation'])
+
+    def test_legacy_window_reads_also_consume_the_job_observation_budget(self):
+        for day in (1,2,3):
+            origin=T+timedelta(days=day)
+            self.archive.store_snapshot(full_snapshot(init=origin,hours=360))
+            shadow_once(self.archive,self.state,now=origin+timedelta(minutes=30),site=SITE,
+                sensor_epoch=EPOCH,code_revision=REVISION,horizon=336,clock=lambda:origin+timedelta(minutes=31))
+        report=self.run_monitor(now=T+timedelta(days=5),apply=True)
+        legacy=self.solar.call_count+self.rain.call_count
+        scored=report['temperature']['work']['states'].get('completed',0)
+        self.assertGreater(legacy,0)
+        self.assertLessEqual(scored+legacy,64)

@@ -1,5 +1,7 @@
 # Outstanding Earthship and OpenHAB work
 
+Current source completion work is tracked in the [October20 audit](../audits/2026-10-20/requirements.md), with separate [verification](../audits/2026-10-20/verification.md) and [release/deployment](../audits/2026-10-20/release.md) evidence. Entries below retain their historical as-of meaning; later closure evidence explicitly supersedes earlier pending statements. The audit remains in progress until its complete gates and handoff close.
+
 ## October 6 ML source-recovery evidence
 
 The [native PV census](2026-09-28-pv-day-evidence-activation.md#october-6-natural-startup-and-stale-input-recovery-evidence)

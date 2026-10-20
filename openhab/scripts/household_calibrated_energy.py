@@ -22,7 +22,7 @@ MAX_BYTES=1048576
 
 def runtime_manifest():
     result={**forecast_runtime_manifest(),**profiled_runtime_manifest(),**load_runtime()};root=Path(__file__).resolve().parent
-    for name in ('household_calibrated_energy.py','weather_learning/pv_calibration_source.py','weather_learning/pv_directional_calibration.py','weather_learning/pv_calibration_policy.py','weather_learning/pv_calibration.py','weather_learning/contracts.py'):
+    for name in ('household_calibrated_energy.py','weather_learning/pv_calibration_source.py','weather_learning/pv_directional_calibration.py','weather_learning/pv_calibration_policy.py','weather_learning/pv_calibration.py','weather_learning/contracts.py','weather_learning/weights.py'):
         result['openhab/scripts/'+name]=sha256((root/name).read_bytes()).hexdigest()
     return result
 

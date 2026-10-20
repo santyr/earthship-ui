@@ -386,3 +386,17 @@ describe('circadian health freshness', () => {
     expect(state.healthLabel).toBe('Healthy');
   });
 });
+
+describe('catalog-wide release policy', () => {
+  it.each(Object.entries(CONTROL_CATALOG).flatMap(([id, control]) =>
+    ['maintenance', 'unknown', 'safe-compat', 'full'].map(mode => [id, mode, control]),
+  ))('%s agrees with proxy admission in %s', (_id, mode, control) => {
+    const state = deriveControlState(control, {
+      connection: 'live', releaseMode: mode,
+      items: { OverrideSwitch: 'OFF', [control.stateItem]: 'OFF' },
+      providerOnline: { [control.stateItem]: { status: 'ONLINE' } },
+      capabilities: { [control.capability]: true },
+    });
+    expect(state.enabled).toBe(['safe-compat', 'full'].includes(mode));
+  });
+});

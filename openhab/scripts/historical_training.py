@@ -82,7 +82,7 @@ def run(*,archive_path,measurement_path,output_path,train_end,holdout_end,numeri
         if pointer.exists():
             selected=json.loads(_private_file(pointer,65536)[0]);previous_run=Path(selected['path']);previous=json.loads(_private_file(previous_run/'experiment.json',262144)[0])
             if previous['receipt_sha256']!=selected['receipt_sha256'] or previous['receipt_sha256']!=identity({k:v for k,v in previous.items() if k!='receipt_sha256'}):raise ValueError('previous historical experiment differs')
-            names=('site_calibration.py','historical_pairs.py','contracts.py','training_cache.py')
+            names=('site_calibration.py','historical_pairs.py','contracts.py','training_cache.py','weights.py')
             if any(previous['runtime_manifest'].get('openhab/scripts/weather_learning/'+name)!=sha256(sources['openhab/scripts/weather_learning/'+name]).hexdigest() for name in names):previous=None
         run=directory(output/('experiment-'+now.strftime('%Y%m%dT%H%M%S%fZ')))
         from weather_learning.training_cache import residual_if_changed

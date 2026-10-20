@@ -84,19 +84,25 @@ it('retains HTTP, malformed-body, and byte-limit errors', async () => {
     .rejects.toMatchObject({ code: 'history-response-too-large' });
 });
 
-it('forwards the abort signal and propagates AbortError', async () => {
+it('composes caller cancellation with the read deadline and propagates AbortError', async () => {
   const controller = new AbortController();
   const abort = new DOMException('aborted', 'AbortError');
-  const fetcher = vi.fn().mockRejectedValue(abort);
+  const fetcher = vi.fn((_url, options) => new Promise((_, reject) => {
+    options.signal.addEventListener('abort', () => reject(options.signal.reason), { once: true });
+  }));
   vi.stubGlobal('fetch', fetcher);
-  await expect(client().getHistory('Outdoor', {
+  const pending = client().getHistory('Outdoor', {
     starttime,
     endtime,
     includeStartState: true,
     signal: controller.signal,
-  })).rejects.toBe(abort);
+  });
+  const rejected = expect(pending).rejects.toBe(abort);
+  controller.abort(abort);
+  await rejected;
+  expect(fetcher.mock.calls[0][1].signal.aborted).toBe(true);
   expect(fetcher).toHaveBeenCalledWith(
     expect.stringContaining('/rest/persistence/items/Outdoor?'),
-    expect.objectContaining({ signal: controller.signal }),
+    expect.objectContaining({ signal: expect.any(AbortSignal) }),
   );
 });

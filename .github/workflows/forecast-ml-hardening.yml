@@ -1,72 +1,15 @@
 name: Forecast ML hardening
 
 on:
+  push:
+    branches: [main]
   pull_request:
     paths:
-      - 'openhab/scripts/thermal_intel.py'
-      - 'openhab/scripts/thermal_temperature_runtime.py'
-      - 'openhab/scripts/weather_temperature_sources.py'
-      - 'openhab/scripts/test_weather_temperature_sources.py'
-      - 'openhab/scripts/thermal_model/**'
-      - 'openhab/scripts/test_thermal_*.py'
-      - 'openhab/scripts/test_installed_shade_dynamics.py'
-      - 'openhab/scripts/test_installed_shade_inputs.py'
-      - 'openhab/scripts/test_installed_shade_fit.py'
-      - 'openhab/scripts/test_installed_shade_artifact.py'
-      - 'openhab/scripts/test_installed_shade_origin.py'
-      - 'openhab/scripts/test_installed_shade_qualification.py'
-      - 'openhab/scripts/test_installed_shade_calibration.py'
-      - 'openhab/scripts/test_installed_shade_raw_calibration.py'
-      - 'openhab/scripts/test_installed_shade_raw_candidate.py'
-      - 'openhab/scripts/test_installed_shade_raw_origin.py'
-      - 'openhab/scripts/test_installed_shade_raw_publication_capture.py'
-      - 'openhab/scripts/test_installed_shade_raw_registration.py'
-      - 'openhab/scripts/test_installed_shade_complete_raw_qualification.py'
-      - 'openhab/scripts/test_installed_shade_compressed_qualification.py'
-      - 'openhab/scripts/test_installed_shade_release_index.py'
-      - 'openhab/scripts/test_installed_publication_registration.py'
-      - 'openhab/scripts/test_installed_registered_score_cli.py'
-      - 'openhab/scripts/test_qualification_source_inventory.py'
-      - 'openhab/scripts/test_installed_shade_complete_raw_publication.py'
-      - 'openhab/scripts/test_installed_shade_compressed_publication.py'
-      - 'openhab/scripts/test_installed_shade_calibrated.py'
-      - 'openhab/scripts/test_installed_shade_calibrated_qualification.py'
-      - 'openhab/scripts/test_installed_shade_publication.py'
-      - 'openhab/scripts/test_installed_shade_published_origin.py'
-      - 'openhab/scripts/test_installed_shade_live.py'
-      - 'openhab/scripts/test_installed_shade_complete_raw_live.py'
-      - 'openhab/scripts/test_installed_shade_compressed_live.py'
-      - 'openhab/scripts/test_installed_shade_bootstrap_live.py'
-      - 'openhab/scripts/test_installed_shade_compressed_bootstrap.py'
-      - 'openhab/scripts/test_installed_shade_live_inputs.py'
-      - 'openhab/scripts/test_installed_shade_withdrawal.py'
-      - 'openhab/scripts/test_provisional_thermal_*.py'
-      - 'openhab/scripts/thermal_installed_score.py'
-      - 'openhab/scripts/thermal_installed_train.py'
-      - 'openhab/scripts/thermal_installed_calibrate.py'
-      - 'openhab/scripts/thermal_installed_register.py'
-      - 'openhab/scripts/test_installed_registration_cli.py'
-      - 'openhab/scripts/test_installed_calibration_cli.py'
-      - 'openhab/scripts/test_installed_replay_budget.py'
-      - 'openhab/scripts/test_training_pressure_guard.py'
-      - 'openhab/scripts/test_native_operational_io.py'
-      - 'openhab/scripts/test_google_thermal_cli_retirement.py'
-      - 'openhab/scripts/test_household_cycle.py'
-      - 'openhab/scripts/test_household_cycle_coordinator.py'
-      - 'openhab/scripts/test_installed_candidate_build.py'
-      - 'openhab/scripts/test_installed_shade_score_collection.py'
-      - 'openhab/scripts/test_installed_shade_score_inputs.py'
-      - 'openhab/scripts/test_installed_raw_score_jobs.py'
-      - 'openhab/scripts/test_installed_compressed_score_jobs.py'
-      - 'openhab/scripts/test_installed_raw_score_cli.py'
-      - 'openhab/scripts/test_installed_score_global_lock.py'
-      - 'openhab/scripts/test_installed_score_jobs.py'
-      - 'openhab/scripts/test_installed_shade_raw_score_sources.py'
-      - 'openhab/scripts/test_installed_shade_raw_qualification.py'
-      - 'openhab/scripts/test_installed_shade_raw_publication.py'
-      - 'scripts/qualify-installed-shade.py'
-      - 'scripts/test_qualify_installed_shade_cli.py'
+      - 'openhab/**'
+      - 'scripts/**'
+      - 'requirements*.txt'
       - '.github/workflows/forecast-ml-hardening.yml'
+  workflow_dispatch:
 
 jobs:
   forecast-ml:
@@ -95,9 +38,9 @@ jobs:
           persist-credentials: false
       - name: Forecast and thermal ML regression suite
         env:
-          PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src
+          PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src:${{ github.workspace }}/.ci/solar-pv/analytics/tests
         run: |
-          python -m pytest -q \
+          python -m pytest -q --deselect=openhab/scripts/test_thermal_fit_evidence.py::test_real_qualification_fit_is_exercised_only_on_the_hosted_runner \
             openhab/scripts/test_thermal_identifiability.py \
             openhab/scripts/test_installed_shade_dynamics.py \
             openhab/scripts/test_installed_shade_inputs.py \
@@ -166,3 +109,45 @@ jobs:
             openhab/scripts/test_thermal_sensor_epoch_history.py \
             openhab/scripts/test_thermal_artifacts.py \
             scripts/test_qualify_installed_shade_cli.py \
+
+  qualification-fit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      OPENBLAS_NUM_THREADS: 1
+      OMP_NUM_THREADS: 1
+      MKL_NUM_THREADS: 1
+      NUMEXPR_NUM_THREADS: 1
+      EARTHSHIP_REMOTE_QUALIFICATION_FIT: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-test.txt
+      - run: python -m pip install -r requirements-test.txt
+      - name: Fetch pinned Solar_PV analytics dependency
+        uses: actions/checkout@v4
+        with:
+          repository: santyr/Solar_PV
+          ref: 24d2e8984810cb596fe9792768510a356786f709
+          path: .ci/solar-pv
+          persist-credentials: false
+      - name: Require one executed full qualification fit
+        env:
+          PYTHONPATH: ${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src:${{ github.workspace }}/.ci/solar-pv/analytics/tests
+        run: |
+          python -m pytest -q -ra openhab/scripts/test_thermal_fit_evidence.py::test_real_qualification_fit_is_exercised_only_on_the_hosted_runner --junitxml="$RUNNER_TEMP/qualification-fit.xml"
+          python - <<'PYTHON'
+          import os
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          root = ET.parse(Path(os.environ['RUNNER_TEMP']) / 'qualification-fit.xml')
+          cases = root.findall('.//testcase')
+          assert len(cases) == 1, 'exactly one qualification fit must execute'
+          assert cases[0].get('name') == 'test_real_qualification_fit_is_exercised_only_on_the_hosted_runner'
+          assert not root.findall('.//skipped'), 'qualification fit must not skip'
+          assert not root.findall('.//failure') and not root.findall('.//error')
+          print('qualification_fit_executed=1 skipped=0 failures=0')
+          PYTHON
