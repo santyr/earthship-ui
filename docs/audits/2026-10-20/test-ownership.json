@@ -1,12 +1,9 @@
 {
-  "source_head": "5094cdfb7e633e4b29998537047a2b6f81f6a846",
-  "uncommitted_source_paths": [
-    "openhab/scripts/test_weather_correction_monitor.py",
-    "openhab/scripts/weather_learning/correction_monitor.py"
-  ],
+  "source_head": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
+  "uncommitted_source_paths": [],
   "workflow_sha256": {
     "ci.yml": "36623b9bd430f6b92066f7e7bab863e8b3055a0eb1d8931c28820bc44fef7ebc",
-    "forecast-ml-hardening.yml": "d8a4643bb0ba4f0eb86628ab3deae21ca359023269f25ce11eb7e6d6c175551e",
+    "forecast-ml-hardening.yml": "2426eef763a6c39b75b2cfd23ace20b2d8c524654985ea4d214f37797733129c",
     "household-receipt-integrity.yml": "2a0617a3cc030eee97039b7f9f3e10f6e91a3bc0ec4efab7dfe17496ac6028fb",
     "sensors.yml": "817635927b2f2e7bf796bdca8b36c8b1a9607afec1acba6e7e5b25b0c570c7bf",
     "thermal-delivery.yml": "c0fa23359346ce1a95e03fae4f521593700bd8df58b08e1fa89b7bd269b8a794"
@@ -1137,7 +1134,7 @@
       "family": "python",
       "workflow_gate": "ci.yml:openhab shard 2",
       "companion_profile": "24d2e8984810cb596fe9792768510a356786f709",
-      "test_file_sha256": "40b6ac955bf52b9df249050ac82d2317e24497ea83e5493f35b88f408701a4c5"
+      "test_file_sha256": "a10bec8aefe3d1572c16e59760718a834b1f9d54eed6c8a7810b7062c4a5a1ee"
     },
     {
       "path": "openhab/scripts/test_installed_registration_cli.py",
@@ -1158,14 +1155,14 @@
       "family": "python",
       "workflow_gate": "ci.yml:openhab shard 0",
       "companion_profile": "24d2e8984810cb596fe9792768510a356786f709",
-      "test_file_sha256": "5dd6f61d641792687703234b776e95db4fedd4cb63b121a819dc7e0d6b4affd3"
+      "test_file_sha256": "2e84a9558fe99a4349d4ab492b031cc5bbb1d047c482ab7bd643c54467154ffc"
     },
     {
       "path": "openhab/scripts/test_installed_score_jobs.py",
       "family": "python",
       "workflow_gate": "ci.yml:openhab shard 0",
       "companion_profile": "24d2e8984810cb596fe9792768510a356786f709",
-      "test_file_sha256": "3b8d7657fa7cc91b5e0e67286733cb51780a1e6ff32f1f3141ef50374e1684f0"
+      "test_file_sha256": "a87b2ddff64902b135aa90450b4cb5822934260ef12a17855ed845a6fad8fbf6"
     },
     {
       "path": "openhab/scripts/test_installed_shade_artifact.py",
@@ -1375,7 +1372,7 @@
       "family": "python",
       "workflow_gate": "ci.yml:openhab shard 2",
       "companion_profile": "24d2e8984810cb596fe9792768510a356786f709",
-      "test_file_sha256": "424d5ba017bf8825916b16607ce8001bcd8fec5520ae6d3199f8210cf3e96814"
+      "test_file_sha256": "ba23a8e4704cafe5e2c47ffaeb52daf1d8749da6241dd83f5b575f49e80235fb"
     },
     {
       "path": "openhab/scripts/test_installed_shade_score_collection.py",
@@ -3232,7 +3229,7 @@
       "path": "scripts/test_forecast_ml_workflow.py",
       "family": "python",
       "workflow_gate": "ci.yml:test operational tooling",
-      "test_file_sha256": "d72422fe5316158da8374a9d6a791ca5d442a9c3059cb361fe644f49603b7a1a"
+      "test_file_sha256": "0a45a5ba4b563adbbd48e6b8e66ea333f932fa5eacd0e99019feb4840eff2a29"
     },
     {
       "path": "scripts/test_install_pre_dusk_notification_bundle.py",
@@ -4024,7 +4021,7 @@
       "path": "tests/completion/test_verification_gates.py",
       "family": "python",
       "workflow_gate": "ci.yml:test completion",
-      "test_file_sha256": "92eb07f15688e138b8bd27d2d84697d5463f8d32125aede15ee2c1db194a692c"
+      "test_file_sha256": "6376685f92b7b973570f7b4db3bb358af2ec0df26192a085e10f1f5d30230d7a"
     },
     {
       "path": "tests/config.test.js",
@@ -5057,5 +5054,56 @@
   "standalone_qualification_gates": {
     "scripts/qualify-thermal-nak.py": "ci.yml:nak-authentication; exact binary and isolated network",
     "scripts/qualify-thermal-delivery.py": "thermal-delivery.yml:exact encrypted delivery; isolated relay fixture"
-  }
+  },
+  "native_qualification_profiles": {
+    "completion_exact_binary": {
+      "entry": "tests/completion/",
+      "dependency": "stock nak v0.20.7 plus explicitly pinned stdin backport; synthetic keys only",
+      "isolation": "loopback-only network namespace for all except three disposable PostgreSQL tests; those inspected cases use random host-loopback PostgreSQL16 containers and no relay delivery",
+      "verification": "verification.md final native partitions; no skipped crypto case counted as executed"
+    },
+    "isolated_user_systemd": {
+      "entry": "scripts/test_thermal_shadow_retry.py",
+      "opt_in": "EARTHSHIP_ISOLATED_SYSTEMD_TEST=1",
+      "isolation": "UUID-owned transient counter workers only; no household callback; fixtures remove their own units"
+    },
+    "real_resource_guard": {
+      "entries": [
+        "openhab/scripts/test_native_resource_admission.py",
+        "openhab/scripts/test_score_production_cpu.py"
+      ],
+      "opt_in": "EARTHSHIP_RESOURCE_SMOKE=1",
+      "isolation": "approved actual256\u2013512MiB/64task/no-swap leaf"
+    },
+    "host_receiver_characterization": {
+      "entry": "openhab/scripts/test_weather_receiver_characterization.py",
+      "dependency": "existing host-only source plus Flask-Cors4.0.0",
+      "isolation": "temporary mutable state; all requests/network writes refused; characterizes limitations rather than qualifying freshness"
+    },
+    "sdk": {
+      "entry": "openhab/scripts/weather_learning/tests",
+      "owner": "ci.yml:weathernext-foundation",
+      "dependency": "requirements-weathernext.txt; no cloud access"
+    },
+    "qualification_fit": {
+      "entry": "openhab/scripts/test_thermal_fit_evidence.py::test_real_qualification_fit_is_exercised_only_on_the_hosted_runner",
+      "owner": "forecast-ml-hardening.yml:qualification-fit",
+      "opt_in": "EARTHSHIP_REMOTE_QUALIFICATION_FIT=1",
+      "guard_regression": "tests/completion/test_verification_gates.py::test_registered_scorer_fixture_preserves_later_qualification_fit"
+    }
+  },
+  "entry_file_counts": {
+    "ci.yml:openhab shard 2": 152,
+    "ci.yml:openhab shard 1": 140,
+    "ci.yml:openhab shard 0": 152,
+    "ci.yml:test provisional thermal contract": 1,
+    "ci.yml:test operational tooling": 100,
+    "sensors.yml:contracts": 4,
+    "sensors.yml:software-path integration": 1,
+    "ci.yml:test vitest": 182,
+    "ci.yml:test completion": 26,
+    "ci.yml:browser-fixtures": 7,
+    "sensors.yml:software-path sensor component": 1
+  },
+  "entry_file_count": 766
 }

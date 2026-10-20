@@ -1,7 +1,7 @@
 {
   "schema": "earthship-audit-source-inventory/v1",
   "base_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
-  "public_tracked_files": 2129,
+  "public_tracked_files": 2134,
   "routes": [
     "home",
     "energy",
@@ -518,6 +518,7 @@
     "openhab/scripts/test_pv_day_history.py",
     "openhab/scripts/test_pv_day_history_postgres.py",
     "openhab/scripts/test_pv_horizon_assessment.py",
+    "openhab/scripts/test_pv_horizon_pair_baseline.py",
     "openhab/scripts/test_pv_learning_refresh.py",
     "openhab/scripts/test_pv_legacy_history.py",
     "openhab/scripts/test_pv_local_days.py",
@@ -819,7 +820,7 @@
     "tests/completion/test_thermal_state_backup.py",
     "tests/completion/test_verification_gates.py"
   ],
-  "audited_source_revision": "e6b4997f18adea0df5aba709948c6bc39e8f99da",
+  "audited_source_revision": "8f6e9183b3cba1cdaa1310102f000e7a2db65bb2",
   "inventory_method": "tracked public source only; discovery does not prove activation, execution or qualification",
   "components": [
     "src/App.svelte",
