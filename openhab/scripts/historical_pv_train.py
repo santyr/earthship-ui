@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Fit effective PV response on earlier uncensored-proxy intervals; no activation."""
-from bisect import bisect_left,bisect_right
+from bisect import bisect_left
 from datetime import datetime,timedelta,timezone
 from pathlib import Path
 from hashlib import sha256
@@ -9,10 +9,10 @@ import argparse,gzip,json,os,time
 from household_native_training import directory,save
 from weather_source_files import _read
 from weather_learning.contracts import identity,instant,canonical,finite
-from weather_learning.archive import Archive
-from weather_learning.historical import verify_history
 from weather_learning.energy_history import summarize_hour
-from weather_learning.pv_calibration import fit_gain,assess_gain
+from weather_learning.pv_calibration import assess_gain
+from weather_learning.pv_refresh import effective_if_changed,previous_models
+from weather_learning.pv_training_sources import weather_runs
 from weather_learning.source_bundle import capture_sources,verify_sources,retain_sources
 from weather_learning.worker import collector_lock
 
@@ -37,7 +37,7 @@ def energy_bins(root,guard):
     return bins,index
 
 
-def run(*,archive_path,energy_path,output_path,geometry_path,libraries_path,train_end,holdout_end):
+def run(*,archive_path,energy_path,output_path,geometry_path,libraries_path,train_end,holdout_end,operational_archive_path=None):
     from weather_learning.config import Site
     from weather_learning.openhab import oh_get,I18N_CONFIG_PATH
     from daily_pv_worker import day_geometry
@@ -58,22 +58,9 @@ def run(*,archive_path,energy_path,output_path,geometry_path,libraries_path,trai
         bins,index=energy_bins(energy_path,guard)
         eligible=[b for b in bins if b['potential_proxy_eligible'] and instant(b['end'])<holdout_end]
         if not eligible:raise ValueError('eligible original input-power intervals required')
-        archive=Archive.open_readonly(str(archive_path));runs=[];forecast_manifest=[]
         floor=min(instant(b['start']) for b in eligible)-timedelta(hours=48)
-        with archive._connect() as connection:
-            refs=connection.execute('SELECT digest FROM snapshots WHERE historical=1 AND initialized>=? AND initialized<? ORDER BY initialized,completed,digest LIMIT 1001',(floor.isoformat(),holdout_end.isoformat())).fetchall()
-        if not 1<=len(refs)<=1000:raise ValueError('bounded historical PV weather list required')
-        seen=set()
-        for (ref,) in refs:
-            guard();snapshot=verify_history(archive.read(ref))
-            if snapshot['site']!=site.__dict__:raise ValueError('PV historical weather site differs')
-            origin=instant(snapshot['initialized_at'])+timedelta(hours=9)
-            if origin in seen:continue
-            seen.add(origin);hours={}
-            for point in snapshot['points']:
-                if point['statistic']=='mean' and point['variable'] in ('station_head_temperature_2m','surface_solar_radiation_downwards_1hr','wind_speed_10m'):
-                    hours.setdefault(point['valid_at'],{})[point['variable']]=point['value']
-            runs.append((origin,ref,hours));forecast_manifest.append(ref)
+        runs=weather_runs(archive_path,operational_archive_path,floor=floor,end=holdout_end,site=site.__dict__,guard=guard)
+        forecast_manifest=[r[1] for r in runs]
         origins=[r[0] for r in runs]
         geometries=[];positions={};geometry_root=directory(geometry_path)
         dates=sorted({instant(b['end']).astimezone(zone).date().isoformat() for b in eligible})
@@ -88,7 +75,7 @@ def run(*,archive_path,energy_path,output_path,geometry_path,libraries_path,trai
         for b in eligible:
             guard();start,end=map(instant,(b['start'],b['end']));i=bisect_left(origins,start)-1
             if i<0:continue
-            origin,ref,hours=runs[i];lead=(end-origin).total_seconds()/3600
+            origin,ref,hours,basis=runs[i];lead=(end-origin).total_seconds()/3600
             if not 0<lead<=48:continue
             hour=end.replace(minute=0,second=0,microsecond=0)
             if hour<end:hour+=timedelta(hours=1)
@@ -100,14 +87,16 @@ def run(*,archive_path,energy_path,output_path,geometry_path,libraries_path,trai
                 horizon_elevation_degrees=horizon_height(horizon,position['azimuth_degrees']))['potential_dc_w']
             observed=b['fields']['pv.input_power_w'];mean=observed['positive_kwh']*3600000/observed['covered_seconds']
             row=dict(start=b['start'],end=b['end'],origin=origin.isoformat(),baseline_w=baseline,outcome_w=mean,azimuth_degrees=position['azimuth_degrees'],lead_hours=lead,
-                forecast_sha256=ref,energy_source_sha256=b['source_sha256'],potential_proxy_eligible=True)
+                forecast_sha256=ref,energy_source_sha256=b['source_sha256'],potential_proxy_eligible=True,availability_basis=basis)
             row['pair_sha256']=identity(row);pairs.append(row)
-        now=datetime.now(timezone.utc);model=fit_gain(pairs,cutoff=train_end,trained_at=now);report=assess_gain(model,pairs,holdout_start=train_end,holdout_end=holdout_end)
-        final=fit_gain(pairs,cutoff=holdout_end,trained_at=now)
+        now=datetime.now(timezone.utc);previous=previous_models(output,sources)
+        model,comparison_fit=effective_if_changed(previous.get('training_model'),pairs,cutoff=train_end,trained_at=now)
+        report=assess_gain(model,pairs,holdout_start=train_end,holdout_end=holdout_end)
+        final,serving_fit=effective_if_changed(previous.get('final_model'),pairs,cutoff=holdout_end,trained_at=now)
         run=directory(output/('experiment-'+now.strftime('%Y%m%dT%H%M%S%fZ')))
         dataset=dict(schema='earthship-historical-pv-calibration-data/v1',pairs=pairs,energy_index_sha256=index['index_sha256'],forecast_sha256s=forecast_manifest,
             geometry_series_sha256s=geometries,system_raw=system_raw.decode(),horizon_raw=horizon_raw.decode(),
-            geometry_basis='current_operator_array_and_terrain_declarations_assumed_constant_retrospectively',availability_basis='retrospective_assumed_full_cycle_9h',prospective_score=False,automatic_actuation=False)
+            geometry_basis='current_operator_array_and_terrain_declarations_assumed_constant_retrospectively',availability_basis='mixed_explicit_per_pair' if operational_archive_path is not None else 'retrospective_assumed_full_cycle_9h',prospective_score=False,automatic_actuation=False)
         dataset['dataset_sha256']=identity(dataset)
         path=run/(dataset['dataset_sha256']+'.pairs.json.gz');path.write_bytes(gzip.compress(canonical(dataset),compresslevel=3,mtime=0));path.chmod(0o600)
         verify_sources(root,sources);runtime_manifest=retain_sources(run,sources)
@@ -117,7 +106,7 @@ def run(*,archive_path,energy_path,output_path,geometry_path,libraries_path,trai
             runtime_manifest['companion/earthship_energy/'+name]=sha256(raw).hexdigest()
         save(run/'training-model.json',model);save(run/'final-model.json',final);save(run/'comparison.json',report)
         receipt=dict(schema='earthship-historical-pv-training/v1',created_at=now.isoformat(),dataset_sha256=dataset['dataset_sha256'],training_model_sha256=model['model_sha256'],final_model_sha256=final['model_sha256'],report=report,
-            energy_hours=len(index['hours']),eligible_bins=len(eligible),paired_bins=len(pairs),forecast_runs=len(runs),runtime_manifest=runtime_manifest,production_model_changed=False,automatic_actuation=False)
+            fit_executed=dict(comparison=comparison_fit,serving=serving_fit),energy_hours=len(index['hours']),eligible_bins=len(eligible),paired_bins=len(pairs),forecast_runs=len(runs),runtime_manifest=runtime_manifest,production_model_changed=False,automatic_actuation=False)
         receipt['receipt_sha256']=identity(receipt);save(run/'experiment.json',receipt);save(output/'last-experiment.json',dict(path=str(run),receipt_sha256=receipt['receipt_sha256']))
         guard();return receipt
 
@@ -125,9 +114,9 @@ def run(*,archive_path,energy_path,output_path,geometry_path,libraries_path,trai
 def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__)
     for key in ('archive','energy','output','geometry','libraries'):p.add_argument('--'+key,type=Path,required=True)
-    p.add_argument('--train-end',required=True);p.add_argument('--holdout-end',required=True);a=p.parse_args(argv);os.umask(0o077)
+    p.add_argument('--operational-archive',type=Path);p.add_argument('--train-end',required=True);p.add_argument('--holdout-end',required=True);a=p.parse_args(argv);os.umask(0o077)
     try:
-        result=run(archive_path=a.archive,energy_path=a.energy,output_path=a.output,geometry_path=a.geometry,libraries_path=a.libraries,train_end=instant(a.train_end),holdout_end=instant(a.holdout_end))
+        result=run(archive_path=a.archive,energy_path=a.energy,output_path=a.output,geometry_path=a.geometry,libraries_path=a.libraries,train_end=instant(a.train_end),holdout_end=instant(a.holdout_end),operational_archive_path=a.operational_archive)
         print(json.dumps(dict(status='historical_pv_calibration_complete',energy_hours=result['energy_hours'],paired_bins=result['paired_bins'],report=result['report'],production_model_changed=False)),flush=True);return 0
     except Exception as error:
         import traceback

@@ -6,7 +6,8 @@ import argparse,gzip,json,os
 from weather_source_files import _read
 from household_native_training import directory,save
 from weather_learning.contracts import identity,instant
-from weather_learning.pv_directional_calibration import fit_directional,assess_directional
+from weather_learning.pv_directional_calibration import assess_directional
+from weather_learning.pv_refresh import directional_if_changed,previous_models
 from weather_learning.source_bundle import capture_sources,verify_sources,retain_sources
 from weather_learning.worker import collector_lock
 
@@ -22,13 +23,15 @@ def run(state):
         dataset=json.loads(raw)
         if dataset['dataset_sha256']!=parent['dataset_sha256'] or dataset['dataset_sha256']!=identity({k:v for k,v in dataset.items() if k!='dataset_sha256'}):raise ValueError('original PV paired data differ')
         start,end=map(instant,(parent['report']['holdout_start'],parent['report']['holdout_end']));now=datetime.now(timezone.utc)
-        model=fit_directional(dataset['pairs'],cutoff=start,trained_at=now);report=assess_directional(model,dataset['pairs'],holdout_start=start,holdout_end=end)
-        final=fit_directional(dataset['pairs'],cutoff=end,trained_at=now)
+        previous=previous_models(output,sources)
+        model,comparison_fit=directional_if_changed(previous.get('training_model'),dataset['pairs'],cutoff=start,trained_at=now)
+        report=assess_directional(model,dataset['pairs'],holdout_start=start,holdout_end=end)
+        final,serving_fit=directional_if_changed(previous.get('final_model'),dataset['pairs'],cutoff=end,trained_at=now)
         run=directory(output/('experiment-'+now.strftime('%Y%m%dT%H%M%S%fZ')))
         save(run/'training-model.json',model);save(run/'final-model.json',final);save(run/'comparison.json',report)
         verify_sources(root,sources);runtime=retain_sources(run,sources)
         receipt=dict(schema='earthship-historical-pv-directional-experiment/v1',created_at=now.isoformat(),parent_experiment_path=str(parent_path),parent_receipt_sha256=parent['receipt_sha256'],dataset_sha256=parent['dataset_sha256'],
-            final_model=final,training_model_sha256=model['model_sha256'],report=report,runtime_manifest=runtime,model_selection_scope='development_variant_on_retained_chronological_split_requires_prospective_monitoring',
+            fit_executed=dict(comparison=comparison_fit,serving=serving_fit),final_model=final,training_model_sha256=model['model_sha256'],report=report,runtime_manifest=runtime,model_selection_scope='development_variant_on_retained_chronological_split_requires_prospective_monitoring',
             system_raw=dataset['system_raw'],horizon_raw=dataset['horizon_raw'],prospective_score=False,production_model_changed=False,automatic_actuation=False)
         receipt['receipt_sha256']=identity(receipt);save(run/'experiment.json',receipt);save(output/'last-experiment.json',dict(path=str(run),receipt_sha256=receipt['receipt_sha256']))
         return receipt

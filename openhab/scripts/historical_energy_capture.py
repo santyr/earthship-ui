@@ -7,15 +7,19 @@ from zoneinfo import ZoneInfo
 import argparse,json,os
 from household_native_training import directory,save
 from household_capture import _connection
-from weather_learning.contracts import identity
+from weather_learning.contracts import identity,instant
 from weather_learning.energy_history import capture_hour,summarize_hour
 from weather_learning.worker import collector_lock
 from weather_source_files import _read
 from household_snapshot import _read as _read_public
 
 
+def rolling_rows(rows,*,start,end):
+    return {key:row for key,row in rows.items() if start<=instant(key)<end}
+
+
 def main(argv=None):
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--state',type=Path,required=True);p.add_argument('--start',required=True);p.add_argument('--days',required=True,type=int);p.add_argument('--batch-hours',type=int,default=12)
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--state',type=Path,required=True);p.add_argument('--start',required=True);p.add_argument('--days',required=True,type=int);p.add_argument('--batch-hours',type=int,default=12);p.add_argument('--rolling-index',action='store_true')
     a=p.parse_args(argv);os.umask(0o077)
     try:
         if not 1<=a.days<=90 or not 1<=a.batch_hours<=48:raise ValueError('bounded historical energy range required')
@@ -33,6 +37,7 @@ def main(argv=None):
                 index=json.loads(_read(index_path,1048576))
                 if index['index_sha256']!=identity({k:v for k,v in index.items() if k!='index_sha256'}):raise ValueError('energy index changed')
                 rows={r['start']:r for r in index['hours']}
+                if a.rolling_index:rows=rolling_rows(rows,start=start,end=start+timedelta(days=a.days))
             requested=[start+timedelta(hours=i) for i in range(a.days*24)]
             pending=sorted([at for at in reversed(requested) if at.isoformat() not in rows][:a.batch_hours])
             for at in pending:

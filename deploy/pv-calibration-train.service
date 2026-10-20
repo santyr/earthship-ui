@@ -1,0 +1,15 @@
+[Unit]
+Description=Earthship daily Google/local PV calibration refresh (read-only)
+After=network-online.target local-forecast-train.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=%h/.config/earthship-weather/pv-learning.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONPATH=%h/Solar_PV/analytics/src
+ExecStart=/usr/bin/python3 ${EARTHSHIP_PV_LEARNING_ROOT}/scripts/run-household-job.py --production --minimum-mib 512 --preferred-mib 2048 --tasks 48 --seconds 900 -- /usr/bin/python3 ${EARTHSHIP_PV_LEARNING_ROOT}/openhab/scripts/historical_pv_daily.py --archive %h/.local/state/earthship-weather/archive --libraries ${EARTHSHIP_PV_LEARNING_LIBRARIES}
+TimeoutStartSec=960
+UMask=0077
+StandardOutput=journal
+StandardError=journal

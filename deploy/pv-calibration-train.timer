@@ -1,0 +1,11 @@
+[Unit]
+Description=Earthship daily PV calibration learning
+
+[Timer]
+OnCalendar=*-*-* 07:15:00 America/Denver
+RandomizedDelaySec=120
+Persistent=true
+Unit=pv-calibration-train.service
+
+[Install]
+WantedBy=timers.target
