@@ -1,0 +1,154 @@
+{
+  "schema": "earthship-completion-audit/v1",
+  "audit_base": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+  "findings": [
+    {
+      "id": "A00",
+      "severity": "P2",
+      "title": "CI geometry fixture isolation",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [
+        "openhab/scripts/test_daily_pv_potential.py",
+        "openhab/scripts/test_pv_legacy_history.py",
+        "openhab/scripts/test_thermal_weather_conditioning.py"
+      ],
+      "expected_actual": "Synthetic geometry fixtures must not require production cgroup resources. Six tests failed on the real publication preflight outside the production launcher.",
+      "reproduction": [
+        "PYTHONPATH=openhab/scripts:.ci/solar-pv/analytics/src OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 /tmp/earthship-audit-20261020-venv/bin/python -m pytest -q openhab/scripts/test_daily_pv_potential.py openhab/scripts/test_pv_legacy_history.py openhab/scripts/test_thermal_weather_conditioning.py: 6 failed, 30 passed"
+      ],
+      "root_cause": "Test fixtures injected geometry and guard but not the publication resource boundary. The actual guard correctly refuses ordinary CI process caps.",
+      "repair_commit": null,
+      "regression_evidence": [
+        "Same files plus test_household_cycle_resources.py: 101 passed in 3.41s. Test-scoped preflight injection only; production modules unchanged. Normal shard verification pending."
+      ],
+      "status": "fixed_focused_verified"
+    },
+    {
+      "id": "A01",
+      "severity": "P1",
+      "title": "Night-load idempotency retention",
+      "confidence": "handoff_reproduction_pending_local_revalidation",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [],
+      "expected_actual": "See approved handoff; local reproduction pending",
+      "reproduction": [],
+      "root_cause": null,
+      "repair_commit": null,
+      "regression_evidence": [],
+      "status": "open"
+    },
+    {
+      "id": "A02",
+      "severity": "P1",
+      "title": "Durable override-policy commit",
+      "confidence": "handoff_reproduction_pending_local_revalidation",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [],
+      "expected_actual": "See approved handoff; local reproduction pending",
+      "reproduction": [],
+      "root_cause": null,
+      "repair_commit": null,
+      "regression_evidence": [],
+      "status": "open"
+    },
+    {
+      "id": "A03",
+      "severity": "P1",
+      "title": "Coherent OpenHAB reconciliation",
+      "confidence": "handoff_reproduction_pending_local_revalidation",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [],
+      "expected_actual": "See approved handoff; local reproduction pending",
+      "reproduction": [],
+      "root_cause": null,
+      "repair_commit": null,
+      "regression_evidence": [],
+      "status": "open"
+    },
+    {
+      "id": "A04",
+      "severity": "P2",
+      "title": "Control modes and history lifecycle",
+      "confidence": "handoff_reproduction_pending_local_revalidation",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [],
+      "expected_actual": "See approved handoff; local reproduction pending",
+      "reproduction": [],
+      "root_cause": null,
+      "repair_commit": null,
+      "regression_evidence": [],
+      "status": "open"
+    },
+    {
+      "id": "A05",
+      "severity": "P2",
+      "title": "Supervised sensor duration",
+      "confidence": "handoff_reproduction_pending_local_revalidation",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [],
+      "expected_actual": "See approved handoff; local reproduction pending",
+      "reproduction": [],
+      "root_cause": null,
+      "repair_commit": null,
+      "regression_evidence": [],
+      "status": "open"
+    },
+    {
+      "id": "A06",
+      "severity": "P2",
+      "title": "PV independent local-day support",
+      "confidence": "handoff_reproduction_pending_local_revalidation",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [],
+      "expected_actual": "See approved handoff; local reproduction pending",
+      "reproduction": [],
+      "root_cause": null,
+      "repair_commit": null,
+      "regression_evidence": [],
+      "status": "open"
+    },
+    {
+      "id": "A07",
+      "severity": "P2",
+      "title": "PV train/serve baseline parity",
+      "confidence": "handoff_reproduction_pending_local_revalidation",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [],
+      "expected_actual": "See approved handoff; local reproduction pending",
+      "reproduction": [],
+      "root_cause": null,
+      "repair_commit": null,
+      "regression_evidence": [],
+      "status": "open"
+    },
+    {
+      "id": "A08",
+      "severity": "P2",
+      "title": "Thermal crossing-interval irradiation",
+      "confidence": "handoff_reproduction_pending_local_revalidation",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [],
+      "expected_actual": "See approved handoff; local reproduction pending",
+      "reproduction": [],
+      "root_cause": null,
+      "repair_commit": null,
+      "regression_evidence": [],
+      "status": "open"
+    },
+    {
+      "id": "A09",
+      "severity": "P2",
+      "title": "Executable verification coverage",
+      "confidence": "handoff_reproduction_pending_local_revalidation",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "files": [],
+      "expected_actual": "See approved handoff; local reproduction pending",
+      "reproduction": [],
+      "root_cause": null,
+      "repair_commit": null,
+      "regression_evidence": [],
+      "status": "open"
+    }
+  ]
+}

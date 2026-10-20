@@ -85,7 +85,9 @@ def test_receipt_soc_can_support_old_pv_without_promoting_numeric_meter_health()
     assert not any(r['potential_proxy_eligible'] for r in atomic_proxy_intervals(**dict(args,soc=[])))
 
 
-def test_selected_geometry_reuses_exact_minute_instants_and_original_clocks(tmp_path):
+def test_selected_geometry_reuses_exact_minute_instants_and_original_clocks(tmp_path,monkeypatch):
+    # This fixture supplies synthetic geometry, not a native publication job.
+    monkeypatch.setattr("household_cycle_resources.publication_resource_preflight",lambda:None)
     from historical_pv_legacy_assess import target_geometry
     from weather_learning.config import Site
     from astro_geometry import build_cache
