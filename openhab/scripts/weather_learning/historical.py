@@ -2,6 +2,7 @@
 from datetime import datetime,timedelta,timezone
 from pathlib import Path
 import shutil
+from hashlib import sha256
 from .archive import Archive
 from .config import Site
 from .contracts import canonical,identity,instant,validate_snapshot
@@ -29,6 +30,31 @@ def _historical_only(archive):
             raise ValueError('historical acquisition cannot use an operational archive')
 
 
+def _record_coverage(archive,snapshot,ref,horizon,required):
+    bands=identity(sorted(required))
+    with archive._connect() as connection:
+        connection.execute('CREATE TABLE IF NOT EXISTS historical_coverage (initialized TEXT NOT NULL,horizon INTEGER NOT NULL,bands TEXT NOT NULL,digest TEXT NOT NULL,PRIMARY KEY(initialized,horizon,bands))')
+        connection.execute('INSERT OR IGNORE INTO historical_coverage VALUES(?,?,?,?)',(snapshot['initialized_at'],horizon,bands,ref))
+
+
+def indexed_history(archive,*,horizon,required=None):
+    """Fresh byte hashes, without repeating normalized numerical derivation."""
+    from .contracts import digest
+    from weather_source_files import _read
+    required=required or {tuple(b.rsplit('_',1)) for values in DEFAULT_BANDS.values() for b in values}
+    with archive._connect() as connection:
+        if not connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='historical_coverage'").fetchone():return {}
+        refs=connection.execute('SELECT initialized,digest FROM historical_coverage WHERE horizon>=? AND bands=? ORDER BY initialized,horizon',(horizon,identity(sorted(required)))).fetchall()
+    result={}
+    if len(refs)>10000:raise ValueError('bounded historical coverage index required')
+    for initialized,ref in refs:
+        digest(ref);instant(initialized)
+        raw=_read(archive.objects/(ref+'.json'),8*1024**2)
+        if sha256(raw).hexdigest()!=ref:raise ValueError('historical original bytes changed')
+        result.setdefault(initialized,ref)
+    return result
+
+
 def cached_history(archive,initialized,horizon,*,required=None):
     required=required or {tuple(b.rsplit('_',1)) for values in DEFAULT_BANDS.values() for b in values}
     with archive._connect() as connection:
@@ -37,7 +63,7 @@ def cached_history(archive,initialized,horizon,*,required=None):
         snapshot=archive.read(ref);index={(r['variable'],r['statistic'],instant(r['valid_at'])):r['value'] for r in snapshot['points']}
         if instant(snapshot['initialized_at'])!=initialized:raise ValueError('historical index run differs')
         if all(index.get((v,s,initialized+timedelta(hours=h))) is not None for v,s in required for h in range(1,horizon+1)):
-            verify_history(snapshot);return snapshot,ref
+            verify_history(snapshot);_record_coverage(archive,snapshot,ref,horizon,required);return snapshot,ref
     return None
 
 
@@ -67,7 +93,7 @@ def collect_history(reader,archive,*,initializations,horizon=360,now=None,bands_
                 if not all(index.get((v,s,at+timedelta(hours=h))) is not None for v,s in required for h in range(1,horizon+1)):
                     raise ValueError('complete historical requested coverage required')
                 snapshot['historical']=True;name=archive.store_snapshot(snapshot);downloads+=1
-                archive.read(name)
+                archive.read(name);_record_coverage(archive,snapshot,name,horizon,required)
             result.append(dict(initialized_at=at.isoformat(),sha256=name))
         return dict(schema='earthship-weathernext-historical-batch/v1',status='historical_batch_complete',downloaded=downloads,
             snapshots=result,production_writes=False,automatic_actuation=False)

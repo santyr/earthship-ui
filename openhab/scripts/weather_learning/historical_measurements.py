@@ -6,6 +6,7 @@ That absence is retained, never backdated from today's configured phase.
 from datetime import date,datetime,time,timedelta,timezone
 from pathlib import Path
 import gzip,json,os
+from uuid import uuid4
 from .contracts import canonical,identity,instant
 from .features import _jsonable
 from weather_temperature_reader import select_temperature_grid,select_temperature_grid_v2
@@ -30,7 +31,7 @@ def temperature_grid(rows,*,targets,assessed_at,policies,epochs):
     return result
 
 
-def capture_temperature_day(root,day,*,connection_factory,policies,epochs,clock=lambda:datetime.now(timezone.utc)):
+def capture_temperature_day(root,day,*,connection_factory,policies,epochs,clock=lambda:datetime.now(timezone.utc),persist=True):
     """One indexed day query; existing raw receipts replay without another read."""
     from household_native_training import directory,save
     from household_observation import _private_file
@@ -54,13 +55,14 @@ def capture_temperature_day(root,day,*,connection_factory,policies,epochs,clock=
             raise ValueError('historical source window or acquisition differs')
         rows=[(instant(at),value) for at,value in source['rows']]
     else:
+        if not persist:raise ValueError('retained original temperature source is missing')
         requested=clock();history_start=start-timedelta(seconds=max(p.validity_seconds for p in policies.values()))
         rows=_fetch_rows(connection_factory,history_start,end)
         source=dict(schema='earthship-historical-temperature-day/v1',start=start.isoformat(),end=end.isoformat(),
             requested_at=requested.isoformat(),received_at=clock().isoformat(),source_item='Weather_Temperature_Evidence_JSON',rows=[[at.astimezone(timezone.utc).isoformat(),raw] for at,raw in rows])
         source['source_sha256']=identity(source);raw=canonical(source)
         if len(raw)>32*1024**2:raise ValueError('bounded historical temperature source required')
-        temporary=raw_path.with_name('.'+raw_path.name+'.pending')
+        temporary=raw_path.with_name('.'+raw_path.name+'.'+uuid4().hex+'.pending')
         fd=os.open(temporary,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
         try:
             with os.fdopen(fd,'wb') as stream:stream.write(gzip.compress(raw,compresslevel=3,mtime=0));stream.flush();os.fsync(stream.fileno())
@@ -72,5 +74,9 @@ def capture_temperature_day(root,day,*,connection_factory,policies,epochs,clock=
     grid=dict(schema='earthship-historical-temperature-grid/v1',source_sha256=source['source_sha256'],policy=policy,
         start=start.isoformat(),end=end.isoformat(),targets=[at.isoformat() for at in targets],streams=streams,
         prospective_score=False,automatic_actuation=False)
-    grid['grid_sha256']=identity(grid);save(root/(grid['grid_sha256']+'.temperature-grid.json'),grid)
+    grid['grid_sha256']=identity(grid)
+    path=root/(grid['grid_sha256']+'.temperature-grid.json')
+    if path.exists():
+        if _private_file(path,1048576)[0]!=canonical(grid):raise ValueError('immutable temperature grid differs')
+    elif persist:save(path,grid)
     return grid

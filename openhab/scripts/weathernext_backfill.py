@@ -6,9 +6,17 @@ from datetime import date,datetime,time,timedelta,timezone
 from weather_learning.archive import Archive
 from weather_learning.config import AccessPolicy,Site
 from weather_learning.weathernext_ee import EarthEngineReader
-from weather_learning.historical import collect_history,cached_history,_historical_only
+from weather_learning.historical import collect_history,cached_history,indexed_history,_historical_only
 from weather_learning.openhab import oh_get,I18N_CONFIG_PATH
 from household_native_training import save
+
+
+def requested_initializations(start,days,*,cycles,day_step,now):
+    start=datetime.combine(date.fromisoformat(start),time.min,timezone.utc)
+    if (type(days) is not int or not 1<=days<=366 or type(day_step) is not int or not 1<=day_step<=31 or
+        cycles!=sorted(set(cycles)) or not cycles or not set(cycles)<={0,6,12,18}):raise ValueError('bounded explicit historical dates and full cycles required')
+    if start+timedelta(days=days)>now:raise ValueError('completed historical date range required')
+    return [start+timedelta(days=i,hours=hour) for i in range(0,days,day_step) for hour in cycles]
 
 
 def main(argv=None):
@@ -16,28 +24,32 @@ def main(argv=None):
     parser.add_argument('--archive',required=True,type=Path)
     parser.add_argument('--start',required=True);parser.add_argument('--days',type=int,required=True)
     parser.add_argument('--hours',type=int,default=360)
+    parser.add_argument('--cycle-hours',default='0')
+    parser.add_argument('--day-step',type=int,default=1)
+    parser.add_argument('--index-only',action='store_true')
     parser.add_argument('--credential',default='/home/sat/.config/earthship-weather/weathernext-reader.json')
     args=parser.parse_args(argv);os.umask(0o077)
     try:
-        start=datetime.combine(date.fromisoformat(args.start),time.min,timezone.utc)
-        if (start.hour or start.minute or start.second or start.microsecond or
-            type(args.days) is not int or not 1<=args.days<=90 or not 1<=args.hours<=360):raise ValueError('bounded historical date range required')
         now=datetime.now(timezone.utc)
-        if start+timedelta(days=args.days)>now:raise ValueError('completed historical date range required')
+        if not 1<=args.hours<=360:raise ValueError('bounded historical horizon required')
+        cycles=[int(h) for h in args.cycle_hours.split(',')]
+        requested=requested_initializations(args.start,args.days,cycles=cycles,day_step=args.day_step,now=now)
         archive=Archive(args.archive);_historical_only(archive)
-        pending=[];retained=0
-        for i in range(args.days):
-            at=start+timedelta(days=i)
-            if cached_history(archive,at,args.hours) is None:
-                if len(pending)<4:pending.append(at)
-            else:retained+=1
+        if args.index_only:
+            for at in requested:cached_history(archive,at,args.hours)
+        indexed=indexed_history(archive,horizon=args.hours)
+        pending=sorted([at for at in reversed(requested) if at.isoformat() not in indexed][:4])
+        retained=sum(at.isoformat() in indexed for at in requested)
+        if args.index_only:
+            result=dict(status='historical_coverage_indexed',retained_runs=retained,total_runs=len(requested),automatic_actuation=False)
+            print(json.dumps(result),flush=True);return 0
         if not pending:
-            result=dict(status='historical_range_complete',retained_runs=retained,total_runs=args.days,automatic_actuation=False)
+            result=dict(status='historical_range_complete',retained_runs=retained,total_runs=len(requested),automatic_actuation=False)
         else:
             site=Site.from_openhab_config(oh_get(I18N_CONFIG_PATH))
             reader=EarthEngineReader(policy=AccessPolicy(backend='earthengine',noncommercial_verified=True),site=site,credential_path=args.credential)
             result=collect_history(reader,archive,initializations=pending,horizon=args.hours,now=now)
-            result.update(retained_runs=retained+result['downloaded'],total_runs=args.days,requests=reader.transport.requests,
+            result.update(retained_runs=retained+result['downloaded'],total_runs=len(requested),requests=reader.transport.requests,
                 bytes_received=reader.transport.bytes_received,peak_rss_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
         save(archive.root/'last-backfill.json',result)
         print(json.dumps(result),flush=True);return 0
