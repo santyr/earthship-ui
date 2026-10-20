@@ -131,3 +131,29 @@ def test_energy_rolling_index_retains_original_files_and_limits_active_range():
     active=rolling_rows(existing,start=START+timedelta(days=1),end=START+timedelta(days=3))
     assert len(active)==48 and min(active)==(START+timedelta(days=1)).isoformat()
     assert len(existing)==72
+
+
+def test_expired_unchanged_candidate_is_explicitly_unavailable_without_renewal(tmp_path):
+    import json
+    from test_weather_pv_calibration_source import source
+    from historical_pv_daily import select_candidate
+    load,path,now=source(tmp_path);before=path.read_bytes();candidate=json.loads(before)
+    result=select_candidate(candidate,rows(),training_model=candidate['final_model'],selected_path=path,
+        now=now+timedelta(days=15),system_raw=b'{}',horizon_raw=b'{}')
+    assert result['status']=='candidate_unavailable_incumbent_preserved'
+    assert result['reason']=='model_unavailable_or_expired'
+    assert path.read_bytes()==before
+
+
+def test_daily_geometry_reads_readonly_repository_sources_without_weakening_private_reads(tmp_path):
+    import pytest
+    from historical_pv_daily import geometry_declarations
+    from weather_source_files import _read
+    directory=tmp_path/'openhab';directory.mkdir()
+    system=directory/'household-pv-system.json';horizon=directory/'household-solar-horizon.json'
+    system.write_bytes(b'{"array":{}}');horizon.write_bytes(b'{"profile":[]}')
+    system.chmod(0o400);horizon.chmod(0o400)
+    assert geometry_declarations(tmp_path)==(system.read_bytes(),horizon.read_bytes())
+    with pytest.raises(ValueError,match='owned bounded'):_read(system,16384)
+    system.unlink();system.symlink_to(horizon)
+    with pytest.raises(ValueError,match='owned bounded'):geometry_declarations(tmp_path)

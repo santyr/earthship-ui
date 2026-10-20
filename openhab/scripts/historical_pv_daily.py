@@ -12,9 +12,17 @@ from weather_learning.pv_calibration_source import restore_calibration
 from weather_learning.pv_refresh import compare_incumbent
 
 
+def geometry_declarations(root):
+    root=Path(root)
+    return tuple(_read(root/'openhab'/name,16384,source=True) for name in ('household-pv-system.json','household-solar-horizon.json'))
+
+
 def select_candidate(candidate,rows,*,training_model,selected_path,now,system_raw,horizon_raw):
     path=Path(selected_path);raw=canonical(candidate)
-    restored=restore_calibration(raw,origin=now,system_raw=system_raw,horizon_raw=horizon_raw)
+    try:restored=restore_calibration(raw,origin=now,system_raw=system_raw,horizon_raw=horizon_raw)
+    except ValueError as error:
+        if str(error)!='PV calibration is unavailable or expired at origin':raise
+        return dict(status='candidate_unavailable_incumbent_preserved',reason='model_unavailable_or_expired',automatic_actuation=False)
     if training_model['model_sha256']!=candidate['training_model_sha256']:
         raise ValueError('candidate comparison model differs')
     before=_read(path,262144) if path.exists() else None
@@ -72,8 +80,9 @@ def run(*,archive_path,libraries_path,base=None,root=None,clock=lambda:datetime.
         command('historical_pv_directional_train.py',['--state',state])
         candidate,dataset,training,origin=load_candidate(state)
         selected=state/'selected-directional.json'
+        system_raw,horizon_raw=geometry_declarations(root)
         if candidate['report']['selected'] is True:
-            decision=select_candidate(candidate,dataset['pairs'],training_model=training,selected_path=selected,now=clock(),system_raw=_read(root/'openhab/household-pv-system.json',16384),horizon_raw=_read(root/'openhab/household-solar-horizon.json',16384))
+            decision=select_candidate(candidate,dataset['pairs'],training_model=training,selected_path=selected,now=clock(),system_raw=system_raw,horizon_raw=horizon_raw)
         else:decision=dict(status='candidate_not_improved_incumbent_preserved',automatic_actuation=False)
         updated=json.loads(_read(base/'historical-energy/energy-index.json',1048576));retained={r['start'] for r in updated['hours']};missing=sum((start+timedelta(hours=i)).isoformat() not in retained for i in range(days*24))
         result=dict(status='daily_pv_learning_complete',checked_at=clock().isoformat(),cutoff=end.isoformat(),missing_energy_hours=missing,
