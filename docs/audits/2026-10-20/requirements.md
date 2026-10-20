@@ -18,7 +18,7 @@ The supplied October 20 handoff is the approved specification. Use bounded repai
 
 ## Status vocabulary
 
-Every requirement receives one of: implemented and verified; implemented but unverified; defective; missing within approved scope; intentionally excluded; externally blocked; superseded. Source, automated verification, deployment and physical qualification are distinct columns. Initial mapping is in progress; no comprehensive completion claim yet.
+Every requirement receives one of: implemented and verified; implemented but unverified; defective; missing within approved scope; intentionally excluded; externally blocked; superseded. Source, automated verification, deployment and physical qualification are distinct columns. Mapping remains open until the consolidated goal and final gate evidence are satisfied; no comprehensive completion claim yet.
 
 ## Historical reconciliation
 
@@ -90,3 +90,20 @@ Every phase in the existing tracker remains represented. Historical complete fla
 | 9 | Read-only operator observability | Public observation/qualification/chronology/recommendation UI and strict server/parser/browser tests | Feeder never a current recommendation; source/deployed/physical status distinct |
 | 10 | Per-intent release qualification | Current qualification v2 and historical v1 parser, independent-gate status tests | Per-intent physical/action-effect/uncertainty/release evidence externally blocked; no feeder qualification |
 | 11 | Staged integration through existing owner rules | Existing legacy owners and pure v2 contracts, scoped handoff/source-readback/recovery tests | Planner actuation and new owner-v2 live activation intentionally excluded; existing owner repair requires qualified handoff |
+
+## Consolidated goal adoption
+
+The October20 consolidated implementation plan supersedes task ordering, preserves the completed A-series repairs and adds C01–C07 evaluator/reassessment work. Source was re-read at `eb9d22d6da21f4f8d3cbf74586913345d6c3cc5c`; the two-file workflow repair survived the pause. No merge or production-write permission is inferred. Prior goal turn: progress (workflow compiler diagnosed and repaired; exact local browser startup resource cause established).
+
+| Consolidated phase | Current evidence and remaining work | Disposition |
+|---|---|---|
+| 0 | Existing isolated branch, inventory and live source readback retained; current branch and hosted state rechecked | Implemented but final reconciliation open |
+| 1–4 | A00–A05 and A09 source repairs preserved; full browser/sensor qualification still running; no production bypass | Implemented but integrated verification pending |
+| 5 | C01 mature pending targets; C02 matched/fallback populations; C03 artifact/policy cohorts; C04 density weights; existing wind/proxy prospective scoring | Approved implementation missing or defective pending current reproductions |
+| 6 | A06–A08/C04–C06 numerical repairs preserved; extend fractional interval and numerical-contract sweep | Focused verified; consolidated acceptance pending |
+| 7 | Private retained PV analysis retained; repair evaluators/weights before new family reassessment and qualification records | Approved implementation pending |
+| 8–9 | Existing subsystem map and test ownership retained; close browser failures and execute exact final integrated gates/review | Implemented but unverified |
+| 10 | Existing draft PR36; prepare scoped source/model/schema rollback/handoff; no merge/deploy authorization inferred | Source review only; production unchanged |
+| Follow-on | One bounded challenger-comparison brief after trustworthy reassessment; no new family implementation | Planning deliverable pending |
+
+[Evaluation contract](model-evaluation-spec.md) and [qualification record](qualification.md) extend this audit's single status system. All old original forecasts/models/scores and numerical packages remain immutable.

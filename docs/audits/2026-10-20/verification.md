@@ -80,3 +80,11 @@ Clean clone `/tmp/earthship-audit-worker` at **cb4f16bb10c9e397486dc7eef0f2e9ab9
 These exact runtime/frontend bytes are committed. Subsequent CI-only orchestration/documentation changes still require final-revision hosted checks; no full-completion claim yet.
 
 A09 profile runner checks pass11cases (2.86s), including execution of the actual maintained shard shell under success/general-failure/BMS-failure injection. Every discovered file executes exactly once under its declared profile. General24d2pin remains unchanged; only the current BMS consumer test uses7b70117 in a fresh process. Both statuses control the shard exit.
+
+## Resumed workflow validation repair
+
+The first draft-head CI run [39446247379](https://github.com/santyr/earthship-ui/actions/runs/39446247379) failed before creating jobs. Pinned actionlint1.7.7 reproduced `context "runner" is not allowed here` for job-level browser cache env. Moving the value to its two consuming steps preserves the exact temporary cache path and sudo propagation. All five workflows now compile with zero diagnostics. The normal completion regression also compiles a deliberately invalid job-context fixture and requires rejection.
+
+Fresh resumed command at eb9d22d6 plus the two-file patch: shared launcher256–768MiB/64tasks/300seconds, PATH including `/tmp/earthship-actionlint/bin`, PYTHONPATH `openhab/scripts:.ci/solar-pv/analytics/src:.ci/solar-pv/analytics/tests`, audit Python `-m pytest -q tests/completion/test_verification_gates.py` → exit0, **11passed**,2.93s. This current count supersedes earlier verbal counts. Real production resource policy unchanged.
+
+At resume, receipt-integrity, forecast-ML and thermal-delivery hosted runs at eb9d22d6 completed successfully; sensor contracts and eleven native integration cases passed, but two browser cases failed; main CI never started because of the validation defect. These are partial/interim results, not final integrated qualification.

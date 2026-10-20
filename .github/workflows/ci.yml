@@ -3,7 +3,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'release/**']
   pull_request:
 
 permissions:
@@ -21,6 +21,16 @@ jobs:
       EARTHSHIP_REMOTE_QUALIFICATION_FIT: "1"
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: false
+      - name: Install pinned workflow validator
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Validate every GitHub Actions workflow
+        run: actionlint -color=false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -226,8 +236,6 @@ jobs:
   browser-fixtures:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    env:
-      PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/pw-browsers
     steps:
       - uses: actions/checkout@v4
         with:
@@ -238,7 +246,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/pw-browsers
       - name: General console browser fixtures without upstream network
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/pw-browsers
         shell: bash
         run: |
           set -euo pipefail

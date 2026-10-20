@@ -166,3 +166,19 @@ python() {
         assert f'general_pytest_exit={general_exit}' in result.stdout
         assert f'bms_aux_pytest_exit={bms_exit if owns_special else 0}' in result.stdout
     assert len(seen)==len(set(seen)) and set(seen)==expected
+
+
+def test_actionlint_validates_workflows_and_rejects_job_level_runner_context(tmp_path):
+    import shutil
+    actionlint=shutil.which('actionlint')
+    assert actionlint is not None,'install pinned actionlint v1.7.7 (CI installs it before completion tests)'
+    workflows=sorted((ROOT/'.github/workflows').glob('*.yml'))
+    result=subprocess.run([actionlint,'-color=false',*[str(path) for path in workflows]],
+        cwd=ROOT,capture_output=True,text=True,timeout=30)
+    assert result.returncode==0,result.stdout+result.stderr
+    invalid=tmp_path/'invalid-job-context.yml'
+    invalid.write_text("name: Invalid context regression\non: push\njobs:\n  check:\n    runs-on: ubuntu-latest\n    env:\n      CACHE: ${{ runner.temp }}/browsers\n    steps:\n      - run: echo qualified\n")
+    rejected=subprocess.run([actionlint,'-color=false',str(invalid)],cwd=ROOT,
+        capture_output=True,text=True,timeout=30)
+    assert rejected.returncode!=0
+    assert 'context "runner" is not allowed here' in rejected.stdout+rejected.stderr
