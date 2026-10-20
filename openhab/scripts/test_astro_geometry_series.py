@@ -329,3 +329,10 @@ def test_terrain_daylight_long_lived_cache_prefilters_historical_originals(tmp_p
     assert report['terrainSunlightSeconds']==300
     assert len(replayed)==1  # Historical requests never reach costly native replay.
     assert len(list(root.glob('*.geometry.json')))==130
+
+
+@pytest.mark.parametrize('raw', [b'[]',b'null',b'"scalar"',b'1',b'true'])
+def test_terrain_daylight_skips_nonobject_json_without_losing_valid_current_cache(tmp_path,raw):
+    root,_,horizon,now=private_daylight_cache(tmp_path,angles={1:(20,180)})
+    malformed=root/'nonobject.geometry.json';malformed.write_bytes(raw);malformed.chmod(0o600)
+    assert daylight_api().read_day(root,horizon,now)['terrainSunlightSeconds']==300
