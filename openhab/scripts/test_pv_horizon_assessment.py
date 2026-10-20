@@ -34,3 +34,20 @@ def test_horizon_assessment_excludes_origins_before_training_readiness():
     # The fixture's post-cutoff outcomes retain their much earlier origin.
     report=assess_horizons(model,data,cutoff=cutoff,end=START+timedelta(days=30))
     assert all(row['pairs']==0 for row in report['by_lead'].values())
+
+
+def test_policy_assessment_reports_raw_and_directional_comparators_without_backdating_fit():
+    from weather_learning.pv_horizon_assessment import assess_policy
+    from weather_learning.pv_directional_calibration import fit_directional
+    cutoff=START+timedelta(days=8);trained=START+timedelta(days=40);model=fit_directional(rows(),cutoff=cutoff,trained_at=trained);data=[]
+    for i,margin in enumerate((3.,10.)):
+        end=START+timedelta(days=25,minutes=5*i)
+        r=dict(start=(end-timedelta(minutes=5)).isoformat(),end=end.isoformat(),origin=(end-timedelta(hours=36)).isoformat(),baseline_w=1000.,outcome_w=1000. if i==0 else 700.,azimuth_degrees=110.,elevation_degrees=20.+margin,horizon_elevation_degrees=20.,lead_hours=36.,forecast_sha256='a'*64,energy_source_sha256='b'*64,potential_proxy_eligible=True)
+        r['pair_sha256']=identity(r);data.append(r)
+    report=assess_policy(model,data,cutoff=cutoff,end=START+timedelta(days=30))
+    assert report['actual_trained_at']==trained.isoformat()
+    assert report['aggregate']['pairs']==2
+    assert report['aggregate']['policy_mae_w']<report['aggregate']['directional_mae_w']
+    assert report['aggregate']['policy_mae_w']<report['aggregate']['baseline_mae_w']
+    assert report['near_horizon']['policy_mae_w']==0
+    assert report['prospective_score'] is False

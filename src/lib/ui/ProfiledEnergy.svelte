@@ -7,7 +7,7 @@
   import { loadCalibratedEnergy, loadCalibratedPerformance } from '../household/observationClient.js';
   let calibratedRaw = $state(null), calibratedReportRaw = $state(null);
   const calibratedReport = $derived(parseCalibratedPerformance(calibratedReportRaw, { nowMs }));
-  const sameCalibratedModel = $derived(Boolean(calibrated && calibratedReport?.calibration_model_sha256 === calibrated.calibration_model_sha256));
+  const sameCalibratedModel = $derived(Boolean(calibrated && calibratedReport?.calibration_model_sha256 === calibrated.calibration_model_sha256 && calibratedReport?.calibration_policy_sha256 === calibrated.calibration_policy_sha256));
   const error = (v, places) => v === null ? "—" : v.toFixed(places);
   const calibrated = $derived(parseCalibratedEnergy(calibratedRaw, { nowMs }));
   let raw = $state(null), reportRaw = $state(null), nowMs = $state(Date.now()), selectedHour = $state(1);

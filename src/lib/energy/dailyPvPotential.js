@@ -11,19 +11,20 @@ export function parseDailyPvPotential(raw,{nowMs=Date.now()}={}){
   if(typeof raw!=='string'||raw.length>32768)return null;
   uniqueObjectKeys(raw);
   const v=JSON.parse(raw);
-  const calibrated=v?.schema==='earthship-daily-pv-potential/v2';
+  const extended=v?.schema==='earthship-daily-pv-potential/v3';
+  const calibrated=extended||v?.schema==='earthship-daily-pv-potential/v2';
   if(!shape(v,['schema','provider','generatedAt','validUntil','timezone','weatherSha256','geometrySha256','systemSha256','horizonSha256','confidence','automatic_actuation','physical_calibration_qualified','days',...(calibrated?['calibration']:[])])
     ||(!calibrated&&v.schema!=='earthship-daily-pv-potential/v1')||v.provider!=='weathernext3'||v.timezone!==HOUSEHOLD_TIMEZONE
-    ||v.confidence!==(calibrated?'provisional_empirical_short_horizon':'provisional_uncalibrated')||v.automatic_actuation!==false||v.physical_calibration_qualified!==false
+    ||v.confidence!==(extended?'provisional_empirical_supported_horizon':calibrated?'provisional_empirical_short_horizon':'provisional_uncalibrated')||v.automatic_actuation!==false||v.physical_calibration_qualified!==false
     ||!['weatherSha256','geometrySha256','systemSha256','horizonSha256'].every(k=>hash(v[k])))return null;
   const generated=stamp(v.generatedAt),until=stamp(v.validUntil);
   if(generated===null||until===null||generated>nowMs||until-generated!==90*60000||nowMs>=until
     ||!Array.isArray(v.days)||v.days.length<1||v.days.length>10)return null;
   if(calibrated){
    const c=v.calibration;
-   if(!shape(c,['modelSha256','trainingThrough','assessedThrough','applyThroughAt','independentTargetDays','baselineMaeW','candidateMaeW','qualification'])
-     ||!hash(c.modelSha256)||stamp(c.trainingThrough)===null||stamp(c.assessedThrough)===null
-     ||stamp(c.trainingThrough)>generated||stamp(c.assessedThrough)>generated||stamp(c.applyThroughAt)!==generated+24*3600000
+   if(!shape(c,['modelSha256','trainingThrough','assessedThrough','applyThroughAt','independentTargetDays','baselineMaeW','candidateMaeW','qualification',...(extended?['policySha256']:[])])
+     ||!hash(c.modelSha256)||extended&&!hash(c.policySha256)||stamp(c.trainingThrough)===null||stamp(c.assessedThrough)===null
+     ||stamp(c.trainingThrough)>generated||stamp(c.assessedThrough)>generated||stamp(c.applyThroughAt)!==generated+(extended?336:24)*3600000
      ||!Number.isInteger(c.independentTargetDays)||c.independentTargetDays<2||c.independentTargetDays>90
      ||![c.baselineMaeW,c.candidateMaeW].every(x=>typeof x==='number'&&Number.isFinite(x)&&x>=0&&x<=20000)
      ||c.candidateMaeW>=c.baselineMaeW||c.qualification!=='retrospective_development_assessment_not_prospective_or_metrology')return null;
@@ -38,7 +39,7 @@ export function parseDailyPvPotential(raw,{nowMs=Date.now()}={}){
     if(d.reason!==null||typeof d.potentialKwh!=='number'||!Number.isFinite(d.potentialKwh)||d.potentialKwh<0||d.potentialKwh>1000)return null;
    }else if(d.status!=='unavailable'||d.potentialKwh!==null||typeof d.reason!=='string'||!/^[a-z_]{1,95}$/.test(d.reason))return null;
    if(calibrated){
-    if(!['none','mixed','empirical_short_horizon'].includes(d.calibrationScope))return null;
+    if(!['none','mixed',extended?'empirical_supported_horizon':'empirical_short_horizon'].includes(d.calibrationScope))return null;
     if(d.status==='unavailable'){
      if(d.uncalibratedPotentialKwh!==null||d.calibrationScope!=='none')return null;
     }else if(typeof d.uncalibratedPotentialKwh!=='number'||!Number.isFinite(d.uncalibratedPotentialKwh)||d.uncalibratedPotentialKwh<0||d.uncalibratedPotentialKwh>1000

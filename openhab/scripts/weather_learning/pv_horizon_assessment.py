@@ -47,3 +47,35 @@ def assess_horizons(model,rows,*,cutoff,end):
         comparison_scope='earlier_fitted_fixed_directional_algorithm_not_backdated_current_selected_weights',
         physical_calibration_qualified=False,prospective_score=False,automatic_actuation=False)
     result['report_sha256']=identity(result);return result
+
+
+def assess_policy(model,rows,*,cutoff,end):
+    """Compare the selected skyline policy on the unchanged development targets.
+
+    This is a post-assessment development decision, not a new independent
+    holdout. Keep the actual fit clock and explicit retrospective readiness.
+    """
+    from .pv_calibration_policy import _calculate as policy_power,POLICY,POLICY_SHA256
+    model=validate_model(model)
+    if not instant(model['cutoff'])<=cutoff<end:raise ValueError('later disjoint PV targets required')
+    selected=[_pair(r) for r in rows if cutoff+timedelta(minutes=10)<=instant(r['origin'])<instant(r['start']) and instant(r['end'])<end and r['potential_proxy_eligible'] is True]
+    zone=ZoneInfo('America/Denver')
+    for r in selected:
+        if abs((instant(r['end'])-instant(r['origin'])).total_seconds()/3600-r['lead_hours'])>1e-7:raise ValueError('actual PV lead required')
+    def metrics(values):
+        candidate=[]
+        for r in values:
+            watts,applied=policy_power(model,r['baseline_w'],azimuth_degrees=r['azimuth_degrees'],elevation_degrees=r['elevation_degrees'],horizon_elevation_degrees=r['horizon_elevation_degrees'],lead_hours=r['lead_hours'])
+            candidate.append((watts,applied,r))
+        mean=lambda numbers:None if not numbers else fsum(numbers)/len(numbers)
+        return dict(pairs=len(values),independent_target_days=len({instant(r['end']).astimezone(zone).date() for r in values}),
+            baseline_mae_w=mean([abs(r['baseline_w']-r['outcome_w']) for r in values]),
+            directional_mae_w=mean([abs(_calculate(model,r['baseline_w'],r['azimuth_degrees'])-r['outcome_w']) for r in values]),
+            policy_mae_w=mean([abs(w-r['outcome_w']) for w,_,r in candidate]),adjusted_pairs=sum(a for _,a,_ in candidate))
+    value=dict(schema='earthship-pv-policy-assessment/v1',model_sha256=model['model_sha256'],actual_trained_at=model['trained_at'],training_cutoff=model['cutoff'],
+        policy=POLICY,policy_sha256=POLICY_SHA256,aggregate=metrics(selected),by_lead={f'{lo}-{hi}h':metrics([r for r in selected if lo<r['lead_hours']<=hi]) for lo,hi in BANDS},
+        near_horizon=metrics([r for r in selected if r['elevation_degrees']-r['horizon_elevation_degrees']<=5]),
+        distinct_electrical_intervals=len({(r['start'],r['end']) for r in selected}),
+        readiness_basis='retrospective_assumed_cutoff_plus_10_minutes_actual_training_clock_unchanged',
+        qualification='retrospective_development_policy_assessment_not_independent',physical_calibration_qualified=False,prospective_score=False,automatic_actuation=False)
+    value['report_sha256']=identity(value);return value

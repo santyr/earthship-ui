@@ -25,3 +25,11 @@ it('labels provisional empirical calibration without claiming captured PV',async
  const {container}=render(DailyForecast,{days});const pv=container.querySelector('[data-testid="daily-pv-potential"]');
  expect(pv?.title).toContain('empirically adjusted over the next 24 hours');expect(pv?.title).toContain('before battery acceptance');
 });
+
+it('labels the supported long-horizon policy without a misleading 24-hour limit',async()=>{
+ const {calibratedFixture}=await import('../fixtures/daily-pv-potential.js');const v=calibratedFixture();
+ v.schema='earthship-daily-pv-potential/v3';v.confidence='provisional_empirical_supported_horizon';v.calibration.policySha256='f'.repeat(64);
+ v.calibration.applyThroughAt=new Date(now+336*3600000).toISOString();v.days[0].calibrationScope='empirical_supported_horizon';
+ dailyPvRaw.set(JSON.stringify(v));dailyPvClock.set(now);const {container}=render(DailyForecast,{days});const pv=container.querySelector('[data-testid="daily-pv-potential"]');
+ expect(pv?.title).toContain('empirically adjusted in supported solar positions');expect(pv?.title).not.toContain('next 24 hours');
+});

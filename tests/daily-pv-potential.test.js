@@ -24,3 +24,12 @@ it('accepts explicit provisional short-horizon calibration while keeping raw pot
  const parsed=parseDailyPvPotential(JSON.stringify(v),{nowMs:now});expect(parsed?.days[0].uncalibratedPotentialKwh).toBe(1.5);
  v.calibration.applyThroughAt=new Date(now+48*3600000).toISOString();expect(parseDailyPvPotential(JSON.stringify(v),{nowMs:now})).toBeNull();
 });
+
+
+it('accepts the extended policy with its own identity and rejects an altered scope',async()=>{
+ const {calibratedFixture}=await import('./fixtures/daily-pv-potential.js');const v=calibratedFixture();
+ v.schema='earthship-daily-pv-potential/v3';v.confidence='provisional_empirical_supported_horizon';
+ v.calibration.policySha256='f'.repeat(64);v.calibration.applyThroughAt=new Date(now+336*3600000).toISOString();v.days[0].calibrationScope='empirical_supported_horizon';
+ expect(parseDailyPvPotential(JSON.stringify(v),{nowMs:now})?.calibration.policySha256).toBe('f'.repeat(64));
+ v.calibration.applyThroughAt=new Date(now+337*3600000).toISOString();expect(parseDailyPvPotential(JSON.stringify(v),{nowMs:now})).toBeNull();
+});

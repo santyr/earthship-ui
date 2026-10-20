@@ -9,6 +9,7 @@ from household.codec import canonical,loads,identity
 from household_native_training import directory,save
 from household_observation import _private_file
 from daily_pv_potential import project_days
+from weather_learning.pv_calibration_policy import POLICY,POLICY_SHA256
 from weather_learning.contracts import instant
 
 
@@ -110,9 +111,9 @@ def run(*,archive_path,state_path,output_path,libraries_path,calibration_path=No
             confidence='provisional_uncalibrated',automatic_actuation=False,physical_calibration_qualified=False,days=days)
         if calibration is not None:
             model=calibration['model'];report=calibration['report']
-            view.update(schema='earthship-daily-pv-potential/v2',confidence='provisional_empirical_short_horizon',calibration=dict(
-                modelSha256=model['model_sha256'],trainingThrough=model['cutoff'],assessedThrough=report['holdout_end'],
-                applyThroughAt=(generated+timedelta(hours=24)).isoformat(),independentTargetDays=report['independent_target_days'],
+            view.update(schema='earthship-daily-pv-potential/v3',confidence='provisional_empirical_supported_horizon',calibration=dict(
+                modelSha256=model['model_sha256'],policySha256=POLICY_SHA256,trainingThrough=model['cutoff'],assessedThrough=report['holdout_end'],
+                applyThroughAt=(generated+timedelta(hours=POLICY['maximum_lead_hours'])).isoformat(),independentTargetDays=report['independent_target_days'],
                 baselineMaeW=report['baseline_mae_w'],candidateMaeW=report['candidate_mae_w'],
                 qualification='retrospective_development_assessment_not_prospective_or_metrology'))
         guard()
@@ -122,8 +123,8 @@ def run(*,archive_path,state_path,output_path,libraries_path,calibration_path=No
             raise ValueError('native Astro metadata changed during daily PV projection')
         output=Path(output_path);directory(output.parent)
         receipt=dict(schema='earthship-daily-pv-potential-receipt/v1',view=view,provider=provider.to_dict(),geometry_series_sha256s=geometries,
-            system_source=system_source,horizon_source=horizon_source,calibration_source=calibration,calibration_reason=calibration_reason,projection_steps=projection_steps,model_assumptions=dict(__import__('household_pv_model').ASSUMPTIONS))
-        receipt['runtime_manifest']={name:sha256((root/name).read_bytes()).hexdigest() for name in ('openhab/scripts/daily_pv_worker.py','openhab/scripts/daily_pv_potential.py','openhab/scripts/household_pv_model.py','openhab/scripts/household_solar_horizon.py','openhab/scripts/weather_learning/pv_calibration_source.py','openhab/scripts/weather_learning/pv_directional_calibration.py','openhab/scripts/weather_learning/pv_calibration.py')}
+            system_source=system_source,horizon_source=horizon_source,calibration_source=calibration,calibration_reason=calibration_reason,calibration_policy=POLICY,projection_steps=projection_steps,model_assumptions=dict(__import__('household_pv_model').ASSUMPTIONS))
+        receipt['runtime_manifest']={name:sha256((root/name).read_bytes()).hexdigest() for name in ('openhab/scripts/daily_pv_worker.py','openhab/scripts/daily_pv_potential.py','openhab/scripts/household_pv_model.py','openhab/scripts/household_solar_horizon.py','openhab/scripts/weather_learning/pv_calibration_source.py','openhab/scripts/weather_learning/pv_directional_calibration.py','openhab/scripts/weather_learning/pv_calibration_policy.py','openhab/scripts/weather_learning/pv_calibration.py')}
         receipt['receipt_sha256']=identity(receipt);save(state/(receipt['receipt_sha256']+'.receipt.json'),receipt)
         if (root/'openhab/household-pv-system.json').read_bytes()!=system_raw or (root/'openhab/household-solar-horizon.json').read_bytes()!=horizon_raw:
             raise ValueError('array/terrain bytes changed during projection')

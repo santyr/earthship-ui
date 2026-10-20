@@ -21,3 +21,8 @@ it.each(['authority','private','count','current','zero','future','digest','horiz
  let raw=JSON.stringify(v);if(damage==='duplicate')raw=raw.replace('{','{"graduated":false,');
  expect(parseCalibratedPerformance(raw,{nowMs:CALIBRATED_NOW})).toBeNull();
 });
+
+it('keeps a versioned policy on the public accuracy report',()=>{
+ const v=calibratedPerformance();v.schema='earthship-household-calibrated-energy-performance/v2';v.calibration_policy_sha256='b'.repeat(64);
+ expect(parseCalibratedPerformance(JSON.stringify(v),{nowMs:CALIBRATED_NOW})?.calibration_policy_sha256).toBe('b'.repeat(64));
+});

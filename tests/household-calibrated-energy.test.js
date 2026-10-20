@@ -24,3 +24,9 @@ it('keeps qualified demand and PV when storage initial conditions are unavailabl
  for(const row of v.trajectory)row.calibrated_soc_pct=row.raw_soc_pct=null;
  const parsed=parseCalibratedEnergy(JSON.stringify(v),{nowMs:CALIBRATED_NOW});expect(parsed.load_total_ac_kwh).toBe(9.6);expect(parsed.calibrated_potential_kwh).toBe(14);
 });
+
+it('accepts a versioned calibration policy without changing the numerical model identity',()=>{
+ const v=calibratedEnergy();v.schema='earthship-household-calibrated-energy-observation/v3';v.calibration_policy_sha256='b'.repeat(64);
+ const parsed=parseCalibratedEnergy(JSON.stringify(v),{nowMs:CALIBRATED_NOW});expect(parsed?.calibration_policy_sha256).toBe('b'.repeat(64));
+ v.calibration_policy_sha256='bad';expect(parseCalibratedEnergy(JSON.stringify(v),{nowMs:CALIBRATED_NOW})).toBeNull();
+});

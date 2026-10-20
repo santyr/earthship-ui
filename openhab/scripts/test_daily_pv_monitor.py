@@ -43,3 +43,21 @@ def test_scoring_can_use_an_original_forecast_after_its_ui_display_expired(tmp_p
  assert chosen==value
  assert score_hour(chosen,source(),assessed_at=END+timedelta(minutes=6))['eligible_bins']==12
  assert choose_forecast(tmp_path,START-timedelta(hours=2)) is None
+
+
+def test_new_policy_scores_and_legacy_scores_keep_distinct_policy_identity(tmp_path):
+ from daily_pv_monitor import score_hour,choose_forecast
+ from weather_learning.pv_calibration_policy import POLICY,POLICY_SHA256
+ from weather_learning.contracts import canonical
+ old=score_hour(forecast(),source(),assessed_at=END+timedelta(minutes=6))
+ assert 'calibration_policy_sha256' not in old
+ new=forecast();new['view']['schema']='earthship-daily-pv-potential/v3'
+ new['view']['calibration'].update(policySha256=POLICY_SHA256,applyThroughAt=(START+timedelta(hours=335)).isoformat())
+ new['calibration_policy']=POLICY;new.pop('receipt_sha256');new['receipt_sha256']=identity(new)
+ result=score_hour(new,source(),assessed_at=END+timedelta(minutes=6))
+ assert result['calibration_policy_sha256']==POLICY_SHA256
+ assert result['candidate_mae_w']==0
+ path=tmp_path/(new['receipt_sha256']+'.receipt.json');path.write_bytes(canonical(new));path.chmod(0o600)
+ assert choose_forecast(tmp_path,START)==new
+ new['view']['calibration']['policySha256']='f'*64;new.pop('receipt_sha256');new['receipt_sha256']=identity(new)
+ with pytest.raises(ValueError,match='policy'):score_hour(new,source(),assessed_at=END+timedelta(minutes=6))

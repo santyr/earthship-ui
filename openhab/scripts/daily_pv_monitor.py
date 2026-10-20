@@ -19,10 +19,14 @@ def score_hour(forecast,source,*,assessed_at):
     if (forecast.get('schema')!='earthship-daily-pv-potential-receipt/v1' or forecast.get('receipt_sha256')!=identity({k:v for k,v in forecast.items() if k!='receipt_sha256'})):
         raise ValueError('original forecast identity differs')
     view=forecast['view'];start,end=map(instant,(source['start'],source['end']));origin=instant(view['generatedAt'])
-    if view.get('schema')!='earthship-daily-pv-potential/v2' or view.get('automatic_actuation') is not False:raise ValueError('original calibrated read-only forecast required')
+    if view.get('schema') not in ('earthship-daily-pv-potential/v2','earthship-daily-pv-potential/v3') or view.get('automatic_actuation') is not False:raise ValueError('original calibrated read-only forecast required')
     if origin>start:raise ValueError('forecast must exist before the scored hour')
     if not instant(forecast['calibration_source']['model']['trained_at'])<=origin:raise ValueError('model must exist before its forecast')
     if instant(source['received_at'])>assessed_at:raise ValueError('original power not yet available')
+    policy=None
+    if view['schema']=='earthship-daily-pv-potential/v3':
+        policy=digest(view['calibration']['policySha256']);definition=forecast.get('calibration_policy')
+        if not isinstance(definition,dict) or identity(definition)!=policy or definition.get('automatic_actuation') is not False or definition.get('physical_calibration_qualified') is not False:raise ValueError('original calibration policy differs')
     model=digest(view['calibration']['modelSha256']);steps=forecast['projection_steps']
     if not isinstance(steps,list) or not 1<=len(steps)<=3000:raise ValueError('bounded original forecast steps required')
     selected={}
@@ -48,6 +52,7 @@ def score_hour(forecast,source,*,assessed_at):
         covered_seconds=weight,baseline_mae_w=mae('baseline_w'),candidate_mae_w=mae('candidate_w'),pairs=pairs,
         outcome_scope='qualified_low_soc_charging_controller_input_proxy',metric_basis='covered_duration_weighted_absolute_power_error',
         prospective_score=True,physical_calibration_qualified=False,automatic_actuation=False)
+    if policy is not None:out.update(schema='earthship-pv-prospective-hour-score/v2',calibration_policy_sha256=policy)
     out['score_sha256']=identity(out);return out
 
 
@@ -57,7 +62,7 @@ def choose_forecast(root,start):
         raw=_read(path,8*1024**2);value=json.loads(raw)
         if value.get('receipt_sha256')!=path.name.removesuffix('.receipt.json') or value.get('receipt_sha256')!=identity({k:v for k,v in value.items() if k!='receipt_sha256'}):raise ValueError('retained PV forecast identity differs')
         view=value.get('view',{})
-        if view.get('schema')=='earthship-daily-pv-potential/v2' and instant(view['generatedAt'])<=start<instant(view['calibration']['applyThroughAt']):
+        if view.get('schema') in ('earthship-daily-pv-potential/v2','earthship-daily-pv-potential/v3') and instant(view['generatedAt'])<=start<instant(view['calibration']['applyThroughAt']):
             row=(instant(view['generatedAt']),value['receipt_sha256'],value)
             if best is None or row[:2]>best[:2]:best=row
     return None if best is None else best[2]
@@ -102,6 +107,7 @@ def run(*,forecast_root,state_root,clock=lambda:datetime.now(timezone.utc)):
                 save(state/(score['score_sha256']+'.score.json'),score)
                 with sqlite3.connect(database,timeout=2) as connection:connection.execute('INSERT INTO hours VALUES(?,?,?)',(start.isoformat(),score['score_sha256'],score['model_sha256']))
                 result={key:score[key] for key in ('status','window_start','window_end','model_sha256','eligible_bins','baseline_mae_w','candidate_mae_w','score_sha256','prospective_score','physical_calibration_qualified','automatic_actuation')}
+        if previous is None and forecast is not None and 'calibration_policy_sha256' in score:result['calibration_policy_sha256']=score['calibration_policy_sha256']
         result['checked_at']=clock().isoformat();save(state/'last-result.json',result);return result
 
 

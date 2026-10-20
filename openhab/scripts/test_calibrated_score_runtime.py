@@ -20,3 +20,11 @@ def test_runner_refuses_an_import_bound_to_a_different_producer(tmp_path):
     actual=Path(replay.__globals__['__file__']).resolve().parents[2]
     require_producer_binding(replay,actual)
     with pytest.raises(ValueError,match='bound'):require_producer_binding(replay,tmp_path)
+
+
+def test_different_policy_in_the_same_hour_is_sampled_separately():
+    import json
+    from household_calibrated_score import sample_key
+    old=dict(inputs={'calibration_raw':json.dumps({'final_model':{'model_sha256':'a'*64}})},output={'issued_at':'2026-10-20T00:10:15+00:00'})
+    new=dict(old,output=dict(old['output'],calibration_policy_sha256='b'*64))
+    assert sample_key(old)!=sample_key(new)

@@ -36,6 +36,7 @@ def _predictions(forecast,plan,profiled):
     model=None if profiled is None or profiled['inputs']['load_source'] is None else profiled['inputs']['load_source']['artifact']['profile']['model_sha256']
     cohort=dict(calibration_model_sha256=calibration,forecast_runtime_sha256=identity(forecast['runtime_manifest']),
         physical_bank_epoch=energy['physical_bank_epoch']['value'],nominal_bank_kwh=initial.get('nominal_bank_kwh'),source_epoch=epoch)
+    if 'calibration_policy_sha256' in out:cohort['calibration_policy_sha256']=out['calibration_policy_sha256']
     rows={}
     for h in HORIZONS:
         target=issue+timedelta(hours=h);soc=None;mean=None
@@ -202,4 +203,6 @@ def performance(samples,*,origin,generated_at):
         calibration_model_sha256=origin['calibration_model_sha256'],model_version_count=len({s['origin']['load_model_sha256'] for s in accepted if s['origin']['load_model_sha256'] is not None}),
         independent_origin_days=len({instant(t).astimezone(zone).date() for t in issues}),first_issue=min(issues) if issues else None,last_issue=max(issues) if issues else None,
         by_horizon=result,**FLAGS)
+    if 'calibration_policy_sha256' in origin['cohort']:
+        value.update(schema='earthship-household-calibrated-energy-performance/v2',calibration_policy_sha256=origin['cohort']['calibration_policy_sha256'])
     value['view_sha256']=identity(value);return value

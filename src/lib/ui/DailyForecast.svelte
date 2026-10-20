@@ -13,7 +13,7 @@
     typeof raw === 'number' && Number.isFinite(raw) ? `${Math.round(raw)}${suffix}` : '—'
   );
 
-  const pvTitle = (pv) => `${pv.calibrationScope && pv.calibrationScope !== 'none' ? 'Provisional, empirically adjusted over the next 24 hours; ' : 'Provisional ' }array DC potential before battery acceptance and demand limits; ${pv.fromAt} through ${pv.throughAt}.`;
+  const pvTitle = (pv) => `${pv.calibrationScope && pv.calibrationScope !== 'none' ? dailyPv?.schema === 'earthship-daily-pv-potential/v3' ? 'Provisional, empirically adjusted in supported solar positions; ' : 'Provisional, empirically adjusted over the next 24 hours; ' : 'Provisional ' }array DC potential before battery acceptance and demand limits; ${pv.fromAt} through ${pv.throughAt}.`;
 
   const accessibleName = (day) => [
     day.label,

@@ -13,7 +13,8 @@ from household_ac_load_artifact import runtime_manifest as load_runtime
 from household_pv_model import simulate_storage
 from household_profiled_storage import simulate_profiled_storage
 from weather_learning.pv_calibration_source import restore_calibration
-from weather_learning.pv_directional_calibration import project_power
+from weather_learning.pv_calibration_policy import project_power,POLICY,POLICY_SHA256
+from household_solar_horizon import horizon_height
 
 SCHEMA='earthship-household-calibrated-energy-receipt/v1'
 MAX_BYTES=1048576
@@ -21,12 +22,12 @@ MAX_BYTES=1048576
 
 def runtime_manifest():
     result={**forecast_runtime_manifest(),**profiled_runtime_manifest(),**load_runtime()};root=Path(__file__).resolve().parent
-    for name in ('household_calibrated_energy.py','weather_learning/pv_calibration_source.py','weather_learning/pv_directional_calibration.py','weather_learning/pv_calibration.py','weather_learning/contracts.py'):
+    for name in ('household_calibrated_energy.py','weather_learning/pv_calibration_source.py','weather_learning/pv_directional_calibration.py','weather_learning/pv_calibration_policy.py','weather_learning/pv_calibration.py','weather_learning/contracts.py'):
         result['openhab/scripts/'+name]=sha256((root/name).read_bytes()).hexdigest()
     return result
 
 
-def adjust_steps(steps,*,positions,model,origin):
+def adjust_steps(steps,*,positions,model,origin,horizon_profile=None):
     times=[instant(p['at']) for p in positions]
     if times!=sorted(set(times)):raise ValueError('ordered original PV geometry required')
     result=[];last=origin
@@ -35,7 +36,8 @@ def adjust_steps(steps,*,positions,model,origin):
         start,end=instant(row['start']),instant(row['end']);index=bisect_left(times,end)
         if start!=last or not timedelta(0)<end-start<=timedelta(minutes=5) or end>origin+timedelta(hours=24) or index>=len(times) or times[index]-end>=timedelta(minutes=5):raise ValueError('matching complete original PV geometry required')
         hours=(end-start).total_seconds()/3600;watts=row['potential_pv_kwh']*1000/hours
-        adjusted=project_power(model,watts,azimuth_degrees=positions[index]['azimuth_degrees'],origin=origin)
+        position=positions[index];azimuth=position['azimuth_degrees'];terrain=0. if horizon_profile is None else horizon_height(horizon_profile,azimuth)
+        adjusted,_=project_power(model,watts,azimuth_degrees=azimuth,elevation_degrees=position['elevation_degrees'],horizon_elevation_degrees=terrain,origin=origin,target=end)
         result.append(dict(row,potential_pv_kwh=adjusted*hours/1000));last=end
     return result
 
@@ -83,9 +85,9 @@ def seal(*,energy,plan,profiled,now,calibration_path=None,calibration_raw=None):
     snapshot=restore_snapshot(plan['inputs']['snapshot'],plan['inputs']['source_contexts']);context=project_weather(snapshot.weather);raw_steps=pv['steps']
     out=dict(status='unavailable',reason=pv['reason'],issued_at=origin.isoformat(),raw_potential_kwh=pv['potential_pv_kwh'],calibrated_potential_kwh=None,steps=[],
         constant_load_storage=dict(status='unavailable',reason='array_potential_unavailable'),profiled_storage=dict(status='unavailable',reason='array_potential_unavailable'),
-        uncalibrated_profiled_storage=None,confidence='provisional_empirical_short_horizon',physical_calibration_qualified=False,automatic_actuation=False)
+        uncalibrated_profiled_storage=None,calibration_policy_sha256=POLICY_SHA256,confidence='provisional_empirical_short_horizon',physical_calibration_qualified=False,automatic_actuation=False)
     if pv['status']=='projected_provisional_array_potential':
-        steps=adjust_steps(raw_steps,positions=context['solar_geometry']['positions'],model=calibration['model'],origin=origin)
+        steps=adjust_steps(raw_steps,positions=context['solar_geometry']['positions'],model=calibration['model'],origin=origin,horizon_profile=loads(energy['inputs']['horizon_source']['raw'])['profile'])
         if instant(steps[-1]['end'])!=origin+timedelta(hours=24):raise ValueError('complete calibrated 24-hour PV horizon required')
         inputs=storage_inputs(snapshot,topology_source=energy['inputs']['topology_source'],origin=origin)
         out.update(status='projected_provisional_calibrated_potential',reason=None,calibrated_potential_kwh=fsum(r['potential_pv_kwh'] for r in steps),steps=steps,storage_initial_conditions=inputs)
@@ -100,7 +102,7 @@ def seal(*,energy,plan,profiled,now,calibration_path=None,calibration_raw=None):
                 out[name]=dict(simulate_profiled_storage(steps=source_steps,initial_soc_pct=inputs['initial_soc_pct'],nominal_bank_kwh=inputs['nominal_bank_kwh'],load_forecast=load),status='conditional_nominal_simulation',reason=None)
     value=dict(schema=SCHEMA,inputs=dict(original_energy_document_sha256=identity(energy),original_energy_receipt_sha256=energy['receipt_sha256'],plan_receipt_sha256=plan['receipt_sha256'],
         original_profiled_document_sha256=None if profiled is None else identity(profiled),calibration_raw=calibration_raw.decode(),calibration_file_sha256=calibration['original_file_sha256'],
-        source_freshness_basis='qualified_original_issue_with_120_second_publication_deadline',assessed_at=now.isoformat()),runtime_manifest=runtime_manifest(),output=out)
+        calibration_policy=POLICY,source_freshness_basis='qualified_original_issue_with_120_second_publication_deadline',assessed_at=now.isoformat()),runtime_manifest=runtime_manifest(),output=out)
     value['receipt_sha256']=identity(value)
     if len(canonical(value))>MAX_BYTES:raise ValueError('bounded calibrated energy receipt required')
     return loads(canonical(value))

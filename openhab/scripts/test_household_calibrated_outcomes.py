@@ -115,3 +115,16 @@ def test_all_four_mature_horizons_use_their_own_qualified_windows(tmp_path,monke
         assert instant(row['target_at'])==issue+timedelta(hours=h)
         assert row['soc']['status']=='scored' and row['soc']['actual_soc_pct']==90
         assert row['load']['status']=='scored' and row['load']['actual_known_ac_kwh']==pytest.approx(1)
+
+
+def test_accuracy_exposes_the_policy_and_does_not_reuse_another_policy_samples(tmp_path,monkeypatch,originals):
+ from household_calibrated_outcomes import summarize_score,performance
+ from weather_learning.pv_calibration_policy import POLICY_SHA256
+ api,args=context(tmp_path,monkeypatch,originals);score=api(**args);origin=score['inputs']['origin']
+ assert origin['cohort']['calibration_policy_sha256']==POLICY_SHA256
+ sample=summarize_score(score,verified_at=args['assessed_at'],score_file_sha256='a'*64)
+ report=performance([sample],origin=origin,generated_at=args['assessed_at'])
+ assert report['schema']=='earthship-household-calibrated-energy-performance/v2'
+ assert report['calibration_policy_sha256']==POLICY_SHA256
+ other=deepcopy(origin);other['cohort']['calibration_policy_sha256']='f'*64;other['cohort_id']=identity(other['cohort'])
+ assert performance([sample],origin=other,generated_at=args['assessed_at'])['by_horizon']['1']['soc']['count']==0

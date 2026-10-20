@@ -83,7 +83,7 @@ def test_day_geometry_cache_reuses_original_availability_and_rejects_tampering(t
     with pytest.raises(ValueError):day_geometry(tmp_path,'2026-10-20',clock=lambda:now,**args)
 
 
-def test_provisional_directional_correction_stops_after_24_hours_and_keeps_raw_steps():
+def test_provisional_directional_correction_uses_supported_longer_leads_and_keeps_raw_steps():
     from weather_learning.pv_directional_calibration import fit_directional
     from test_weather_directional_pv import rows
     from test_household_pv_window import START
@@ -94,8 +94,31 @@ def test_provisional_directional_correction_stops_after_24_hours_and_keeps_raw_s
     baseline=project(**args);steps=[];adjusted=project(**args,calibration=model,steps_out=steps)
     assert adjusted[0]['potentialKwh']<baseline[0]['potentialKwh']
     assert adjusted[0]['uncalibratedPotentialKwh']==baseline[0]['potentialKwh']
-    assert adjusted[0]['calibrationScope']=='empirical_short_horizon'
-    assert adjusted[1]['potentialKwh']==baseline[1]['potentialKwh']
-    assert adjusted[1]['calibrationScope']=='none'
+    assert adjusted[0]['calibrationScope']=='empirical_supported_horizon'
+    assert adjusted[1]['potentialKwh']<baseline[1]['potentialKwh']
+    assert adjusted[1]['calibrationScope']=='empirical_supported_horizon'
     assert len(steps)==576
-    assert not any(s['calibration_applied'] for s in steps[288:])
+    assert all(s['calibration_applied'] for s in steps[288:])
+
+
+def test_daily_and_storage_keep_raw_power_near_the_same_declared_skyline():
+    from household_calibrated_energy import adjust_steps
+    from weather_learning.pv_directional_calibration import fit_directional
+    from test_weather_directional_pv import rows
+    from test_household_pv_window import START
+    model=fit_directional(rows(),cutoff=START+timedelta(days=8),trained_at=START+timedelta(days=20))
+    args=inputs('2026-11-05');origin=args['issued_at']
+    args['horizon_profile']=[dict(azimuth_degrees=i*7.5,elevation_degrees=20.) for i in range(48)]
+    for p in args['positions']:p.update(azimuth_degrees=110.,elevation_degrees=25.)
+    raw=project(**args);steps=[];adjusted=project(**args,calibration=model,steps_out=steps)
+    assert adjusted[0]['potentialKwh']==raw[0]['potentialKwh']
+    assert not any(s['calibration_applied'] for s in steps)
+    source_steps=[dict(start=s['start'],end=s['end'],potential_pv_kwh=s['uncalibrated_w']/12000) for s in steps]
+    stored=adjust_steps(source_steps,positions=args['positions'],model=model,origin=origin,horizon_profile=args['horizon_profile'])
+    assert [r['potential_pv_kwh'] for r in stored]==[r['potential_pv_kwh'] for r in source_steps]
+    for p in args['positions']:p['elevation_degrees']=26.
+    changed_steps=[];project(**args,calibration=model,steps_out=changed_steps)
+    source_steps=[dict(start=s['start'],end=s['end'],potential_pv_kwh=s['uncalibrated_w']/12000) for s in changed_steps]
+    stored=adjust_steps(source_steps,positions=args['positions'],model=model,origin=origin,horizon_profile=args['horizon_profile'])
+    assert all(s['calibration_applied'] for s in changed_steps)
+    assert [r['potential_pv_kwh'] for r in stored]==pytest.approx([s['potential_w']/12000 for s in changed_steps])

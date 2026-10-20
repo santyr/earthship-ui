@@ -39,3 +39,14 @@ it('displays calibrated PV and learned-load storage without reusing original acc
  expect(container.querySelector('svg[aria-label="Battery SoC with calibrated and uncalibrated PV"]')).not.toBeNull();
  expect(container.textContent).not.toContain('0.050');expect(container.textContent).toContain('Calibrated scenario accuracy is collecting');
 });
+
+it.each([true,false])('shows accuracy only for the same numerical model and policy (matching=%s)',async matching=>{
+ const {calibratedEnergy,calibratedPerformance,CALIBRATED_NOW}=await import('../fixtures/calibrated-energy.js');
+ const v=calibratedEnergy(),r=calibratedPerformance();v.schema='earthship-household-calibrated-energy-observation/v3';v.calibration_policy_sha256='b'.repeat(64);
+ r.schema='earthship-household-calibrated-energy-performance/v2';r.calibration_policy_sha256=(matching?'b':'c').repeat(64);
+ vi.spyOn(Date,'now').mockReturnValue(CALIBRATED_NOW);
+ vi.stubGlobal('fetch',async url=>new Response(JSON.stringify(url==='/api/household-calibrated-energy-observation'?v:url==='/api/household-calibrated-energy-performance'?r:url==='/api/household-profiled-energy-observation'?profiledObservation():profiledPerformance())));
+ const {container}=render(ProfiledEnergy);await waitFor(()=>expect(container.textContent).toContain('14.00 kWh'));
+ if(matching)expect(container.querySelector('table')).not.toBeNull();
+ else expect(container.textContent).toContain('Calibrated scenario accuracy is collecting');
+});

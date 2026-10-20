@@ -11,7 +11,8 @@ export function parseCalibratedEnergy(raw,{nowMs=Date.now()}={}) {
  try {
   if(typeof raw!=='string' || new TextEncoder().encode(raw).length>32768 || !Number.isFinite(nowMs))return null;
   uniqueObjectKeys(raw);const v=JSON.parse(raw);
-  if(!shape(v,fields) || v.schema!=='earthship-household-calibrated-energy-observation/v2' || ['receipt_sha256','original_energy_receipt_sha256','calibration_model_sha256','view_sha256'].some(k=>!digest(v[k]))
+  const policy=v.schema==='earthship-household-calibrated-energy-observation/v3';
+  if(!shape(v,[...fields,...(policy?['calibration_policy_sha256']:[])]) || (!policy&&v.schema!=='earthship-household-calibrated-energy-observation/v2') || policy&&!digest(v.calibration_policy_sha256) || ['receipt_sha256','original_energy_receipt_sha256','calibration_model_sha256','view_sha256'].some(k=>!digest(v[k]))
     || v.automatic_actuation!==false || v.physical_calibration_qualified!==false || v.confidence!=='provisional_empirical_short_horizon'
     || v.source_freshness_basis!=='qualified_original_issue_with_120_second_publication_deadline' || !reason(v.reason) || !reason(v.profiled_storage_reason))return null;
   const issue=time(v.issued_at),generated=time(v.generated_at),until=time(v.valid_until);
@@ -45,7 +46,8 @@ export function parseCalibratedPerformance(raw,{nowMs=Date.now()}={}) {
  try {
   if(typeof raw!=='string'||new TextEncoder().encode(raw).length>32768||!Number.isFinite(nowMs))return null;
   uniqueObjectKeys(raw);const v=JSON.parse(raw);
-  if(!shape(v,performanceFields)||v.schema!=='earthship-household-calibrated-energy-performance/v1'||['cohort_id','calibration_model_sha256','view_sha256'].some(k=>!digest(v[k]))
+  const policy=v.schema==='earthship-household-calibrated-energy-performance/v2';
+  if(!shape(v,[...performanceFields,...(policy?['calibration_policy_sha256']:[])])||(!policy&&v.schema!=='earthship-household-calibrated-energy-performance/v1')||policy&&!digest(v.calibration_policy_sha256)||['cohort_id','calibration_model_sha256','view_sha256'].some(k=>!digest(v[k]))
     ||['physical_calibration_qualified','causal_benefit_qualified','graduated','automatic_actuation'].some(k=>v[k]!==false)
     ||!count(v.model_version_count)||!Number.isInteger(v.independent_origin_days)||v.independent_origin_days<0||v.independent_origin_days>8)return null;
   const generated=time(v.generated_at),until=time(v.valid_until),first=v.first_issue===null?null:time(v.first_issue),last=v.last_issue===null?null:time(v.last_issue);

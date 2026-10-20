@@ -62,9 +62,9 @@ def run(*,state,calibration,view,clock=lambda:datetime.now(timezone.utc)):
                     calibrated_soc_pct=None if not available else storage['trajectory'][i]['nominal_soc_pct'],raw_soc_pct=None if not available else out['uncalibrated_profiled_storage']['trajectory'][i]['nominal_soc_pct'])
                 if available and (storage['trajectory'][i]['at']!=row['at'] or out['uncalibrated_profiled_storage']['trajectory'][i]['at']!=row['at']):raise ValueError('curated same-issue targets differ')
                 trajectory.append(point)
-        payload=dict(schema='earthship-household-calibrated-energy-observation/v2',generated_at=generated.isoformat(),issued_at=origin.isoformat(),valid_until=until.isoformat(),receipt_sha256=result['receipt_sha256'],
+        payload=dict(schema='earthship-household-calibrated-energy-observation/v3',generated_at=generated.isoformat(),issued_at=origin.isoformat(),valid_until=until.isoformat(),receipt_sha256=result['receipt_sha256'],
             original_energy_receipt_sha256=energy['receipt_sha256'],calibration_model_sha256=json.loads(raw_calibration)['final_model']['model_sha256'],
-            status=out['status'],reason=out['reason'],load_status='projected' if load_available else 'unavailable',
+            calibration_policy_sha256=out['calibration_policy_sha256'],status=out['status'],reason=out['reason'],load_status='projected' if load_available else 'unavailable',
             load_model_sha256=None if not load_available else profile['model_sha256'],load_trained_through=None if not load_available else profile['latest_qualified_hour_end'],
             load_training_cutoff=None if not load_available else profiled['inputs']['load_source']['artifact']['cutoff'],load_total_ac_kwh=None if not load_available else load['total_ac_kwh'],
             raw_potential_kwh=out['raw_potential_kwh'],calibrated_potential_kwh=out['calibrated_potential_kwh'],
@@ -77,7 +77,7 @@ def run(*,state,calibration,view,clock=lambda:datetime.now(timezone.utc)):
         payload['view_sha256']=identity(payload);directory(Path(view).parent);guard()
         try:previous=loads(_private_file(view,32768)[0])
         except FileNotFoundError:previous=None
-        if previous is not None and previous.get('schema') not in ('earthship-household-calibrated-energy-observation/v1',payload['schema']):raise ValueError('calibrated view belongs to another producer')
+        if previous is not None and previous.get('schema') not in ('earthship-household-calibrated-energy-observation/v1','earthship-household-calibrated-energy-observation/v2',payload['schema']):raise ValueError('calibrated view belongs to another producer')
         save(view,payload)
         return dict(status='calibrated_energy_published',issued_at=origin.isoformat(),profiled_storage_status=storage['status'],receipt_sha256=result['receipt_sha256'],automatic_actuation=False)
 

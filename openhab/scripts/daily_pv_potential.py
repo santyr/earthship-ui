@@ -11,6 +11,7 @@ from household_pv_model import array_power,ASSUMPTIONS
 from household_solar_horizon import horizon_height
 from household.control_contracts import instant
 from household.evidence import utc
+from weather_learning.pv_calibration_policy import project_power
 
 
 def project_days(*,dates,hours,positions,array,horizon_profile,timezone_name,issued_at,calibration=None,steps_out=None):
@@ -43,15 +44,14 @@ def project_days(*,dates,hours,positions,array,horizon_profile,timezone_name,iss
                 if hour<stop:hour+=timedelta(hours=1)
                 forecast=weather[hour.isoformat()];position=geometry[stop.isoformat()]
                 azimuth=position['azimuth_degrees']
+                terrain=0. if horizon_profile is None else horizon_height(horizon_profile,azimuth)
                 power=array_power(array=array,assumptions=ASSUMPTIONS,ghi_wm2=forecast['radiationWm2'],
                     elevation_degrees=position['elevation_degrees'],azimuth_degrees=azimuth,
                     day_of_year=stop.astimezone(zone).timetuple().tm_yday,temp_f=forecast['tempF'],wind_mph=forecast['windMph'],
-                    horizon_elevation_degrees=None if horizon_profile is None else horizon_height(horizon_profile,azimuth))
+                    horizon_elevation_degrees=None if horizon_profile is None else terrain)
                 raw_watts=power['potential_dc_w'];watts=raw_watts;applied=False
-                if calibration is not None and stop<=issued+timedelta(hours=24):
-                    gain=calibration['sectors'][sector(azimuth)]
-                    if gain['supported']:
-                        watts*=gain['gain'];applied=True
+                if calibration is not None:
+                    watts,applied=project_power(calibration,raw_watts,azimuth_degrees=azimuth,elevation_degrees=position['elevation_degrees'],horizon_elevation_degrees=terrain,origin=issued,target=stop)
                 adjusted=adjusted or applied and raw_watts>0
                 unadjusted=unadjusted or not applied and raw_watts>0
                 elapsed=(stop-at).total_seconds()/3600000
@@ -59,7 +59,7 @@ def project_days(*,dates,hours,positions,array,horizon_profile,timezone_name,iss
                 if steps_out is not None:steps_out.append(dict(start=at.isoformat(),end=stop.isoformat(),uncalibrated_w=raw_watts,potential_w=watts,azimuth_degrees=azimuth,calibration_applied=applied))
                 at=stop
             row.update(status='available',reason=None,potentialKwh=fsum(energy))
-            if calibration is not None:row.update(uncalibratedPotentialKwh=fsum(raw_energy),calibrationScope='mixed' if adjusted and unadjusted else 'empirical_short_horizon' if adjusted else 'none')
+            if calibration is not None:row.update(uncalibratedPotentialKwh=fsum(raw_energy),calibrationScope='mixed' if adjusted and unadjusted else 'empirical_supported_horizon' if adjusted else 'none')
         except (ValueError,KeyError,TypeError,OverflowError):
             pass
         result.append(row)
