@@ -1,0 +1,103 @@
+{
+  "analysis_only": true,
+  "calendar_only": {
+    "denver_holdout_days": 5,
+    "denver_selected": true,
+    "denver_training_days": 29,
+    "original_holdout_days": 5,
+    "original_selected": true,
+    "original_training_days": 29,
+    "sectors": {
+      "0": {
+        "denver_days": 0,
+        "denver_supported": false,
+        "original_days": 0,
+        "original_supported": false,
+        "pairs": 0
+      },
+      "135": {
+        "denver_days": 8,
+        "denver_supported": true,
+        "original_days": 8,
+        "original_supported": true,
+        "pairs": 110
+      },
+      "180": {
+        "denver_days": 4,
+        "denver_supported": true,
+        "original_days": 4,
+        "original_supported": true,
+        "pairs": 82
+      },
+      "225": {
+        "denver_days": 4,
+        "denver_supported": true,
+        "original_days": 4,
+        "original_supported": true,
+        "pairs": 70
+      },
+      "270": {
+        "denver_days": 0,
+        "denver_supported": false,
+        "original_days": 0,
+        "original_supported": false,
+        "pairs": 0
+      },
+      "315": {
+        "denver_days": 0,
+        "denver_supported": false,
+        "original_days": 0,
+        "original_supported": false,
+        "pairs": 0
+      },
+      "45": {
+        "denver_days": 0,
+        "denver_supported": false,
+        "original_days": 0,
+        "original_supported": false,
+        "pairs": 0
+      },
+      "90": {
+        "denver_days": 28,
+        "denver_supported": true,
+        "original_days": 28,
+        "original_supported": true,
+        "pairs": 475
+      }
+    }
+  },
+  "original_rows": 737,
+  "production_model_changed": false,
+  "qualification": "same_retained_development_split_and_availability_assumptions_not_new_prospective_skill_or_physical_calibration",
+  "schema": "earthship-pv-source-audit-reassessment/v1",
+  "selected_original_model_sha256": "f7ed8273c8ee8c2e5c07961165659fe803fa318a1ec55bdebb1ae2078428ad83",
+  "selected_original_receipt_sha256": "cb35190177692c70fac55d6a9ead6607a9100f991ab360acbe63560d1cc8dbe5",
+  "shared_baseline": {
+    "changed_pairs": 671,
+    "corrected_holdout": {
+      "baseline_mae_w": 566.696925398711,
+      "candidate_mae_w": 440.39383750791785,
+      "independent_target_days": 5,
+      "pairs": 124,
+      "selected": true
+    },
+    "corrected_ordered_pair_sha256": "faddd3cb9ac5a9a31a76ba75434409c6d55b0bfd4d75be6f9769dd3344b051f7",
+    "matched_pairs": 737,
+    "maximum_absolute_delta_w": 59.08871096595158,
+    "mean_absolute_delta_w": 5.836047893213152,
+    "mean_signed_delta_w": 5.707830883927571,
+    "missing": {},
+    "original_holdout": {
+      "baseline_mae_w": 560.9149305090831,
+      "candidate_mae_w": 438.90599578303323,
+      "independent_target_days": 5,
+      "pairs": 124,
+      "selected": true
+    },
+    "rule": "ending_hour_radiation_split_right_endpoint_geometry_interpolated_point_weather_v2",
+    "training_days": 24,
+    "verified_geometry_series": 29,
+    "verified_google_snapshots": 55
+  },
+  "source_dataset_sha256": "ac0f6f972a89f9032d82c173540c0bb33277e633eddf8000c556e2d1c12ad114"
+}

@@ -1,5 +1,7 @@
 export {
   initOpenhab,
+  stopOpenhab,
+  reconciliation,
   items,
   thingStatuses,
   connection,

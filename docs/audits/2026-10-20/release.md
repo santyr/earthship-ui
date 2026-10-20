@@ -25,3 +25,9 @@ New shadow plans reject feeder candidates before optimization. Qualification v2 
 ## Sensor accounting
 
 Contact duration is intersected with accepted-packet communication coverage, quality barriers and source/hardware epochs. Status packets renew communication only. No raw journal row or original contact clock changes. Legacy journal lacks a frozen communication-valid-until value, so derived duration uses the current declared registry communication threshold explicitly. Radio commissioning remains independent.
+
+## PV versioned transition
+
+New effective/directional calibration and comparison schemas are v2 with explicit America/Denver `interval_start_local_date` support. Historical v1 models retain original coefficients/metadata when read; new no-op reuse cannot substitute old-schema models. New paired datasets and individual rows declare shared interval baseline v2; current fitting rejects old mismatched-baseline datasets and requires rebuilding original-bound pairs. Shared served arithmetic is numerically unchanged (16 full original projection parity cases); historical pair temperature/wind now uses the exact served interpolation/unit conversion and radiation overlap.
+
+The existing selected v1 model belongs to its original immutable runtime. Deploying only these sources would fail its exact runtime binding and use the declared physical fallback/unavailable path. A corrected calibrated rollout therefore requires freshly rebuilt v2 pairs/models and a new explicit selected-source handoff; the curated analysis is not a production artifact or permission to rewrite receipts. Old source bundles/datasets/models/receipts remain untouched. Prospective scores must start their own new runtime/model cohort.

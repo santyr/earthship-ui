@@ -1,6 +1,7 @@
 import { get, writable } from 'svelte/store';
 import { createClient } from './client.js';
 import { createSSE } from './sse.js';
+import { withReadTimeout, READ_TIMEOUT_MS } from './readRequest.js';
 import { parseSourceTimestamp } from './timestamp.js';
 import { TEMPERATURE_ITEMS } from '../alerts/staleness.js';
 import { ASTRO_EVIDENCE_ITEMS } from '../weather/astroPresentation.js';
@@ -9,6 +10,7 @@ const EVIDENCE_ITEMS = [...TEMPERATURE_ITEMS.map(item => item.name), ...ASTRO_EV
 export const items = writable({});
 export const thingStatuses = writable({});
 export const connection = writable('connecting');
+export const reconciliation = writable('pending');
 // Flips true once initOpenhab() has created the client AND loaded the
 // initial item snapshot. Components that fetch via getClientOnce() on
 // mount (e.g. HistoryChart) can react to this instead of racing App.svelte's
@@ -44,19 +46,23 @@ export function applyUpdateEvidence(name, rawTimestamp, state) {
   return true;
 }
 
-export function applySnapshot(arr) {
+// A complete REST collection replaces the prior collection. Deltas received
+// after its request began win, including newly added resources and source clocks.
+export function applySnapshot(arr, { preserve = new Set(), preserveEvidence = preserve } = {}) {
   const rows = new Map(arr.map(item => [item.name, item]));
   const accepted = new Map();
-  for (const name of EVIDENCE_ITEMS) accepted.set(name, applyUpdateEvidence(name, rows.get(name)?.lastStateUpdate, rows.get(name)?.state));
-  items.update((m) => {
-    const next = { ...m };
-    for (const name of ['BMS_SOC_Evidence_JSON', 'BMS_Comms_Status', 'BMS_DevicePresent']) {
-      if (!rows.has(name)) delete next[name];
-    }
+  for (const name of EVIDENCE_ITEMS) {
+    if (!preserveEvidence.has(name)) accepted.set(name, applyUpdateEvidence(name, rows.get(name)?.lastStateUpdate, rows.get(name)?.state));
+  }
+  items.update(current => {
+    const next = {};
     for (const it of arr) {
-      if (ASTRO_EVIDENCE_ITEMS.includes(it.name) && accepted.get(it.name) === false) continue;
-      next[it.name] = it.state;
+      if (preserve.has(it.name)) continue;
+      if (ASTRO_EVIDENCE_ITEMS.includes(it.name) && accepted.get(it.name) === false) {
+        if (it.name in current) next[it.name] = current[it.name];
+      } else next[it.name] = it.state;
     }
+    for (const name of preserve) if (name in current) next[name] = current[name];
     return next;
   });
 }
@@ -76,13 +82,15 @@ function normalizeThingStatus(statusInfo = {}) {
   };
 }
 
-export function applyThingSnapshot(things = []) {
-  thingStatuses.update((current) => {
+export function applyThingSnapshot(things = [], { preserve = new Set() } = {}) {
+  thingStatuses.update(current => {
+    const next = {};
     for (const thing of things) {
-      if (typeof thing?.UID !== 'string' || !thing.UID) continue;
-      current[thing.UID] = normalizeThingStatus(thing.statusInfo);
+      if (typeof thing?.UID !== 'string' || !thing.UID || preserve.has(thing.UID)) continue;
+      next[thing.UID] = normalizeThingStatus(thing.statusInfo);
     }
-    return { ...current };
+    for (const uid of preserve) if (uid in current) next[uid] = current[uid];
+    return next;
   });
 }
 
@@ -98,25 +106,15 @@ export function applyThingStatus(uid, statusInfo) {
 const INITIAL_SNAPSHOT_RETRY_BASE_MS = 2_000;
 const INITIAL_SNAPSHOT_RETRY_MAX_MS = 30_000;
 
-async function fetchSnapshots(client) {
-  const [itemSnapshot, thingSnapshot] = await Promise.all([
-    client.getAllItems(),
-    client.getAllThings().catch(() => []),
-  ]);
-  applySnapshot(itemSnapshot);
-  applyThingSnapshot(thingSnapshot);
-}
+let stopSession = null;
 
-// Re-fetch after an SSE reconnect: statechanged events that happened during
-// the outage never replay, so without this the display stays stale forever
-// under a green "live" badge. A failed resync is swallowed — if openHAB drops
-// again the SSE loop reconnects and fires this hook once more.
-async function resyncSnapshots(client) {
-  try {
-    await fetchSnapshots(client);
-  } catch {
-    /* next reconnect retries */
-  }
+export function stopOpenhab() {
+  stopSession?.();
+  stopSession = null;
+  _client = null;
+  clientReady.set(false);
+  connection.set('connecting');
+  reconciliation.set('pending');
 }
 
 export async function initOpenhab(config, {
@@ -124,33 +122,99 @@ export async function initOpenhab(config, {
   sseFactory = createSSE,
   retryBaseMs = INITIAL_SNAPSHOT_RETRY_BASE_MS,
   retryMaxMs = INITIAL_SNAPSHOT_RETRY_MAX_MS,
+  requestTimeoutMs = READ_TIMEOUT_MS,
+  signal,
 } = {}) {
+  stopOpenhab();
   const client = clientFactory(config);
   _client = client;
-  let delay = retryBaseMs;
-  for (;;) {
-    try {
-      await fetchSnapshots(client);
-      break;
-    } catch {
-      connection.set('connecting');
-      await new Promise((resolve) => setTimeout(resolve, delay));
-      delay = Math.min(delay * 2, retryMaxMs);
-    }
+  const lifetime = new AbortController();
+  let active = true, sse = null, retryTimer = null, attempt = null;
+  let epoch = 0, delay = retryBaseMs, transport = 'connecting', reconciled = false;
+  let sequence = 0;
+  const itemDeltas = new Map(), thingDeltas = new Map(), evidenceDeltas = new Map();
+  const after = (deltas, start) => new Set([...deltas].filter(([, seq]) => seq > start).map(([name]) => name));
+  const publishStatus = () => {
+    if (active) connection.set(transport === 'live' && !reconciled ? 'reconciling' : transport);
+  };
+  function stop() {
+    if (!active) return;
+    active = false;
+    lifetime.abort(); attempt?.abort(); clearTimeout(retryTimer);
+    sse?.stop(); signal?.removeEventListener('abort', onAbort);
   }
-  clientReady.set(true);
-  // SSE starts only once the first snapshot has landed (ordering preserved):
-  // statechanged deltas without a base snapshot would render a misleading
-  // partial picture.
-  const sse = sseFactory({
-    ...config,
-    staleSeconds: config.staleBannerSeconds,
-    onState: applyState,
-    onUpdateEvidence: applyUpdateEvidence,
-    onThingStatus: applyThingStatus,
-    onStatus: (s) => connection.set(s),
-    onReconnect: () => resyncSnapshots(client),
-  });
-  sse.start();
-  return client;
+  function onAbort() { if (stopSession === stop) stopOpenhab(); else stop(); }
+  stopSession = stop;
+  signal?.addEventListener('abort', onAbort, { once: true });
+  if (signal?.aborted) onAbort();
+
+  async function fetchSnapshots() {
+    attempt?.abort(); clearTimeout(retryTimer);
+    const controller = new AbortController();
+    attempt = controller;
+    const version = ++epoch;
+    const start = sequence;
+    reconciled = false; reconciliation.set('pending'); publishStatus();
+    const [itemResult, thingResult] = await Promise.allSettled([
+      withReadTimeout(readSignal => client.getAllItems({ signal: readSignal }), { signal: controller.signal, timeoutMs: requestTimeoutMs }),
+      withReadTimeout(readSignal => client.getAllThings({ signal: readSignal }), { signal: controller.signal, timeoutMs: requestTimeoutMs }),
+    ]);
+    if (!active || version !== epoch) return null;
+    const itemOk = itemResult.status === 'fulfilled' && Array.isArray(itemResult.value);
+    const thingOk = thingResult.status === 'fulfilled' && Array.isArray(thingResult.value);
+    if (itemOk) applySnapshot(itemResult.value, { preserve: after(itemDeltas, start), preserveEvidence: after(evidenceDeltas, start) });
+    // A failed optional Thing read is not an authoritative empty inventory.
+    // Retain the last observation but gate controls until reconciliation succeeds.
+    if (thingOk) applyThingSnapshot(thingResult.value, { preserve: after(thingDeltas, start) });
+    reconciled = itemOk && thingOk;
+    reconciliation.set(reconciled ? 'ready' : 'retrying'); publishStatus();
+    return { itemOk, complete: reconciled };
+  }
+  function scheduleRetry() {
+    if (!active) return;
+    clearTimeout(retryTimer);
+    retryTimer = setTimeout(async () => {
+      const result = await fetchSnapshots();
+      if (!result) return;
+      if (!result.complete) { delay = Math.min(delay * 2, retryMaxMs); scheduleRetry(); }
+      else delay = retryBaseMs;
+    }, delay);
+  }
+  function resync() {
+    delay = retryBaseMs;
+    void fetchSnapshots().then(result => { if (result && !result.complete) scheduleRetry(); });
+  }
+
+  // Items establish the initial display. Optional provider reads are bounded;
+  // failed providers leave reconciliation pending while the stream can start.
+  while (active) {
+    const result = await fetchSnapshots();
+    if (!active) break;
+    if (result?.itemOk) {
+      clientReady.set(true);
+      sse = sseFactory({
+        ...config, staleSeconds: config.staleBannerSeconds,
+        onState: (name, value) => { if (active) { itemDeltas.set(name, ++sequence); applyState(name, value); } },
+        onUpdateEvidence: (name, timestamp, state) => {
+          if (!active) return;
+          evidenceDeltas.set(name, ++sequence);
+          if (ASTRO_EVIDENCE_ITEMS.includes(name)) itemDeltas.set(name, sequence);
+          applyUpdateEvidence(name, timestamp, state);
+        },
+        onThingStatus: (uid, status) => { if (active) { thingDeltas.set(uid, ++sequence); applyThingStatus(uid, status); } },
+        onStatus: status => { if (active) { transport = status; publishStatus(); } },
+        onReconnect: () => { if (active) resync(); },
+      });
+      sse.start();
+      if (!result.complete) scheduleRetry();
+      return client;
+    }
+    await new Promise(resolve => {
+      const done = () => { clearTimeout(retryTimer); lifetime.signal.removeEventListener('abort', done); resolve(); };
+      lifetime.signal.addEventListener('abort', done, { once: true });
+      retryTimer = setTimeout(done, delay);
+    });
+    delay = Math.min(delay * 2, retryMaxMs);
+  }
+  throw new DOMException('Initialization canceled', 'AbortError');
 }

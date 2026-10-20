@@ -21,7 +21,8 @@ def run(state):
         with gzip.open(data_path,'rb') as stream:raw=stream.read(32*1024**2+1)
         if len(raw)>32*1024**2:raise ValueError('bounded original PV dataset required')
         dataset=json.loads(raw)
-        if dataset['dataset_sha256']!=parent['dataset_sha256'] or dataset['dataset_sha256']!=identity({k:v for k,v in dataset.items() if k!='dataset_sha256'}):raise ValueError('original PV paired data differ')
+        from historical_pv_train import validate_pair_dataset
+        validate_pair_dataset(dataset,parent['dataset_sha256'])
         start,end=map(instant,(parent['report']['holdout_start'],parent['report']['holdout_end']));now=datetime.now(timezone.utc)
         previous=previous_models(output,sources)
         model,comparison_fit=directional_if_changed(previous.get('training_model'),dataset['pairs'],cutoff=start,trained_at=now)

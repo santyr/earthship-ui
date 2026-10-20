@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { parseSSEMessage, createSSE } from '../src/lib/openhab/sse.js';
+import { parseSSEMessage, parseThingStatusSSEMessage, createSSE } from '../src/lib/openhab/sse.js';
 
 describe('parseSSEMessage', () => {
   it('extracts item name and value from statechanged event', () => {
@@ -246,13 +246,13 @@ describe('createSSE connection', () => {
   });
 
 
-  it('does not fire onReconnect on the very first open (no double-fetch storm at boot)', () => {
+  it('reconciles the first open to close the boot snapshot/subscription gap', () => {
     const onReconnect = vi.fn();
     const sse = makeSSE({ onReconnect });
     sse.start();
     FakeES.instances[0].onopen();
 
-    expect(onReconnect).not.toHaveBeenCalled();
+    expect(onReconnect).toHaveBeenCalledTimes(1);
   });
 
   it('fires onReconnect once per re-open after a dropped connection', () => {
@@ -261,7 +261,7 @@ describe('createSSE connection', () => {
     sse.start();
     const first = FakeES.instances[0];
     first.onopen();
-    expect(onReconnect).not.toHaveBeenCalled();
+    expect(onReconnect).toHaveBeenCalledTimes(1);
 
     // Connection drops; backoff reconnect creates a second EventSource.
     first.onerror();
@@ -270,16 +270,16 @@ describe('createSSE connection', () => {
     const second = FakeES.instances[1];
 
     second.onopen();
-    expect(onReconnect).toHaveBeenCalledTimes(1);
+    expect(onReconnect).toHaveBeenCalledTimes(2);
 
     // A second drop/re-open cycle resyncs again.
     second.onerror();
     vi.advanceTimersByTime(2000);
     FakeES.instances[2].onopen();
-    expect(onReconnect).toHaveBeenCalledTimes(2);
+    expect(onReconnect).toHaveBeenCalledTimes(3);
   });
 
-  it('treats the first open after stop()+start() as a fresh boot, not a reconnect', () => {
+  it('reconciles the first open after stop()+start() as well', () => {
     const onReconnect = vi.fn();
     const sse = makeSSE({ onReconnect });
     sse.start();
@@ -289,7 +289,23 @@ describe('createSSE connection', () => {
     sse.start();
     FakeES.instances[1].onopen();
 
-    expect(onReconnect).not.toHaveBeenCalled();
+    expect(onReconnect).toHaveBeenCalledTimes(2);
+  });
+
+  it('drops live status on manual restart and ignores callbacks from the closed source', () => {
+    const onStatus = vi.fn(), onState = vi.fn();
+    const sse = makeSSE({ onStatus, onState });
+    sse.start();
+    const old = FakeES.instances[0];
+    old.onopen();
+    sse.start();
+    expect(onStatus.mock.calls.at(-1)).toEqual(['connecting']);
+    old.onmessage({ data: JSON.stringify({ topic: 'openhab/items/A/statechanged', payload: '{"value":"LATE"}' }) });
+    old.onopen();
+    expect(onState).not.toHaveBeenCalled();
+    expect(onStatus.mock.calls.at(-1)).toEqual(['connecting']);
+    sse.stop();
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it('subscribes to and forwards Thing status without conflating it with item state', () => {
@@ -317,4 +333,15 @@ describe('createSSE connection', () => {
       status: 'OFFLINE', statusDetail: 'COMMUNICATION_ERROR', description: 'No route to host',
     });
   });
+});
+
+// Malformed public events must be ignored rather than throw inside onmessage.
+it.each([
+  'null',
+  JSON.stringify({ topic: 'openhab/items/A/statechanged', payload: 'null' }),
+])('ignores structurally invalid item event %s', raw => {
+  expect(parseSSEMessage(raw)).toBeNull();
+});
+it('ignores a null Thing event envelope', () => {
+  expect(parseThingStatusSSEMessage('null')).toBeNull();
 });

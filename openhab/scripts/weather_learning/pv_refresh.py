@@ -1,29 +1,29 @@
 """PV evidence reuse and chronological challenger selection; no action authority."""
 from math import fsum
 from .contracts import identity,instant
-from .pv_calibration import _pair
+from .pv_calibration import _pair,independent_days,TIMEZONE,DAY_BASIS
 
 
-def _reuse(previous,rows,*,cutoff,trained_at,fit,validate):
+def _reuse(previous,rows,*,cutoff,trained_at,fit,validate,schema):
     # Preserve the fitter's exact row order: its dataset identity is ordered.
     chosen=[_pair(r) for r in rows if instant(r['end'])<cutoff]
     chosen=[r for r in chosen if r['potential_proxy_eligible'] is True and r['baseline_w']>=20]
     if previous is not None:
         old=validate(previous)
-        if (old['dataset_sha256']==identity(chosen) and instant(old['cutoff'])<=cutoff and
+        if (old['schema']==schema and old['dataset_sha256']==identity(chosen) and instant(old['cutoff'])<=cutoff and
             instant(old['trained_at'])<=trained_at):
             return old,False
     return fit(rows,cutoff=cutoff,trained_at=trained_at),True
 
 
 def directional_if_changed(previous,rows,*,cutoff,trained_at):
-    from .pv_directional_calibration import fit_directional,validate_model
-    return _reuse(previous,rows,cutoff=cutoff,trained_at=trained_at,fit=fit_directional,validate=validate_model)
+    from .pv_directional_calibration import fit_directional,validate_model,SCHEMA
+    return _reuse(previous,rows,cutoff=cutoff,trained_at=trained_at,fit=fit_directional,validate=validate_model,schema=SCHEMA)
 
 
 def effective_if_changed(previous,rows,*,cutoff,trained_at):
-    from .pv_calibration import fit_gain,validate_model
-    return _reuse(previous,rows,cutoff=cutoff,trained_at=trained_at,fit=fit_gain,validate=validate_model)
+    from .pv_calibration import fit_gain,validate_model,SCHEMA
+    return _reuse(previous,rows,cutoff=cutoff,trained_at=trained_at,fit=fit_gain,validate=validate_model,schema=SCHEMA)
 
 
 def compare_incumbent(candidate,incumbent,rows,*,holdout_start,holdout_end):
@@ -39,8 +39,8 @@ def compare_incumbent(candidate,incumbent,rows,*,holdout_start,holdout_end):
         def mae(model):
             return None if not values else fsum(abs((r['baseline_w'] if model is None else _calculate(model,r['baseline_w'],r['azimuth_degrees']))-r['outcome_w']) for r in values)/len(values)
         return dict(pairs=len(values),baseline_mae_w=mae(None),candidate_mae_w=mae(candidate),incumbent_mae_w=mae(incumbent))
-    result=metrics(selected);days=len({r['start'][:10] for r in selected})
-    result.update(schema='earthship-pv-incumbent-comparison/v1',candidate_model_sha256=candidate['model_sha256'],incumbent_model_sha256=incumbent['model_sha256'],
+    result=metrics(selected);days=independent_days(selected)
+    result.update(schema='earthship-pv-incumbent-comparison/v2',timezone=TIMEZONE,independent_day_basis=DAY_BASIS,candidate_model_sha256=candidate['model_sha256'],incumbent_model_sha256=incumbent['model_sha256'],
         holdout_start=holdout_start.isoformat(),holdout_end=holdout_end.isoformat(),independent_target_days=days,
         selected=len(selected)>=24 and days>=2 and result['candidate_mae_w']<min(result['incumbent_mae_w'],result['baseline_mae_w']),
         by_lead={name:metrics([r for r in selected if lo<r['lead_hours']<=hi]) for name,lo,hi in [('0-24h',0,24),('24-48h',24,48)]},

@@ -109,6 +109,41 @@ def array_power(*,array,assumptions,ghi_wm2,elevation_degrees,azimuth_degrees,da
     return dict(dni_wm2=dni,dhi_wm2=dhi,poa_wm2=poa,temperature_proxy_c=proxy,potential_dc_w=dc,missing_wind_assumption_used=wind_mph is None,direct_beam_blocked=blocked)
 
 
+
+INTERVAL_BASELINE_RULE='ending_hour_radiation_split_right_endpoint_geometry_interpolated_point_weather_v2'
+
+
+def interval_power_segments(*,array,assumptions,hourly_forecast,position,start,end,horizon_profile=None):
+    """Pure shared train/serve arithmetic on an original at-most-five-minute interval.
+
+    Temperature/wind are hourly point values interpolated at the right endpoint.
+    Radiation is an ending-hour mean, split at each actual UTC hour boundary.
+    """
+    start,end=utc(start),utc(end)
+    if not timedelta(0)<end-start<=timedelta(minutes=5):raise ValueError('bounded PV baseline interval required')
+    if not isinstance(hourly_forecast,list) or not 2<=len(hourly_forecast)<=50:raise ValueError('original PV interpolation rows required')
+    rows=hourly_forecast;times=[instant(r['at']) for r in rows]
+    if (any(t.minute or t.second or t.microsecond for t in times) or
+        any(b-a!=timedelta(hours=1) for a,b in zip(times,times[1:])) or
+        times[0]>start or times[-1]<end):raise ValueError('complete ordered PV interpolation coverage required')
+    index=bisect_left(times,end)
+    if index==0:raise ValueError('weather interpolation lacks original earlier point')
+    left,right=rows[index-1],rows[index];weight=(end-times[index-1]).total_seconds()/3600
+    temp=_number(left['tempF'],-150,180)*(1-weight)+_number(right['tempF'],-150,180)*weight
+    wind=None if left['windMph'] is None or right['windMph'] is None else _number(left['windMph'],0,250)*(1-weight)+_number(right['windMph'],0,250)*weight
+    from household_solar_horizon import horizon_height
+    skyline=None if horizon_profile is None else horizon_height(horizon_profile,position['azimuth_degrees'])
+    segments=[];at=start
+    while at<end:
+        stop=min(end,at.replace(minute=0,second=0,microsecond=0)+timedelta(hours=1))
+        midpoint=at+(stop-at)/2;weather_index=bisect_left(times,midpoint)
+        ghi=_number(rows[weather_index]['radiationWm2'],0,2000)
+        value=array_power(array=array,assumptions=assumptions,ghi_wm2=ghi,elevation_degrees=position['elevation_degrees'],
+            azimuth_degrees=position['azimuth_degrees'],day_of_year=end.timetuple().tm_yday,temp_f=temp,wind_mph=wind,horizon_elevation_degrees=skyline)
+        segments.append((at,stop,ghi,value));at=stop
+    return segments
+
+
 def integrate_array(*,array,assumptions,hourly_forecast,positions,origin,horizon_hours,timezone_name,horizon_profile=None):
     """Integrate ending-hour radiation means on the retained five-minute grid.
 
@@ -134,28 +169,19 @@ def integrate_array(*,array,assumptions,hourly_forecast,positions,origin,horizon
     windows=[];window=None;blocked_steps=0
     start=origin
     for i,position in enumerate(positions,1):
-        end=instant(position['at']);index=bisect_left(times,end)
+        end=instant(position['at'])
         skyline=None if horizon_profile is None else horizon_height(horizon_profile,position['azimuth_degrees'])
         direct=position['elevation_degrees']>(0 if skyline is None else skyline)
         if direct and window is None:window=start
         if not direct and window is not None:windows.append(dict(start=window.isoformat(),end=start.isoformat()));window=None
         if skyline is not None and 0<position['elevation_degrees']<=skyline:blocked_steps+=1
-        if index==0:raise ValueError('weather interpolation lacks original earlier point')
-        left,right=rows[index-1],rows[index];weight=(end-times[index-1]).total_seconds()/3600
-        temp=_number(left['tempF'],-150,180)*(1-weight)+_number(right['tempF'],-150,180)*weight
-        wind=None if left['windMph'] is None or right['windMph'] is None else _number(left['windMph'],0,250)*(1-weight)+_number(right['windMph'],0,250)*weight
-        at=start
-        while at<end:
-            stop=min(end,at.replace(minute=0,second=0,microsecond=0)+timedelta(hours=1))
-            midpoint=at+(stop-at)/2;weather_index=bisect_left(times,midpoint)
-            ghi=_number(rows[weather_index]['radiationWm2'],0,2000)
-            value=array_power(array=array,assumptions=p,ghi_wm2=ghi,elevation_degrees=position['elevation_degrees'],
-                azimuth_degrees=position['azimuth_degrees'],day_of_year=end.timetuple().tm_yday,temp_f=temp,wind_mph=wind,horizon_elevation_degrees=skyline)
+        for at,stop,ghi,value in interval_power_segments(array=array,assumptions=p,hourly_forecast=rows,
+            position=position,start=start,end=end,horizon_profile=horizon_profile):
             hours=(stop-at).total_seconds()/3600;energy=value['potential_dc_w']*hours/1000
             steps.append(dict(start=at.isoformat(),end=stop.isoformat(),potential_pv_kwh=energy))
             total+=energy;hour_energy+=energy;horizontal+=ghi*hours/1000
             if at<midnight:today+=value['potential_dc_w']*max(0.,(min(stop,midnight)-at).total_seconds())/3600000
-            missing_wind=missing_wind or value['missing_wind_assumption_used'];at=stop
+            missing_wind=missing_wind or value['missing_wind_assumption_used']
         if i%12==0:
             trajectory.append(dict(start=(origin+timedelta(hours=i//12-1)).isoformat(),end=end.isoformat(),potential_pv_kwh=hour_energy,
                 cumulative_potential_pv_kwh=total));hour_energy=0.

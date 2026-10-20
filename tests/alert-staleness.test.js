@@ -1,7 +1,7 @@
 import { beforeEach, afterEach, expect, it, vi } from 'vitest';
 import { get } from 'svelte/store';
 import { createSSE } from '../src/lib/openhab/sse.js';
-import { initOpenhab, items, clientReady, itemUpdateEvidence, applySnapshot } from '../src/lib/openhab/store.js';
+import { initOpenhab, stopOpenhab, items, clientReady, itemUpdateEvidence, applySnapshot } from '../src/lib/openhab/store.js';
 import { alertContext, consoleAlerts, startStalenessMonitor } from '../src/lib/alerts/alertStore.js';
 import { ESSENTIAL_ITEMS, computeStaleEssentials } from '../src/lib/alerts/staleness.js';
 
@@ -34,6 +34,7 @@ async function boot(rows = healthy()) {
     sseFactory: (options) => { stream = createSSE(options); return stream; },
   });
   FakeES.all.at(-1).onopen();
+  await vi.advanceTimersByTimeAsync(0);
   return client;
 }
 const warnings = () => get(consoleAlerts).alerts.filter(a => a.priorityKey === 'telemetry-stale');
@@ -42,7 +43,7 @@ beforeEach(() => {
   FakeES.all = []; items.set({}); clientReady.set(false); itemUpdateEvidence.set({});
   alertContext.set({ staleEssentials: [], batteryAlarms: [] }); stop = startStalenessMonitor();
 });
-afterEach(() => { stop(); stream?.stop(); stream = null; vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(() => { stop(); stopOpenhab(); stream?.stop(); stream = null; vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 it('does not manufacture boot alarms; an empty successful snapshot warns', async () => {
   expect(warnings()).toEqual([]); await boot([]);
@@ -91,8 +92,8 @@ it('retains diagnostic time on invalid evidence and ignores older valid evidence
   emit(OUT, 'stateupdated', { lastStateUpdate: NOW + 1 }); expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW, available: false });
 });
 it('reconnect requests another snapshot without rejuvenating stale evidence', async () => {
-  const client = await boot(healthy(NOW - 16 * 60000)); snapshot = healthy(NOW - 30 * 60000); FakeES.all[0].onerror(); await vi.advanceTimersByTimeAsync(1000); FakeES.all.at(-1).onopen(); await Promise.resolve(); await Promise.resolve();
-  expect(client.getAllItems).toHaveBeenCalledTimes(2); expect(get(itemUpdateEvidence)[OUT].lastKnown).toBe(NOW - 16 * 60000); expect(warnings().map(a => a.id)).toContain(`telemetry-stale:${OUT}`);
+  const client = await boot(healthy(NOW - 16 * 60000)); snapshot = healthy(NOW - 30 * 60000); FakeES.all[0].onerror(); await vi.advanceTimersByTimeAsync(1000); FakeES.all.at(-1).onopen(); await vi.advanceTimersByTimeAsync(0);
+  expect(client.getAllItems).toHaveBeenCalledTimes(3); expect(get(itemUpdateEvidence)[OUT].lastKnown).toBe(NOW - 16 * 60000); expect(warnings().map(a => a.id)).toContain(`telemetry-stale:${OUT}`);
   applySnapshot([]); expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW - 16 * 60000, available: false }); expect(get(items).BMS_SOC_Evidence_JSON).toBeUndefined();
 });
 it.each([undefined, 'NULL', 'UNDEF', 'bad', socReceipt(NOW - 120000), socReceipt(NOW + 1000)])('warns on unusable or expired atomic evidence %s', async value => {

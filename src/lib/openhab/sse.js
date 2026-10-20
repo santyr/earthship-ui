@@ -16,18 +16,18 @@ export function parseUpdateEvidenceSSEMessage(raw) {
 export function parseSSEMessage(raw) {
   let msg;
   try { msg = JSON.parse(raw); } catch { return null; }
-  const m = /^openhab\/items\/([^/]+)\/statechanged$/.exec(msg.topic || '');
+  const m = /^openhab\/items\/([^/]+)\/statechanged$/.exec(msg?.topic || '');
   if (!m) return null;
   let payload;
   try { payload = JSON.parse(msg.payload); } catch { return null; }
-  if (payload.value === undefined) return null;
+  if (payload?.value === undefined) return null;
   return { name: m[1], value: String(payload.value) };
 }
 
 export function parseThingStatusSSEMessage(raw) {
   let msg;
   try { msg = JSON.parse(raw); } catch { return null; }
-  const match = /^openhab\/things\/(.+)\/status$/.exec(msg.topic || '');
+  const match = /^openhab\/things\/(.+)\/status$/.exec(msg?.topic || '');
   if (!match) return null;
 
   let payload;
@@ -58,7 +58,7 @@ export function createSSE({
     ...EVIDENCE_ITEMS.map(name => `openhab/items/${name}/stateupdated`)].join(',');
   const url = `${base}/rest/events?topics=${encodeURIComponent(topics)}`;
   let es = null, backoff = 1000, staleTimer = null, offlineTimer = null, stopped = false;
-  let reconnectTimer = null, lastStatus = null, hasOpened = false;
+  let reconnectTimer = null, lastStatus = null;
   function setStatus(s) {
     if (s !== lastStatus) { lastStatus = s; onStatus(s); }
   }
@@ -71,24 +71,25 @@ export function createSSE({
     clearTimeout(reconnectTimer);
     if (stopped) return;
     if (es) { es.close(); }
+    setStatus('connecting');
     // EventSource cannot set an Authorization header, so openHAB's SSE auth is
     // delegated to the same-origin Vite proxy in household deployments. Keep
     // token-in-query only for explicit direct-OpenHAB development configs.
     const eventUrl = apiToken ? `${url}&accessToken=${encodeURIComponent(apiToken)}` : url;
     es = new EventSource(eventUrl);
+    const source = es;
+    const isCurrent = () => !stopped && es === source;
     es.onopen = () => {
+      if (!isCurrent()) return;
       backoff = 1000;
-      // Items that changed while the stream was down never replay as
-      // statechanged events, so every open AFTER the first one triggers a
-      // snapshot resync. The very first open is skipped: the caller has just
-      // fetched the boot snapshot (no double-fetch storm at startup).
-      const isReconnect = hasOpened;
-      hasOpened = true;
+      // Reconcile even the first open: changes between the boot snapshot and
+      // stream subscription are not replayed by OpenHAB.
+      onReconnect();
       setStatus('live');
       armTimers();
-      if (isReconnect) onReconnect();
     };
     es.onmessage = (e) => {
+      if (!isCurrent()) return;
       const update = parseUpdateEvidenceSSEMessage(e.data);
       if (update) {
         onUpdateEvidence(update.name, update.lastStateUpdate, update.state);
@@ -111,18 +112,23 @@ export function createSSE({
       }
     };
     es.onerror = () => {
-      es.close();
-      if (stopped) return;
+      if (!isCurrent()) return;
+      source.close();
+      es = null;
+      clearTimeout(staleTimer); clearTimeout(offlineTimer);
+      setStatus('connecting');
+      clearTimeout(reconnectTimer);
       reconnectTimer = setTimeout(connect, backoff);
       backoff = Math.min(backoff * 2, 30000);
     };
   }
   return {
-    start() { stopped = false; backoff = 1000; hasOpened = false; connect(); },
+    start() { stopped = false; backoff = 1000; clearTimeout(staleTimer); clearTimeout(offlineTimer); connect(); },
     stop() {
       stopped = true;
       clearTimeout(staleTimer); clearTimeout(offlineTimer); clearTimeout(reconnectTimer);
       if (es) es.close();
+      es = null;
       lastStatus = null;
     },
   };

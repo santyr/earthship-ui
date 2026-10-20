@@ -10,15 +10,42 @@
   import ChartModal from './lib/ui/ChartModal.svelte';
   import WeatherDetailModal from './lib/ui/WeatherDetailModal.svelte';
   import { currentRoute } from './routes.js';
-  import { initOpenhab } from './lib/openhab/index.js';
+  import { initOpenhab, stopOpenhab } from './lib/openhab/index.js';
   import { startStalenessMonitor } from './lib/alerts/alertStore.js';
   import { loadConfig } from './lib/config.js';
 
   onMount(() => {
-    loadConfig().then((config) => initOpenhab(config));
-    // Item-staleness alerts: periodic check that essential telemetry is
-    // still flowing; the returned stop() is onMount's cleanup.
-    return startStalenessMonitor();
+    const lifetime = new AbortController();
+    async function boot() {
+      let delay = 2_000;
+      while (!lifetime.signal.aborted) {
+        try {
+          const config = await loadConfig({ signal: lifetime.signal });
+          if (lifetime.signal.aborted) return;
+          await initOpenhab(config, { signal: lifetime.signal });
+          return;
+        } catch {
+          if (lifetime.signal.aborted) return;
+          await new Promise(resolve => {
+            const done = () => {
+              clearTimeout(timer);
+              lifetime.signal.removeEventListener('abort', done);
+              resolve();
+            };
+            const timer = setTimeout(done, delay);
+            lifetime.signal.addEventListener('abort', done, { once: true });
+          });
+          delay = Math.min(delay * 2, 30_000);
+        }
+      }
+    }
+    void boot();
+    const stopAlerts = startStalenessMonitor();
+    return () => {
+      lifetime.abort();
+      stopOpenhab();
+      stopAlerts();
+    };
   });
 
   // Home, Energy, Weather, Earthship, Shades, and Controls are routed here.

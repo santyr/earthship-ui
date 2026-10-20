@@ -18,7 +18,7 @@
         "PYTHONPATH=openhab/scripts:.ci/solar-pv/analytics/src OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 /tmp/earthship-audit-20261020-venv/bin/python -m pytest -q openhab/scripts/test_daily_pv_potential.py openhab/scripts/test_pv_legacy_history.py openhab/scripts/test_thermal_weather_conditioning.py: 6 failed, 30 passed"
       ],
       "root_cause": "Test fixtures injected geometry and guard but not the publication resource boundary. The actual guard correctly refuses ordinary CI process caps.",
-      "repair_commit": null,
+      "repair_commit": "4ec462d",
       "regression_evidence": [
         "Same files plus test_household_cycle_resources.py: 101 passed in 3.41s. Test-scoped preflight injection only; production modules unchanged. Normal shard verification pending."
       ],
@@ -40,7 +40,7 @@
         "tests/openhab/night-load-override-rule.test.js: admissible identity retention and policy durability"
       ],
       "root_cause": "Unconditional slice(0,32) on acceptance discarded unexpired durable identities; no payload conflict or pre-admission byte budget.",
-      "repair_commit": "pending integration",
+      "repair_commit": "208f652",
       "regression_evidence": [
         "Original source: 6 failed / 44 passed. Repaired owner suites: 52 passed, 3 files; max-ID exhaustion and OFF failure included. Full final revision suite pending."
       ],
@@ -62,7 +62,7 @@
         "tests/openhab/night-load-override-rule.test.js: selectively held/delayed OverrideSwitch persistence"
       ],
       "root_cause": "commitOverrideSwitch verified live Item then returned immediately after asynchronous persist; no JDBC readback.",
-      "repair_commit": "pending integration",
+      "repair_commit": "208f652",
       "regression_evidence": [
         "Original source: 6 failed / 44 passed. Repaired owner suites: 52 passed, 3 files; max-ID exhaustion and OFF failure included. Full final revision suite pending."
       ],
@@ -72,29 +72,50 @@
       "id": "A03",
       "severity": "P1",
       "title": "Coherent OpenHAB reconciliation",
-      "confidence": "handoff_reproduction_pending_local_revalidation",
+      "confidence": "confirmed",
       "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
-      "files": [],
-      "expected_actual": "See approved handoff; local reproduction pending",
-      "reproduction": [],
-      "root_cause": null,
+      "files": [
+        "src/lib/openhab/store.js",
+        "src/lib/openhab/sse.js",
+        "src/lib/openhab/client.js",
+        "src/lib/openhab/readRequest.js",
+        "src/lib/config.js",
+        "src/App.svelte"
+      ],
+      "expected_actual": "Snapshots/deltas must reconcile in order, remove withdrawn providers and recover while stream stays live; original older snapshots overwrote deltas and hangs/failures prevented recovery.",
+      "reproduction": [
+        "New reconciliation/deadline/catalog group:25 failed/66 passed; App original:2 failed and unhandled503."
+      ],
+      "root_cause": "Merged snapshots without epoch/per-resource ordering; no independent resync retry, first-open reconciliation, bounded reads or owned teardown.",
       "repair_commit": null,
-      "regression_evidence": [],
-      "status": "open"
+      "regression_evidence": [
+        "Complete interim unit run:182files/2743passed, Node24 with test-only .codex import adapter; standard Node22 final clone gate pending."
+      ],
+      "status": "fixed_focused_verified"
     },
     {
       "id": "A04",
       "severity": "P2",
       "title": "Control modes and history lifecycle",
-      "confidence": "handoff_reproduction_pending_local_revalidation",
+      "confidence": "confirmed",
       "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
-      "files": [],
-      "expected_actual": "See approved handoff; local reproduction pending",
-      "reproduction": [],
-      "root_cause": null,
+      "files": [
+        "src/lib/controls/controlState.js",
+        "src/screens/Home.svelte",
+        "tests/control-state.test.js",
+        "tests/ui/HomeHistory.test.js",
+        "tests/ui/typed-controls.test.js"
+      ],
+      "expected_actual": "Maintenance/unknown controls cannot submit after hold; obsolete/stalled Home history must not overwrite new data or survive unmount.",
+      "reproduction": [
+        "Original Home:3 lifecycle failures; catalog mode regressions included in25-failure group."
+      ],
+      "root_cause": "Correlated controls missed release-mode gate; outdoor/battery/pressure histories assigned direct asynchronous results outside coordinator.",
       "repair_commit": null,
-      "regression_evidence": [],
-      "status": "open"
+      "regression_evidence": [
+        "Complete interim unit run182files/2743passed. Energy overlay expiration and delayed-start existing cases retained."
+      ],
+      "status": "fixed_focused_verified"
     },
     {
       "id": "A05",
@@ -109,7 +130,7 @@
       "expected_actual": "1000 elapsed contact seconds must count only 120 supervised seconds when communication expires at 120; original counted 1000.",
       "reproduction": [],
       "root_cause": "History clipped contact validity but ignored communication intervals; timestamp-only barriers also suppressed valid later recovery.",
-      "repair_commit": null,
+      "repair_commit": "3126544",
       "regression_evidence": [
         "Initial corrected regression: 9 failed/7 passed; added recovery order: 3 failed/17 passed; current sensor contracts: 66 passed/11 explicit container integration skips, pytest 8.3.5."
       ],
@@ -119,29 +140,48 @@
       "id": "A06",
       "severity": "P2",
       "title": "PV independent local-day support",
-      "confidence": "handoff_reproduction_pending_local_revalidation",
+      "confidence": "confirmed",
       "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
-      "files": [],
-      "expected_actual": "See approved handoff; local reproduction pending",
-      "reproduction": [],
-      "root_cause": null,
+      "files": [
+        "openhab/scripts/weather_learning/pv_calibration.py",
+        "openhab/scripts/weather_learning/pv_directional_calibration.py",
+        "openhab/scripts/weather_learning/pv_refresh.py",
+        "openhab/scripts/test_pv_local_days.py"
+      ],
+      "expected_actual": "Independent support days are America/Denver interval-start dates; original UTC/string-prefix counts can inflate support and selection.",
+      "reproduction": [
+        "New local-day/DST/mixed-offset/no-op tests:7failed/3passed."
+      ],
+      "root_cause": "Mixed UTC timestamp prefixes and a separate Denver holdout path.",
       "repair_commit": null,
-      "regression_evidence": [],
-      "status": "open"
+      "regression_evidence": [
+        "Combined numerical gate103passed. Actual737-pair retained model retains29local training days,5holdout days and identical sector support; see pv-retained-reassessment.json."
+      ],
+      "status": "fixed_focused_verified"
     },
     {
       "id": "A07",
       "severity": "P2",
       "title": "PV train/serve baseline parity",
-      "confidence": "handoff_reproduction_pending_local_revalidation",
+      "confidence": "confirmed",
       "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
-      "files": [],
-      "expected_actual": "See approved handoff; local reproduction pending",
-      "reproduction": [],
-      "root_cause": null,
+      "files": [
+        "openhab/scripts/household_pv_model.py",
+        "openhab/scripts/historical_pv_train.py",
+        "openhab/scripts/historical_pv_directional_train.py",
+        "openhab/scripts/historical_pv_legacy_assess.py",
+        "openhab/scripts/test_pv_pair_baseline.py"
+      ],
+      "expected_actual": "Same retained weather/geometry/array/terrain produces exact served-interval baseline in calibration; original training used next-hour point temperature/wind.",
+      "reproduction": [
+        "Original shared-baseline tests7failed/2passed; old-dataset gate1failed/10passed; exact-unit1failed/11passed."
+      ],
+      "root_cause": "Duplicated interval arithmetic and rounded wind-unit conversion; old pair dataset could be reused for a newly sourced model.",
       "repair_commit": null,
-      "regression_evidence": [],
-      "status": "open"
+      "regression_evidence": [
+        "Combined numerical gate103passed.16complete live projections exactly equal original serving implementation.737retained pairs rebuilt from55verified Google sources/29verified geometry series;671baselines changed, meanabs5.836047893W/max59.088710966W. Same124-pair/5day development split still selects corrected model; no new prospective skill claimed."
+      ],
+      "status": "fixed_focused_verified"
     },
     {
       "id": "A08",
@@ -158,7 +198,7 @@
       "expected_actual": "A 285-second overlap at 100 plus 15 seconds at 900 W/m\u00b2 yields 140 W/m\u00b2, not 900. Both raw and corrected intervals must conserve hourly irradiation.",
       "reproduction": [],
       "root_cause": "The five-minute endpoint chose a single trailing-hour mean for a crossing step; conditioned forcing repeated that endpoint selection.",
-      "repair_commit": null,
+      "repair_commit": "3126544",
       "regression_evidence": [
         "Original: 5 failed/6 passed. Repaired raw/corrected native capture plus frozen household replay: 68 passed in 17.85s across four files."
       ],
@@ -194,7 +234,7 @@
         "Original helper produced one accepted feeder candidate, automatic_actuation=false. New regressions failed before repair."
       ],
       "root_cause": "Historical/manual capability catalog reused as current automated allowlist.",
-      "repair_commit": null,
+      "repair_commit": "3126544",
       "regression_evidence": [
         "Affected Python gate: 285 passed, no skips, 84.55s. Frontend parser/render/legacy gate: 108 passed, six files, no skips; interim test-only .codex adapter used. Final standard gate pending."
       ],
