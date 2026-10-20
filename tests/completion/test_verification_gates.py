@@ -228,3 +228,18 @@ def test_hosted_qualification_fit_has_a_non_skippable_dedicated_gate(tmp_path):
                  'A18_OUTCOME':outcome,'RUNNER_TEMP':str(tmp_path)},
             capture_output=True,text=True,timeout=10)
         assert (result.returncode==0)==(outcome=='passed'),result.stdout+result.stderr
+
+
+def test_pv_learning_cli_fixtures_preserve_later_process_umask(tmp_path):
+    sentinel=tmp_path/'test_umask_sentinel.py'
+    sentinel.write_text("import os\ndef test_original_process_mask_is_restored():\n    actual=os.umask(0o077)\n    os.umask(actual)\n    assert actual == 0o022\n")
+    # Execute actual CLI tests, then the privacy-sensitive native queue test,
+    # in their normal module order. Child umask is explicit and caller-local.
+    result=subprocess.run([sys.executable,'-m','pytest','-q','-p','no:cacheprovider',
+        str(ROOT/'openhab/scripts/test_pv_learning_refresh.py'),
+        str(ROOT/'openhab/scripts/weather_learning/tests/test_pending_scores.py')+
+        '::PendingScoreTests::test_preview_refuses_public_directory_and_symlink_database',
+        str(sentinel)],cwd=ROOT,
+        env={**os.environ,'PYTHONPATH':str(ROOT/'openhab/scripts')+os.pathsep+os.environ.get('PYTHONPATH','')},
+        umask=0o022,capture_output=True,text=True,timeout=30)
+    assert result.returncode==0,result.stdout+result.stderr

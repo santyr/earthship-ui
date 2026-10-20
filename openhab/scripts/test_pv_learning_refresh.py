@@ -1,4 +1,6 @@
 from copy import deepcopy
+import os
+import pytest
 from datetime import timedelta
 from test_household_pv_window import START
 from test_weather_directional_pv import rows
@@ -224,21 +226,33 @@ def test_daily_retention_with_no_incumbent_does_not_create_selection(tmp_path,mo
     assert not case.selected.exists() and (case.origin/'experiment.json').exists()
 
 
-def test_daily_retention_cli_passes_explicit_flag(tmp_path,monkeypatch,capsys):
+@pytest.fixture
+def preserve_cli_umask():
+    # The real CLI deliberately sets 077. Restore the caller's process policy,
+    # including when a CLI assertion fails, so later privacy fixtures stay real.
+    original=os.umask(0o077)
+    os.umask(original)
+    try:yield
+    finally:os.umask(original)
+
+
+def test_daily_retention_cli_passes_explicit_flag(tmp_path,monkeypatch,capsys,preserve_cli_umask):
     import historical_pv_daily as daily
     calls=[]
     def run(**kwargs):calls.append(kwargs);return dict(status='daily_pv_learning_complete')
     monkeypatch.setattr(daily,'run',run)
     assert daily.main(['--archive',str(tmp_path/'archive'),'--libraries',str(tmp_path/'libraries'),'--retain-selection'])==0
+    assert os.umask(0o077)==0o077
     assert calls[0]['retain_selection'] is True
     assert 'daily_pv_learning_complete' in capsys.readouterr().out
 
 
-def test_daily_retention_cli_default_preserves_legacy_selection_mode(tmp_path,monkeypatch):
+def test_daily_retention_cli_default_preserves_legacy_selection_mode(tmp_path,monkeypatch,preserve_cli_umask):
     import historical_pv_daily as daily
     calls=[]
     monkeypatch.setattr(daily,'run',lambda **kw:calls.append(kw) or dict(status='complete'))
     assert daily.main(['--archive',str(tmp_path/'archive'),'--libraries',str(tmp_path/'libraries')])==0
+    assert os.umask(0o077)==0o077
     assert calls[0]['retain_selection'] is False
 
 
@@ -279,7 +293,11 @@ def test_daily_retention_refuses_new_concurrent_selection_when_initially_absent(
     import pytest
     case=daily_run_fixture(tmp_path,monkeypatch,incumbent=False)
     replacement=b'concurrent selection must remain untouched'
-    case.after_step.append(lambda name:case.selected.write_bytes(replacement) if name=='historical_pv_directional_train.py' else None)
+    def publish(name):
+        if name=='historical_pv_directional_train.py':
+            case.selected.write_bytes(replacement)
+            case.selected.chmod(0o600)  # Match a real concurrent selector's private file.
+    case.after_step.append(publish)
     with pytest.raises(ValueError,match='selected PV model changed'):case.daily.run(**case.kwargs,retain_selection=True)
     assert case.selected.read_bytes()==replacement
 
