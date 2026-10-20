@@ -41,7 +41,7 @@ export function parseProviderForecast(comparisonRaw, statusRaw, localRaw, { nowM
     const model = value.model;
     closed(model, ['status','sha256','fittedAt','trainingEnd','sampleCount','targetDates','validation']);
     if (!['UNTRAINED','SHADOW_ONLY','UNAVAILABLE'].includes(model.status) || model.validation !== null) throw new TypeError('Unsupported validation claim');
-    if ([model.sampleCount, model.targetDates].some((n) => !Number.isSafeInteger(n) || n < 0 || n > 20000) || model.targetDates > model.sampleCount) throw new TypeError('Invalid model sample support');
+    if ([[model.sampleCount, 50000], [model.targetDates, 366]].some(([n, bound]) => !Number.isSafeInteger(n) || n < 0 || n > bound) || model.targetDates > model.sampleCount) throw new TypeError('Invalid model sample support');
     if (model.status === 'SHADOW_ONLY') {
       sha(model.sha256);
       if (timestamp(model.trainingEnd) > timestamp(model.fittedAt) || timestamp(model.fittedAt) > decisionAtMs || !model.sampleCount) throw new TypeError('Model was not available at decision');

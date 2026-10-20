@@ -104,5 +104,5 @@ def evaluate(model,rows,*,holdout_start,holdout_end):
         baseline_target='raw_google_temperature' if model['kind']=='outdoor_temperature_c' else 'origin_temperature_persistence',
         baseline_mae=a['mae'],candidate_mae=b['mae'],baseline=a,candidate=b,
         by_horizon={key:dict(baseline=metrics([v[0] for v in values]),candidate=metrics([v[1] for v in values])) for key,values in horizons.items()},
-        availability_basis='retrospective_assumed_full_cycle_9h',prospective_score=False,automatic_actuation=False)
+        availability_basis='retrospective_assumed_full_cycle_9h' if all(r['availability_basis']=='retrospective_assumed_full_cycle_9h' for r in selected) else 'retrospective_mixed_recorded_and_assumed_availability',prospective_score=False,automatic_actuation=False)
     out['report_sha256']=identity(out);return out

@@ -30,21 +30,25 @@ def _validate_label(label,target):
         raise ValueError('qualified historical temperature receipt required')
 
 
-def _row(kind,*,source,origin,target,label,features,baseline,origin_labels=None):
+def _row(kind,*,source,origin,target,label,features,baseline,origin_labels=None,availability_basis='retrospective_assumed_full_cycle_9h'):
     _validate_label(label,target)
     row=dict(schema='earthship-historical-learning-pair/v1',kind=kind,origin=origin.isoformat(),target_at=target.isoformat(),
-        lead_hours=(target-origin).total_seconds()/3600,availability_basis='retrospective_assumed_full_cycle_9h',
+        lead_hours=(target-origin).total_seconds()/3600,availability_basis=availability_basis,
         forecast_sha256=source,features=features,baseline=baseline,outcome=_c(label),label=label,origin_labels=origin_labels or {},
         prospective_score=False,automatic_actuation=False)
     row['pair_sha256']=identity(row);return row
 
 
-def pair_temperatures(snapshot,measurements,*,target_end=None):
+def pair_temperatures(snapshot,measurements,*,target_end=None,allow_recorded_availability=False):
     source=verify_history(snapshot)
-    if source['historical'] is not True:raise ValueError('explicit historical forecast required')
+    if source['historical'] is not True and not allow_recorded_availability:raise ValueError('explicit historical forecast required')
     pin=identity(source)
     if snapshot.get('snapshot_sha256',pin)!=pin:raise ValueError('original historical snapshot identity differs')
-    init=instant(source['initialized_at']);origin=init+timedelta(hours=9)
+    init=instant(source['initialized_at']);origin=init+timedelta(hours=9);basis='retrospective_assumed_full_cycle_9h'
+    if source['historical'] is not True:
+        available=instant(source['ingestion_completed_at']);origin=available.replace(minute=0,second=0,microsecond=0)
+        if origin<available:origin+=timedelta(hours=1)
+        basis='retrospective_recorded_ingestion_next_whole_hour'
     zone=ZoneInfo(source['site']['timezone']);hours={}
     for p in source['points']:
         if p['statistic']=='mean':hours.setdefault(p['valid_at'],{})[p['variable']]=p['value']
@@ -71,12 +75,12 @@ def pair_temperatures(snapshot,measurements,*,target_end=None):
         local=target.astimezone(zone);angle=2*pi*(local.hour+local.minute/60)/24;season=2*pi*local.timetuple().tm_yday/365.25
         if origin_bias is not None and finite(temperature) and labels.get('outdoor') is not None and (offset<=72 or offset in (96,120,144,168,240,336)):
             features=dict(google_c=temperature,lead_days=offset/24,hour_sin=sin(angle),hour_cos=cos(angle),season_sin=sin(season),season_cos=cos(season),origin_bias_decay_c=origin_bias*exp(-offset/24))
-            rows.append(_row('outdoor_temperature_c',source=pin,origin=origin,target=target,label=labels['outdoor'],features=features,baseline=temperature,origin_labels={'outdoor':outside}))
+            rows.append(_row('outdoor_temperature_c',source=pin,origin=origin,target=target,label=labels['outdoor'],features=features,baseline=temperature,origin_labels={'outdoor':outside},availability_basis=basis))
         if thermal and forcing_complete and offset<=24:
             for kind,stream,baseline in (('indoor_temperature_c','indoor',_c(air)),('wall_temperature_c','north_wall',_c(mass))):
                 if labels.get(stream) is None:continue
                 features=dict(air_origin_c=_c(air),mass_origin_c=_c(mass),outdoor_origin_c=_c(outside),
                     google_mean_c=temp_total/offset,solar_kwh_m2=solar_total,lead_days=offset/24,hour_sin=sin(angle),hour_cos=cos(angle))
                 rows.append(_row(kind,source=pin,origin=origin,target=target,label=labels[stream],features=features,baseline=baseline,
-                    origin_labels={key:origin_labels[key] for key in ('indoor','north_wall','outdoor')}))
+                    origin_labels={key:origin_labels[key] for key in ('indoor','north_wall','outdoor')},availability_basis=basis))
     return rows

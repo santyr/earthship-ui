@@ -200,4 +200,18 @@ class ShadowTests(unittest.TestCase):
         value.update(version=1,schema='earthship-weather-provider-shadow/v1')
         with self.assertRaises(ValueError):self.p.seal_payload(value)
 
+
+    def test_explicit_historical_predictor_keeps_original_raw_forecast_and_shadow_authority(self):
+        class Predictor:
+            summary=dict(status='SHADOW_ONLY',sha256='b'*64,fittedAt=(T-timedelta(minutes=1)).isoformat(),trainingEnd=(T-timedelta(days=1)).isoformat(),sampleCount=25000,targetDates=12,validation=None)
+            def predict(self,target,*,sensor_epoch):
+                self_epoch=sensor_epoch
+                if self_epoch!=EPOCH:raise ValueError('epoch differs')
+                return dict(value_c=9.)
+        payload=self.run_shadow(historical_predictor=Predictor())
+        self.assertEqual(payload['model']['sampleCount'],25000)
+        self.assertTrue(all(row['rawC']==10. and row['localC']==9. for row in payload['hours']))
+        self.assertEqual(payload['model']['status'],'SHADOW_ONLY')
+        self.assertFalse(payload['automaticActuation'])
+
 if __name__=='__main__':unittest.main()

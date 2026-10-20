@@ -85,3 +85,15 @@ def test_outdoor_correction_can_use_only_the_bias_observed_at_forecast_origin():
  other=next(r for r in pair(measurements=labels) if r['kind']=='outdoor_temperature_c' and r['target_at']==target)
  assert other['features']==row['features']
  assert other['outcome']!=row['outcome']
+
+
+def test_recorded_operational_sources_require_opt_in_and_keep_actual_availability():
+ from weather_learning.historical_pairs import pair_temperatures
+ raw=full_snapshot(hours=80)
+ assert raw['historical'] is False
+ with pytest.raises(ValueError,match='historical'):pair_temperatures(raw,observations())
+ rows=pair_temperatures(raw,observations(),allow_recorded_availability=True)
+ assert rows
+ assert all(r['origin']==(T+timedelta(hours=1)).isoformat() for r in rows)
+ assert all(r['availability_basis']=='retrospective_recorded_ingestion_next_whole_hour' for r in rows)
+ assert raw['historical'] is False

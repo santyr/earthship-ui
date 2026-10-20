@@ -58,3 +58,8 @@ describe('WeatherNext shadow publication contract', () => {
     expect(parse(unsupported).status).toBe('unavailable');
   });
 });
+it('accepts bounded historical training support without changing shadow authority',()=>{
+ const value=structuredClone(fixture);value.model.sampleCount=25000;value.model.targetDates=120;
+ expect(parse(value).status).toBe('ready');
+ value.model.sampleCount=50001;expect(parse(value).status).toBe('unavailable');
+});

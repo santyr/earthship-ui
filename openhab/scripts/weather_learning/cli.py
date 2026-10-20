@@ -27,6 +27,7 @@ def _context(args):
 def main_shadow(argv=None):
     parser=_parser('Retain a read-only WeatherNext shadow issue; publication is opt-in')
     parser.add_argument('--publish',action='store_true')
+    parser.add_argument('--temperature-db-config',default='/home/sat/.config/hex/weather-temperature-db.json')
     parser.add_argument('--hours',type=int,default=336)
     args=parser.parse_args(argv)
     try:
@@ -35,9 +36,20 @@ def main_shadow(argv=None):
         if args.publish:
             from weather_learning.openhab import oh_put_state
             put=oh_put_state
-        payload=shadow_once(archive,state,now=datetime.now(timezone.utc),site=site,sensor_epoch=epoch,
-            code_revision=args.code_revision,horizon=args.hours,put_state=put)
-        print(json.dumps(dict(status=payload['status'],generation=payload['generation'],published=args.publish,automatic_actuation=False)))
+        now=datetime.now(timezone.utc);historical=None;historical_status='not_selected'
+        if (state.root/'historical-outdoor.json').exists():
+            from .historical_serving import prepare_temperature
+            try:
+                historical=prepare_temperature(archive,state,now=now,site=site,policy=policy,sensor_epoch=epoch,db_config=args.temperature_db_config,horizon=args.hours);historical_status='selected' if historical is not None else 'source_unavailable'
+            except Exception:historical_status='unavailable_fallback'
+        payload=shadow_once(archive,state,now=now,site=site,sensor_epoch=epoch,
+            code_revision=args.code_revision,horizon=args.hours,put_state=put,historical_predictor=historical)
+        wind_status='not_selected'
+        if (state.root/'historical-wind.json').exists():
+            from .historical_serving import publish_wind
+            try:wind_status=publish_wind(archive,state,payload=payload,now=now)
+            except Exception:wind_status='unavailable'
+        print(json.dumps(dict(status=payload['status'],generation=payload['generation'],published=args.publish,historical_model_status=historical_status,wind_shadow_status=wind_status,automatic_actuation=False)))
         return 0
     except Exception as exc:
         print(json.dumps(dict(status='UNAVAILABLE',reason=type(exc).__name__,automatic_actuation=False)))

@@ -133,7 +133,7 @@ def empty_model_summary(status='UNTRAINED'):
     return dict(status=status,sha256=None,fittedAt=None,trainingEnd=None,sampleCount=0,targetDates=0,validation=None)
 
 
-def shadow_once(archive,state,*,now,site,sensor_epoch,code_revision,horizon=336,clock=lambda:datetime.now(timezone.utc),put_state=None):
+def shadow_once(archive,state,*,now,site,sensor_epoch,code_revision,horizon=336,clock=lambda:datetime.now(timezone.utc),put_state=None,historical_predictor=None):
     now=utc(now)
     if type(horizon) is not int or not 1<=horizon<=336:raise ValueError('bounded shadow horizon required')
     with collector_lock(state.root/'shadow.lock'):
@@ -146,8 +146,12 @@ def shadow_once(archive,state,*,now,site,sensor_epoch,code_revision,horizon=336,
             source=dict(snapshotSha256=snapshot['snapshot_sha256'],runId=snapshot['run_id'],initializedAt=snapshot['initialized_at'],firstSeenAt=snapshot['first_seen_at'],ingestedAt=snapshot['ingestion_completed_at'],timezone=site.timezone)
             predictor=None;status='READY';reason='UNTRAINED'
             try:
-                receipt=state.current_model()
-                if receipt is not None and receipt['model']['sample_count']:
+                receipt=None if historical_predictor is not None else state.current_model()
+                if historical_predictor is not None:
+                    predictor=historical_predictor
+                    for target in targets:predictor.predict(target,sensor_epoch=sensor_epoch)
+                    model=dict(predictor.summary);reason='NONE'
+                elif receipt is not None and receipt['model']['sample_count']:
                     if instant(receipt['fitted_at'])>now:raise ValueError('model receipt is after issue')
                     predictor=TemperaturePredictor(receipt['model'])
                     for target in targets:predictor.predict(target,sensor_epoch=sensor_epoch)

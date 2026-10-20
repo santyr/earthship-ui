@@ -38,8 +38,8 @@ def validate_payload(value):
     if not isinstance(model,dict) or set(model)!={'status','sha256','fittedAt','trainingEnd','sampleCount','targetDates','validation'}:
         raise ValueError('closed model summary required')
     if model['status'] not in ('UNTRAINED','SHADOW_ONLY','UNAVAILABLE') or model['validation'] is not None:raise ValueError('unqualified shadow model required')
-    for name in ('sampleCount','targetDates'):
-        if type(model[name]) is not int or not 0<=model[name]<=20000:raise ValueError('bounded training support required')
+    for name,bound in (('sampleCount',50000),('targetDates',366)):
+        if type(model[name]) is not int or not 0<=model[name]<=bound:raise ValueError('bounded training support required')
     if model['targetDates']>model['sampleCount']:raise ValueError('target dates exceed source pairs')
     if model['status']=='SHADOW_ONLY':
         digest(model['sha256'])
