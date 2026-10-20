@@ -13,3 +13,15 @@ ON order: durable accepted ledger → visible ON → exact durable JDBC ON → e
 Other ledgers were assessed independently: feeder has a 5-second accepted-start cooldown, so 32 newer accepted requests need at least 160 seconds, beyond even a future-skewed original's 150-second admission span. Greywater has a substantially longer accepted-start cooldown. Their legacy policies were preserved; the final owner suites must verify cooldown and restart guards separately.
 
 Rollback must use the prior exact managed rule action source and manifest/readback workflow; do not roll back new ledger identities by deleting receipts. Previous code accepts optional fields. Install and next natural-cycle verification remain pending independent review and final integration.
+
+## Numerical identity and compatibility
+
+Thermal forcing now uses `ending_hour_overlap_mean_point_temperature/v2`. Changed installed-shade origin source is already in the base numerical runtime closure; conditioning admission now explicitly hashes this source as well. Runtime/source hashes change; old model candidates and admissions cannot silently become current. Original archives and installed producers remain untouched. Old captures require their original registered producer package; source merge alone does not authorize reusing old scores or rebinding fitted artifacts. Temperature remains point-interpolated; radiation conserves each original ending-hour interval. Native geometry retains its declared right-endpoint night mask, a separate approximation from radiation overlap. New prospective skill must accumulate under the new original runtime identity.
+
+## Feeder scope boundary
+
+New shadow plans reject feeder candidates before optimization. Qualification v2 contains only greywater and the two night-load families. Legacy v1 reports/manual parsing and exact archived producer replay remain supported. Deploy the v1/v2-compatible parser before the new report producer. Planner translation and automatic actuation stay disabled.
+
+## Sensor accounting
+
+Contact duration is intersected with accepted-packet communication coverage, quality barriers and source/hardware epochs. Status packets renew communication only. No raw journal row or original contact clock changes. Legacy journal lacks a frozen communication-valid-until value, so derived duration uses the current declared registry communication threshold explicitly. Radio commissioning remains independent.

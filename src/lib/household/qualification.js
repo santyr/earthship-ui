@@ -7,21 +7,26 @@ export const QUALIFICATION_GATES = [
   ['reason_codes','Operator explanation'],['no_planner_rollback','Return to shadow mode'],
   ['no_provider_write_path','Protected write-path audit'],['owner_safety_recheck','Live owner safety checks'],
 ];
+// Retained v1 reports and chronology keep their original identity catalog.
 export const QUALIFICATION_FAMILIES = [
   ['RUN_GREYWATER_CYCLE','greywater-request-v1','Greywater cycle'],['RUN_FEEDER_CYCLE','feeder-request-v1','Feeder cycle'],
   ['SET_NIGHT_LOAD_OVERRIDE','night-load-owner-v1','Night-load override'],['SET_NIGHT_LOAD_DEVICE','night-load-owner-v1','Night-load device'],
 ];
+// Feeder remains available only through manual and Lightning-payment owners.
+export const AUTOMATED_QUALIFICATION_FAMILIES = QUALIFICATION_FAMILIES.filter(([kind])=>kind!=='RUN_FEEDER_CYCLE');
 const MISSING = ['intent_windows_not_qualified','input_sensitivity_not_qualified','action_model_error_not_qualified',
   'policy_performance_not_qualified','operator_interpretation_not_qualified','separate_release_rollback_not_qualified',
   'protected_write_audit_not_bound','owner_physical_safety_not_qualified'];
 const shape=(v,fields)=>v!==null&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).length===fields.length&&fields.every(k=>Object.hasOwn(v,k));
 export function parseQualification(report,view){
  if(!shape(report,['schema','scope','status','receipt_sha256','snapshot_id','decision_at','release_authorized','automatic_actuation','families'])
-  ||report.schema!=='earthship-household-intent-qualification/v1'||report.scope!=='original_plan_evidence'||report.status!=='not_qualified'
+  ||!['earthship-household-intent-qualification/v1','earthship-household-intent-qualification/v2'].includes(report.schema)||report.scope!=='original_plan_evidence'||report.status!=='not_qualified'
   ||report.release_authorized!==false||report.automatic_actuation!==false||report.receipt_sha256!==view.receipt_sha256
-  ||report.snapshot_id!==view.snapshot_id||report.decision_at!==view.decision_at||!Array.isArray(report.families)||report.families.length!==4)return null;
- for(let i=0;i<4;i++){
-  const f=report.families[i],[type,capability]=QUALIFICATION_FAMILIES[i];
+  ||report.snapshot_id!==view.snapshot_id||report.decision_at!==view.decision_at||!Array.isArray(report.families))return null;
+ const families=report.schema==='earthship-household-intent-qualification/v1'?QUALIFICATION_FAMILIES:AUTOMATED_QUALIFICATION_FAMILIES;
+ if(report.families.length!==families.length)return null;
+ for(let i=0;i<families.length;i++){
+  const f=report.families[i],[type,capability]=families[i];
   if(!shape(f,['intent_type','capability_id','owner','proposal_count','status','release_authorized','gates'])||f.intent_type!==type
    ||f.capability_id!==capability||f.status!=='not_qualified'||f.release_authorized!==false
    ||!(f.owner===null||(typeof f.owner==='string'&&/^[A-Za-z0-9_]{1,64}$/.test(f.owner)))

@@ -100,15 +100,20 @@
       "id": "A05",
       "severity": "P2",
       "title": "Supervised sensor duration",
-      "confidence": "handoff_reproduction_pending_local_revalidation",
+      "confidence": "confirmed",
       "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
-      "files": [],
-      "expected_actual": "See approved handoff; local reproduction pending",
+      "files": [
+        "services/lorawan/history.py",
+        "services/lorawan/tests/test_supervised_history.py"
+      ],
+      "expected_actual": "1000 elapsed contact seconds must count only 120 supervised seconds when communication expires at 120; original counted 1000.",
       "reproduction": [],
-      "root_cause": null,
+      "root_cause": "History clipped contact validity but ignored communication intervals; timestamp-only barriers also suppressed valid later recovery.",
       "repair_commit": null,
-      "regression_evidence": [],
-      "status": "open"
+      "regression_evidence": [
+        "Initial corrected regression: 9 failed/7 passed; added recovery order: 3 failed/17 passed; current sensor contracts: 66 passed/11 explicit container integration skips, pytest 8.3.5."
+      ],
+      "status": "fixed_focused_verified"
     },
     {
       "id": "A06",
@@ -142,15 +147,22 @@
       "id": "A08",
       "severity": "P2",
       "title": "Thermal crossing-interval irradiation",
-      "confidence": "handoff_reproduction_pending_local_revalidation",
+      "confidence": "confirmed",
       "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
-      "files": [],
-      "expected_actual": "See approved handoff; local reproduction pending",
+      "files": [
+        "openhab/scripts/thermal_model/installed_shade_origin.py",
+        "openhab/scripts/household/thermal_weather_conditioning.py",
+        "openhab/scripts/thermal_weather_source.py",
+        "openhab/scripts/test_thermal_interval_overlap.py"
+      ],
+      "expected_actual": "A 285-second overlap at 100 plus 15 seconds at 900 W/m\u00b2 yields 140 W/m\u00b2, not 900. Both raw and corrected intervals must conserve hourly irradiation.",
       "reproduction": [],
-      "root_cause": null,
+      "root_cause": "The five-minute endpoint chose a single trailing-hour mean for a crossing step; conditioned forcing repeated that endpoint selection.",
       "repair_commit": null,
-      "regression_evidence": [],
-      "status": "open"
+      "regression_evidence": [
+        "Original: 5 failed/6 passed. Repaired raw/corrected native capture plus frozen household replay: 68 passed in 17.85s across four files."
+      ],
+      "status": "fixed_focused_verified"
     },
     {
       "id": "A09",
@@ -165,6 +177,28 @@
       "repair_commit": null,
       "regression_evidence": [],
       "status": "open"
+    },
+    {
+      "id": "A10",
+      "severity": "P2",
+      "confidence": "confirmed",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "title": "Feeder excluded from new optimization and qualification",
+      "files": [
+        "openhab/scripts/household/planning.py",
+        "openhab/scripts/household_observation.py",
+        "src/lib/household/qualification.js"
+      ],
+      "expected_actual": "Feeder is manual/payment only; original shadow planner selected it and qualification v1 included it. Automatic actuation was false.",
+      "reproduction": [
+        "Original helper produced one accepted feeder candidate, automatic_actuation=false. New regressions failed before repair."
+      ],
+      "root_cause": "Historical/manual capability catalog reused as current automated allowlist.",
+      "repair_commit": null,
+      "regression_evidence": [
+        "Affected Python gate: 285 passed, no skips, 84.55s. Frontend parser/render/legacy gate: 108 passed, six files, no skips; interim test-only .codex adapter used. Final standard gate pending."
+      ],
+      "status": "fixed_focused_verified"
     }
   ]
 }

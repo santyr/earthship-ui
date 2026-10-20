@@ -42,3 +42,16 @@ describe('closed qualification evidence contract',()=>{
 it('does not admit assessment bytes under old observation schema',()=>{
  const v=qualificationObservation();v.schema='earthship-household-observation/v2';expect(parse(v)).toBeNull();expect(parse(policyObservation())).not.toBeNull();
 });
+
+
+it('accepts current qualification v2 containing only automated household families',()=>{
+ const v=qualificationObservation();
+ v.qualification_report.schema='earthship-household-intent-qualification/v2';
+ v.qualification_report.families=v.qualification_report.families.filter(f=>f.intent_type!=='RUN_FEEDER_CYCLE');
+ const result=parse(v);expect(result).not.toBeNull();
+ expect(result.qualification_report.families.map(f=>f.intent_type)).toEqual(['RUN_GREYWATER_CYCLE','SET_NIGHT_LOAD_OVERRIDE','SET_NIGHT_LOAD_DEVICE']);
+});
+it('rejects feeder release qualification in a current v2 report',()=>{
+ const v=qualificationObservation();v.qualification_report.schema='earthship-household-intent-qualification/v2';
+ expect(parse(v)).toBeNull();
+});

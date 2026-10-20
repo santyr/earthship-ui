@@ -19,8 +19,12 @@ from .control_contracts import instant,ContractRefused
 MAX_RECEIPT_BYTES=1024*1024
 MAX_CANDIDATES=8
 MIN_RESERVE_SOC=10.  # Existing full-bank emergency reserve; input may tighten it.
+# Legacy/manual identity catalog remains readable for retained originals.
 CAPABILITIES={'RUN_GREYWATER_CYCLE':'greywater-request-v1','RUN_FEEDER_CYCLE':'feeder-request-v1',
               'SET_NIGHT_LOAD_OVERRIDE':'night-load-owner-v1','SET_NIGHT_LOAD_DEVICE':'night-load-owner-v1'}
+# New shadow plans must obey the operator's manual/payment-only feeder scope.
+AUTOMATED_CAPABILITIES={kind:CAPABILITIES[kind] for kind in
+    ('RUN_GREYWATER_CYCLE','SET_NIGHT_LOAD_OVERRIDE','SET_NIGHT_LOAD_DEVICE')}
 GATES={'owner_available':'capability_unavailable','owner_idle':'busy','cooldown_ready':'cooldown','curfew_allowed':'after_dark',
        'operator_unlocked':'hard_constraint','manual_override_clear':'hard_constraint'}
 FACT_FIELDS={'schema','kind','owner','value','snapshotId','receivedAt','validUntil','scope','horizonHours'}
@@ -71,9 +75,11 @@ def _candidate_checks(item,*,snapshot,registry,coordination,now,reserve_soc,base
     try:parse_intent(item.content.decode(),snapshot=snapshot,now=now)
     except ContractRefused as error:
         return None,[dict(rule='intent_identity_and_freshness',status='rejected',reason=error.reason_code)]
+    if document['type']!='NO_ACTION' and document['type'] not in AUTOMATED_CAPABILITIES:
+        return None,[dict(rule='automated_intent_scope',status='rejected',reason='planner_authority_disabled')]
     checks.append(dict(rule='intent_identity_and_freshness',status='pass',reason=None))
     checks.extend(_source_checks(document,snapshot.to_dict(),now))
-    capability=registry['capabilities'].get(CAPABILITIES.get(document['type']))
+    capability=registry['capabilities'].get(AUTOMATED_CAPABILITIES.get(document['type']))
     if capability is None:
         checks.append(dict(rule='registered_capability',status='unknown',reason='capability_unavailable'))
     else:
@@ -149,7 +155,7 @@ def plan(*,snapshot,registry,candidates,coordination,utilities,now,reserve_soc,h
     status='selected_shadow_candidates' if best else 'input_incomplete' if baseline is None else 'baseline_outside_reserve' if baseline<reserve_soc else 'input_incomplete' if any(row['status']=='unknown' for row in decisions) else 'no_optional_action_preferred'
     result=dict(status=status,horizon_hours=horizon_hours,planner_version='bounded_exhaustive_v1',schema='earthship-household-shadow-plan/v1',scope=SCOPE,as_of=now.isoformat(),snapshot_id=snapshot.snapshot_id,
         registry_sha256=identity(registry),coordination_sha256=identity(coordination),selected_intent_ids=selected_ids,candidate_decisions=decisions,
-        constraint_catalog=[dict(rule=name,classification='HARD_CONSTRAINT') for name in ('intent_identity_and_freshness','source_freshness','registered_capability',*GATES,'battery_reserve','owner_exclusivity','cumulative_battery_reserve')],
+        constraint_catalog=[dict(rule=name,classification='HARD_CONSTRAINT') for name in ('intent_identity_and_freshness','automated_intent_scope','source_freshness','registered_capability',*GATES,'battery_reserve','owner_exclusivity','cumulative_battery_reserve')],
         objective=dict(unit='normalized_declared_preference_points',components={key:utilities[key] for key in sorted(ids)},total=best_score),
         reserve_checks=dict(reserve_soc=reserve_soc,minimum_reserve_soc=MIN_RESERVE_SOC,baseline_floor_soc=baseline,baseline_reason=baseline_reason,selected_floor_soc=None if baseline is None else baseline+math.fsum(item.to_dict()['predictedEffects']['socPct'] for item in best)),
         baseline_scores=dict(no_optional_action=0.,greedy=score(greedy),actual_household=None,current_owner_policy=None),

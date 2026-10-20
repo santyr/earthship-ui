@@ -11,7 +11,7 @@ from household.thermal_weather_conditioning import validate_admission,validate_c
 from weather_source_files import _read
 
 SCRIPTS=Path(__file__).resolve().parent
-RUNTIME_SOURCES=('thermal_weather_source.py','household/thermal_weather_conditioning.py','household/codec.py','household/control_contracts.py',
+RUNTIME_SOURCES=('thermal_model/installed_shade_origin.py','thermal_weather_source.py','household/thermal_weather_conditioning.py','household/codec.py','household/control_contracts.py',
     'weather_learning/site_calibration.py','weather_learning/irradiance_learning.py','weather_learning/historical_serving.py',
     'weather_learning/contracts.py','household_solar_horizon.py')
 SELECTION_FIELDS={'schema','admission_path','admission_file_sha256','available_at','automatic_actuation','selection_sha256'}
