@@ -19,9 +19,10 @@ def context(path):
     return result
 
 
-def run(*,runtime_env,code_revision,root=None,clock=lambda:datetime.now(timezone.utc)):
+def run(*,runtime_env,code_revision,root=None,thermal_admission_selection=None,clock=lambda:datetime.now(timezone.utc)):
     from hourly_temperature_runtime import _native_outdoor_policy
     if not re.fullmatch('[a-f0-9]{40}',code_revision):raise ValueError('immutable daily source revision required')
+    if thermal_admission_selection is not None and (not Path(thermal_admission_selection).is_absolute() or '..' in Path(thermal_admission_selection).parts):raise ValueError('absolute thermal candidate selection required')
     root=Path(__file__).resolve().parents[2] if root is None else Path(root);cfg=context(runtime_env);base=Path.home()/'.local/state/earthship-weather';state=directory(base/'historical-daily');shadow=directory(Path(cfg['EARTHSHIP_WEATHER_SHADOW_STATE'])/'google-local-v2')
     end=clock().replace(hour=0,minute=0,second=0,microsecond=0);old=Path(base/'historical-measurements/temperature-index.json');index=json.loads(_read(old,65536));start=max(datetime.fromisoformat(index['days'][0]['date']).replace(tzinfo=timezone.utc),end-timedelta(days=90));days=(end-start).days
     deadline=time.monotonic()+800
@@ -56,7 +57,7 @@ def run(*,runtime_env,code_revision,root=None,clock=lambda:datetime.now(timezone
             radiation_start=max(radiation_start,end-timedelta(days=90))
             command('historical_radiation_capture.py',['--state',base/'historical-radiation','--start',radiation_start.date().isoformat(),'--days',(end-radiation_start).days])
             command('historical_irradiance_train.py',['--archive',base/'historical-2026','--operational-archive',cfg['EARTHSHIP_WEATHER_ARCHIVE'],'--numeric',base/'historical-numeric','--receipts',base/'historical-radiation','--libraries',libraries,'--output',base/'irradiance-calibration','--train-end',cutoff.isoformat(),'--holdout-end',end.isoformat()])
-            command('thermal_weather_admit.py',[])
+            command('thermal_weather_admit.py',[] if thermal_admission_selection is None else ['--selection',thermal_admission_selection])
         except (OSError,ValueError,RuntimeError):thermal_weather='deferred_previous_preserved_or_raw_thermal_inputs'
         fallback='refreshed_or_already_current'
         try:
@@ -67,8 +68,8 @@ def run(*,runtime_env,code_revision,root=None,clock=lambda:datetime.now(timezone
 
 
 def main(argv=None):
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--runtime-env',type=Path,default=Path.home()/'.config/earthship-weather/runtime.env');p.add_argument('--code-revision',required=True);a=p.parse_args(argv);os.umask(0o077)
-    try:print(json.dumps(run(runtime_env=a.runtime_env,code_revision=a.code_revision)),flush=True);return 0
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--runtime-env',type=Path,default=Path.home()/'.config/earthship-weather/runtime.env');p.add_argument('--code-revision',required=True);p.add_argument('--thermal-admission-selection',type=Path);a=p.parse_args(argv);os.umask(0o077)
+    try:print(json.dumps(run(runtime_env=a.runtime_env,code_revision=a.code_revision,thermal_admission_selection=a.thermal_admission_selection)),flush=True);return 0
     except Exception as e:
         state=directory(Path.home()/'.local/state/earthship-weather/historical-daily');save(state/'last-error.json',dict(reason=type(e).__name__,traceback=traceback.format_exc()[-8192:]));print(json.dumps(dict(status='historical_daily_incomplete',reason=type(e).__name__,automatic_actuation=False)),flush=True);return 1
 
