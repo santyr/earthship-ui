@@ -53,19 +53,31 @@ def run(*,state,calibration,view,clock=lambda:datetime.now(timezone.utc)):
             with os.fdopen(fd,'wb') as stream:stream.write(encoded);stream.flush();os.fsync(stream.fileno())
         out=result['output'];storage=out['profiled_storage'];available=storage['status']=='conditional_nominal_simulation';generated=clock();until=origin+timedelta(minutes=15)
         if not origin<=generated<=origin+timedelta(seconds=120):raise ValueError('calibrated publication deadline elapsed')
-        payload=dict(schema='earthship-household-calibrated-energy-observation/v1',generated_at=generated.isoformat(),issued_at=origin.isoformat(),valid_until=until.isoformat(),receipt_sha256=result['receipt_sha256'],
+        load=None if profiled is None else profiled['output']['load_forecast'];load_available=load is not None and load['status']=='projected'
+        profile=None if profiled is None or profiled['inputs']['load_source'] is None else profiled['inputs']['load_source']['artifact']['profile']
+        trajectory=[]
+        if load_available:
+            for i,row in enumerate(load['trajectory']):
+                point=dict(at=row['at'],mean_ac_w=row['mean_ac_w'],minimum_support_days=row['minimum_support_days'],training_spread_ac_w=row['training_spread_mean_w'],
+                    calibrated_soc_pct=None if not available else storage['trajectory'][i]['nominal_soc_pct'],raw_soc_pct=None if not available else out['uncalibrated_profiled_storage']['trajectory'][i]['nominal_soc_pct'])
+                if available and (storage['trajectory'][i]['at']!=row['at'] or out['uncalibrated_profiled_storage']['trajectory'][i]['at']!=row['at']):raise ValueError('curated same-issue targets differ')
+                trajectory.append(point)
+        payload=dict(schema='earthship-household-calibrated-energy-observation/v2',generated_at=generated.isoformat(),issued_at=origin.isoformat(),valid_until=until.isoformat(),receipt_sha256=result['receipt_sha256'],
             original_energy_receipt_sha256=energy['receipt_sha256'],calibration_model_sha256=json.loads(raw_calibration)['final_model']['model_sha256'],
-            status=out['status'],raw_potential_kwh=out['raw_potential_kwh'],calibrated_potential_kwh=out['calibrated_potential_kwh'],
+            status=out['status'],reason=out['reason'],load_status='projected' if load_available else 'unavailable',
+            load_model_sha256=None if not load_available else profile['model_sha256'],load_trained_through=None if not load_available else profile['latest_qualified_hour_end'],
+            load_training_cutoff=None if not load_available else profiled['inputs']['load_source']['artifact']['cutoff'],load_total_ac_kwh=None if not load_available else load['total_ac_kwh'],
+            raw_potential_kwh=out['raw_potential_kwh'],calibrated_potential_kwh=out['calibrated_potential_kwh'],
             profiled_storage_status=storage['status'],profiled_storage_reason=storage['reason'],
             profiled_captured_pv_kwh=None if not available else storage['modeled_captured_pv_kwh'],
             raw_profiled_captured_pv_kwh=None if not available else out['uncalibrated_profiled_storage']['modeled_captured_pv_kwh'],
             initial_soc_pct=None if not available else storage['initial_soc_pct'],nominal_bank_kwh=None if not available else storage['nominal_bank_kwh'],
-            trajectory=[] if not available else storage['trajectory'],source_freshness_basis=result['inputs']['source_freshness_basis'],
+            trajectory=trajectory,source_freshness_basis=result['inputs']['source_freshness_basis'],
             confidence='provisional_empirical_short_horizon',physical_calibration_qualified=False,automatic_actuation=False)
         payload['view_sha256']=identity(payload);directory(Path(view).parent);guard()
         try:previous=loads(_private_file(view,32768)[0])
         except FileNotFoundError:previous=None
-        if previous is not None and previous.get('schema')!=payload['schema']:raise ValueError('calibrated view belongs to another producer')
+        if previous is not None and previous.get('schema') not in ('earthship-household-calibrated-energy-observation/v1',payload['schema']):raise ValueError('calibrated view belongs to another producer')
         save(view,payload)
         return dict(status='calibrated_energy_published',issued_at=origin.isoformat(),profiled_storage_status=storage['status'],receipt_sha256=result['receipt_sha256'],automatic_actuation=False)
 

@@ -29,3 +29,13 @@ it('withholds a different algorithm cohort rather than mixing its errors', async
   await waitFor(() => expect(container.textContent).toContain('Collecting comparisons for this model'));
   expect(container.textContent).not.toContain('0.050');
 });
+it('displays calibrated PV and learned-load storage without reusing original accuracy scores', async () => {
+ const { calibratedEnergy } = await import('../fixtures/calibrated-energy.js');
+ const v=calibratedEnergy();vi.spyOn(Date,'now').mockReturnValue(PROFILE_NOW);
+ vi.stubGlobal('fetch', async url=>new Response(JSON.stringify(url==='/api/household-calibrated-energy-observation'?v:url==='/api/household-profiled-energy-observation'?profiledObservation():profiledPerformance())));
+ const { container }=render(ProfiledEnergy);
+ await waitFor(()=>expect(container.textContent).toContain('14.00 kWh'));
+ expect(container.textContent).toContain('20.00 kWh');expect(container.textContent).toContain('6.40 kWh');expect(container.textContent).toContain('9.60 kWh');
+ expect(container.querySelector('svg[aria-label="Battery SoC with calibrated and uncalibrated PV"]')).not.toBeNull();
+ expect(container.textContent).not.toContain('0.050');expect(container.textContent).toContain('Calibrated scenario accuracy is collecting');
+});

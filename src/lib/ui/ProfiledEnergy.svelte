@@ -3,6 +3,10 @@
   import Tile from './Tile.svelte';
   import { parseProfiledObservation, parseProfiledPerformance } from '../household/profiledObservation.js';
   import { loadProfiledObservation, loadProfiledPerformance } from '../household/observationClient.js';
+  import { parseCalibratedEnergy } from '../household/calibratedEnergy.js';
+  import { loadCalibratedEnergy } from '../household/observationClient.js';
+  let calibratedRaw = $state(null);
+  const calibrated = $derived(parseCalibratedEnergy(calibratedRaw, { nowMs }));
   let raw = $state(null), reportRaw = $state(null), nowMs = $state(Date.now()), selectedHour = $state(1);
   const forecast = $derived(parseProfiledObservation(raw, { nowMs }));
   const report = $derived(parseProfiledPerformance(reportRaw, { nowMs }));
@@ -17,10 +21,11 @@
     async function refresh() {
       controller?.abort(); clearTimeout(deadline); const current = new AbortController(); controller = current;
       deadline = setTimeout(() => current.abort(), 10000);
-      const results = await Promise.allSettled([loadProfiledObservation(current.signal), loadProfiledPerformance(current.signal)]);
+      const results = await Promise.allSettled([loadProfiledObservation(current.signal), loadProfiledPerformance(current.signal), loadCalibratedEnergy(current.signal)]);
       if (!stopped && controller === current) {
         raw = results[0].status === 'fulfilled' ? results[0].value : null;
         reportRaw = results[1].status === 'fulfilled' ? results[1].value : null;
+        calibratedRaw = results[2].status === 'fulfilled' ? results[2].value : null;
         nowMs = Date.now(); clearTimeout(deadline);
       }
     }
@@ -31,7 +36,18 @@
 
 <section class="profiled-energy" aria-label="Learned AC demand and storage comparisons">
   <Tile label="Learned AC demand">
-    {#if forecast?.status === 'conditional'}
+    {#if calibrated?.load_status === 'projected'}
+      {#if calibrated.expired}<p class="notice">Calibrated forecast is stale</p>{/if}
+      <p>Next 24 hours: {kwh(calibrated.load_total_ac_kwh)} learned AC demand.</p>
+      <svg viewBox="0 0 710 215" role="img" aria-label="Next 24 hour learned household AC demand">
+        <text x="5" y="20">Watts</text>
+        <line x1="42" y1="180" x2="666" y2="180" class="axis" />
+        <polyline points={line(calibrated.trajectory, 'mean_ac_w', Math.max(1, ...calibrated.trajectory.map(r => r.mean_ac_w)))} class="learned" />
+        <text x="42" y="205">{date(calibrated.issued_at)}</text><text x="666" y="205" text-anchor="end">{date(calibrated.trajectory.at(-1).at)}</text>
+      </svg>
+      <p>Training data through {date(calibrated.load_trained_through)}. Issued {date(calibrated.issued_at)}.</p>
+      <p>Forecast uncertainty has not been calibrated.</p>
+    {:else if forecast?.status === 'conditional'}
       {#if forecast.expired}<p class="notice">Demand forecast is stale</p>{/if}
       <p>Next 24 hours: {kwh(forecast.total_ac_kwh)} AC demand. Current-load comparison holds {forecast.current_ac_w.toFixed(0)} W constant.</p>
       <svg viewBox="0 0 710 215" role="img" aria-label="Next 24 hour learned AC load and current-load persistence">
@@ -51,7 +67,23 @@
     <p>Based on inverter AC output. Battery charging and DC solar-system loads remain separate.</p>
   </Tile>
   <Tile label="Learned-load storage scenario">
-    {#if forecast?.status === 'conditional'}
+    {#if calibrated?.status === 'projected_provisional_calibrated_potential'}
+      {#if calibrated.expired}<p class="notice">Calibrated forecast is stale</p>{/if}
+      <p>Next 24 hours PV potential: {kwh(calibrated.calibrated_potential_kwh)} with the empirical correction; {kwh(calibrated.raw_potential_kwh)} from raw physics.</p>
+      {#if calibrated.profiled_storage_status === 'conditional_nominal_simulation'}
+        <p>Modeled PV capture with learned demand: {kwh(calibrated.profiled_captured_pv_kwh)}.</p>
+        <svg viewBox="0 0 710 215" role="img" aria-label="Battery SoC with calibrated and uncalibrated PV">
+          <text x="5" y="20">SoC</text><text x="5" y="40">100%</text><text x="8" y="180">0%</text>
+          <line x1="42" y1="180" x2="666" y2="180" class="axis" />
+          <polyline points={line(calibrated.trajectory, 'calibrated_soc_pct', 100)} class="learned" />
+          <polyline points={line(calibrated.trajectory, 'raw_soc_pct', 100)} class="reference" />
+          <text x="42" y="205">{date(calibrated.issued_at)}</text><text x="666" y="205" text-anchor="end">{date(calibrated.trajectory.at(-1).at)}</text>
+        </svg>
+        <p class="legend"><span>— Calibrated PV</span> <span>┄ Raw physics PV</span></p>
+        <p>Conditional nominal storage from {calibrated.initial_soc_pct.toFixed(1)}% SoC; conversion losses and usable capacity remain provisional.</p>
+      {:else}<p>Storage forecast is unavailable; the PV potential remains independent.</p>{/if}
+      <p>Calibrated scenario accuracy is collecting.</p>
+    {:else if forecast?.status === 'conditional'}
       <p>Modeled PV capture: {kwh(forecast.profiled_captured_pv_24h_kwh)} with learned demand; {kwh(forecast.constant_captured_pv_24h_kwh)} with current demand held constant.</p>
       <svg viewBox="0 0 710 215" role="img" aria-label="Nominal battery SoC with learned and constant AC demand">
         <text x="5" y="20">SoC</text><text x="5" y="40">100%</text><text x="8" y="180">0%</text>
@@ -63,7 +95,7 @@
       <p class="legend"><span>— Learned demand</span> <span>┄ Constant demand</span></p>
       <p>Conditional nominal storage from {forecast.initial_soc_pct.toFixed(1)}% SoC; conversion losses and usable capacity remain provisional.</p>
     {:else}<p>Learned-load storage scenario is collecting.</p>{/if}
-    {#if report && sameModel}
+    {#if !calibrated && report && sameModel}
       {#if report.expired}<p class="notice">Demand accuracy report is stale</p>{/if}
       <p>Mean absolute error; lower is better. AC energy compares the hour ending at each lead time.</p>
       <div class="table"><table><thead><tr><th>Lead</th><th>Learned AC<br />(kWh)</th><th>Current AC<br />(kWh)</th><th>AC samples</th><th>Learned SoC<br />(points)</th><th>Constant-load SoC<br />(points)</th><th>Constant power<br />(points)</th><th>Hold SoC<br />(points)</th><th>SoC samples</th></tr></thead><tbody>
@@ -74,7 +106,7 @@
         {/each}
       </tbody></table></div>
       <p>Rolling comparisons across {report.model_version_count} as-issued daily models. Each scored AC hour has at least 99% coverage; both predictions use the same observed duration.</p>
-    {:else}<p>Collecting comparisons for this model</p>{/if}
+    {:else if !calibrated}<p>Collecting comparisons for this model</p>{/if}
     <p>These observations do not establish calibrated storage or benefits from equipment actions.</p>
   </Tile>
 </section>

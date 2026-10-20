@@ -1,3 +1,4 @@
+import { parseCalibratedEnergy } from './calibratedEnergy.js';
 import { parseDailyPvPotential } from '../energy/dailyPvPotential.js';
 import { parseChronologicalSummary } from './chronology.js';
 import { constants } from 'node:fs';
@@ -53,6 +54,7 @@ export function householdObservationPlugin({
   batteryCachePath = resolve(homedir(), '.local/state/household-intel/battery-performance.json'),
   energyCachePath = resolve(homedir(), '.local/state/household-intel/energy-observation.json'),
   energyPerformanceCachePath = resolve(homedir(), '.local/state/household-intel/energy-performance.json'),
+  calibratedCachePath = resolve(homedir(), '.local/state/household-intel/calibrated-energy-observation.json'),
   profiledCachePath = resolve(homedir(), '.local/state/household-intel/profiled-energy-observation.json'),
   profiledPerformanceCachePath = resolve(homedir(), '.local/state/household-intel/profiled-energy-performance.json'),
   capturedPvCachePath = resolve(homedir(), '.local/state/household-intel/captured-pv-performance.json'),
@@ -70,6 +72,7 @@ export function householdObservationPlugin({
       '/api/household-battery-performance': [batteryCachePath, parseBatteryPerformance],
       '/api/household-energy-observation': [energyCachePath, parseEnergyObservation],
       '/api/household-energy-performance': [energyPerformanceCachePath, parseEnergyPerformance],
+      '/api/household-calibrated-energy-observation': [calibratedCachePath, parseCalibratedEnergy],
       '/api/household-profiled-energy-observation': [profiledCachePath, parseProfiledObservation],
       '/api/household-profiled-energy-performance': [profiledPerformanceCachePath, parseProfiledPerformance],
     }[url.pathname];
