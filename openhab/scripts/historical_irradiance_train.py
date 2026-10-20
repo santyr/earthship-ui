@@ -139,7 +139,7 @@ def run(a):
         if pointer.exists():
             selected=json.loads(_read(pointer,8192));previous_run=Path(selected['path']);previous=json.loads(_read(previous_run/'experiment.json',1048576))
             if previous['receipt_sha256']!=selected['receipt_sha256'] or previous['receipt_sha256']!=identity({k:v for k,v in previous.items() if k!='receipt_sha256'}):raise ValueError('original prior irradiance experiment differs')
-            names=('site_calibration.py','irradiance_learning.py','contracts.py','training_cache.py')
+            names=('site_calibration.py','irradiance_learning.py','contracts.py','training_cache.py','weights.py')
             if any(previous['runtime_manifest'].get('openhab/scripts/weather_learning/'+name)!=sha256(sources['openhab/scripts/weather_learning/'+name]).hexdigest() for name in names):previous=None
         from weather_learning.training_cache import residual_if_changed
         def earlier(name,pin):

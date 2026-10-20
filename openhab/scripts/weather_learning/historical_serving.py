@@ -35,6 +35,8 @@ def load_selection(path,*,kind,now,sensor_epoch=None):
         names=('weather_response.py','contracts.py')
         if value['sensor_epoch'] is not None:raise ValueError('numeric wind history cannot infer a sensor epoch')
     else:raise ValueError('supported historical serving kind required')
+    if model['schema'] in ('earthship-site-calibration/v2','earthship-site-weather-gain/v2'):
+        names+=('weights.py',)
     for name in names:
         key='openhab/scripts/weather_learning/'+name
         if original['runtime_manifest'].get(key)!=sha256((Path(__file__).parent/name).read_bytes()).hexdigest():raise ValueError('historical numerical or training-feature runtime changed')

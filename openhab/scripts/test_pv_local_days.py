@@ -93,7 +93,7 @@ def test_legacy_models_remain_readable_but_cannot_noop_new_calendar_semantics(re
     assert validate(legacy)==before
     model,executed=refresh(legacy,rows,cutoff=CUTOFF,trained_at=CUTOFF+timedelta(days=1))
     assert executed is True
-    assert model['schema'].endswith('/v2')
+    assert model['schema'].endswith('/v3')
     assert model['training_days']==3
     assert model['timezone']=='America/Denver'
     assert model['independent_day_basis']=='interval_start_local_date'

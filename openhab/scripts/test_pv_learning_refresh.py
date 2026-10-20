@@ -95,7 +95,7 @@ def test_previous_pv_model_reuse_rejects_modified_model_bytes(tmp_path):
     pointer=tmp_path/'last-experiment.json';pointer.write_bytes(canonical(dict(path=str(run),receipt_sha256=receipt['receipt_sha256'])));pointer.chmod(0o600)
     from pathlib import Path
     scripts=Path(__file__).parent
-    sources={'openhab/scripts/weather_learning/'+n:(scripts/'weather_learning'/n).read_bytes() for n in ['pv_calibration.py','pv_directional_calibration.py','contracts.py']}
+    sources={'openhab/scripts/weather_learning/'+n:(scripts/'weather_learning'/n).read_bytes() for n in ['pv_calibration.py','pv_directional_calibration.py','contracts.py','weights.py']}
     assert previous_models(tmp_path,sources)['final_model']==receipt['final_model']
     p=run/'final-model.json';value=json.loads(p.read_bytes());value['model_sha256']='f'*64;p.write_bytes(canonical(value))
     with pytest.raises(ValueError,match='model differs'):previous_models(tmp_path,sources)

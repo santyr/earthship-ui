@@ -26,7 +26,9 @@ def restore_calibration(raw,*,origin,system_raw,horizon_raw):
         raise ValueError('PV calibration is unavailable or expired at origin')
     if value['system_raw'].encode()!=system_raw or value['horizon_raw'].encode()!=horizon_raw:raise ValueError('PV calibration geometry declaration changed')
     scripts=Path(__file__).resolve().parents[1]
-    for name in ('weather_learning/pv_directional_calibration.py','weather_learning/pv_calibration.py','weather_learning/contracts.py'):
+    names=('weather_learning/pv_directional_calibration.py','weather_learning/pv_calibration.py','weather_learning/contracts.py')
+    if model['schema']=='earthship-pv-directional-calibration/v3':names+=('weather_learning/weights.py',)
+    for name in names:
         key='openhab/scripts/'+name
         if key not in value['runtime_manifest'] or value['runtime_manifest'][key]!=sha256((scripts/name).read_bytes()).hexdigest():raise ValueError('PV calibration numerical runtime changed')
         if name.endswith('pv_directional_calibration.py') and key not in value['runtime_manifest']:raise ValueError('PV calibration numerical runtime missing')

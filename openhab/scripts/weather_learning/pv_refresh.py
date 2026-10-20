@@ -1,6 +1,6 @@
 """PV evidence reuse and chronological challenger selection; no action authority."""
-from math import fsum
 from .contracts import identity,instant
+from .weights import pv_weights,metrics as weighted_metrics
 from .pv_calibration import _pair,independent_days,TIMEZONE,DAY_BASIS
 
 
@@ -36,13 +36,14 @@ def compare_incumbent(candidate,incumbent,rows,*,holdout_start,holdout_end):
     selected=[_pair(r) for r in rows if holdout_start<=instant(r['origin'])<instant(r['start']) and
         instant(incumbent['trained_at'])<=instant(r['origin']) and instant(r['end'])<holdout_end and r['potential_proxy_eligible'] is True]
     def metrics(values):
+        weights,support=pv_weights(values)
         def mae(model):
-            return None if not values else fsum(abs((r['baseline_w'] if model is None else _calculate(model,r['baseline_w'],r['azimuth_degrees']))-r['outcome_w']) for r in values)/len(values)
-        return dict(pairs=len(values),baseline_mae_w=mae(None),candidate_mae_w=mae(candidate),incumbent_mae_w=mae(incumbent))
+            return weighted_metrics([(r['baseline_w'] if model is None else _calculate(model,r['baseline_w'],r['azimuth_degrees']))-r['outcome_w'] for r in values],weights)['mae']
+        return dict(pairs=len(values),support=support,baseline_mae_w=mae(None),candidate_mae_w=mae(candidate),incumbent_mae_w=mae(incumbent))
     result=metrics(selected);days=independent_days(selected)
-    result.update(schema='earthship-pv-incumbent-comparison/v2',timezone=TIMEZONE,independent_day_basis=DAY_BASIS,candidate_model_sha256=candidate['model_sha256'],incumbent_model_sha256=incumbent['model_sha256'],
+    result.update(schema='earthship-pv-incumbent-comparison/v3',timezone=TIMEZONE,independent_day_basis=DAY_BASIS,candidate_model_sha256=candidate['model_sha256'],incumbent_model_sha256=incumbent['model_sha256'],
         holdout_start=holdout_start.isoformat(),holdout_end=holdout_end.isoformat(),independent_target_days=days,
-        selected=len(selected)>=24 and days>=2 and result['candidate_mae_w']<min(result['incumbent_mae_w'],result['baseline_mae_w']),
+        selected=result['support']['unique_measured_targets']>=24 and days>=2 and result['candidate_mae_w']<min(result['incumbent_mae_w'],result['baseline_mae_w']),
         by_lead={name:metrics([r for r in selected if lo<r['lead_hours']<=hi]) for name,lo,hi in [('0-24h',0,24),('24-48h',24,48)]},
         qualification='retrospective_candidate_with_later_available_incumbent_not_prospective',prospective_score=False,physical_calibration_qualified=False,automatic_actuation=False)
     result['report_sha256']=identity(result);return result
@@ -59,7 +60,7 @@ def previous_models(output,sources):
     selected=json.loads(_read(pointer,8192));run=Path(selected['path']);receipt=json.loads(_read(run/'experiment.json',1048576))
     if receipt['receipt_sha256']!=selected['receipt_sha256'] or receipt['receipt_sha256']!=identity({k:v for k,v in receipt.items() if k!='receipt_sha256'}):
         raise ValueError('previous PV experiment differs')
-    for name in ('pv_calibration.py','pv_directional_calibration.py','contracts.py'):
+    for name in ('pv_calibration.py','pv_directional_calibration.py','contracts.py','weights.py'):
         key='openhab/scripts/weather_learning/'+name
         if receipt['runtime_manifest'].get(key)!=sha256(sources[key]).hexdigest():return {}
     training=json.loads(_read(run/'training-model.json',1048576));final=json.loads(_read(run/'final-model.json',1048576))

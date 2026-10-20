@@ -18,7 +18,7 @@ def calibration(tmp_path,energy):
     row=dict(start=start.isoformat(),end=(start+timedelta(minutes=1)).isoformat(),origin=(start-timedelta(hours=1)).isoformat(),baseline_w=1000.,outcome_w=800.,azimuth_degrees=az+1.,lead_hours=2.,forecast_sha256='a'*64,energy_source_sha256='b'*64,potential_proxy_eligible=True)
     row['pair_sha256']=identity(row);rows.append(row)
  model=fit_directional(rows,cutoff=issue-timedelta(days=8),trained_at=issue-timedelta(hours=1))
- names=('pv_directional_calibration.py','pv_calibration.py','contracts.py');scripts=Path(__file__).parent
+ names=('pv_directional_calibration.py','pv_calibration.py','contracts.py','weights.py');scripts=Path(__file__).parent
  runtime={'openhab/scripts/weather_learning/'+n:sha256((scripts/'weather_learning'/n).read_bytes()).hexdigest() for n in names}
  report=dict(selected=True,model_sha256='a'*64,holdout_end=(issue-timedelta(days=1)).isoformat(),independent_target_days=5,baseline_mae_w=10.,candidate_mae_w=8.,prospective_score=False,physical_calibration_qualified=False,automatic_actuation=False);report['report_sha256']=identity(report)
  value=dict(schema='earthship-historical-pv-directional-experiment/v1',created_at=(issue-timedelta(hours=1)).isoformat(),final_model=model,training_model_sha256='a'*64,report=report,runtime_manifest=runtime,system_raw=energy['inputs']['system_source']['raw'],horizon_raw=energy['inputs']['horizon_source']['raw'],automatic_actuation=False);value['receipt_sha256']=identity(value)

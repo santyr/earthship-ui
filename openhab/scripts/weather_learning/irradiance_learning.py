@@ -57,23 +57,24 @@ def pair_irradiance(snapshot,targets,positions,*,target_end,allow_recorded_avail
 
 
 def assess_irradiance(model,rows,*,holdout_start,holdout_end):
-    from math import sqrt
+    from zoneinfo import ZoneInfo
+    from .weights import site_weights,metrics as weighted_metrics,TIMEZONE
     from . import site_calibration as calibration
     from .contracts import identity,instant
     model=calibration._model(model)
     if not instant(model['cutoff'])<=holdout_start<holdout_end:raise ValueError('later irradiance holdout required')
     selected=[calibration._pair(r) for r in rows if r['kind']=='irradiance_w_m2' and holdout_start<=instant(r['origin'])<instant(r['target_at'])<holdout_end]
-    def metrics(values):
-        return dict(count=len(values),mae=None if not values else fsum(abs(v) for v in values)/len(values),bias=None if not values else fsum(values)/len(values),rmse=None if not values else sqrt(fsum(v*v for v in values)/len(values)))
     def compare(values):
-        return dict(pairs=len(values),independent_target_days=len({r['target_at'][:10] for r,_,_ in values}),baseline=metrics([a for _,a,_ in values]),candidate=metrics([b for _,_,b in values]))
+        weights,support=site_weights([r for r,_,_ in values])
+        return dict(pairs=len(values),support=support,independent_target_days=support['local_target_dates'],
+            baseline=weighted_metrics([a for _,a,_ in values],weights),candidate=weighted_metrics([b for _,_,b in values],weights))
     values=[(r,r['baseline']-r['outcome'],max(0.,calibration._calculate(model,r['features'],r['baseline']))-r['outcome']) for r in selected]
     groups={}
-    for name,key in [('quality',lambda r:r['label']['quality']),('month',lambda r:r['target_at'][:7]),('lead',lambda r:'0-24h' if r['lead_hours']<=24 else '24-72h' if r['lead_hours']<=72 else '72-168h' if r['lead_hours']<=168 else '168-360h'),('azimuth_sector',lambda r:str(int(r['features']['azimuth_degrees']//45)*45))]:
+    for name,key in [('quality',lambda r:r['label']['quality']),('month',lambda r:instant(r['target_at']).astimezone(ZoneInfo(TIMEZONE)).strftime('%Y-%m')),('lead',lambda r:'0-24h' if r['lead_hours']<=24 else '24-72h' if r['lead_hours']<=72 else '72-168h' if r['lead_hours']<=168 else '168-360h'),('azimuth_sector',lambda r:str(int(r['features']['azimuth_degrees']//45)*45))]:
         result={}
         for entry in values:result.setdefault(key(entry[0]),[]).append(entry)
         groups['by_'+name]={k:compare(v) for k,v in result.items()}
-    out=dict(schema='earthship-local-irradiance-comparison/v1',kind='irradiance_w_m2',model_sha256=model['model_sha256'],holdout_start=holdout_start.isoformat(),holdout_end=holdout_end.isoformat(),
+    out=dict(schema='earthship-local-irradiance-comparison/v2',timezone=TIMEZONE,kind='irradiance_w_m2',model_sha256=model['model_sha256'],holdout_start=holdout_start.isoformat(),holdout_end=holdout_end.isoformat(),
         **compare(values),**groups,baseline_target='raw_google_ending_hour_ghi_against_lux_proxy',metrology_calibrated=False,prospective_score=False,automatic_actuation=False)
     out['report_sha256']=identity(out);return out
 
