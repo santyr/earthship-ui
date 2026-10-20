@@ -5,13 +5,10 @@ actual artifact availability; evaluation alone uses hypothetical historical
 training clocks and is always marked retrospective.
 """
 from datetime import timedelta
-from math import fsum,isfinite
+from math import fsum,sqrt,isfinite
 from zoneinfo import ZoneInfo
 from .contracts import canonical,identity,instant,finite,digest
 from .evidence import utc
-from .weights import site_weights,metrics as weighted_metrics,validate_support
-
-SCHEMA='earthship-site-calibration/v2'
 
 PAIR_FIELDS={'schema','kind','origin','target_at','lead_hours','availability_basis','forecast_sha256','features','baseline','outcome','label','origin_labels','prospective_score','automatic_actuation','pair_sha256'}
 MODEL_FIELDS={'schema','rule','kind','feature_names','centers','scales','coefficients','intercept','correction_limit','ridge','cutoff','trained_at','training_start','training_end','sample_count','origin_days','timezone','training_pair_sha256s','forecast_sha256s','training_data_sha256','automatic_actuation','model_sha256'}
@@ -30,14 +27,10 @@ def _pair(row):
 
 
 def _model(value):
-    current=isinstance(value,dict) and value.get('schema')==SCHEMA
-    if (not isinstance(value,dict) or set(value)!=(MODEL_FIELDS|{'support'} if current else MODEL_FIELDS) or value['schema'] not in (SCHEMA,'earthship-site-calibration/v1') or
-        value['rule']!=('target_weighted_standardized_ridge_residual_v2' if current else 'standardized_ridge_residual_v1') or value['automatic_actuation'] is not False or
+    if (not isinstance(value,dict) or set(value)!=MODEL_FIELDS or value['schema']!='earthship-site-calibration/v1' or
+        value['rule']!='standardized_ridge_residual_v1' or value['automatic_actuation'] is not False or
         value['model_sha256']!=identity({k:v for k,v in value.items() if k!='model_sha256'})):
         raise ValueError('unchanged original site calibration required')
-    if current:
-        support=validate_support(value['support'])
-        if support['forecast_pairs']!=value['sample_count'] or support['timezone']!=value['timezone']:raise ValueError('site target support differs from model')
     names=value['feature_names'];n=len(names)
     if not 1<=n<=16 or names!=sorted(set(names)) or any(len(value[k])!=n for k in ('centers','scales','coefficients')):
         raise ValueError('complete frozen calibration preprocessing required')
@@ -62,11 +55,10 @@ def fit_residual(rows,*,kind,cutoff,trained_at,correction_limit,ridge=1.,timezon
     if any(sorted(r['features'])!=names for r in selected):raise ValueError('consistent feature contract required')
     x=np.asarray([[r['features'][name] for name in names] for r in selected],dtype=float)
     y=np.asarray([r['outcome']-r['baseline'] for r in selected],dtype=float)
-    weights,support=site_weights(selected,timezone_name);weights=np.asarray(weights)
-    centers=np.average(x,axis=0,weights=weights);scales=np.sqrt(np.average((x-centers)**2,axis=0,weights=weights));scales=np.where(scales>1e-12,scales,1.)
-    x=(x-centers)/scales;intercept=float(np.average(y,weights=weights))
-    coefficients=np.linalg.solve(x.T@(weights[:,None]*x)+ridge*np.eye(len(names)),x.T@(weights*(y-intercept)))
-    out=dict(schema=SCHEMA,rule='target_weighted_standardized_ridge_residual_v2',support=support,kind=kind,feature_names=names,
+    centers=x.mean(axis=0);scales=x.std(axis=0);scales=np.where(scales>1e-12,scales,1.)
+    x=(x-centers)/scales;intercept=float(y.mean())
+    coefficients=np.linalg.solve(x.T@x+ridge*np.eye(len(names)),x.T@(y-intercept))
+    out=dict(schema='earthship-site-calibration/v1',rule='standardized_ridge_residual_v1',kind=kind,feature_names=names,
         centers=centers.tolist(),scales=scales.tolist(),coefficients=coefficients.tolist(),intercept=intercept,
         correction_limit=float(correction_limit),ridge=float(ridge),cutoff=cutoff.isoformat(),trained_at=trained_at.isoformat(),
         training_start=min(r['target_at'] for r in selected),training_end=max(r['target_at'] for r in selected),sample_count=len(selected),
@@ -95,24 +87,22 @@ def evaluate(model,rows,*,holdout_start,holdout_end):
     model=_model(model);start,end=map(utc,(holdout_start,holdout_end));zone=ZoneInfo(model['timezone'])
     if not instant(model['cutoff'])<=start<end:raise ValueError('later disjoint holdout interval required')
     selected=[_pair(r) for r in rows if r['kind']==model['kind'] and start<=instant(r['origin'])<instant(r['target_at'])<end]
-    weights,support=site_weights(selected,model['timezone'])
-    baseline=[r['baseline']-r['outcome'] for r in selected]
-    candidate=[_calculate(model,r['features'],r['baseline'])-r['outcome'] for r in selected]
-    horizons={}
+    baseline=[];candidate=[];horizons={}
     for row in selected:
+        raw=row['baseline']-row['outcome'];error=_calculate(model,row['features'],row['baseline'])-row['outcome']
+        baseline.append(raw);candidate.append(error)
         label='0-24h' if row['lead_hours']<=24 else '24-72h' if row['lead_hours']<=72 else '72-168h' if row['lead_hours']<=168 else '168-360h'
-        horizons.setdefault(label,[]).append(row)
-    def compare(values):
-        w,s=site_weights(values,model['timezone'])
-        return dict(support=s,baseline=weighted_metrics([r['baseline']-r['outcome'] for r in values],w),
-            candidate=weighted_metrics([_calculate(model,r['features'],r['baseline'])-r['outcome'] for r in values],w))
-    a,b=weighted_metrics(baseline,weights),weighted_metrics(candidate,weights)
-    out=dict(schema='earthship-site-calibration-comparison/v2',support=support,kind=model['kind'],model_sha256=model['model_sha256'],
+        horizons.setdefault(label,[]).append((raw,error))
+    def metrics(values):
+        return dict(count=len(values),mae=None if not values else fsum(abs(v) for v in values)/len(values),
+            bias=None if not values else fsum(values)/len(values),rmse=None if not values else sqrt(fsum(v*v for v in values)/len(values)))
+    a,b=metrics(baseline),metrics(candidate)
+    out=dict(schema='earthship-site-calibration-comparison/v1',kind=model['kind'],model_sha256=model['model_sha256'],
         holdout_start=start.isoformat(),holdout_end=end.isoformat(),pairs=len(selected),
         origin_days=len({instant(r['origin']).astimezone(zone).date() for r in selected}),
         target_days=len({instant(r['target_at']).astimezone(zone).date() for r in selected}),
         baseline_target='raw_google_temperature' if model['kind']=='outdoor_temperature_c' else 'origin_temperature_persistence',
         baseline_mae=a['mae'],candidate_mae=b['mae'],baseline=a,candidate=b,
-        by_horizon={key:compare(values) for key,values in horizons.items()},
+        by_horizon={key:dict(baseline=metrics([v[0] for v in values]),candidate=metrics([v[1] for v in values])) for key,values in horizons.items()},
         availability_basis='retrospective_assumed_full_cycle_9h' if all(r['availability_basis']=='retrospective_assumed_full_cycle_9h' for r in selected) else 'retrospective_mixed_recorded_and_assumed_availability',prospective_score=False,automatic_actuation=False)
     out['report_sha256']=identity(out);return out

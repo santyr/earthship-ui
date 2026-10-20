@@ -1,0 +1,22 @@
+{
+  "base_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+  "coefficients_rebound": false,
+  "deployment_identity": "Must create an actual runtime git commit containing these files and this manifest; pass its full commit SHA as code_revision. This manifest is not a replacement for that commit.",
+  "model_selection_changed": false,
+  "numerical_dependencies": {
+    "openhab/scripts/weather_learning/site_calibration.py": {
+      "purpose": "Preserve exact selected-v1 numerical inference and original training-runtime validation; no fitting or promotion in this serving package",
+      "sha256": "6b4d8d3aae1626a595e2703aac7672713aef91849c757c6a0acb414d81692485",
+      "source_revision": "3f5d8cbdbe84b6d470a5f7ab91b64789742fa836"
+    },
+    "openhab/scripts/weather_learning/weather_response.py": {
+      "purpose": "Preserve exact selected-v1 numerical inference and original training-runtime validation; no fitting or promotion in this serving package",
+      "sha256": "a3be6dd1cfc07466000455210f6817aee76fd7655b0a4c0ed79724ef9fe50e00",
+      "source_revision": "3f5d8cbdbe84b6d470a5f7ab91b64789742fa836"
+    }
+  },
+  "qualification_changed": false,
+  "schema": "earthship-weather-serving-overlay/v1",
+  "scope": "serving provenance/immutable original wind retention only; current weighted training remains a separate package",
+  "training_execution_authorized_by_this_manifest": false
+}
