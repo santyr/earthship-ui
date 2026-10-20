@@ -11,11 +11,13 @@ from zoneinfo import ZoneInfo
 import json,os,shutil,sqlite3,stat
 from .contracts import canonical,digest,finite,identity,instant
 from .evidence import utc
+from weather_radiation_history import RadiationHistoryUnavailable
+from .correction_performance import procedure,policy_reports,summarize
 
-VERSION='earthship-issued-correction-evaluation/v1'
+VERSION='earthship-issued-correction-evaluation/v2'
 CONTRACT=dict(version=VERSION,interval='complete_future_hour',population=dict(wind_m_s='every_retained_wind_issue',
     irradiance_w_m2='first_indexed_verified_conditioned_delivery_per_site_date'),maturity_seconds=120,
-    arrival_allowance_days=7,weighting='equal_issued_pairs_with_unique_target_support',qualification='diagnostic_only')
+    arrival_allowance_days=7,weighting='equal_local_target_dates_equal_targets_equal_original_forecasts',qualification='diagnostic_only')
 CONTRACT_SHA256=identity(CONTRACT)
 FIELDS={'schema','kind','issued_at','completed_at','timezone','source_sha256','model_sha256','policy_sha256','producer_sha256','evidence','targets','automatic_actuation','issue_sha256'}
 
@@ -40,6 +42,7 @@ def validate_issue(value):
             if row[key] is not None and (not finite(row[key]) or row[key]<0):raise ValueError('nonnegative original prediction required')
         if row['corrected'] is not None and row['raw'] is None:raise ValueError('correction requires matched raw target')
     if times!=sorted(set(times)):raise ValueError('unique ordered correction targets required')
+    procedure(value)
     return value
 
 
@@ -61,6 +64,7 @@ class CorrectionStore:
             db.execute('CREATE INDEX IF NOT EXISTS correction_due ON work(scope,state,retry)')
             db.execute('CREATE TABLE IF NOT EXISTS cursors (source TEXT PRIMARY KEY,value TEXT)')
             db.execute('CREATE TABLE IF NOT EXISTS objects (name TEXT PRIMARY KEY,value TEXT)')
+            db.execute('CREATE TABLE IF NOT EXISTS intake_failures (scope TEXT,name TEXT,sequence INTEGER,retry TEXT,reason TEXT,PRIMARY KEY(scope,name))')
 
     @contextmanager
     def connect(self):
@@ -109,13 +113,23 @@ class CorrectionStore:
         return value
 
     def prepare(self,scope,now,guard):
-        # Keyset intake limits work even after a long monitor outage. Never use
-        # the display window to select originals or mature targets.
+        # Failed originals retain a separate retry cursor. Reserve at least half
+        # each bounded intake batch for newer rows so corrupt evidence cannot
+        # indefinitely block independent originals.
         with self.connect() as db:
             cursor=db.execute('SELECT value FROM cursors WHERE source=?',('intake:'+scope,)).fetchone();after=int(cursor[0]) if cursor else 0
-            rows=db.execute('SELECT sequence,name,kind,day FROM originals WHERE sequence>? ORDER BY sequence LIMIT 16',(after,)).fetchall()
+            retry=db.execute('SELECT o.sequence,o.name,o.kind,o.day FROM intake_failures f JOIN originals o ON o.name=f.name WHERE f.scope=? AND f.retry<=? ORDER BY f.retry,f.sequence LIMIT 8',(scope,now.isoformat())).fetchall()
+            rows=retry+db.execute('SELECT sequence,name,kind,day FROM originals WHERE sequence>? ORDER BY sequence LIMIT ?',(after,16-len(retry))).fetchall()
         for seq,name,kind,day in rows:
-            guard();original=self.read_issue(name)
+            guard()
+            try:original=self.read_issue(name)
+            except (OSError,ValueError,KeyError,TypeError) as error:
+                guard()
+                with self.connect() as db:
+                    db.execute('INSERT OR REPLACE INTO intake_failures VALUES(?,?,?,?,?)',(scope,name,seq,(now+timedelta(hours=1)).isoformat(),type(error).__name__))
+                    if seq>after:
+                        after=seq;db.execute('INSERT OR REPLACE INTO cursors VALUES(?,?)',('intake:'+scope,str(after)))
+                continue
             if instant(original['completed_at'])>now:break
             with self.connect() as db:
                 first=db.execute('SELECT name FROM originals WHERE kind=? AND day=? ORDER BY sequence LIMIT 1',(kind,day)).fetchone()[0]
@@ -123,7 +137,9 @@ class CorrectionStore:
                     for row in original['targets']:
                         target=instant(row['end']);key=identity(dict(scope=scope,issue=name,start=row['start'],end=row['end']))
                         db.execute('INSERT OR IGNORE INTO work VALUES(?,?,?,?,?,?,?,?,?)',(key,scope,name,row['end'],'pending',(target+timedelta(minutes=2)).isoformat(),(target+timedelta(days=7)).isoformat(),None,None))
-                db.execute('INSERT OR REPLACE INTO cursors VALUES(?,?)',('intake:'+scope,str(seq)))
+                db.execute('DELETE FROM intake_failures WHERE scope=? AND name=?',(scope,name))
+                if seq>after:
+                    after=seq;db.execute('INSERT OR REPLACE INTO cursors VALUES(?,?)',('intake:'+scope,str(after)))
 
 
 def retain_wind_issue(state,value,*,model,selection,snapshot):
@@ -134,7 +150,7 @@ def retain_wind_issue(state,value,*,model,selection,snapshot):
     issue=instant(value['issued_at'])
     if snapshot['historical'] is not False or not instant(snapshot['ingestion_completed_at'])<=issue:raise ValueError('original available operational wind source required')
     sources={}
-    for module in (historical_serving,__import__(__name__,fromlist=['']),__import__('weather_learning.weather_response',fromlist=['']),__import__('weather_learning.contracts',fromlist=[''])):
+    for module in (historical_serving,__import__(__name__,fromlist=['']),__import__('weather_learning.weather_response',fromlist=['']),__import__('weather_learning.contracts',fromlist=['']),__import__('weather_learning.weights',fromlist=[''])):
         path=Path(module.__file__);raw=path.read_bytes()
         if len(raw)>262144:raise ValueError('bounded wind producer required')
         sources[path.name]=dict(sha256=sha256(raw).hexdigest(),utf8=raw.decode())
@@ -149,6 +165,13 @@ def retain_wind_issue(state,value,*,model,selection,snapshot):
         evidence=dict(public_view=value,model_object_sha256=model_ref,selection_object_sha256=selection_ref,producer_object_sha256=producer_ref,source_available_at=snapshot['ingestion_completed_at'],
             measurement_target='hour_mean_local_station_wind_m_s',measurement_health_qualified=False),
         targets=[dict(start=r['start'],end=r['end'],raw=r['raw_m_s'],corrected=r['local_m_s'],regime='all') for r in value['hours']],automatic_actuation=False)
+    cells=sorted({(p['latitude'],p['longitude']) for p in snapshot.get('points',[]) if p['variable']=='wind_speed_10m'})
+    body['evidence']['procedure']=dict(schema='earthship-correction-procedure/v1',
+        method_policy_sha256=identity(dict(rule='original_multiplicative_site_gain',target=value['target'],baseline=value['baseline'],model_schema=model['schema'],
+            numerical_sources={name:row['sha256'] for name,row in sources.items() if name in ('weather_response.py','contracts.py','weights.py')})),
+        training_policy_sha256=None,selection_policy_sha256=identity(dict(rule='explicit_original_improved_historical_gain',maximum_model_age_days=14,
+            original_runtime_bound=True,fallback='unavailable_without_selected_original')),
+        source_grid_sha256=None if not cells else identity(dict(provider='weathernext3',site=snapshot['site'],cells=cells,variable='wind_speed_10m',period_seconds=0)))
     body['issue_sha256']=identity(body);return store.retain(body)
 
 
@@ -203,7 +226,14 @@ def monitor_corrections(state,*,now,observation_policy_sha256,read_wind,read_sol
             due=due[:limit]
     attempted=0;attempted_by_kind={kind:0 for kind in shares}
     for key,name,target,expires in due:
-        guard();original=store.read_issue(name);row=next(r for r in original['targets'] if r['end']==target)
+        guard()
+        try:
+            original=store.read_issue(name);row=next(r for r in original['targets'] if r['end']==target)
+        except (OSError,ValueError,KeyError,TypeError,StopIteration) as error:
+            guard()
+            with store.connect() as db:
+                db.execute("UPDATE work SET state=?,retry=?,reason=? WHERE key=? AND state='pending'",('expired' if now>=instant(expires) else 'pending',(now+timedelta(hours=1)).isoformat(),'original_dependency_'+type(error).__name__,key))
+            continue
         work=dict(row,kind=original['kind'],issue_sha256=name);reason=None;score=None
         if row['raw'] is None:reason='original_forecast_missing'
         else:
@@ -213,6 +243,7 @@ def monitor_corrections(state,*,now,observation_policy_sha256,read_wind,read_sol
                 assessed=now if clock is None else utc(clock())
                 if not now<=assessed<=now+timedelta(seconds=90):raise ValueError('bounded actual observation assessment clock required')
                 if label is None:reason='observation_missing'
+                elif not instant(row['end'])<=instant(label['available_at'])<=instant(expires):reason='observation_arrival_outside_allowance'
                 elif (label['start']!=row['start'] or label['end']!=row['end'] or not instant(row['end'])<=instant(label['assessed_at'])<=assessed or instant(label['available_at'])>instant(label['assessed_at']) or
                       not finite(label['value']) or label['value']<0 or not isinstance(label['original'],dict)):reason='quality_withheld'
                 else:
@@ -220,12 +251,12 @@ def monitor_corrections(state,*,now,observation_policy_sha256,read_wind,read_sol
                     if original['kind']=='irradiance_w_m2' and label['measurement_health_qualified'] is not True:reason='quality_withheld'
                     else:
                         score=dict(evaluation_key=key,evaluation_version=VERSION,evaluation_contract_sha256=CONTRACT_SHA256,issue_sha256=name,
-                            kind=original['kind'],start=row['start'],end=row['end'],raw=row['raw'],candidate=row['corrected'],outcome=label,
+                            kind=original['kind'],issued_at=original['issued_at'],procedure=procedure(original),start=row['start'],end=row['end'],raw=row['raw'],candidate=row['corrected'],outcome=label,
                             source_sha256=original['source_sha256'],model_sha256=original['model_sha256'],policy_sha256=original['policy_sha256'],producer_sha256=original['producer_sha256'],
                             observation_policy_sha256=observation_policy_sha256,timezone=original['timezone'],regime=row['regime'],automatic_actuation=False)
                         score['score_sha256']=identity(score)
                         if len(canonical(score))>4*1024**2:raise ValueError('bounded original correction outcome required')
-            except (ValueError,KeyError,TypeError,OSError) as error:
+            except (ValueError,KeyError,TypeError,OSError,RadiationHistoryUnavailable) as error:
                 guard();reason=type(error).__name__
         with store.connect() as db:
             if score is not None:db.execute("UPDATE work SET score=?,state='completed',reason=NULL WHERE key=? AND state='pending'",(canonical(score).decode(),key))
@@ -233,29 +264,42 @@ def monitor_corrections(state,*,now,observation_policy_sha256,read_wind,read_sol
     # Output stays bounded; totals remain durable even when detail is capped.
     with store.connect() as db:
         states=dict(db.execute('SELECT state,COUNT(*) FROM work WHERE scope=? GROUP BY state',(scope,)))
+        intake_dependencies=dict(db.execute('SELECT reason,COUNT(*) FROM intake_failures WHERE scope=? GROUP BY reason',(scope,)))
         reasons=dict(db.execute("SELECT reason,COUNT(*) FROM work WHERE scope=? AND state!='completed' GROUP BY reason",(scope,)))
         total_scores=db.execute("SELECT COUNT(*) FROM work WHERE scope=? AND state='completed' AND target>=? AND target<=?",(scope,(now-timedelta(days=7)).isoformat(),now.isoformat())).fetchone()[0]
         native_dependencies=[]
         if db.execute("SELECT 1 FROM sqlite_master WHERE name='native_replay'").fetchone():native_dependencies=[dict(reason=reason,count=count) for reason,count in db.execute("SELECT r.reason,COUNT(*) FROM native_replay r JOIN native_refs n ON n.name=r.name LEFT JOIN originals o ON o.issued=n.issued AND o.kind='irradiance_w_m2' WHERE r.state='dependency' AND o.name IS NULL GROUP BY r.reason")]
         scores=[json.loads(r[0]) for r in db.execute("SELECT score FROM work WHERE scope=? AND state='completed' AND target>=? AND target<=? ORDER BY target DESC LIMIT 2048",(scope,(now-timedelta(days=7)).isoformat(),now.isoformat()))]
+    valid_scores=[];score_dependencies={}
+    for score in scores:
+        if (not isinstance(score,dict) or score.get('evaluation_version')!=VERSION or
+                score.get('evaluation_contract_sha256')!=CONTRACT_SHA256 or
+                score.get('score_sha256')!=identity({k:v for k,v in score.items() if k!='score_sha256'})):
+            score_dependencies['invalid_score_identity']=score_dependencies.get('invalid_score_identity',0)+1
+        else:valid_scores.append(score)
+    scores=valid_scores
     cohorts={}
     for score in scores:
         cohort=(score['kind'],score['source_sha256'],score['model_sha256'],score['policy_sha256'],score['producer_sha256'],score['regime'])
         cohorts.setdefault(cohort,[]).append(score)
     reports=[]
     for cohort,rows in sorted(cohorts.items()):
-        paired=[r for r in rows if r['candidate'] is not None]
         reports.append(dict(kind=cohort[0],source_sha256=cohort[1],model_sha256=cohort[2],policy_sha256=cohort[3],producer_sha256=cohort[4],regime=cohort[5],scope='artifact_source_snapshot_selection_and_producer',
-            issued_pairs=len(rows),unique_targets=len({(r['kind'],r['start'],r['end'],r['observation_policy_sha256']) for r in rows}),local_target_dates=len({instant(r['start']).astimezone(ZoneInfo(r['timezone'])).date() for r in rows}),
-            raw_all=_metrics([r['raw']-r['outcome']['value'] for r in rows]),raw=_metrics([r['raw']-r['outcome']['value'] for r in paired]),
-            candidate=_metrics([r['candidate']-r['outcome']['value'] for r in paired]),policy=_metrics([(r['raw'] if r['candidate'] is None else r['candidate'])-r['outcome']['value'] for r in rows]),
-            fallback_pairs=len(rows)-len(paired),measurement_health_qualified=cohort[0]!='wind_m_s'))
+            **summarize(rows),measurement_health_qualified=cohort[0]!='wind_m_s'))
     generated=now if clock is None else utc(clock())
     if not now<=generated<=now+timedelta(seconds=90):raise ValueError('bounded correction report completion clock required')
-    report=dict(schema='earthship-correction-performance/v1',generated_at=generated.isoformat(),evaluation_version=VERSION,evaluation_contract_sha256=CONTRACT_SHA256,
-        observations_attempted=attempted,observations_attempted_by_kind=attempted_by_kind,observation_budget=limit,reserved_kind_shares=shares,states=states,withheld_reasons=reasons,cohorts=reports,sampling=CONTRACT['population'],
+    report=dict(schema='earthship-correction-performance/v2',generated_at=generated.isoformat(),evaluation_version=VERSION,evaluation_contract_sha256=CONTRACT_SHA256,
+        observations_attempted=attempted,observations_attempted_by_kind=attempted_by_kind,observation_budget=limit,reserved_kind_shares=shares,states=states,intake_dependencies=intake_dependencies,withheld_reasons=reasons,score_dependencies=score_dependencies,cohorts=reports,policy_cohorts=policy_reports(scores),calibration_qualified=False,sampling=CONTRACT['population'],
         historical_gaps=['wind_issues_overwritten_before_immutable_retention'],dependencies=dependencies,native_original_dependencies=native_dependencies,native_discovery=getattr(discover,'last_status',None),report_target_window_days=7,report_score_limit=2048,report_total_scored_pairs=total_scores,report_scores_truncated=total_scores>len(scores),
         physical_calibration_qualified=False,distribution_calibration_qualified=False,release_authorized=False,automatic_actuation=False)
+    report['projection_coverage']=dict(artifact_cohorts_total=len(report['cohorts']),procedure_cohorts_total=len(report['policy_cohorts']),
+        artifact_cohorts_omitted=0,procedure_cohorts_omitted=0,maximum_bytes=64*1024,original_score_records='retained_in_private_durable_index')
+    while len(canonical(report))>64*1024-128:
+        if report['cohorts']:
+            report['cohorts'].pop();report['projection_coverage']['artifact_cohorts_omitted']+=1
+        elif report['policy_cohorts']:
+            report['policy_cohorts'].pop();report['projection_coverage']['procedure_cohorts_omitted']+=1
+        else:raise ValueError('bounded correction diagnostic summary required')
     report['report_sha256']=identity(report);return report
 
 
@@ -444,7 +488,10 @@ class NativeCorrectionDiscovery:
             if deploy.verify_stage(stage,expected_deployment_sha256=selection['deployment_sha256'])!=verified:raise ValueError('native stage changed during correction replay')
             body={k:v for k,v in replayed.items() if k!='hours'}
             body.update(schema='earthship-issued-correction/v1',kind='irradiance_w_m2',targets=replayed['hours'],automatic_actuation=False)
-            body['evidence'].update(index_origin=origin,indexed_at=indexed)
+            body['evidence'].update(index_origin=origin,indexed_at=indexed,
+                procedure=dict(schema='earthship-correction-procedure/v1',
+                    method_policy_sha256=identity(dict(rule='exact_original_conditioned_proxy_replay',kind='irradiance_w_m2',producer_sha256=body['producer_sha256'])),
+                    training_policy_sha256=None,selection_policy_sha256=None,source_grid_sha256=None))
             body['issue_sha256']=identity(body);receipts.append(validate_issue(body))
         return receipts,dict(after=str(page[-1]) if page else after,publishers=publisher_cursors)
 

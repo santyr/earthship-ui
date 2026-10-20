@@ -90,7 +90,7 @@ def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,obse
             if value is not None:rain_sources.append(value)
         else:pending['rain']+=1
     bootstrap=queue.bootstrap(archive,site=site,now=now,guard=guard)
-    temperature_limit=32 if read_corrections is not None else 64
+    temperature_limit=min(32 if read_corrections is not None else 64,max(1,64-source_attempts))
     due=queue.due(now,limit=temperature_limit);loaded=[]
     for work in due:
         guard()

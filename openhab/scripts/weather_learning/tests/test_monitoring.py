@@ -95,3 +95,15 @@ class MonitoringTests(unittest.TestCase):
         self.assertIsNotNone(report['temperature']['raw'])
         self.assertEqual(report['corrections']['status'],'unavailable')
         self.assertFalse(report['automatic_actuation'])
+
+    def test_legacy_window_reads_also_consume_the_job_observation_budget(self):
+        for day in (1,2,3):
+            origin=T+timedelta(days=day)
+            self.archive.store_snapshot(full_snapshot(init=origin,hours=360))
+            shadow_once(self.archive,self.state,now=origin+timedelta(minutes=30),site=SITE,
+                sensor_epoch=EPOCH,code_revision=REVISION,horizon=336,clock=lambda:origin+timedelta(minutes=31))
+        report=self.run_monitor(now=T+timedelta(days=5),apply=True)
+        legacy=self.solar.call_count+self.rain.call_count
+        scored=report['temperature']['work']['states'].get('completed',0)
+        self.assertGreater(legacy,0)
+        self.assertLessEqual(scored+legacy,64)

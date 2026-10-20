@@ -196,12 +196,14 @@ def test_wind_retention_preserves_exact_original_model_file_bytes(tmp_path):
     model=dict(schema='earthship-site-weather-gain/v1',kind='wind_m_s',gain=.8,training_end=(NOW-timedelta(hours=3)).isoformat(),cutoff=(NOW-timedelta(hours=2)).isoformat(),trained_at=(NOW-timedelta(hours=1)).isoformat(),automatic_actuation=False)
     model['model_sha256']=identity(model);raw=json.dumps(model,indent=3).encode();path=tmp_path/'model.json';path.write_bytes(raw);path.chmod(0o600)
     selection=dict(selection_sha256='c'*64,model_path=str(path),model_file_sha256=sha256(raw).hexdigest())
-    value=dict(issued_at=NOW.isoformat(),generated_at=(NOW+timedelta(seconds=1)).isoformat(),source_snapshot_sha256='a'*64,
+    value=dict(issued_at=NOW.isoformat(),generated_at=(NOW+timedelta(seconds=1)).isoformat(),source_snapshot_sha256='a'*64,target='hour_mean_local_station_wind_m_s',baseline='trapezoid_of_adjacent_native_instantaneous_forecasts',
         hours=[dict(start=(NOW+timedelta(hours=1)).isoformat(),end=(NOW+timedelta(hours=2)).isoformat(),raw_m_s=10.,local_m_s=8.)])
     snapshot=dict(historical=False,ingestion_completed_at=(NOW-timedelta(minutes=1)).isoformat(),site={'timezone':'America/Denver'})
     pin=retain_wind_issue(state(tmp_path),value,model=model,selection=selection,snapshot=snapshot)
     store=CorrectionStore(state(tmp_path));receipt=store.read_issue(pin);original=store.read_object(receipt['evidence']['model_object_sha256'])
     assert original['utf8'].encode()==raw and original['file_sha256']==sha256(raw).hexdigest()
+    assert len(receipt['evidence']['procedure']['method_policy_sha256'])==64
+    assert receipt['evidence']['procedure']['training_policy_sha256'] is None
 
 def test_http_completion_clock_is_validated_after_read_without_changing_issue_selection(tmp_path):
     from weather_learning.correction_monitor import CorrectionStore,monitor_corrections
@@ -226,3 +228,105 @@ def test_publisher_reference_cursor_detects_index_replacement_or_row_reset(tmp_p
     with store.connect() as db:
         db.execute('DELETE FROM native_refs');db.execute('INSERT INTO native_refs VALUES(1,?,?,?)',('b'*64,'/synthetic/replacement',NOW.isoformat()))
     assert _publisher_references(tmp_path,after=cursor,limit=16)[0][1]=='/synthetic/replacement'
+
+@pytest.mark.parametrize('phase',['intake','due'])
+@pytest.mark.parametrize('damage',['missing','corrupt'])
+def test_missing_or_corrupt_original_dependency_defers_only_its_work(tmp_path,phase,damage):
+    from weather_learning.correction_monitor import CorrectionStore,monitor_corrections,CONTRACT_SHA256
+    s=state(tmp_path);store=CorrectionStore(s);obj={'original_model':'frozen'};pin=store.retain_object(obj)
+    wind=issue();wind['evidence']['model_object_sha256']=pin;wind['issue_sha256']=identity({k:v for k,v in wind.items() if k!='issue_sha256'})
+    store.retain(wind);store.retain(issue('irradiance_w_m2'))
+    now=NOW+timedelta(hours=2,minutes=2)
+    scope=identity(dict(contract=CONTRACT_SHA256,observation_policy_sha256='f'*64))
+    if phase=='due':store.prepare(scope,now,lambda:None)
+    with store.connect() as db:
+        if damage=='missing':db.execute('DELETE FROM objects WHERE name=?',(pin,))
+        else:db.execute('UPDATE objects SET value=? WHERE name=?',('{}',pin))
+    calls=[]
+    def read(work,at):calls.append(work['kind']);return outcome(work,at)
+    kwargs=dict(observation_policy_sha256='f'*64,read_wind=read,read_solar=read,apply=True,limit=8)
+    report=monitor_corrections(s,now=now,**kwargs)
+    assert calls==['irradiance_w_m2']
+    assert report['states']['completed']==1
+    assert report['intake_dependencies'] or report['withheld_reasons']
+    # Restoring exact frozen bytes permits bounded retry, never replacement.
+    from weather_learning.contracts import canonical
+    with store.connect() as db:db.execute('INSERT OR REPLACE INTO objects VALUES(?,?)',(pin,canonical(obj).decode()))
+    resumed=monitor_corrections(s,now=now+timedelta(hours=1),**kwargs)
+    assert resumed['states']['completed']==2
+    assert calls==['irradiance_w_m2','wind_m_s']
+
+
+def test_actual_proxy_transport_outage_is_deferred_without_losing_wind(tmp_path):
+    from weather_learning.correction_monitor import CorrectionStore,monitor_corrections
+    from weather_radiation_history import RadiationHistoryUnavailable
+    s=state(tmp_path);store=CorrectionStore(s);store.retain(issue());store.retain(issue('irradiance_w_m2'))
+    def failed(work,now):raise RadiationHistoryUnavailable('fixture database unavailable')
+    report=monitor_corrections(s,now=NOW+timedelta(hours=2,minutes=2),observation_policy_sha256='f'*64,
+        read_wind=outcome,read_solar=failed,apply=True,limit=8)
+    assert report['states']=={'completed':1,'pending':1}
+    assert report['withheld_reasons']=={'RadiationHistoryUnavailable':1}
+
+@pytest.mark.parametrize('timely',[False,True])
+def test_arrival_allowance_uses_original_availability_not_processing_time(tmp_path,timely):
+    from weather_learning.correction_monitor import CorrectionStore,monitor_corrections
+    s=state(tmp_path);CorrectionStore(s).retain(issue());now=NOW+timedelta(days=10)
+    def read(work,at):
+        label=outcome(work,at)
+        label['available_at']=(NOW+timedelta(hours=3) if timely else now).isoformat()
+        return label
+    report=monitor_corrections(s,now=now,observation_policy_sha256='f'*64,read_wind=read,read_solar=read,apply=True,limit=8)
+    assert report['states']==({'completed':1} if timely else {'expired':1})
+    if not timely:assert report['withheld_reasons']=={'observation_arrival_outside_allowance':1}
+
+
+def test_correction_report_separates_artifact_and_unidentified_procedure_series(tmp_path):
+    from weather_learning.correction_monitor import CorrectionStore,monitor_corrections
+    s=state(tmp_path);store=CorrectionStore(s);store.retain(issue())
+    other=issue();other['issued_at']=(NOW+timedelta(minutes=5)).isoformat();other['completed_at']=(NOW+timedelta(minutes=6)).isoformat()
+    other['model_sha256']='1'*64;other['source_sha256']='2'*64;other['policy_sha256']='3'*64
+    other['targets'][0]['corrected']=None
+    other['issue_sha256']=identity({k:v for k,v in other.items() if k!='issue_sha256'});store.retain(other)
+    report=monitor_corrections(s,now=NOW+timedelta(hours=2,minutes=2),observation_policy_sha256='f'*64,
+        read_wind=outcome,read_solar=outcome,apply=True,limit=8)
+    assert len(report['cohorts'])==2
+    assert len(report['policy_cohorts'])==1
+    policy=report['policy_cohorts'][0]
+    assert policy['provenance_status']=='method_training_selection_policy_unidentified'
+    assert policy['training_policy_sha256'] is None
+    assert policy['metrics']['issued_pairs']==2
+    assert policy['metrics']['raw']['count']==policy['metrics']['candidate']['count']==1
+    assert policy['metrics']['raw_all']['count']==policy['metrics']['policy']['count']==2
+    assert policy['metrics']['unique_targets']==1
+    assert policy['by_horizon']['0-24h']['issued_pairs']==2
+    assert policy['by_local_target_month']['2026-10']['issued_pairs']==2
+    assert report['calibration_qualified'] is False
+
+
+def test_corrupt_durable_score_is_withheld_without_rewriting_original(tmp_path):
+    import json
+    from weather_learning.correction_monitor import CorrectionStore,monitor_corrections
+    s=state(tmp_path);store=CorrectionStore(s);store.retain(issue())
+    kwargs=dict(now=NOW+timedelta(hours=3),observation_policy_sha256='f'*64,read_wind=outcome,read_solar=outcome,apply=True,limit=8)
+    monitor_corrections(s,**kwargs)
+    with store.connect() as db:
+        key,raw=db.execute('SELECT key,score FROM work').fetchone();value=json.loads(raw);value['outcome']['value']=1000.
+        changed=json.dumps(value);db.execute('UPDATE work SET score=? WHERE key=?',(changed,key))
+    report=monitor_corrections(s,**kwargs)
+    assert report['cohorts']==[]
+    assert report['score_dependencies']=={'invalid_score_identity':1}
+    with store.connect() as db:assert db.execute('SELECT score FROM work WHERE key=?',(key,)).fetchone()[0]==changed
+
+
+def test_many_source_cohorts_have_explicit_bounded_public_projection(tmp_path):
+    from weather_learning.correction_monitor import CorrectionStore,monitor_corrections
+    from weather_learning.contracts import canonical
+    s=state(tmp_path);store=CorrectionStore(s)
+    for i in range(16):
+        original=issue(hours=3);original['issued_at']=(NOW+timedelta(minutes=5*i)).isoformat();original['completed_at']=(NOW+timedelta(minutes=5*i,seconds=30)).isoformat()
+        original['producer_sha256']=f'{i:064x}';original['source_sha256']=f'{i+20:064x}'
+        original['issue_sha256']=identity({k:v for k,v in original.items() if k!='issue_sha256'});store.retain(original)
+    report=monitor_corrections(s,now=NOW+timedelta(hours=5),observation_policy_sha256='f'*64,read_wind=outcome,read_solar=outcome,apply=True,limit=32)
+    assert len(canonical(report))<=64*1024
+    assert report['projection_coverage']['artifact_cohorts_omitted']+report['projection_coverage']['procedure_cohorts_omitted']>0
+    assert report['states']['completed']==16
