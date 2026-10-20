@@ -251,3 +251,26 @@ function rows(count) {
     state: index,
   }));
 }
+
+describe('Energy storage forecast overlay', () => {
+  const nowMs = SOC_NOW;
+  const socForecast = {
+    issuedAtMs: nowMs - 5000, validUntilMs: nowMs + 895000,
+    points: Array.from({ length: 25 }, (_, i) => [nowMs - 5000 + i * 3600000, 70 - i]),
+  };
+  const base = { series: [{ name: 'BMS_SOC', label: 'SoC' }], pointsPerSeries: [[{ time: nowMs - 60000, state: 70 }]], widthPx: 500, nowMs };
+  it('keeps a dashed future curve separate from measured SoC and preserves every hourly target', () => {
+    const option = buildHistoryOption({ ...base, socForecast });
+    expect(option.series).toHaveLength(2);
+    expect(option.series[0].data).toEqual([[nowMs - 60000, 70, 70]]);
+    expect(option.series[1].name).toBe('Predicted SoC');
+    expect(option.series[1].lineStyle.type).toBe('dashed');
+    expect(option.series[1].smooth).toBe(false);
+    expect(option.series[1].data).toEqual(socForecast.points.map(([t, v]) => [t, v, v]));
+  });
+  it('removes expired or malformed overlays and does not add SoC to other charts', () => {
+    const variants = [null, { ...socForecast, validUntilMs: nowMs }, { ...socForecast, points: [[nowMs, 101]] }];
+    for (const value of variants) expect(buildHistoryOption({ ...base, socForecast: value }).series).toHaveLength(1);
+    expect(buildHistoryOption({ ...base, series: [{ name: 'MPPT60_PV_Power' }], socForecast }).series).toHaveLength(1);
+  });
+});

@@ -120,6 +120,7 @@ export function buildHistoryOption({
   legendTop = 0,
   legendFontSize = 10,
   socEvidenceRaw = null,
+  socForecast = null,
 } = {}) {
   const perSeriesBudget = series.length
     ? Math.min(
@@ -171,6 +172,22 @@ export function buildHistoryOption({
     }
   });
 
+  const showSocForecast = series.some(source => source.name === 'BMS_SOC')
+    && socForecast && Number.isFinite(socForecast.issuedAtMs)
+    && socForecast.issuedAtMs <= nowMs && socForecast.validUntilMs > nowMs
+    && socForecast.validUntilMs - socForecast.issuedAtMs === 15 * 60000
+    && Array.isArray(socForecast.points) && socForecast.points.length === 25
+    && socForecast.points.every((point, i) => Array.isArray(point) && point.length === 2
+      && point[0] === socForecast.issuedAtMs + i * 3600000
+      && Number.isFinite(point[1]) && point[1] >= 0 && point[1] <= 100);
+  if (showSocForecast) {
+    renderedSeries.push(lineOption(
+      { name: 'Predicted_SoC', label: 'Predicted SoC', color: colors.advisory },
+      socForecast.points.map(([time, value]) => [time, value, value]),
+      { dashed: true },
+    ));
+  }
+
   return {
     ...echartsTheme,
     grid,
@@ -191,6 +208,7 @@ export function buildHistoryOption({
     yAxis: {
       type: 'value',
       scale: true,
+      ...(showSocForecast ? { min: 0, max: 100 } : {}),
       axisLine: echartsTheme.valueAxis.axisLine,
       axisLabel: echartsTheme.valueAxis.axisLabel,
       splitLine: echartsTheme.valueAxis.splitLine,

@@ -60,6 +60,18 @@ describe('HistoryChart', () => {
 
   afterEach(cleanup);
 
+  it('updates and removes predicted SoC without querying forecast Items or reloading history', async () => {
+    const nowMs = Date.now();
+    const socForecast = { issuedAtMs: nowMs - 5000, validUntilMs: nowMs + 895000,
+      points: Array.from({ length: 25 }, (_, i) => [nowMs - 5000 + i * 3600000, 80 - i]) };
+    const view = render(HistoryChart, { series: [{ name: 'BMS_SOC', label: 'SoC' }], socForecast });
+    await waitFor(() => expect(mocks.chart.setOption.mock.calls.at(-1)?.[0].series).toHaveLength(2));
+    expect(mocks.getHistory).toHaveBeenCalledTimes(1);
+    await view.rerender({ series: [{ name: 'BMS_SOC', label: 'SoC' }], socForecast: null });
+    await waitFor(() => expect(mocks.chart.setOption.mock.calls.at(-1)?.[0].series).toHaveLength(1));
+    expect(mocks.getHistory).toHaveBeenCalledTimes(1);
+  });
+
   it('reserves a readable plot in compact PV tiles without shrinking touch targets', async () => {
     render(HistoryChart, {series:[{name:'MPPT60_PV_Power',label:'PV Power',color:'#eab308'}],compact:true});
     await waitFor(() => expect(mocks.chart.setOption).toHaveBeenCalled());

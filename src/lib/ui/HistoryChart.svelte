@@ -9,12 +9,13 @@
   import { items } from '../openhab/store.js';
   import { observeElementSize } from './observeElementSize.js';
 
-  let { series = [], initialHours, hours = 24, compact = false, refreshMs = 5 * 60 * 1_000 } = $props();
+  let { series = [], initialHours, hours = 24, compact = false, refreshMs = 5 * 60 * 1_000, socForecast = null } = $props();
 
   const SOC_REDRAW_MS = 5 * 60 * 1_000;
   // Parents may recreate the array on an unrelated state tick. Only a real
   // series change should restart a history request.
   const seriesKey = $derived(JSON.stringify(series));
+  const socForecastKey = $derived(JSON.stringify(socForecast));
   let el = $state();
   let chart;
   let loadState = $state('idle');
@@ -64,6 +65,7 @@
         pointsPerSeries: latestResults,
         widthPx,
         nowMs,
+        socForecast,
         socEvidenceRaw: $items.BMS_SOC_Evidence_JSON,
         ...(compact ? {grid:{left:40,right:12,top:6,bottom:22}} : {}),
       });
@@ -204,6 +206,12 @@
     } else {
       loadState = 'no-client';
     }
+  });
+
+  // Redraw changed/expired forecasts without refetching measured history.
+  $effect(() => {
+    const key = socForecastKey;
+    untrack(() => { if (chart) renderLatest(latestWidthPx); });
   });
 
   onMount(() => {

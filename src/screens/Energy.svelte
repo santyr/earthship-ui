@@ -1,5 +1,10 @@
 <script>
   import { energyForecastRaw, energyForecastClock } from '../lib/energy/forecastState.js';
+  import { calibratedForecastRaw } from '../lib/energy/calibratedForecastState.js';
+  import { storageForecastPresentation } from '../lib/energy/storageForecast.js';
+  const socForecast = $derived(storageForecastPresentation($calibratedForecastRaw, { fallbackRaw: $energyForecastRaw, nowMs: $energyForecastClock }));
+  const socTarget = $derived(socForecast?.points.at(-1));
+  const socTargetLabel = $derived(socTarget ? new Intl.DateTimeFormat('en-US', { timeZone: 'America/Denver', weekday: 'short', hour: 'numeric', minute: '2-digit' }).format(socTarget[0]) : '');
   import { energyForecastPresentation } from '../lib/energy/forecastPresentation.js';
   const liveEnergyForecast = $derived(energyForecastPresentation($energyForecastRaw, { nowMs: $energyForecastClock }));
   import { onMount } from 'svelte';
@@ -100,9 +105,14 @@
   <div class="cell hero-cell">
     <Tile label="Battery history" accent={socColor}>
       <div class="hero-body">
-        <div class="hero-chart"><HistoryChart series={socSeries} compact={true} initialHours={24} refreshMs={30 * 60 * 1_000} /></div>
+        <div class="hero-chart"><HistoryChart series={socSeries} {socForecast} compact={true} initialHours={24} refreshMs={30 * 60 * 1_000} /></div>
         <div class="hero-footer">
           <span class="hero-soc" style="color: {socColor}">SoC {soc === null ? '—' : Math.round(soc) + '%'}</span>
+          {#if socTarget}
+            <span class="hero-trough" title={`${socForecast.basis}. Provisional estimate; dashed line shows the next 24 hours.`}>Predicted SoC {socTarget[1].toFixed(1)}% · {socTargetLabel} · dashed</span>
+          {:else}
+            <span class="hero-trough">Predicted SoC unavailable</span>
+          {/if}
           {#if preDuskEstimate}
             <span class="hero-trough" title={`Pre-dusk estimate for ${troughNight} night; not a measured minimum.`}>
               Estimated trough {preDuskEstimate.overnightTroughSocPct}%{troughCompleted ? ` · ${troughNight} night` : ''}
