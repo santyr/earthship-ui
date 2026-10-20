@@ -6849,3 +6849,8 @@ were performed for this inventory. Design approval and cross-repository
 contracts apply before implementation. Existing OpenHAB controls and Discover
 BMS counters must remain unchanged. A future-data dependency is unfinished
 work, not a passed check. The broad goal remains active.
+
+
+## October20 audit and approved deployment supersession
+
+The [current audit](../audits/2026-10-20/requirements.md), [verification](../audits/2026-10-20/verification.md) and [approved deployment](../audits/2026-10-20/deployment.md) extend this historical record. PR36 is merged; its targeted source/runtime handoffs preserve existing selections, originals, authority and private overlays. PR37 installed the A19 automatic geometry-prewarm controller repair. PR38 closes the later A20 future-PV-selection defect with corrected candidate-only learning and the A21 test-isolation defect; their final source/gate/deployment readbacks are linked from that same audit. Earlier pending implementation, old-owner and production-unchanged statements are superseded only for the specifically evidenced surfaces. Current source, automated execution, actual installation and physical/statistical qualification remain separate. The October16 phase flags are historical milestones; the current requirement matrix reconciles each phase without relabelling hardware or future outcomes as software completion.

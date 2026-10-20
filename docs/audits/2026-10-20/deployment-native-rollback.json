@@ -1,0 +1,36 @@
+{
+  "schema": "earthship-native-family-rollback-bindings/v1",
+  "roles": [
+    {
+      "role": "forecast",
+      "previous_sha256": "5024312532cc9d5aaab3ecce81b5a5ed77cda34bad60ddc323e524a66cb70ef9",
+      "desired_sha256": "11e2d6bfdd132a3763115c442461e0b99429b1b341865db7235740a01eedc5fe"
+    },
+    {
+      "role": "score",
+      "previous_sha256": "1fc45c755e9f54b4bc2916904ab3b791cde0800c1c20636bd01dd33d014f5423",
+      "desired_sha256": "1f0adbe9f929d6fcf5d808a609d2f8813cd03fd9e57c64c6b1e5db4bd0263bdc"
+    },
+    {
+      "role": "score_timer",
+      "previous_sha256": "91eafd6304fa8e4fc546d461812e639624e3323a9aae956a3fbc3dc19c871a2d",
+      "desired_sha256": "91eafd6304fa8e4fc546d461812e639624e3323a9aae956a3fbc3dc19c871a2d"
+    },
+    {
+      "role": "preparer_service",
+      "previous_sha256": "c0ef4cb0d92b625e6fc94ee10d620cb9eedfb5e94947e2cb0099f5858e9bd9a3",
+      "desired_sha256": "aceba9ac5f6058d88899e530d31c62d809784921e3729bab46187b647cdeaaa9"
+    },
+    {
+      "role": "preparer_timer",
+      "previous_sha256": "2681a591c4763e50d3b25231aa7f34db97aba190e008de5e86c96546c4a9beec",
+      "desired_sha256": "2681a591c4763e50d3b25231aa7f34db97aba190e008de5e86c96546c4a9beec"
+    }
+  ],
+  "previous_deployment_sha256": "f793f84e53b965218688dc23054eecb4a7836cc3b2f3c86d6a4a2a9306dd10ef",
+  "installed_deployment_sha256": "8d639bd736e74b90b5216b58b5e16789f1ad9756d3eca75a4151a85097ea8938",
+  "config_sha256": "cfd602e0a4039d03f2db71017cf51617ada836b9fc6e38d3a31ac5ca484129d6",
+  "transaction": "existing shared score lock, quiescent timers, exact-byte guarded undo; retain both stages and all original receipts",
+  "source": "private native activation manifest and five immutable previous-byte snapshots",
+  "private_locations_omitted": true
+}

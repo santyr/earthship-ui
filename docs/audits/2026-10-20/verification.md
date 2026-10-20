@@ -228,3 +228,116 @@ Initial native completion trial had1failure/652passes/three errors because actio
 Genuine retained household replay: [curated original proof](retained-pipeline-proof.json), identity188cf1d4e6d8629b12835fed837ba5816d3a9cb6f6185cb59be536ece5852961. Actual snapshot/models/plan/public/admission match under their original3f5d8cb producer;353source files/68runtime entries unchanged. Shared development admission256MiB/swap0/24tasks/Nice15/CPUWeight25, parent8CPU quota; leaf has no separate fixed quota. Complete replay3.530s/exit0; no socket connected/bound and translator refused. Original-package replay does not qualify changed numerics or physical effects; new-source fixture/model parity and original-data counterfactuals are separate evidence.
 
 Independent whole-branch review and focused follow-up reviewed correctness, numerical identities, authority and evidence honesty. A12/A13/C08/C09 and coverage gaps were fixed with regressions; final A18 review found no further important/critical issue. Reviewers did not reproduce all private numerical originals, broad final CI or physical hardware; this record does not claim otherwise. The complete available software scope is verified; installation, future outcomes, old missing provenance, radio commissioning and physical metrology remain the exact dependencies in release.md. No proof against undiscovered bugs is asserted.
+
+
+## Approved deployment repair — final source gate
+
+This supplement extends the original source/native evidence without replacing it. Exact source repair revision: **`1f23c674d03f7eb4b4100b72e2b094a4733cdc13`**. [Deployment source freeze](deployment-source-freeze.json) binds1717non-documentation files, unchanged workflow hashes and767test-entry files. A19 adds9normal shard0cases; the original766-file evidence remains historical. [Deployment CI](deployment-ci.json) records every command, environment, complete result, named skip and actual checkout/tree proof. Per-job counts overlap; no inflated repository-wide total is inferred.
+
+| Workflow | Run | Result |
+|---|---|---|
+| Distributed sensor qualification | [39481010472](https://github.com/santyr/earthship-ui/actions/runs/39481010472) | completed success; all jobs success/exit0 |
+| Household receipt integrity | [39481010562](https://github.com/santyr/earthship-ui/actions/runs/39481010562) | completed success; all jobs success/exit0 |
+| Thermal delivery qualification | [39481010614](https://github.com/santyr/earthship-ui/actions/runs/39481010614) | completed success; all jobs success/exit0 |
+| Forecast ML hardening | [39481010636](https://github.com/santyr/earthship-ui/actions/runs/39481010636) | completed success; all jobs success/exit0 |
+| CI | [39481010480](https://github.com/santyr/earthship-ui/actions/runs/39481010480) | completed success; all jobs success/exit0 |
+
+| Gate | Exact completed summary |
+|---|---|
+| [contracts](https://github.com/santyr/earthship-ui/actions/runs/39481010472/job/118829258820) | ======================== 69 passed, 11 skipped in 0.91s ======================== |
+| [software-path](https://github.com/santyr/earthship-ui/actions/runs/39481010472/job/118829259276) | ======================== 11 passed in 66.86s (0:01:06) =========================; 2 passed (16.1s) |
+| [receipt-integrity](https://github.com/santyr/earthship-ui/actions/runs/39481010562/job/118829259150) | 526 passed in 258.50s (0:04:18) |
+| [encrypted-delivery](https://github.com/santyr/earthship-ui/actions/runs/39481010614/job/118829258496) | 8named checks passed |
+| [forecast-ml](https://github.com/santyr/earthship-ui/actions/runs/39481010636/job/118829258654) | 1414 passed, 1 deselected in 996.02s (0:16:36) |
+| [qualification-fit](https://github.com/santyr/earthship-ui/actions/runs/39481010636/job/118829259272) | 1 passed in 8.39s |
+| [browser-fixtures](https://github.com/santyr/earthship-ui/actions/runs/39481010480/job/118829259074) | 71 passed (1.5m) |
+| [test](https://github.com/santyr/earthship-ui/actions/runs/39481010480/job/118829259260) | Test Files  182 passed (182); Tests  2746 passed (2746); 557 passed, 101 skipped in 14.09s; 1396 passed, 3 skipped in 103.74s (0:01:43) |
+| [OpenHAB tests (1/3)](https://github.com/santyr/earthship-ui/actions/runs/39481010480/job/118829259369) | 2059 passed, 5 skipped, 103 subtests passed in 1034.97s (0:17:14); general_pytest_exit=0 bms_aux_pytest_exit=0 |
+| [OpenHAB tests (0/3)](https://github.com/santyr/earthship-ui/actions/runs/39481010480/job/118829259403) | 2152 passed, 8 skipped, 68 subtests passed in 643.59s (0:10:43); general_pytest_exit=0 bms_aux_pytest_exit=0 |
+| [weathernext-foundation](https://github.com/santyr/earthship-ui/actions/runs/39481010480/job/118829259516) | Ran 291 tests in 61.388s |
+| [OpenHAB tests (2/3)](https://github.com/santyr/earthship-ui/actions/runs/39481010480/job/118829259584) | 2304 passed, 7 skipped, 69 subtests passed in 1158.81s (0:19:18); 1 passed in 1.79s; general_pytest_exit=0 bms_aux_pytest_exit=0 |
+| [nak-authentication](https://github.com/santyr/earthship-ui/actions/runs/39481010480/job/118829259676) | 8named checks passed |
+
+The source gate includes all three OpenHAB partitions, general browser fixtures, sensor contracts plus actual disposable software/browser path, pinned no-cloud WeatherNext contracts, dedicated hosted qualification fit, receipt integrity and exact-binary delivery/authentication. Named opt-in hosted skips remain separate from native executions below; no radio/cloud/physical qualification is implied.
+
+A19 local evidence: original cold-cache regression failed1case/0.37s/exit1; the same case then passed1/0.34s. Expanded9controller +28preparer cases passed37/0.54s; related13module gate passed143/56.95s/exit0. No dedicated stdout/JUnit file was created for those focused runs; their captured tool output and curated private execution note are the evidence. Exact related command:
+
+```bash
+env PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH="$PWD/openhab/scripts:/home/sat/Solar_PV/analytics/src" /usr/bin/python3 scripts/run-household-job.py --minimum-mib 256 --preferred-mib 768 --tasks 24 --seconds 300 -- /tmp/earthship-audit-20261020-venv/bin/python -m pytest openhab/scripts/test_household_native_activation.py openhab/scripts/test_household_native_daily.py openhab/scripts/test_household_native_geometry_prepare.py openhab/scripts/test_native_serving_preparer.py openhab/scripts/test_native_serving_geometry.py openhab/scripts/test_household_native_handoff.py openhab/scripts/test_native_serving_handoff.py openhab/scripts/test_native_serving_upgrade.py openhab/scripts/test_household_native_install_composition.py openhab/scripts/test_household_native_install_lifecycle.py openhab/scripts/test_household_native_install_files.py openhab/scripts/test_household_native_preparer_enable.py openhab/scripts/test_household_native_family.py -q
+```
+
+The focused command uses the same environment/launcher with120seconds and only activation/native_serving_preparer/household_native_geometry_prepare modules. RED/singleGREEN use activation only. Host Python3.12.3/pytest9.1.1; live companion7b70117. Hosted general/BMS companion profiles remain separate as declared by the workflow.
+
+[Approved deployment](deployment.md), [fixed-route runtime readback](deployment-runtime.json), [original new-stage household replay](deployment-pipeline-proof.json) and [actual new calibrated receipt replay](deployment-calibrated-proof.json) distinguish installed source, natural execution, exact original replay and physical/statistical qualification. Independent review approved A19 and required precondition/rollback improvements to the separate deployment helper; six disposable helper fault-injection tests passed. No new actuator or score identity is inferred from these source-only helper tests.
+
+
+Fresh final-code native executions completed at1f23c67:655isolated completion cases (164.85s) plus3disjoint disposable PostgreSQL cases (23.94s),19opted-in host resource/systemd cases (29.63s),5isolated receiver characterizations (0.18s),65advertised geometry cases (1.2min), all exit0/zero skipped. [deployment-native.json](deployment-native.json) retains JUnit/test-ID/log hashes and exact profile boundaries. Commands are the full native commands above with new output prefix `/tmp/earthship-audit-deployment-1f23-`; the PostgreSQL command additionally declares existingDocker PATH `/snap/bin:/usr/local/bin:/usr/bin:/bin`. Geometry runs the exact1f23archive outside .codex with matching lock dependencies and its separate result directory. The original native-final.json remains unchanged.
+
+PR37 merge `bef677e1f9a8fe353f9b0c504ba19c48a1cc0c7a` and tested1f23c67 both have Git tree `2bb494491aceeacc551b0e6a08bc928a60b00423`. The actual new controller reader then verified the unchanged18:00Zmodel/deployment under production admission; only its exact source override changed. Installed/readback source is separate from the future18:50automatic model-handoff observation.
+
+
+## Final scheduled-learning repair and fixture isolation
+
+Exact final code: `444d7e9550a742d9662cc9bd85a68d4c5dafb8c1`, merged as `0b3f6fc0a5ec0e86cd4af65604241d9532b2f1ad`. This supersedes the earlier final-source labels only for current verification; all historical results are retained. [Source freeze](deployment-a20-source-freeze.json) binds all 1717 non-documentation files, unchanged workflow hashes and 767 discovered test-entry files with zero orphans. [Hosted evidence](deployment-a20-ci.json) includes full commands/environments, actual PR merge-checkout tree equivalence, runtime versions, job links, exits and named skips.
+
+| Workflow | Immutable run | Result |
+|---|---|---|
+| Thermal delivery qualification | [39489200788](https://github.com/santyr/earthship-ui/actions/runs/39489200788) | completed success; all jobs exit 0 |
+| Distributed sensor qualification | [39489200724](https://github.com/santyr/earthship-ui/actions/runs/39489200724) | completed success; all jobs exit 0 |
+| Forecast ML hardening | [39489200725](https://github.com/santyr/earthship-ui/actions/runs/39489200725) | completed success; all jobs exit 0 |
+| Household receipt integrity | [39489200754](https://github.com/santyr/earthship-ui/actions/runs/39489200754) | completed success; all jobs exit 0 |
+| CI | [39489200744](https://github.com/santyr/earthship-ui/actions/runs/39489200744) | completed success; all jobs exit 0 |
+
+| Gate | Completed summary |
+|---|---|
+| [encrypted-delivery](https://github.com/santyr/earthship-ui/actions/runs/39489200788/job/118857492122) | 8 named checks passed |
+| [contracts](https://github.com/santyr/earthship-ui/actions/runs/39489200724/job/118857491317) | ======================== 69 passed, 11 skipped in 1.23s ======================== |
+| [software-path](https://github.com/santyr/earthship-ui/actions/runs/39489200724/job/118857491715) | ======================== 11 passed in 82.72s (0:01:22) =========================; 2 passed (12.2s) |
+| [qualification-fit](https://github.com/santyr/earthship-ui/actions/runs/39489200725/job/118857491863) | 1 passed in 9.00s |
+| [forecast-ml](https://github.com/santyr/earthship-ui/actions/runs/39489200725/job/118857492156) | 1414 passed, 1 deselected in 763.91s (0:12:43) |
+| [receipt-integrity](https://github.com/santyr/earthship-ui/actions/runs/39489200754/job/118857491396) | 526 passed in 252.82s (0:04:12) |
+| [browser-fixtures](https://github.com/santyr/earthship-ui/actions/runs/39489200744/job/118857491613) | 71 passed (1.4m) |
+| [nak-authentication](https://github.com/santyr/earthship-ui/actions/runs/39489200744/job/118857491880) | 8 named checks passed |
+| [OpenHAB tests (2/3)](https://github.com/santyr/earthship-ui/actions/runs/39489200744/job/118857491891) | 2304 passed, 7 skipped, 69 subtests passed in 1165.86s (0:19:25); 1 passed in 1.91s; general_pytest_exit=0 bms_aux_pytest_exit=0 |
+| [OpenHAB tests (0/3)](https://github.com/santyr/earthship-ui/actions/runs/39489200744/job/118857492026) | 2162 passed, 8 skipped, 68 subtests passed in 854.47s (0:14:14); general_pytest_exit=0 bms_aux_pytest_exit=0 |
+| [test](https://github.com/santyr/earthship-ui/actions/runs/39489200744/job/118857492059) | Test Files  182 passed (182); Tests  2746 passed (2746); 558 passed, 101 skipped in 15.80s; 1396 passed, 3 skipped in 107.22s (0:01:47) |
+| [weathernext-foundation](https://github.com/santyr/earthship-ui/actions/runs/39489200744/job/118857492077) | Ran 291 tests in 65.871s |
+| [OpenHAB tests (1/3)](https://github.com/santyr/earthship-ui/actions/runs/39489200744/job/118857492225) | 2059 passed, 5 skipped, 103 subtests passed in 1051.11s (0:17:31); general_pytest_exit=0 bms_aux_pytest_exit=0 |
+
+Counts are per gate. Specialist, imported and native tests overlap and are never summed into a distinct repository total. The ML regression partition explicitly deselects the one real hosted qualification fit; its dedicated job executes that case with zero skips. Sensor contracts intentionally omit 11 container cases, all executed by software-path alongside two browser cases. Completion binary-pin and operational systemd skips are explicitly covered by the native profiles below. Other OpenHAB skips name real host-only receiver/SDK/resource dependencies in the linked job index. These tests establish neither actual Google availability nor radio, household operator receipt or physical metrology.
+
+A20 RED: seven retention regressions failed before implementation (exit 1, 0.24s); final affected PV gate passed 87 cases with no skips (exit 0, 1.02s). A21 first full candidate `6a4ab8f1c6e251bc3ca5901fd40902307620f628` failed [CI39486153706 shard0](https://github.com/santyr/earthship-ui/actions/runs/39486153706/job/118846969785): one privacy assertion failed, 2161 passed, eight skipped and 68 subtests. Two in-process PV CLI cases leaked umask077, changing a subsequent intended public directory to private. An actual ordered child-process regression reproduced that failure and the incorrect final mask before repair. Restoring the fixture caller mask and explicitly marking private test files preserved production privacy behavior; the final ordered 50-case group passed without skips (exit 0, 16.90s). That failed candidate was never merged or deployed.
+
+Exact affected commands (cwd is the isolated checkout; logs/JUnit are outside public source):
+
+```bash
+set -o pipefail
+umask 022
+env PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=/home/sat/.codex/worktrees/d4ee/earthship-ui/openhab/scripts:/home/sat/Solar_PV/analytics/src /usr/bin/python3 scripts/run-household-job.py --minimum-mib 256 --preferred-mib 768 --tasks 24 --seconds 180 -- /tmp/earthship-audit-20261020-venv/bin/python -m pytest openhab/scripts/test_pv_learning_refresh.py openhab/scripts/test_pv_pair_baseline.py openhab/scripts/test_pv_horizon_pair_baseline.py openhab/scripts/test_target_weighting.py openhab/scripts/test_weather_pv_calibration.py openhab/scripts/test_weather_directional_pv.py openhab/scripts/test_weather_pv_calibration_source.py openhab/scripts/test_pv_calibration_policy.py -q --junitxml=/tmp/earthship-a20-evidence/affected.xml 2>&1 | tee /tmp/earthship-a20-evidence/affected.log
+env PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=/home/sat/.codex/worktrees/d4ee/earthship-ui/openhab/scripts:/home/sat/Solar_PV/analytics/src /usr/bin/python3 scripts/run-household-job.py --minimum-mib 256 --preferred-mib 768 --tasks 24 --seconds 180 -- /tmp/earthship-audit-20261020-venv/bin/python -m pytest openhab/scripts/test_pv_learning_refresh.py openhab/scripts/weather_learning/tests/test_pending_scores.py tests/completion/test_verification_gates.py::test_registered_scorer_fixture_preserves_later_qualification_fit tests/completion/test_verification_gates.py::test_pv_learning_cli_fixtures_preserve_later_process_umask -q --junitxml=/tmp/earthship-a20-evidence/umask-cross-modules.xml 2>&1 | tee /tmp/earthship-a20-evidence/umask-cross-modules.log
+```
+
+Fresh final-source native profiles completed with zero failures/errors/skips and exit 0:
+
+| Profile | Result |
+|---|---|
+| completion-isolated | 656 passed, 3 deselected in 165.41s (0:02:45) |
+| completion-pg | 3 passed in 25.69s |
+| host | 19 passed in 29.89s |
+| receiver | 5 passed in 0.18s |
+| Advertised geometry | 65 passed (1.2m) |
+
+The isolated and PostgreSQL completion partitions are disjoint (659 cases). [Native evidence](deployment-a20-native.json) binds testcase/JUnit/log hashes and exact remaining argv/cwd/exit receipts. The full isolated completion command above was rerun with `OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1` before PYTHONPATH and JUnit `/tmp/earthship-audit-deployment-444d-completion-isolated.xml`. The exact remaining final commands were:
+
+```bash
+# cwd: /home/sat/.codex/worktrees/d4ee/earthship-ui
+python3 scripts/run-household-job.py --minimum-mib 256 --preferred-mib 768 --tasks 64 --seconds 300 -- /usr/bin/env PATH=/snap/bin:/usr/local/bin:/usr/bin:/bin PYTHONPATH=openhab/scripts:.ci/solar-pv/analytics/src /tmp/earthship-audit-20261020-venv/bin/python -m pytest -q -ra tests/completion/test_thermal_nip04_ledger.py::test_default_sink_preflight_then_reply_stores_real_v2_action tests/completion/test_thermal_nip04_ledger.py::test_real_v2_journal_recovers_commit_before_ack_and_preserves_original_cipher tests/completion/test_thermal_primal_backup.py::test_full_primal_bundle_restores_real_v2_journal_and_durable_delivery --junitxml=/tmp/earthship-audit-deployment-444d-completion-pg.xml
+# cwd: /home/sat/.codex/worktrees/d4ee/earthship-ui
+python3 scripts/run-household-job.py --minimum-mib 256 --preferred-mib 512 --tasks 64 --seconds 300 -- /usr/bin/env EARTHSHIP_ISOLATED_SYSTEMD_TEST=1 EARTHSHIP_RESOURCE_SMOKE=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=openhab/scripts:.ci/solar-pv/analytics/src /tmp/earthship-audit-20261020-venv/bin/python -m pytest -q -ra scripts/test_thermal_shadow_retry.py openhab/scripts/test_native_resource_admission.py openhab/scripts/test_score_production_cpu.py --junitxml=/tmp/earthship-audit-deployment-444d-host.xml
+# cwd: /home/sat/.codex/worktrees/d4ee/earthship-ui
+python3 scripts/run-household-job.py --minimum-mib 256 --preferred-mib 512 --tasks 64 --seconds 300 -- /usr/bin/env PYTHONPATH=openhab/scripts:.ci/solar-pv/analytics/src /usr/bin/python3 -m pytest -q -ra openhab/scripts/test_weather_receiver_characterization.py --junitxml=/tmp/earthship-audit-deployment-444d-receiver.xml
+# cwd: /tmp/earthship-audit-deployment-worker-444d7e9
+python3 scripts/run-household-job.py --minimum-mib 1024 --preferred-mib 2048 --tasks 128 --seconds 600 -- /usr/bin/sudo -n /usr/bin/unshare --net -- /bin/sh -c '/usr/sbin/ip link set lo up; exec /usr/bin/env -u NODE_OPTIONS PATH=/tmp/earthship-audit-node22/package/bin:/usr/local/bin:/usr/bin:/bin PLAYWRIGHT_BROWSERS_PATH=/home/sat/.cache/ms-playwright RAYON_NUM_THREADS=1 ROLLDOWN_WORKER_THREADS=1 ROLLDOWN_MAX_BLOCKING_THREADS=2 GOMAXPROCS=2 UV_THREADPOOL_SIZE=2 /tmp/earthship-audit-node22/package/bin/node /usr/local/bin/npm run test:geometry -- --workers=1 --output=/tmp/earthship-audit-deployment-444d-geometry-results'
+```
+
+Native Python/binary pins and Docker-daemon isolation limits are unchanged from the earlier explicitly described profiles. No household network relay or actuator was used. Independent source/release review covered A19/A20/A21 and the scoped installation helper. The final installed corrected PV learner passed an actual guarded import/schema/API probe and exact source/argv/env/timer/selected-byte readback without a manual fit or selection; its first natural daily execution remains separately clock-dependent.

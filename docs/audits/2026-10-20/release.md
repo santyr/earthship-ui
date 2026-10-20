@@ -2,7 +2,7 @@
 
 The owner subsequently approved merging and deployment. [Current approved rollout evidence](deployment.md) supersedes the pre-approval installation-pending statements below for the specifically recorded surfaces. The following source-release and rollback record remains historical evidence; physical/statistical qualification is still separate.
 
-Status: software scope verified complete at `8f6e9183b3cba1cdaa1310102f000e7a2db65bb2`; deployment and physical qualification are separate, pending explicit dependencies. Live dirty checkout, private configuration and immutable source packages remain untouched. Remote main begins at `65ee7e95d58e6a6101700da3eccea67c9fea0ec7`.
+Historical pre-approval source status (superseded by the approved final supplement below): software scope verified complete at `8f6e9183b3cba1cdaa1310102f000e7a2db65bb2`; deployment and physical qualification are separate, pending explicit dependencies. Live dirty checkout, private configuration and immutable source packages remain untouched. Remote main begins at `65ee7e95d58e6a6101700da3eccea67c9fea0ec7`.
 
 Changed surfaces, tested/installed hashes, scoped rollback and remaining natural owner-cycle evidence are recorded below. Software fixture success cannot commission radio hardware, qualify unknown water inventory, establish causal action effects or prove forecast skill.
 
@@ -53,7 +53,7 @@ This section supersedes the earlier progress paragraphs above. Current source ca
 
 A source merge alone would not establish deployment. A source-only numerical replacement would invalidate selected-model runtime bindings and correctly degrade/fall back; it is not the recommended rollout. Keep the installed original producer until a coordinated, explicitly authorized immutable artifact/admission handoff is prepared and verified. The retained comparisons support keeping existing selections; they do not authorize silently copying new coefficients over an old identity.
 
-## Remaining external dependencies and exact closing evidence
+## Historical pre-approval dependencies (current dispositions in deployment.md and final supplement)
 
 | Dependency | Current truthful behavior | Next action and acceptance test |
 |---|---|---|
@@ -80,3 +80,8 @@ Verified source: `8f6e9183b3cba1cdaa1310102f000e7a2db65bb2`; [source freeze](sou
 Every confirmed source finding is closed in [findings](findings.json), while C07's intentional authority boundary remains preserved. Keep existing model selections: corrected retrospective comparisons did not justify replacing incumbents under the predeclared criteria. This avoids unsupported promotion at the cost of delaying potentially useful challengers until sufficient independent evidence exists. Shared monitor deadlines/work budgets are unchanged; backlog may require additional bounded cycles. Missing historical provenance remains unknown, so otherwise useful legacy support stays diagnostic.
 
 The reviewable source/PR, compatible version boundaries, exact rollback procedures and remaining external acceptance tests are complete. Production remains unchanged: no merge, install, permission change, activation, household message or hardware stimulus was authorized or performed. The next integration action is explicit review/approval of this candidate, followed only by the named scoped source/model/package handoff. The night-load owner requires the admission-quiet cutover and ledger/policy preservation described above before its existing schedules resume.
+
+
+## Approved final deployment supplement
+
+Current code verified at `444d7e9550a742d9662cc9bd85a68d4c5dafb8c1`, integrated as `0b3f6fc0a5ec0e86cd4af65604241d9532b2f1ad`; final documentation descendants must preserve [the exact non-documentation source freeze](deployment-a20-source-freeze.json). [Current deployment](deployment.md), [all five final-source workflows](deployment-a20-ci.json), [fresh native profiles](deployment-a20-native.json) and [runtime readback](deployment-runtime.json) supersede the pre-approval, old-owner and production-unchanged statements above. The future scheduled PV selector identified during rollout is repaired: corrected candidate learning runs under explicit incumbent retention, while original model/score identities and old producers remain immutable. Weather's retained legacy training policy, new native numerical model, exact serving compatibility and future qualification limits are separately declared. No source merge is counted as deployment by itself.

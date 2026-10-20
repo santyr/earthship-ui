@@ -1,0 +1,18 @@
+{
+  "schema": "earthship-audit-deployment-source-freeze/v1",
+  "verified_source_revision": "1f23c674d03f7eb4b4100b72e2b094a4733cdc13",
+  "scope": "all tracked files except docs; documentation-only descendants preserve this digest",
+  "file_count": 1717,
+  "git_mode_type_object_path_inventory_sha256": "3abc95b1a82615774ec879fef84f2d5543ead044c1fdeeee53b20394b7909174",
+  "workflow_sha256": {
+    "ci.yml": "36623b9bd430f6b92066f7e7bab863e8b3055a0eb1d8931c28820bc44fef7ebc",
+    "forecast-ml-hardening.yml": "2426eef763a6c39b75b2cfd23ace20b2d8c524654985ea4d214f37797733129c",
+    "household-receipt-integrity.yml": "2a0617a3cc030eee97039b7f9f3e10f6e91a3bc0ec4efab7dfe17496ac6028fb",
+    "sensors.yml": "817635927b2f2e7bf796bdca8b36c8b1a9607afec1acba6e7e5b25b0c570c7bf",
+    "thermal-delivery.yml": "c0fa23359346ce1a95e03fae4f521593700bd8df58b08e1fa89b7bd269b8a794"
+  },
+  "test_entry_files": 767,
+  "orphans": [],
+  "prior_source_evidence": "source-freeze.json",
+  "private_untracked_dependencies_excluded": true
+}

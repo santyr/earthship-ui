@@ -1,0 +1,564 @@
+{
+  "schema": "earthship-approved-audit-deployment-readback/v1",
+  "checked_at": "2026-10-20T20:30:03.169761+00:00",
+  "source_repair_revision": "444d7e9550a742d9662cc9bd85a68d4c5dafb8c1",
+  "live_checkout_revision": "02e3fcbc405d6018ad01977bbd7a3fa3af5f2ea5",
+  "method": "fixed local file hashes, bounded HTTP GET, read-only systemctl; no job/control/acquisition invocation",
+  "files": [
+    {
+      "surface": "frontend",
+      "file": "package-lock.json",
+      "sha256": "35c941310fa1036b091d40e2840db925233e36c0c9826ad39e26d436ef11774b",
+      "exact_installed": true
+    },
+    {
+      "surface": "frontend",
+      "file": "package.json",
+      "sha256": "47bb0e9c5c1dcc08a3a3d5ec4c17dd36c42cff3ceab880a53b9f917a57097b13",
+      "exact_installed": true
+    },
+    {
+      "surface": "frontend",
+      "file": "App.svelte",
+      "sha256": "565ccb43e4b81b27c5ba38106a5873bad92a77c82dedf34424cab699b0f6b45f",
+      "exact_installed": true
+    },
+    {
+      "surface": "frontend",
+      "file": "config.js",
+      "sha256": "da28bdb7d3dca3788a54ac8fd519e2b3513298daf258558d546add4e4db05a51",
+      "exact_installed": true
+    },
+    {
+      "surface": "frontend",
+      "file": "controlState.js",
+      "sha256": "32319205a1ed236e09f98e6a07e66e445edf550ea206eef8e5b2d1eff44f5f6f",
+      "exact_installed": true
+    },
+    {
+      "surface": "frontend",
+      "file": "qualification.js",
+      "sha256": "826e1e75f4c5be96adcaa3c8dd8109a7439588b26687219128ffea8229e5a134",
+      "exact_installed": true
+    },
+    {
+      "surface": "frontend",
+      "file": "client.js",
+      "sha256": "2551234367db218617c6752d43b735d06b4462e926b195410d7d06d5ed1b340d",
+      "exact_installed": true
+    },
+    {
+      "surface": "frontend",
+      "file": "index.js",
+      "sha256": "b695a87ac1e64b9980a9c721d3846f5249822fe0f435cc86e85e743edcf7f978",
+      "exact_installed": true
+    },
+    {
+      "surface": "frontend",
+      "file": "readRequest.js",
+      "sha256": "0fdf6276944da07b09d4d70b72af25070c16f42ef9aed299b4770c64ac14ff4a",
+      "exact_installed": true
+    },
+    {
+      "surface": "frontend",
+      "file": "sse.js",
+      "sha256": "81d5583c6f057f4d60c4c66f61c50347dce21dafa71043a004aad36b648cf44b",
+      "exact_installed": true
+    },
+    {
+      "surface": "frontend",
+      "file": "store.js",
+      "sha256": "e7b5e2fcb939ccafa539c64f52fc300becaa8929bd5c941559905f7e058e4c45",
+      "exact_installed": true
+    },
+    {
+      "surface": "frontend",
+      "file": "ThermalModelCard.svelte",
+      "sha256": "c7f3ebbcfbe5d1ff85b0f6a154cc1364149978ccdc171ee625b823489fe88af9",
+      "exact_installed": true
+    },
+    {
+      "surface": "frontend",
+      "file": "Energy.svelte",
+      "sha256": "a4280c2af99e199f99a61865ae89c31803857265b4b2503eb3128e6a30253e07",
+      "exact_installed": true
+    },
+    {
+      "surface": "frontend",
+      "file": "Home.svelte",
+      "sha256": "9ac91909839b0dde24cd9ad2dbff03a6f8a9e9b2ea128e6d2368f2bec0c1a543",
+      "exact_installed": true
+    },
+    {
+      "surface": "frontend",
+      "file": "Shades.svelte",
+      "sha256": "77357bf26df8cc6985488517acaaedc857800a18e9a63a522c07cfc719ee9140",
+      "exact_installed": true
+    },
+    {
+      "surface": "weather_compatibility",
+      "file": "audit-shadow-compat-20261020.env",
+      "sha256": "12324be55304f2591ef5ba3b139c87cf666a505942e44ca8383084cc0ba4be34",
+      "exact_installed": true
+    },
+    {
+      "surface": "weather_compatibility",
+      "file": "zzz-audit-shadow-compat.conf",
+      "sha256": "0eb83a46f6595a3e796f5a09ad6c072b6463420bb560426b180e6ded89ad5824",
+      "exact_installed": true
+    },
+    {
+      "surface": "weather_compatibility",
+      "file": "audit-trainer-compat-20261020.env",
+      "sha256": "488d42dcd709db03bae45e7a89f11a90b6ee8f083762059fd5afeb65a15ec2ba",
+      "exact_installed": true
+    },
+    {
+      "surface": "weather_compatibility",
+      "file": "zzz-audit-trainer-compat.conf",
+      "sha256": "4c48ddbc4e2bc4f35641e69c3ef20ea24f46bce981cbc7086f593d5a76ccae41",
+      "exact_installed": true
+    },
+    {
+      "surface": "pv_serving",
+      "file": "audit-daily-pv-potential-20261020.env",
+      "sha256": "53f30930e7866b194f6156064d00acd20342024d5bad561a14fd5abbdd067812",
+      "exact_installed": true
+    },
+    {
+      "surface": "pv_serving",
+      "file": "95-audit-writer-source.conf",
+      "sha256": "e71669608e29b340aed1535e7bc809ff4d00b8ce3fe4167cfef219b84de2e430",
+      "exact_installed": true
+    },
+    {
+      "surface": "pv_serving",
+      "file": "audit-household-calibrated-energy-20261020.env",
+      "sha256": "c3e3325783add9f3d1bfebdb3de9899f5b27275f66602f156888d3d12fa04e06",
+      "exact_installed": true
+    },
+    {
+      "surface": "pv_serving",
+      "file": "95-audit-writer-source.conf",
+      "sha256": "7fd4286b6dd5648c732e5e5cae6a967283cd0b82f8dcd73a89241a78761e4825",
+      "exact_installed": true
+    },
+    {
+      "surface": "scorers",
+      "file": "daily-pv-score-audit-20261020.env",
+      "sha256": "e4d099aaa45dd51144665fec5282b0fb3a81e4009c0d751410fc6beaa8d28df2",
+      "exact_installed": true
+    },
+    {
+      "surface": "scorers",
+      "file": "90-audit-source.conf",
+      "sha256": "34c4ceaf7410ecc6960432985aa955cadf1197a90d19e47813649e52c44d958b",
+      "exact_installed": true
+    },
+    {
+      "surface": "scorers",
+      "file": "calibrated-score-audit-20261020.env",
+      "sha256": "11b28e409cf7a88e1919d8e26b643896fe00b559ffa342ac3bd13c1dfec22a68",
+      "exact_installed": true
+    },
+    {
+      "surface": "scorers",
+      "file": "90-audit-source.conf",
+      "sha256": "f13ddc3aeef6b56231181b9fcc6dbc39cd104ad14e865d6f8a62c31b1550564f",
+      "exact_installed": true
+    }
+  ],
+  "compatibility_packages": [
+    {
+      "role": "weather-provenance-compat-20261020",
+      "source_revision": "5c0e16df32756b45f2489434d819d431cb7ee3ac",
+      "committed_and_remote_exact": true,
+      "root_not_group_or_world_writable": true
+    },
+    {
+      "role": "weather-training-reader-compat-20261020",
+      "source_revision": "85e80137adc731d1728c8e5b00a125e5cf6837aa",
+      "committed_and_remote_exact": true,
+      "root_not_group_or_world_writable": true
+    },
+    {
+      "role": "pv-serving-compat-20261020",
+      "source_revision": "a85da5e376bcb5285fcaeeb0496052dbef7a204f",
+      "committed_and_remote_exact": true,
+      "root_not_group_or_world_writable": true
+    }
+  ],
+  "weather_selected_original_files_unchanged": true,
+  "pv_selected_original_file_sha256": "6192f8fc407d57d99e916c7fb7ff9d23aaaad8071820155e77536b32d4a5f2ee",
+  "calibrated_producer_registry": {
+    "roots": 6,
+    "previous_roots": 5,
+    "all_previous_preserved": true,
+    "originals_and_new_receipts_retained": true
+  },
+  "live_checkout_preservation": {
+    "schema": "earthship-audit-live-checkout-preservation/v1",
+    "original_tracked_files_checked": 1128,
+    "authorized_frontend_files_changed": 15,
+    "authorized_frontend_file_modes_changed": [
+      {
+        "path": "package-lock.json",
+        "before": "0o664",
+        "after": "0o644"
+      },
+      {
+        "path": "package.json",
+        "before": "0o664",
+        "after": "0o644"
+      },
+      {
+        "path": "src/App.svelte",
+        "before": "0o664",
+        "after": "0o644"
+      },
+      {
+        "path": "src/lib/config.js",
+        "before": "0o664",
+        "after": "0o644"
+      },
+      {
+        "path": "src/lib/controls/controlState.js",
+        "before": "0o664",
+        "after": "0o644"
+      },
+      {
+        "path": "src/lib/openhab/client.js",
+        "before": "0o664",
+        "after": "0o644"
+      },
+      {
+        "path": "src/lib/openhab/index.js",
+        "before": "0o664",
+        "after": "0o644"
+      },
+      {
+        "path": "src/screens/Energy.svelte",
+        "before": "0o664",
+        "after": "0o644"
+      }
+    ],
+    "unexpected_byte_or_mode_changes": 0,
+    "live_head": "02e3fcbc405d6018ad01977bbd7a3fa3af5f2ea5",
+    "private_original_snapshot_retained": true
+  },
+  "browser": {
+    "checked_at": "2026-10-20T18:37:59.884Z",
+    "routes_and_viewports": 12,
+    "page_errors": 0,
+    "mutation_attempts": 0,
+    "external_requests": 0,
+    "outer_overflow": 0
+  },
+  "post_publication_browser": {
+    "checked_at": "2026-10-20T19:47:14.863Z",
+    "routes_and_viewports": 4,
+    "page_errors": 0,
+    "mutation_attempts": 0,
+    "external_requests": 0,
+    "outer_overflow": 0
+  },
+  "shared_pool": {
+    "CPUQuotaPerSecUSec": "8s",
+    "MemoryHigh": "5368709120",
+    "MemoryMax": "6442450944",
+    "MemorySwapMax": "0",
+    "TasksMax": "256"
+  },
+  "units": {
+    "earthship-ui.service": {
+      "Result": "success",
+      "ExecMainStartTimestamp": "Tue 2026-10-20 12:37:11 MDT",
+      "ExecMainExitTimestamp": "",
+      "ExecMainStatus": "0",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "local-forecast-shadow.service": {
+      "Result": "success",
+      "ExecMainStartTimestamp": "Tue 2026-10-20 13:44:04 MDT",
+      "ExecMainExitTimestamp": "Tue 2026-10-20 13:44:07 MDT",
+      "ExecMainStatus": "0",
+      "ActiveState": "inactive",
+      "SubState": "dead"
+    },
+    "local-forecast-train.service": {
+      "Result": "success",
+      "ExecMainStartTimestamp": "Tue 2026-10-20 06:59:31 MDT",
+      "ExecMainExitTimestamp": "Tue 2026-10-20 07:02:08 MDT",
+      "ExecMainStatus": "0",
+      "ActiveState": "inactive",
+      "SubState": "dead"
+    },
+    "weathernext-evaluate.service": {
+      "Result": "success",
+      "ExecMainStartTimestamp": "Tue 2026-10-20 13:52:25 MDT",
+      "ExecMainExitTimestamp": "Tue 2026-10-20 13:52:31 MDT",
+      "ExecMainStatus": "0",
+      "ActiveState": "inactive",
+      "SubState": "dead"
+    },
+    "thermal-native-daily.service": {
+      "Result": "success",
+      "ExecMainStartTimestamp": "Tue 2026-10-20 12:50:00 MDT",
+      "ExecMainExitTimestamp": "Tue 2026-10-20 12:50:01 MDT",
+      "ExecMainStatus": "0",
+      "ActiveState": "inactive",
+      "SubState": "dead"
+    },
+    "thermal-provisional-forecast.service": {
+      "Result": "success",
+      "ExecMainStartTimestamp": "Tue 2026-10-20 14:29:45 MDT",
+      "ExecMainExitTimestamp": "",
+      "ExecMainStatus": "0",
+      "ActiveState": "activating",
+      "SubState": "start"
+    },
+    "thermal-provisional-score.service": {
+      "Result": "success",
+      "ExecMainStartTimestamp": "Tue 2026-10-20 14:28:20 MDT",
+      "ExecMainExitTimestamp": "Tue 2026-10-20 14:28:30 MDT",
+      "ExecMainStatus": "0",
+      "ActiveState": "inactive",
+      "SubState": "dead"
+    },
+    "household-calibrated-energy.service": {
+      "Result": "success",
+      "ExecMainStartTimestamp": "Tue 2026-10-20 14:25:36 MDT",
+      "ExecMainExitTimestamp": "Tue 2026-10-20 14:25:39 MDT",
+      "ExecMainStatus": "0",
+      "ActiveState": "inactive",
+      "SubState": "dead"
+    },
+    "household-calibrated-score.service": {
+      "Result": "success",
+      "ExecMainStartTimestamp": "Tue 2026-10-20 14:26:00 MDT",
+      "ExecMainExitTimestamp": "Tue 2026-10-20 14:26:05 MDT",
+      "ExecMainStatus": "0",
+      "ActiveState": "inactive",
+      "SubState": "dead"
+    },
+    "daily-pv-potential.service": {
+      "Result": "success",
+      "ExecMainStartTimestamp": "Tue 2026-10-20 13:46:02 MDT",
+      "ExecMainExitTimestamp": "Tue 2026-10-20 13:46:04 MDT",
+      "ExecMainStatus": "0",
+      "ActiveState": "inactive",
+      "SubState": "dead"
+    },
+    "daily-pv-score.service": {
+      "Result": "success",
+      "ExecMainStartTimestamp": "Tue 2026-10-20 13:55:13 MDT",
+      "ExecMainExitTimestamp": "Tue 2026-10-20 13:55:14 MDT",
+      "ExecMainStatus": "0",
+      "ActiveState": "inactive",
+      "SubState": "dead"
+    },
+    "pv-calibration-train.service": {
+      "Result": "success",
+      "ExecMainStartTimestamp": "Tue 2026-10-20 07:16:01 MDT",
+      "ExecMainExitTimestamp": "Tue 2026-10-20 07:18:02 MDT",
+      "ExecMainStatus": "0",
+      "ActiveState": "inactive",
+      "SubState": "dead"
+    }
+  },
+  "ui_running_after_dependency_install": true,
+  "timers": {
+    "local-forecast-shadow.timer": {
+      "NextElapseUSecRealtime": "Tue 2026-10-20 14:44:14 MDT",
+      "ActiveState": "active",
+      "SubState": "waiting"
+    },
+    "local-forecast-train.timer": {
+      "NextElapseUSecRealtime": "Wed 2026-10-21 06:35:44 MDT",
+      "ActiveState": "active",
+      "SubState": "waiting"
+    },
+    "weathernext-evaluate.timer": {
+      "NextElapseUSecRealtime": "Tue 2026-10-20 14:52:27 MDT",
+      "ActiveState": "active",
+      "SubState": "waiting"
+    },
+    "thermal-native-six-hourly.timer": {
+      "NextElapseUSecRealtime": "Tue 2026-10-20 18:50:00 MDT",
+      "ActiveState": "active",
+      "SubState": "waiting"
+    },
+    "thermal-native-geometry-prepare.timer": {
+      "NextElapseUSecRealtime": "Tue 2026-10-20 14:33:05 MDT",
+      "ActiveState": "active",
+      "SubState": "waiting"
+    },
+    "thermal-provisional-forecast.timer": {
+      "NextElapseUSecRealtime": "",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "thermal-provisional-score.timer": {
+      "NextElapseUSecRealtime": "Tue 2026-10-20 14:31:00 MDT",
+      "ActiveState": "active",
+      "SubState": "waiting"
+    },
+    "household-calibrated-score.timer": {
+      "NextElapseUSecRealtime": "Tue 2026-10-20 14:30:52 MDT",
+      "ActiveState": "active",
+      "SubState": "waiting"
+    },
+    "daily-pv-potential.timer": {
+      "NextElapseUSecRealtime": "Tue 2026-10-20 14:46:05 MDT",
+      "ActiveState": "active",
+      "SubState": "waiting"
+    },
+    "daily-pv-score.timer": {
+      "NextElapseUSecRealtime": "Tue 2026-10-20 14:55:11 MDT",
+      "ActiveState": "active",
+      "SubState": "waiting"
+    },
+    "pv-calibration-train.timer": {
+      "NextElapseUSecRealtime": "Wed 2026-10-21 07:15:08 MDT",
+      "ActiveState": "active",
+      "SubState": "waiting"
+    }
+  },
+  "public_reports": {
+    "household-observation": {
+      "schema": "earthship-household-observation/v4",
+      "confidence": "unavailable",
+      "http_status": 200,
+      "response_sha256": "e7491d86cef4c7d8c1a969e3655a17051abfc98fe6f626849504dd3758a6a134"
+    },
+    "household-energy-observation": {
+      "schema": "earthship-household-energy-observation/v1",
+      "status": "available",
+      "confidence": "provisional_uncalibrated",
+      "http_status": 200,
+      "response_sha256": "e544ca23a46b3774e5770a5b165c6fed6f6497c9b7ac2b162d6ad35972716f0c"
+    },
+    "household-calibrated-energy-observation": {
+      "schema": "earthship-household-calibrated-energy-observation/v3",
+      "status": "projected_provisional_calibrated_potential",
+      "confidence": "provisional_empirical_short_horizon",
+      "http_status": 200,
+      "response_sha256": "f6b153fb7c44ed5220e252adc0680b2e678413abdc361ba56b89f93f9b93022b"
+    },
+    "household-calibrated-energy-performance": {
+      "schema": "earthship-household-calibrated-energy-performance/v2",
+      "http_status": 200,
+      "response_sha256": "0cae33f7df2db00b63326df1969702baa7c2778a1b4d6aef815c15f95eac2bce"
+    },
+    "daily-pv-potential": {
+      "schema": "earthship-daily-pv-potential/v3",
+      "generatedAt": "2026-10-20T19:46:02.876868+00:00",
+      "validUntil": "2026-10-20T21:16:02.876868+00:00",
+      "confidence": "provisional_empirical_supported_horizon",
+      "http_status": 200,
+      "response_sha256": "bfadf28e2a3806a48d20a8374af6881ae459e0b1b115a9de576a9a558529494e"
+    },
+    "daily-pv-performance": {
+      "schema": "earthship-pv-potential-performance/v1",
+      "status": "scored",
+      "http_status": 200,
+      "response_sha256": "bed46dbbad3dc20369ac5f71542143cbd621070d5cdf2bc610aa098ace02a202"
+    }
+  },
+  "weather_monitor": {
+    "performance_schema": "earthship-weathernext-weather-performance/v2",
+    "pending_bytes": 307200,
+    "correction_bytes": 294912
+  },
+  "daily_pv": {
+    "generated_at": "2026-10-20T19:46:02.876868+00:00",
+    "schema": "earthship-daily-pv-potential/v3",
+    "receipt_sha256": "9bb30ff68ddb60b1d485f2993d7158b55e593ea7bb406684f76328cac0d2a3b3",
+    "runtime_files": 8,
+    "runtime_matches_installed_compatibility": true,
+    "selected_model_sha256": "f7ed8273c8ee8c2e5c07961165659fe803fa318a1ec55bdebb1ae2078428ad83",
+    "physical_qualification": false,
+    "automatic_actuation": false
+  },
+  "native_controller": {
+    "source_revision": "bef677e1f9a8fe353f9b0c504ba19c48a1cc0c7a",
+    "controller_source_sha256": "e57703ff0f7ceef86832935e0b09973ae08f0e2734a1b19b41ecb36018c75c24",
+    "installed_at": "2026-10-20T19:31:57.944616+00:00",
+    "preparation_complete": true,
+    "no_model_activation": true,
+    "current_deployment_sha256": "8d639bd736e74b90b5216b58b5e16789f1ad9756d3eca75a4151a85097ea8938"
+  },
+  "pv_learning": {
+    "source_revision": "0b3f6fc0a5ec0e86cd4af65604241d9532b2f1ad",
+    "repair_commit": "444d7e9550a742d9662cc9bd85a68d4c5dafb8c1",
+    "installed_at": "2026-10-20T20:29:58.588907+00:00",
+    "preparation_complete": true,
+    "selection_policy": "retain_existing_original_never_promote",
+    "service_start_requested": false,
+    "automatic_actuation": false,
+    "selected_original_sha256": "6192f8fc407d57d99e916c7fb7ff9d23aaaad8071820155e77536b32d4a5f2ee",
+    "source_files_verified": 7,
+    "env_and_dropin_verified": true,
+    "effective_command_verified": true,
+    "resource_profile": {
+      "minimum_mib": 512,
+      "preferred_mib": 2048,
+      "tasks": 48,
+      "seconds": 900
+    },
+    "natural_first_execution_observed": false,
+    "next_acceptance": "Next natural Oct21~07:16Denver job completes corrected candidate generation, retains selected original bytes, reports promotion_permitted=false without clock renewal."
+  },
+  "owners": {
+    "night-load": {
+      "installed_source_sha256": "fb41b43161fb6a69e55199d02d15c9f2645d76ddd61d4b327f8a06c3f366373e",
+      "candidate_source_sha256": "fb41b43161fb6a69e55199d02d15c9f2645d76ddd61d4b327f8a06c3f366373e",
+      "candidate_exact": true,
+      "status": {
+        "status": "IDLE",
+        "statusDetail": "NONE"
+      }
+    },
+    "greywater": {
+      "installed_source_sha256": "4c34780e544d80af8eb36d047a949fa30e0198bb50fa57650285052db3c52d9b",
+      "candidate_source_sha256": "4c34780e544d80af8eb36d047a949fa30e0198bb50fa57650285052db3c52d9b",
+      "candidate_exact": true,
+      "status": {
+        "status": "IDLE",
+        "statusDetail": "NONE"
+      }
+    },
+    "feeder": {
+      "installed_source_sha256": "730053e0f3245cb83461e3fe6e3b05d49c8b508631e8cdb4a889c8be8d915978",
+      "candidate_source_sha256": "730053e0f3245cb83461e3fe6e3b05d49c8b508631e8cdb4a889c8be8d915978",
+      "candidate_exact": true,
+      "status": {
+        "status": "IDLE",
+        "statusDetail": "NONE"
+      }
+    }
+  },
+  "owner_readback_at": "2026-10-20T20:14:04.116349+00:00",
+  "things": {
+    "count": 84,
+    "retired_provider_matches": 0
+  },
+  "sensor_ingester": {
+    "readback_completed_before": "2026-10-20T20:14:04Z",
+    "exact_source_acquisition_time_retained": false,
+    "method": "fixed privileged rollout helper verify completed immediately before timestamped owner readback; zero mutations",
+    "source_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+    "image_id": "sha256:d7734141f83feccf25ed3bd6cf40086bb7882bd045a9568b3b431dd4db2f220e",
+    "status": "healthy_software_only",
+    "registry_devices": 0,
+    "journal_counts": {
+      "observations": 0,
+      "raw_events": 0,
+      "seen": 0,
+      "states": 0
+    },
+    "hardware_qualified": false
+  },
+  "remaining_qualification": "later current-model outcomes, actual next repaired fit handoff, daily corrected PV candidate learner and retained-policy weather trainer, scheduled policy transitions, radio/physical metrology/operator receipt; see deployment.md"
+}
