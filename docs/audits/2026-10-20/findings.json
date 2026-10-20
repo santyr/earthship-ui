@@ -194,7 +194,7 @@
         "Original shared-baseline tests7failed/2passed; old-dataset gate1failed/10passed; exact-unit1failed/11passed."
       ],
       "root_cause": "Duplicated interval arithmetic and rounded wind-unit conversion; old pair dataset could be reused for a newly sourced model.",
-      "repair_commit": "c53fbcc",
+      "repair_commit": "c53fbcc; 5094cdf",
       "regression_evidence": [
         "Combined numerical gate103passed.16complete live projections exactly equal original serving implementation.737retained pairs rebuilt from55verified Google sources/29verified geometry series;671baselines changed, meanabs5.836047893W/max59.088710966W. Same124-pair/5day development split still selects corrected model; no new prospective skill claimed.",
         "Horizon follow-through7numeric failures before shared-helper repair;147affectedPVtests passed/0skips1.38s. Exact4692horizon+161olderpairs rebuilt; newv2datasets only; qualification.md/model-reassessment.json."
@@ -527,7 +527,7 @@
         "See native regressions and consolidated model-evaluation-spec.md; C05/A07 and C06/A08 share prior repair evidence."
       ],
       "root_cause": "See associated native regression and consolidated phase mapping.",
-      "repair_commit": "c53fbcc",
+      "repair_commit": "c53fbcc; 5094cdf",
       "regression_evidence": [
         "Horizon follow-through7numeric failures before shared-helper repair;147affectedPVtests passed/0skips1.38s. Exact4692horizon+161olderpairs rebuilt; newv2datasets only; qualification.md/model-reassessment.json."
       ],
@@ -616,7 +616,8 @@
       "root_cause": "Original reads occurred before durable failure/cursor handling; the real transport exception was outside the handler.",
       "repair_commit": "e6b4997",
       "regression_evidence": [
-        "four missing/corrupt intake/due regressions and actual proxy transport outage RED\u2192GREEN; focused correction/wind/monitor/worker55passed,11.48s,exit0"
+        "four missing/corrupt intake/due regressions and actual proxy transport outage RED\u2192GREEN; focused correction/wind/monitor/worker55passed,11.48s,exit0",
+        "Future-original intake also reproduced independent-work starvation; durable not-yet-available retry and cursor progression fixed it. Complete affected suite56passed11.68s,exit0."
       ],
       "status": "fixed_focused_verified_not_deployed",
       "severity_reason": "Functional/analytical correctness or verification defect with reproduced source/fixture impact; no demonstrated immediate safety, credential or durable-data incident.",
@@ -690,6 +691,6 @@
       "deployment_status": "candidate_not_installed"
     }
   ],
-  "current_source_candidate": "e6b4997",
+  "current_source_candidate": "5094cdf plus final future-original intake regression/repair",
   "final_integrated_verification": "pending final source freeze and gates; verification.md is authoritative"
 }

@@ -130,7 +130,12 @@ class CorrectionStore:
                     if seq>after:
                         after=seq;db.execute('INSERT OR REPLACE INTO cursors VALUES(?,?)',('intake:'+scope,str(after)))
                 continue
-            if instant(original['completed_at'])>now:break
+            if instant(original['completed_at'])>now:
+                with self.connect() as db:
+                    db.execute('INSERT OR REPLACE INTO intake_failures VALUES(?,?,?,?,?)',(scope,name,seq,original['completed_at'],'original_not_yet_available'))
+                    if seq>after:
+                        after=seq;db.execute('INSERT OR REPLACE INTO cursors VALUES(?,?)',('intake:'+scope,str(after)))
+                continue
             with self.connect() as db:
                 first=db.execute('SELECT name FROM originals WHERE kind=? AND day=? ORDER BY sequence LIMIT 1',(kind,day)).fetchone()[0]
                 if kind!='irradiance_w_m2' or first==name:

@@ -143,3 +143,6 @@ python3 scripts/run-household-job.py --minimum-mib 256 --preferred-mib 768 --tas
 ```
 
 The shared calibration/horizon datasets now require explicitv2 baseline identity; oldv1 originals stay original-only. Exact retained-source horizon/legacy reconstruction and discontinuity metrics are in qualification/model-reassessment. All131retained original files checked unchanged; no selected pointer or production source changed.
+
+
+Future-original boundary: a source completed in the future initially blocked later indexed mature work (`states={}` versus expectedcompleted1). New native regression failed before the fix; durable not-yet-available intake retry/cursor progression preserves the future original and lets independent work complete. Full affected correction/wind/monitor/worker group **56passed,11.68s,exit0**. Test ownership now maps766entry files plus explicit standalone crypto gates, with per-test-file SHA256 and no orphan. Final integrated source gates still required.

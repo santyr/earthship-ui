@@ -330,3 +330,18 @@ def test_many_source_cohorts_have_explicit_bounded_public_projection(tmp_path):
     assert len(canonical(report))<=64*1024
     assert report['projection_coverage']['artifact_cohorts_omitted']+report['projection_coverage']['procedure_cohorts_omitted']>0
     assert report['states']['completed']==16
+
+
+def test_future_original_waits_without_blocking_later_indexed_mature_work(tmp_path):
+    from weather_learning.correction_monitor import CorrectionStore,monitor_corrections
+    s=state(tmp_path);store=CorrectionStore(s);future=issue()
+    future['issued_at']=(NOW+timedelta(days=1)).isoformat();future['completed_at']=(NOW+timedelta(days=1,seconds=30)).isoformat()
+    future['targets']=[dict(start=(NOW+timedelta(days=1,hours=1)).isoformat(),end=(NOW+timedelta(days=1,hours=2)).isoformat(),raw=10.,corrected=8.,regime='all')]
+    future['issue_sha256']=identity({k:v for k,v in future.items() if k!='issue_sha256'});store.retain(future);store.retain(issue('irradiance_w_m2'))
+    kwargs=dict(observation_policy_sha256='f'*64,read_wind=outcome,read_solar=outcome,apply=True,limit=8)
+    report=monitor_corrections(s,now=NOW+timedelta(hours=3),**kwargs)
+    assert report['states']=={'completed':1}
+    assert report['intake_dependencies']=={'original_not_yet_available':1}
+    later=monitor_corrections(s,now=NOW+timedelta(days=1,hours=3),**kwargs)
+    assert later['states']=={'completed':2}
+    assert later['intake_dependencies']=={}
