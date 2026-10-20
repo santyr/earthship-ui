@@ -182,3 +182,15 @@ def test_actionlint_validates_workflows_and_rejects_job_level_runner_context(tmp
         capture_output=True,text=True,timeout=30)
     assert rejected.returncode!=0
     assert 'context "runner" is not allowed here' in rejected.stdout+rejected.stderr
+
+
+def test_registered_scorer_fixture_preserves_later_qualification_fit(tmp_path):
+    sentinel=tmp_path/'test_fit_environment_sentinel.py'
+    sentinel.write_text("import os\ndef test_fit_gate_remains_enabled():\n    assert os.environ.get('EARTHSHIP_REMOTE_QUALIFICATION_FIT') == '1'\n    assert os.environ.get('EARTHSHIP_QUALIFICATION_FIT') == '1'\n")
+    env={**os.environ,'EARTHSHIP_REMOTE_QUALIFICATION_FIT':'1',
+         'EARTHSHIP_QUALIFICATION_FIT':'1',
+         'PYTHONPATH':str(ROOT/'openhab/scripts')+os.pathsep+os.environ.get('PYTHONPATH','')}
+    result=subprocess.run([sys.executable,'-m','pytest','-q','-p','no:cacheprovider',
+        str(ROOT/'openhab/scripts/test_installed_registered_score_cli.py'),str(sentinel)],
+        cwd=ROOT,env=env,capture_output=True,text=True,timeout=30)
+    assert result.returncode==0,result.stdout+result.stderr

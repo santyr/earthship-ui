@@ -146,3 +146,13 @@ The shared calibration/horizon datasets now require explicitv2 baseline identity
 
 
 Future-original boundary: a source completed in the future initially blocked later indexed mature work (`states={}` versus expectedcompleted1). New native regression failed before the fix; durable not-yet-available intake retry/cursor progression preserves the future original and lets independent work complete. Full affected correction/wind/monitor/worker group **56passed,11.68s,exit0**. Test ownership now maps766entry files plus explicit standalone crypto gates, with per-test-file SHA256 and no orphan. Final integrated source gates still required.
+
+
+At final source `96247d26494c553e7debba065a0263d6b9fcae97`, the advertised geometry gate completed65tests/1.2min/exit0. Existing isolated user-systemd retry fixture `EARTHSHIP_ISOLATED_SYSTEMD_TEST=1 python -m pytest -q -ra scripts/test_thermal_shadow_retry.py --junitxml=/tmp/earthship-audit-final-systemd.xml` completed **3passed,28.70s,exit0**, with only UUID-scoped transient counter workers and cleanup verified by the fixture; no household callback or credential was used. The general CI's three intentional systemd skips are covered by this separate native profile.
+
+
+## Final skip-accounting repair — A18
+
+All five required workflows finished successfully at96247d26494c553e7debba065a0263d6b9fcae97, including three OpenHAB shards. Final skip review nevertheless found the explicitly enabled ML qualification fit silently skipped. Source-order reconstruction from all1415 progress markers and matching collection identifies `test_thermal_fit_evidence.py::test_real_qualification_fit_is_exercised_only_on_the_hosted_runner`. Registered scorer CLI fixtures leaked the standalone scorer's intentional fit-disable environment. New normal completion regression runs all11 registered cases then an enabled-fit sentinel: before fix1failed/11passed internally and parent1failed; after fixture-only restoration the complete verification-gate/registered-scorer group passed23/12.44s/exit0. Production scorer policy unchanged.
+
+Command: `python3 scripts/run-household-job.py --minimum-mib 256 --preferred-mib 768 --tasks 64 --seconds 300 -- /usr/bin/env PATH=/tmp/earthship-actionlint/bin:/tmp/earthship-shellcheck/usr/bin:/usr/local/bin:/usr/bin:/bin PYTHONPATH=openhab/scripts:.ci/solar-pv/analytics/src:.ci/solar-pv/analytics/tests /tmp/earthship-audit-20261020-venv/bin/python -m pytest -q -ra tests/completion/test_verification_gates.py openhab/scripts/test_installed_registered_score_cli.py`. Final integrated workflows are rerun for this test-isolation repair;96247 is not the final source claim.
