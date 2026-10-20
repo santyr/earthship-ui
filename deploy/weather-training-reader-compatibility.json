@@ -1,0 +1,29 @@
+{
+  "base_revision": "3f5d8cbdbe84b6d470a5f7ab91b64789742fa836",
+  "deployment_identity": "Create actual dedicated runtime commit and pass its commit SHA as code_revision. Do not label this as new weighted training deployment.",
+  "numerical_sources_preserved": [
+    "site_calibration.py",
+    "weather_response.py",
+    "training.py",
+    "training_cache.py",
+    "irradiance_learning.py"
+  ],
+  "qualification_changed": false,
+  "reader_dependencies": {
+    "openhab/scripts/weather_learning/provenance.py": {
+      "sha256": "057272c18d074bf3823d3faa20a379103b2cd4690c46cca8c5f876dc9730e6ec",
+      "source_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f"
+    },
+    "openhab/scripts/weather_learning/shadow.py": {
+      "sha256": "953d84012ab0bff393feb7fac5b785f4378a3446ec230c7d5af6190081cb3466",
+      "source_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f"
+    },
+    "openhab/scripts/weather_learning/weights.py": {
+      "sha256": "a9e8cc3546f18ba7b163a63d8aba663c50deb329860b192843f15ec9c29fc270",
+      "source_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f"
+    }
+  },
+  "schema": "earthship-weather-training-reader-overlay/v1",
+  "scope": "Original numerical fitting/selection/thermal admission unchanged; current v2/v3 issue reader and v1/v2 model-receipt compatibility with honest new training-request provenance",
+  "weights_execution": "weights.py is retained for declared dependency/source identity; original fitting functions remain unchanged and use legacy uniform-forecast-pair weighting"
+}
