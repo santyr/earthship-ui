@@ -10,6 +10,7 @@ from .features import temperature_targets,local_temperature_outcome,training_pai
 from .publish import seal_payload,validate_payload,publish_bundle
 from .training import fit_bias,fit_residual,validate_artifact,TemperaturePredictor
 from .worker import collector_lock
+from .provenance import issue_provenance,validate_provenance,validate_training_policy,native_training_policy,validate_issue_provenance,validate_model_training_policy
 
 # One original decision per local date; fixed native-hour offsets chosen before
 # outcomes. At most 40 targets/day, never more than the model's 20,000-pair bound.
@@ -40,7 +41,9 @@ class ShadowStore:
         _directory(self.root)
         for name in ('models','issues','weather-outcomes'):_directory(self.root/name)
         self.db=self.root/'issues.sqlite3'
-        with self._connect() as db:db.execute('CREATE TABLE IF NOT EXISTS issues (digest TEXT PRIMARY KEY, issued TEXT, completed TEXT, local_day TEXT, epoch TEXT)')
+        with self._connect() as db:
+            db.execute('CREATE TABLE IF NOT EXISTS issues (digest TEXT PRIMARY KEY, issued TEXT, completed TEXT, local_day TEXT, epoch TEXT)')
+            db.execute('CREATE INDEX IF NOT EXISTS issues_daily ON issues(epoch,local_day,issued,digest)')
         os.chmod(self.db,0o600)
 
     @contextmanager
@@ -73,10 +76,13 @@ class ShadowStore:
             try:os.unlink(temporary)
             except FileNotFoundError:pass
 
-    def install_model(self,model,*,fitted_at):
+    def install_model(self,model,*,fitted_at,training_policy=None):
         validate_artifact(model);fitted_at=utc(fitted_at)
         if instant(model['cutoff'])>fitted_at:raise ValueError('fitting completed before source cutoff')
         value=dict(schema='earthship-weather-shadow-model-receipt/v1',model=model,fitted_at=fitted_at.isoformat())
+        if training_policy is not None:
+            validate_model_training_policy(model,training_policy)
+            value.update(schema='earthship-weather-shadow-model-receipt/v2',training_policy=training_policy,training_policy_sha256=identity(training_policy))
         name=identity(value)
         self._write(self.root/'models'/(name+'.json'),value,immutable=True)
         self._write(self.root/'current-model.json',dict(receipt_sha256=name))
@@ -87,24 +93,70 @@ class ShadowStore:
         pointer=_read(path,1024)
         if not isinstance(pointer,dict) or set(pointer)!={'receipt_sha256'}:raise ValueError('closed model pointer required')
         name=digest(pointer['receipt_sha256']);value=_read(self.root/'models'/(name+'.json'),16*1024**2)
-        if identity(value)!=name or set(value)!={'schema','model','fitted_at'} or value['schema']!='earthship-weather-shadow-model-receipt/v1':raise ValueError('model receipt differs')
+        current=value.get('schema')=='earthship-weather-shadow-model-receipt/v2'
+        fields={'schema','model','fitted_at'}|({'training_policy','training_policy_sha256'} if current else set())
+        if identity(value)!=name or set(value)!=fields or value['schema'] not in ('earthship-weather-shadow-model-receipt/v1','earthship-weather-shadow-model-receipt/v2'):raise ValueError('model receipt differs')
+        if current:
+            validate_training_policy(value['training_policy'])
+            if digest(value['training_policy_sha256'])!=identity(value['training_policy']):raise ValueError('training policy receipt differs')
         validate_artifact(value['model'])
+        if current:validate_model_training_policy(value['model'],value['training_policy'])
         if instant(value['model']['cutoff'])>instant(value['fitted_at']):raise ValueError('model receipt clocks invalid')
         return value
 
-    def retain_issue(self,payload,*,sensor_epoch,code_revision):
+    def retain_issue(self,payload,*,sensor_epoch,code_revision,provenance=None):
         from weather_temperature_evidence import sensor_epoch_id
         validate_payload(payload)
         if payload['status']!='READY':raise ValueError('only a real shadow forecast can become an issue')
         epoch=sensor_epoch_id(sensor_epoch)
         if not isinstance(code_revision,str) or not re.fullmatch('[0-9a-f]{40}',code_revision):raise ValueError('immutable serving revision required')
         value=dict(schema='earthship-weather-shadow-issue/v2',sensor_epoch=epoch,code_revision=code_revision,payload=payload)
+        if provenance is not None:value.update(schema='earthship-weather-shadow-issue/v3',provenance=validate_issue_provenance(provenance,payload))
         name=identity(value);self._write(self.root/'issues'/(name+'.json'),value,immutable=True)
         day=instant(payload['decisionAt']).astimezone(ZoneInfo(payload['source']['timezone'])).date().isoformat()
         with self._connect() as db:db.execute('INSERT OR IGNORE INTO issues VALUES(?,?,?,?,?)',(name,payload['decisionAt'],payload['generatedAt'],day,epoch))
         return name
 
-    def training_issues(self,start,end,*,sensor_epoch):
+    def read_issue(self,name):
+        """Read an immutable original, never regenerate it from current state."""
+        from weather_temperature_evidence import sensor_epoch_id
+        name=digest(name);value=_read(self.root/'issues'/(name+'.json'),256*1024)
+        current=isinstance(value,dict) and value.get('schema')=='earthship-weather-shadow-issue/v3'
+        fields={'schema','sensor_epoch','code_revision','payload'}|({'provenance'} if current else set())
+        if not isinstance(value,dict) or identity(value)!=name or set(value)!=fields or value['schema'] not in ('earthship-weather-shadow-issue/v2','earthship-weather-shadow-issue/v3'):
+            raise ValueError('original shadow issue differs')
+        sensor_epoch_id(value['sensor_epoch'])
+        if current:validate_issue_provenance(value['provenance'],value['payload'])
+        if not isinstance(value['code_revision'],str) or not re.fullmatch('[0-9a-f]{40}',value['code_revision']):raise ValueError('original serving revision differs')
+        payload=validate_payload(value['payload'])
+        if payload['status']!='READY':raise ValueError('original issue must contain a real forecast')
+        day=instant(payload['decisionAt']).astimezone(ZoneInfo(payload['source']['timezone'])).date().isoformat()
+        with self._connect() as db:row=db.execute('SELECT issued,completed,local_day,epoch FROM issues WHERE digest=?',(name,)).fetchone()
+        if row is not None and row!=(payload['decisionAt'],payload['generatedAt'],day,value['sensor_epoch']):raise ValueError('issue index differs from original')
+        return value
+
+    def issue_index_identity(self):
+        info=self.db.stat()
+        return f'{info.st_dev}:{info.st_ino}'
+
+    def issue_index_anchor(self,sequence,name):
+        if sequence==0:return name is None
+        with self._connect() as db:row=db.execute('SELECT digest FROM issues WHERE rowid=?',(sequence,)).fetchone()
+        return row==(name,)
+
+    def issue_index_page(self,after,*,limit=16):
+        if type(after) is not int or after<0 or type(limit) is not int or not 1<=limit<=16:raise ValueError('bounded append index page required')
+        with self._connect() as db:rows=db.execute('SELECT rowid,digest,issued,completed,local_day,epoch FROM issues WHERE rowid>? ORDER BY rowid LIMIT ?',(after,limit)).fetchall()
+        return [dict(zip(('sequence','digest','issued','completed','local_day','epoch'),row)) for row in rows]
+
+    def first_daily_issue(self,name):
+        with self._connect() as db:
+            row=db.execute('SELECT epoch,local_day FROM issues WHERE digest=?',(digest(name),)).fetchone()
+            if row is None:return False
+            first=db.execute('SELECT digest FROM issues WHERE epoch=? AND local_day=? ORDER BY issued,digest LIMIT 1',row).fetchone()
+        return first==(name,)
+
+    def training_issue_names(self,start,end,*,sensor_epoch):
         start,end=map(utc,(start,end))
         if not start<end or end-start>timedelta(days=366):raise ValueError('bounded training issue range required')
         with self._connect() as db:
@@ -113,10 +165,14 @@ class ShadowStore:
             # local dates; retain the latest 366 original daily decisions.
             rows=db.execute('SELECT digest FROM (SELECT digest,issued FROM (SELECT digest,issued,ROW_NUMBER() OVER (PARTITION BY local_day ORDER BY issued,digest) AS n FROM issues WHERE issued<? AND completed<=? AND epoch=?) WHERE n=1 AND issued>=? ORDER BY issued DESC LIMIT 366) ORDER BY issued',
                 (end.isoformat(),end.isoformat(),sensor_epoch,start.isoformat())).fetchall()
+        return [name for (name,) in rows]
+
+    def training_issues(self,start,end,*,sensor_epoch):
+        start,end=map(utc,(start,end))
         result=[]
-        for (name,) in rows:
-            digest(name);value=_read(self.root/'issues'/(name+'.json'),256*1024)
-            if identity(value)!=name or not isinstance(value,dict) or set(value)!={'schema','sensor_epoch','code_revision','payload'} or value['schema']!='earthship-weather-shadow-issue/v2' or value['sensor_epoch']!=sensor_epoch:
+        for name in self.training_issue_names(start,end,sensor_epoch=sensor_epoch):
+            value=self.read_issue(name)
+            if value['sensor_epoch']!=sensor_epoch:
                 raise ValueError('original shadow issue differs')
             payload=validate_payload(value['payload'])
             if not start<=instant(payload['decisionAt'])<end or instant(payload['generatedAt'])>end:raise ValueError('issue index clocks differ')
@@ -140,7 +196,7 @@ def shadow_once(archive,state,*,now,site,sensor_epoch,code_revision,horizon=336,
         end=now+timedelta(hours=horizon)
         end=end.replace(minute=0,second=0,microsecond=0)+(timedelta(hours=1) if end.minute or end.second or end.microsecond else timedelta())
         snapshot=archive.eligible_snapshot(now,end,required_variables={'station_head_temperature_2m'})
-        source=None;hours=[];model=empty_model_summary();status='UNAVAILABLE';reason='NO_ELIGIBLE_SOURCE'
+        source=None;hours=[];model=empty_model_summary();status='UNAVAILABLE';reason='NO_ELIGIBLE_SOURCE';provenance=issue_provenance()
         if snapshot is not None:
             targets=[target for target in reconstruct_targets(snapshot,now,site) if target.target_at<=end]
             source=dict(snapshotSha256=snapshot['snapshot_sha256'],runId=snapshot['run_id'],initializedAt=snapshot['initialized_at'],firstSeenAt=snapshot['first_seen_at'],ingestedAt=snapshot['ingestion_completed_at'],timezone=site.timezone)
@@ -150,17 +206,17 @@ def shadow_once(archive,state,*,now,site,sensor_epoch,code_revision,horizon=336,
                 if historical_predictor is not None:
                     predictor=historical_predictor
                     for target in targets:predictor.predict(target,sensor_epoch=sensor_epoch)
-                    model=dict(predictor.summary);reason='NONE'
+                    model=dict(predictor.summary);reason='NONE';provenance=getattr(predictor,'issue_provenance',None)
                 elif receipt is not None and receipt['model']['sample_count']:
                     if instant(receipt['fitted_at'])>now:raise ValueError('model receipt is after issue')
                     predictor=TemperaturePredictor(receipt['model'])
                     for target in targets:predictor.predict(target,sensor_epoch=sensor_epoch)
-                    fitted=receipt['model'];model=dict(status='SHADOW_ONLY',sha256=fitted['artifact_sha256'],fittedAt=receipt['fitted_at'],trainingEnd=fitted['training_end'],sampleCount=fitted['sample_count'],targetDates=fitted['target_dates'],validation=None);reason='NONE'
-            except (ValueError,OSError,KeyError,TypeError):model=empty_model_summary('UNAVAILABLE');predictor=None;reason='MODEL_UNAVAILABLE'
+                    fitted=receipt['model'];provenance=issue_provenance(fitted,training_policy=receipt.get('training_policy'),selection_original_sha256=identity(receipt));model=dict(status='SHADOW_ONLY',sha256=fitted['artifact_sha256'],fittedAt=receipt['fitted_at'],trainingEnd=fitted['training_end'],sampleCount=fitted['sample_count'],targetDates=fitted['target_dates'],validation=None);reason='NONE'
+            except (ValueError,OSError,KeyError,TypeError):model=empty_model_summary('UNAVAILABLE');predictor=None;reason='MODEL_UNAVAILABLE';provenance=issue_provenance()
             for target in targets:
                 hours.append(dict(at=target.target_at.isoformat(),rawC=target.mean_c,localC=None if predictor is None else predictor.predict(target,sensor_epoch=sensor_epoch)['value_c']))
         payload=seal_payload(dict(version=2,schema='earthship-weather-provider-shadow/v2',provider='weathernext3',mode='shadow',generatedAt=utc(clock()).isoformat(),decisionAt=now.isoformat(),status=status,reason=reason,source=source,model=model,hours=hours,automaticActuation=False))
-        if status=='READY':state.retain_issue(payload,sensor_epoch=sensor_epoch,code_revision=code_revision)
+        if status=='READY':state.retain_issue(payload,sensor_epoch=sensor_epoch,code_revision=code_revision,provenance=provenance)
         if put_state is not None:publish_bundle(payload,put_state)
         return payload
 
@@ -191,11 +247,12 @@ def train_once(archive,state,*,reader,site,sensor_epoch,cutoff,code_revision,app
                 fitted=previous['model']
                 if (fitted['algorithm']==('bounded_bias' if algorithm=='bias' else 'ridge_residual') and
                     fitted['code_revision']==code_revision and instant(fitted['cutoff'])<=cutoff and
+                    previous.get('training_policy')==native_training_policy(fitted,days=days,offsets=TRAIN_OFFSETS) and
                     sorted(row['pair_sha256'] for row in fitted['training_manifest'])==sorted(pair.pair_digest for pair in pairs)):
                     result.update(status='CANDIDATE_ALREADY_CURRENT',model_sha256=fitted['artifact_sha256'])
                     return result
             fit=fit_bias if algorithm=='bias' else fit_residual
             model=fit(pairs,cutoff=cutoff,code_revision=code_revision)
-            if apply:state.install_model(model,fitted_at=utc(clock()))
+            if apply:state.install_model(model,fitted_at=utc(clock()),training_policy=native_training_policy(model,days=days,offsets=TRAIN_OFFSETS))
             result.update(status='CANDIDATE_FITTED',model_sha256=model['artifact_sha256'],applied=apply)
         return result

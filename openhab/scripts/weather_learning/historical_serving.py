@@ -52,9 +52,11 @@ def temperature_features(target,*,origin,origin_bias_c,timezone_name):
 
 
 class HistoricalPredictor:
-    def __init__(self,model,*,now,timezone_name,origin_bias_c,sensor_epoch,target_dates):
+    def __init__(self,model,*,now,timezone_name,origin_bias_c,sensor_epoch,target_dates,selection=None):
         if not finite(origin_bias_c):raise ValueError('qualified finite origin temperature bias required')
         self.model=model;self.now=now;self.zone=timezone_name;self.bias=origin_bias_c;self.epoch=sensor_epoch
+        from .provenance import issue_provenance
+        self.issue_provenance=issue_provenance(model,historical=True,selection_original_sha256=None if selection is None else selection['selection_sha256'])
         self.summary=dict(status='SHADOW_ONLY',sha256=model['model_sha256'],fittedAt=model['trained_at'],trainingEnd=model['training_end'],sampleCount=model['sample_count'],targetDates=target_dates,validation=None)
 
     def predict(self,target,*,sensor_epoch):
@@ -83,7 +85,7 @@ def prepare_temperature(archive,state,*,now,site,policy,sensor_epoch,db_config,h
     label=dict(labels).get(now)
     if label is None:raise ValueError('qualified original outdoor origin required')
     outcome=local_temperature_outcome(label,target_at=now,assessed_at=now,sensor_epoch=sensor_epoch)
-    return HistoricalPredictor(model,now=now,timezone_name=site.timezone,origin_bias_c=outcome.value_c-google,sensor_epoch=sensor_epoch,target_dates=selection['target_dates'])
+    return HistoricalPredictor(model,now=now,timezone_name=site.timezone,origin_bias_c=outcome.value_c-google,sensor_epoch=sensor_epoch,target_dates=selection['target_dates'],selection=selection)
 
 
 def publish_wind(archive,state,*,payload,now):
@@ -101,4 +103,7 @@ def publish_wind(archive,state,*,payload,now):
     value=dict(schema='earthship-site-wind-shadow/v1',issued_at=now.isoformat(),generated_at=datetime.now(timezone.utc).isoformat(),valid_until=(now+timedelta(minutes=90)).isoformat(),source_snapshot_sha256=payload['source']['snapshotSha256'],
         model_sha256=model['model_sha256'],training_end=model['training_end'],trained_at=model['trained_at'],target='hour_mean_local_station_wind_m_s',baseline='trapezoid_of_adjacent_native_instantaneous_forecasts',hours=rows,
         measurement_health_qualified=False,prospective_score=False,automatic_actuation=False)
-    value['view_sha256']=identity(value);state._write(state.root/'site-wind.json',value);return 'published_read_only'
+    value['view_sha256']=identity(value)
+    from .correction_monitor import retain_wind_issue
+    retain_wind_issue(state,value,model=model,selection=selection,snapshot=snapshot)
+    state._write(state.root/'site-wind.json',value);return 'published_read_only'

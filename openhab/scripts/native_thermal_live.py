@@ -253,6 +253,15 @@ def publish_cycle(settings,*,guard,geometry=None,backend=None,serving_model=None
         path=original.persist(archive,delivery,field='delivery_sha256',suffix='.native-provisional-delivery-v2.json',maximum=65536)
         if _owned_bytes(path,65536)!=_canonical(delivery):raise ValueError('original native delivery readback differs')
         send_guard()
+        if weather_conditioning is not None:
+            # Delivery is already durable. Optional scoring intake cannot replay
+            # publication or turn a diagnostic refusal into forecast failure.
+            try:
+                from weather_learning.correction_monitor import index_native_delivery_safely
+                index_native_delivery_safely(settings,path,indexed_at=_clock(),guard=within_deadline)
+            except Exception as error:
+                import sys
+                print(json.dumps(dict(status='native_correction_reference_unavailable',reason=type(error).__name__,automatic_actuation=False)),file=sys.stderr)
     return dict(status='published',mode='provisional',delivery_verified=True,origin_path=str(origin_path),delivery_path=str(path),
         capture_sha256=capture['capture_sha256'],artifact_sha256=expected_artifact,runtime_sha256=expected_runtime,automatic_actuation=False)
 

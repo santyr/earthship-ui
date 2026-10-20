@@ -190,7 +190,9 @@ class ShadowTests(unittest.TestCase):
         self.assertEqual(report['schema'],'earthship-weather-provider-shadow/v2')
         self.assertNotIn('incumbent',report)
         self.assertTrue(all(set(row)=={'at','rawC','localC'} for row in report['hours']))
-        issues=self.state.training_issues(T-timedelta(days=1),T+timedelta(days=1),sensor_epoch=EPOCH)
+        legacy=self.m.ShadowStore(self.root/'legacy-v2')
+        legacy.retain_issue(report,sensor_epoch=EPOCH,code_revision=REVISION)
+        issues=legacy.training_issues(T-timedelta(days=1),T+timedelta(days=1),sensor_epoch=EPOCH)
         self.assertEqual(issues[0]['schema'],'earthship-weather-shadow-issue/v2')
         self.assertEqual(set(issues[0]),{'schema','sensor_epoch','code_revision','payload'})
 

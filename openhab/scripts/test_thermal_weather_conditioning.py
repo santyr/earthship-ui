@@ -170,3 +170,20 @@ def test_conditioned_capture_requires_actual_proof(tmp_path,monkeypatch,original
     capture.update(schema=native.CONDITIONED_CAPTURE_SCHEMA,weather_conditioning=None)
     capture['capture_sha256']=native.digest(capture,'capture_sha256')
     with pytest.raises(ValueError):native.validate_capture(capture,runtime=kwargs['runtime'],expected_artifact_sha256=c['artifact_sha256'],expected_capture_sha256=capture['capture_sha256'])
+
+
+def test_conditioning_runtime_binds_new_target_weight_dependency(tmp_path,monkeypatch):
+    import thermal_weather_source as source
+    from hashlib import sha256
+    from pathlib import Path
+    before=source.conditioning_runtime()
+    relative='weather_learning/weights.py'
+    assert before.get(relative)==sha256((Path(source.__file__).parent/relative).read_bytes()).hexdigest()
+    for name in source.RUNTIME_SOURCES:
+        path=tmp_path/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes((Path(source.__file__).parent/name).read_bytes())
+    changed=tmp_path/relative;changed.write_bytes(changed.read_bytes()+b'\n# changed numerical support contract\n')
+    monkeypatch.setattr(source,'SCRIPTS',tmp_path)
+    after=source.conditioning_runtime()
+    assert before!=after
+    assert before.keys()==after.keys()
+    assert {name for name in before if before[name]!=after[name]}=={relative}
