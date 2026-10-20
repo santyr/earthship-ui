@@ -1,5 +1,5 @@
 {
-  "source_head": "ff1a0f35881cd402db223807729660abd91e6c59",
+  "source_head": "e410ba47bd0d4d6ceb418efb40b5153d7cb44024",
   "uncommitted_source_paths": [],
   "workflow_sha256": {
     "ci.yml": "36623b9bd430f6b92066f7e7bab863e8b3055a0eb1d8931c28820bc44fef7ebc",
@@ -56,7 +56,7 @@
       "family": "python",
       "workflow_gate": "ci.yml:openhab shard 0",
       "companion_profile": "24d2e8984810cb596fe9792768510a356786f709",
-      "test_file_sha256": "09faff78bc4728230a1fdd4e2607797c1ed4f5065608a279a91ada3db6139ba9"
+      "test_file_sha256": "d824ccfe710824286a61f31aefd80f0fa58d0a9bd33a6e61491df41b3ab5d165"
     },
     {
       "path": "openhab/scripts/test_astro_geometry_worker.py",
@@ -3776,7 +3776,7 @@
       "path": "tests/astro-presentation.test.js",
       "family": "javascript",
       "workflow_gate": "ci.yml:test vitest",
-      "test_file_sha256": "8c0999d26cdc3200b7938273c8c1deb3666c180a4d36ab26947d98c77e81719f"
+      "test_file_sha256": "536e4ad64c782bbf298c50d53f5f52edbffa2736f59284670cb0cc12cb211c0b"
     },
     {
       "path": "tests/astro-sse-evidence.test.js",
@@ -4076,7 +4076,7 @@
       "path": "tests/daily-pv-server.test.js",
       "family": "javascript",
       "workflow_gate": "ci.yml:test vitest",
-      "test_file_sha256": "6ede504e46770bcd28a05678ac48b96d20431d26410cef305f3d8a61d1fbbd73"
+      "test_file_sha256": "f86009e8328ff112842d79ce75afcfb0a95580407ab92d97922ff1ed0e60f1f5"
     },
     {
       "path": "tests/deployment-service.test.js",
@@ -4118,7 +4118,7 @@
       "path": "tests/e2e/weather-detail-modal.spec.js",
       "family": "browser",
       "workflow_gate": "ci.yml:browser-fixtures",
-      "test_file_sha256": "8f9dcb10b9778c83a787ec7d49be3f5c1e8b8fbbb35e84230ad11f49889e7f3f"
+      "test_file_sha256": "190f98ae69ada7cb055fbadda423bb5a1bc8bf15f943e616b65bed0e22660ca6"
     },
     {
       "path": "tests/e2e/weather-earthship-layout.spec.js",

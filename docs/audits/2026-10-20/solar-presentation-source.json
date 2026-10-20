@@ -1,0 +1,39 @@
+{
+  "schema": "earthship-solar-presentation-source/v1",
+  "source_revision": "e410ba47bd0d4d6ceb418efb40b5153d7cb44024",
+  "prior_source_record": "weather-day-icons-source.json",
+  "scope": "all tracked non-documentation source; documentation descendants must preserve digest",
+  "non_documentation_files": 1721,
+  "git_mode_type_object_path_inventory_sha256": "4d08e15ce9fd13f80dd423c8181aba4b4c3a7fee51189b91c6b1eaee4a9ed4ca",
+  "ui_runtime_files": [
+    "src/lib/weather/presentation.js",
+    "src/lib/ui/DailyForecast.svelte",
+    "src/lib/ui/WeatherDetailModal.svelte",
+    "src/lib/ui/icons/mdi-common.json",
+    "src/screens/Home.svelte",
+    "src/lib/household/observationClient.js",
+    "vite.config.js",
+    "src/lib/weather/terrainDaylight.js",
+    "src/lib/weather/terrainDaylightServer.js",
+    "src/lib/weather/terrainDaylightState.js"
+  ],
+  "read_only_worker": "openhab/scripts/site_daylight.py",
+  "worker_environment_pin": "EARTHSHIP_UI_SOLAR_ROOT",
+  "test_entry_files": 767,
+  "orphans": [],
+  "automated_local": {
+    "frontend_files": 182,
+    "frontend_passed": 2778,
+    "frontend_exit": 0,
+    "browser_passed": 77,
+    "browser_exit": 0,
+    "python_related_passed": 109,
+    "python_exit": 0,
+    "python_skips": 0,
+    "build_exit": 0,
+    "review": "independent final review recorded in PR40"
+  },
+  "hosted_and_install_evidence": "https://github.com/santyr/earthship-ui/pull/40",
+  "physical_calibration_qualified": false,
+  "automatic_actuation": false
+}

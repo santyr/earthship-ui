@@ -341,3 +341,19 @@ python3 scripts/run-household-job.py --minimum-mib 1024 --preferred-mib 2048 --t
 ```
 
 Native Python/binary pins and Docker-daemon isolation limits are unchanged from the earlier explicitly described profiles. No household network relay or actuator was used. Independent source/release review covered A19/A20/A21 and the scoped installation helper. The final installed corrected PV learner passed an actual guarded import/schema/API probe and exact source/argv/env/timer/selected-byte readback without a manual fit or selection; its first natural daily execution remains separately clock-dependent.
+
+
+## Combined daily-icon / terrain-sun follow-up
+
+Source `e410ba47bd0d4d6ceb418efb40b5153d7cb44024`; [source binding](solar-presentation-source.json), current ownership/inventory and [operational record](../../operations/2026-10-20-weather-day-icons.md) supersede icon-only source for this follow-up. Local complete frontend182files/2778tests, buildexit0; isolated non-sensor browser77tests exit0; related geometry Python109tests/no skips exit0. Original five-workflow and native numerical proofs above remain historical exact-source evidence; final follow-up hosted checks and actual installation are recorded with exact revisions/counts at [PR40](https://github.com/santyr/earthship-ui/pull/40). Do not substitute the old73ede successful UI-only run for final combined-source verification.
+
+Commands run from the isolated worktree using existing shared admission:
+
+```bash
+python3 scripts/run-household-job.py --minimum-mib 512 --preferred-mib 1024 --tasks 64 --seconds 300 -- /usr/bin/env PATH=/tmp/earthship-audit-node22/package/bin:/usr/local/bin:/usr/bin:/bin RAYON_NUM_THREADS=1 ROLLDOWN_WORKER_THREADS=1 ROLLDOWN_MAX_BLOCKING_THREADS=2 GOMAXPROCS=2 UV_THREADPOOL_SIZE=2 /tmp/earthship-audit-node22/package/bin/node /usr/local/bin/npm run test:unit -- --maxWorkers=1
+python3 scripts/run-household-job.py --minimum-mib 512 --preferred-mib 1024 --tasks 64 --seconds 120 -- /usr/bin/env PATH=/tmp/earthship-audit-node22/package/bin:/usr/local/bin:/usr/bin:/bin RAYON_NUM_THREADS=1 ROLLDOWN_WORKER_THREADS=1 ROLLDOWN_MAX_BLOCKING_THREADS=2 GOMAXPROCS=2 UV_THREADPOOL_SIZE=2 /tmp/earthship-audit-node22/package/bin/node /usr/local/bin/npm run build
+python3 scripts/run-household-job.py --minimum-mib 1024 --preferred-mib 2048 --tasks 128 --seconds 300 -- /usr/bin/sudo -n unshare --net -- sh -c '/usr/sbin/ip link set lo up; exec env -u NODE_OPTIONS PATH=/tmp/earthship-audit-node22/package/bin:/usr/local/bin:/usr/bin:/bin PLAYWRIGHT_BROWSERS_PATH=/home/sat/.cache/ms-playwright RAYON_NUM_THREADS=1 ROLLDOWN_WORKER_THREADS=1 ROLLDOWN_MAX_BLOCKING_THREADS=2 GOMAXPROCS=2 UV_THREADPOOL_SIZE=2 /tmp/earthship-audit-node22/package/bin/node /usr/local/bin/npm run test:e2e -- --output=/tmp/earthship-solar-ui-full-browser-results'
+env PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=/tmp/earthship-weather-day-icons/openhab/scripts:/home/sat/.codex/worktrees/d4ee/earthship-ui/.ci/solar-pv/analytics/src /usr/bin/python3 scripts/run-household-job.py --minimum-mib 256 --preferred-mib 512 --tasks 24 --seconds 120 -- /tmp/earthship-audit-20261020-venv/bin/python -m pytest openhab/scripts/test_astro_geometry_series.py openhab/scripts/test_astro_geometry.py openhab/scripts/test_household_solar_horizon.py openhab/scripts/test_daily_pv_potential.py -q --junitxml=/tmp/earthship-daylight-related.xml
+```
+
+A successful read-only retained-cache projection used the same production launcher256–512MiB/24tasks/15seconds and `/usr/bin/python3 openhab/scripts/site_daylight.py`; no native acquisition, cloud request or Item update occurred. The normal repository horizon in the isolated checkout was664 and initially refused; it was tightened to644 without changing bytes. The installed immutable source must also meet these permissions. Generic refusal remains truthful and production policy was not relaxed.
