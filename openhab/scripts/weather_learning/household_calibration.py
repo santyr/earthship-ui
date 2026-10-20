@@ -86,10 +86,24 @@ def fit_conversion(rows,*,cutoff,trained_at):
 
 
 def _load_context(rows,origin):
-    zone=ZoneInfo('America/Denver');past=[r for r in rows if origin-timedelta(days=14)<=instant(r['start']) and instant(r['end'])<=origin and r['ac_w'] is not None]
+    zone=ZoneInfo('America/Denver')
+    local_cutoff=origin.astimezone(zone).replace(hour=0,minute=0,second=0,microsecond=0)
+    cutoff=local_cutoff.astimezone(origin.tzinfo)
+    floor=(local_cutoff-timedelta(days=14)).astimezone(origin.tzinfo)
+    past=[r for r in rows if floor<=instant(r['start']) and instant(r['end'])<=origin and r['ac_w'] is not None]
     if not past:return None
+    # Match the daily owner's completed-local-day cutoff. Intraday observations
+    # may update the residual and persistence, never the frozen daily baseline.
+    groups={}
+    for r in past:
+        if instant(r['end'])>cutoff:continue
+        at=instant(r['start']).astimezone(zone)
+        groups.setdefault((at.date(),at.hour),[]).append(r['ac_w'])
     buckets={hour:[] for hour in range(24)}
-    for r in past:buckets[instant(r['start']).astimezone(zone).hour].append(r['ac_w'])
+    for (_,hour),values in groups.items():
+        # Repeated DST hours belong to one independent day/hour. Each retained
+        # ac_w is an already-qualified normalized hourly mean.
+        buckets[hour].append(fsum(values)/len(values))
     baselines={hour:median(v) if len(v)>=3 else None for hour,v in buckets.items()}
     recent=[]
     for r in past:
@@ -137,13 +151,13 @@ def fit_load_adjustment(rows,*,cutoff,trained_at):
     supported=[(value['mae_w']['hourly_adjusted_profile'],int(tau)) for tau,value in comparisons.items() if value['pairs']]
     if not supported:raise ValueError('earlier chronological load validation required')
     tau=min(supported)[1]
-    return _seal(dict(schema='earthship-hourly-load-adjustment/v1',cutoff=cutoff.isoformat(),trained_at=trained_at.isoformat(),residual_decay_hours=tau,
-        rule='median_last_3_completed_hour_residual_over_14_day_hourly_profile',training_comparisons=comparisons,dataset_sha256=identity(earlier),
+    return _seal(dict(schema='earthship-hourly-load-adjustment/v2',cutoff=cutoff.isoformat(),trained_at=trained_at.isoformat(),residual_decay_hours=tau,
+        rule='median_last_3_completed_hour_residual_over_frozen_14_local_day_profile',training_comparisons=comparisons,dataset_sha256=identity(earlier),
         physical_calibration_qualified=False,automatic_actuation=False))
 
 
 def assess_load_adjustment(model,rows,*,start,end):
-    _validate(model,'earthship-hourly-load-adjustment/v1')
+    _validate(model,'earthship-hourly-load-adjustment/v2')
     if not instant(model['cutoff'])<=start<end:raise ValueError('later load holdout required')
     report=_load_errors(_past(rows,end),start=start,end=end,tau=model['residual_decay_hours'])
     report.update(selected=report['pairs']>0 and report['mae_w']['hourly_adjusted_profile']<report['mae_w']['daily_profile'],prospective_score=False,automatic_actuation=False)
@@ -151,7 +165,7 @@ def assess_load_adjustment(model,rows,*,start,end):
 
 
 def predict_load(model,rows,*,origin,lead_hours):
-    _validate(model,'earthship-hourly-load-adjustment/v1')
+    _validate(model,'earthship-hourly-load-adjustment/v2')
     if instant(model['trained_at'])>origin:raise ValueError('hourly adjustment not available at origin')
     if type(lead_hours) is not int or not 1<=lead_hours<=24:raise ValueError('bounded load lead required')
     return _load_prediction(_past(rows,origin),origin,lead_hours,model['residual_decay_hours'])

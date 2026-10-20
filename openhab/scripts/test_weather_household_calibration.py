@@ -40,3 +40,38 @@ def test_load_comparison_uses_only_completed_history_and_keeps_persistence():
  changed=[dict(r,ac_w=9999) if r['end']>cutoff.isoformat() else r for r in rows]
  assert fit_load_adjustment(changed,cutoff=cutoff,trained_at=now)==model
  with pytest.raises(ValueError,match='available'):predict_load(model,rows,origin=cutoff,lead_hours=1)
+
+
+def test_daily_load_baseline_is_frozen_at_completed_local_midnight():
+ from datetime import datetime,timezone
+ from zoneinfo import ZoneInfo
+ from weather_learning.household_calibration import _load_context
+ from household_ac_load_model import fit_profile
+ zone=ZoneInfo('America/Denver');origin=datetime(2026,10,20,18,tzinfo=timezone.utc)
+ cutoff=origin.astimezone(zone).replace(hour=0,minute=0,second=0,microsecond=0).astimezone(timezone.utc)
+ floor=(cutoff.astimezone(zone)-timedelta(days=14)).astimezone(timezone.utc)
+ rows=[];at=floor
+ while at<origin:
+  watts=100 if (at-floor).days<7 or at>=cutoff else 300
+  rows.append(dict(start=at.isoformat(),end=(at+timedelta(hours=1)).isoformat(),ac_w=watts))
+  at+=timedelta(hours=1)
+ changed=[dict(r,ac_w=9999) if r['start']>=cutoff.isoformat() else r for r in rows]
+ baseline,residual,persistence=_load_context(rows,origin)
+ updated,new_residual,new_persistence=_load_context(changed,origin)
+ assert updated==baseline
+ assert new_residual!=residual and new_persistence==9999 and new_persistence!=persistence
+ qualified=[dict(start=r['start'],end=r['end'],known_ac_kwh=r['ac_w']/1000,covered_seconds=3600) for r in rows if r['end']<=cutoff.isoformat()]
+ deployed=fit_profile(hourly_rows=qualified,training_end=cutoff,trained_at=origin)
+ assert baseline==pytest.approx({int(hour):value['median_ac_w'] for hour,value in deployed['hours'].items()})
+
+
+def test_repeated_dst_hour_does_not_count_as_an_independent_training_day():
+ from datetime import datetime,timezone
+ from zoneinfo import ZoneInfo
+ from weather_learning.household_calibration import _load_context
+ zone=ZoneInfo('America/Denver');origin=datetime(2026,11,2,18,tzinfo=timezone.utc)
+ # Nov 1 contains two local 01:00 hours; only two independent dates exist.
+ starts=[datetime(2026,10,31,7,tzinfo=timezone.utc),datetime(2026,11,1,7,tzinfo=timezone.utc),datetime(2026,11,1,8,tzinfo=timezone.utc)]
+ rows=[dict(start=at.isoformat(),end=(at+timedelta(hours=1)).isoformat(),ac_w=100) for at in starts]
+ assert all(at.astimezone(zone).hour==1 for at in starts)
+ assert _load_context(rows,origin)[0][1] is None
