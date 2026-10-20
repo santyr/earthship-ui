@@ -83,7 +83,8 @@ def run(*,forecast_root,state_root,clock=lambda:datetime.now(timezone.utc)):
                 epochs=json.loads(public_read('/home/sat/Solar_PV/analytics/config/system-epochs.json',16384));bank=next(r for r in epochs['epochs'] if r['current_analytics'])
                 bank_start=datetime.combine(date.fromisoformat(bank['start_local_date']),time.min,ZoneInfo(epochs['timezone'])).astimezone(timezone.utc).isoformat()
                 import earthship_energy.power_evidence as companion
-                runtime={'daily_pv_monitor.py':Path(__file__),'weather_learning/energy_history.py':Path(__file__).with_name('weather_learning')/'energy_history.py'}
+                scripts=Path(__file__).resolve().parent
+                runtime={name:scripts/name for name in ('daily_pv_monitor.py','weather_learning/energy_history.py','weather_learning/contracts.py','weather_source_files.py','household_pv_window.py','household/codec.py','household/control_contracts.py','household/evidence.py')}
                 runtime.update({'companion/'+name:Path(companion.__file__).parent/name for name in ('power_evidence.py','power_intervals.py','bms_evidence.py','ac_evidence.py')})
                 originals={name:p.read_bytes() for name,p in runtime.items()}
                 source,path=capture_hour(directory(state/'originals'),start,connect=_connection('/home/sat/.config/hex/energy-power-reader.jdbc','energy_power_reader'),policy_raw=policy,bank_start=bank_start,clock=clock)
