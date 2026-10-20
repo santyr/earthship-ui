@@ -254,6 +254,26 @@
         "Affected Python gate: 285 passed, no skips, 84.55s. Frontend parser/render/legacy gate: 108 passed, six files, no skips; interim test-only .codex adapter used. Final standard gate pending."
       ],
       "status": "fixed_focused_verified"
+    },
+    {
+      "id": "A11",
+      "severity": "P2",
+      "confidence": "confirmed_dependency_report_no_application_exploit_demonstrated",
+      "affected_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
+      "title": "Compatible dependency security refresh",
+      "files": [
+        "package-lock.json"
+      ],
+      "expected_actual": "Lockfile must use compatible fixed releases for reported advisories. Original npm audit exits1 with7package findings(3moderate,4high); current lock audit exits0withzero.",
+      "reproduction": [
+        "npm audit --json against original lockfile: exit1,7findings;27unique advisoryIDs."
+      ],
+      "root_cause": "Pinned vulnerable transitive/test packages; deployed Vite is LAN-facing but affected mocker handlers are not configured; no reachable app exploit demonstrated.",
+      "repair_commit": null,
+      "regression_evidence": [
+        "npm audit fix --package-lock-only --ignore-scripts:exit0,15package entries updated,noneadded/removed; package.json/ranges unchanged; fresh npmci/fullfrontendgates pending."
+      ],
+      "status": "fixed_lock_audit_verified"
     }
   ]
 }

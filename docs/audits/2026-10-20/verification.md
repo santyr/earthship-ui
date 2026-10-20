@@ -51,3 +51,13 @@ Seven PostgreSQL modules were previously skipped at import because CI omitted pi
 ## Exact binary cryptographic qualification
 
 Two admitted local commands ran `sudo -n unshare --net -- sh -c 'ip link set lo up; exec setpriv --reuid=1000 --regid=1000 --init-groups "$@"' sh /tmp/earthship-audit-20261020-venv/bin/python scripts/qualify-thermal-{nak,delivery}.py --nak /home/sat/.local/bin/nak`, with512MiB/64tasks/300seconds bounds. Both exited0. Exact nak v0.20.7 SHA256 `ba918fafd1b030bc50958a5b218c6386f4c3a57c1e469562d3947e858e0ba56e`. Authentication passed eight named checks; encrypted local-relay delivery passed eight named checks including NIP42, exact two-copy acceptance, authenticated reply and restart no-repost. No household keys, production journal writes or external network/message delivery. These are local cryptographic/software proofs, not household bunker/remote-relay/operator receipt qualification. Final-revision CI reruns remain pending.
+
+## Dependency maintenance
+
+Original `npm audit --json`:exit1,7package findings(3moderate/4high),27distinctadvisories. `npm audit fix --package-lock-only --ignore-scripts`:exit0; after lock audit exit0,zero vulnerabilities. Fifteen package entries update with no added/removed packages, range changes or package.json changes. New lock SHA25635c941310fa1036b091d40e2840db925233e36c0c9826ad39e26d436ef11774b. Fresh final npmci/unit/build/browser verification remains pending. This is dependency hygiene; static triage did not demonstrate an application exploit.
+
+## Native PostgreSQL profiles
+
+Six native modules passed against mandatory companion24d2e8984810cb596fe9792768510a356786f709 (18.86s). The actual JS→SQL→BMShealth/UI/sanity test needs later APIs absent from that pin; it passed separately against exact clean companion7b70117bcfb9599a12d0325771ed1103f083fa5c (5.33s). All7executed with0skips/failures and disposable containers removed. General dependency remains unchanged; profiles never mix imports in one interpreter. Full gate orchestration is being made explicit in CI.
+
+Both used audit Python3.12.3/pytest9.1.1/psycopg2 2.9.13; BMS JS source ran Node24.13.0 in this focused run. Docker PostgreSQL16.14 imageID8a4b045886180c64f518ca6a4b0791b15fb997f3b3b619bd5ee141914668db55 / repository digest95206741a5b214807675e14165369d05b93a9cf692223b616d07cca227e74b0b. Test-driver shared admission was enforced; external Docker-daemon children do not inherit driver cgroup limits and the pinned disposable fixture has no container memory/CPU flags. Final hosted CI provides the matching wholly disposable worker. No production DSN/roles or data were used.

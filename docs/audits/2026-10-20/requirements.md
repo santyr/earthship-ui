@@ -70,3 +70,23 @@ The source inventory is [inventory.json](inventory.json). Listed test families a
 The historical learning document's final October20 closure table records deployed conditioned thermal serving, dedicated PV accuracy, Energy SoC overlay and Office Hallway shade reference. Its178-file/2642-test frontend run and build are historical evidence; the Python run interrupted after1625 cases was not complete. Earlier “activation pending”/“PV accuracy outstanding” text is superseded by that final table. The October16 program tracker remains a historical milestone snapshot, not a current completeness oracle.
 
 Nostr recurring production status follows [October3 recurring confirmations](../../operations/2026-10-03-thermal-recurring-confirmations.md), not the older October1 “collector off” note: approved release process gates differ intentionally from default-off generic source. Natural recommendation→question→human reply and external relay rejection recovery cannot be manufactured as audit evidence.
+
+## Architecture program phase reconciliation
+
+Every phase in the existing tracker remains represented. Historical complete flags are preserved; this table separates implemented software from independent qualification. Source/test detail is in the active capability table above.
+
+| Phase | Approved requirement | Current source and verification boundary | Remaining qualification or exclusion |
+|---|---|---|---|
+| 0 | ML foundations and explicit graduation contracts | Evidence/skill/graduation contracts and explicit null metrics; tests for calibration/reports | Prospective skill and physical calibration require independent matured local outcomes |
+| 1 | Shared original evidence references | household/evidence.py and evidence/adapters/capture tests | Original clocks and identities retained |
+| 2 | Immutable HouseholdSnapshot and live evidence capture | household snapshot/native/weather/power/measured/sensor contexts and snapshot/cycle/replay tests | Unknown water inventory, capacity qualification and missing measurements stay explicit |
+| 2B | Capability registry, Item roles, correlated v2 contracts and owner migrations | Capability registry, control_contracts.py, Item ownership and owner-source/policy tests | Future owner-v2 live migrations/physical qualification deferred; no activation implied |
+| 3 | Pure domain models with numerical parity | Pure thermal/energy/PV models, source-bound numerical runtimes and goldens; A06–A08 repairs | New source identities require fresh calibration/admission; historic producers preserved |
+| 4 | Typed household intents and disabled intent-to-request adapter | Typed intents, strict legacy/current parsers and intents tests | Translator disabled; feeder current automation excluded |
+| 5 | Hard constraint registry and deterministic arbiter | Planning hard constraints, exclusive owners and deterministic exhaustive arbitration tests | Missing effects/owner facts reject or remain unknown; no new observation grants permission |
+| 6 | Shadow household planner | Shadow planner, declared utility/baseline/resource analyses and planning/resources tests | No actuator authority or claimed physical benefit; independent action qualification external |
+| 7 | Deterministic sealed household plan replay and outcome scoring | Pure pipeline and archived original replay/receipt/corruption tests | Original matching producer/environment required; no rewriting old receipts |
+| 8 | Resource-effect vectors and drift metrics | household/resources.py, drift/CLI/source-bound resource tests | Unknown resource effects remain unknown; no invented causal effects |
+| 9 | Read-only operator observability | Public observation/qualification/chronology/recommendation UI and strict server/parser/browser tests | Feeder never a current recommendation; source/deployed/physical status distinct |
+| 10 | Per-intent release qualification | Current qualification v2 and historical v1 parser, independent-gate status tests | Per-intent physical/action-effect/uncertainty/release evidence externally blocked; no feeder qualification |
+| 11 | Staged integration through existing owner rules | Existing legacy owners and pure v2 contracts, scoped handoff/source-readback/recovery tests | Planner actuation and new owner-v2 live activation intentionally excluded; existing owner repair requires qualified handoff |
