@@ -67,7 +67,7 @@ def cached_history(archive,initialized,horizon,*,required=None):
     return None
 
 
-def collect_history(reader,archive,*,initializations,horizon=360,now=None,bands_by_grid=None):
+def collect_history(reader,archive,*,initializations,horizon=360,now=None,bands_by_grid=None,required=None):
     now=now or datetime.now(timezone.utc)
     if (not isinstance(initializations,list) or not 1<=len(initializations)<=4 or
         type(horizon) is not int or not 1<=horizon<=360):raise ValueError('one to four bounded historical runs required')
@@ -76,7 +76,9 @@ def collect_history(reader,archive,*,initializations,horizon=360,now=None,bands_
         raise ValueError('elapsed UTC full-cycle initializations required')
     if initializations!=sorted(set(initializations)):raise ValueError('unique ordered historical runs required')
     bands=bands_by_grid or DEFAULT_BANDS
-    required={tuple(b.rsplit('_',1)) for values in bands.values() for b in values}
+    available={tuple(b.rsplit('_',1)) for values in bands.values() for b in values}
+    required=available if required is None else required
+    if not isinstance(required,set) or not required or not required<=available:raise ValueError('explicit requested historical coverage required')
     with collector_lock(archive.root/'collector.lock'):
         _historical_only(archive);result=[];downloads=0;ready=False
         for at in initializations:
@@ -91,7 +93,7 @@ def collect_history(reader,archive,*,initializations,horizon=360,now=None,bands_
                 if instant(snapshot['initialized_at'])!=at:raise ValueError('historical fetch returned another run')
                 index={(r['variable'],r['statistic'],instant(r['valid_at'])):r['value'] for r in snapshot['points']}
                 if not all(index.get((v,s,at+timedelta(hours=h))) is not None for v,s in required for h in range(1,horizon+1)):
-                    raise ValueError('complete historical requested coverage required')
+                    raise ValueError('complete historical requested coverage required: '+at.isoformat()+' '+str({v+':'+s:sum(index.get((v,s,at+timedelta(hours=h))) is None for h in range(1,horizon+1)) for v,s in required if any(index.get((v,s,at+timedelta(hours=h))) is None for h in range(1,horizon+1))}))
                 snapshot['historical']=True;name=archive.store_snapshot(snapshot);downloads+=1
                 archive.read(name);_record_coverage(archive,snapshot,name,horizon,required)
             result.append(dict(initialized_at=at.isoformat(),sha256=name))

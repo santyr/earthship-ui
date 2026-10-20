@@ -43,4 +43,24 @@ Retrospective experiments must record their forecast-availability assumption, tr
 - Historical PV-input, captured-PV-output, battery-DC, AC-output and BMS-SoC acquisition is implemented and running in bounded hourly chunks through the restricted read-only account. Invalid receipts remain barriers. A low-SoC charging and sub-clipping selection is explicitly a provisional censoring proxy, not certified unrestricted production.
 - Focused acquisition/learning/PV checks: 43 passed, plus two energy-target cases. Existing dependency-light Google environment: 237 unittest cases passed.
 
-PV calibration is still incomplete: fit and compare site irradiance/terrain corrections and array-output adjustments on later periods; report censored/unknown intervals; then version and deploy the supported correction in both daily potential and downstream PV/storage scenarios. Existing daily PV remains provisional and uncalibrated until that evidence exists.
+PV calibration remains a required active task. The initial directional correction below is ready for provisional short-horizon deployment. Separate irradiance/terrain identification, seasonal validation, downstream same-issue PV/storage integration and prospective full-day monitoring remain incomplete.
+
+## Actual chronological energy comparisons
+
+All 696 UTC energy hours September 20–October 18 have been retained and rederived from original power, AC and BMS receipts. The common split trains before October 14 and assesses later origins through October 19 UTC. No prospective score or original model was overwritten.
+
+| Candidate | Later comparison | Decision |
+|---|---|---|
+| One effective PV gain | 124 uncensored-proxy intervals on five days: raw physics MAE 560.91 W, candidate 458.29 W | Improvement is uneven by sun direction; do not apply one global multiplier to every day |
+| Fixed 45-degree PV sectors, 24-pair shrinkage toward physics | Same retained split: MAE 438.91 W (about 22% lower); raw/adjusted bias +180.29 / -188.27 W | Provisional development candidate; correction limited to next 24 hours; unsupported directions and longer horizons retain physics |
+| Hourly AC residual over daily profile | 440 forecasts over five origin dates: daily profile 50.26 W MAE, hourly adjustment 54.73 W, completed-current-hour persistence 104.66 W | Retain existing daily profile; higher fitting frequency has no demonstrated benefit here |
+| Apparent battery capacity from signed DC energy/SoC changes | 120 later hours: nominal-capacity SoC-change MAE 0.528 percentage points, learned 0.719 | Retain nominal capacity; no separate capacity/loss/SoC-scale claim |
+| Controller input-to-output conversion | 52 later hours: unity conversion MAE 0.02984 kWh, learned conversion 0.00983 kWh | Useful conditional conversion evidence; does not establish battery-acceptance or captured-PV forecast accuracy |
+
+The directional variant was designed after inspecting the initial global comparison. Its later split is a retrospective development assessment, not a fresh independent qualification set. Production monitoring is required. The remaining afternoon subset has slightly worse MAE; the report retains that finding. Model fitting never used those later labels for its earlier coefficients.
+
+The effective PV factors combine forecast irradiance, geometry, array and meter response. These data do not separately identify certified irradiance or array efficiency. The local station radiation remains a lux-derived proxy. Low-SoC charging and sub-clipping thresholds are explicit censoring assumptions, not charge-mode/fault receipts.
+
+The v2 daily potential view retains uncalibrated kWh alongside adjusted values, marks each date's calibration scope, and preserves a read-only, disabled-actuation contract. Receipts retain exact five-minute raw/adjusted prediction steps for prospective scoring. Changing source/model bytes or geometry declarations refuses the correction and falls back to raw physics. An explicitly selected model becomes unavailable after 14 days without refresh; the underlying PV forecast continues.
+
+Seasonal Google acquisition has reached 51 of 152 sampled full cycles. One older cycle lacks one direct-solar and one IMERG precipitation target while temperature/GHI are complete. Explicit training-core mode preserves optional gaps; the strict default remains unchanged. Two-run batches respect the original 75-second external deadline. Acquisition stopped cleanly during a transient shared-pressure event and must resume from retained progress.

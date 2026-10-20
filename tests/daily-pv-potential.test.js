@@ -18,3 +18,9 @@ it('retains unknown weather coverage as unavailable rather than zero generation'
  const v=fixture();Object.assign(v.days[0],{status:'unavailable',reason:'incomplete_weather_or_geometry',potentialKwh:null});
  const view=parseDailyPvPotential(JSON.stringify(v),{nowMs:now});expect(view).not.toBeNull();expect(dailyPvForDate(view,'2026-10-19')).toBeNull();
 });
+
+it('accepts explicit provisional short-horizon calibration while keeping raw potential',async()=>{
+ const {calibratedFixture}=await import('./fixtures/daily-pv-potential.js');const v=calibratedFixture();
+ const parsed=parseDailyPvPotential(JSON.stringify(v),{nowMs:now});expect(parsed?.days[0].uncalibratedPotentialKwh).toBe(1.5);
+ v.calibration.applyThroughAt=new Date(now+48*3600000).toISOString();expect(parseDailyPvPotential(JSON.stringify(v),{nowMs:now})).toBeNull();
+});

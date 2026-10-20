@@ -81,3 +81,21 @@ def test_day_geometry_cache_reuses_original_availability_and_rejects_tampering(t
     path=next(tmp_path.glob('*.geometry.json'));value=json.loads(path.read_text());value['caches'][0]['positions'][0]['elevation_degrees']=0.
     path.write_text(json.dumps(value))
     with pytest.raises(ValueError):day_geometry(tmp_path,'2026-10-20',clock=lambda:now,**args)
+
+
+def test_provisional_directional_correction_stops_after_24_hours_and_keeps_raw_steps():
+    from weather_learning.pv_directional_calibration import fit_directional
+    from test_weather_directional_pv import rows
+    from test_household_pv_window import START
+    model=fit_directional(rows(),cutoff=START+timedelta(days=8),trained_at=START+timedelta(days=20))
+    args=inputs('2026-11-05');next_day=inputs('2026-11-06')
+    args['dates']+=next_day['dates'];args['hours']+=next_day['hours'];args['positions']+=next_day['positions']
+    for position in args['positions']:position['azimuth_degrees']=110.
+    baseline=project(**args);steps=[];adjusted=project(**args,calibration=model,steps_out=steps)
+    assert adjusted[0]['potentialKwh']<baseline[0]['potentialKwh']
+    assert adjusted[0]['uncalibratedPotentialKwh']==baseline[0]['potentialKwh']
+    assert adjusted[0]['calibrationScope']=='empirical_short_horizon'
+    assert adjusted[1]['potentialKwh']==baseline[1]['potentialKwh']
+    assert adjusted[1]['calibrationScope']=='none'
+    assert len(steps)==576
+    assert not any(s['calibration_applied'] for s in steps[288:])

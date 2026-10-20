@@ -13,6 +13,8 @@
     typeof raw === 'number' && Number.isFinite(raw) ? `${Math.round(raw)}${suffix}` : '—'
   );
 
+  const pvTitle = (pv) => `${pv.calibrationScope && pv.calibrationScope !== 'none' ? 'Provisional, empirically adjusted over the next 24 hours; ' : 'Provisional ' }array DC potential before battery acceptance and demand limits; ${pv.fromAt} through ${pv.throughAt}.`;
+
   const accessibleName = (day) => [
     day.label,
     ...(dailyPvForDate(dailyPv, day.date) ? [`PV potential ${dailyPvForDate(dailyPv, day.date).potentialKwh.toFixed(1)} kilowatt hours`] : []),
@@ -53,7 +55,7 @@
         {/if}
         {#if day.summary.precipPct === null && !rainAmountText(day.summary.precipSumIn)}<span>{day.summary.precipSumIn === 0 ? '0.00″' : 'Rain unavailable'}</span>{/if}
         {#if variant !== 'home' && day.summary.precipitationScope === 'remaining'}<small class="range-note" title={`Rain forecast from ${day.summary.precipitationFromAt} through ${day.summary.precipitationThroughAt}`}>remaining</small>{/if}
-        {#if pv}<span aria-hidden="true"> · </span><span data-testid="daily-pv-potential" title={`Provisional array DC potential before battery acceptance and demand limits; ${pv.fromAt} through ${pv.throughAt}.`}>PV {pv.potentialKwh.toFixed(1)} kWh</span>
+        {#if pv}<span aria-hidden="true"> · </span><span data-testid="daily-pv-potential" title={pvTitle(pv)}>PV {pv.potentialKwh.toFixed(1)} kWh</span>
         {:else if day.summary.pvKwh !== null}<span aria-hidden="true"> · </span><span>PV {value(day.summary.pvKwh, ' kWh')}</span>{/if}
       </span>
     </button>

@@ -6,7 +6,8 @@ import os
 
 def capture_sources(root):
     root=Path(root);result={}
-    for path in sorted((root/'openhab/scripts').rglob('*.py')):
+    paths=list((root/'openhab/scripts').rglob('*.py'))+list((root/'scripts/java').glob('*.java'))
+    for path in sorted(paths):
         if path.name.startswith('test_') or any(p in ('tests','__pycache__','.venv') for p in path.relative_to(root).parts):continue
         raw=path.read_bytes()
         if len(raw)>1024**2:raise ValueError('bounded training source required')

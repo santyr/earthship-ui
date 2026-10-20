@@ -14,3 +14,10 @@ def test_training_sources_are_original_bytes_and_changes_are_detected(tmp_path):
     verify_sources(root,sources)
     script.write_bytes(b'x=2\n')
     with pytest.raises(ValueError,match='changed'):verify_sources(root,sources)
+
+
+def test_native_java_is_part_of_the_training_source_bundle(tmp_path):
+    from weather_learning.source_bundle import capture_sources
+    path=tmp_path/'openhab/scripts/example.py';path.parent.mkdir(parents=True);path.write_bytes(b'pass')
+    java=tmp_path/'scripts/java/NativeSolarGeometry.java';java.parent.mkdir(parents=True);java.write_bytes(b'class NativeSolarGeometry {}')
+    assert capture_sources(tmp_path)['scripts/java/NativeSolarGeometry.java']==java.read_bytes()

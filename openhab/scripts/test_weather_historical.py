@@ -95,3 +95,20 @@ def test_seasonal_selection_covers_explicit_full_cycles_with_bounded_sampling():
     assert runs[4]-runs[0]==timedelta(days=7)
     for step in (0,32):
         with pytest.raises(ValueError):requested_initializations('2026-01-01',262,cycles=[0],day_step=step,now=T.replace(year=2027))
+
+
+def test_explicit_core_training_coverage_can_retain_optional_field_gaps(tmp_path):
+    from weather_learning.historical import collect_history
+    archive=Archive(tmp_path/'history');reader=Mock();source=native_snapshot(hours=2)
+    # The original fixture has temperature mean/p10/p90. An absent optional
+    # p90 value must not make valid mean-temperature training disappear.
+    source['source_originals'][0]['payload']['region'][1][-1]=None
+    from weather_learning.historical import verify_history
+    from weather_learning.weathernext_ee import parse_collection_response
+    raw=source['source_originals'][0]
+    _,source['points']=parse_collection_response(raw['payload'],collection=raw['collection'],bands=raw['payload']['region'][0][4:],site=__import__('weather_learning.config',fromlist=['Site']).Site(**source['site']),initialized_at=T,horizon=2)
+    reader.fetch_points.return_value=source
+    result=collect_history(reader,archive,initializations=[T],horizon=2,now=T+timedelta(days=2),bands_by_grid={'station':('station_head_temperature_2m_mean','station_head_temperature_2m_p10','station_head_temperature_2m_p90')},required={('station_head_temperature_2m','mean')})
+    retained=archive.read(result['snapshots'][0]['sha256'])
+    assert any(p['value'] is None for p in retained['points'])
+    assert retained['source_originals']==source['source_originals']

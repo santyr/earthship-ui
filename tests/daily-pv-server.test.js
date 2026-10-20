@@ -3,11 +3,11 @@ import { mkdtemp, writeFile, chmod, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:http';
-import { fixture, now } from './fixtures/daily-pv-potential.js';
+import { fixture, calibratedFixture, now } from './fixtures/daily-pv-potential.js';
 import { householdObservationPlugin } from '../src/lib/household/observationServer.js';
 const cleanup = [];
 afterEach(async () => { for (const task of cleanup.splice(0).reverse()) await task(); });
-it.each([['/api/daily-pv-potential', fixture]])(
+it.each([['/api/daily-pv-potential', fixture], ['/api/daily-pv-potential', calibratedFixture]])(
   'serves fixed curated GET %s without allowing file selection or authority', async (endpoint, fixture) => {
     const dir = await mkdtemp(join(tmpdir(), 'energy-monitoring-')); await chmod(dir, 0o700); cleanup.push(() => rm(dir, { recursive: true, force: true }));
     const path = join(dir, 'value.json'); await writeFile(path, JSON.stringify(fixture()), { mode: 0o600 });

@@ -13,13 +13,18 @@ from household.control_contracts import instant
 from household.evidence import utc
 
 
-def project_days(*,dates,hours,positions,array,horizon_profile,timezone_name,issued_at):
+def project_days(*,dates,hours,positions,array,horizon_profile,timezone_name,issued_at,calibration=None,steps_out=None):
     issued=utc(issued_at);zone=ZoneInfo(timezone_name)
     if (not isinstance(dates,list) or not 1<=len(dates)<=10 or dates!=sorted(set(dates)) or
             not isinstance(hours,list) or len(hours)>361 or not isinstance(positions,list) or len(positions)>3000):
         raise ValueError('bounded daily PV forecast inputs required')
     weather={row['at']:row for row in hours};geometry={row['at']:row for row in positions}
     if len(weather)!=len(hours) or len(geometry)!=len(positions):raise ValueError('unique PV source instants required')
+    if calibration is not None:
+        from weather_learning.pv_directional_calibration import validate_model,sector
+        from weather_learning.contracts import instant as model_instant
+        calibration=validate_model(calibration)
+        if model_instant(calibration['trained_at'])>issued:raise ValueError('PV calibration unavailable at issue')
     result=[]
     for day_string in dates:
         day=date.fromisoformat(day_string)
@@ -29,7 +34,8 @@ def project_days(*,dates,hours,positions,array,horizon_profile,timezone_name,iss
         start=max(midnight,issued)
         row=dict(date=day_string,status='unavailable',reason='incomplete_weather_or_geometry',potentialKwh=None,
             fromAt=start.isoformat(),throughAt=end.isoformat(),scope='remaining' if start>midnight else 'full_day')
-        at=start;energy=[]
+        if calibration is not None:row.update(uncalibratedPotentialKwh=None,calibrationScope='none')
+        at=start;energy=[];raw_energy=[];adjusted=False;unadjusted=False
         try:
             while at<end:
                 stop=min(end,at.replace(minute=at.minute//5*5,second=0,microsecond=0)+timedelta(minutes=5))
@@ -41,8 +47,19 @@ def project_days(*,dates,hours,positions,array,horizon_profile,timezone_name,iss
                     elevation_degrees=position['elevation_degrees'],azimuth_degrees=azimuth,
                     day_of_year=stop.astimezone(zone).timetuple().tm_yday,temp_f=forecast['tempF'],wind_mph=forecast['windMph'],
                     horizon_elevation_degrees=None if horizon_profile is None else horizon_height(horizon_profile,azimuth))
-                energy.append(power['potential_dc_w']*(stop-at).total_seconds()/3600000);at=stop
+                raw_watts=power['potential_dc_w'];watts=raw_watts;applied=False
+                if calibration is not None and stop<=issued+timedelta(hours=24):
+                    gain=calibration['sectors'][sector(azimuth)]
+                    if gain['supported']:
+                        watts*=gain['gain'];applied=True
+                adjusted=adjusted or applied and raw_watts>0
+                unadjusted=unadjusted or not applied and raw_watts>0
+                elapsed=(stop-at).total_seconds()/3600000
+                raw_energy.append(raw_watts*elapsed);energy.append(watts*elapsed)
+                if steps_out is not None:steps_out.append(dict(start=at.isoformat(),end=stop.isoformat(),uncalibrated_w=raw_watts,potential_w=watts,azimuth_degrees=azimuth,calibration_applied=applied))
+                at=stop
             row.update(status='available',reason=None,potentialKwh=fsum(energy))
+            if calibration is not None:row.update(uncalibratedPotentialKwh=fsum(raw_energy),calibrationScope='mixed' if adjusted and unadjusted else 'empirical_short_horizon' if adjusted else 'none')
         except (ValueError,KeyError,TypeError,OverflowError):
             pass
         result.append(row)

@@ -19,3 +19,9 @@ it('withdraws expired potential rather than reusing an old daily estimate',()=>{
  dailyPvRaw.set(JSON.stringify(fixture()));dailyPvClock.set(now+90*60000);
  const {container}=render(DailyForecast,{days});expect(container.querySelector('[data-testid="daily-pv-potential"]')).toBeNull();
 });
+
+it('labels provisional empirical calibration without claiming captured PV',async()=>{
+ const {calibratedFixture}=await import('../fixtures/daily-pv-potential.js');dailyPvRaw.set(JSON.stringify(calibratedFixture()));dailyPvClock.set(now);
+ const {container}=render(DailyForecast,{days});const pv=container.querySelector('[data-testid="daily-pv-potential"]');
+ expect(pv?.title).toContain('empirically adjusted over the next 24 hours');expect(pv?.title).toContain('before battery acceptance');
+});

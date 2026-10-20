@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=oneshot
 EnvironmentFile=%h/.config/earthship-weather/daily-pv.env
 Environment=PYTHONDONTWRITEBYTECODE=1
-ExecStart=/usr/bin/python3 ${EARTHSHIP_DAILY_PV_ROOT}/scripts/run-household-job.py --production --minimum-mib 512 --preferred-mib 1024 --tasks 48 --seconds 600 -- /usr/bin/python3 ${EARTHSHIP_DAILY_PV_ROOT}/openhab/scripts/daily_pv_worker.py --archive %h/.local/state/earthship-weather/archive --state %h/.local/state/earthship-weather/daily-pv --output %h/.local/state/household-intel/daily-pv-potential.json --libraries ${EARTHSHIP_DAILY_PV_LIBRARIES}
+ExecStart=/usr/bin/python3 ${EARTHSHIP_DAILY_PV_ROOT}/scripts/run-household-job.py --production --minimum-mib 512 --preferred-mib 1024 --tasks 48 --seconds 600 -- /usr/bin/python3 ${EARTHSHIP_DAILY_PV_ROOT}/openhab/scripts/daily_pv_worker.py --archive %h/.local/state/earthship-weather/archive --state %h/.local/state/earthship-weather/daily-pv --output %h/.local/state/household-intel/daily-pv-potential.json --libraries ${EARTHSHIP_DAILY_PV_LIBRARIES} --calibration %h/.local/state/earthship-weather/pv-calibration/selected-directional.json
 TimeoutStartSec=620
 UMask=0077
 StandardOutput=journal

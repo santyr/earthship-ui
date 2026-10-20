@@ -43,7 +43,7 @@ def day_geometry(root,day,*,site,native_runtime,libraries,guard,clock,capture=No
     guard();save(path,result.to_dict());return result
 
 
-def run(*,archive_path,state_path,output_path,libraries_path,clock=lambda:datetime.now(timezone.utc)):
+def run(*,archive_path,state_path,output_path,libraries_path,calibration_path=None,clock=lambda:datetime.now(timezone.utc)):
     from weather_learning.archive import Archive
     from weather_learning.config import Site
     from weather_learning.openhab import oh_get
@@ -96,12 +96,25 @@ def run(*,archive_path,state_path,output_path,libraries_path,clock=lambda:dateti
         # provider's complete hours, rather than a ten-day visual slice,
         # include that last necessary interval.
         hours=[dict(at=h['at'],radiationWm2=h['radiation_wm2'],tempF=h['temp_f'],windMph=h['wind_mph']) for h in _presentation(provider.to_dict())[0]['hours']]
-        days=project_days(dates=dates,hours=hours,positions=positions,array=system['array'],horizon_profile=horizon['profile'],timezone_name=site.timezone,issued_at=generated)
+        calibration=None;calibration_reason=None
+        if calibration_path is not None:
+            from weather_learning.pv_calibration_source import load_calibration
+            try:calibration=load_calibration(calibration_path,origin=generated,system_raw=system_raw,horizon_raw=horizon_raw)
+            except (ValueError,FileNotFoundError) as error:calibration_reason=type(error).__name__
+        projection_steps=[]
+        days=project_days(dates=dates,hours=hours,positions=positions,array=system['array'],horizon_profile=horizon['profile'],timezone_name=site.timezone,issued_at=generated,calibration=None if calibration is None else calibration['model'],steps_out=projection_steps)
         view=dict(schema='earthship-daily-pv-potential/v1',provider='weathernext3',generatedAt=generated.isoformat(),
             validUntil=(generated+timedelta(minutes=90)).isoformat(),timezone=site.timezone,
             weatherSha256=provider.to_dict()['provider_snapshot_sha256'],geometrySha256=identity(geometries),
             systemSha256=sha256(system_raw).hexdigest(),horizonSha256=sha256(horizon_raw).hexdigest(),
             confidence='provisional_uncalibrated',automatic_actuation=False,physical_calibration_qualified=False,days=days)
+        if calibration is not None:
+            model=calibration['model'];report=calibration['report']
+            view.update(schema='earthship-daily-pv-potential/v2',confidence='provisional_empirical_short_horizon',calibration=dict(
+                modelSha256=model['model_sha256'],trainingThrough=model['cutoff'],assessedThrough=report['holdout_end'],
+                applyThroughAt=(generated+timedelta(hours=24)).isoformat(),independentTargetDays=report['independent_target_days'],
+                baselineMaeW=report['baseline_mae_w'],candidateMaeW=report['candidate_mae_w'],
+                qualification='retrospective_development_assessment_not_prospective_or_metrology'))
         guard()
         if _private_file(Path(libraries_path),8192)[0]!=library_raw or runtime_identity(libraries,binding_version=addon['version'],guard=guard)!=runtime:
             raise ValueError('native runtime changed during daily PV projection')
@@ -109,11 +122,12 @@ def run(*,archive_path,state_path,output_path,libraries_path,clock=lambda:dateti
             raise ValueError('native Astro metadata changed during daily PV projection')
         output=Path(output_path);directory(output.parent)
         receipt=dict(schema='earthship-daily-pv-potential-receipt/v1',view=view,provider=provider.to_dict(),geometry_series_sha256s=geometries,
-            system_source=system_source,horizon_source=horizon_source,model_assumptions=dict(__import__('household_pv_model').ASSUMPTIONS))
-        receipt['runtime_manifest']={name:sha256((root/name).read_bytes()).hexdigest() for name in ('openhab/scripts/daily_pv_worker.py','openhab/scripts/daily_pv_potential.py','openhab/scripts/household_pv_model.py','openhab/scripts/household_solar_horizon.py')}
+            system_source=system_source,horizon_source=horizon_source,calibration_source=calibration,calibration_reason=calibration_reason,projection_steps=projection_steps,model_assumptions=dict(__import__('household_pv_model').ASSUMPTIONS))
+        receipt['runtime_manifest']={name:sha256((root/name).read_bytes()).hexdigest() for name in ('openhab/scripts/daily_pv_worker.py','openhab/scripts/daily_pv_potential.py','openhab/scripts/household_pv_model.py','openhab/scripts/household_solar_horizon.py','openhab/scripts/weather_learning/pv_calibration_source.py','openhab/scripts/weather_learning/pv_directional_calibration.py','openhab/scripts/weather_learning/pv_calibration.py')}
         receipt['receipt_sha256']=identity(receipt);save(state/(receipt['receipt_sha256']+'.receipt.json'),receipt)
         if (root/'openhab/household-pv-system.json').read_bytes()!=system_raw or (root/'openhab/household-solar-horizon.json').read_bytes()!=horizon_raw:
             raise ValueError('array/terrain bytes changed during projection')
+        if calibration is not None and sha256(_private_file(Path(calibration_path),262144)[0]).hexdigest()!=calibration['original_file_sha256']:raise ValueError('selected PV calibration source changed')
         guard();save(output,view)
         return dict(status='daily_pv_published',available_days=sum(d['status']=='available' for d in days),days=len(days),
             seconds=round(timing.monotonic()-started,3),automatic_actuation=False)
@@ -123,9 +137,10 @@ def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--archive',type=Path,required=True);parser.add_argument('--state',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True);parser.add_argument('--libraries',type=Path,required=True)
+    parser.add_argument('--calibration',type=Path)
     args=parser.parse_args(argv);os.umask(0o077)
     try:
-        print(json.dumps(run(archive_path=args.archive,state_path=args.state,output_path=args.output,libraries_path=args.libraries)),flush=True);return 0
+        print(json.dumps(run(archive_path=args.archive,state_path=args.state,output_path=args.output,libraries_path=args.libraries,calibration_path=args.calibration)),flush=True);return 0
     except Exception as error:
         print(json.dumps(dict(status='daily_pv_withheld',reason=type(error).__name__,automatic_actuation=False)),flush=True);return 1
 
