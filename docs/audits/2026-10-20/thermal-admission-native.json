@@ -1,0 +1,622 @@
+{
+  "schema": "earthship-native-verification/v1",
+  "source_revision": "8e582cce073959be1353a694bd2f05aede63d23f",
+  "non_documentation_revision": "c31d067a6e79f8e5fe23d26365de9a8a2e8a0018",
+  "merged_revision": "5f3d3a032d7c1563dcb37fc68e2e599d8656b718",
+  "source_git_tree": "37e404b049f380f28281b900e8f4c3f1c5e558cf",
+  "general_interpreter": "Python3.12.3/pytest9.1.1",
+  "receiver_interpreter": "Python3.12.3/pytest9.0.2/Flask-Cors4.0.0; existing host environment",
+  "versions": [
+    {
+      "argv": [
+        "/tmp/earthship-audit-20261020-venv/bin/python",
+        "--version"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout": "Python 3.12.3"
+    },
+    {
+      "argv": [
+        "/tmp/earthship-audit-20261020-venv/bin/python",
+        "-m",
+        "pytest",
+        "--version"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout": "pytest 9.1.1"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "--version"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout": "Python 3.12.3"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "pytest",
+        "--version"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout": "pytest 9.0.2"
+    },
+    {
+      "argv": [
+        "/snap/bin/docker",
+        "--version"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout": "Docker version 29.8.0, build 88096ef"
+    },
+    {
+      "argv": [
+        "/tmp/earthship-actionlint/bin/actionlint",
+        "-version"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout": "v1.7.7\ninstalled by building from source\nbuilt with go1.22.2 compiler for linux/amd64"
+    },
+    {
+      "argv": [
+        "/tmp/earthship-shellcheck/usr/bin/shellcheck",
+        "--version"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout": "ShellCheck - shell script analysis tool\nversion: 0.9.0\nlicense: GNU General Public License, version 3\nwebsite: https://www.shellcheck.net"
+    },
+    {
+      "argv": [
+        "/home/sat/.local/bin/nak",
+        "--version"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout": "nak version v0.20.7"
+    },
+    {
+      "argv": [
+        "/home/sat/.local/libexec/earthship-thermal/nak-v0.20.7-earthship-nip04-stdin.1",
+        "--version"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout": "nak version v0.20.7-earthship-nip04-stdin.1"
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-c",
+        "import flask_cors; print(flask_cors.__version__)"
+      ],
+      "exit": 0,
+      "stderr": "",
+      "stdout": "4.0.0"
+    }
+  ],
+  "binary_sha256": {
+    "/home/sat/.local/bin/nak": "ba918fafd1b030bc50958a5b218c6386f4c3a57c1e469562d3947e858e0ba56e",
+    "/home/sat/.local/libexec/earthship-thermal/nak-v0.20.7-earthship-nip04-stdin.1": "2620c86f7a2b466a41977ae7e318d1810c727503deaf53ea1c76a5ac24e6f927",
+    "/snap/bin/docker": "2c827fbd330bd1e993bc022c9de085c2b61b351500b02e8236b6e54996e59eed",
+    "/tmp/earthship-actionlint/bin/actionlint": "b61ad3aa59d67cb7185730aa5414b2520fa5cc34f296b4e3fde067a253d9d184",
+    "/tmp/earthship-audit-20261020-venv/bin/python": "e50d468e8b0adfb05733f5b87b3cff34829c4a8c1aea50c865aa8bdfe4bb150f",
+    "/tmp/earthship-shellcheck/usr/bin/shellcheck": "54dc63164186ad21fb909f5194fb5291f4035c2d2cae04b5680385b8d8fbb73c",
+    "/usr/bin/python3": "e50d468e8b0adfb05733f5b87b3cff34829c4a8c1aea50c865aa8bdfe4bb150f"
+  },
+  "companion": {
+    "commit": "24d2e8984810cb596fe9792768510a356786f709",
+    "mismatches": 0,
+    "path": "/home/sat/.codex/worktrees/d4ee/earthship-ui/.ci/solar-pv/analytics/src",
+    "source_manifest_sha256": "c651ce79fbae78f0fcbd66f2c35658f94d0dea31b2b0f1c0c3e35688d1125059",
+    "verified_files": 45
+  },
+  "authority": "Synthetic keys, disposable loopback databases/relays and transient user-systemd retry-counter units only. No household relay delivery, provider acquisition, actuator commands, hardware stimulus or production publication.",
+  "counting": "The four final native partitions are disjoint by JUnit classname::name identity: 656 isolated completion + 3 PostgreSQL completion + 19 host + 5 receiver = 683 cases. The 659 completion cases are a subset of these 683. Hosted and other related gates overlap and are not summed.",
+  "profiles": {
+    "completion-isolated": {
+      "passed": 656,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "exit_code": 0,
+      "elapsed_seconds": 166.142,
+      "started_at": "2026-10-20T21:56:54.044556+00:00",
+      "testcase_ids_sha256": "be6a2e3ca67429cbb4f70ee778477fd86f65794a55a5e2c36c425026e4a8d1e9",
+      "testcase_digest_format": "SHA256 of lexically sorted classname::name identifiers, each terminated with LF",
+      "junit": {
+        "private_evidence_file": "earthship-a22-native-completion-isolated.xml",
+        "sha256": "28679add27c4b0f60567acf6fd844eb5cb56fd2a0cb8868f42303135f909e623",
+        "bytes": 179806
+      },
+      "log": {
+        "private_evidence_file": "earthship-a22-native-completion-isolated.log",
+        "sha256": "349383c5da9349ae522524ce9081ce5acf61846ec03e2f85fb5e36cabe95a3a5",
+        "bytes": 846
+      },
+      "file_partitions": {
+        "tests/completion/test_bms_aux_source_cadence.py": {
+          "cases": 9,
+          "source_sha256": "4b79c0baa14f1a63af7623b2a249a2b630d7fde0b504b212a3a43754249060ff"
+        },
+        "tests/completion/test_collector_public_key.py": {
+          "cases": 118,
+          "source_sha256": "060f72212dfa97bf5dcd5f63a1548617720483fb4bedfa7c01863c836853e022"
+        },
+        "tests/completion/test_nak_build_policy.py": {
+          "cases": 4,
+          "source_sha256": "c09c6eb2ccc3080cc48026ca6057d7726f9951d09ca47823207b65c275049dfe"
+        },
+        "tests/completion/test_nak_client_identity.py": {
+          "cases": 10,
+          "source_sha256": "3a4eee63608a9f79e76bc06515320f3456bbd1245ccf93f50479315ec0cda09f"
+        },
+        "tests/completion/test_nak_qualification.py": {
+          "cases": 19,
+          "source_sha256": "9c163a9e44dee468cfeb92c73ebe5c19c8d00f56fb7f3c1f21777caf2cf93fe8"
+        },
+        "tests/completion/test_nostr_bunker_challenge.py": {
+          "cases": 2,
+          "source_sha256": "93f1075bba568224d52ea2fc3b902e4c54eb011c618379247748ae329c67971c"
+        },
+        "tests/completion/test_nostr_bunker_template.py": {
+          "cases": 5,
+          "source_sha256": "17f5737dc05368327737542d647d5eb5265b18032cb3845b6c96d13382571c02"
+        },
+        "tests/completion/test_nostr_notify_source.py": {
+          "cases": 1,
+          "source_sha256": "7d38a5b55da6096cefcaeeb638a1353a78c60704d0b113b852f225aa3e1d33b8"
+        },
+        "tests/completion/test_persistence_boundary.py": {
+          "cases": 33,
+          "source_sha256": "de132927c7d04d80b30610df121ce2aaf410af5b3d121b3262b933b2c66ea33c"
+        },
+        "tests/completion/test_pre_dusk_notification.py": {
+          "cases": 20,
+          "source_sha256": "39ba733862641c088d33fc5279a55e98fff155cce67d33b4670d5d46330ff504"
+        },
+        "tests/completion/test_pre_dusk_notification_cli.py": {
+          "cases": 9,
+          "source_sha256": "1b7cb33917967dc74b1969fd4f212600ffc140119d38cafc336f6d56c58d3e9d"
+        },
+        "tests/completion/test_pre_dusk_notification_source.py": {
+          "cases": 10,
+          "source_sha256": "be9cbe61749c37fb418ef16dc90072925f8373ed27679dfed8f7835ff889e70a"
+        },
+        "tests/completion/test_pre_dusk_notification_worker.py": {
+          "cases": 5,
+          "source_sha256": "7b9bfb177e4f3f011bc6e2fde9a7fa4586fccd248fd7cf3fc23e704824432300"
+        },
+        "tests/completion/test_season_countdown_item_migration.py": {
+          "cases": 2,
+          "source_sha256": "b863b04969291f548278bcaa5e4a3d6fc46e5137fa16c427fbca40dbfefdb34d"
+        },
+        "tests/completion/test_thermal_confirmation.py": {
+          "cases": 114,
+          "source_sha256": "af59571b5fa498e1c95ce03a9061621e222217495239fbc38bc8c23c580cef20"
+        },
+        "tests/completion/test_thermal_followup.py": {
+          "cases": 57,
+          "source_sha256": "95143016f49468b7b3ff26a77eef94fe7d31517e5cbbc89eed3316118e4a0350"
+        },
+        "tests/completion/test_thermal_followup_cli.py": {
+          "cases": 10,
+          "source_sha256": "623fd5a875b15ab035ecc75c8e8c9c0dee964d8b3678e8811ca676242d2e731b"
+        },
+        "tests/completion/test_thermal_messaging.py": {
+          "cases": 80,
+          "source_sha256": "f9586ab92d72a5e0f274c40e975fb3fc598796c64624fd70a4f75739e6f77692"
+        },
+        "tests/completion/test_thermal_nip04.py": {
+          "cases": 35,
+          "source_sha256": "7b7c6323257fe45d67c0013d1b9e69141fadcbe78dbab3a3c8f6ebf06d68f156"
+        },
+        "tests/completion/test_thermal_nip04_delivery.py": {
+          "cases": 18,
+          "source_sha256": "2a1ef77728076a682de97743d7649a8e958d930c7d6f8eff9c4e1e0257f676e3"
+        },
+        "tests/completion/test_thermal_nip04_ledger.py": {
+          "cases": 18,
+          "source_sha256": "7aadbbccc48f3eb655faee9a3dd8c975de1908555c704faf0673bcaec7c3d0bd"
+        },
+        "tests/completion/test_thermal_primal_backup.py": {
+          "cases": 15,
+          "source_sha256": "bbee6c31f657576c7b2edacbdd44c1fb3d21c0e7e88690d30d014c17ba8d749c"
+        },
+        "tests/completion/test_thermal_primal_cli.py": {
+          "cases": 21,
+          "source_sha256": "1dab9db9b099d23f2166cc5943064fba0e1b1cffb9444948cdc0ef9f292cca5e"
+        },
+        "tests/completion/test_thermal_primal_signer.py": {
+          "cases": 13,
+          "source_sha256": "f36faf0d7e0140b1376a228dec4fa9727879f17343c79013a912c59f44f579eb"
+        },
+        "tests/completion/test_thermal_state_backup.py": {
+          "cases": 14,
+          "source_sha256": "069e272cdb8a108d8b20f182bbec956c1e5e6f20d83b71207042ca6ce59efb22"
+        },
+        "tests/completion/test_verification_gates.py": {
+          "cases": 14,
+          "source_sha256": "1372b70c8bb45ce0a25d12f429ce80784b9a668db11a7187938746d4a0aa303c"
+        }
+      },
+      "summary": "656 passed, 3 deselected in 165.50s (0:02:45)"
+    },
+    "completion-pg": {
+      "passed": 3,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "exit_code": 0,
+      "elapsed_seconds": 26.119,
+      "started_at": "2026-10-20T21:59:40.191832+00:00",
+      "testcase_ids_sha256": "7ff476f4276f3114c5497ed35649cb813f04f1cad0ba37f02f6e9f67643caeb3",
+      "testcase_digest_format": "SHA256 of lexically sorted classname::name identifiers, each terminated with LF",
+      "junit": {
+        "private_evidence_file": "earthship-a22-native-completion-pg.xml",
+        "sha256": "a727f93871310437abf980c7f739f01d3e1233efee02bfbe464ab034af7033e4",
+        "bytes": 717
+      },
+      "log": {
+        "private_evidence_file": "earthship-a22-native-completion-pg.log",
+        "sha256": "21abebaf48fbd07eb9b2bb5dfa47d8020f7edbd9f62f64a61e5ab2a4081c34f9",
+        "bytes": 99
+      },
+      "file_partitions": {
+        "tests/completion/test_thermal_nip04_ledger.py": {
+          "cases": 2,
+          "source_sha256": "7aadbbccc48f3eb655faee9a3dd8c975de1908555c704faf0673bcaec7c3d0bd"
+        },
+        "tests/completion/test_thermal_primal_backup.py": {
+          "cases": 1,
+          "source_sha256": "bbee6c31f657576c7b2edacbdd44c1fb3d21c0e7e88690d30d014c17ba8d749c"
+        }
+      },
+      "summary": "3 passed in 25.72s"
+    },
+    "host": {
+      "passed": 19,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "exit_code": 0,
+      "elapsed_seconds": 31.139,
+      "started_at": "2026-10-20T22:00:06.315523+00:00",
+      "testcase_ids_sha256": "20742c2b32dfc89296838b3fff6217190278d5630b671e88b49c271f547f77d7",
+      "testcase_digest_format": "SHA256 of lexically sorted classname::name identifiers, each terminated with LF",
+      "junit": {
+        "private_evidence_file": "earthship-a22-native-host.xml",
+        "sha256": "27a35cb716f87897b10c94049df468cbc21d78983353d2f78f5a656f0e3f037c",
+        "bytes": 3130
+      },
+      "log": {
+        "private_evidence_file": "earthship-a22-native-host.log",
+        "sha256": "cbdd3772eb4bda7db5e023d841d6747938a63daab543068a195701924d458620",
+        "bytes": 100
+      },
+      "file_partitions": {
+        "openhab/scripts/test_native_resource_admission.py": {
+          "cases": 4,
+          "source_sha256": "2161ee8ff5468b763501857d3b107826fe0d61478b440158c21a81f282285e25"
+        },
+        "openhab/scripts/test_score_production_cpu.py": {
+          "cases": 12,
+          "source_sha256": "511d87aa398c4c7ce25c64ad43d954ca06115c914d43b542648ed20fd7e163e3"
+        },
+        "scripts/test_thermal_shadow_retry.py": {
+          "cases": 3,
+          "source_sha256": "4471d388bb5cb01844ebc1431e57ee832111cc0a0759d0b5e26cb2231e27e3dd"
+        }
+      },
+      "summary": "19 passed in 30.00s"
+    },
+    "receiver": {
+      "passed": 5,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "exit_code": 0,
+      "elapsed_seconds": 1.117,
+      "started_at": "2026-10-20T22:00:37.457242+00:00",
+      "testcase_ids_sha256": "3de08cdf396c2996ab198413f48ed39adcae965f53a62fc71859b37cd6cf28bf",
+      "testcase_digest_format": "SHA256 of lexically sorted classname::name identifiers, each terminated with LF",
+      "junit": {
+        "private_evidence_file": "earthship-a22-native-receiver.xml",
+        "sha256": "2bfc3af08e47694792a1b0f35ba25f63bc88ef6c8748c15e105f136d5d77abea",
+        "bytes": 1067
+      },
+      "log": {
+        "private_evidence_file": "earthship-a22-native-receiver.log",
+        "sha256": "1ccafd8e67328198f09639d51973b1537731591146acaca71578cfcbe74b267b",
+        "bytes": 98
+      },
+      "file_partitions": {
+        "openhab/scripts/test_weather_receiver_characterization.py": {
+          "cases": 5,
+          "source_sha256": "99e06bc1476cd73b564db1675cfc6117822cca87e1cac39420e872f6c03cfda7"
+        }
+      },
+      "summary": "5 passed in 0.17s"
+    }
+  },
+  "completion_partitions_disjoint": true,
+  "completion_distinct_cases": 659,
+  "all_four_partitions_disjoint": true,
+  "all_four_distinct_cases": 683,
+  "all_four_exit_zero_zero_skips": true,
+  "all_case_ids_sha256": "5f1accebcc1c75cc2ef3cc3e7144910bd34b6d2f77025b0c41ab1a71c962b2e4",
+  "commands_exact": [
+    {
+      "profile": "completion-isolated",
+      "cwd": "/tmp/earthship-thermal-conditioning-admission",
+      "argv": [
+        "/usr/bin/python3",
+        "scripts/run-household-job.py",
+        "--minimum-mib",
+        "512",
+        "--preferred-mib",
+        "1024",
+        "--tasks",
+        "96",
+        "--seconds",
+        "600",
+        "--",
+        "/usr/bin/sudo",
+        "-n",
+        "/usr/bin/unshare",
+        "--net",
+        "--",
+        "/bin/sh",
+        "-c",
+        "/usr/sbin/ip link set lo up; exec /usr/bin/setpriv --reuid=1000 --regid=1000 --init-groups /usr/bin/env PATH=/tmp/earthship-actionlint/bin:/tmp/earthship-shellcheck/usr/bin:/usr/local/bin:/usr/bin:/bin EARTHSHIP_TEST_NAK=/home/sat/.local/libexec/earthship-thermal/nak-v0.20.7-earthship-nip04-stdin.1 EARTHSHIP_TEST_NAK_SHA256=2620c86f7a2b466a41977ae7e318d1810c727503deaf53ea1c76a5ac24e6f927 PYTHONPATH=/tmp/earthship-thermal-conditioning-admission/openhab/scripts:/home/sat/.codex/worktrees/d4ee/earthship-ui/.ci/solar-pv/analytics/src /tmp/earthship-audit-20261020-venv/bin/python -m pytest -q -ra tests/completion/ --deselect=tests/completion/test_thermal_nip04_ledger.py::test_default_sink_preflight_then_reply_stores_real_v2_action --deselect=tests/completion/test_thermal_nip04_ledger.py::test_real_v2_journal_recovers_commit_before_ack_and_preserves_original_cipher --deselect=tests/completion/test_thermal_primal_backup.py::test_full_primal_bundle_restores_real_v2_journal_and_durable_delivery --junitxml=/tmp/earthship-a22-native-completion-isolated.xml"
+      ],
+      "shell": "/usr/bin/python3 scripts/run-household-job.py --minimum-mib 512 --preferred-mib 1024 --tasks 96 --seconds 600 -- /usr/bin/sudo -n /usr/bin/unshare --net -- /bin/sh -c '/usr/sbin/ip link set lo up; exec /usr/bin/setpriv --reuid=1000 --regid=1000 --init-groups /usr/bin/env PATH=/tmp/earthship-actionlint/bin:/tmp/earthship-shellcheck/usr/bin:/usr/local/bin:/usr/bin:/bin EARTHSHIP_TEST_NAK=/home/sat/.local/libexec/earthship-thermal/nak-v0.20.7-earthship-nip04-stdin.1 EARTHSHIP_TEST_NAK_SHA256=2620c86f7a2b466a41977ae7e318d1810c727503deaf53ea1c76a5ac24e6f927 PYTHONPATH=/tmp/earthship-thermal-conditioning-admission/openhab/scripts:/home/sat/.codex/worktrees/d4ee/earthship-ui/.ci/solar-pv/analytics/src /tmp/earthship-audit-20261020-venv/bin/python -m pytest -q -ra tests/completion/ --deselect=tests/completion/test_thermal_nip04_ledger.py::test_default_sink_preflight_then_reply_stores_real_v2_action --deselect=tests/completion/test_thermal_nip04_ledger.py::test_real_v2_journal_recovers_commit_before_ack_and_preserves_original_cipher --deselect=tests/completion/test_thermal_primal_backup.py::test_full_primal_bundle_restores_real_v2_journal_and_durable_delivery --junitxml=/tmp/earthship-a22-native-completion-isolated.xml'",
+      "driver_environment": {
+        "PATH": "/snap/bin:/usr/local/bin:/usr/bin:/bin"
+      },
+      "exit_code": 0
+    },
+    {
+      "profile": "completion-pg",
+      "cwd": "/tmp/earthship-thermal-conditioning-admission",
+      "argv": [
+        "/usr/bin/python3",
+        "scripts/run-household-job.py",
+        "--minimum-mib",
+        "256",
+        "--preferred-mib",
+        "768",
+        "--tasks",
+        "64",
+        "--seconds",
+        "300",
+        "--",
+        "/usr/bin/env",
+        "PATH=/snap/bin:/usr/local/bin:/usr/bin:/bin",
+        "PYTHONPATH=/tmp/earthship-thermal-conditioning-admission/openhab/scripts:/home/sat/.codex/worktrees/d4ee/earthship-ui/.ci/solar-pv/analytics/src",
+        "/tmp/earthship-audit-20261020-venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-ra",
+        "tests/completion/test_thermal_nip04_ledger.py::test_default_sink_preflight_then_reply_stores_real_v2_action",
+        "tests/completion/test_thermal_nip04_ledger.py::test_real_v2_journal_recovers_commit_before_ack_and_preserves_original_cipher",
+        "tests/completion/test_thermal_primal_backup.py::test_full_primal_bundle_restores_real_v2_journal_and_durable_delivery",
+        "--junitxml=/tmp/earthship-a22-native-completion-pg.xml"
+      ],
+      "shell": "/usr/bin/python3 scripts/run-household-job.py --minimum-mib 256 --preferred-mib 768 --tasks 64 --seconds 300 -- /usr/bin/env PATH=/snap/bin:/usr/local/bin:/usr/bin:/bin PYTHONPATH=/tmp/earthship-thermal-conditioning-admission/openhab/scripts:/home/sat/.codex/worktrees/d4ee/earthship-ui/.ci/solar-pv/analytics/src /tmp/earthship-audit-20261020-venv/bin/python -m pytest -q -ra tests/completion/test_thermal_nip04_ledger.py::test_default_sink_preflight_then_reply_stores_real_v2_action tests/completion/test_thermal_nip04_ledger.py::test_real_v2_journal_recovers_commit_before_ack_and_preserves_original_cipher tests/completion/test_thermal_primal_backup.py::test_full_primal_bundle_restores_real_v2_journal_and_durable_delivery --junitxml=/tmp/earthship-a22-native-completion-pg.xml",
+      "driver_environment": {
+        "PATH": "/snap/bin:/usr/local/bin:/usr/bin:/bin"
+      },
+      "exit_code": 0
+    },
+    {
+      "profile": "host",
+      "cwd": "/tmp/earthship-thermal-conditioning-admission",
+      "argv": [
+        "/usr/bin/python3",
+        "scripts/run-household-job.py",
+        "--minimum-mib",
+        "256",
+        "--preferred-mib",
+        "512",
+        "--tasks",
+        "64",
+        "--seconds",
+        "300",
+        "--",
+        "/usr/bin/env",
+        "PATH=/snap/bin:/usr/local/bin:/usr/bin:/bin",
+        "EARTHSHIP_ISOLATED_SYSTEMD_TEST=1",
+        "EARTHSHIP_RESOURCE_SMOKE=1",
+        "OPENBLAS_NUM_THREADS=1",
+        "OMP_NUM_THREADS=1",
+        "MKL_NUM_THREADS=1",
+        "PYTHONPATH=/tmp/earthship-thermal-conditioning-admission/openhab/scripts:/home/sat/.codex/worktrees/d4ee/earthship-ui/.ci/solar-pv/analytics/src",
+        "/tmp/earthship-audit-20261020-venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-ra",
+        "scripts/test_thermal_shadow_retry.py",
+        "openhab/scripts/test_native_resource_admission.py",
+        "openhab/scripts/test_score_production_cpu.py",
+        "--junitxml=/tmp/earthship-a22-native-host.xml"
+      ],
+      "shell": "/usr/bin/python3 scripts/run-household-job.py --minimum-mib 256 --preferred-mib 512 --tasks 64 --seconds 300 -- /usr/bin/env PATH=/snap/bin:/usr/local/bin:/usr/bin:/bin EARTHSHIP_ISOLATED_SYSTEMD_TEST=1 EARTHSHIP_RESOURCE_SMOKE=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=/tmp/earthship-thermal-conditioning-admission/openhab/scripts:/home/sat/.codex/worktrees/d4ee/earthship-ui/.ci/solar-pv/analytics/src /tmp/earthship-audit-20261020-venv/bin/python -m pytest -q -ra scripts/test_thermal_shadow_retry.py openhab/scripts/test_native_resource_admission.py openhab/scripts/test_score_production_cpu.py --junitxml=/tmp/earthship-a22-native-host.xml",
+      "driver_environment": {
+        "PATH": "/snap/bin:/usr/local/bin:/usr/bin:/bin"
+      },
+      "exit_code": 0
+    },
+    {
+      "profile": "receiver",
+      "cwd": "/tmp/earthship-thermal-conditioning-admission",
+      "argv": [
+        "/usr/bin/python3",
+        "scripts/run-household-job.py",
+        "--minimum-mib",
+        "256",
+        "--preferred-mib",
+        "512",
+        "--tasks",
+        "64",
+        "--seconds",
+        "300",
+        "--",
+        "/usr/bin/env",
+        "PATH=/snap/bin:/usr/local/bin:/usr/bin:/bin",
+        "PYTHONPATH=/tmp/earthship-thermal-conditioning-admission/openhab/scripts:/home/sat/.codex/worktrees/d4ee/earthship-ui/.ci/solar-pv/analytics/src",
+        "/usr/bin/python3",
+        "-m",
+        "pytest",
+        "-q",
+        "-ra",
+        "openhab/scripts/test_weather_receiver_characterization.py",
+        "--junitxml=/tmp/earthship-a22-native-receiver.xml"
+      ],
+      "shell": "/usr/bin/python3 scripts/run-household-job.py --minimum-mib 256 --preferred-mib 512 --tasks 64 --seconds 300 -- /usr/bin/env PATH=/snap/bin:/usr/local/bin:/usr/bin:/bin PYTHONPATH=/tmp/earthship-thermal-conditioning-admission/openhab/scripts:/home/sat/.codex/worktrees/d4ee/earthship-ui/.ci/solar-pv/analytics/src /usr/bin/python3 -m pytest -q -ra openhab/scripts/test_weather_receiver_characterization.py --junitxml=/tmp/earthship-a22-native-receiver.xml",
+      "driver_environment": {
+        "PATH": "/snap/bin:/usr/local/bin:/usr/bin:/bin"
+      },
+      "exit_code": 0
+    }
+  ],
+  "attempt_1": {
+    "source_revision": "8e582cce073959be1353a694bd2f05aede63d23f",
+    "non_documentation_revision": "c31d067a6e79f8e5fe23d26365de9a8a2e8a0018",
+    "status": "failed_preserved_not_counted_as_passing",
+    "profile": "completion-isolated",
+    "passed": 655,
+    "failures": 1,
+    "errors": 0,
+    "skips": 0,
+    "exit_code": 1,
+    "elapsed_seconds": 169.13,
+    "failed_case": "tests/completion/test_verification_gates.py::test_native_postgres_families_collect_with_ci_declared_companion_support",
+    "cause": "Nested collection reconstructed source-worktree-local .ci companion paths, which were absent in this disposable worktree. Its child pytest collected no tests and returned 5. The outer native gate correctly failed.",
+    "command": {
+      "cwd": "/tmp/earthship-thermal-conditioning-admission",
+      "argv": [
+        "/usr/bin/python3",
+        "scripts/run-household-job.py",
+        "--minimum-mib",
+        "512",
+        "--preferred-mib",
+        "1024",
+        "--tasks",
+        "96",
+        "--seconds",
+        "600",
+        "--",
+        "/usr/bin/sudo",
+        "-n",
+        "/usr/bin/unshare",
+        "--net",
+        "--",
+        "/bin/sh",
+        "-c",
+        "/usr/sbin/ip link set lo up; exec /usr/bin/setpriv --reuid=1000 --regid=1000 --init-groups /usr/bin/env PATH=/tmp/earthship-actionlint/bin:/tmp/earthship-shellcheck/usr/bin:/usr/local/bin:/usr/bin:/bin EARTHSHIP_TEST_NAK=/home/sat/.local/libexec/earthship-thermal/nak-v0.20.7-earthship-nip04-stdin.1 EARTHSHIP_TEST_NAK_SHA256=2620c86f7a2b466a41977ae7e318d1810c727503deaf53ea1c76a5ac24e6f927 PYTHONPATH=/tmp/earthship-thermal-conditioning-admission/openhab/scripts:/home/sat/.codex/worktrees/d4ee/earthship-ui/.ci/solar-pv/analytics/src /tmp/earthship-audit-20261020-venv/bin/python -m pytest -q -ra tests/completion/ --deselect=tests/completion/test_thermal_nip04_ledger.py::test_default_sink_preflight_then_reply_stores_real_v2_action --deselect=tests/completion/test_thermal_nip04_ledger.py::test_real_v2_journal_recovers_commit_before_ack_and_preserves_original_cipher --deselect=tests/completion/test_thermal_primal_backup.py::test_full_primal_bundle_restores_real_v2_journal_and_durable_delivery --junitxml=/tmp/earthship-a22-native-completion-isolated.xml"
+      ],
+      "driver_environment": {
+        "PATH": "/snap/bin:/usr/local/bin:/usr/bin:/bin"
+      }
+    },
+    "junit": {
+      "private_evidence_file": "earthship-a22-native-attempt1-completion-isolated.xml",
+      "sha256": "af31d767829a252c5ec9c36d3e54c0df39996deb1ba405c9c1dae041e3f98980",
+      "bytes": 182453
+    },
+    "log": {
+      "private_evidence_file": "earthship-a22-native-attempt1-completion-isolated.log",
+      "sha256": "3aa6016cc7d05d6ac7e5fbc00ef9e8246a2fc90d2e96cfccb452f248309c2695",
+      "bytes": 3490
+    },
+    "result": {
+      "private_evidence_file": "earthship-a22-native-attempt1-results.json",
+      "sha256": "63e1bbd9a480e284612136dee5c9c4fdfec5b0893fb28dbc462e6953dfafc03e",
+      "bytes": 167154
+    },
+    "remaining_profiles_executed": false,
+    "repair": "Install only the two untracked, exact-pinned companion fixture directory links; verify archive bytes and rerun all four profiles. No source, test assertion, policy, ignore rule or production file changed."
+  },
+  "fixture_repair": {
+    "environment_repair_only": true,
+    "failed_attempt_preserved_sha256": {
+      "earthship-a22-native-attempt1-completion-isolated.log": "3aa6016cc7d05d6ac7e5fbc00ef9e8246a2fc90d2e96cfccb452f248309c2695",
+      "earthship-a22-native-attempt1-completion-isolated.xml": "af31d767829a252c5ec9c36d3e54c0df39996deb1ba405c9c1dae041e3f98980",
+      "earthship-a22-native-attempt1-results.json": "63e1bbd9a480e284612136dee5c9c4fdfec5b0893fb28dbc462e6953dfafc03e",
+      "earthship-a22-native-attempt1-run.py": "b4ff3d72af93381546092f23a4da6508410c9c6dfdb69fc6d98ea868f8b5446c"
+    },
+    "git_ignore_changed": false,
+    "links": [
+      {
+        "archive_source_tests_manifest_sha256": "9fb87a58f33d2d7028d84e10515d8271807a1db360d0eeae2cd0366fcfcd1990",
+        "commit": "24d2e8984810cb596fe9792768510a356786f709",
+        "mismatches": 0,
+        "verified_archive_files": 105,
+        "worktree_relative_fixture_path": ".ci/solar-pv"
+      },
+      {
+        "archive_source_tests_manifest_sha256": "08234d030171f3eb207c906494d90828cc273c981a0d71e2fde036151e92adaf",
+        "commit": "7b70117bcfb9599a12d0325771ed1103f083fa5c",
+        "mismatches": 0,
+        "verified_archive_files": 122,
+        "worktree_relative_fixture_path": ".ci/solar-pv-bms-aux"
+      }
+    ],
+    "reason": "nested collection reconstructs source-worktree-local CI dependency layout",
+    "schema": "earthship-a22-native-fixture-setup/v1",
+    "setup_note": "initial setup assumed ignore rule; links are explicitly untracked fixture dependencies, no ignore configuration changed",
+    "source_edits": false,
+    "source_inventory_exclusions": [
+      ".ci/solar-pv",
+      ".ci/solar-pv-bms-aux"
+    ]
+  },
+  "fixture_setup_evidence": {
+    "private_evidence_file": "earthship-a22-native-fixture-setup.json",
+    "sha256": "b2f66dd24b07c21ca0bad4d429482d0a1902e6c3a91116c7b8b888fe75269641",
+    "bytes": 1844
+  },
+  "source_integrity": {
+    "tracked_diff_exit": 0,
+    "tracked_status_after": "",
+    "source_unchanged": true,
+    "untracked_fixture_dependencies_excluded": [
+      ".ci/solar-pv",
+      ".ci/solar-pv-bms-aux"
+    ]
+  },
+  "started_at": "2026-10-20T21:56:53.276708+00:00",
+  "finished_at": "2026-10-20T22:00:38.576503+00:00",
+  "limitations": [
+    "Docker daemon fixture children do not inherit caller cgroup; only driver admission and existing disposable fixture constraints are verified",
+    "Synthetic keys/loopback fixture execution is not physical-household or live-message qualification",
+    "Disposable user-systemd retry-counter units are created by the user manager and do not inherit driver cgroup; existing fixtures constrain address families to AF_UNIX, start time to5s and retry count; no household worker is launched"
+  ],
+  "cleanup_readback": {
+    "new_disposable_airflow_containers_remaining": 0,
+    "disposable_retry_units_remaining": 0,
+    "preexisting_container_preserved": true,
+    "cleanup_mutations_by_verifier": false
+  },
+  "private_evidence": {
+    "final_results": {
+      "private_evidence_file": "earthship-a22-native-results.json",
+      "sha256": "bbce0445c1347759a18665366a366e3b796811b60ff2e36e084da67ba8871287",
+      "bytes": 181266
+    },
+    "runner_sha256": "b4ff3d72af93381546092f23a4da6508410c9c6dfdb69fc6d98ea868f8b5446c",
+    "raw_logs_or_household_inputs_committed": false
+  },
+  "scope": "This file records fresh native software qualification. Actual retained cold-admission replay and natural production readback are separate deployment evidence; these 683 cases do not establish physical thermal accuracy."
+}

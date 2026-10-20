@@ -34,5 +34,12 @@
     "scope": "original_residual_and_feature_functions_only",
     "global_selector_written": false,
     "original_expiry": "2026-11-03T03:04:40.299381+00:00"
-  }
+  },
+  "verified_head_revision": "8e582cce073959be1353a694bd2f05aede63d23f",
+  "merged_revision": "5f3d3a032d7c1563dcb37fc68e2e599d8656b718",
+  "verified_tree": "37e404b049f380f28281b900e8f4c3f1c5e558cf",
+  "final_documentation_only": true,
+  "hosted_evidence": "thermal-admission-ci.json",
+  "native_evidence": "thermal-admission-native.json",
+  "installed_evidence": "thermal-admission-runtime.json"
 }

@@ -1,0 +1,2348 @@
+{
+  "schema": "earthship-hosted-verification/v1",
+  "source_revision": "8e582cce073959be1353a694bd2f05aede63d23f",
+  "non_documentation_revision": "c31d067a6e79f8e5fe23d26365de9a8a2e8a0018",
+  "merged_revision": "5f3d3a032d7c1563dcb37fc68e2e599d8656b718",
+  "source_binding": "The tested PR head differs from c31d067 only in docs/. All five workflows ran at this exact head. The temporary GitHub PR merge checkout has the same complete Git tree.",
+  "runs": [
+    {
+      "conclusion": "success",
+      "createdAt": "2026-10-20T21:50:35Z",
+      "databaseId": 39503595070,
+      "event": "pull_request",
+      "headSha": "8e582cce073959be1353a694bd2f05aede63d23f",
+      "jobs": [
+        {
+          "databaseId": 118906881127,
+          "name": "nak-authentication",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/santyr/earthship-ui/actions/runs/39503595070/job/118906881127",
+          "startedAt": "2026-10-20T21:50:38Z",
+          "completedAt": "2026-10-20T21:50:52Z",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/setup-python@v5",
+              "number": 3,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Fetch and verify the pinned release candidate",
+              "number": 4,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Real cryptographic checks without network access or household keys",
+              "number": 5,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@v5",
+              "number": 9,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 10,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 11,
+              "status": "completed"
+            }
+          ],
+          "log_sha256": "8f8f77ae6b220e00ea9c481344e4c2288f0a6aa0f1f7db4340ed6cd16a88d593",
+          "log_bytes": 17344,
+          "test_summaries": [],
+          "skip_reasons": [],
+          "runtime_versions": [
+            "Successfully set up CPython (3.12.15)"
+          ],
+          "exit_code": 0,
+          "actual_checkout_commit": "fa871ebe45937348edd369a3f0e2e0a4bcb2b65c",
+          "standalone_checks": [
+            {
+              "bunker_verified": false,
+              "checks": [
+                "valid_authenticated_roundtrip",
+                "outer_id_tamper_rejected",
+                "outer_signature_tamper_rejected",
+                "forged_seal_signature_rejected",
+                "seal_content_signature_binding",
+                "mismatched_raw_rumor_author_rejected",
+                "corrupt_ciphertext_rejected",
+                "wrong_outer_recipient_rejected"
+              ],
+              "household_keys_used": false,
+              "journal_writes": 0,
+              "nak_path": "/home/runner/work/_temp/nak-qualification",
+              "nak_sha256": "ba918fafd1b030bc50958a5b218c6386f4c3a57c1e469562d3947e858e0ba56e",
+              "nak_version": "nak version v0.20.7",
+              "production_ready": false,
+              "relay_delivery_verified": false,
+              "scope": "disposable-local-key-authentication",
+              "status": "passed",
+              "version": 1
+            }
+          ],
+          "execution_summaries": [],
+          "named_skip_groups": [],
+          "private_log_file": "job-118906881127.log"
+        },
+        {
+          "databaseId": 118906881449,
+          "name": "browser-fixtures",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/santyr/earthship-ui/actions/runs/39503595070/job/118906881449",
+          "startedAt": "2026-10-20T21:50:38Z",
+          "completedAt": "2026-10-20T21:52:53Z",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/setup-node@v4",
+              "number": 3,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run npm ci",
+              "number": 4,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run npx playwright install --with-deps chromium",
+              "number": 5,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "General console browser fixtures without upstream network",
+              "number": 6,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/setup-node@v4",
+              "number": 11,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 12,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 13,
+              "status": "completed"
+            }
+          ],
+          "log_sha256": "cad92ef09d3b45cbdb9881a8213b4a122384909a53d20e27f989260afd798d26",
+          "log_bytes": 53059,
+          "test_summaries": [
+            "77 passed (1.6m)"
+          ],
+          "skip_reasons": [],
+          "runtime_versions": [
+            "node: v22.23.3",
+            "npm: 10.9.9"
+          ],
+          "exit_code": 0,
+          "actual_checkout_commit": "fa871ebe45937348edd369a3f0e2e0a4bcb2b65c",
+          "execution_summaries": [
+            {
+              "summary": "77 passed (1.6m)",
+              "run_command": "set -euo pipefail",
+              "passed": 77
+            }
+          ],
+          "named_skip_groups": [],
+          "private_log_file": "job-118906881449.log"
+        },
+        {
+          "databaseId": 118906881465,
+          "name": "OpenHAB tests (0/3)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/santyr/earthship-ui/actions/runs/39503595070/job/118906881465",
+          "startedAt": "2026-10-20T21:50:37Z",
+          "completedAt": "2026-10-20T22:00:27Z",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/setup-python@v5",
+              "number": 3,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run python -m pip install -r requirements-test.txt",
+              "number": 4,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Make disposable launchers meet runtime provenance permissions",
+              "number": 5,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Fetch pinned companion library for Python tests",
+              "number": 6,
+              "status": "completed"
+            },
+            {
+              "conclusion": "skipped",
+              "name": "Fetch pinned BMS auxiliary consumer qualification profile",
+              "number": 7,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Verify disposable PostgreSQL image availability",
+              "number": 8,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Existing OpenHAB Python tests (disjoint file partition)",
+              "number": 9,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Fetch pinned companion library for Python tests",
+              "number": 16,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@v5",
+              "number": 17,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 18,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 19,
+              "status": "completed"
+            }
+          ],
+          "log_sha256": "85044584e16d6d5f1aa725077c29d698e73c8abe09126b510cea0ed200b9668b",
+          "log_bytes": 51541,
+          "test_summaries": [
+            "2209 passed, 8 skipped, 68 subtests passed in 558.72s (0:09:18)",
+            "general_pytest_exit=0 bms_aux_pytest_exit=0"
+          ],
+          "skip_reasons": [
+            "SKIPPED [1] openhab/scripts/test_native_resource_admission.py:7: requires an explicitly selected capped publication scope",
+            "SKIPPED [1] openhab/scripts/test_score_production_cpu.py:70: requires an explicitly selected capped publication scope",
+            "SKIPPED [6] openhab/scripts/test_weather_receiver_characterization.py:20: host receiver source unavailable"
+          ],
+          "runtime_versions": [
+            "Successfully set up CPython (3.12.15)"
+          ],
+          "exit_code": 0,
+          "actual_checkout_commit": "fa871ebe45937348edd369a3f0e2e0a4bcb2b65c",
+          "pytest_progress": {
+            "passed": 2209,
+            "skipped": 8,
+            "failed": 0,
+            "errors": 0
+          },
+          "execution_summaries": [
+            {
+              "summary": "2209 passed, 8 skipped, 68 subtests passed in 558.72s (0:09:18)",
+              "run_command": "set -euo pipefail",
+              "passed": 2209,
+              "skipped": 8,
+              "subtests_passed": 68
+            },
+            {
+              "summary": "general_pytest_exit=0 bms_aux_pytest_exit=0",
+              "run_command": "set -euo pipefail"
+            }
+          ],
+          "named_skip_groups": [
+            {
+              "run_command": "set -euo pipefail",
+              "reason": "SKIPPED [1] openhab/scripts/test_native_resource_admission.py:7: requires an explicitly selected capped publication scope",
+              "count": 1
+            },
+            {
+              "run_command": "set -euo pipefail",
+              "reason": "SKIPPED [1] openhab/scripts/test_score_production_cpu.py:70: requires an explicitly selected capped publication scope",
+              "count": 1
+            },
+            {
+              "run_command": "set -euo pipefail",
+              "reason": "SKIPPED [6] openhab/scripts/test_weather_receiver_characterization.py:20: host receiver source unavailable",
+              "count": 6
+            }
+          ],
+          "private_log_file": "job-118906881465.log"
+        },
+        {
+          "databaseId": 118906881478,
+          "name": "OpenHAB tests (2/3)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/santyr/earthship-ui/actions/runs/39503595070/job/118906881478",
+          "startedAt": "2026-10-20T21:50:37Z",
+          "completedAt": "2026-10-20T22:04:01Z",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/setup-python@v5",
+              "number": 3,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run python -m pip install -r requirements-test.txt",
+              "number": 4,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Make disposable launchers meet runtime provenance permissions",
+              "number": 5,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Fetch pinned companion library for Python tests",
+              "number": 6,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Fetch pinned BMS auxiliary consumer qualification profile",
+              "number": 7,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Verify disposable PostgreSQL image availability",
+              "number": 8,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Existing OpenHAB Python tests (disjoint file partition)",
+              "number": 9,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Fetch pinned BMS auxiliary consumer qualification profile",
+              "number": 15,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Fetch pinned companion library for Python tests",
+              "number": 16,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@v5",
+              "number": 17,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 18,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 19,
+              "status": "completed"
+            }
+          ],
+          "log_sha256": "b26e3e7480293da8994b669e49af13f978f78f6600840cf421af9420f9c053e7",
+          "log_bytes": 62977,
+          "test_summaries": [
+            "2320 passed, 7 skipped, 69 subtests passed in 771.10s (0:12:51)",
+            "1 passed in 1.82s",
+            "general_pytest_exit=0 bms_aux_pytest_exit=0"
+          ],
+          "skip_reasons": [
+            "SKIPPED [1] openhab/scripts/test_thermal_fit_evidence.py:115: full qualification model fitting is restricted to hosted CI",
+            "SKIPPED [3] openhab/scripts/test_weather_receiver_characterization.py:20: host receiver source unavailable",
+            "SKIPPED [1] openhab/scripts/weather_learning/tests/test_ee.py:63: requires isolated pinned Earth Engine environment",
+            "SKIPPED [1] openhab/scripts/weather_learning/tests/test_ee.py:72: requires isolated pinned Earth Engine environment",
+            "SKIPPED [1] openhab/scripts/weather_learning/tests/test_ee.py:102: requires isolated pinned Earth Engine environment"
+          ],
+          "runtime_versions": [
+            "Successfully set up CPython (3.12.15)"
+          ],
+          "exit_code": 0,
+          "actual_checkout_commit": "fa871ebe45937348edd369a3f0e2e0a4bcb2b65c",
+          "pytest_progress": {
+            "passed": 2321,
+            "skipped": 7,
+            "failed": 0,
+            "errors": 0
+          },
+          "execution_summaries": [
+            {
+              "summary": "2320 passed, 7 skipped, 69 subtests passed in 771.10s (0:12:51)",
+              "run_command": "set -euo pipefail",
+              "passed": 2320,
+              "skipped": 7,
+              "subtests_passed": 69
+            },
+            {
+              "summary": "1 passed in 1.82s",
+              "run_command": "set -euo pipefail",
+              "passed": 1
+            },
+            {
+              "summary": "general_pytest_exit=0 bms_aux_pytest_exit=0",
+              "run_command": "set -euo pipefail"
+            }
+          ],
+          "named_skip_groups": [
+            {
+              "run_command": "set -euo pipefail",
+              "reason": "SKIPPED [1] openhab/scripts/test_thermal_fit_evidence.py:115: full qualification model fitting is restricted to hosted CI",
+              "count": 1
+            },
+            {
+              "run_command": "set -euo pipefail",
+              "reason": "SKIPPED [3] openhab/scripts/test_weather_receiver_characterization.py:20: host receiver source unavailable",
+              "count": 3
+            },
+            {
+              "run_command": "set -euo pipefail",
+              "reason": "SKIPPED [1] openhab/scripts/weather_learning/tests/test_ee.py:63: requires isolated pinned Earth Engine environment",
+              "count": 1
+            },
+            {
+              "run_command": "set -euo pipefail",
+              "reason": "SKIPPED [1] openhab/scripts/weather_learning/tests/test_ee.py:72: requires isolated pinned Earth Engine environment",
+              "count": 1
+            },
+            {
+              "run_command": "set -euo pipefail",
+              "reason": "SKIPPED [1] openhab/scripts/weather_learning/tests/test_ee.py:102: requires isolated pinned Earth Engine environment",
+              "count": 1
+            }
+          ],
+          "private_log_file": "job-118906881478.log"
+        },
+        {
+          "databaseId": 118906881531,
+          "name": "weathernext-foundation",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/santyr/earthship-ui/actions/runs/39503595070/job/118906881531",
+          "startedAt": "2026-10-20T21:50:38Z",
+          "completedAt": "2026-10-20T21:52:02Z",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/setup-python@v5",
+              "number": 3,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run python -m pip install -r requirements-weathernext.txt",
+              "number": 4,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "WeatherNext contracts and SDK query construction without cloud access",
+              "number": 5,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@v5",
+              "number": 9,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 10,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 11,
+              "status": "completed"
+            }
+          ],
+          "log_sha256": "7297e747438e61431f339f4175a99d7349ec31e7dfe275ca737f5109717df13b",
+          "log_bytes": 26223,
+          "test_summaries": [
+            "Ran 291 tests in 67.530s"
+          ],
+          "skip_reasons": [],
+          "runtime_versions": [
+            "Successfully set up CPython (3.12.15)"
+          ],
+          "exit_code": 0,
+          "actual_checkout_commit": "fa871ebe45937348edd369a3f0e2e0a4bcb2b65c",
+          "execution_summaries": [
+            {
+              "summary": "Ran 291 tests in 67.530s",
+              "run_command": "python -m unittest discover -s openhab/scripts/weather_learning/tests",
+              "unittest_cases": 291
+            }
+          ],
+          "named_skip_groups": [],
+          "private_log_file": "job-118906881531.log"
+        },
+        {
+          "databaseId": 118906881623,
+          "name": "OpenHAB tests (1/3)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/santyr/earthship-ui/actions/runs/39503595070/job/118906881623",
+          "startedAt": "2026-10-20T21:50:38Z",
+          "completedAt": "2026-10-20T22:09:01Z",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/setup-python@v5",
+              "number": 3,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run python -m pip install -r requirements-test.txt",
+              "number": 4,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Make disposable launchers meet runtime provenance permissions",
+              "number": 5,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Fetch pinned companion library for Python tests",
+              "number": 6,
+              "status": "completed"
+            },
+            {
+              "conclusion": "skipped",
+              "name": "Fetch pinned BMS auxiliary consumer qualification profile",
+              "number": 7,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Verify disposable PostgreSQL image availability",
+              "number": 8,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Existing OpenHAB Python tests (disjoint file partition)",
+              "number": 9,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Fetch pinned companion library for Python tests",
+              "number": 16,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@v5",
+              "number": 17,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 18,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 19,
+              "status": "completed"
+            }
+          ],
+          "log_sha256": "418d47fe8cbbb402e202c138c373489a750e9a1edc7e0a9e682c3a384987ea06",
+          "log_bytes": 51772,
+          "test_summaries": [
+            "2060 passed, 5 skipped, 103 subtests passed in 1062.40s (0:17:42)",
+            "general_pytest_exit=0 bms_aux_pytest_exit=0"
+          ],
+          "skip_reasons": [
+            "SKIPPED [1] openhab/scripts/test_weather_receiver_characterization.py:55: host receiver source unavailable",
+            "SKIPPED [2] openhab/scripts/test_weather_receiver_characterization.py:60: host receiver source unavailable",
+            "SKIPPED [1] openhab/scripts/test_weather_receiver_characterization.py:75: host receiver source unavailable",
+            "SKIPPED [1] openhab/scripts/test_weather_receiver_characterization.py:83: host receiver source unavailable"
+          ],
+          "runtime_versions": [
+            "Successfully set up CPython (3.12.15)"
+          ],
+          "exit_code": 0,
+          "actual_checkout_commit": "fa871ebe45937348edd369a3f0e2e0a4bcb2b65c",
+          "pytest_progress": {
+            "passed": 2060,
+            "skipped": 5,
+            "failed": 0,
+            "errors": 0
+          },
+          "execution_summaries": [
+            {
+              "summary": "2060 passed, 5 skipped, 103 subtests passed in 1062.40s (0:17:42)",
+              "run_command": "set -euo pipefail",
+              "passed": 2060,
+              "skipped": 5,
+              "subtests_passed": 103
+            },
+            {
+              "summary": "general_pytest_exit=0 bms_aux_pytest_exit=0",
+              "run_command": "set -euo pipefail"
+            }
+          ],
+          "named_skip_groups": [
+            {
+              "run_command": "set -euo pipefail",
+              "reason": "SKIPPED [1] openhab/scripts/test_weather_receiver_characterization.py:55: host receiver source unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "set -euo pipefail",
+              "reason": "SKIPPED [2] openhab/scripts/test_weather_receiver_characterization.py:60: host receiver source unavailable",
+              "count": 2
+            },
+            {
+              "run_command": "set -euo pipefail",
+              "reason": "SKIPPED [1] openhab/scripts/test_weather_receiver_characterization.py:75: host receiver source unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "set -euo pipefail",
+              "reason": "SKIPPED [1] openhab/scripts/test_weather_receiver_characterization.py:83: host receiver source unavailable",
+              "count": 1
+            }
+          ],
+          "private_log_file": "job-118906881623.log"
+        },
+        {
+          "databaseId": 118906881822,
+          "name": "test",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/santyr/earthship-ui/actions/runs/39503595070/job/118906881822",
+          "startedAt": "2026-10-20T21:50:38Z",
+          "completedAt": "2026-10-20T21:55:03Z",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/setup-go@v5",
+              "number": 3,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Install pinned workflow validator",
+              "number": 4,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Validate every GitHub Actions workflow",
+              "number": 5,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/setup-node@v4",
+              "number": 6,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run npm ci",
+              "number": 7,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Provisional thermal UI contract",
+              "number": 8,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run npx vitest run",
+              "number": 9,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run npm run build",
+              "number": 10,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/setup-python@v5",
+              "number": 11,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run python -m pip install -r requirements-test.txt",
+              "number": 12,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Make disposable launchers meet runtime provenance permissions",
+              "number": 13,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Fetch pinned companion library for Python tests",
+              "number": 14,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Fetch pinned BMS auxiliary consumer qualification profile",
+              "number": 15,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Verify disposable PostgreSQL image availability",
+              "number": 16,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Completion regression tests",
+              "number": 17,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Operational tooling regression tests",
+              "number": 18,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Fetch pinned BMS auxiliary consumer qualification profile",
+              "number": 31,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Fetch pinned companion library for Python tests",
+              "number": 32,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@v5",
+              "number": 33,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/setup-node@v4",
+              "number": 34,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/setup-go@v5",
+              "number": 35,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 36,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 37,
+              "status": "completed"
+            }
+          ],
+          "log_sha256": "ff0a02ed63d977c0ed98203f481794b71b8260e6703cd5aaf92bb3ecd246b99f",
+          "log_bytes": 126710,
+          "test_summaries": [
+            "Test Files  182 passed (182)",
+            "Tests  2778 passed (2778)",
+            "558 passed, 101 skipped in 18.90s",
+            "1396 passed, 3 skipped in 144.51s (0:02:24)"
+          ],
+          "skip_reasons": [
+            "SKIPPED [1] tests/completion/test_thermal_followup_cli.py:56: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_followup_cli.py:70: pinned stock nak unavailable",
+            "SKIPPED [3] tests/completion/test_thermal_followup_cli.py:90: pinned stock nak unavailable",
+            "SKIPPED [2] tests/completion/test_thermal_followup_cli.py:131: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_followup_cli.py:151: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_followup_cli.py:163: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_nip04.py:60: explicit isolated stdin-capable nak qualification pin required",
+            "SKIPPED [6] tests/completion/test_thermal_nip04.py:74: explicit isolated stdin-capable nak qualification pin required",
+            "SKIPPED [1] tests/completion/test_thermal_nip04.py:98: explicit isolated stdin-capable nak qualification pin required",
+            "SKIPPED [1] tests/completion/test_thermal_nip04.py:110: explicit isolated stdin-capable nak qualification pin required",
+            "SKIPPED [3] tests/completion/test_thermal_nip04.py:115: explicit isolated stdin-capable nak qualification pin required",
+            "SKIPPED [3] tests/completion/test_thermal_nip04.py:136: explicit isolated stdin-capable nak qualification pin required",
+            "SKIPPED [1] tests/completion/test_thermal_nip04.py:151: explicit isolated stdin-capable nak qualification pin required",
+            "SKIPPED [10] tests/completion/test_thermal_nip04.py:159: explicit isolated stdin-capable nak qualification pin required",
+            "SKIPPED [3] tests/completion/test_thermal_nip04.py:170: explicit isolated stdin-capable nak qualification pin required",
+            "SKIPPED [1] tests/completion/test_thermal_nip04.py:179: explicit isolated stdin-capable nak qualification pin required",
+            "SKIPPED [1] tests/completion/test_thermal_nip04.py:189: explicit isolated stdin-capable nak qualification pin required",
+            "SKIPPED [1] tests/completion/test_thermal_nip04.py:207: explicit isolated stdin-capable nak qualification pin required",
+            "SKIPPED [1] tests/completion/test_thermal_nip04.py:221: original pinned host binary unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_nip04.py:233: explicit isolated stdin-capable nak qualification pin required",
+            "SKIPPED [1] tests/completion/test_thermal_nip04_delivery.py:19: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_nip04_delivery.py:35: pinned stock nak unavailable",
+            "SKIPPED [4] tests/completion/test_thermal_nip04_delivery.py:67: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_nip04_delivery.py:140: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_nip04_delivery.py:171: pinned stock nak unavailable",
+            "SKIPPED [4] tests/completion/test_thermal_nip04_delivery.py:222: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_nip04_delivery.py:235: pinned stock nak unavailable",
+            "SKIPPED [2] tests/completion/test_thermal_nip04_delivery.py:270: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:72: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:92: pinned stock nak unavailable",
+            "SKIPPED [3] tests/completion/test_thermal_nip04_ledger.py:117: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:134: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:146: pinned stock nak unavailable",
+            "SKIPPED [2] tests/completion/test_thermal_nip04_ledger.py:159: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:173: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:189: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:218: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:230: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:247: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:280: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:347: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:381: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:397: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_primal_backup.py:139: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_primal_backup.py:182: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_primal_cli.py:75: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_primal_cli.py:97: pinned stock nak unavailable",
+            "SKIPPED [4] tests/completion/test_thermal_primal_cli.py:108: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_primal_cli.py:122: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_primal_cli.py:136: pinned stock nak unavailable",
+            "SKIPPED [4] tests/completion/test_thermal_primal_cli.py:174: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_primal_cli.py:199: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_primal_cli.py:236: pinned stock nak unavailable",
+            "SKIPPED [1] tests/completion/test_thermal_primal_signer.py:23: explicit isolated stdin-capable nak qualification pin required",
+            "SKIPPED [1] tests/completion/test_thermal_primal_signer.py:30: explicit isolated stdin-capable nak qualification pin required",
+            "SKIPPED [1] tests/completion/test_thermal_primal_signer.py:35: explicit isolated stdin-capable nak qualification pin required",
+            "SKIPPED [2] tests/completion/test_thermal_primal_signer.py:42: explicit isolated stdin-capable nak qualification pin required",
+            "SKIPPED [4] tests/completion/test_thermal_primal_signer.py:73: explicit isolated stdin-capable nak qualification pin required",
+            "SKIPPED [3] scripts/test_thermal_shadow_retry.py:41: explicit isolated user-systemd qualification required"
+          ],
+          "runtime_versions": [
+            "node: v22.23.3",
+            "npm: 10.9.9",
+            "Successfully set up CPython (3.12.15)"
+          ],
+          "exit_code": 0,
+          "actual_checkout_commit": "fa871ebe45937348edd369a3f0e2e0a4bcb2b65c",
+          "pytest_progress": {
+            "passed": 1954,
+            "skipped": 104,
+            "failed": 0,
+            "errors": 0
+          },
+          "execution_summaries": [
+            {
+              "summary": "Test Files  182 passed (182)",
+              "run_command": "npx vitest run",
+              "passed": 182
+            },
+            {
+              "summary": "Tests  2778 passed (2778)",
+              "run_command": "npx vitest run",
+              "passed": 2778
+            },
+            {
+              "summary": "558 passed, 101 skipped in 18.90s",
+              "run_command": "python -m pytest tests/completion/ -q",
+              "passed": 558,
+              "skipped": 101
+            },
+            {
+              "summary": "1396 passed, 3 skipped in 144.51s (0:02:24)",
+              "run_command": "python -m pytest scripts/ -q",
+              "passed": 1396,
+              "skipped": 3
+            }
+          ],
+          "named_skip_groups": [
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_followup_cli.py:56: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_followup_cli.py:70: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [3] tests/completion/test_thermal_followup_cli.py:90: pinned stock nak unavailable",
+              "count": 3
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [2] tests/completion/test_thermal_followup_cli.py:131: pinned stock nak unavailable",
+              "count": 2
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_followup_cli.py:151: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_followup_cli.py:163: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04.py:60: explicit isolated stdin-capable nak qualification pin required",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [6] tests/completion/test_thermal_nip04.py:74: explicit isolated stdin-capable nak qualification pin required",
+              "count": 6
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04.py:98: explicit isolated stdin-capable nak qualification pin required",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04.py:110: explicit isolated stdin-capable nak qualification pin required",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [3] tests/completion/test_thermal_nip04.py:115: explicit isolated stdin-capable nak qualification pin required",
+              "count": 3
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [3] tests/completion/test_thermal_nip04.py:136: explicit isolated stdin-capable nak qualification pin required",
+              "count": 3
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04.py:151: explicit isolated stdin-capable nak qualification pin required",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [10] tests/completion/test_thermal_nip04.py:159: explicit isolated stdin-capable nak qualification pin required",
+              "count": 10
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [3] tests/completion/test_thermal_nip04.py:170: explicit isolated stdin-capable nak qualification pin required",
+              "count": 3
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04.py:179: explicit isolated stdin-capable nak qualification pin required",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04.py:189: explicit isolated stdin-capable nak qualification pin required",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04.py:207: explicit isolated stdin-capable nak qualification pin required",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04.py:221: original pinned host binary unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04.py:233: explicit isolated stdin-capable nak qualification pin required",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04_delivery.py:19: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04_delivery.py:35: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [4] tests/completion/test_thermal_nip04_delivery.py:67: pinned stock nak unavailable",
+              "count": 4
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04_delivery.py:140: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04_delivery.py:171: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [4] tests/completion/test_thermal_nip04_delivery.py:222: pinned stock nak unavailable",
+              "count": 4
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04_delivery.py:235: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [2] tests/completion/test_thermal_nip04_delivery.py:270: pinned stock nak unavailable",
+              "count": 2
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:72: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:92: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [3] tests/completion/test_thermal_nip04_ledger.py:117: pinned stock nak unavailable",
+              "count": 3
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:134: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:146: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [2] tests/completion/test_thermal_nip04_ledger.py:159: pinned stock nak unavailable",
+              "count": 2
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:173: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:189: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:218: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:230: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:247: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:280: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:347: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:381: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_nip04_ledger.py:397: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_primal_backup.py:139: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_primal_backup.py:182: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_primal_cli.py:75: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_primal_cli.py:97: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [4] tests/completion/test_thermal_primal_cli.py:108: pinned stock nak unavailable",
+              "count": 4
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_primal_cli.py:122: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_primal_cli.py:136: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [4] tests/completion/test_thermal_primal_cli.py:174: pinned stock nak unavailable",
+              "count": 4
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_primal_cli.py:199: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_primal_cli.py:236: pinned stock nak unavailable",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_primal_signer.py:23: explicit isolated stdin-capable nak qualification pin required",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_primal_signer.py:30: explicit isolated stdin-capable nak qualification pin required",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [1] tests/completion/test_thermal_primal_signer.py:35: explicit isolated stdin-capable nak qualification pin required",
+              "count": 1
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [2] tests/completion/test_thermal_primal_signer.py:42: explicit isolated stdin-capable nak qualification pin required",
+              "count": 2
+            },
+            {
+              "run_command": "python -m pytest tests/completion/ -q",
+              "reason": "SKIPPED [4] tests/completion/test_thermal_primal_signer.py:73: explicit isolated stdin-capable nak qualification pin required",
+              "count": 4
+            },
+            {
+              "run_command": "python -m pytest scripts/ -q",
+              "reason": "SKIPPED [3] scripts/test_thermal_shadow_retry.py:41: explicit isolated user-systemd qualification required",
+              "count": 3
+            }
+          ],
+          "private_log_file": "job-118906881822.log"
+        }
+      ],
+      "name": "CI",
+      "status": "completed",
+      "updatedAt": "2026-10-20T22:09:02Z",
+      "url": "https://github.com/santyr/earthship-ui/actions/runs/39503595070"
+    },
+    {
+      "conclusion": "success",
+      "createdAt": "2026-10-20T21:50:35Z",
+      "databaseId": 39503595119,
+      "event": "pull_request",
+      "headSha": "8e582cce073959be1353a694bd2f05aede63d23f",
+      "jobs": [
+        {
+          "databaseId": 118906880947,
+          "name": "forecast-ml",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/santyr/earthship-ui/actions/runs/39503595119/job/118906880947",
+          "startedAt": "2026-10-20T21:50:37Z",
+          "completedAt": "2026-10-20T22:03:52Z",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/setup-python@v5",
+              "number": 3,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run python -m pip install -r requirements-test.txt",
+              "number": 4,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Fetch pinned Solar_PV analytics dependency",
+              "number": 5,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Forecast and thermal ML regression suite",
+              "number": 6,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Fetch pinned Solar_PV analytics dependency",
+              "number": 10,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@v5",
+              "number": 11,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 12,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 13,
+              "status": "completed"
+            }
+          ],
+          "log_sha256": "a4ccc6875d4b8005577c4602aecd64eed46a1751423560f9097bf2e4864ae928",
+          "log_bytes": 44450,
+          "test_summaries": [
+            "1414 passed, 1 deselected in 775.80s (0:12:55)"
+          ],
+          "skip_reasons": [],
+          "runtime_versions": [
+            "Successfully set up CPython (3.12.15)"
+          ],
+          "exit_code": 0,
+          "actual_checkout_commit": "fa871ebe45937348edd369a3f0e2e0a4bcb2b65c",
+          "pytest_progress": {
+            "passed": 1414,
+            "skipped": 0,
+            "failed": 0,
+            "errors": 0
+          },
+          "execution_summaries": [
+            {
+              "summary": "1414 passed, 1 deselected in 775.80s (0:12:55)",
+              "run_command": "python -m pytest -q --deselect=openhab/scripts/test_thermal_fit_evidence.py::test_real_qualification_fit_is_exercised_only_on_the_hosted_runner \\",
+              "passed": 1414,
+              "deselected": 1
+            }
+          ],
+          "named_skip_groups": [],
+          "private_log_file": "job-118906880947.log"
+        },
+        {
+          "databaseId": 118906881442,
+          "name": "qualification-fit",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/santyr/earthship-ui/actions/runs/39503595119/job/118906881442",
+          "startedAt": "2026-10-20T21:50:37Z",
+          "completedAt": "2026-10-20T21:51:09Z",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/setup-python@v5",
+              "number": 3,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run python -m pip install -r requirements-test.txt",
+              "number": 4,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Fetch pinned Solar_PV analytics dependency",
+              "number": 5,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Require one executed full qualification fit",
+              "number": 6,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Fetch pinned Solar_PV analytics dependency",
+              "number": 10,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@v5",
+              "number": 11,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 12,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 13,
+              "status": "completed"
+            }
+          ],
+          "log_sha256": "519fd6cb3e4b4be04ccbc01481ba82c425ed6a5af8d5f1630f733b9af8e917c2",
+          "log_bytes": 36921,
+          "test_summaries": [
+            "1 passed in 11.70s"
+          ],
+          "skip_reasons": [],
+          "runtime_versions": [
+            "Successfully set up CPython (3.12.15)"
+          ],
+          "exit_code": 0,
+          "actual_checkout_commit": "fa871ebe45937348edd369a3f0e2e0a4bcb2b65c",
+          "pytest_progress": {
+            "passed": 1,
+            "skipped": 0,
+            "failed": 0,
+            "errors": 0
+          },
+          "execution_summaries": [
+            {
+              "summary": "1 passed in 11.70s",
+              "run_command": "python -m pytest -q -ra openhab/scripts/test_thermal_fit_evidence.py::test_real_qualification_fit_is_exercised_only_on_the_hosted_runner --junitxml=\"$RUNNER_TEMP/qualification-fit.xml\"",
+              "passed": 1
+            }
+          ],
+          "named_skip_groups": [],
+          "private_log_file": "job-118906881442.log"
+        }
+      ],
+      "name": "Forecast ML hardening",
+      "status": "completed",
+      "updatedAt": "2026-10-20T22:03:53Z",
+      "url": "https://github.com/santyr/earthship-ui/actions/runs/39503595119"
+    },
+    {
+      "conclusion": "success",
+      "createdAt": "2026-10-20T21:50:35Z",
+      "databaseId": 39503595107,
+      "event": "pull_request",
+      "headSha": "8e582cce073959be1353a694bd2f05aede63d23f",
+      "jobs": [
+        {
+          "databaseId": 118906881202,
+          "name": "receipt-integrity",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/santyr/earthship-ui/actions/runs/39503595107/job/118906881202",
+          "startedAt": "2026-10-20T21:50:38Z",
+          "completedAt": "2026-10-20T21:56:33Z",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/setup-python@v5",
+              "number": 3,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run python -m pip install -r requirements-test.txt",
+              "number": 4,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Fetch pinned Solar_PV analytics dependency",
+              "number": 5,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Current receipts and source-bound cycle regressions",
+              "number": 6,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Fetch pinned Solar_PV analytics dependency",
+              "number": 10,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@v5",
+              "number": 11,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 12,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 13,
+              "status": "completed"
+            }
+          ],
+          "log_sha256": "a20b16d9d19679f0246287b163a3e597d568e8feba077c5312ec33bf27ff462a",
+          "log_bytes": 39370,
+          "test_summaries": [
+            "526 passed in 330.12s (0:05:30)"
+          ],
+          "skip_reasons": [],
+          "runtime_versions": [
+            "Successfully set up CPython (3.12.15)"
+          ],
+          "exit_code": 0,
+          "actual_checkout_commit": "fa871ebe45937348edd369a3f0e2e0a4bcb2b65c",
+          "pytest_progress": {
+            "passed": 526,
+            "skipped": 0,
+            "failed": 0,
+            "errors": 0
+          },
+          "execution_summaries": [
+            {
+              "summary": "526 passed in 330.12s (0:05:30)",
+              "run_command": "python -m pytest -q \\",
+              "passed": 526
+            }
+          ],
+          "named_skip_groups": [],
+          "private_log_file": "job-118906881202.log"
+        }
+      ],
+      "name": "Household receipt integrity",
+      "status": "completed",
+      "updatedAt": "2026-10-20T21:56:34Z",
+      "url": "https://github.com/santyr/earthship-ui/actions/runs/39503595107"
+    },
+    {
+      "conclusion": "success",
+      "createdAt": "2026-10-20T21:50:35Z",
+      "databaseId": 39503595041,
+      "event": "pull_request",
+      "headSha": "8e582cce073959be1353a694bd2f05aede63d23f",
+      "jobs": [
+        {
+          "databaseId": 118906880951,
+          "name": "software-path",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/santyr/earthship-ui/actions/runs/39503595041/job/118906880951",
+          "startedAt": "2026-10-20T21:50:37Z",
+          "completedAt": "2026-10-20T21:53:17Z",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/setup-python@v5",
+              "number": 3,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/setup-node@v4",
+              "number": 4,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run npm ci",
+              "number": 5,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run npx playwright install --with-deps chromium",
+              "number": 6,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run echo \"LOCAL_UID=$(id -u)\" >> \"$GITHUB_ENV\"",
+              "number": 7,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run SENSOR_INTEGRATION=1 PYTHONPATH=.:openhab/scripts /tmp/earthship-sensor-test-venv/bin/python -m pytest services/lorawan/tests/test_integration.py",
+              "number": 8,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run SENSOR_INTEGRATION=1 npm run test:e2e:sensors",
+              "number": 9,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run docker compose -f deploy/lorawan/compose.test.yaml --profile chirpstack down -v",
+              "number": 10,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/setup-node@v4",
+              "number": 18,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@v5",
+              "number": 19,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 20,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 21,
+              "status": "completed"
+            }
+          ],
+          "log_sha256": "943cd979504a390424932939b82ab6ca8f09f94394612daa6e07ae2e7fa0e13f",
+          "log_bytes": 106600,
+          "test_summaries": [
+            "============================= 11 passed in 52.47s ==============================",
+            "2 passed (8.8s)"
+          ],
+          "skip_reasons": [],
+          "runtime_versions": [
+            "Successfully set up CPython (3.12.15)",
+            "node: v24.21.0",
+            "npm: 11.19.0",
+            "platform linux -- Python 3.12.15, pytest-8.3.5, pluggy-1.7.0"
+          ],
+          "exit_code": 0,
+          "actual_checkout_commit": "fa871ebe45937348edd369a3f0e2e0a4bcb2b65c",
+          "execution_summaries": [
+            {
+              "summary": "============================= 11 passed in 52.47s ==============================",
+              "run_command": "SENSOR_INTEGRATION=1 PYTHONPATH=.:openhab/scripts /tmp/earthship-sensor-test-venv/bin/python -m pytest services/lorawan/tests/test_integration.py",
+              "passed": 11
+            },
+            {
+              "summary": "2 passed (8.8s)",
+              "run_command": "SENSOR_INTEGRATION=1 npm run test:e2e:sensors",
+              "passed": 2
+            }
+          ],
+          "named_skip_groups": [],
+          "private_log_file": "job-118906880951.log"
+        },
+        {
+          "databaseId": 118906881456,
+          "name": "contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/santyr/earthship-ui/actions/runs/39503595041/job/118906881456",
+          "startedAt": "2026-10-20T21:50:38Z",
+          "completedAt": "2026-10-20T21:50:47Z",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/setup-python@v5",
+              "number": 3,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run pip install pytest==8.3.5",
+              "number": 4,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run PYTHONPATH=.:openhab/scripts python -m pytest services/lorawan/tests openhab/scripts/test_household_sensor_observations.py",
+              "number": 5,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@v5",
+              "number": 9,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 10,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 11,
+              "status": "completed"
+            }
+          ],
+          "log_sha256": "247878870808f15ab16e87f07dc910232af8d58427168d754c2c6af5081cad16",
+          "log_bytes": 16521,
+          "test_summaries": [
+            "======================== 69 passed, 11 skipped in 0.93s ========================"
+          ],
+          "skip_reasons": [],
+          "runtime_versions": [
+            "Successfully set up CPython (3.12.15)",
+            "platform linux -- Python 3.12.15, pytest-8.3.5, pluggy-1.7.0"
+          ],
+          "exit_code": 0,
+          "actual_checkout_commit": "fa871ebe45937348edd369a3f0e2e0a4bcb2b65c",
+          "execution_summaries": [
+            {
+              "summary": "======================== 69 passed, 11 skipped in 0.93s ========================",
+              "run_command": "PYTHONPATH=.:openhab/scripts python -m pytest services/lorawan/tests openhab/scripts/test_household_sensor_observations.py",
+              "passed": 69,
+              "skipped": 11
+            }
+          ],
+          "named_skip_groups": [],
+          "skip_partition_evidence": {
+            "skipped": 11,
+            "reason_emitted_by_runner": false,
+            "source_reason": "isolated container qualification is explicitly opt-in",
+            "source_path": "services/lorawan/tests/test_integration.py",
+            "source_file_sha256": "3d7b01fb5fe5bc365011bc13c08f09e8c64c31d77955512b45f58884500a2bf4",
+            "test_names": [
+              "test_fifteen_devices_contact_diagnostics_and_history",
+              "test_contact_latency_and_persistent_restart",
+              "test_runtime_cannot_rewrite_raw_journal",
+              "test_chirpstack_database_migrations_and_login",
+              "test_actual_simulator_command_runs_independent_devices",
+              "test_retained_live_input_does_not_change_contact",
+              "test_message_queued_during_ingestion_outage_recovers",
+              "test_observer_cannot_publish_raw_uplinks",
+              "test_backup_restores_sensor_history_into_disposable_database",
+              "test_broker_restart_recovers_and_source_health_resumes",
+              "test_unacknowledged_packet_recovers_after_database_outage"
+            ],
+            "separate_execution": "software-path: SENSOR_INTEGRATION=1,11passed; component browser2passed",
+            "scope": "software-only container qualification, no radio/hardware commissioning"
+          },
+          "private_log_file": "job-118906881456.log"
+        }
+      ],
+      "name": "Distributed sensor qualification",
+      "status": "completed",
+      "updatedAt": "2026-10-20T21:53:18Z",
+      "url": "https://github.com/santyr/earthship-ui/actions/runs/39503595041"
+    },
+    {
+      "conclusion": "success",
+      "createdAt": "2026-10-20T21:50:35Z",
+      "databaseId": 39503594981,
+      "event": "pull_request",
+      "headSha": "8e582cce073959be1353a694bd2f05aede63d23f",
+      "jobs": [
+        {
+          "databaseId": 118906879974,
+          "name": "encrypted-delivery",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/santyr/earthship-ui/actions/runs/39503594981/job/118906879974",
+          "startedAt": "2026-10-20T21:50:37Z",
+          "completedAt": "2026-10-20T21:51:02Z",
+          "steps": [
+            {
+              "conclusion": "success",
+              "name": "Set up job",
+              "number": 1,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/checkout@v4",
+              "number": 2,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run actions/setup-python@v5",
+              "number": 3,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Run python -m pip install -r openhab/scripts/requirements-messaging.txt",
+              "number": 4,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Fetch the already qualified nak release",
+              "number": 5,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Real crypto and local relay only, no household keys or external network",
+              "number": 6,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/setup-python@v5",
+              "number": 11,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Post Run actions/checkout@v4",
+              "number": 12,
+              "status": "completed"
+            },
+            {
+              "conclusion": "success",
+              "name": "Complete job",
+              "number": 13,
+              "status": "completed"
+            }
+          ],
+          "log_sha256": "156ce3127b18167d48032317f0958d1416632e0b7ace116a67d9435572eb0a19",
+          "log_bytes": 18973,
+          "test_summaries": [],
+          "skip_reasons": [],
+          "runtime_versions": [
+            "Successfully set up CPython (3.12.15)"
+          ],
+          "exit_code": 0,
+          "actual_checkout_commit": "fa871ebe45937348edd369a3f0e2e0a4bcb2b65c",
+          "standalone_checks": [
+            {
+              "checks": [
+                "real_signer_encrypt_decrypt_self_check",
+                "wrong_keyer_identity_rejected",
+                "signed_recipient_relay_routes",
+                "real_nip42_challenge",
+                "exact_relay_acceptance_for_both_copies",
+                "operator_and_sender_copies_decrypt_to_exact_prompt",
+                "authenticated_reply_and_encrypted_storage_receipt",
+                "restart_does_not_republish_accepted_events"
+              ],
+              "external_relay_delivery_verified": false,
+              "household_bunker_verified": false,
+              "household_keys_used": false,
+              "journal_test_double": true,
+              "production_journal_writes": 0,
+              "production_ready": false,
+              "scope": "real-local-key-and-loopback-relay",
+              "status": "passed",
+              "version": 1
+            }
+          ],
+          "execution_summaries": [],
+          "named_skip_groups": [],
+          "private_log_file": "job-118906879974.log"
+        }
+      ],
+      "name": "Thermal delivery qualification",
+      "status": "completed",
+      "updatedAt": "2026-10-20T21:51:02Z",
+      "url": "https://github.com/santyr/earthship-ui/actions/runs/39503594981"
+    }
+  ],
+  "checkout_verification": {
+    "source_git_tree": "37e404b049f380f28281b900e8f4c3f1c5e558cf",
+    "github_merge_checkouts": {
+      "fa871ebe45937348edd369a3f0e2e0a4bcb2b65c": {
+        "tree_sha": "37e404b049f380f28281b900e8f4c3f1c5e558cf",
+        "parents": [
+          "076040f271f0b384e9da3828700141126aa24ec6",
+          "8e582cce073959be1353a694bd2f05aede63d23f"
+        ],
+        "same_tree_as_source_revision": true,
+        "metadata_sha256": "b41b70c9a1b6b7197df7678a48622e8b4cb730378e8a9522f518df46f01f3855",
+        "private_metadata_file": "checkout-fa871ebe45937348edd369a3f0e2e0a4bcb2b65c.json"
+      }
+    }
+  },
+  "all_five_successful": true,
+  "complete_private_job_logs": 13,
+  "workflow_sha256": {
+    "ci.yml": "36623b9bd430f6b92066f7e7bab863e8b3055a0eb1d8931c28820bc44fef7ebc",
+    "forecast-ml-hardening.yml": "2426eef763a6c39b75b2cfd23ace20b2d8c524654985ea4d214f37797733129c",
+    "household-receipt-integrity.yml": "2a0617a3cc030eee97039b7f9f3e10f6e91a3bc0ec4efab7dfe17496ac6028fb",
+    "sensors.yml": "817635927b2f2e7bf796bdca8b36c8b1a9607afec1acba6e7e5b25b0c570c7bf",
+    "thermal-delivery.yml": "c0fa23359346ce1a95e03fae4f521593700bd8df58b08e1fa89b7bd269b8a794"
+  },
+  "workflow_commands": {
+    "ci.yml": {
+      "test": {
+        "environment": {
+          "OPENBLAS_NUM_THREADS": "1",
+          "OMP_NUM_THREADS": "1",
+          "MKL_NUM_THREADS": "1",
+          "NUMEXPR_NUM_THREADS": "1",
+          "PYTEST_ADDOPTS": "-ra",
+          "EARTHSHIP_REMOTE_QUALIFICATION_FIT": "1"
+        },
+        "commands": [
+          {
+            "name": "Install pinned workflow validator",
+            "environment": {},
+            "command": "go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7\necho \"$(go env GOPATH)/bin\" >> \"$GITHUB_PATH\"\n"
+          },
+          {
+            "name": "Validate every GitHub Actions workflow",
+            "environment": {},
+            "command": "actionlint -color=false"
+          },
+          {
+            "name": "run",
+            "environment": {},
+            "command": "npm ci"
+          },
+          {
+            "name": "Provisional thermal UI contract",
+            "environment": {},
+            "command": "node scripts/test-provisional-thermal-ui.mjs"
+          },
+          {
+            "name": "run",
+            "environment": {},
+            "command": "npx vitest run"
+          },
+          {
+            "name": "run",
+            "environment": {},
+            "command": "npm run build"
+          },
+          {
+            "name": "run",
+            "environment": {},
+            "command": "python -m pip install -r requirements-test.txt"
+          },
+          {
+            "name": "Make disposable launchers meet runtime provenance permissions",
+            "environment": {},
+            "command": "set -euo pipefail\nci_python_path=\"$(python -c 'import os, sys; print(os.path.realpath(sys.executable))')\"\n# setup-python's tool cache may be group-writable; production binding\n# intentionally rejects that. Tighten this ephemeral runner, not policy.\nsudo chmod go-w \"$ci_python_path\"\nstat --format='%a %U %n' \"$ci_python_path\"\nci_java_path=\"$(readlink -f \"$(command -v java)\")\"\nsudo chmod go-w \"$ci_java_path\"\nstat --format='%a %U %n' \"$ci_java_path\"\n"
+          },
+          {
+            "name": "Verify disposable PostgreSQL image availability",
+            "environment": {},
+            "command": "docker version\n# Google's public Docker Hub cache avoids shared-runner Hub limits.\ntimeout 120s docker pull mirror.gcr.io/library/postgres:16\ndocker tag mirror.gcr.io/library/postgres:16 postgres:16\n"
+          },
+          {
+            "name": "Completion regression tests",
+            "environment": {
+              "PYTHONPATH": "${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src:${{ github.workspace }}/.ci/solar-pv/analytics/tests"
+            },
+            "command": "python -m pytest tests/completion/ -q"
+          },
+          {
+            "name": "Operational tooling regression tests",
+            "environment": {
+              "PYTHONPATH": "${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src:${{ github.workspace }}/.ci/solar-pv/analytics/tests"
+            },
+            "command": "python -m pytest scripts/ -q"
+          }
+        ]
+      },
+      "openhab": {
+        "environment": {
+          "OPENBLAS_NUM_THREADS": "1",
+          "OMP_NUM_THREADS": "1",
+          "MKL_NUM_THREADS": "1",
+          "NUMEXPR_NUM_THREADS": "1",
+          "PYTEST_ADDOPTS": "-ra",
+          "EARTHSHIP_REMOTE_QUALIFICATION_FIT": "1"
+        },
+        "commands": [
+          {
+            "name": "run",
+            "environment": {},
+            "command": "python -m pip install -r requirements-test.txt"
+          },
+          {
+            "name": "Make disposable launchers meet runtime provenance permissions",
+            "environment": {},
+            "command": "set -euo pipefail\nci_python_path=\"$(python -c 'import os, sys; print(os.path.realpath(sys.executable))')\"\n# setup-python's tool cache may be group-writable; production binding\n# intentionally rejects that. Tighten this ephemeral runner, not policy.\nsudo chmod go-w \"$ci_python_path\"\nstat --format='%a %U %n' \"$ci_python_path\"\nci_java_path=\"$(readlink -f \"$(command -v java)\")\"\nsudo chmod go-w \"$ci_java_path\"\nstat --format='%a %U %n' \"$ci_java_path\"\n"
+          },
+          {
+            "name": "Verify disposable PostgreSQL image availability",
+            "environment": {},
+            "command": "docker version\n# Google's public Docker Hub cache avoids shared-runner Hub limits.\ntimeout 120s docker pull mirror.gcr.io/library/postgres:16\ndocker tag mirror.gcr.io/library/postgres:16 postgres:16\n"
+          },
+          {
+            "name": "Existing OpenHAB Python tests (disjoint file partition)",
+            "environment": {
+              "PYTHONPATH": "${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src:${{ github.workspace }}/.ci/solar-pv/analytics/tests",
+              "TEST_SHARD": "${{ matrix.shard }}"
+            },
+            "command": "set -euo pipefail\nmapfile -t test_files < <(python - <<'PYFILES'\nfrom hashlib import sha256\nfrom pathlib import Path\nimport os\nshard = int(os.environ['TEST_SHARD'])\nfor path in sorted(Path('openhab/scripts').rglob('*.py')):\n    if path.name.startswith('test_') or path.name.endswith('_test.py'):\n        if int(sha256(path.as_posix().encode()).hexdigest(), 16) % 3 == shard:\n            print(path.as_posix())\nPYFILES\n)\ntest \"${#test_files[@]}\" -gt 0\n# Keep the normal disjoint hash assignment. This one cross-repo\n# integration contract uses its own immutable consumer/SQL profile\n# in a fresh process; never mix companion modules between profiles.\ngeneral_files=()\nbms_aux_file=''\nfor test_file in \"${test_files[@]}\"; do\n  if [[ \"$test_file\" == 'openhab/scripts/test_bms_aux_producer_consumer_postgres.py' ]]; then\n    bms_aux_file=\"$test_file\"\n  else\n    general_files+=(\"$test_file\")\n  fi\ndone\ngeneral_status=0\nif [[ \"${#general_files[@]}\" -gt 0 ]]; then\n  python -m pytest -q \"${general_files[@]}\" || general_status=$?\nfi\nbms_aux_status=0\nif [[ -n \"$bms_aux_file\" ]]; then\n  PYTHONPATH=\"$GITHUB_WORKSPACE/openhab/scripts:$GITHUB_WORKSPACE/.ci/solar-pv-bms-aux/analytics/src:$GITHUB_WORKSPACE/.ci/solar-pv-bms-aux/analytics/tests\" \\\n    python -m pytest -q \"$bms_aux_file\" || bms_aux_status=$?\nfi\nprintf 'general_pytest_exit=%s bms_aux_pytest_exit=%s\\n' \"$general_status\" \"$bms_aux_status\"\n[[ \"$general_status\" -eq 0 && \"$bms_aux_status\" -eq 0 ]]\n"
+          }
+        ]
+      },
+      "weathernext-foundation": {
+        "environment": {},
+        "commands": [
+          {
+            "name": "run",
+            "environment": {},
+            "command": "python -m pip install -r requirements-weathernext.txt"
+          },
+          {
+            "name": "WeatherNext contracts and SDK query construction without cloud access",
+            "environment": {
+              "PYTHONDONTWRITEBYTECODE": "1",
+              "PYTHONPATH": "${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/openhab/scripts/weather_learning/tests"
+            },
+            "command": "python -m unittest discover -s openhab/scripts/weather_learning/tests"
+          }
+        ]
+      },
+      "nak-authentication": {
+        "environment": {},
+        "commands": [
+          {
+            "name": "Fetch and verify the pinned release candidate",
+            "environment": {},
+            "command": "set -euo pipefail\ncurl --fail --location --proto '=https' --tlsv1.2 --max-time 90 \\\n  'https://github.com/fiatjaf/nak/releases/download/v0.20.7/nak-v0.20.7-linux-amd64' \\\n  --output \"$RUNNER_TEMP/nak-download\"\nprintf '%s  %s\\n' \\\n  'ba918fafd1b030bc50958a5b218c6386f4c3a57c1e469562d3947e858e0ba56e' \\\n  \"$RUNNER_TEMP/nak-download\" | sha256sum --check --strict\nsudo install -o root -g root -m 755 \"$RUNNER_TEMP/nak-download\" \"$RUNNER_TEMP/nak-qualification\"\n"
+          },
+          {
+            "name": "Real cryptographic checks without network access or household keys",
+            "environment": {},
+            "command": "set -euo pipefail\npython=\"$(command -v python)\"\nsudo unshare --net -- \"$python\" scripts/qualify-thermal-nak.py \\\n  --nak \"$RUNNER_TEMP/nak-qualification\"\n"
+          }
+        ]
+      },
+      "browser-fixtures": {
+        "environment": {},
+        "commands": [
+          {
+            "name": "run",
+            "environment": {},
+            "command": "npm ci"
+          },
+          {
+            "name": "run",
+            "environment": {
+              "PLAYWRIGHT_BROWSERS_PATH": "${{ runner.temp }}/pw-browsers"
+            },
+            "command": "npx playwright install --with-deps chromium"
+          },
+          {
+            "name": "General console browser fixtures without upstream network",
+            "environment": {
+              "PLAYWRIGHT_BROWSERS_PATH": "${{ runner.temp }}/pw-browsers"
+            },
+            "command": "set -euo pipefail\nci_node=\"$(command -v node)\"\nci_npm=\"$(command -v npm)\"\nsudo --preserve-env=PLAYWRIGHT_BROWSERS_PATH unshare --net -- sh -c \\\n  'ip link set lo up; cd \"$1\"; exec \"$2\" \"$3\" run test:e2e -- --workers=2' \\\n  _ \"$GITHUB_WORKSPACE\" \"$ci_node\" \"$ci_npm\"\n"
+          }
+        ]
+      }
+    },
+    "forecast-ml-hardening.yml": {
+      "forecast-ml": {
+        "environment": {
+          "OPENBLAS_NUM_THREADS": 1,
+          "OMP_NUM_THREADS": 1,
+          "MKL_NUM_THREADS": 1,
+          "NUMEXPR_NUM_THREADS": 1,
+          "EARTHSHIP_REMOTE_QUALIFICATION_FIT": "1"
+        },
+        "commands": [
+          {
+            "name": "run",
+            "environment": {},
+            "command": "python -m pip install -r requirements-test.txt"
+          },
+          {
+            "name": "Forecast and thermal ML regression suite",
+            "environment": {
+              "PYTHONPATH": "${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src:${{ github.workspace }}/.ci/solar-pv/analytics/tests"
+            },
+            "command": "python -m pytest -q --deselect=openhab/scripts/test_thermal_fit_evidence.py::test_real_qualification_fit_is_exercised_only_on_the_hosted_runner \\\n  openhab/scripts/test_thermal_identifiability.py \\\n  openhab/scripts/test_installed_shade_dynamics.py \\\n  openhab/scripts/test_installed_shade_inputs.py \\\n  openhab/scripts/test_installed_shade_fit.py \\\n  openhab/scripts/test_training_pressure_guard.py \\\n  openhab/scripts/test_native_operational_io.py \\\n  openhab/scripts/test_google_thermal_cli_retirement.py \\\n  openhab/scripts/test_household_cycle.py \\\n  openhab/scripts/test_household_cycle_coordinator.py \\\n  openhab/scripts/test_provisional_thermal_fit.py \\\n  openhab/scripts/test_provisional_thermal_artifact.py \\\n  openhab/scripts/test_provisional_thermal_forecast.py \\\n  openhab/scripts/test_provisional_thermal_scoring.py \\\n  openhab/scripts/test_installed_candidate_build.py \\\n  openhab/scripts/test_installed_shade_artifact.py \\\n  openhab/scripts/test_installed_shade_origin.py \\\n  openhab/scripts/test_installed_shade_qualification.py \\\n  openhab/scripts/test_installed_shade_calibration.py \\\n  openhab/scripts/test_installed_shade_raw_calibration.py \\\n  openhab/scripts/test_installed_calibration_cli.py \\\n  openhab/scripts/test_installed_registration_cli.py \\\n  openhab/scripts/test_installed_replay_budget.py \\\n  openhab/scripts/test_installed_shade_raw_candidate.py \\\n  openhab/scripts/test_installed_shade_raw_origin.py \\\n  openhab/scripts/test_installed_shade_raw_publication_capture.py \\\n  openhab/scripts/test_installed_shade_raw_registration.py \\\n  openhab/scripts/test_installed_shade_complete_raw_qualification.py \\\n  openhab/scripts/test_installed_shade_compressed_qualification.py \\\n  openhab/scripts/test_installed_shade_release_index.py \\\n  openhab/scripts/test_installed_publication_registration.py \\\n  openhab/scripts/test_installed_registered_score_cli.py \\\n  openhab/scripts/test_qualification_source_inventory.py \\\n  openhab/scripts/test_installed_shade_complete_raw_publication.py \\\n  openhab/scripts/test_installed_shade_compressed_publication.py \\\n  openhab/scripts/test_installed_shade_calibrated.py \\\n  openhab/scripts/test_installed_shade_calibrated_qualification.py \\\n  openhab/scripts/test_installed_shade_publication.py \\\n  openhab/scripts/test_installed_shade_published_origin.py \\\n  openhab/scripts/test_installed_shade_live.py \\\n  openhab/scripts/test_installed_shade_complete_raw_live.py \\\n  openhab/scripts/test_installed_shade_compressed_live.py \\\n  openhab/scripts/test_installed_shade_bootstrap_live.py \\\n  openhab/scripts/test_installed_shade_compressed_bootstrap.py \\\n  openhab/scripts/test_installed_shade_live_inputs.py \\\n  openhab/scripts/test_installed_shade_withdrawal.py \\\n  openhab/scripts/test_installed_shade_score_collection.py \\\n  openhab/scripts/test_installed_shade_score_inputs.py \\\n  openhab/scripts/test_installed_raw_score_jobs.py \\\n  openhab/scripts/test_installed_compressed_score_jobs.py \\\n  openhab/scripts/test_installed_raw_score_cli.py \\\n  openhab/scripts/test_installed_score_global_lock.py \\\n  openhab/scripts/test_installed_score_jobs.py \\\n  openhab/scripts/test_installed_shade_raw_score_sources.py \\\n  openhab/scripts/test_installed_shade_raw_qualification.py \\\n  openhab/scripts/test_installed_shade_raw_publication.py \\\n  openhab/scripts/test_google_receipt_retirement.py openhab/scripts/test_google_config_retirement.py openhab/scripts/test_google_local_source_isolation.py \\\n  openhab/scripts/test_google_native_outcome_origin.py \\\n  openhab/scripts/test_google_forecast_acquisition_retirement.py \\\n  openhab/scripts/test_thermal_dynamics.py \\\n  openhab/scripts/test_thermal_fit_measurements.py \\\n  openhab/scripts/test_thermal_fit_evidence.py \\\n  openhab/scripts/test_thermal_fit_pipeline.py \\\n  openhab/scripts/test_thermal_pipeline.py \\\n  openhab/scripts/test_thermal_vent_default.py \\\n  openhab/scripts/test_weather_temperature_sources.py \\\n  openhab/scripts/test_thermal_sensor_epoch_history.py \\\n  openhab/scripts/test_thermal_artifacts.py \\\n  scripts/test_qualify_installed_shade_cli.py \\\n"
+          }
+        ]
+      },
+      "qualification-fit": {
+        "environment": {
+          "OPENBLAS_NUM_THREADS": 1,
+          "OMP_NUM_THREADS": 1,
+          "MKL_NUM_THREADS": 1,
+          "NUMEXPR_NUM_THREADS": 1,
+          "EARTHSHIP_REMOTE_QUALIFICATION_FIT": "1"
+        },
+        "commands": [
+          {
+            "name": "run",
+            "environment": {},
+            "command": "python -m pip install -r requirements-test.txt"
+          },
+          {
+            "name": "Require one executed full qualification fit",
+            "environment": {
+              "PYTHONPATH": "${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src:${{ github.workspace }}/.ci/solar-pv/analytics/tests"
+            },
+            "command": "python -m pytest -q -ra openhab/scripts/test_thermal_fit_evidence.py::test_real_qualification_fit_is_exercised_only_on_the_hosted_runner --junitxml=\"$RUNNER_TEMP/qualification-fit.xml\"\npython - <<'PYTHON'\nimport os\nfrom pathlib import Path\nimport xml.etree.ElementTree as ET\nroot = ET.parse(Path(os.environ['RUNNER_TEMP']) / 'qualification-fit.xml')\ncases = root.findall('.//testcase')\nassert len(cases) == 1, 'exactly one qualification fit must execute'\nassert cases[0].get('name') == 'test_real_qualification_fit_is_exercised_only_on_the_hosted_runner'\nassert not root.findall('.//skipped'), 'qualification fit must not skip'\nassert not root.findall('.//failure') and not root.findall('.//error')\nprint('qualification_fit_executed=1 skipped=0 failures=0')\nPYTHON\n"
+          }
+        ]
+      }
+    },
+    "household-receipt-integrity.yml": {
+      "receipt-integrity": {
+        "environment": {
+          "OPENBLAS_NUM_THREADS": 1,
+          "OMP_NUM_THREADS": 1,
+          "MKL_NUM_THREADS": 1,
+          "NUMEXPR_NUM_THREADS": 1
+        },
+        "commands": [
+          {
+            "name": "run",
+            "environment": {},
+            "command": "python -m pip install -r requirements-test.txt"
+          },
+          {
+            "name": "Current receipts and source-bound cycle regressions",
+            "environment": {
+              "PYTHONPATH": "${{ github.workspace }}/openhab/scripts:${{ github.workspace }}/.ci/solar-pv/analytics/src:${{ github.workspace }}/.ci/solar-pv/analytics/tests"
+            },
+            "command": "python -m pytest -q \\\n  openhab/scripts/test_google_local_source_isolation.py \\\n  openhab/scripts/test_household_battery_outcomes.py \\\n  openhab/scripts/test_household_capture.py \\\n  openhab/scripts/test_household_cycle_sources.py \\\n  openhab/scripts/test_household_cycle_upgrade.py \\\n  openhab/scripts/test_household_energy_forecast.py \\\n  openhab/scripts/test_household_energy_forecast_cycle.py \\\n  openhab/scripts/test_household_energy_outcomes.py \\\n  openhab/scripts/test_household_energy_persistence.py \\\n  openhab/scripts/test_household_evidence.py \\\n  openhab/scripts/test_household_forecast_score.py \\\n  openhab/scripts/test_household_intents.py \\\n  openhab/scripts/test_household_pipeline.py \\\n  openhab/scripts/test_household_planning.py \\\n  openhab/scripts/test_household_power_flow_cycle.py \\\n  openhab/scripts/test_household_power_snapshot.py \\\n  openhab/scripts/test_household_profiled_cycle.py \\\n  openhab/scripts/test_household_pv_review.py \\\n  openhab/scripts/test_household_replay.py \\\n  openhab/scripts/test_household_resources.py \\\n  openhab/scripts/test_household_score_pressure.py \\\n  openhab/scripts/test_household_snapshot.py \\\n  openhab/scripts/test_household_solar_cycle.py \\\n  openhab/scripts/test_household_solar_outcomes.py \\\n  openhab/scripts/test_household_trajectory_cycle.py \\\n  openhab/scripts/test_sunset_soc_profile.py\n"
+          }
+        ]
+      }
+    },
+    "sensors.yml": {
+      "contracts": {
+        "environment": {},
+        "commands": [
+          {
+            "name": "run",
+            "environment": {},
+            "command": "pip install pytest==8.3.5"
+          },
+          {
+            "name": "run",
+            "environment": {},
+            "command": "PYTHONPATH=.:openhab/scripts python -m pytest services/lorawan/tests openhab/scripts/test_household_sensor_observations.py"
+          }
+        ]
+      },
+      "software-path": {
+        "environment": {},
+        "commands": [
+          {
+            "name": "run",
+            "environment": {},
+            "command": "npm ci"
+          },
+          {
+            "name": "run",
+            "environment": {},
+            "command": "npx playwright install --with-deps chromium"
+          },
+          {
+            "name": "run",
+            "environment": {},
+            "command": "echo \"LOCAL_UID=$(id -u)\" >> \"$GITHUB_ENV\"\necho \"LOCAL_GID=$(id -g)\" >> \"$GITHUB_ENV\"\nLOCAL_UID=$(id -u)\nLOCAL_GID=$(id -g)\nexport LOCAL_UID LOCAL_GID\npython -m venv --system-site-packages /tmp/earthship-sensor-test-venv\n/tmp/earthship-sensor-test-venv/bin/pip install pytest==8.3.5 -r services/lorawan/requirements.txt\npython -m services.lorawan.provision\ncurl -fL https://openhab.jfrog.io/artifactory/libs-release-local/org/openhab/distro/openhab-addons/5.2.1/openhab-addons-5.2.1.kar -o .superpowers/lorawan-private/addons/openhab-addons-5.2.1.kar\nchmod 644 .superpowers/lorawan-private/addons/*.kar\ndocker compose -f deploy/lorawan/compose.test.yaml --profile chirpstack up -d --build --wait\n"
+          },
+          {
+            "name": "run",
+            "environment": {},
+            "command": "SENSOR_INTEGRATION=1 PYTHONPATH=.:openhab/scripts /tmp/earthship-sensor-test-venv/bin/python -m pytest services/lorawan/tests/test_integration.py"
+          },
+          {
+            "name": "run",
+            "environment": {},
+            "command": "SENSOR_INTEGRATION=1 npm run test:e2e:sensors"
+          },
+          {
+            "name": "run",
+            "environment": {},
+            "command": "docker compose -f deploy/lorawan/compose.test.yaml --profile chirpstack down -v"
+          }
+        ]
+      }
+    },
+    "thermal-delivery.yml": {
+      "encrypted-delivery": {
+        "environment": {},
+        "commands": [
+          {
+            "name": "run",
+            "environment": {},
+            "command": "python -m pip install -r openhab/scripts/requirements-messaging.txt"
+          },
+          {
+            "name": "Fetch the already qualified nak release",
+            "environment": {},
+            "command": "set -euo pipefail\ncurl --fail --location --proto '=https' --tlsv1.2 --max-time 90 \\\n  'https://github.com/fiatjaf/nak/releases/download/v0.20.7/nak-v0.20.7-linux-amd64' \\\n  --output \"$RUNNER_TEMP/nak-download\"\nprintf '%s  %s\\n' \\\n  'ba918fafd1b030bc50958a5b218c6386f4c3a57c1e469562d3947e858e0ba56e' \\\n  \"$RUNNER_TEMP/nak-download\" | sha256sum --check --strict\nsudo install -o root -g root -m 755 \"$RUNNER_TEMP/nak-download\" \"$RUNNER_TEMP/nak-delivery\"\n"
+          },
+          {
+            "name": "Real crypto and local relay only, no household keys or external network",
+            "environment": {},
+            "command": "set -euo pipefail\npython=\"$(command -v python)\"\nsudo unshare --net -- sh -c 'ip link set lo up; exec \"$1\" scripts/qualify-thermal-delivery.py --nak \"$2\"' \\\n  _ \"$python\" \"$RUNNER_TEMP/nak-delivery\"\n"
+          }
+        ]
+      }
+    }
+  },
+  "workflow_commands_binding": "Exact parsed command/environment declarations reused only after verifying all five frozen workflow byte hashes equal the preceding recorded declarations. No workflow changed.",
+  "workflow_source_links": {
+    "ci.yml": "https://github.com/santyr/earthship-ui/blob/8e582cce073959be1353a694bd2f05aede63d23f/.github/workflows/ci.yml",
+    "forecast-ml-hardening.yml": "https://github.com/santyr/earthship-ui/blob/8e582cce073959be1353a694bd2f05aede63d23f/.github/workflows/forecast-ml-hardening.yml",
+    "household-receipt-integrity.yml": "https://github.com/santyr/earthship-ui/blob/8e582cce073959be1353a694bd2f05aede63d23f/.github/workflows/household-receipt-integrity.yml",
+    "sensors.yml": "https://github.com/santyr/earthship-ui/blob/8e582cce073959be1353a694bd2f05aede63d23f/.github/workflows/sensors.yml",
+    "thermal-delivery.yml": "https://github.com/santyr/earthship-ui/blob/8e582cce073959be1353a694bd2f05aede63d23f/.github/workflows/thermal-delivery.yml"
+  },
+  "companion_pins": {
+    "general": "24d2e8984810cb596fe9792768510a356786f709",
+    "bms_aux_only": "7b70117bcfb9599a12d0325771ed1103f083fa5c",
+    "isolation": "The BMS integration file runs in a separate pytest process with only its matching companion src/tests. All other partitions retain the general pin."
+  },
+  "counting": "Counts remain per workflow/job/command. Specialist gates, OpenHAB tests, operational tooling, completion and native profiles overlap; no repository-wide distinct total is inferred. Vitest file counts and subtests are not additional passed test cases.",
+  "skip_disposition": [
+    "Hosted completion: 101 skips. Separate fresh native completion partitions execute all 659 completion cases with zero skips; see thermal-admission-native.json.",
+    "Hosted operational tooling: 3 skips. The native host profile exercises the isolated systemd/resource cases; host/source-only receiver qualifications remain separate.",
+    "Sensor contracts: 11 opt-in skips. The dedicated disposable container job executes all 11, plus 2 browser component-harness cases; this is software-path qualification, not installed sensor hardware commissioning.",
+    "Forecast ML: one qualification-fit case is deselected in the main job and passes in its dedicated hosted job.",
+    "OpenHAB shard-specific skips remain explicitly listed under each job. The pinned Earth Engine environment is tested separately by the WeatherNext foundation job; no paid-data/provider request or physical validation is inferred."
+  ],
+  "authority": "Synthetic keys, local disposable relays/databases, fixture browser routes and isolated software harnesses. No household relay delivery, hardware stimulus, deployment, actuator command or physical qualification is established by these CI runs.",
+  "private_collection": {
+    "summary": {
+      "private_evidence_file": "summary.json",
+      "sha256": "8b5579ca9a47f674dd8a911414fbccd28eed42da3e77652f151edbbe6e4383e7",
+      "bytes": 107724
+    },
+    "markdown": {
+      "private_evidence_file": "summary.md",
+      "sha256": "64a40d26302a9edd1347eac42a79d9c3eb42d12b5d6dab7e9ff3635ab9a562f0",
+      "bytes": 12140
+    },
+    "raw_job_log_bytes": 652461,
+    "raw_logs_committed": false
+  }
+}

@@ -147,3 +147,15 @@ Current terrain sunlight capability: `site_daylight.py` replays original native 
 
 
 Current solar-consumer and release supplement: [terrain consistency and A22 admission handoff](../../operations/2026-10-20-thermal-admission-compatibility.md) maps direct-beam PV, daily potential, storage/planner propagation, historical calibration, empirical thermal forcing and intentional astronomical displays. The Home/icon release is merged and installed as076040f; actual readback is in PR40. The subsequent cross-model check reproduced lost thermal conditioning after an immutable runtime handoff. A22 is repaired in candidate source with original-fit/inference proof; final hosted/native/install evidence belongs to PR41. This explicitly supersedes earlier no-known-implementation-defect statements for the period before A22 closure; no physical qualification follows from the software repair.
+
+
+## Installed A22 release closure
+
+| Requirement boundary | Implementation and verification | Current disposition |
+|---|---|---|
+| Sun position / shared terrain across solar consumers | [Consumer map](../../operations/2026-10-20-thermal-admission-compatibility.md); direct-beam PV/daily/storage/planner profile match; Home fixed cache projection; raw PV inputs remain original | Implemented and verified; PR40 Home/icon source installed; physical map/facade validation remains unqualified |
+| Thermal correction across immutable source upgrades | `thermal_weather_readmit.py`, explicit candidate output in existing daily procedure, bounded `thermal_weather_readmit_post.py`; exact original fitting/inference checks and unchanged v1 consumer guards | Implemented and verified, merged/installed in PR41; actual origin/v3 natural delivery and pure household parity in [natural evidence](thermal-admission-natural.json) |
+| Scheduled candidate routing and optional promotion | Original legacy numeric source plus explicit separate candidate; compatible post-step fails closed and retains last serving selector; resource/deadline/timer readback in [runtime evidence](thermal-admission-runtime.json) | Software and installed configuration verified; next real morning training/post cycle externally clock-dependent |
+| Forecast and physical qualification | Current-runtime identities and original expiry preserved; no inherited accuracy; diffuse light retained rather than globally masked | Implemented truthful limits; later outcomes and independent horizon/facade/action-effect evidence remain externally blocked |
+
+[Final source](thermal-admission-source.json), [complete hosted](thermal-admission-ci.json) and [fresh native](thermal-admission-native.json) extend existing test ownership without orphan families. Earlier requirement states are historical when superseded here; this supplement does not relabel measurement dependencies as software omissions or completed field qualification.

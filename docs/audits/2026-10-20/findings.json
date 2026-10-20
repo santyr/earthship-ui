@@ -1044,13 +1044,20 @@
       "root_cause": "The serving runtime moved while the shared admission and its legacy daily producer retained older runtime bindings. Retaining an old fitting procedure did not provide a consumer-compatible admission transition.",
       "repair_commit": "c31d067a6e79f8e5fe23d26365de9a8a2e8a0018",
       "regression_evidence": "Normal runtime/protocol RED plus expired-target and immutable-proof REDs; final eight-module related98passed11.18s, separate daily/post9passed0.15s, actual compatibility orchestration3passed. Original system-Python1.26.4 NumPy fitter reproduces both genuine retained models and exact feature/residual predictions on19686outdoor+20694irradiance pairs in a loopback-only namespace; serving selector unchanged during qualification.",
-      "status": "fixed_candidate_verified",
+      "status": "fixed_integrated_verified",
       "severity_reason": "Loss of the admitted analytical correction degrades provisional thermal forecasts. No physical incident, controller-authority change or failed safety gate is demonstrated.",
-      "deployment_status": "Pending final complete hosted/native gates and scoped cold-selector/legacy-owner handoff. Actual deployment and next natural capture evidence will be recorded in PR41.",
-      "closure_status": "software_local_verified_release_pending"
+      "deployment_status": "Installed cold helper/source pins and compatible admission; first natural conditioned delivery and household projection verified in thermal-admission-runtime.json and thermal-admission-natural.json. Genuine next morning candidate/post run remains a scheduled operational observation, not proof supplied by this readback.",
+      "closure_status": "software_verified_installed_natural_delivery_verified",
+      "integrated_regression_evidence": {
+        "source_revision": "8e582cce073959be1353a694bd2f05aede63d23f",
+        "merged_revision": "5f3d3a032d7c1563dcb37fc68e2e599d8656b718",
+        "hosted": "thermal-admission-ci.json",
+        "native": "thermal-admission-native.json",
+        "actual_consumer": "thermal-admission-natural.json",
+        "physical_qualification": false
+      }
     }
   ],
-  "current_source_candidate": "444d7e9550a742d9662cc9bd85a68d4c5dafb8c1",
   "final_integrated_verification": {
     "status": "passed",
     "source_revision": "444d7e9550a742d9662cc9bd85a68d4c5dafb8c1",
@@ -1063,9 +1070,20 @@
   "evidence_supersession": "Final integrated evidence supersedes earlier pending text in preserved focused regression history.",
   "approved_deployment_evidence": "deployment.md; deployment-a20-source-freeze.json; deployment-a20-ci.json; deployment-a20-native.json; deployment-runtime.json; deployment-pipeline-proof.json; deployment-calibrated-proof.json; deployment-daily-pv-proof.json; deployment-weather-proof.json",
   "deployment_status_supersession": "Current per-finding deployment_status supersedes preapproval candidate_not_installed. Historical source/native gates remain unchanged; deployment-ci.json extends verification for A19.",
-  "current_integrated_source": "0b3f6fc0a5ec0e86cd4af65604241d9532b2f1ad",
+  "current_integrated_source": "5f3d3a032d7c1563dcb37fc68e2e599d8656b718",
   "final_deployment_repair_verification": "deployment-a20-ci.json/deployment-a20-native.json bind final corrected source; earlier source/native evidence preserved",
-  "current_repair_candidate": "444d7e9550a742d9662cc9bd85a68d4c5dafb8c1",
   "post_audit_refinement_source": "c31d067a6e79f8e5fe23d26365de9a8a2e8a0018",
-  "post_audit_supersession": "A22 supplements earlier complete-source/installed statements with a newly reproduced release integration defect; original evidence remains historical, not erased."
+  "post_audit_supersession": "A22 supplements earlier complete-source/installed statements with a newly reproduced release integration defect; original evidence remains historical, not erased.",
+  "current_verification": {
+    "source_revision": "8e582cce073959be1353a694bd2f05aede63d23f",
+    "non_documentation_source": "c31d067a6e79f8e5fe23d26365de9a8a2e8a0018",
+    "hosted": "thermal-admission-ci.json",
+    "native": "thermal-admission-native.json",
+    "runtime": "thermal-admission-runtime.json",
+    "scope": "All active test families remain mapped; specialized profiles overlap and counts are not summed. Historical evidence and source freezes remain original."
+  },
+  "historical_a20_source_candidate": "444d7e9550a742d9662cc9bd85a68d4c5dafb8c1",
+  "historical_a20_repair_candidate": "444d7e9550a742d9662cc9bd85a68d4c5dafb8c1",
+  "current_source_candidate": "8e582cce073959be1353a694bd2f05aede63d23f",
+  "current_repair_candidate": "c31d067a6e79f8e5fe23d26365de9a8a2e8a0018"
 }
