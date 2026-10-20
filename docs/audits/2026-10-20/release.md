@@ -1,5 +1,7 @@
 # Release and handoff
 
+The owner subsequently approved merging and deployment. [Current approved rollout evidence](deployment.md) supersedes the pre-approval installation-pending statements below for the specifically recorded surfaces. The following source-release and rollback record remains historical evidence; physical/statistical qualification is still separate.
+
 Status: software scope verified complete at `8f6e9183b3cba1cdaa1310102f000e7a2db65bb2`; deployment and physical qualification are separate, pending explicit dependencies. Live dirty checkout, private configuration and immutable source packages remain untouched. Remote main begins at `65ee7e95d58e6a6101700da3eccea67c9fea0ec7`.
 
 Changed surfaces, tested/installed hashes, scoped rollback and remaining natural owner-cycle evidence are recorded below. Software fixture success cannot commission radio hardware, qualify unknown water inventory, establish causal action effects or prove forecast skill.
