@@ -345,7 +345,7 @@ Native Python/binary pins and Docker-daemon isolation limits are unchanged from 
 
 ## Combined daily-icon / terrain-sun follow-up
 
-Source `e410ba47bd0d4d6ceb418efb40b5153d7cb44024`; [source binding](solar-presentation-source.json), current ownership/inventory and [operational record](../../operations/2026-10-20-weather-day-icons.md) supersede icon-only source for this follow-up. Local complete frontend182files/2778tests, buildexit0; isolated non-sensor browser77tests exit0; related geometry Python109tests/no skips exit0. Original five-workflow and native numerical proofs above remain historical exact-source evidence; final follow-up hosted checks and actual installation are recorded with exact revisions/counts at [PR40](https://github.com/santyr/earthship-ui/pull/40). Do not substitute the old73ede successful UI-only run for final combined-source verification.
+Source `bc4667790545804e81fdeff565823ae46fb18873`; [source binding](solar-presentation-source.json), current ownership/inventory and [operational record](../../operations/2026-10-20-weather-day-icons.md) supersede icon-only source for this follow-up. Local complete frontend182files/2778tests, buildexit0; isolated non-sensor browser77tests exit0; related geometry Python114tests/no skips exit0. Original five-workflow and native numerical proofs above remain historical exact-source evidence; final follow-up hosted checks and actual installation are recorded with exact revisions/counts at [PR40](https://github.com/santyr/earthship-ui/pull/40). Do not substitute the old73ede successful UI-only run for final combined-source verification.
 
 Commands run from the isolated worktree using existing shared admission:
 

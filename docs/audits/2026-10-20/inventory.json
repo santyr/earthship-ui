@@ -1,7 +1,7 @@
 {
   "schema": "earthship-audit-source-inventory/v1",
   "base_revision": "65ee7e95d58e6a6101700da3eccea67c9fea0ec7",
-  "public_tracked_files": 2158,
+  "public_tracked_files": 2159,
   "routes": [
     "home",
     "energy",
@@ -821,7 +821,7 @@
     "tests/completion/test_thermal_state_backup.py",
     "tests/completion/test_verification_gates.py"
   ],
-  "audited_source_revision": "e410ba47bd0d4d6ceb418efb40b5153d7cb44024",
+  "audited_source_revision": "bc4667790545804e81fdeff565823ae46fb18873",
   "inventory_method": "tracked public source only; discovery does not prove activation, execution or qualification",
   "components": [
     "src/App.svelte",

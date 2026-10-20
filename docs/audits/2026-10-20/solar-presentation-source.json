@@ -1,10 +1,10 @@
 {
   "schema": "earthship-solar-presentation-source/v1",
-  "source_revision": "e410ba47bd0d4d6ceb418efb40b5153d7cb44024",
+  "source_revision": "bc4667790545804e81fdeff565823ae46fb18873",
   "prior_source_record": "weather-day-icons-source.json",
   "scope": "all tracked non-documentation source; documentation descendants must preserve digest",
   "non_documentation_files": 1721,
-  "git_mode_type_object_path_inventory_sha256": "4d08e15ce9fd13f80dd423c8181aba4b4c3a7fee51189b91c6b1eaee4a9ed4ca",
+  "git_mode_type_object_path_inventory_sha256": "13021e6257afa0631a885ed143c99256e51b86815056ce2f6a3d31c8f5c3bf38",
   "ui_runtime_files": [
     "src/lib/weather/presentation.js",
     "src/lib/ui/DailyForecast.svelte",
@@ -27,7 +27,7 @@
     "frontend_exit": 0,
     "browser_passed": 77,
     "browser_exit": 0,
-    "python_related_passed": 109,
+    "python_related_passed": 114,
     "python_exit": 0,
     "python_skips": 0,
     "build_exit": 0,

@@ -1,5 +1,5 @@
 {
-  "source_head": "e410ba47bd0d4d6ceb418efb40b5153d7cb44024",
+  "source_head": "bc4667790545804e81fdeff565823ae46fb18873",
   "uncommitted_source_paths": [],
   "workflow_sha256": {
     "ci.yml": "36623b9bd430f6b92066f7e7bab863e8b3055a0eb1d8931c28820bc44fef7ebc",
@@ -56,7 +56,7 @@
       "family": "python",
       "workflow_gate": "ci.yml:openhab shard 0",
       "companion_profile": "24d2e8984810cb596fe9792768510a356786f709",
-      "test_file_sha256": "d824ccfe710824286a61f31aefd80f0fa58d0a9bd33a6e61491df41b3ab5d165"
+      "test_file_sha256": "58e842e2d0d4668fd127165a30720c082589aee602f5e4a41cddd82cd0f606a9"
     },
     {
       "path": "openhab/scripts/test_astro_geometry_worker.py",
