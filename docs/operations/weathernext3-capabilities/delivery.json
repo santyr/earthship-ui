@@ -190,7 +190,8 @@
       "steps": 5,
       "evidence": [
         "atmospheric-semantics.md",
-        "task5-consumer-verification.json"
+        "task5-consumer-verification.json",
+        "atmospheric-ablation-protocol.json"
       ],
       "remaining": [
         "actual individual dewpoint/pressure/direction/cloud ablations for temperature/local-wind/thermal",
