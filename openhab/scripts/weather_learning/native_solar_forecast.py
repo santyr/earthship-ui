@@ -41,6 +41,10 @@ def derive(snapshot,*,origin,available_by,horizon_hours,site):
     if known>origin or not isinstance(site,Site):raise ValueError('authoritative causally available v2 context required')
     source=prospective_snapshot(snapshot,issued_at=known);prospective_snapshot(source,issued_at=origin)
     if source['site']!=dict(latitude=site.latitude,longitude=site.longitude,timezone=site.timezone):raise ValueError('v2 native source site differs')
+    return source,component_rows(source,targets)
+
+def component_rows(source,targets):
+    """Shared numerical derivation after the caller admits its evidence class."""
     points={(p['variable'],instant(p['valid_at'])):p for p in source['points'] if p['statistic']=='mean'}
     rows=[]
     for at in targets:
@@ -49,7 +53,7 @@ def derive(snapshot,*,origin,available_by,horizon_hours,site):
         temp,ghi,wind=values;temp=temp*9/5+32
         if not -40<=temp<=140 or not 0<=ghi<=1600 or wind<0:raise ValueError('v2 weather outside original physical bounds')
         rows.append(dict(at=at.isoformat(),tempF=temp,radiationWm2=ghi,windMph=wind/.44704,weatherCode=None,solar=solar_pair(points,at)))
-    return source,rows
+    return rows
 
 def make_component_forecast(snapshot,*,origin,available_by,horizon_hours,site):
     from .native_forecast import _snapshot,_encode,MAX_CAPSULE_BYTES

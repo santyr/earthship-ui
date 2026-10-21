@@ -19,8 +19,7 @@ from household_pv_model import (
     array_power, simulate_storage,
 )
 from household_solar_horizon import horizon_height
-from weather_learning.native_forecast import validate_native_forecast
-from weather_learning.native_solar_forecast import SCHEMA as FORECAST_SCHEMA
+from weather_learning.solar_experiment import validate_component_input
 from weather_learning.solar_components import BIN, METHOD, _geometry, reconstruct_hour
 
 MODEL_RULE='native_fdir_ssrd_isotropic_faiman_proxy_pvwatts_dc_v2'
@@ -76,8 +75,7 @@ def project_window_components(*,array,forecast,positions,start,end,timezone_name
     force_total_only is the matched experiment benchmark on exactly this grid.
     """
     if type(force_total_only) is not bool:raise ValueError('explicit benchmark choice required')
-    forecast=validate_native_forecast(forecast)
-    if forecast['schema']!=FORECAST_SCHEMA:raise ValueError('native component forecast v2 required')
+    forecast,evidence_class=validate_component_input(forecast)
     array=_array(array);p=_parameters(assumptions);start,end=utc(start),utc(end)
     origin=instant(forecast['origin'])
     if not origin<=start<end<=origin+timedelta(hours=forecast['horizon_hours']):
@@ -142,6 +140,7 @@ def project_window_components(*,array,forecast,positions,start,end,timezone_name
     if sun_start is not None:sun_windows.append(dict(start=sun_start.isoformat(),end=end.isoformat()))
     out=dict(schema='earthship-household-component-pv/v1',model_rule=BENCHMARK_RULE if force_total_only else MODEL_RULE,reconstruction_method=METHOD,
         benchmark='total_only' if force_total_only else 'native_with_total_only_fallback',
+        evidence_class=evidence_class,prospective_score=False,
         origin=start.isoformat(),through=end.isoformat(),horizon_hours=(end-start).total_seconds()/3600,
         timezone=timezone_name,forecast_sha256=forecast['forecast_sha256'],geometry_sha256=identity(positions),
         horizon_sha256=None if horizon_profile is None else identity(horizon_profile),array=array,assumptions=dict(assumptions),

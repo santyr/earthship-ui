@@ -165,8 +165,17 @@
       "task": 4,
       "title": "Implement and evaluate native direct/total solar",
       "gate": "conserved interval semantics and train/serve parity; later held-out PV/thermal comparison; recorded disposition. \u201cNative components available\u201d is not permission to replace the current method.",
-      "status": "planned_not_executed",
-      "steps": 7
+      "status": "in_progress_pv_kernel_and_retained_experiment_verified_thermal_pending",
+      "steps": 7,
+      "evidence": [
+        "solar-semantics.json",
+        "solar-components.md",
+        "pv-experiment.json"
+      ],
+      "remaining": [
+        "distinct thermal target/model experiment on comparable recorded action/state trajectories",
+        "final Task4 integration and verification gate"
+      ]
     },
     {
       "task": 5,

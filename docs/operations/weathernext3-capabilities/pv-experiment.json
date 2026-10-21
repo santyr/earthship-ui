@@ -1,0 +1,318 @@
+{
+  "schema": "earthship-native-solar-pv-experiment-summary/v1",
+  "status": "pv_experiment_complete_thermal_task_still_in_progress",
+  "checked_at": "2026-10-21T20:52:33.890978+00:00",
+  "experiment_sha256": "fe7acaaa2ebceeb0e28740cc5ec155693bd9a61a928781ab87d9f1b316e34fcb",
+  "parent_dataset_sha256": "1ba988e071a2c34aa2ff0d7335329e466e917a22077a9bb9d57c670e1d9c70cf",
+  "source_package_sha256": "dda2f83cdc5d73ddacba32bc81fa63e5fb6df2394935d073605c47ea3bee4541",
+  "retained_numerical_source_files": 375,
+  "protocol_sha256": "5249b253e084ecd6105f0c19eb711a8e99b4b962e1034afcc2c89b1723afea7a",
+  "source_replay": {
+    "weather_originals": 59,
+    "energy_hour_originals": 110,
+    "geometry_series": 31,
+    "forecast_pairs": 768,
+    "unique_measured_targets": 768,
+    "duration_seconds": 66.12202676385641
+  },
+  "weighting": "equal_local_date_then_measured_target_then_forecast",
+  "training_maximum_days": 28,
+  "training_order": "earlier target end only; actual acquisition clocks retained",
+  "fixed_correction": {
+    "trained_at": "2026-10-20T00:24:56.108301+00:00",
+    "source_sha256": "6192f8fc407d57d99e916c7fb7ff9d23aaaad8071820155e77536b32d4a5f2ee",
+    "historical_availability_claim": false,
+    "role": "same unchanged current incumbent correction on both baselines; retrospective diagnostic"
+  },
+  "cohorts": [
+    {
+      "source_basis": "retrospective_assumed_full_cycle_9h",
+      "outer_dates": [
+        "2026-10-09",
+        "2026-10-10",
+        "2026-10-11",
+        "2026-10-12",
+        "2026-10-13",
+        "2026-10-14",
+        "2026-10-15",
+        "2026-10-16",
+        "2026-10-17",
+        "2026-10-18"
+      ],
+      "support": {
+        "outer_forecast_pairs": 207,
+        "outer_local_dates": 10,
+        "outer_targets": 207
+      },
+      "fallback_inclusive": {
+        "fixed_native": {
+          "absolute_error_p95": 770.9362454273344,
+          "bias": -55.63111489885228,
+          "forecast_pairs": 207,
+          "local_dates": 10,
+          "mae": 309.23373769351093,
+          "rmse": 390.57293736368524,
+          "targets": 207
+        },
+        "fixed_total": {
+          "absolute_error_p95": 1083.2224239750408,
+          "bias": -165.28313256645262,
+          "forecast_pairs": 207,
+          "local_dates": 10,
+          "mae": 485.79230272035335,
+          "rmse": 589.7158021284403,
+          "targets": 207
+        },
+        "refit_native": {
+          "absolute_error_p95": 805.1974279935785,
+          "bias": -95.75137239279049,
+          "forecast_pairs": 207,
+          "local_dates": 10,
+          "mae": 317.03603427867074,
+          "rmse": 411.03695088760765,
+          "targets": 207
+        },
+        "refit_total": {
+          "absolute_error_p95": 1113.4077186175432,
+          "bias": -214.7074939470156,
+          "forecast_pairs": 207,
+          "local_dates": 10,
+          "mae": 493.6465529422238,
+          "rmse": 603.8611163087496,
+          "targets": 207
+        },
+        "support": {
+          "forecast_pairs": 207,
+          "local_dates": 10,
+          "targets": 207
+        }
+      },
+      "matched_native": {
+        "fixed_native": {
+          "absolute_error_p95": 770.9362454273344,
+          "bias": -55.63111489885228,
+          "forecast_pairs": 207,
+          "local_dates": 10,
+          "mae": 309.23373769351093,
+          "rmse": 390.57293736368524,
+          "targets": 207
+        },
+        "fixed_total": {
+          "absolute_error_p95": 1083.2224239750408,
+          "bias": -165.28313256645262,
+          "forecast_pairs": 207,
+          "local_dates": 10,
+          "mae": 485.79230272035335,
+          "rmse": 589.7158021284403,
+          "targets": 207
+        },
+        "refit_native": {
+          "absolute_error_p95": 805.1974279935785,
+          "bias": -95.75137239279049,
+          "forecast_pairs": 207,
+          "local_dates": 10,
+          "mae": 317.03603427867074,
+          "rmse": 411.03695088760765,
+          "targets": 207
+        },
+        "refit_total": {
+          "absolute_error_p95": 1113.4077186175432,
+          "bias": -214.7074939470156,
+          "forecast_pairs": 207,
+          "local_dates": 10,
+          "mae": 493.6465529422238,
+          "rmse": 603.8611163087496,
+          "targets": 207
+        },
+        "support": {
+          "forecast_pairs": 207,
+          "local_dates": 10,
+          "targets": 207
+        }
+      },
+      "fallback_reasons": {},
+      "regressing_subgroups": {
+        "azimuth_180": {
+          "fixed_native": {
+            "absolute_error_p95": 255.88679443725482,
+            "bias": 33.635435171175665,
+            "forecast_pairs": 21,
+            "local_dates": 1,
+            "mae": 106.47345323653039,
+            "rmse": 147.29993058821333,
+            "targets": 21
+          },
+          "fixed_total": {
+            "absolute_error_p95": 258.45164702303697,
+            "bias": -17.243672459994002,
+            "forecast_pairs": 21,
+            "local_dates": 1,
+            "mae": 86.7392253879582,
+            "rmse": 121.94233188521962,
+            "targets": 21
+          },
+          "refit_native": {
+            "absolute_error_p95": 253.46149829181172,
+            "bias": 32.15748004744426,
+            "forecast_pairs": 21,
+            "local_dates": 1,
+            "mae": 105.8584557903458,
+            "rmse": 146.67892682971248,
+            "targets": 21
+          },
+          "refit_total": {
+            "absolute_error_p95": 263.22023878191044,
+            "bias": -23.7370290315405,
+            "forecast_pairs": 21,
+            "local_dates": 1,
+            "mae": 87.13631250820004,
+            "rmse": 122.28535130032546,
+            "targets": 21
+          },
+          "support": {
+            "forecast_pairs": 21,
+            "local_dates": 1,
+            "targets": 21
+          }
+        }
+      },
+      "paired_uncertainty": {
+        "blocks": 10,
+        "independence": "consecutive_date_blocks; longer_dependence_not_estimated",
+        "method": "paired_local_date_block_resampling",
+        "native_minus_total_mae_95pct": [
+          -217.6435900826676,
+          -139.84273466622167
+        ],
+        "replicates": 128,
+        "seed": 20261021
+      },
+      "matched_fit_origins": 20,
+      "disposition": "retain_incumbent",
+      "reason": "matched_refit_does_not_show_supported_improvement"
+    },
+    {
+      "source_basis": "retrospective_recorded_ingestion_next_whole_hour",
+      "outer_dates": [
+        "2026-10-20"
+      ],
+      "support": {
+        "outer_forecast_pairs": 13,
+        "outer_local_dates": 1,
+        "outer_targets": 13
+      },
+      "fallback_inclusive": {
+        "fixed_native": {
+          "absolute_error_p95": 795.2754597761962,
+          "bias": -190.76359379376,
+          "forecast_pairs": 13,
+          "local_dates": 1,
+          "mae": 461.86626217031676,
+          "rmse": 514.4297511569135,
+          "targets": 13
+        },
+        "fixed_total": {
+          "absolute_error_p95": 1105.7206033603886,
+          "bias": -319.76261069970207,
+          "forecast_pairs": 13,
+          "local_dates": 1,
+          "mae": 452.36224431807125,
+          "rmse": 567.5455069784914,
+          "targets": 13
+        },
+        "refit_native": {
+          "absolute_error_p95": null,
+          "bias": null,
+          "forecast_pairs": 0,
+          "local_dates": 0,
+          "mae": null,
+          "rmse": null,
+          "targets": 0
+        },
+        "refit_total": {
+          "absolute_error_p95": null,
+          "bias": null,
+          "forecast_pairs": 0,
+          "local_dates": 0,
+          "mae": null,
+          "rmse": null,
+          "targets": 0
+        },
+        "support": {
+          "forecast_pairs": 13,
+          "local_dates": 1,
+          "targets": 13
+        }
+      },
+      "matched_native": {
+        "fixed_native": {
+          "absolute_error_p95": 795.2754597761962,
+          "bias": -190.76359379376,
+          "forecast_pairs": 13,
+          "local_dates": 1,
+          "mae": 461.86626217031676,
+          "rmse": 514.4297511569135,
+          "targets": 13
+        },
+        "fixed_total": {
+          "absolute_error_p95": 1105.7206033603886,
+          "bias": -319.76261069970207,
+          "forecast_pairs": 13,
+          "local_dates": 1,
+          "mae": 452.36224431807125,
+          "rmse": 567.5455069784914,
+          "targets": 13
+        },
+        "refit_native": {
+          "absolute_error_p95": null,
+          "bias": null,
+          "forecast_pairs": 0,
+          "local_dates": 0,
+          "mae": null,
+          "rmse": null,
+          "targets": 0
+        },
+        "refit_total": {
+          "absolute_error_p95": null,
+          "bias": null,
+          "forecast_pairs": 0,
+          "local_dates": 0,
+          "mae": null,
+          "rmse": null,
+          "targets": 0
+        },
+        "support": {
+          "forecast_pairs": 13,
+          "local_dates": 1,
+          "targets": 13
+        }
+      },
+      "fallback_reasons": {},
+      "regressing_subgroups": {},
+      "paired_uncertainty": null,
+      "matched_fit_origins": 0,
+      "disposition": "insufficient_evidence",
+      "reason": "training_or_outer_or_native_support_below_frozen_minimum"
+    }
+  ],
+  "verification": {
+    "affected_backend_passed": 667,
+    "isolated_sdk_skips": 4,
+    "subtests_passed": 163,
+    "new_related_solar_passed": 65,
+    "closure_only_replay_scientific_outputs_identical": true,
+    "isolated_sdk_executed": 4,
+    "isolated_sdk_execution_skips": 0,
+    "outbound_sdk_connections_blocked": true
+  },
+  "remaining": [
+    "distinct-target thermal experiment on comparable recorded action/state trajectories",
+    "Task4 final integration and verification gate"
+  ],
+  "production_changed": false,
+  "actual_cloud_probe": false,
+  "automatic_promotion": false,
+  "prospective_score": false,
+  "physical_calibration_qualified": false,
+  "automatic_actuation": false
+}

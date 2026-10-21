@@ -20,8 +20,8 @@
       "feature": "native_solar_components",
       "existing": "total/direct hourly mean J/m2 already retained",
       "source": "worker.py \u2192 provider.py",
-      "current_consumer": "native_forecast.py v1 narrows to total mean; household kernels decompose total",
-      "planned_extension": "Task4 separate versioned component kernel and paired experiment; retain v1 producer"
+      "current_consumer": "Task4 explicit v2 forcing/shared PV path and retained-data matched experiment implemented; incumbent retained, production unchanged",
+      "planned_extension": "Complete distinct comparable-trajectory thermal experiment and Task4 final gate; preserve v1 producer"
     },
     {
       "feature": "dew_point_pressure",
@@ -95,7 +95,7 @@
     "https://developers.google.com/earth-engine/guides/noncommercial_tiers"
   ],
   "limitations": [
-    "Direct-horizontal semantics require ECMWF parameter documentation plus actual metadata before Task4 admission",
+    "Direct-horizontal semantics verified against Google variable mapping and ECMWF FDIR definition; native method remains experimentally unselected",
     "Account tier/remaining EECU are not inferred from quotas described in provider documentation",
     "No expanded cloud probe or production configuration change performed"
   ],
