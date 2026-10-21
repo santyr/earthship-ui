@@ -682,14 +682,16 @@
       "junit_exact_case_and_no_skip_assertions_passed": true
     },
     "independent_review": {
-      "reviewed_head": "c22632d",
+      "reviewed_head": "c22632d799d36290c70bde31b8f80cce7663b13c",
       "reviewer": "fresh independent whole-branch review via requesting-code-review / executing-plans",
       "critical": 0,
       "important": 0,
       "minor_source": 0,
       "minor_documentation": 1,
-      "disposition": "Source ready to integrate; reviewer verified all26changed source/test hashes and zero non-doc drift since36458d3. Stale PV/full-plan pending prose corrected against retained proofs; final documentation readback pending.",
-      "hosted_verification_required": true
+      "disposition": "Source ready to integrate. Follow-up at27934c4 confirms prior Minor documentation finding resolved, proof digest valid, all26changed-file hashes match freeze and no non-documentation drift since36458d3. Actual hosted-CI verification still required; installation/qualification remain separate.",
+      "hosted_verification_required": true,
+      "documentation_followup_head": "27934c4209d0f262e33968c3fac53fe506f54a9f",
+      "documentation_finding_resolved": true
     }
   },
   "release_handoff": "reaudit-20261021.md",
