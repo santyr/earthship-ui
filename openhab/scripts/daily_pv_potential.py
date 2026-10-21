@@ -64,3 +64,35 @@ def project_days(*,dates,hours,positions,array,horizon_profile,timezone_name,iss
             pass
         result.append(row)
     return result
+
+
+def project_days_components(*,dates,forecast,positions,array,horizon_profile,timezone_name,issued_at):
+    """Explicit opt-in daily view of the shared v2 component experiment path.
+
+    Day boundaries use actual local midnights. Missing full-day coverage is
+    unavailable; a partial future day is never labeled a full-day projection.
+    Electrical correction is deliberately outside this raw baseline adapter.
+    """
+    from household_pv_components import project_window_components, MODEL_RULE
+    issued=utc(issued_at);zone=ZoneInfo(timezone_name)
+    if (not isinstance(dates,list) or not 1<=len(dates)<=10 or dates!=sorted(set(dates))):
+        raise ValueError('bounded ordered daily PV dates required')
+    result=[]
+    for value in dates:
+        day=date.fromisoformat(value)
+        if day<issued.astimezone(zone).date():raise ValueError('current or future PV day required')
+        midnight=datetime.combine(day,time.min,zone).astimezone(timezone.utc)
+        end=datetime.combine(day+timedelta(days=1),time.min,zone).astimezone(timezone.utc)
+        start=max(midnight,issued)
+        row=dict(date=value,status='unavailable',reason='incomplete_weather_or_geometry',potentialKwh=None,
+            fromAt=start.isoformat(),throughAt=end.isoformat(),scope='remaining' if start>midnight else 'full_day',
+            modelRule=MODEL_RULE,physicalCalibrationQualified=False,automaticActuation=False)
+        try:
+            projection=project_window_components(array=array,forecast=forecast,positions=positions,start=start,end=end,
+                timezone_name=timezone_name,horizon_profile=horizon_profile)
+            row.update(status='available',reason=None,potentialKwh=projection['potential_pv_kwh'],
+                sourceSupport=projection['source_support'],projectionSha256=projection['projection_sha256'])
+        except (ValueError,KeyError,TypeError,OverflowError):
+            pass
+        result.append(row)
+    return result

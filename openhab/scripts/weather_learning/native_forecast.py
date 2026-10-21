@@ -103,6 +103,9 @@ def make_native_forecast(snapshot,*,origin,available_by,horizon_hours,site):
 
 
 def validate_native_forecast(value):
+    if isinstance(value,dict) and value.get('schema')=='earthship-weathernext-native-forecast/v2':
+        from .native_solar_forecast import validate_component_forecast
+        return validate_component_forecast(value)
     if (not isinstance(value,dict) or set(value)!=FIELDS or value['schema']!=SCHEMA or value['source']!='weathernext3' or
             value['release_authorized'] is not False or value['automatic_actuation'] is not False or len(canonical(value))>MAX_CAPSULE_BYTES or
             identity({k:v for k,v in value.items() if k!='forecast_sha256'})!=value['forecast_sha256']):
@@ -125,3 +128,14 @@ def load_native_forecast(archive,*,origin,available_by,horizon_hours,site):
         if snapshot is None:return None
         return make_native_forecast(snapshot,origin=origin,available_by=available_by,horizon_hours=horizon_hours,site=site)
     except (ValueError,KeyError,TypeError,OverflowError,OSError,sqlite3.Error):return None
+
+
+def make_native_component_forecast(snapshot,*,origin,available_by,horizon_hours,site):
+    """Explicit opt-in; the default maker and v1 numerical rows are unchanged."""
+    from .native_solar_forecast import make_component_forecast
+    return make_component_forecast(snapshot,origin=origin,available_by=available_by,horizon_hours=horizon_hours,site=site)
+
+
+def load_native_component_forecast(archive,*,origin,available_by,horizon_hours,site):
+    from .native_solar_forecast import load_component_forecast
+    return load_component_forecast(archive,origin=origin,available_by=available_by,horizon_hours=horizon_hours,site=site)
