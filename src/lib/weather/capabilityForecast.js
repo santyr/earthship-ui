@@ -1,4 +1,5 @@
 /** Fixed supplemental contract. No local calibration follows from a raw range. */
+import {parseAtmosphericGroup} from './atmosphericForecast.js';
 import {uniqueObjectKeys} from '../household/observation.js';
 export const MAX_CAPABILITY_BYTES=256*1024;
 export const CAPABILITY_LABEL='WeatherNext p10–p90; local coverage not yet verified';
@@ -12,11 +13,12 @@ export function parseWeatherCapabilities(raw,{nowMs=Date.now()}={}){
  try{
   if(typeof raw!=='string'||new TextEncoder().encode(raw).length>MAX_CAPABILITY_BYTES||!Number.isFinite(nowMs))return unavailable();
   const p=JSON.parse(raw);uniqueObjectKeys(raw);
-  if(!exact(p,['schema','provider','generated_at','valid_until','timezone','status','sources','groups','automatic_actuation','release_authorized','report_sha256'])||p.schema!=='earthship-weathernext-capabilities/v1'||p.provider!=='weathernext3'||p.automatic_actuation!==false||p.release_authorized!==false||!HASH.test(p.report_sha256))return unavailable();
+  const v2=p?.schema==='earthship-weathernext-capabilities/v2';
+  if(!exact(p,['schema','provider','generated_at','valid_until','timezone','status','sources','groups','automatic_actuation','release_authorized','report_sha256'])||(!v2&&p.schema!=='earthship-weathernext-capabilities/v1')||p.provider!=='weathernext3'||p.automatic_actuation!==false||p.release_authorized!==false||!HASH.test(p.report_sha256))return unavailable();
   const generated=clock(p.generated_at),until=clock(p.valid_until);
   if(!Number.isFinite(generated)||!Number.isFinite(until)||generated>nowMs+5000||nowMs>=until||until<=generated||until>generated+90*60000)return unavailable();
   if(typeof p.timezone!=='string')return unavailable();new Intl.DateTimeFormat('en-US',{timeZone:p.timezone});
-  if(!Array.isArray(p.sources)||p.sources.length>16||!exact(p.groups,['temperature']))return unavailable();
+  if(!Array.isArray(p.sources)||p.sources.length>16||!exact(p.groups,v2?['temperature','atmosphere']:['temperature']))return unavailable();
   const sources=new Map();
   for(const source of p.sources){
    if(!exact(source,['snapshot_sha256','profile_sha256','run_id','initialized_at','first_seen_at','available_at','grid_sha256'])||![source.snapshot_sha256,source.profile_sha256,source.grid_sha256].every(x=>typeof x==='string'&&HASH.test(x)))return unavailable();
@@ -42,8 +44,10 @@ export function parseWeatherCapabilities(raw,{nowMs=Date.now()}={}){
    if(!['available','missing_quantiles','crossing_quantiles'].includes(h.range_status)||(h.range_status==='available')!==range||h.range_status==='crossing_quantiles'&&['p10_c','p25_c','p50_c','p75_c','p90_c'].some(k=>h[k]!==null))return unavailable();
    hours.push({at:h.valid_at,atMs:at,meanF:f(h.mean_c),p10F:f(h.p10_c),p25F:f(h.p25_c),p50F:f(h.p50_c),p75F:f(h.p75_c),p90F:f(h.p90_c),spreadF:range?(h.p90_c-h.p10_c)*1.8:null,rangeStatus:h.range_status,source});
   }
-  if(used.size!==sources.size||p.status!==(hours.length?'available':'unavailable')||!hours.length)return unavailable();
-  return {state:'ready',hours,sources:[...sources.values()],reportSha256:p.report_sha256,generatedAt:p.generated_at,validUntil:p.valid_until,label:CAPABILITY_LABEL,localCoverageQualified:false};
+  const atmosphere=v2?parseAtmosphericGroup(p.groups.atmosphere,{generatedMs:generated,validUntilMs:until,nowMs}):null;
+  const declaredAvailable=hours.length>0||(v2&&p.groups.atmosphere.hours.length>0);
+  if(used.size!==sources.size||p.status!==(declaredAvailable?'available':'unavailable')||!hours.length&&atmosphere?.state!=='ready')return unavailable();
+  return {state:'ready',hours,sources:[...sources.values()],reportSha256:p.report_sha256,generatedAt:p.generated_at,validUntil:p.valid_until,label:CAPABILITY_LABEL,localCoverageQualified:false,...(v2?{atmosphere}:{})};
  }catch{return unavailable();}
 }
 export function temperatureCapabilityAt(product,at){return product?.state==='ready'?product.hours.find(h=>h.atMs===clock(at))??null:null;}

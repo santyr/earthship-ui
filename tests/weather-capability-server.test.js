@@ -1,4 +1,5 @@
 import {afterEach,it,expect} from 'vitest';
+import atmosphereOriginals from './fixtures/weather-atmosphere.json';
 import {mkdtemp,writeFile,chmod,symlink,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -33,4 +34,12 @@ it.each(['missing','symlink','permissions','private','duplicate','stale','oversi
   }
  });
  const response=await fetch(base+'/api/weather-capabilities');expect(response.status).toBe(503);expect(await response.json()).toEqual({status:'unavailable'});
+});
+
+it('serves closed v2 atmosphere but never discloses malformed private optional groups beside valid temperature',async()=>{
+ const original=structuredClone(atmosphereOriginals.outdoor);
+ const url=await endpoint(file=>writeFile(file,JSON.stringify(original),{mode:0o600}));
+ const response=await fetch(url+'/api/weather-capabilities');expect(response.status).toBe(200);expect(await response.json()).toEqual(original);
+ const unsafe=await endpoint(file=>{const p=structuredClone(original);p.groups.atmosphere.sources[0].private_path='/private';return writeFile(file,JSON.stringify(p),{mode:0o600})});
+ const rejected=await fetch(unsafe+'/api/weather-capabilities');expect(rejected.status).toBe(503);expect(await rejected.text()).not.toContain('private_path');
 });

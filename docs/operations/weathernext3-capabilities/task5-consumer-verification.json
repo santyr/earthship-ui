@@ -1,0 +1,83 @@
+{
+  "schema": "earthship-atmospheric-consumer-verification/v1",
+  "checked_at": "2026-10-21T22:08:08.099758+00:00",
+  "status": "consumer_implemented_locally_verified_task5_experiments_pending",
+  "source_manifest": {
+    "openhab/scripts/weather_learning/atmospheric_context.py": "aa623a243e9f97b376994f3c2001854d0696f1a595a25dcc307f1d3822f28cff",
+    "openhab/scripts/weather_learning/atmospheric_publish.py": "c2e91fbc3c7ffcecb17272d061852c5b01c77fde28c5495e42685f23db06a161",
+    "openhab/scripts/weather_learning/moisture_context.py": "7ef3eda7e58a5d3387cc6a2190e0487a006538ee8711b175ad9ae2c715a8b214",
+    "openhab/scripts/weather_learning/capability_publish.py": "41d6b35d8f4afb5e696a462642de35d920bb3e7517551658303d0e3ea8fbaa14",
+    "openhab/scripts/weather_learning/capability_worker.py": "d2e2e253bc7bb279253c518ff4131a12a139488bb1fd11d17060938afae50724",
+    "openhab/scripts/weather_learning/tests/test_atmospheric_publish.py": "a06e6724c927c1cc29d3ffb4c1021ce4945f7320b2a5a2aa8019cd45beb8f82e",
+    "openhab/scripts/weather_learning/tests/test_moisture_context.py": "1288d4533468da81cee6fe36ab29e5a49a9fda8cc47a59c69db0acce3f302b16",
+    "src/lib/ui/WeatherDetailModal.svelte": "f63ef53edebe58be2177fc6fd5983c851b7d48b6f2aa7e5db1ba09c75e808fb3",
+    "src/lib/ui/AtmosphericContext.svelte": "8639088e1858f9bacc26878b392bb8c8579d4ae5311b81c8c3997a377102dfe0",
+    "src/lib/weather/capabilityForecast.js": "f3ba1e79b87b069740bb159cb94ce177f00207d3fc7ee4ef27a33cceaded7d40",
+    "src/lib/weather/atmosphericForecast.js": "d92752b06d83fc08e984c0b35d3e5b64d2c829305492cfc74897b6a4e6774bb5",
+    "tests/e2e/weather-capabilities.spec.js": "0c5078bf9ade1b2bd740ea969a8d33b17dbde0ef279983391b5ed0cb568c2caa",
+    "tests/ui/WeatherDetailModal.test.js": "f60a38ad37c4d67ab21590a62fb391b7c2c626aa91bfb382510f39bf982ed189",
+    "tests/weather-atmosphere-forecast.test.js": "368aa4f7e1d5ab52935acf53b7de2ea81d033fe9b44c64a187271af5fe4b843e",
+    "tests/weather-capability-server.test.js": "b026a6aef1f25a886413a234723f3dcc176ee11345e416405cf20312c9a8f8c6",
+    "tests/fixtures/build-weather-atmosphere.py": "a14be44211794d839a1551887477f9985e57d6a9aadb33df010e54aff1ccab6a",
+    "tests/fixtures/weather-atmosphere.json": "63b1e272d84ca985f12bcfd95dc3c232145acd00d8c05ba7e055d643e1b6519c"
+  },
+  "verification": {
+    "backend": {
+      "log_sha256": "f1d9e1aa4c1236431aa592240cb117f26c65861f0e67f469582d823ee9fbcd70",
+      "executed_result": "470 passed, 4 skipped, 163 subtests passed"
+    },
+    "frontend": {
+      "log_sha256": "06825f6a796f9a4cca712ff2f27e038af938707cf6620a7275e82129de182fa2",
+      "executed_result": "2869 passed (2869)"
+    },
+    "browser": {
+      "log_sha256": "d7b3e8847d535a5f62200705f18ea754021a48e48bd6b7dd79eb168964ab073b",
+      "executed_result": "16 passed"
+    },
+    "build": {
+      "log_sha256": "eceb9e35265f1dd2ab51fbb8b0fc4cae22c39921dbb773970645e3240fad12d5",
+      "executed_result": "built in"
+    },
+    "sdk": {
+      "log_sha256": "a2ad9791a4909d7ee4df070df3ab504acf1cabb65990ea8ffa7c9aebe521cd21",
+      "executed_result": "Pinned SDK:4 offline compatibility tests executed"
+    },
+    "fixture": {
+      "log_sha256": "832f79dc0919105a75fd5e2a56a03e534621abb89b66fd1d7a794573e2a19c79",
+      "executed_result": "63b1e272d84ca985f12bcfd95dc3c232145acd00d8c05ba7e055d643e1b6519c"
+    }
+  },
+  "frontend_tests": 2869,
+  "frontend_files": 186,
+  "affected_backend_tests": 470,
+  "normal_sdk_profile_skips": 4,
+  "backend_subtests": 163,
+  "isolated_sdk_executed": 4,
+  "isolated_sdk_skips": 0,
+  "capability_browser_cases": 16,
+  "viewports": [
+    "1340x800",
+    "1280x720"
+  ],
+  "visual_inspection": "expanded outdoor-only and qualified-moisture source panels, original raw temperature band and separate displayed point; full plot verified after debounced resize",
+  "boundaries": {
+    "default_v1_unchanged": true,
+    "optional_v2_only": true,
+    "private_indoor_original_replayed_before_publication": true,
+    "expired_indoor_comparison_withdrawn_independently": true,
+    "malformed_optional_group_never_disclosed_beside_valid_temperature": true,
+    "scalar_and_vector_wind_separate": true,
+    "cloud_layers_not_summed": true,
+    "automatic_actuation": false,
+    "release_authorized": false
+  },
+  "production_installed": false,
+  "actual_cloud_access": false,
+  "model_selection_changed": false,
+  "task5_complete": false,
+  "remaining": [
+    "actual individual dewpoint/pressure/direction/cloud ablations for temperature/local-wind/thermal",
+    "gain-only versus one bounded scalar-wind challenger",
+    "Tasks6\u201311 integrated delivery"
+  ]
+}

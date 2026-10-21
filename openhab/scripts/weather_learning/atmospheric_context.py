@@ -55,21 +55,32 @@ def _field(body,point,name):
 
 
 def build_atmospheric_context(snapshots,*,decision,target,site,guard=lambda:None):
-    decision,target=map(utc,(decision,target))
-    if not isinstance(site,Site) or not isinstance(snapshots,(list,tuple)) or len(snapshots)>8 or target<=decision:
+    return build_atmospheric_series(snapshots,decision=decision,targets=(target,),site=site,guard=guard)[0]
+
+
+def build_atmospheric_series(snapshots,*,decision,targets,site,guard=lambda:None):
+    decision=utc(decision);targets=tuple(map(utc,targets))
+    if (not isinstance(site,Site) or not isinstance(snapshots,(list,tuple)) or len(snapshots)>8 or
+            not 1<=len(targets)<=24 or list(targets)!=sorted(set(targets)) or any(at<=decision for at in targets)):
         raise ValueError('bounded original prospective atmospheric context required')
-    candidates={name:[] for name in VARIABLES};by_variable={v[0]:name for name,v in VARIABLES.items()};withheld=0
+    by_variable={v[0]:name for name,v in VARIABLES.items()};withheld=0
+    all_fields={at:{name:[] for name in VARIABLES} for at in targets}
     for source in snapshots:
         guard()
         try:
             body=prospective_snapshot(source,issued_at=decision)
             if body['site']!=site.__dict__:raise ValueError('atmospheric original site differs')
             for point in body['points']:
-                if point['statistic']!='mean' or instant(point['valid_at'])!=target or point['variable'] not in by_variable:continue
+                at=instant(point['valid_at'])
+                if point['statistic']!='mean' or at not in all_fields or point['variable'] not in by_variable:continue
                 name=by_variable[point['variable']];field=_field(body,point,name)
-                if field is not None:candidates[name].append(field)
+                if field is not None:all_fields[at][name].append(field)
         except (TimeoutError,AdmissionDeferred,MemoryError):raise
         except (ValueError,TypeError,KeyError):withheld+=1
+    return [_context_from_fields(all_fields[at],decision,at,withheld) for at in targets]
+
+
+def _context_from_fields(candidates,decision,target,withheld):
     selected={}
     for name,fields in candidates.items():
         selected[name]=max(fields,key=lambda f:(instant(f['initialized_at']),instant(f['available_at']),f['source_sha256'])) if fields else None

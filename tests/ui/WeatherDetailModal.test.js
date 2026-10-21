@@ -35,6 +35,7 @@ import {
 } from '../../src/lib/weather/detailStore.js';
 import { currentRoute } from '../../src/routes.js';
 import { weatherCapabilityRaw, weatherCapabilityClock } from '../../src/lib/weather/capabilityState.js';
+import atmosphericOriginals from '../fixtures/weather-atmosphere.json';
 import { capabilityFixture, CAPABILITY_NOW } from '../fixtures/weather-capabilities.js';
 
 function payload({ count = 12, stale = false, precipSumIn, hourPrecipIn, version = 1, firstTempF = 60 } = {}) {
@@ -310,4 +311,39 @@ describe('WeatherDetailModal', () => {
       vi.useRealTimers();
     }
   });
+
+
+it('shows source-labeled atmospheric diagnostics without claiming model use or condensation safety', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] });vi.setSystemTime(CAPABILITY_NOW);
+  items.set({ Forecast_10Day_JSON: payload().replaceAll('2026-07-19','2026-10-21') });
+  weatherCapabilityRaw.set(JSON.stringify(atmosphericOriginals.outdoor));weatherCapabilityClock.set(CAPABILITY_NOW);
+  render(WeatherDetailModal);openWeatherDetail({date:'2026-10-21',label:'Today'});
+  await screen.findByRole('dialog');
+  expect(screen.getByText('Forecast atmosphere · raw diagnostic')).toBeTruthy();
+  expect(screen.getByText('Dew point: 41.0°F')).toBeTruthy();
+  expect(screen.getByText('Sea-level pressure: 900.0 hPa')).toBeTruthy();
+  expect(screen.getByText('Scalar mean wind: 4.5 mph')).toBeTruthy();
+  expect(screen.getByText('Mean vector: 3.2 mph from 135°')).toBeTruthy();
+  expect(screen.getByText(/Cloud total 40% · high 40% · mid 40% · low 40%/)).toBeTruthy();
+  expect(screen.getByText(/Diagnostic RH from forecast mean temperature and dew point/)).toBeTruthy();
+  expect(screen.getByText(/Current temperature model does not use these added fields/)).toBeTruthy();
+  expect(screen.getByText(/Surface condensation not assessed/)).toBeTruthy();
+  expect(screen.getByText(/Qualified indoor temperature and humidity required/)).toBeTruthy();
+  expect(screen.getAllByText(/initialized 1h ago; available 0m ago/).length).toBeGreaterThan(0);
+  weatherCapabilityRaw.set(null);flushSync();expect(screen.queryByText('Forecast atmosphere · raw diagnostic')).toBeNull();
+  expect(screen.getAllByTestId('weather-detail-hour').length).toBeGreaterThan(0);
+});
+
+it('withdraws only the indoor comparison when its original evidence expires', async () => {
+  vi.useFakeTimers({toFake:['Date']});vi.setSystemTime(CAPABILITY_NOW);
+  items.set({Forecast_10Day_JSON:payload().replaceAll('2026-07-19','2026-10-21')});
+  weatherCapabilityRaw.set(JSON.stringify(atmosphericOriginals.qualified));weatherCapabilityClock.set(CAPABILITY_NOW);
+  render(WeatherDetailModal);openWeatherDetail({date:'2026-10-21',label:'Today'});await screen.findByRole('dialog');
+  expect(screen.getByText(/Forecast outdoor air is drier than current qualified indoor air/)).toBeTruthy();
+  const deadline=Date.parse(atmosphericOriginals.qualified.groups.atmosphere.moisture.valid_until);
+  weatherCapabilityClock.set(deadline);flushSync();
+  expect(screen.queryByText(/Forecast outdoor air is drier than current qualified indoor air/)).toBeNull();
+  expect(screen.getByText(/Indoor evidence expired/)).toBeTruthy();expect(screen.getByText('Dew point: 41.0°F')).toBeTruthy();
+});
+
 });

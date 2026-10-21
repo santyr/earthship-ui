@@ -17,6 +17,7 @@
   } from '../weather/detailStore.js';
   import { rainAmountText } from '../openhab/values.js';
   import OhIcon from './OhIcon.svelte';
+  import AtmosphericContext from './AtmosphericContext.svelte';
   import { observeElementSize } from './observeElementSize.js';
   import { colors } from './tokens.js';
   import { forecastCondition, forecastDisplayDay } from '../weather/presentation.js';
@@ -219,8 +220,8 @@
     }
     if (event.key !== 'Tab') return;
     const focusable = [...panelEl.querySelectorAll(
-      'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
-    )];
+      'button:not([disabled]), summary, select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+    )].filter(element => !element.closest('details:not([open])') || element.matches('summary'));
     if (!focusable.length) return;
     const first = focusable[0];
     const last = focusable.at(-1);
@@ -310,6 +311,7 @@
             {/each}
           </div>
         {/if}
+        <AtmosphericContext product={capabilities} hours={selectedWindow.hours} nowMs={$weatherCapabilityClock} timezone={forecast.timezone} />
       </div>
 
       {#if !selectedDay}

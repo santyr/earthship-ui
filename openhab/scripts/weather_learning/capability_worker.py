@@ -10,15 +10,21 @@ from .archive import Archive
 from .capability_publish import build_capability_report,retain_capability_report
 from .config import Site
 
-def publish_capabilities(archive_path,state_path,*,decision,site,horizons=(24,336),apply=False,guard=lambda:None):
-    if type(apply) is not bool:raise ValueError('explicit capability retention flag required')
+def publish_capabilities(archive_path,state_path,*,decision,site,horizons=(24,336),apply=False,include_atmosphere=False,indoor=None,indoor_zone=None,guard=lambda:None):
+    if type(apply) is not bool or type(include_atmosphere) is not bool:raise ValueError('explicit capability retention/profile flags required')
+    if indoor is not None and (not include_atmosphere or not indoor_zone):raise ValueError('explicit atmospheric profile and indoor zone required')
     root=Path(state_path)
     if not root.is_absolute():raise ValueError('absolute capability state namespace required')
     archive=Archive.open_readonly(archive_path,allow_missing=True)
-    guard();value=build_capability_report(archive,decision=decision,site=site,horizons=horizons,guard=guard);guard()
-    if apply:retain_capability_report(root,value)
+    guard()
+    if include_atmosphere:
+        from .atmospheric_publish import build_atmospheric_report
+        value=build_atmospheric_report(archive,decision=decision,site=site,horizons=horizons,indoor=indoor,zone=indoor_zone,guard=guard)
+    else:value=build_capability_report(archive,decision=decision,site=site,horizons=horizons,guard=guard)
+    guard()
+    if apply:retain_capability_report(root,value,indoor=indoor)
     return dict(status=value['status'],report_sha256=value['report_sha256'],retained=apply,
-        temperature_hours=len(value['groups']['temperature']['hours']),
+        temperature_hours=len(value['groups']['temperature']['hours']),atmospheric_hours=len(value['groups'].get('atmosphere',{}).get('hours',[])),
         local_coverage_qualified=False,automatic_actuation=False)
 
 def main(argv=None):
@@ -26,6 +32,9 @@ def main(argv=None):
     parser.add_argument('--archive',required=True)
     parser.add_argument('--state',required=True,help='explicit private shadow namespace, not its parent')
     parser.add_argument('--apply',action='store_true')
+    parser.add_argument('--atmosphere',action='store_true',help='include bounded native atmospheric means from retained originals')
+    parser.add_argument('--indoor-context',type=Path,help='explicit private canonical PreparedSensorObservations original')
+    parser.add_argument('--indoor-zone',help='explicit registered indoor observation zone')
     args=parser.parse_args(argv)
     deadline=time.monotonic()+30
     def guard():
@@ -33,7 +42,12 @@ def main(argv=None):
     try:
         from .openhab import oh_get,I18N_CONFIG_PATH
         site=Site.from_openhab_config(oh_get(I18N_CONFIG_PATH));guard()
-        result=publish_capabilities(args.archive,args.state,decision=datetime.now(timezone.utc),site=site,apply=args.apply,guard=guard)
+        indoor=None
+        if args.indoor_context is not None:
+            from household.sensor_observations import PreparedSensorObservations
+            from weather_source_files import _read
+            indoor=PreparedSensorObservations(_read(args.indoor_context,256*1024))
+        result=publish_capabilities(args.archive,args.state,decision=datetime.now(timezone.utc),site=site,apply=args.apply,include_atmosphere=args.atmosphere,indoor=indoor,indoor_zone=args.indoor_zone,guard=guard)
         print(json.dumps(result));return 0
     except Exception as error:
         print(json.dumps(dict(status='unavailable',reason=type(error).__name__,automatic_actuation=False)));return 1

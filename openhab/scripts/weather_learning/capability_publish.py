@@ -81,6 +81,9 @@ def build_capability_report(archive,*,decision,site,horizons=(24,336),guard=lamb
     return validate_capability_report(value)
 
 def validate_capability_report(value,*,now=None):
+    if isinstance(value,dict) and value.get('schema')=='earthship-weathernext-capabilities/v2':
+        from .atmospheric_publish import validate_atmospheric_report
+        return validate_atmospheric_report(value,now=now)
     fields={'schema','provider','generated_at','valid_until','timezone','status','sources','groups','automatic_actuation','release_authorized','report_sha256'}
     if (not isinstance(value,dict) or set(value)!=fields or value['schema']!=SCHEMA or value['provider']!='weathernext3' or
             value['automatic_actuation'] is not False or value['release_authorized'] is not False or
@@ -128,13 +131,28 @@ def validate_capability_report(value,*,now=None):
     if value['status']!=('available' if times else 'unavailable'):raise ValueError('truthful supplemental availability required')
     return value
 
-def retain_capability_report(root,value):
+def retain_capability_report(root,value,*,indoor=None):
     """Explicit write boundary. Existing originals are never replaced."""
     from .shadow import ShadowStore,_directory
     from .worker import collector_lock
     value=validate_capability_report(value);root=Path(root);state=ShadowStore(root)
     _directory(root/'capability-issues')
     with collector_lock(root/'capability.lock'):
+        moisture=value['groups'].get('atmosphere',{}).get('moisture')
+        if moisture is not None and moisture['mode']=='qualified_comparison':
+            from .moisture_context import current_sensor_context
+            from .shadow import _read
+            from household.sensor_observations import PreparedSensorObservations
+            pin=moisture['indoor_context_sha256'];path=root/'capability-issues'/(pin+'.indoor.json')
+            if indoor is None:
+                try:original=_read(path,MAX_BYTES)
+                except (OSError,ValueError):raise ValueError('original qualified indoor context required before publication') from None
+                PreparedSensorObservations(canonical(original))
+            else:original=current_sensor_context(indoor,instant(value['generated_at'])).to_dict()
+            if identity(original)!=pin:raise ValueError('qualified indoor original differs from public source reference')
+            from .atmospheric_publish import validate_moisture_original
+            validate_moisture_original(value,PreparedSensorObservations(canonical(original)))
+            state._write(path,original,immutable=True)
         state._write(root/'capability-issues'/(value['report_sha256']+'.json'),value,immutable=True)
         from .capability_scoring import CapabilityScores
         queue=CapabilityScores(state);queue.recover_latest();queue.register(value)
