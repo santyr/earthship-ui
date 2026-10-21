@@ -107,3 +107,82 @@ class MonitoringTests(unittest.TestCase):
         scored=report['temperature']['work']['states'].get('completed',0)
         self.assertGreater(legacy,0)
         self.assertLessEqual(scored+legacy,64)
+
+    def test_solar_derivation_failure_leaves_temperature_and_corrections_publishable(self):
+        with patch('weather_learning.monitoring.solar_window_forecast',side_effect=ValueError('private fixture detail')):
+            report=self.run_monitor(apply=True,read_corrections=lambda **kw:dict(status='fixture_correction_completed'))
+        self.assertEqual(report['temperature']['raw']['pairs'],2)
+        self.assertEqual(report['corrections']['status'],'fixture_correction_completed')
+        self.assertEqual(report['solar']['pairs'],[])
+        self.assertEqual(report['pending']['solar'],0)
+        self.assertTrue(any(r['kind']=='solar_derivation' and r['reason']=='ValueError' for r in report['source_withheld']))
+        self.assertNotIn('private fixture detail',str(report))
+
+    def test_rain_derivation_failure_leaves_temperature_and_solar_work_publishable(self):
+        with patch('weather_learning.monitoring.rain_day_forecast',side_effect=ValueError('fixture grid unavailable')):
+            report=self.run_monitor(apply=True)
+        self.assertEqual(report['temperature']['raw']['pairs'],2)
+        self.assertGreater(report['pending']['solar'],0)
+        self.assertEqual(report['pending']['rain'],0)
+        self.assertTrue(any(r['kind']=='rain_derivation' for r in report['source_withheld']))
+
+    def test_bad_solar_issue_does_not_discard_a_later_valid_issue(self):
+        from weather_learning.monitoring import solar_window_forecast
+        origin=T+timedelta(days=1)
+        self.archive.store_snapshot(full_snapshot(init=origin,hours=80))
+        shadow_once(self.archive,self.state,now=origin+timedelta(minutes=30),site=SITE,sensor_epoch=EPOCH,
+            code_revision=REVISION,horizon=48,clock=lambda:origin+timedelta(minutes=31))
+        def solar(snapshot,**kw):
+            if kw['issued_at']==self.issue:raise ValueError('fixture original grid')
+            return solar_window_forecast(snapshot,**kw)
+        with patch('weather_learning.monitoring.solar_window_forecast',side_effect=solar):
+            report=self.run_monitor(now=T+timedelta(days=2),apply=True)
+        self.assertEqual(len(report['solar']['decisions']),1)
+        self.assertGreater(report['temperature']['raw']['pairs'],2)
+        self.assertEqual(len([r for r in report['source_withheld'] if r['kind']=='solar_derivation']),1)
+
+    def test_optional_local_outcome_failures_are_not_pending_or_zero_observations(self):
+        self.solar.side_effect=ConnectionError('local source unavailable')
+        self.rain.side_effect=ConnectionError('local source unavailable')
+        report=self.run_monitor(now=T+timedelta(days=2),apply=True)
+        self.assertIsNotNone(report['temperature']['raw'])
+        self.assertEqual({r['kind'] for r in report['source_withheld']},{'solar','rain'})
+        self.assertEqual(report['pending'],dict(solar=0,rain=0))
+        self.assertEqual(report['solar']['pairs'],[]);self.assertEqual(report['rain']['pairs'],[])
+
+    def test_aggregation_failure_preserves_committed_scores_across_restart(self):
+        for domain in ('solar','rain'):
+            with self.subTest(domain=domain):
+                with patch('weather_learning.monitoring.'+('compare_solar_windows' if domain=='solar' else 'compare_rain_products'),
+                           side_effect=ValueError('fixture conflicting originals')):
+                    first=self.run_monitor(apply=True)
+                self.assertEqual(first['temperature']['raw']['pairs'],2)
+                self.assertEqual(first[domain]['pairs'],[])
+                self.assertTrue(any(r['kind']==domain+'_aggregation' for r in first['source_withheld']))
+                self.temperature.reset_mock()
+                second=self.run_monitor(apply=True)
+                self.assertEqual(first['temperature']['pair_manifest'],second['temperature']['pair_manifest'])
+                self.assertEqual(second['temperature']['work']['states']['completed'],2)
+                self.temperature.assert_not_called()
+
+    def test_global_deadline_and_admission_failures_are_never_optional_domain_failures(self):
+        from household_job_budget import AdmissionDeferred
+        for boundary in ('solar_window_forecast','rain_day_forecast','compare_solar_windows','compare_rain_products'):
+            for error in (TimeoutError('global deadline'),AdmissionDeferred('global resource stop')):
+                with self.subTest(boundary=boundary,error=type(error).__name__):
+                    with patch('weather_learning.monitoring.'+boundary,side_effect=error):
+                        with self.assertRaises(type(error)):self.run_monitor(apply=True)
+        for reader in ('solar','rain'):
+            source=getattr(self,reader)
+            source.side_effect=AdmissionDeferred('global resource stop')
+            with self.assertRaises(AdmissionDeferred):self.run_monitor(now=T+timedelta(days=2),apply=True)
+            source.side_effect=None
+
+    def test_global_guard_expiry_in_an_optional_boundary_stops_publication(self):
+        expired=[False]
+        def fail(*a,**kw):expired[0]=True;raise ValueError('optional failure during deadline')
+        def guard():
+            if expired[0]:raise TimeoutError('global monitor deadline')
+        with patch('weather_learning.monitoring.solar_window_forecast',side_effect=fail):
+            with self.assertRaises(TimeoutError):self.run_monitor(apply=True,guard=guard)
+        self.assertFalse((self.state.root/'weather-performance.json').exists())

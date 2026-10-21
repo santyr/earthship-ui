@@ -29,7 +29,19 @@
       }
     },
     "2": {
-      "status": "pending"
+      "status": "source_fixed_locally_verified",
+      "finding": "R20261021-02",
+      "installed": false,
+      "runtime_observed": "disposable_original_bound_fixtures",
+      "qualified": false,
+      "evidence": {
+        "red": "7 failed, 14 passed, 8 subtests passed",
+        "focused": "19 passed, 10 subtests passed",
+        "foundation": "298 unittest cases passed, Python 3.12.3; pinned WeatherNext environment",
+        "contract": "Existing v2 monitor and nested v1 comparison envelopes retained. Failed derivation/aggregation is identified in source_withheld by domain and stage; it is not counted as pending. No browser route/parser for this private monitor report exists at execution revision.",
+        "global_stops": "TimeoutError and AdmissionDeferred propagate; guard expiration prevents report publication.",
+        "durability": "Aggregation failure does not discard or recompute committed temperature score manifests across restart."
+      }
     },
     "3": {
       "status": "pending"

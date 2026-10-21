@@ -138,9 +138,15 @@ def compare_rain_products(forecasts,outcomes):
     for cohort,rows in sorted(cohorts.items()):
         groups=lambda key:{value:dict(days=len(selected),products=_metrics(selected)) for value in sorted({r[key] for r in rows}) if (selected:=[r for r in rows if r[key]==value])}
         scored[cohort]=dict(days=len(rows),products=_metrics(rows),by_observed_regime=groups('observed_regime'),by_horizon=groups('horizon'))
+    return rain_comparison_report(pairs=pairs,withheld=withheld,cohorts=scored,
+        decisions=[dict(local_date=r['local_date'],site_timezone=r['site_timezone'],issued_at=r['issued_at'],forecast_sha256=r['forecast_sha256']) for _,r in sorted(decisions.items())])
+
+
+def rain_comparison_report(*,pairs,withheld,cohorts,decisions):
+    """Closed report envelope, also used when aggregation is explicitly withheld."""
     body=dict(schema='earthship-weathernext-rain-comparison/v1',provider='weathernext3',qualification='SHADOW_ONLY',
         selected_product=None,primary_metric='paired_complete_day_mae_mm',selection_rule='latest_retained_issue_strictly_before_local_day_before_missingness_or_outcomes',
-        scoring_status='diagnostic_comparison_only',cohorts=scored,pairs=pairs,withheld=withheld,
-        decisions=[dict(local_date=r['local_date'],site_timezone=r['site_timezone'],issued_at=r['issued_at'],forecast_sha256=r['forecast_sha256']) for _,r in sorted(decisions.items())],
+        scoring_status='diagnostic_comparison_only',cohorts=cohorts,pairs=pairs,withheld=withheld,
+        decisions=decisions,
         automatic_actuation=False)
     return body|{'report_sha256':identity(body)}
