@@ -2,7 +2,7 @@
 from contextlib import contextmanager
 from datetime import datetime,timezone
 import fcntl,os,pathlib,shutil,stat,time
-from .contracts import identity,validate_snapshot,instant
+from .contracts import canonical,identity,validate_snapshot,instant
 
 DEFAULT_BANDS={
  'station':('station_head_temperature_2m_mean','station_head_temperature_2m_p10','station_head_temperature_2m_p90','station_head_dewpoint_temperature_2m_mean'),
@@ -33,9 +33,10 @@ def collect_once(reader,archive,*,probe=True,horizon=360,free_bytes=None,max_arc
     with collector_lock(archive.root/'collector.lock'):
         free=shutil.disk_usage(archive.root).free if free_bytes is None else free_bytes
         if type(free) is not int or free<16*1024**2:raise ValueError('insufficient private archive headroom')
-        used=0
-        for index,path in enumerate(archive.objects.glob('*.json')):
-            if index>=10000:raise ValueError('archive object-count limit reached')
+        used=0;objects=set()
+        for path in archive.objects.glob('*.json'):
+            objects.add(path.name)
+            if len(objects)>=10000:raise ValueError('archive object-count limit reached')
             used+=path.stat().st_size
         if used+8*1024**2>max_archive_bytes:raise ValueError('private archive capacity exhausted')
         started=time.monotonic();reader.initialize()
@@ -44,12 +45,23 @@ def collect_once(reader,archive,*,probe=True,horizon=360,free_bytes=None,max_arc
         required={tuple(band.rsplit('_',1)) for values in bands.values() for band in values}
         downloaded=0
         def retain(run,hours):
-            nonlocal downloaded
+            nonlocal downloaded,used
             cached=None if probe else archive.completed_run(run['start_time'],horizon=hours,required=required,as_of=clock())
             if cached is not None:return cached,cached['snapshot_sha256']
             value=validate_snapshot(reader.fetch_points(run=run,bands_by_grid=bands,horizon=hours))
             if instant(value['initialized_at'])!=instant(run['start_time']):raise ValueError('fetched native run differs from discovery')
-            name=identity(value) if probe else archive.store_snapshot(value)
+            name=identity(value)
+            if not probe:
+                filename=name+'.json'
+                if filename not in objects:
+                    size=len(canonical(value))
+                    if len(objects)>=10000:raise ValueError('archive object-count limit reached')
+                    if used+size>max_archive_bytes:raise ValueError('private archive capacity exhausted')
+                    free=shutil.disk_usage(archive.root).free if free_bytes is None else free_bytes
+                    if type(free) is not int or free<16*1024**2:raise ValueError('insufficient private archive headroom')
+                    archive.store_snapshot(value)
+                    objects.add(filename);used+=size
+                else:archive.store_snapshot(value)
             downloaded+=1;return value,name
         run=reader.discover_run(horizon=targets)
         snapshot,name=retain(run,targets)
