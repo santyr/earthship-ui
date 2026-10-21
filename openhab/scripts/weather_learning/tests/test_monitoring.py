@@ -168,7 +168,7 @@ class MonitoringTests(unittest.TestCase):
     def test_global_deadline_and_admission_failures_are_never_optional_domain_failures(self):
         from household_job_budget import AdmissionDeferred
         for boundary in ('solar_window_forecast','rain_day_forecast','compare_solar_windows','compare_rain_products'):
-            for error in (TimeoutError('global deadline'),AdmissionDeferred('global resource stop')):
+            for error in (TimeoutError('global deadline'),AdmissionDeferred('global resource stop'),MemoryError('global allocation stop')):
                 with self.subTest(boundary=boundary,error=type(error).__name__):
                     with patch('weather_learning.monitoring.'+boundary,side_effect=error):
                         with self.assertRaises(type(error)):self.run_monitor(apply=True)
@@ -186,3 +186,29 @@ class MonitoringTests(unittest.TestCase):
         with patch('weather_learning.monitoring.solar_window_forecast',side_effect=fail):
             with self.assertRaises(TimeoutError):self.run_monitor(apply=True,guard=guard)
         self.assertFalse((self.state.root/'weather-performance.json').exists())
+
+    def test_report_exposes_remaining_known_backlog_after_durable_commit(self):
+        report=self.run_monitor(apply=True)
+        work=report['temperature']['work']['backlog']
+        self.assertEqual(work['state_counts'],dict(completed=2,pending=24))
+        self.assertEqual(work['due'],0)
+        self.assertIsNone(work['oldest_due_wait_seconds'])
+        self.assertEqual(work['population'],'known_enqueued_work_only')
+
+    def test_interrupted_report_replace_preserves_previous_report_and_newly_committed_scores(self):
+        import os
+        first=self.run_monitor(apply=True)
+        target=self.state.root/'weather-performance.json';before=target.read_bytes();replace=os.replace
+        def interrupted(source,destination):
+            if Path(destination)==target:raise OSError('disposable report publication interruption')
+            return replace(source,destination)
+        with patch('weather_learning.shadow.os.replace',side_effect=interrupted):
+            with self.assertRaises(OSError):self.run_monitor(now=T+timedelta(hours=4),apply=True)
+        self.assertEqual(target.read_bytes(),before)
+        self.assertEqual(list(self.state.root.glob('.pending-*')),[])
+        self.temperature.reset_mock()
+        recovered=self.run_monitor(now=T+timedelta(hours=4),apply=True)
+        self.assertEqual(recovered['temperature']['raw']['pairs'],3)
+        self.assertTrue({r['score_sha256'] for r in first['temperature']['pair_manifest']}<=
+                        {r['score_sha256'] for r in recovered['temperature']['pair_manifest']})
+        self.temperature.assert_not_called()

@@ -58,7 +58,7 @@ def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,obse
             if instant(value['assessed_at'])>now:raise ValueError('future local outcome refused')
             if apply:state._write(path,value,immutable=True)
             return value
-        except (TimeoutError,AdmissionDeferred):raise
+        except (TimeoutError,AdmissionDeferred,MemoryError):raise
         except Exception as error:
             guard();withheld.append(dict(kind=kind,target=target,reason=type(error).__name__));return None
     def optional(kind,operation,**context):
@@ -67,7 +67,7 @@ def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,obse
         guard()
         try:
             result=operation();guard();return result
-        except (TimeoutError,AdmissionDeferred):raise
+        except (TimeoutError,AdmissionDeferred,MemoryError):raise
         except Exception as error:
             guard();withheld.append(dict(kind=kind,reason=type(error).__name__[:80],**context));return None
     issues=[]
@@ -118,7 +118,7 @@ def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,obse
     try:
         guard();metadata=read_temperature(sorted({target.target_at for _,_,target,_ in loaded}),now) if loaded else {};guard()
         if not isinstance(metadata,dict):raise ValueError('explicit temperature observation mapping required')
-    except (TimeoutError,AdmissionDeferred):raise
+    except (TimeoutError,AdmissionDeferred,MemoryError):raise
     except Exception as error:
         guard();metadata={};withheld.append(dict(kind='temperature',reason=type(error).__name__))
     missing=0
@@ -136,7 +136,7 @@ def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,obse
     scores=list(queue.iter_scores(now-timedelta(days=7),now))
     temperature=summarize_temperature_scores(scores,withheld=missing)
     temperature['coverage_window']=queue.window_counts(now-timedelta(days=7),now,now=now)
-    temperature['work']=dict(bootstrap=bootstrap,states=queue.counts(),dependencies=queue.source_dependencies(),
+    temperature['work']=dict(bootstrap=bootstrap,states=queue.counts(),dependencies=queue.source_dependencies(),backlog=queue.backlog(now),
         batch_limit=temperature_limit,observation_arrival_allowance_days=7,report_target_window_days=7)
     corrections=None
     if read_corrections is not None:
@@ -145,7 +145,7 @@ def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,obse
         remaining=min(32,max(0,64-source_attempts-len(loaded)))
         try:
             guard();corrections=read_corrections(now=now,limit=remaining,apply=apply,guard=guard);guard()
-        except (TimeoutError,AdmissionDeferred):raise
+        except (TimeoutError,AdmissionDeferred,MemoryError):raise
         except Exception as error:
             guard();corrections=dict(status='unavailable',reason=type(error).__name__,automatic_actuation=False)
     guard()

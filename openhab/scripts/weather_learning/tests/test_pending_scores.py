@@ -335,3 +335,101 @@ class PendingScoreTests(unittest.TestCase):
         q._connect=checked
         self.coverage(q,T+timedelta(hours=7))
         self.assertEqual(self.state.db.read_bytes(),original)
+
+    def test_backlog_exposes_maturity_retry_wait_and_capacity_without_counting_future_work_due(self):
+        q=self.queue();self.bootstrap(q)
+        early=q.backlog(self.issued)
+        self.assertEqual(early['population'],'known_enqueued_work_only')
+        self.assertEqual(early['due'],0);self.assertIsNone(early['oldest_due_wait_seconds'])
+        now=T+timedelta(hours=3);report=q.backlog(now)
+        self.assertEqual(report['due'],2)
+        self.assertEqual(report['oldest_due_target_at'],(T+timedelta(hours=1)).isoformat())
+        self.assertEqual(report['oldest_due_wait_seconds'],7080)
+        self.assertEqual(report['main_database_max_bytes'],512*1024**2)
+        first=q.due(now)[0];q.defer(first,reason='observation_missing',now=now)
+        retry=self.queue().backlog(now)
+        self.assertEqual(retry['due'],1);self.assertEqual(retry['oldest_due_wait_seconds'],3480)
+        self.assertEqual(retry['state_counts']['pending'],early['state_counts']['pending'])
+        other=self.queue(policy='c'*64).backlog(now)
+        self.assertEqual(other['due'],0);self.assertEqual(other['state_counts'],{})
+        self.assertEqual(other['population'],'known_enqueued_work_only')
+
+    def test_backlog_separates_expired_state_from_late_discovered_original_evidence(self):
+        q=self.queue();self.bootstrap(q)
+        now=T+timedelta(days=8)
+        first=q.due(now)[0];q.defer(first,reason='observation_missing',now=now)
+        value=self.queue().backlog(now)
+        self.assertEqual(value['state_counts']['expired'],1)
+        self.assertGreater(value['pending_past_arrival_deadline'],0)
+        self.assertGreater(value['due'],0)
+        # The seven-day allowance constrains outcome availability. Late
+        # discovery alone must not discard a provably timely original outcome.
+        self.assertEqual(value['arrival_deadline_basis'],'target_plus_seven_days_limits_observation_availability_not_discovery')
+
+    def test_full336h_lifecycle_retains_issued_values_through_policy_change_and_late_discovery(self):
+        from weather_learning.features import local_temperature_outcome
+        from weather_learning.performance import score_temperature,validate_temperature_score
+        q=self.queue();self.bootstrap(q)
+        target_at=T+timedelta(hours=336)
+        self.assertFalse(any(w['target_at']==target_at.isoformat() for w in q.due(T+timedelta(hours=335))))
+        # Restart/backlog discovery is later than the observation arrival bound.
+        # The original acquisition remains provably available at its target.
+        now=target_at+timedelta(days=8);work=next(w for w in self.queue().due(now) if w['target_at']==target_at.isoformat())
+        original,target,row=self.queue().load(work,self.archive,site=SITE)
+        issued_raw=row['rawC']
+        outcome=local_temperature_outcome(receipt(target_at,12),target_at=target_at,assessed_at=now,sensor_epoch=EPOCH)
+        score=score_temperature(original=original,target=target,row=row,outcome=outcome,observation_policy_sha256=POLICY)
+        self.queue().commit(work,score,validator=validate_temperature_score)
+        self.assertEqual(score['raw_c'],issued_raw)
+        self.assertEqual(self.queue().read_score(work['work_key']),score)
+        self.assertNotIn(work,self.queue().due(now))
+        self.assertEqual(list(self.queue().iter_scores(now-timedelta(days=7),now)),[])
+        changed=self.queue(policy='c'*64);self.bootstrap(changed,now=now)
+        newer=next(w for w in changed.due(now) if w['target_at']==target_at.isoformat())
+        self.assertNotEqual(newer['work_key'],work['work_key'])
+        self.assertIsNone(changed.read_score(work['work_key']))
+        self.assertEqual(self.queue().read_score(work['work_key']),score)
+
+    def test_low_disk_and_failed_score_commit_preserve_originals_and_prior_scores(self):
+        import sqlite3
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from weather_learning.features import local_temperature_outcome
+        from weather_learning.performance import score_temperature,validate_temperature_score
+        q=self.queue();self.bootstrap(q);now=T+timedelta(hours=3)
+        first,second=q.due(now)
+        def score(work):
+            original,target,row=q.load(work,self.archive,site=SITE)
+            outcome=local_temperature_outcome(receipt(target.target_at),target_at=target.target_at,assessed_at=now,sensor_epoch=EPOCH)
+            return score_temperature(original=original,target=target,row=row,outcome=outcome,observation_policy_sha256=POLICY)
+        a,b=score(first),score(second);q.commit(first,a,validator=validate_temperature_score)
+        with patch('weather_learning.pending_scores.shutil.disk_usage',return_value=SimpleNamespace(free=31*1024**2)):
+            with self.assertRaisesRegex(ValueError,'headroom'):q.commit(second,b,validator=validate_temperature_score)
+        self.assertEqual(self.queue().read_score(first['work_key']),a)
+        self.assertIsNone(self.queue().read_score(second['work_key']))
+        with q._connect() as db:
+            db.execute("CREATE TRIGGER interrupted_score BEFORE UPDATE OF score ON work WHEN NEW.key='"+second['work_key']+"' BEGIN SELECT RAISE(ABORT,'interrupted'); END")
+        with self.assertRaises(sqlite3.IntegrityError):q.commit(second,b,validator=validate_temperature_score)
+        self.assertEqual(self.queue().read_score(first['work_key']),a)
+        self.assertIn(second,self.queue().due(now))
+        with q._connect() as db:db.execute('DROP TRIGGER interrupted_score')
+        self.queue().commit(second,b,validator=validate_temperature_score)
+        self.assertEqual(self.queue().read_score(second['work_key']),b)
+        self.assertEqual(q.load(second,self.archive,site=SITE)[2]['rawC'],b['raw_c'])
+
+    def test_new_sensor_epoch_and_evaluation_version_require_separate_explicit_discovery(self):
+        from weather_learning.pending_scores import PendingScores
+        q=self.queue();self.bootstrap(q);now=T+timedelta(hours=3);old=q.due(now)[0]
+        sensor=PendingScores(self.state,sensor_epoch='00000000-0000-4000-8000-000000000099',
+            observation_policy_sha256=POLICY,evaluation_version=VERSION,evaluation_contract_sha256=CONTRACT)
+        self.assertEqual(self.bootstrap(sensor)['indexed'],1)
+        self.assertEqual(sensor.due(now),[])
+        self.assertEqual(sensor.counts()['issues'],0)
+        version=PendingScores(self.state,sensor_epoch=EPOCH,observation_policy_sha256=POLICY,
+            evaluation_version='fixture-next-evaluation',evaluation_contract_sha256=CONTRACT)
+        self.assertEqual(version.due(now),[])
+        self.bootstrap(version)
+        newer=version.due(now)[0]
+        self.assertNotEqual(newer['work_key'],old['work_key'])
+        with self.assertRaises(ValueError):version.load(old,self.archive,site=SITE)
+        self.assertEqual(q.load(old,self.archive,site=SITE)[0]['sensor_epoch'],EPOCH)

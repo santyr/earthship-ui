@@ -86,10 +86,44 @@
       ]
     },
     "5": {
-      "status": "pending"
+      "status": "source_fixed_locally_verified_integrated_pending",
+      "finding": "R20261021-04",
+      "installed": false,
+      "evidence": {
+        "backlog_red": "3 failed (temperature/queue) plus 1 failed correction diagnostic",
+        "global_resource_red": "4 MemoryError subcases failed after initial optional-boundary repair; fatal allocation errors now propagate alongside deadline/admission stops",
+        "stress": "94 passed,16 subtests,31.25s; 336h/restart/late discovery/policy/epoch/version separation, source-index replacement/supersession, fairness, low disk, failed transaction, interrupted atomic report replace and full21-origin cohort growth",
+        "foundation": "305 unittest cases passed,41.943s before the final additional namespace characterization; normal source shards will include it"
+      },
+      "capacity": {
+        "temperature_main_database_max_mib": 512,
+        "correction_main_database_max_mib": 128,
+        "archive_limit_gib": 16,
+        "archive_objects_max": 10000,
+        "shadow_objects_max": 10000,
+        "shadow_files_max_gib": 2,
+        "minimum_free_mib": 32,
+        "retention": "no automatic original/score pruning; caps refuse new writes",
+        "report_bytes_max": 524288,
+        "correction_report_bytes_max": 65536,
+        "correction_display_score_limit": 2048,
+        "correction_omission_disclosure": "report_scores_truncated and projection_coverage; original scores retained"
+      },
+      "clock_semantics": "Seven-day allowance limits original outcome availability, not discovery time. Target-point temperature receipts must already have persisted by target; late query cannot renew that clock. Known due wait is measured since target maturity and is separate from retry time.",
+      "contract": "Added bounded operational metadata in private existing report envelopes; fixed browser projection schemas unchanged. No forecast, weighting, score identity, scope, promotion or authority change."
     },
     "6": {
-      "status": "pending"
+      "status": "source_fixed_locally_verified_integrated_pending",
+      "finding": "R20261021-05",
+      "installed": false,
+      "evidence": {
+        "red": "4 failed against production read_day (unrelated public-mode file, symlink, hardlink, directory)",
+        "focused": "128 Python tests passed,14.96s; DST, geometry/cache trust, raw/corrected thermal overlap, PV baseline/calendar and storage consumers",
+        "combined": "152 passed,12 subtests in scoring+geometry gate before final MemoryError refinement; full source shards pending"
+      },
+      "policy": "Reject individual unsafe/unreplayable entries. Root/horizon trust failures, source/selected-file mutation, population bounds and deadlines invalidate the projection. Selected originals still require private owner/mode, no symlink or hardlink, original hash/runtime replay and repeat readback. No unsafe source contributes to the result.",
+      "numerical_change": false,
+      "remaining": "Frontend/parser/browser and integrated final gates."
     },
     "7": {
       "status": "pending"
@@ -300,6 +334,22 @@
       "tree_sha": "526e7de5c50490da1ae465967040320c75d0d7dd",
       "files_checked_against_git_objects": 228,
       "mismatches": []
+    }
+  ],
+  "additional_findings": [
+    {
+      "id": "R20261021-04",
+      "severity": "P2",
+      "title": "Durable progress lacked backlog age and verified capacity diagnostics",
+      "status": "source_fixed_locally_verified_integrated_pending",
+      "task": 5
+    },
+    {
+      "id": "R20261021-05",
+      "severity": "P2",
+      "title": "Unrelated unsafe geometry cache entry suppresses a valid current-day estimate",
+      "status": "source_fixed_locally_verified_integrated_pending",
+      "task": 6
     }
   ]
 }

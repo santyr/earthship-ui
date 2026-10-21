@@ -17,6 +17,25 @@ ARRIVAL_ALLOWANCE=timedelta(days=7)
 RETRY_DELAY=timedelta(hours=1)
 MATURITY_DELAY=timedelta(minutes=2)
 
+def backlog_summary(db,scope,now):
+    """Operational metadata only; never a complete-population claim."""
+    now=utc(now);mature=now-MATURITY_DELAY
+    states=dict(db.execute('SELECT state,COUNT(*) FROM work WHERE scope=? GROUP BY state',(scope,)))
+    due,oldest=db.execute("SELECT COUNT(*),MIN(target) FROM work WHERE scope=? AND state='pending' AND target<=? AND retry<=?",
+        (scope,mature.isoformat(),now.isoformat())).fetchone()
+    past=db.execute("SELECT COUNT(*) FROM work WHERE scope=? AND state='pending' AND expires<=?",
+        (scope,now.isoformat())).fetchone()[0]
+    page_size=db.execute('PRAGMA page_size').fetchone()[0]
+    maximum=db.execute('PRAGMA max_page_count').fetchone()[0]
+    pages=db.execute('PRAGMA page_count').fetchone()[0]
+    return dict(population='known_enqueued_work_only',assessed_at=now.isoformat(),state_counts=states,
+        due=due,oldest_due_target_at=oldest,
+        oldest_due_wait_seconds=None if oldest is None else max(0.,(mature-instant(oldest)).total_seconds()),
+        pending_past_arrival_deadline=past,
+        arrival_deadline_basis='target_plus_seven_days_limits_observation_availability_not_discovery',
+        main_database_max_bytes=maximum*page_size,main_database_allocated_bytes=pages*page_size,
+        retention='original_scores_retained_no_automatic_pruning')
+
 
 class PendingScores:
     def __init__(self,state,*,sensor_epoch,observation_policy_sha256,evaluation_version,evaluation_contract_sha256,db_path=None):
@@ -200,6 +219,15 @@ class PendingScores:
         result['work_dependency_reasons']=reasons
         for name in ('missing_original','invalid_original'):result[name]=intake.get(name,0)
         return result
+
+    def backlog(self,now):
+        """Bounded operational progress over known work, not population coverage.
+
+        Expiry is the last allowed original observation availability. Discovering
+        an original late is not sufficient reason to discard a timely outcome.
+        Report due wait from target maturity, independently of retry scheduling.
+        """
+        with self._connect() as db:return backlog_summary(db,self.scope,now)
 
     def window_counts(self,start,end,*,now):
         """Count discovered canonical forecast instances in a target window.
