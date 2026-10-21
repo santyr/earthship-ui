@@ -272,7 +272,9 @@ def monitor_corrections(state,*,now,observation_policy_sha256,read_wind,read_sol
         backlog=backlog_summary(db,scope,now);backlog['target_clock']='interval_end'
         states=dict(db.execute('SELECT state,COUNT(*) FROM work WHERE scope=? GROUP BY state',(scope,)))
         intake_dependencies=dict(db.execute('SELECT reason,COUNT(*) FROM intake_failures WHERE scope=? GROUP BY reason',(scope,)))
-        reasons=dict(db.execute("SELECT reason,COUNT(*) FROM work WHERE scope=? AND state!='completed' GROUP BY reason",(scope,)))
+        # Pending work without an assessment has no withholding reason yet.
+        # Its population remains counted in states and the known-work backlog.
+        reasons=dict(db.execute("SELECT reason,COUNT(*) FROM work WHERE scope=? AND state!='completed' AND reason IS NOT NULL GROUP BY reason",(scope,)))
         total_scores=db.execute("SELECT COUNT(*) FROM work WHERE scope=? AND state='completed' AND target>=? AND target<=?",(scope,(now-timedelta(days=7)).isoformat(),now.isoformat())).fetchone()[0]
         native_dependencies=[]
         if db.execute("SELECT 1 FROM sqlite_master WHERE name='native_replay'").fetchone():native_dependencies=[dict(reason=reason,count=count) for reason,count in db.execute("SELECT r.reason,COUNT(*) FROM native_replay r JOIN native_refs n ON n.name=r.name LEFT JOIN originals o ON o.issued=n.issued AND o.kind='irradiance_w_m2' WHERE r.state='dependency' AND o.name IS NULL GROUP BY r.reason")]

@@ -27,6 +27,18 @@ def test_original_issue_is_immutable_and_conflicting_same_decision_fails(tmp_pat
     with pytest.raises(ValueError,match='conflicting'):store.retain(changed)
     assert store.read_issue(original['issue_sha256'])==original
 
+def test_unassessed_pending_work_does_not_break_withholding_report(tmp_path):
+    from weather_learning.correction_monitor import CorrectionStore,monitor_corrections
+    s=state(tmp_path);store=CorrectionStore(s)
+    store.retain(issue());store.retain(issue('irradiance_w_m2',hours=48))
+    report=monitor_corrections(s,now=NOW+timedelta(hours=2,minutes=2),
+        observation_policy_sha256='f'*64,read_wind=lambda *a:None,
+        read_solar=lambda *a:None,apply=True,limit=1)
+    assert report['states']=={'pending':2}
+    assert report['known_work_backlog']['state_counts']=={'pending':2}
+    assert report['withheld_reasons']=={'observation_missing':1}
+    assert report['report_sha256']==identity({k:v for k,v in report.items() if k!='report_sha256'})
+
 def test_long_target_matures_after_report_window_and_restart_is_idempotent(tmp_path):
     from weather_learning.correction_monitor import CorrectionStore,monitor_corrections
     s=state(tmp_path); original=issue(hours=336);CorrectionStore(s).retain(original)
