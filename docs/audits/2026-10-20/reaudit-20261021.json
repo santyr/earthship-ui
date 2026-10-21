@@ -4,10 +4,10 @@
   "baseline": "87a70336fa52a19a282941af1bcd80b2f63ded52",
   "branch": "audit/reaudit-20261021",
   "live_checkout_base": "02e3fcbc405d6018ad01977bbd7a3fa3af5f2ea5",
-  "status": "in_progress",
+  "status": "source_verified_local_gates_passed_hosted_ci_pending",
   "tasks": {
     "0": {
-      "status": "current_effective_bindings_recorded",
+      "status": "current_surface_map_complete",
       "evidence": {
         "surfaces": 16,
         "control_owners_exact": 3,
@@ -16,11 +16,12 @@
           "retired_provider_matches": 0
         },
         "sensor_production_limits": "still unbounded; no cap changes authorized or made",
-        "remaining": "Final release acceptance cross-reference only; all16source/environment maps and11configured outputs recorded, installed UI GET-only16viewports passed."
+        "remaining": [],
+        "full_household_plan": "reaudit-20261021-household-plan.json:68originalsource/companion files and native runtime matched, pure full plan/arbiter replay equal,2.515s, no acquisition/publication/action."
       }
     },
     "1": {
-      "status": "source_fixed_locally_verified",
+      "status": "source_fixed_local_gates_and_independent_source_review_passed",
       "finding": "R20261021-01",
       "installed": false,
       "runtime_observed": "fixture_only",
@@ -33,13 +34,12 @@
         "unit": "183 files, 2803 passed, Node 22.22.0 / Vitest 4.1.12, 53.08s",
         "browser": "3 passed, isolated Chromium, both 1340x800 and 1280x720; no mutation/page errors",
         "limitations": [
-          "Final integrated release and independent review remain pending.",
-          "64-task full run hit pids.max once and expired; documented 96-task profile passed without changing shared limits."
+          "New source repairs uninstalled; actual hosted-only multiday replay requires branch publication. Earlier64task unit and two-/one-worker browser attempts hit tasklimits; final documented bounded profiles passed without limit events or guard changes."
         ]
       }
     },
     "2": {
-      "status": "source_fixed_locally_verified",
+      "status": "source_fixed_local_gates_and_independent_source_review_passed",
       "finding": "R20261021-02",
       "installed": false,
       "runtime_observed": "disposable_original_bound_fixtures",
@@ -54,7 +54,7 @@
       }
     },
     "3": {
-      "status": "source_fixed_locally_verified",
+      "status": "source_fixed_local_gates_and_independent_source_review_passed",
       "finding": "R20261021-03",
       "installed": false,
       "runtime_observed": "disposable_selector_and_original_fit_fixtures",
@@ -73,19 +73,18 @@
       }
     },
     "4": {
-      "status": "six_lifecycle_cases_verified",
+      "status": "six_lifecycle_cases_and_natural_proofs_verified",
       "evidence": {
         "lifecycle_tests": "104 passed with pinned Solar_PV 24d2, 19.91s",
         "natural_thermal": "reaudit-20261021-natural.json: morning original producer delivery replay passed, 4.443s, zero network/children",
         "pv": "reaudit-20261021-pv-morning.json: 355source files,768pairs, corrected v2 baseline/v3 fit and original incumbent bytes verified through original0b3f6fc package; promotion_permitted=false.",
-        "current_lifecycle_gate": "143passed/55.16s, actual scheduled entrypoints/disposable orchestration, six-case ownership in release handoff"
+        "current_lifecycle_gate": "143passed/55.16s, actual scheduled entrypoints/disposable orchestration, six-case ownership in release handoff",
+        "full_household_plan": "reaudit-20261021-household-plan.json"
       },
-      "remaining": [
-        "Integration/review release gate; source changes remain uninstalled."
-      ]
+      "remaining": []
     },
     "5": {
-      "status": "source_fixed_locally_verified_integrated_pending",
+      "status": "source_fixed_local_gates_and_independent_source_review_passed",
       "finding": "R20261021-04",
       "installed": false,
       "evidence": {
@@ -114,7 +113,7 @@
       "additional_finding": "R20261021-06"
     },
     "6": {
-      "status": "source_fixed_locally_verified_integrated_pending",
+      "status": "source_fixed_local_gates_and_independent_source_review_passed",
       "finding": "R20261021-05",
       "installed": false,
       "evidence": {
@@ -124,17 +123,17 @@
       },
       "policy": "Reject individual unsafe/unreplayable entries. Root/horizon trust failures, source/selected-file mutation, population bounds and deadlines invalidate the projection. Selected originals still require private owner/mode, no symlink or hardlink, original hash/runtime replay and repeat readback. No unsafe source contributes to the result.",
       "numerical_change": false,
-      "remaining": "Frontend/parser/browser and integrated final gates."
+      "remaining": "Actual hosted-only multiday gate; separate installation/qualification remain outside completed local-source evidence."
     },
     "7": {
-      "status": "capability_dispositions_recorded_source_gates_pending",
+      "status": "capability_dispositions_and_local_gates_verified",
       "evidence": "Capability/requirement cross-reference in capability_dispositions and release_handoff; all existing active routes/auxiliary aliases and producer/consumer groups have explicit software, installed and external dispositions."
     },
     "8": {
-      "status": "final_local_gate_completion_and_independent_review_pending"
+      "status": "local_matrix_and_independent_source_review_passed_hosted_ci_pending"
     },
     "9": {
-      "status": "scoped_handoff_prepared_integration_choice_pending",
+      "status": "handoff_prepared_integration_authorization_pending",
       "evidence": "reaudit-20261021.md + current runtime map + source freeze; per-surface adoption hashes for verified installed worker/evaluator bytes; no package/selector/deployment change authorized or performed"
     }
   },
@@ -344,21 +343,21 @@
       "id": "R20261021-04",
       "severity": "P2",
       "title": "Durable progress lacked backlog age and verified capacity diagnostics",
-      "status": "source_fixed_locally_verified_integrated_pending",
+      "status": "source_fixed_local_gates_and_independent_source_review_passed",
       "task": 5
     },
     {
       "id": "R20261021-05",
       "severity": "P2",
       "title": "Unrelated unsafe geometry cache entry suppresses a valid current-day estimate",
-      "status": "source_fixed_locally_verified_integrated_pending",
+      "status": "source_fixed_local_gates_and_independent_source_review_passed",
       "task": 6
     },
     {
       "id": "R20261021-06",
       "severity": "P2",
       "title": "Full plus interim acquisition can exceed archive byte/object caps",
-      "status": "source_fixed_locally_verified_integrated_pending",
+      "status": "source_fixed_local_gates_and_independent_source_review_passed",
       "task": 5
     }
   ],
@@ -449,7 +448,7 @@
     "change_since_previous": "Only two duplicate Item rows removed from a maintained browser fixture; production source, lockfiles, Python and workflows unchanged."
   },
   "verification": {
-    "status": "in_progress",
+    "status": "local_matrix_passed_actual_hosted_ci_pending",
     "unit": {
       "files": 183,
       "passed": 2803,
@@ -533,7 +532,6 @@
       "scope": "disposable source copy with only cumulative-byte guard disabled; release source unchanged",
       "result": "failed at expected capacity assertion, not import/setup failure"
     },
-    "source_revision_at_tests": "00e6a921e28d6bd77d51a4f82e141f1e8ea3f609",
     "counts_are_not_added_across_overlapping_profiles": true,
     "crypto": {
       "status": "passed",
@@ -602,7 +600,7 @@
       "resource": "all selected opt-in native resource/systemd cases executed in actual capped scope",
       "earth_engine": "all3SDK query tests execute in separate309case pinned WeatherNext foundation without cloud access",
       "multiweek_replay": "CI=true-only multiweek synthetic source replay intentionally remains hosted-only; local ML gate1413pass/1skip/1deselect. Requires actual hosted workflow after branch publication; CI identity was not forged.",
-      "qualification_fit": "dedicated explicit EARTHSHIP_REMOTE_QUALIFICATION_FIT=1 profile pending"
+      "qualification_fit": "Dedicated explicit opt-in job executed exactly1expected testcase, zero skipped/errors/failures,5.65s."
     },
     "receiver_all": {
       "passed": 32,
@@ -668,7 +666,31 @@
     },
     "hosted_ci_remaining": [
       "test_installed_shade_calibration.py::test_synthetic_multiday_original_source_replay_learns_all_required_bands (CI=true on actual hosted runner)"
-    ]
+    ],
+    "release_source_revision": "36458d398b4709c7aa371a6d7deaa3f7fd2d3c22",
+    "gate_identity_notes": "Each shard/result carries its execution revision; unit/build/foundation/native at00e6a92. Later36458d3 only removes two duplicate rows from browser fixture; final79/67browser suites ran at36458d3. All other source/lock/workflow bytes remain unchanged. Collector renewal is separately recorded; no overlapping counts added.",
+    "receipt_integrity": {
+      "passed": 526,
+      "skipped": 0,
+      "seconds": 186.83
+    },
+    "qualification_fit": {
+      "passed": 1,
+      "skipped": 0,
+      "seconds": 5.65,
+      "explicit_optin": "EARTHSHIP_REMOTE_QUALIFICATION_FIT=1",
+      "junit_exact_case_and_no_skip_assertions_passed": true
+    },
+    "independent_review": {
+      "reviewed_head": "c22632d",
+      "reviewer": "fresh independent whole-branch review via requesting-code-review / executing-plans",
+      "critical": 0,
+      "important": 0,
+      "minor_source": 0,
+      "minor_documentation": 1,
+      "disposition": "Source ready to integrate; reviewer verified all26changed source/test hashes and zero non-doc drift since36458d3. Stale PV/full-plan pending prose corrected against retained proofs; final documentation readback pending.",
+      "hosted_verification_required": true
+    }
   },
   "release_handoff": "reaudit-20261021.md",
   "capability_dispositions": [
@@ -788,5 +810,20 @@
       }
     ],
     "mandatory_boundary": "These identities describe adoption inputs, not an installed package. Do not replace the dirty checkout or a legacy numerical producer wholesale with this branch. Preserve per-surface versions/dispatch and validate an independently built immutable package before any separately authorized switch. If installed bytes differ from reviewed baseline, port only the demonstrated nonnumerical repair and rerun that original package contract before adoption."
-  }
+  },
+  "dimensions": {
+    "source_fixed": "R20261021-01 through -06 fixed, normal-harness regressions and final independent source review passed",
+    "installed": false,
+    "runtime_observed": "Preserved installed surfaces mapped; natural thermal/PV and full household plan replay verified. New repairs observed in disposable tests only.",
+    "statistically_or_physically_qualified": false
+  },
+  "remaining_implementable_work": [],
+  "remaining_verification_dependencies": [
+    {
+      "kind": "actual_hosted_ci",
+      "acceptance": "Actual GitHub Actions CI=true multiweek synthetic source replay executes without skip/failure at this source digest; recheck full hosted required matrix after authorized branch publication.",
+      "current": "Local1413caseML gate has this1explicit hosted-only skip; dedicated full qualification-fit executed locally."
+    }
+  ],
+  "remaining_deployment_dependencies": "All six repairs uninstalled; require scoped compatible package adoption/source/env/readback and natural cycle acceptance from release handoff; no audit service/selector switch."
 }

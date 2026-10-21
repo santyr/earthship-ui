@@ -1232,7 +1232,12 @@
     "owner": "thermal-provisional-forecast.service / immutable native stage",
     "translator_enabled": false,
     "actuation_authorized": false,
-    "status": "original thermal and raw weather projection parity verified; full plan/arbiter replay pending"
+    "status": "original_full_snapshot_model_plan_arbiter_replayed",
+    "proof": "reaudit-20261021-household-plan.json",
+    "receipt_sha256": "8fdca4410a599bee677869cc17321d8ba5d462b396ba92782fcee72d42114130",
+    "decision_at": "2026-10-21T12:55:30.354351+00:00",
+    "runtime_files_verified": 68,
+    "scope": "Original12:55:15Z issued capture,12:55:30.354351Z plan, exact original producer/native runtime and68-file source/companion closure; pure full replay equals retained receipt, zero network/children; historical replay, not current-valid action permission."
   },
   "pv_morning_learning": {
     "checked_at": "2026-10-21T13:18:23.875442+00:00",
@@ -1252,7 +1257,7 @@
       "status": "incumbent_retained_by_policy"
     },
     "actual_selection_file_sha256": "6192f8fc407d57d99e916c7fb7ff9d23aaaad8071820155e77536b32d4a5f2ee",
-    "scope": "natural corrected candidate run with unchanged incumbent pointer; candidate numeric/source reassessment pending"
+    "scope": "Natural corrected candidate and unchanged incumbent numerically/source-verified through original0b3f6fc producer;355files/768pairs/v2baseline/v3fit, no audit fit or promotion. See reaudit-20261021-pv-morning.json."
   },
   "natural_cycle_limits": [
     "Stored original delivery receipts validated, no new OpenHAB observation query.",
