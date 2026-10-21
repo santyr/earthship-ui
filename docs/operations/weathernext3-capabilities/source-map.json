@@ -6,8 +6,8 @@
       "feature": "temperature_native_range",
       "existing": "station mean/p10/p90",
       "source": "weather_learning/worker.py \u2192 normalize.py \u2192 archive.py",
-      "current_consumer": "provider.py currently consumes means only; no supplemental route",
-      "planned_extension": "Task2 extends detail display and matured scoring"
+      "current_consumer": "Task2 supplemental report, fixed GET route, detail band and original-issued sampled verification implemented; production disabled",
+      "planned_extension": "Task10 integrates expanded-profile source bindings and diagnostic details"
     },
     {
       "feature": "temperature_other_quantiles",
@@ -32,7 +32,7 @@
     },
     {
       "feature": "wind_components_layers",
-      "existing": "u/v mapped but not acquired; three cloud mappings missing",
+      "existing": "u/v and three cloud layers mapped; optional acquisition profiles frozen but not yet implemented/enabled",
       "source": "normalize.py / weathernext_ee.py",
       "current_consumer": "scalar speed remains independent; no new control",
       "planned_extension": "Tasks1/3/5 optional groups and cardinal tests"
@@ -69,8 +69,8 @@
       "feature": "public_readers",
       "existing": "fixed allowlisted private report projection exists",
       "source": "src/lib/household/observationServer.js",
-      "current_consumer": "strict GET-only paths, private-file bounds and schema readers",
-      "planned_extension": "Task2/10 reuse pattern for fixed weather-capabilities route"
+      "current_consumer": "Task2 fixed weather-capabilities GET-only path and strict 256KiB sidecar reader implemented; existing routes remain32KiB",
+      "planned_extension": "Task10 extends typed groups and detailed status without arbitrary paths"
     },
     {
       "feature": "latest_correctness_repair",

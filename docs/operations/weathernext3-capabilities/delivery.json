@@ -116,8 +116,24 @@
       "task": 2,
       "title": "Deliver the existing temperature uncertainty end to end",
       "gate": "existing acquired uncertainty reaches the UI and evaluator correctly without changing deterministic model behavior. Mean-only forecasts still work when the range is unavailable.",
-      "status": "planned_not_executed",
-      "steps": 5
+      "status": "implemented_and_locally_verified",
+      "steps": 5,
+      "evidence": [
+        "temperature-range.md",
+        "task2-verification.json"
+      ],
+      "tests": {
+        "frontend_files": 185,
+        "frontend_passed": 2820,
+        "affected_backend_passed": 490,
+        "sdk_profile_skips": 3,
+        "subtests": 163,
+        "browser_passed": 91,
+        "additional_visual_cases": 2,
+        "build_exit": 0
+      },
+      "production_installed": false,
+      "local_coverage_qualified": false
     },
     {
       "task": 3,

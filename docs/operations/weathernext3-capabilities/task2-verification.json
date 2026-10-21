@@ -1,0 +1,65 @@
+{
+  "schema": "earthship-weather-capability-task2-proof/v1",
+  "source_revision": "5131211b016c1c3e77f5d44777157b92e967ab51",
+  "non_documentation_digest": "94bcc5c60cffe480ee6047702f0ec43bae97d4cd6f4335a0cfbe2030fe34f42f",
+  "jobs": [
+    {
+      "name": "frontend",
+      "exit": 0,
+      "seconds": 13.351,
+      "command": [
+        "/tmp/earthship-audit-node22/package/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run"
+      ],
+      "tail": [
+        "",
+        " RUN  v4.1.12 /home/sat/earthship-ui/.worktrees/reaudit-20261021",
+        "",
+        "",
+        " Test Files  185 passed (185)",
+        "      Tests  2820 passed (2820)",
+        "   Start at  13:16:23",
+        "   Duration  12.91s (transform 10.41s, setup 0ms, import 24.45s, tests 21.02s, environment 24.21s)",
+        ""
+      ]
+    },
+    {
+      "name": "backend",
+      "exit": 0,
+      "seconds": 60.711,
+      "command": [
+        "/tmp/earthship-audit-20261020-venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-ra",
+        "openhab/scripts/weather_learning/tests",
+        "openhab/scripts/test_weather_correction_monitor.py",
+        "openhab/scripts/test_thermal_weather_admit.py",
+        "openhab/scripts/test_historical_weather_daily.py",
+        "openhab/scripts/test_astro_geometry_series.py"
+      ],
+      "tail": [
+        "............................................... [ 31%]",
+        "....................................................... [ 43%]",
+        "........................................ [ 51%]",
+        ".............................................. [ 60%]",
+        "................................................................................................................... [ 83%]",
+        "........................................................................ [ 98%]",
+        "........                                                                 [100%]",
+        "=========================== short test summary info ============================",
+        "SKIPPED [1] openhab/scripts/weather_learning/tests/test_ee.py:63: requires isolated pinned Earth Engine environment",
+        "SKIPPED [1] openhab/scripts/weather_learning/tests/test_ee.py:72: requires isolated pinned Earth Engine environment",
+        "SKIPPED [1] openhab/scripts/weather_learning/tests/test_ee.py:102: requires isolated pinned Earth Engine environment",
+        "490 passed, 3 skipped, 163 subtests passed in 60.50s (0:01:00)"
+      ]
+    }
+  ],
+  "browser_passed": 91,
+  "visual_cases": 2,
+  "visual_images_inspected": true,
+  "build_exit": 0,
+  "production_installation": false,
+  "local_coverage_qualified": false
+}
