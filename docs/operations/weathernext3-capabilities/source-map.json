@@ -1,0 +1,102 @@
+{
+  "schema": "earthship-weathernext-capability-source-map/v1",
+  "baseline": "263a27862424906fbb853bb12663e0be10d22001",
+  "features": [
+    {
+      "feature": "temperature_native_range",
+      "existing": "station mean/p10/p90",
+      "source": "weather_learning/worker.py \u2192 normalize.py \u2192 archive.py",
+      "current_consumer": "provider.py currently consumes means only; no supplemental route",
+      "planned_extension": "Task2 extends detail display and matured scoring"
+    },
+    {
+      "feature": "temperature_other_quantiles",
+      "existing": "p25/p50/p75 supported but not requested",
+      "source": "weathernext_ee.py::_bands / normalize.py",
+      "current_consumer": "not acquired by default",
+      "planned_extension": "Task3 optional profile; p50 absent until real source exists"
+    },
+    {
+      "feature": "native_solar_components",
+      "existing": "total/direct hourly mean J/m2 already retained",
+      "source": "worker.py \u2192 provider.py",
+      "current_consumer": "native_forecast.py v1 narrows to total mean; household kernels decompose total",
+      "planned_extension": "Task4 separate versioned component kernel and paired experiment; retain v1 producer"
+    },
+    {
+      "feature": "dew_point_pressure",
+      "existing": "station dew point and gridded sea-level pressure means retained",
+      "source": "worker.py \u2192 normalize.py",
+      "current_consumer": "no typed atmospheric UI or fitted-feature claim",
+      "planned_extension": "Task5 context and individual ablations"
+    },
+    {
+      "feature": "wind_components_layers",
+      "existing": "u/v mapped but not acquired; three cloud mappings missing",
+      "source": "normalize.py / weathernext_ee.py",
+      "current_consumer": "scalar speed remains independent; no new control",
+      "planned_extension": "Tasks1/3/5 optional groups and cardinal tests"
+    },
+    {
+      "feature": "hourly_refresh",
+      "existing": "full/interim collection and 24h/336h publication composite exist",
+      "source": "worker.py / provider.py::load_publication_forecast",
+      "current_consumer": "daily-first scoring benchmark and extended local correction",
+      "planned_extension": "Task6 distinct actual-issued population, near-term correction and matched policy replay"
+    },
+    {
+      "feature": "marginal_calibration",
+      "existing": "raw ranges retained; point corrections have original scores",
+      "source": "historical_pairs.py / historical_serving.py / performance.py / pending_scores.py",
+      "current_consumer": "no EMOS/local distribution claim",
+      "planned_extension": "Task7 bounded adaptive, empirical and regularized candidates"
+    },
+    {
+      "feature": "joint_household_scenarios",
+      "existing": "pure source-bound household/PV/thermal/storage replay exists",
+      "source": "household_pipeline.py / household_pv_model.py / thermal_weather_conditioning.py",
+      "current_consumer": "advisory and fixed nominal-state assumptions",
+      "planned_extension": "Task8 deterministic stress and past-only residual blocks; no probability claims without joint qualification"
+    },
+    {
+      "feature": "rain_comparison",
+      "existing": "three means acquired; current complete interval/DST helpers and gain baseline",
+      "source": "energy_shadow.py / normalize.py / weather_response.py",
+      "current_consumer": "raw rain retained, no occurrence probability",
+      "planned_extension": "Task9 matched three-head and two-part challenger; wet-support limits explicit"
+    },
+    {
+      "feature": "public_readers",
+      "existing": "fixed allowlisted private report projection exists",
+      "source": "src/lib/household/observationServer.js",
+      "current_consumer": "strict GET-only paths, private-file bounds and schema readers",
+      "planned_extension": "Task2/10 reuse pattern for fixed weather-capabilities route"
+    },
+    {
+      "feature": "latest_correctness_repair",
+      "existing": "PR44 excludes absent withholding reasons",
+      "source": "weather_learning/correction_monitor.py",
+      "current_consumer": "installed evaluator v2 correction report verified from actual file",
+      "planned_extension": "Task0 revalidate, do not redo"
+    },
+    {
+      "feature": "legacy_source_authority",
+      "existing": "multiple exact incumbent-compatible immutable packages",
+      "source": "installed service/environment bindings",
+      "current_consumer": "new main source is not the identity of historical fitted producers",
+      "planned_extension": "Task11 scoped source migration, same-input replay and owned rollback"
+    }
+  ],
+  "upstream_documentation_checked": "2026-10-21",
+  "provider_sources": [
+    "https://developers.google.com/weathernext/guides/earth-engine",
+    "https://developers.google.com/weathernext/guides/models",
+    "https://developers.google.com/weathernext/guides/dissemination",
+    "https://developers.google.com/earth-engine/guides/noncommercial_tiers"
+  ],
+  "limitations": [
+    "Direct-horizontal semantics require ECMWF parameter documentation plus actual metadata before Task4 admission",
+    "Account tier/remaining EECU are not inferred from quotas described in provider documentation",
+    "No expanded cloud probe or production configuration change performed"
+  ]
+}
