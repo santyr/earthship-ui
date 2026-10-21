@@ -81,8 +81,6 @@ const ITEMS = [
   { name: 'Shelly_HT1_Atmospheric_Humidity', state: '28', type: 'Number' },
   { name: 'AmbientWeatherWS2902A_IndoorSensor_RelativeHumidity', state: '33', type: 'Number' },
   { name: 'AmbientWeatherWS2902A_WH31E_193_RelativeHumidity', state: '38', type: 'Number' },
-  { name: 'OutdoorTemp_24h_High', state: '74', type: 'Number' },
-  { name: 'OutdoorTemp_24h_Low', state: '41', type: 'Number' },
   { name: 'IndoorTemp_24h_High', state: '71', type: 'Number' },
   { name: 'IndoorTemp_24h_Low', state: '68', type: 'Number' },
   { name: 'Thermal_Advisory', state: 'vent|Open south windows before the afternoon peak', type: 'String' },
