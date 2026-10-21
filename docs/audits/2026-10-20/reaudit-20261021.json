@@ -7,7 +7,17 @@
   "status": "in_progress",
   "tasks": {
     "0": {
-      "status": "in_progress"
+      "status": "in_progress",
+      "evidence": {
+        "surfaces": 16,
+        "control_owners_exact": 3,
+        "provider_inventory": {
+          "count": 84,
+          "retired_provider_matches": 0
+        },
+        "sensor_production_limits": "still unbounded; no cap changes authorized or made",
+        "remaining": "Complete source-package/environment/selector/output bindings for every surface; current runtime map explicitly marks partial readback."
+      }
     },
     "1": {
       "status": "source_fixed_locally_verified",
@@ -63,7 +73,17 @@
       }
     },
     "4": {
-      "status": "pending"
+      "status": "in_progress",
+      "evidence": {
+        "lifecycle_tests": "104 passed with pinned Solar_PV 24d2, 19.91s",
+        "natural_thermal": "reaudit-20261021-natural.json: morning original producer delivery replay passed, 4.443s, zero network/children",
+        "pv": "natural corrected learner result and unchanged incumbent pointer verified in runtime map"
+      },
+      "remaining": [
+        "Finish requirement-to-test ownership for all six lifecycle cases across installed procedures.",
+        "Validate corrected PV candidate identities/numeric procedure; verify other surface outputs and effective environment composition.",
+        "New source patches are not installed."
+      ]
     },
     "5": {
       "status": "pending"
@@ -265,6 +285,21 @@
     {
       "id": "A22",
       "status": "fixed_integrated_verified"
+    }
+  ],
+  "runtime_map": "reaudit-20261021-runtime.json",
+  "test_companion_profiles": [
+    {
+      "pin": "24d2e8984810cb596fe9792768510a356786f709",
+      "tree_sha": "ea293f26ea3f3317b46bcf9ef1efa01c9b7d2bc7",
+      "files_checked_against_git_objects": 197,
+      "mismatches": []
+    },
+    {
+      "pin": "7b70117bcfb9599a12d0325771ed1103f083fa5c",
+      "tree_sha": "526e7de5c50490da1ae465967040320c75d0d7dd",
+      "files_checked_against_git_objects": 228,
+      "mismatches": []
     }
   ]
 }

@@ -1,0 +1,606 @@
+{
+  "schema": "earthship-reaudit-runtime-compatibility/v1",
+  "checked_at": "2026-10-21T14:40:09.474432+00:00",
+  "status": "readback_in_progress",
+  "source_baseline": "87a70336fa52a19a282941af1bcd80b2f63ded52",
+  "method": "read-only systemctl, fixed file identities, bounded local REST GET and selected Docker properties",
+  "surfaces": [
+    {
+      "surface": "earthship-ui",
+      "owner": "earthship-ui.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "bc7a22cd4ca9b647b6f9e9ae0652ad7220c1426129aea4143554c2685937ba3a",
+          "git_revision": "02e3fcbc405d6018ad01977bbd7a3fa3af5f2ea5",
+          "dirty": true
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "cc9c327ff078dcbe90961603b2fcd8c00dc37043c189b8afd47252a0c5d63c3d",
+      "environment_file_bindings": [
+        {
+          "sha256": "b281838d66dbe648487bec4101fc26286643b1254c0f89acd53c9e5edc956936",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Tue 2026-10-20 15:39:28 MDT",
+        "ExecMainExitTimestamp": "",
+        "ActiveState": "active"
+      },
+      "launcher_profile": {},
+      "domain_output_status": "not_yet_verified_by_this_reaudit",
+      "installed_changes_from_reaudit": false
+    },
+    {
+      "surface": "daily-pv-potential",
+      "owner": "daily-pv-potential.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "a71a358c36860cf3720787dbf77ca481a791153a7353f58bcf1463d6e3be8ce3",
+          "git_revision": "a85da5e376bcb5285fcaeeb0496052dbef7a204f",
+          "dirty": false
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "95f7240ca4539eede630bf693c78987cf4483924578ae252126c5368ff2aea81",
+      "environment_file_bindings": [
+        {
+          "sha256": "53f30930e7866b194f6156064d00acd20342024d5bad561a14fd5abbdd067812",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 07:46:05 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 07:46:07 MDT",
+        "ActiveState": "inactive"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "512",
+        "--preferred-mib": "1024",
+        "--tasks": "48",
+        "--seconds": "600"
+      },
+      "domain_output_status": "not_yet_verified_by_this_reaudit",
+      "installed_changes_from_reaudit": false
+    },
+    {
+      "surface": "daily-pv-score",
+      "owner": "daily-pv-score.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "7f145f9f84d415147e12d8ada7f41fe24dc0a3c85723d25687146c9d9887e262",
+          "git_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+          "dirty": false
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "33d8d5d9122b3966733181d6a20d040db41cd98d8f5d795e61ebb8d7741853df",
+      "environment_file_bindings": [
+        {
+          "sha256": "e4d099aaa45dd51144665fec5282b0fb3a81e4009c0d751410fc6beaa8d28df2",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 07:55:07 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 07:55:08 MDT",
+        "ActiveState": "inactive"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "256",
+        "--preferred-mib": "512",
+        "--tasks": "24",
+        "--seconds": "90"
+      },
+      "domain_output_status": "not_yet_verified_by_this_reaudit",
+      "installed_changes_from_reaudit": false
+    },
+    {
+      "surface": "household-calibrated-energy",
+      "owner": "household-calibrated-energy.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "a71a358c36860cf3720787dbf77ca481a791153a7353f58bcf1463d6e3be8ce3",
+          "git_revision": "a85da5e376bcb5285fcaeeb0496052dbef7a204f",
+          "dirty": false
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "e24796875d36491c1dca5f93368d6a8357cd2f005c6dd27ea5a755919ab3bf7c",
+      "environment_file_bindings": [
+        {
+          "sha256": "c3e3325783add9f3d1bfebdb3de9899f5b27275f66602f156888d3d12fa04e06",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 08:35:34 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 08:35:37 MDT",
+        "ActiveState": "inactive"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "256",
+        "--preferred-mib": "768",
+        "--tasks": "24",
+        "--seconds": "90"
+      },
+      "domain_output_status": "not_yet_verified_by_this_reaudit",
+      "installed_changes_from_reaudit": false
+    },
+    {
+      "surface": "household-calibrated-score",
+      "owner": "household-calibrated-score.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "7f145f9f84d415147e12d8ada7f41fe24dc0a3c85723d25687146c9d9887e262",
+          "git_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+          "dirty": false
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "68baea0b3e62e1cf83048a07d715b73dbda418af661d3da2ac9d27f3d5ac7d16",
+      "environment_file_bindings": [
+        {
+          "sha256": "11b28e409cf7a88e1919d8e26b643896fe00b559ffa342ac3bd13c1dfec22a68",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 08:35:55 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 08:36:00 MDT",
+        "ActiveState": "inactive"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "256",
+        "--preferred-mib": "768",
+        "--tasks": "24",
+        "--seconds": "90"
+      },
+      "domain_output_status": "not_yet_verified_by_this_reaudit",
+      "installed_changes_from_reaudit": false
+    },
+    {
+      "surface": "local-forecast-shadow",
+      "owner": "local-forecast-shadow.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "f450ac7a4b7a109af63637157aa170d4f56c8528d84026498192579ecdee6f31",
+          "git_revision": "5c0e16df32756b45f2489434d819d431cb7ee3ac",
+          "dirty": false
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "da27f49504372c99a7359b8014578196c8180a33505dee1e65c4886f47086aa9",
+      "environment_file_bindings": [
+        {
+          "sha256": "12324be55304f2591ef5ba3b139c87cf666a505942e44ca8383084cc0ba4be34",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 07:44:25 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 07:44:28 MDT",
+        "ActiveState": "inactive"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "256",
+        "--preferred-mib": "512",
+        "--tasks": "24",
+        "--seconds": "120"
+      },
+      "domain_output_status": "not_yet_verified_by_this_reaudit",
+      "installed_changes_from_reaudit": false
+    },
+    {
+      "surface": "local-forecast-train",
+      "owner": "local-forecast-train.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "77fbcbb844a0d2b379af2021ac13942c77cc7ee1dcbece4587064140a7b3adc7",
+          "git_revision": "520bdd81ba94a14908655bda2e83138131bb1986",
+          "dirty": false
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "2ce2327918d867e58a9b9e7e2eed3730f990ccf24df45580fda86d9b0bb950f4",
+      "environment_file_bindings": [
+        {
+          "sha256": "20c337139ef7e6292e56ccddf58d4f4d051a270b0411e2583d92008c29a248df",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 06:35:32 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 06:38:23 MDT",
+        "ActiveState": "inactive"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "512",
+        "--preferred-mib": "2048",
+        "--tasks": "48",
+        "--seconds": "900"
+      },
+      "domain_output_status": "morning_candidate_post_selection_observed_and_consumed",
+      "installed_changes_from_reaudit": false,
+      "evidence": "reaudit-20261021-natural.json",
+      "serving_admission_sha256": "f47bf9a8f3201ac5169c86d0b4d272517647a61169b52863eb543d7fbd966af5"
+    },
+    {
+      "surface": "pv-calibration-train",
+      "owner": "pv-calibration-train.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "22d8797dd4feb2061277fbcf2186893a20c2e39f313cdc76c6c1e4d9819ad71e",
+          "git_revision": "0b3f6fc0a5ec0e86cd4af65604241d9532b2f1ad",
+          "dirty": false
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "c93cc05adeed74b1cdd494a6c8405512e4bc290ebd0dd84e17d43d6a3f851953",
+      "environment_file_bindings": [
+        {
+          "sha256": "74b46df24d04631e39e190424eb47900ec6cd3999d01c7e60120d19e9fa55110",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 07:16:11 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 07:18:24 MDT",
+        "ActiveState": "inactive"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "512",
+        "--preferred-mib": "2048",
+        "--tasks": "48",
+        "--seconds": "900"
+      },
+      "domain_output_status": "natural_retention_result_and_pointer_verified",
+      "installed_changes_from_reaudit": false,
+      "evidence": "pv_morning_learning in this record"
+    },
+    {
+      "surface": "thermal-native-daily",
+      "owner": "thermal-native-daily.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "53578adf7a4cee2dac665703f8abacbd5f8659f01c8980b1d355bd22908ecd66",
+          "git_revision": "bef677e1f9a8fe353f9b0c504ba19c48a1cc0c7a",
+          "dirty": false
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "365e386a29a32985a4f4389935eef528087def6ab9f163b675f1b7c23f1c6743",
+      "environment_file_bindings": [],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 06:50:25 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 06:52:31 MDT",
+        "ActiveState": "inactive"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "512",
+        "--preferred-mib": "2048",
+        "--tasks": "48",
+        "--seconds": "1800"
+      },
+      "domain_output_status": "not_yet_verified_by_this_reaudit",
+      "installed_changes_from_reaudit": false
+    },
+    {
+      "surface": "thermal-native-geometry-prepare",
+      "owner": "thermal-native-geometry-prepare.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "2fbacaea79f77fcdc5c6dfa94311ab0ad4e2153016d71a9472ad235b30afac0a",
+          "git_revision": null,
+          "identity_kind": "immutable_package_requires_manifest_readback"
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "969444d63ea9be95fb580c23136a94909a8226febd54ed8f3a0f60bdc6721715",
+      "environment_file_bindings": [],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 08:38:05 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 08:38:09 MDT",
+        "ActiveState": "inactive"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "256",
+        "--preferred-mib": "512",
+        "--tasks": "24",
+        "--seconds": "90"
+      },
+      "domain_output_status": "original_producer_replay_verified",
+      "installed_changes_from_reaudit": false,
+      "evidence": "reaudit-20261021-natural.json",
+      "selected_artifact_sha256": "344992d58c80f8a7a661b720b5ebc9027dc2972673540bca77580139fea6b0de",
+      "selected_deployment_sha256": "5b232f20fa6ac02ce89e2048af0a74016e2997a6b78ec41673b325336ca02d1b",
+      "consumer_admission_sha256": "f47bf9a8f3201ac5169c86d0b4d272517647a61169b52863eb543d7fbd966af5",
+      "verified_delivered_issue": "2026-10-21T12:55:15+00:00"
+    },
+    {
+      "surface": "thermal-provisional-forecast",
+      "owner": "thermal-provisional-forecast.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "2fbacaea79f77fcdc5c6dfa94311ab0ad4e2153016d71a9472ad235b30afac0a",
+          "git_revision": null,
+          "identity_kind": "immutable_package_requires_manifest_readback"
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "534a2ecb8298fd50fbc09d9dbd6b420400cf2f1603c32105eb874a9365d41bee",
+      "environment_file_bindings": [],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 08:39:45 MDT",
+        "ExecMainExitTimestamp": "",
+        "ActiveState": "activating"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "256",
+        "--preferred-mib": "512",
+        "--tasks": "24",
+        "--seconds": "90"
+      },
+      "domain_output_status": "original_producer_replay_verified",
+      "installed_changes_from_reaudit": false,
+      "evidence": "reaudit-20261021-natural.json",
+      "selected_artifact_sha256": "344992d58c80f8a7a661b720b5ebc9027dc2972673540bca77580139fea6b0de",
+      "selected_deployment_sha256": "5b232f20fa6ac02ce89e2048af0a74016e2997a6b78ec41673b325336ca02d1b",
+      "consumer_admission_sha256": "f47bf9a8f3201ac5169c86d0b4d272517647a61169b52863eb543d7fbd966af5",
+      "verified_delivered_issue": "2026-10-21T12:55:15+00:00"
+    },
+    {
+      "surface": "thermal-provisional-score",
+      "owner": "thermal-provisional-score.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "2fbacaea79f77fcdc5c6dfa94311ab0ad4e2153016d71a9472ad235b30afac0a",
+          "git_revision": null,
+          "identity_kind": "immutable_package_requires_manifest_readback"
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "412824638f6aa983044e6cefbdc25366946081b122216c42db5f5bd7b2b83032",
+      "environment_file_bindings": [],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 08:38:20 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 08:38:27 MDT",
+        "ActiveState": "inactive"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "256",
+        "--preferred-mib": "512",
+        "--tasks": "24",
+        "--seconds": "120"
+      },
+      "domain_output_status": "not_yet_verified_by_this_reaudit",
+      "installed_changes_from_reaudit": false
+    },
+    {
+      "surface": "thermal-primal",
+      "owner": "thermal-primal.service",
+      "source_pins": [],
+      "effective_command_and_source_bindings_sha256": "69845716c29f3a151b202b028916649b3b325854199484b7e7ca0dd2a487fba1",
+      "environment_file_bindings": [
+        {
+          "sha256": "8b28140c708216b09859589f10ef128c2a53d75bce4a9bdf8afe9f1500e9efc4",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 08:39:07 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 08:39:11 MDT",
+        "ActiveState": "inactive"
+      },
+      "launcher_profile": {},
+      "domain_output_status": "not_yet_verified_by_this_reaudit",
+      "installed_changes_from_reaudit": false
+    },
+    {
+      "surface": "weathernext-evaluate",
+      "owner": "weathernext-evaluate.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "0e9268e72ff6b6f7cfea3e4a9d05fc42c4c0c8216fbd2420f7305d1d1e110aa3",
+          "git_revision": null,
+          "identity_kind": "immutable_package_requires_manifest_readback"
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "4c1c61c61dfb8ad505adacefb30c6cb59665cd73ba603f0222e6d87dd3f05aad",
+      "environment_file_bindings": [
+        {
+          "sha256": "3c7928f8c84ec58995df7829193a212ffa72318cc443816dc8cd5a406e74ddab",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 07:52:25 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 07:53:01 MDT",
+        "ActiveState": "inactive"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "256",
+        "--preferred-mib": "512",
+        "--tasks": "24",
+        "--seconds": "120"
+      },
+      "domain_output_status": "not_yet_verified_by_this_reaudit",
+      "installed_changes_from_reaudit": false
+    },
+    {
+      "surface": "weathernext-ingest",
+      "owner": "weathernext-ingest.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "24bd3090768e86b500d414262d5e799706d77a9797bfe56b30c0314feeaffb5e",
+          "git_revision": "b940f154b1ffc1d7d8de8684e0c9e6a9ef511f08",
+          "dirty": false
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "3e239e0410595263d3f7d851baddae73999dddd12577d7b678781677b582032b",
+      "environment_file_bindings": [
+        {
+          "sha256": "3c793ec6ae8515c680b16b79aef5cfad24761c7f58d3f341388143dc1c067e54",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 07:41:04 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 07:41:11 MDT",
+        "ActiveState": "inactive"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "256",
+        "--preferred-mib": "256",
+        "--tasks": "24",
+        "--seconds": "90"
+      },
+      "domain_output_status": "not_yet_verified_by_this_reaudit",
+      "installed_changes_from_reaudit": false
+    },
+    {
+      "surface": "weathernext-publish",
+      "owner": "weathernext-publish.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "205fac3e37424e58e4d9aa7f9775f4381f50252a0cffb5a49ec877c702f95936",
+          "git_revision": null,
+          "identity_kind": "immutable_package_requires_manifest_readback"
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "48aaad8333146f586bacc6ef8933750c19885b1422c029a179fef667b3990278",
+      "environment_file_bindings": [
+        {
+          "sha256": "23973c63f2edde6885f78dea4bc39c8e3175f5abada4c3c212e6beb2153fae9d",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 07:48:01 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 07:48:39 MDT",
+        "ActiveState": "inactive"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "256",
+        "--preferred-mib": "512",
+        "--tasks": "24",
+        "--seconds": "90"
+      },
+      "domain_output_status": "not_yet_verified_by_this_reaudit",
+      "installed_changes_from_reaudit": false
+    }
+  ],
+  "domain_outputs_pending": true,
+  "control_owners": {
+    "night_load": {
+      "installed_source_sha256": "fb41b43161fb6a69e55199d02d15c9f2645d76ddd61d4b327f8a06c3f366373e",
+      "source_matches": true,
+      "status": {
+        "status": "IDLE",
+        "statusDetail": "NONE"
+      },
+      "domain_execution_or_physical_qualification": "not_inferred_from_rule_status"
+    },
+    "greywater": {
+      "installed_source_sha256": "4c34780e544d80af8eb36d047a949fa30e0198bb50fa57650285052db3c52d9b",
+      "source_matches": true,
+      "status": {
+        "status": "IDLE",
+        "statusDetail": "NONE"
+      },
+      "domain_execution_or_physical_qualification": "not_inferred_from_rule_status"
+    },
+    "feeder_manual_payment": {
+      "installed_source_sha256": "730053e0f3245cb83461e3fe6e3b05d49c8b508631e8cdb4a889c8be8d915978",
+      "source_matches": true,
+      "status": {
+        "status": "IDLE",
+        "statusDetail": "NONE"
+      },
+      "domain_execution_or_physical_qualification": "not_inferred_from_rule_status"
+    }
+  },
+  "provider_inventory": {
+    "count": 84,
+    "retired_provider_matches": 0
+  },
+  "sensor_ingester": {
+    "image_reference": "earthship-observations:8f3747aef3d8a80bef8b638e712af099981a5d4f",
+    "image_id": "sha256:d7734141f83feccf25ed3bd6cf40086bb7882bd045a9568b3b431dd4db2f220e",
+    "memory_limit_bytes": 0,
+    "memory_swap_limit": 0,
+    "nano_cpus": 0,
+    "pids_limit": "<no value>",
+    "health": "healthy",
+    "resource_disposition": "production limits remain unbounded; staging caps do not apply",
+    "device_qualification": "not_inferred_from_service_health"
+  },
+  "route_disposition": {
+    "active": [
+      "home",
+      "energy",
+      "weather",
+      "earthship",
+      "shades",
+      "controls"
+    ],
+    "aliases_to_earthship": [
+      "household",
+      "ventilation"
+    ]
+  },
+  "household_planner_replay": {
+    "owner": "thermal-provisional-forecast.service / immutable native stage",
+    "translator_enabled": false,
+    "actuation_authorized": false,
+    "status": "original thermal and raw weather projection parity verified; full plan/arbiter replay pending"
+  },
+  "pv_morning_learning": {
+    "checked_at": "2026-10-21T13:18:23.875442+00:00",
+    "status": "daily_pv_learning_complete",
+    "result_sha256": "e55f83ab940b50189338f07e2d1c764ca9fd549495d2076c6fead551996f8dd6",
+    "fit_executed": {
+      "comparison": true,
+      "serving": true
+    },
+    "selection": {
+      "automatic_actuation": false,
+      "previous_file_sha256": "6192f8fc407d57d99e916c7fb7ff9d23aaaad8071820155e77536b32d4a5f2ee",
+      "promotion_permitted": false,
+      "selected_model_sha256": "f7ed8273c8ee8c2e5c07961165659fe803fa318a1ec55bdebb1ae2078428ad83",
+      "selected_receipt_sha256": "cb35190177692c70fac55d6a9ead6607a9100f991ab360acbe63560d1cc8dbe5",
+      "serving_availability": "not_assessed",
+      "status": "incumbent_retained_by_policy"
+    },
+    "actual_selection_file_sha256": "6192f8fc407d57d99e916c7fb7ff9d23aaaad8071820155e77536b32d4a5f2ee",
+    "scope": "natural corrected candidate run with unchanged incumbent pointer; candidate numeric/source reassessment pending"
+  },
+  "natural_cycle_limits": [
+    "Stored original delivery receipts validated, no new OpenHAB observation query.",
+    "No fit, collection, publication, selector change, service restart, control or message performed.",
+    "New source repairs remain uninstalled.",
+    "Fixture parity and scheduled success do not establish physical or statistical skill."
+  ],
+  "environment_binding_status": "initial allowlisted environment snapshot plus file hashes; final effective composition revalidation pending"
+}
