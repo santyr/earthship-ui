@@ -99,8 +99,18 @@
       "task": 1,
       "title": "Freeze capability contracts, acquisition profiles, and budgets",
       "gate": "an explicit contract and safe migration exist before producers change. Request expansion respects existing guards; denial degrades optional capability, not correctness or core availability.",
-      "status": "planned_not_executed",
-      "steps": 4
+      "status": "contracts_and_profiles_implemented_verified",
+      "steps": 4,
+      "evidence": [
+        "profile-contract.json",
+        "evaluation-protocol.json"
+      ],
+      "tests": {
+        "new_contract_tests": 22,
+        "affected_backend_passed": 360,
+        "sdk_profile_skips": 3,
+        "subtests": 163
+      }
     },
     {
       "task": 2,

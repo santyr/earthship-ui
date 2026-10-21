@@ -106,7 +106,13 @@
       "reject_candidate",
       "insufficient_evidence"
     ],
-    "automatic_promotion": false
+    "automatic_promotion": false,
+    "rain_wet_threshold_rule": {
+      "minimum_threshold_mm": 0.2,
+      "gauge_resolution_multiplier": 2,
+      "boundary_ambiguity_resolution_multiples": 1,
+      "missing_measured_resolution": "insufficient_evidence_for_occurrence_model; retain supported continuous raw comparisons"
+    }
   },
   "limits": {
     "maximum_rows_per_experiment": 10000,
