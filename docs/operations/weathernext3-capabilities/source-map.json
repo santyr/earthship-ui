@@ -12,9 +12,9 @@
     {
       "feature": "temperature_other_quantiles",
       "existing": "p25/p50/p75 supported but not requested",
-      "source": "weathernext_ee.py::_bands / normalize.py",
-      "current_consumer": "not acquired by default",
-      "planned_extension": "Task3 optional profile; p50 absent until real source exists"
+      "source": "capabilities.py / capability_acquisition.py / weathernext_ee.py / archive.py",
+      "current_consumer": "Task3 explicit optional intake implemented and fixture-verified; no production profile enabled",
+      "planned_extension": "Tasks7/10 join per-statistic originals without relabeling the core source"
     },
     {
       "feature": "native_solar_components",
@@ -32,10 +32,10 @@
     },
     {
       "feature": "wind_components_layers",
-      "existing": "u/v and three cloud layers mapped; optional acquisition profiles frozen but not yet implemented/enabled",
+      "existing": "all native mappings and bounded optional profiles implemented; production acquisition remains core-only",
       "source": "normalize.py / weathernext_ee.py",
       "current_consumer": "scalar speed remains independent; no new control",
-      "planned_extension": "Tasks1/3/5 optional groups and cardinal tests"
+      "planned_extension": "Task5 atmospheric context and ablations; optional fields retain their own originals"
     },
     {
       "feature": "hourly_refresh",
@@ -98,5 +98,6 @@
     "Direct-horizontal semantics require ECMWF parameter documentation plus actual metadata before Task4 admission",
     "Account tier/remaining EECU are not inferred from quotas described in provider documentation",
     "No expanded cloud probe or production configuration change performed"
-  ]
+  ],
+  "optional_acquisition_status": "Task3 code/fixtures/host-budget replay verified; cloud and production opt-in remain disabled"
 }

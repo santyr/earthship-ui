@@ -139,8 +139,27 @@
       "task": 3,
       "title": "Add bounded statistics and atmospheric collection",
       "gate": "actual or fixture acquisition demonstrates every enabled band under cost/resource bounds, and optional groups cannot strand the established core pipeline.",
-      "status": "planned_not_executed",
-      "steps": 5
+      "status": "implemented_and_locally_verified",
+      "steps": 5,
+      "evidence": [
+        "acquisition.md",
+        "task3-verification.json"
+      ],
+      "tests": {
+        "affected_backend_passed": 515,
+        "sdk_profile_skips_in_normal_interpreter": 4,
+        "subtests": 163,
+        "isolated_sdk_executed": 4,
+        "isolated_sdk_skips": 0,
+        "collector_replay_mib": 256,
+        "collector_replay_tasks": 24,
+        "collector_replay_peak_rss_kib": 60820,
+        "cold_new_originals": 7,
+        "warm_new_originals": 0,
+        "public_reader_future_hours": 337
+      },
+      "production_installed": false,
+      "actual_cloud_probe": false
     },
     {
       "task": 4,
