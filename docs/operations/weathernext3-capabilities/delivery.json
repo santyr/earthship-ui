@@ -186,8 +186,16 @@
       "task": 5,
       "title": "Add atmospheric context and controlled feature ablations",
       "gate": "added fields have useful, truthful consumers; feature groups get evidence-backed dispositions; no atmospheric field silently grants action authority or changes PV cooling wind.",
-      "status": "planned_not_executed",
-      "steps": 5
+      "status": "in_progress_source_bound_atmospheric_kernel_verified",
+      "steps": 5,
+      "evidence": [
+        "atmospheric-semantics.md"
+      ],
+      "remaining": [
+        "supplemental/public UI delivery",
+        "qualified indoor moisture context",
+        "actual individual feature-group and bounded wind challenger experiments"
+      ]
     },
     {
       "task": 6,
