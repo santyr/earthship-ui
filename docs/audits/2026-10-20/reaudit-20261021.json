@@ -44,7 +44,23 @@
       }
     },
     "3": {
-      "status": "pending"
+      "status": "source_fixed_locally_verified",
+      "finding": "R20261021-03",
+      "installed": false,
+      "runtime_observed": "disposable_selector_and_original_fit_fixtures",
+      "qualified": false,
+      "evidence": {
+        "original_red": "4 failures then expected uncaught KeyboardInterrupt; remaining readback cases separately 6 failed/9 passed; directory sync missing 1 failed; dependency sync 2 failed; child exit truthfulness 2 failed/2 passed",
+        "related_green": "66 passed, historical daily + thermal admit/conditioning + interval overlap",
+        "outcomes": [
+          "unchanged is byte identity only, not usable-admission qualification",
+          "changed_verified requires exact configured consumer closure, reviewed worker proof, original file references, preserved models/expiry/epoch/horizon, and repeat selector/runtime readback",
+          "changed_unverified or unreadable is explicitly uncertain; no automatic retry/rollback",
+          "child failure/timeout/cancellation remain separate from observed selector outcome; unobserved child exit is null"
+        ],
+        "durability": "Immutable dependencies and their parent directories sync before selection; selector directory sync follows rename. Failure after rename never restores old bytes.",
+        "deadline": "Child budget remains unchanged; readback uses existing reserved owner time and stops at least 5 seconds before the owner deadline."
+      }
     },
     "4": {
       "status": "pending"

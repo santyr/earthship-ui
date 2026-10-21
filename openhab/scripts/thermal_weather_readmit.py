@@ -240,6 +240,12 @@ def validate_proof(proof, *, original, runtime):
     return proof
 
 
+def _sync_directory(path):
+    fd=os.open(path,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+    try:os.fsync(fd)
+    finally:os.close(fd)
+
+
 def _retain(path, value, maximum):
     raw=canonical(value)
     if len(raw)>maximum:raise ValueError('bounded retained proof required')
@@ -250,6 +256,55 @@ def _retain(path, value, maximum):
         with os.fdopen(fd,'wb') as stream:
             stream.write(raw);stream.flush();os.fsync(stream.fileno())
     if _read(path,maximum)!=raw:raise ValueError('retained original changed')
+    # Sync the retained entry and the owned output subdirectory entry before
+    # a pointer can reference it. Original document bytes are never rewritten.
+    _sync_directory(path.parent);_sync_directory(path.parent.parent)
+
+
+def verify_selected_compatibility(*,selection,consumer_source_root,expected_selector_raw,worker_sha256,now,guard):
+    """Read-only proof of the observed pointer for its configured source closure.
+
+    This establishes admission compatibility, not successful forecast delivery,
+    writer attribution, physical qualification or a renewed model lifetime.
+    """
+    guard();raw,_,_,selected=_selection(selection,now)
+    if raw!=expected_selector_raw:raise ValueError('selection changed before readback')
+    root=_root(consumer_source_root);runtime=_runtime(root,guard)
+    if selected['runtime_manifest']!=runtime:raise ValueError('selected consumer closure differs')
+    refs=selected['originals']
+    if (not isinstance(refs,list) or not 1<=len(refs)<=128 or
+            len({ref['path'] for ref in refs})!=len(refs) or
+            sum(ref['maximum'] for ref in refs)>128*1024**2):
+        raise ValueError('bounded unique selected original references required')
+    for ref in refs:guard();hash_reference(ref,guard=guard)
+    experiments=selected['source_experiments'];proof_pin=experiments.get('compatibility_proof_sha256')
+    digest(proof_pin)
+    proofs=[ref for ref in refs if Path(ref['path']).name==proof_pin+'.thermal-weather-compatibility-v1.json' and ref['source'] is False]
+    if len(proofs)!=1:raise ValueError('one retained selected compatibility proof required')
+    proof=_document(proofs[0]['path'],16384,'proof_sha256')
+    originals=[ref for ref in refs if ref['sha256']==proof['original_admission_file_sha256'] and ref['source'] is False]
+    if len(originals)!=1:raise ValueError('one retained original admission required')
+    original=_document(originals[0]['path'],32768,'admission_sha256');validate_admission(original,issue=now)
+    validate_proof(proof,original=original,runtime=runtime)
+    if (proof['proof_sha256']!=proof_pin or proof['validator_sha256']!=worker_sha256 or
+            experiments.get('compatibility_proof_schema')!=SCHEMA or
+            experiments.get('compatibility_original_admission_sha256')!=original['admission_sha256'] or
+            experiments.get('training_procedure')!=PROCEDURE or experiments.get('weighted_refit_performed') is not False or
+            experiments.get('consumer_runtime_manifest_sha256')!=identity(runtime) or
+            any(selected[k]!=original[k] for k in ('models','expires_at','horizon_profile','source_sensor_epoch'))):
+        raise ValueError('selected original compatibility bindings differ')
+    guard()
+    if _read(selection,16384)!=raw or _runtime(root,guard)!=runtime:
+        raise ValueError('selection or consumer changed during readback')
+    return dict(admission_sha256=selected['admission_sha256'],compatibility_sha256=proof_pin,
+        consumer_runtime_manifest_sha256=identity(runtime))
+
+
+def _publish_selection(path,chosen):
+    # The immutable proof/admission are already retained before the pointer.
+    # A failure after rename is a possibly published result, never a rollback.
+    save(path,chosen)
+    _sync_directory(path.parent)
 
 
 def readmit(*, original_selection, original_source_roots, consumer_source_root, output, selection,
@@ -370,7 +425,7 @@ def readmit(*, original_selection, original_source_roots, consumer_source_root, 
         chosen=dict(schema='earthship-thermal-weather-selection/v1',admission_path=str(new_path),admission_file_sha256=sha256(_read(new_path,32768)).hexdigest(),available_at=clock().isoformat(),automatic_actuation=False)
         chosen['selection_sha256']=identity(chosen)
         # Failed/replayed jobs never restore another writer's selected bytes.
-        unchanged();validate_admission(new,issue=clock());directory(selection.parent);save(selection,chosen)
+        unchanged();validate_admission(new,issue=clock());directory(selection.parent);_publish_selection(selection,chosen)
     return dict(status='thermal_weather_readmitted',admission_sha256=new['admission_sha256'],
         compatibility_sha256=proof['proof_sha256'],compatibility_path=str(proof_path),expires_at=new['expires_at'],automatic_actuation=False)
 
