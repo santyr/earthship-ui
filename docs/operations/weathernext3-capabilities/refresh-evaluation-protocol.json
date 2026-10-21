@@ -1,0 +1,40 @@
+{
+  "schema": "earthship-refresh-evaluation-protocol/v1",
+  "status": "frozen_before_outcome_comparisons",
+  "population": "actual successful publication attempt/result pairs; retained decisions only; not all scheduled cycles",
+  "benchmark_preserved": "existing first-original-per-local-day population and original scores unchanged",
+  "decision_clock": "original attempt started_at; availability requires actual original first_seen and completed at or before decision",
+  "delivery_clock": "outer result completed_at; only targets strictly later than confirmed publication completion enter prospective serving scores",
+  "source_classes": {
+    "latest_48h_collection": "latest known complete retained48h collection covering next24h; collected horizon does not prove nominal provider product class",
+    "latest_360h_collection": "latest known complete retained360h collection covering next24h",
+    "actual_serving": "source-replayed original published near/extended composite with per-target profile identity",
+    "near_term_local_correction_24h_v1": "separate prepared candidate from same native near source for origin bias and future features; only actually acquired origin and original selected model available by decision"
+  },
+  "comparisons": [
+    "latest48 versus latest360 raw temperature on identical decision/target/qualified-observation tuples",
+    "actual served raw versus latest48/latest360 on identical tuples",
+    "independent near24 corrected versus same-source raw, matched support plus full raw-fallback policy"
+  ],
+  "target_unit": "degrees Celsius",
+  "paired_row_limit": 10000,
+  "source_candidate_limit": 256,
+  "wall_seconds": 120,
+  "support_and_weights": "frozen general evaluation-protocol.json: date then target then forecast equal weights; no repeated observation counted as independent",
+  "quality_cohorts": "separate sensor epoch, measurement quality class, native grid, source availability basis, profile and model artifact/policy",
+  "diagnostics": [
+    "initialization age",
+    "actual availability lag",
+    "local issue age at target",
+    "native remaining coverage",
+    "served target coverage",
+    "publication latency",
+    "same-target revision magnitude",
+    "availability and fallback reasons"
+  ],
+  "fit_policy": "no fitting or model promotion in refresh raw-policy assessment; selected residual artifact remains original and source-bound",
+  "qualification": "general3percent improvement and5percent supported-subgroup regression gate; retain incumbent until independently reviewed; probability claims require separate qualification",
+  "probability_claim": false,
+  "automatic_actuation": false,
+  "protocol_sha256": "75699486886d7e49694c4c4252c83a565710f2e1953b5aaf72cf89961ec1f838"
+}

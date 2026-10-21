@@ -1,0 +1,19 @@
+{
+  "schema": "earthship-refresh-publication-inventory/v1",
+  "status": "original_source_replay_complete_task6_in_progress",
+  "actual_retained_decisions": 49,
+  "publication_original_files": 98,
+  "first_decision_at": "2026-10-19T22:03:21.481067+00:00",
+  "last_decision_at": "2026-10-21T22:47:26.644064+00:00",
+  "different_near_extended_sources": 48,
+  "near_unique_originals": 40,
+  "extended_unique_originals": 9,
+  "rejected_originals": 0,
+  "probe_seconds": 11.3053907409776,
+  "source_replay_report_file_sha256": "b385272fbc7bd5e46490edc115f41f2ef9e7c0dd850d406df3766b63d6cb4532",
+  "scope": "all49retained publication pairs frozen at probe start; not exhaustive scheduled-cycle verification",
+  "scientific_result": "no outcome comparison or new hourly-refresh skill claim yet",
+  "near24": "preparedread-only source-bound candidate; not issued or installed",
+  "live_unchanged": true,
+  "automatic_actuation": false
+}

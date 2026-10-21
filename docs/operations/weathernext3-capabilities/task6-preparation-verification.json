@@ -1,0 +1,40 @@
+{
+  "schema": "earthship-task6-preparation-verification/v1",
+  "checked_at": "2026-10-21T23:15:16.830811+00:00",
+  "status": "preparation_substep_verified_task6_incomplete",
+  "tests": {
+    "targeted": 18,
+    "backend": 517,
+    "backend_subtests": 163,
+    "backend_skips": 4,
+    "skips": "four named isolated Earth Engine SDK profile tests; SDK implementation unchanged"
+  },
+  "actual_publications_replayed": 49,
+  "original_publication_files": 98,
+  "source_files": {
+    "openhab/scripts/weather_learning/refresh_evaluation.py": "6bd3ad14b463775ace081bf3d7cb969be5e4ee0b186804843f82f278d25d3148",
+    "openhab/scripts/weather_learning/near_term_correction.py": "d63e851471fd80ebd20be8a3c1ccd84e7bede644f393214ab561a4720da95ef8",
+    "openhab/scripts/weather_learning/tests/test_refresh_evaluation.py": "4b04abf07abd02c7c50ce96202f1055ff646c68492d7bb1a81c39018c6400af2",
+    "openhab/scripts/weather_learning/tests/test_near_term_correction.py": "2af4770dc6dda06a5dc7eb998a7852409ca8e7c3bdaebcd5995a05d94c5b35af"
+  },
+  "evidence_files": {
+    "task6-refresh-red.log": "27541aa001de36f85a35c66074e6cfef5d6785de139f6972079298148e466622",
+    "task6-near-red.log": "4f9d59386d3e46039e3c916c9e47c794bfba8e48b25176dac15038f3ee6fb8c4",
+    "task6-near-green.log": "92299bbf3d3267ee81477d545c7b22649bc4dd66fc88838565ade0eb108834ef",
+    "task6-boundaries.log": "b3e29767028f403c73e00d871daae6a02c7f99ece4f6a895027ca56d9bc58349",
+    "task6-backend.log": "ecc0fe544bb06a59a6709255ba877a7287bc8d16216129e6dfc27912c84a71f0",
+    "refresh-publication-probe/report.private.json": "b385272fbc7bd5e46490edc115f41f2ef9e7c0dd850d406df3766b63d6cb4532"
+  },
+  "daily_benchmark_unchanged": true,
+  "production_unchanged": true,
+  "near24_issued": false,
+  "near24_local_coverage_qualified": false,
+  "remaining": [
+    "matched qualified-outcome comparisons",
+    "revision/fallback diagnostics",
+    "bounded durable profile decision and score processing",
+    "prospective integration",
+    "long-horizon maturity and restart verification"
+  ],
+  "automatic_actuation": false
+}
