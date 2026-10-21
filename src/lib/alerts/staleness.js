@@ -1,3 +1,4 @@
+import { num } from '../openhab/values.js';
 import { parseSourceTimestamp } from '../openhab/timestamp.js';
 import { normalizedComms, normalizedDevicePresent } from './batteryHealth.js';
 import { atomicSocFreshness } from './atomicSoc.js';
@@ -32,7 +33,8 @@ export function computeStaleEssentials(evidence = {}, nowMs = Date.now(), { valu
       continue;
     } else {
       const source = evidence[item.name];
-      timestamp = source?.available ? parseSourceTimestamp(source.lastKnown, nowMs) : null;
+      timestamp = source?.available && typeof source.state === 'string' && source.state === values[item.name] && num(source.state) !== null
+        ? parseSourceTimestamp(source.lastKnown, nowMs) : null;
     }
     const unavailable = timestamp === null;
     if (!unavailable && nowMs - timestamp <= limit) continue;

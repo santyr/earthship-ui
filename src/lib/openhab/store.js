@@ -37,18 +37,32 @@ export function applyUpdateEvidence(name, rawTimestamp, state, { updateState = t
   const timestamp = parseSourceTimestamp(rawTimestamp);
   const prior = get(itemUpdateEvidence)[name];
   if (timestamp !== null && prior?.lastKnown != null && timestamp < prior.lastKnown) return false;
+  // A source clock identifies a value, not an independently renewable label.
+  // Equal-clock contradictions cannot be ordered: retain the accepted pair but
+  // withhold freshness until an unambiguous newer pair is observed.
+  if (timestamp !== null && timestamp === prior?.lastKnown && prior?.conflicted) return false;
+  if (timestamp !== null && timestamp === prior?.lastKnown
+      && typeof state === 'string' && typeof prior.state === 'string' && state !== prior.state) {
+    itemUpdateEvidence.update(current => ({ ...current, [name]: { ...prior, available: false, conflicted: true } }));
+    return false;
+  }
+  const validPair = timestamp !== null && typeof state === 'string';
   itemUpdateEvidence.update(current => ({
     ...current,
-    [name]: { lastKnown: timestamp ?? prior?.lastKnown ?? null, available: timestamp !== null,
-      ...(ASTRO_EVIDENCE_ITEMS.includes(name) ? { state } : {}) },
+    [name]: { lastKnown: validPair ? timestamp : prior?.lastKnown ?? null, available: validPair,
+      state: validPair ? state : prior?.state,
+      ...(!validPair && prior?.conflicted ? { conflicted: true } : {}) },
   }));
-  if (updateState && ASTRO_EVIDENCE_ITEMS.includes(name) && timestamp !== null && typeof state === 'string') applyState(name, state);
+  if (updateState && validPair && get(items)[name] !== state) applyState(name, state);
   return true;
 }
 
-// A complete REST collection replaces the prior collection. Deltas received
-// after its request began win, including newly added resources and source clocks.
+// Validate before publishing any part of an authoritative collection. A bad
+// row is a failed read, not an empty collection or partial inventory withdrawal.
 export function applySnapshot(arr, { preserve = new Set(), preserveEvidence = preserve } = {}) {
+  if (!Array.isArray(arr) || arr.some(item => !item || typeof item.name !== 'string'
+      || !item.name || typeof item.state !== 'string')
+      || new Set(arr.map(item => item.name)).size !== arr.length) return false;
   const rows = new Map(arr.map(item => [item.name, item]));
   const accepted = new Map();
   for (const name of EVIDENCE_ITEMS) {
@@ -58,15 +72,22 @@ export function applySnapshot(arr, { preserve = new Set(), preserveEvidence = pr
     const next = {};
     for (const it of arr) {
       if (preserve.has(it.name)) continue;
-      if (ASTRO_EVIDENCE_ITEMS.includes(it.name) && accepted.get(it.name) === false) {
+      if (EVIDENCE_ITEMS.includes(it.name) && accepted.get(it.name) === false) {
         if (it.name in current) next[it.name] = current[it.name];
       } else next[it.name] = it.state;
     }
     for (const name of preserve) if (name in current) next[name] = current[name];
     return next;
   });
+  return true;
 }
 export function applyState(name, value) {
+  if (TEMPERATURE_ITEMS.some(item => item.name === name)) {
+    const prior = get(itemUpdateEvidence)[name];
+    if (prior?.available && prior.state !== value) {
+      itemUpdateEvidence.update(current => ({ ...current, [name]: { ...prior, available: false } }));
+    }
+  }
   items.update((m) => { m[name] = value; return { ...m }; });
 }
 
@@ -126,6 +147,9 @@ export async function initOpenhab(config, {
   signal,
 } = {}) {
   stopOpenhab();
+  // Reinitialization declares a new source/session epoch. A reconnect within
+  // this session does not reset clocks, even after an authoritative removal.
+  items.set({}); thingStatuses.set({}); itemUpdateEvidence.set({});
   const client = clientFactory(config);
   _client = client;
   const lifetime = new AbortController();
@@ -160,9 +184,9 @@ export async function initOpenhab(config, {
       withReadTimeout(readSignal => client.getAllThings({ signal: readSignal }), { signal: controller.signal, timeoutMs: requestTimeoutMs }),
     ]);
     if (!active || version !== epoch) return null;
-    const itemOk = itemResult.status === 'fulfilled' && Array.isArray(itemResult.value);
+    let itemOk = itemResult.status === 'fulfilled' && Array.isArray(itemResult.value);
     const thingOk = thingResult.status === 'fulfilled' && Array.isArray(thingResult.value);
-    if (itemOk) applySnapshot(itemResult.value, { preserve: after(itemDeltas, start), preserveEvidence: after(evidenceDeltas, start) });
+    if (itemOk) itemOk = applySnapshot(itemResult.value, { preserve: after(itemDeltas, start), preserveEvidence: after(evidenceDeltas, start) });
     // A failed optional Thing read is not an authoritative empty inventory.
     // Retain the last observation but gate controls until reconciliation succeeds.
     if (thingOk) applyThingSnapshot(thingResult.value, { preserve: after(thingDeltas, start) });
@@ -198,7 +222,7 @@ export async function initOpenhab(config, {
         onUpdateEvidence: (name, timestamp, state) => {
           if (!active) return;
           evidenceDeltas.set(name, ++sequence);
-          if (ASTRO_EVIDENCE_ITEMS.includes(name)) itemDeltas.set(name, sequence);
+          itemDeltas.set(name, sequence);
           applyUpdateEvidence(name, timestamp, state);
         },
         onThingStatus: (uid, status) => { if (active) { thingDeltas.set(uid, ++sequence); applyThingStatus(uid, status); } },

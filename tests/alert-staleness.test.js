@@ -82,19 +82,19 @@ it('statechanged cannot cure stale temperatures but equal-value updates can', as
   await boot(healthy(NOW - 16 * 60000)); expect(warnings().map(a => a.id)).toContain(`telemetry-stale:${OUT}`);
   emit(OUT, 'statechanged', { value: '70' }); expect(warnings().map(a => a.id)).toContain(`telemetry-stale:${OUT}`);
   emit(OUT, 'stateupdated', { value: '70', lastStateUpdate: '2026-09-05T11:59:59.123456789-06:00[America/Denver]' });
-  expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW - 877, available: true }); expect(warnings().map(a => a.id)).not.toContain(`telemetry-stale:${OUT}`);
+  expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW - 877, available: true, state: '70' }); expect(warnings().map(a => a.id)).not.toContain(`telemetry-stale:${OUT}`);
 });
 it('retains diagnostic time on invalid evidence and ignores older valid evidence', async () => {
-  await boot(); emit(OUT, 'stateupdated', { lastStateUpdate: 'bad' }); expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW, available: false });
-  emit(OUT, 'stateupdated', { lastStateUpdate: NOW - 1 }); expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW, available: false });
-  emit(OUT, 'stateupdated', { lastStateUpdate: NOW }); expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW, available: true });
+  await boot(); emit(OUT, 'stateupdated', { lastStateUpdate: 'bad' }); expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW, available: false, state: '70' });
+  emit(OUT, 'stateupdated', { lastStateUpdate: NOW - 1 }); expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW, available: false, state: '70' });
+  emit(OUT, 'stateupdated', { value: '70', lastStateUpdate: NOW }); expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW, available: true, state: '70' });
   emit(OUT, 'stateupdated', {}); expect(get(itemUpdateEvidence)[OUT].available).toBe(false);
-  emit(OUT, 'stateupdated', { lastStateUpdate: NOW + 1 }); expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW, available: false });
+  emit(OUT, 'stateupdated', { lastStateUpdate: NOW + 1 }); expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW, available: false, state: '70' });
 });
 it('reconnect requests another snapshot without rejuvenating stale evidence', async () => {
   const client = await boot(healthy(NOW - 16 * 60000)); snapshot = healthy(NOW - 30 * 60000); FakeES.all[0].onerror(); await vi.advanceTimersByTimeAsync(1000); FakeES.all.at(-1).onopen(); await vi.advanceTimersByTimeAsync(0);
   expect(client.getAllItems).toHaveBeenCalledTimes(3); expect(get(itemUpdateEvidence)[OUT].lastKnown).toBe(NOW - 16 * 60000); expect(warnings().map(a => a.id)).toContain(`telemetry-stale:${OUT}`);
-  applySnapshot([]); expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW - 16 * 60000, available: false }); expect(get(items).BMS_SOC_Evidence_JSON).toBeUndefined();
+  applySnapshot([]); expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW - 16 * 60000, available: false, state: '70' }); expect(get(items).BMS_SOC_Evidence_JSON).toBeUndefined();
 });
 it.each([undefined, 'NULL', 'UNDEF', 'bad', socReceipt(NOW - 120000), socReceipt(NOW + 1000)])('warns on unusable or expired atomic evidence %s', async value => {
   await boot(); if (value === undefined) applySnapshot(healthy().filter(row => row.name !== 'BMS_SOC_Evidence_JSON')); else emit('BMS_SOC_Evidence_JSON', 'statechanged', { value });

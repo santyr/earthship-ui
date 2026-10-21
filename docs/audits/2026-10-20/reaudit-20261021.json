@@ -1,0 +1,242 @@
+{
+  "schema": "earthship-reaudit-delta/v1",
+  "plan": "docs/superpowers/plans/2026-10-21-post-remediation-audit.md",
+  "baseline": "87a70336fa52a19a282941af1bcd80b2f63ded52",
+  "branch": "audit/reaudit-20261021",
+  "live_checkout_base": "02e3fcbc405d6018ad01977bbd7a3fa3af5f2ea5",
+  "status": "in_progress",
+  "tasks": {
+    "0": {
+      "status": "in_progress"
+    },
+    "1": {
+      "status": "source_fixed_locally_verified",
+      "finding": "R20261021-01",
+      "installed": false,
+      "runtime_observed": "fixture_only",
+      "qualified": false,
+      "evidence": {
+        "baseline": "72 passed in 5 focused files",
+        "red": "17 failed, 14 passed; malformed snapshot also produced an unhandled TypeError",
+        "boundary_red": "5 failed, 15 passed",
+        "focused": "131 passed in 7 files",
+        "unit": "183 files, 2803 passed, Node 22.22.0 / Vitest 4.1.12, 53.08s",
+        "browser": "3 passed, isolated Chromium, both 1340x800 and 1280x720; no mutation/page errors",
+        "limitations": [
+          "Final integrated release and independent review remain pending.",
+          "64-task full run hit pids.max once and expired; documented 96-task profile passed without changing shared limits."
+        ]
+      }
+    },
+    "2": {
+      "status": "pending"
+    },
+    "3": {
+      "status": "pending"
+    },
+    "4": {
+      "status": "pending"
+    },
+    "5": {
+      "status": "pending"
+    },
+    "6": {
+      "status": "pending"
+    },
+    "7": {
+      "status": "pending"
+    },
+    "8": {
+      "status": "pending"
+    },
+    "9": {
+      "status": "pending"
+    }
+  },
+  "finding_seed": {
+    "revision": "87a70336fa52a19a282941af1bcd80b2f63ded52",
+    "findings": [
+      {
+        "id": "R20261021-01",
+        "severity": "P2",
+        "status": "source_excerpt_reproduced",
+        "title": "Older temperature state can inherit newer freshness evidence",
+        "files": [
+          "src/lib/openhab/store.js",
+          "src/lib/openhab/sse.js",
+          "src/lib/alerts/staleness.js"
+        ],
+        "probe": "evidence/temperature-snapshot-probe.mjs",
+        "required_agent_action": "Reproduce with production module imports, preserve coherent state/evidence ordering, add maintained regression."
+      },
+      {
+        "id": "R20261021-02",
+        "severity": "P2",
+        "status": "fault_injection_reproduced",
+        "title": "Optional solar/rain forecast derivation can abort unrelated temperature scoring",
+        "files": [
+          "openhab/scripts/weather_learning/monitoring.py"
+        ],
+        "probe": "evidence/monitor-isolation-probe.py",
+        "required_agent_action": "Isolate optional-domain errors without swallowing global admission/deadline failures; verify partial-report consumers."
+      },
+      {
+        "id": "R20261021-03",
+        "severity": "P2",
+        "status": "fault_injection_reproduced",
+        "title": "Failed thermal post-step claims previous selector preserved without readback",
+        "files": [
+          "openhab/scripts/thermal_weather_readmit_post.py",
+          "openhab/scripts/thermal_weather_readmit.py",
+          "openhab/scripts/test_historical_weather_daily.py"
+        ],
+        "probe": "evidence/post-selector-status-probe.py",
+        "required_agent_action": "Add bounded original/after selector evidence and explicit uncertain outcome; no unconditional rollback or retry."
+      }
+    ],
+    "production_incidents_established": false
+  },
+  "authority": {
+    "planner_translation": false,
+    "automatic_actuation": false,
+    "deployment_authorized_by_plan": false
+  },
+  "historical_findings": [
+    {
+      "id": "A00",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A01",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A02",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A03",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A04",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A05",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A06",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A07",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A08",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A09",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A10",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A11",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A12",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A13",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A14",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A15",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A16",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "C01",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "C02",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "C03",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "C04",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "C05",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "C06",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "C07",
+      "status": "intentional_boundary_preserved_verified"
+    },
+    {
+      "id": "A17",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "C08",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "C09",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "C10",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "C11",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A18",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A19",
+      "status": "fixed_integrated_verified_installed"
+    },
+    {
+      "id": "A20",
+      "status": "fixed_integrated_verified_installed"
+    },
+    {
+      "id": "A21",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A22",
+      "status": "fixed_integrated_verified"
+    }
+  ]
+}
