@@ -73,14 +73,15 @@
       }
     },
     "4": {
-      "status": "in_progress",
+      "status": "six_lifecycle_cases_verified",
       "evidence": {
         "lifecycle_tests": "104 passed with pinned Solar_PV 24d2, 19.91s",
         "natural_thermal": "reaudit-20261021-natural.json: morning original producer delivery replay passed, 4.443s, zero network/children",
-        "pv": "reaudit-20261021-pv-morning.json: 355source files,768pairs, corrected v2 baseline/v3 fit and original incumbent bytes verified through original0b3f6fc package; promotion_permitted=false."
+        "pv": "reaudit-20261021-pv-morning.json: 355source files,768pairs, corrected v2 baseline/v3 fit and original incumbent bytes verified through original0b3f6fc package; promotion_permitted=false.",
+        "current_lifecycle_gate": "143passed/55.16s, actual scheduled entrypoints/disposable orchestration, six-case ownership in release handoff"
       },
       "remaining": [
-        "Finish six-case ownership cross-reference and final integrated gate. New source patches are uninstalled."
+        "Integration/review release gate; source changes remain uninstalled."
       ]
     },
     "5": {
@@ -126,13 +127,15 @@
       "remaining": "Frontend/parser/browser and integrated final gates."
     },
     "7": {
-      "status": "pending"
+      "status": "capability_dispositions_recorded_source_gates_pending",
+      "evidence": "Capability/requirement cross-reference in capability_dispositions and release_handoff; all existing active routes/auxiliary aliases and producer/consumer groups have explicit software, installed and external dispositions."
     },
     "8": {
-      "status": "pending"
+      "status": "final_local_gate_completion_and_independent_review_pending"
     },
     "9": {
-      "status": "pending"
+      "status": "scoped_handoff_prepared_integration_choice_pending",
+      "evidence": "reaudit-20261021.md + current runtime map + source freeze; per-surface adoption hashes for verified installed worker/evaluator bytes; no package/selector/deployment change authorized or performed"
     }
   },
   "finding_seed": {
@@ -361,8 +364,8 @@
   ],
   "source_freeze": {
     "schema": "earthship-reaudit-source-freeze/v1",
-    "source_commit": "00e6a921e28d6bd77d51a4f82e141f1e8ea3f609",
-    "non_documentation_manifest_sha256": "3eebc25c7e7e950830353c4ae8f13c38f5154d379b3a3d75a3bf080b5ce3b3a4",
+    "source_commit": "36458d398b4709c7aa371a6d7deaa3f7fd2d3c22",
+    "non_documentation_manifest_sha256": "374dd3e971785be6e037bb2646138d20a1ad5fda54bd534e382f7195c90b2b3a",
     "tracked_non_documentation_files": 1724,
     "changed_files": {
       "openhab/scripts/site_daylight.py": "1b15fc6b964a5639459155f4230794cca99e0682109c7ca993af8715d0fc5ee2",
@@ -387,6 +390,7 @@
       "src/lib/openhab/store.js": "83b1d55d61ec849edf05da9cd0ff3434486be7a68353c9bc307ebfa9f907cf28",
       "tests/alert-staleness.test.js": "a93236c7cdcd22d65dda9976cf0a0412bfc06533662e9cb05f0011c5863586e1",
       "tests/e2e/home-runtime.spec.js": "397eaa2d04afa5ddaaabb3eb1e5fd9f1b4a7e59beebf573b37d4e7b928374007",
+      "tests/e2e/weather-earthship-layout.spec.js": "d7ce66683ef34c5ea2a7efff1e04be48b0fb62dbdff4262d994d9d512f9985ed",
       "tests/openhab-reconciliation.test.js": "2abe7d562d4dad43cfb4a7b1f0791dc17bbb3576d71a795d78ab33eb30fc85ef",
       "tests/store.test.js": "657cc891e892c9bb2e98907b0fb4ad0bac45423668b5a1478f9d5761c191408c",
       "tests/temperature-evidence-ordering.test.js": "790f83031452e07e4c91065e7babe7f8b30cb53bc10d6ed4b62912b1f4edd740"
@@ -399,7 +403,50 @@
       ".github/workflows/sensors.yml": "817635927b2f2e7bf796bdca8b36c8b1a9607afec1acba6e7e5b25b0c570c7bf",
       ".github/workflows/thermal-delivery.yml": "c0fa23359346ce1a95e03fae4f521593700bd8df58b08e1fa89b7bd269b8a794"
     },
-    "documentation_descendants_allowed_only_if_manifest_matches": true
+    "documentation_descendants_allowed_only_if_manifest_matches": true,
+    "previous_source_freeze": {
+      "schema": "earthship-reaudit-source-freeze/v1",
+      "source_commit": "00e6a921e28d6bd77d51a4f82e141f1e8ea3f609",
+      "non_documentation_manifest_sha256": "3eebc25c7e7e950830353c4ae8f13c38f5154d379b3a3d75a3bf080b5ce3b3a4",
+      "tracked_non_documentation_files": 1724,
+      "changed_files": {
+        "openhab/scripts/site_daylight.py": "1b15fc6b964a5639459155f4230794cca99e0682109c7ca993af8715d0fc5ee2",
+        "openhab/scripts/test_astro_geometry_series.py": "5c7983cbe4a5d778323cdb78a5ce9c0aa29feb6a3d0c91035522c00275e585c9",
+        "openhab/scripts/test_historical_weather_daily.py": "38bd7ccf1182a891971bcb93e77cd7917d6a4373ddc5cee4bb040fc18c8e7c35",
+        "openhab/scripts/test_thermal_weather_admit.py": "adc77ce3b0da63501c214463eb9ed4a9cba9532bb8df9ef5931f7d809034a6fb",
+        "openhab/scripts/test_weather_correction_monitor.py": "21fe96fae78a6464dae3c93c03a99d6dde59a6ca5674c9c3f3c7d9a2ca1c25a7",
+        "openhab/scripts/thermal_weather_readmit.py": "1c64cc4ea44b4c85449fc9a0df43c455ad31d9b9ca97dbe9d46ee4a8f0886b50",
+        "openhab/scripts/thermal_weather_readmit_post.py": "e47bc59a2f22fa5048d9cf75cf47eb223c4d1bd240ca73ae24c4d932ba5504dc",
+        "openhab/scripts/weather_learning/correction_monitor.py": "a335288c3a17d048ea9c3dc924c999a768ce0b47e15ebe2c2b9e7fbbaf9b21ed",
+        "openhab/scripts/weather_learning/energy_shadow.py": "c29e77c8a46413eea3076ef5c4c628456bfb387887e918c87587b34391502fee",
+        "openhab/scripts/weather_learning/monitoring.py": "617c6ab2d959d31c7ea45010a4e5da5ff5763a1f06a627348917047116a466c3",
+        "openhab/scripts/weather_learning/pending_scores.py": "57be055f81c4c4aca5f0ae7a7e30709fe5d54a2b2e930e7884833fe34d00c97c",
+        "openhab/scripts/weather_learning/solar_shadow.py": "403f754dc2d0144b73b0acb80ec399770b516ad383becd50ad1dbfba1d568ad9",
+        "openhab/scripts/weather_learning/tests/test_hourly_collection.py": "2c165dbace271705816516b1d247232eda9887d069824aff6c8643fedd3d3dad",
+        "openhab/scripts/weather_learning/tests/test_monitoring.py": "2b6c713c5d7e85230afe85bd66f853982a28696ff72418fc374f590a71082e8a",
+        "openhab/scripts/weather_learning/tests/test_pending_scores.py": "671c1d8f4297f4b2f6fcd8718ed79e2f6cbd87a5af5ce6f8db7a1896b9c3c6b1",
+        "openhab/scripts/weather_learning/tests/test_performance.py": "7c139b81b8c789a0db0b851649c7bd54ffce9f194566ee4ca310f7030d559ebf",
+        "openhab/scripts/weather_learning/worker.py": "b51a4d6f6211f4daa166ce9d6797f302ed6d8d6b2d819a4da5d602a97979baed",
+        "src/lib/alerts/staleness.js": "0c61f018d6162bc58d4bf6ae8f72902550195408d07eaba42c2f4cce7a048924",
+        "src/lib/openhab/sse.js": "f1928affc0f38cea0fc73305d7a84cf9b915725e20fd6cbc50577881940b09fa",
+        "src/lib/openhab/store.js": "83b1d55d61ec849edf05da9cd0ff3434486be7a68353c9bc307ebfa9f907cf28",
+        "tests/alert-staleness.test.js": "a93236c7cdcd22d65dda9976cf0a0412bfc06533662e9cb05f0011c5863586e1",
+        "tests/e2e/home-runtime.spec.js": "397eaa2d04afa5ddaaabb3eb1e5fd9f1b4a7e59beebf573b37d4e7b928374007",
+        "tests/openhab-reconciliation.test.js": "2abe7d562d4dad43cfb4a7b1f0791dc17bbb3576d71a795d78ab33eb30fc85ef",
+        "tests/store.test.js": "657cc891e892c9bb2e98907b0fb4ad0bac45423668b5a1478f9d5761c191408c",
+        "tests/temperature-evidence-ordering.test.js": "790f83031452e07e4c91065e7babe7f8b30cb53bc10d6ed4b62912b1f4edd740"
+      },
+      "dependency_lock_sha256": "35c941310fa1036b091d40e2840db925233e36c0c9826ad39e26d436ef11774b",
+      "workflow_sha256": {
+        ".github/workflows/ci.yml": "36623b9bd430f6b92066f7e7bab863e8b3055a0eb1d8931c28820bc44fef7ebc",
+        ".github/workflows/forecast-ml-hardening.yml": "2426eef763a6c39b75b2cfd23ace20b2d8c524654985ea4d214f37797733129c",
+        ".github/workflows/household-receipt-integrity.yml": "2a0617a3cc030eee97039b7f9f3e10f6e91a3bc0ec4efab7dfe17496ac6028fb",
+        ".github/workflows/sensors.yml": "817635927b2f2e7bf796bdca8b36c8b1a9607afec1acba6e7e5b25b0c570c7bf",
+        ".github/workflows/thermal-delivery.yml": "c0fa23359346ce1a95e03fae4f521593700bd8df58b08e1fa89b7bd269b8a794"
+      },
+      "documentation_descendants_allowed_only_if_manifest_matches": true
+    },
+    "change_since_previous": "Only two duplicate Item rows removed from a maintained browser fixture; production source, lockfiles, Python and workflows unchanged."
   },
   "verification": {
     "status": "in_progress",
@@ -551,12 +598,195 @@
     ],
     "renewal_for_archive_fix": "Worker and hourly collection tests both belong to shard1; full309foundation and13targeted tests/3subtests passed at00e6a92 after shard1 atc1c3192. Third shard at00e6a92 includes separate pinnedBMSaux1pass. Final source digest permits only documentation descendants.",
     "skips_disposition": {
-      "receiver": "all5receiver test functions executed through system Python with flask_cors in native receiver profile; sharded parametrizations overlap",
+      "receiver": "All affected receiver/radiation/rain/temperature integration files run in actual host-dependency profile:32passed,zero skipped; covers all14shard dependency skips plus related tests.",
       "resource": "all selected opt-in native resource/systemd cases executed in actual capped scope",
       "earth_engine": "all3SDK query tests execute in separate309case pinned WeatherNext foundation without cloud access",
-      "multiweek_replay": "CI=true-only test intentionally remains hosted-only; no forged CI identity",
+      "multiweek_replay": "CI=true-only multiweek synthetic source replay intentionally remains hosted-only; local ML gate1413pass/1skip/1deselect. Requires actual hosted workflow after branch publication; CI identity was not forged.",
       "qualification_fit": "dedicated explicit EARTHSHIP_REMOTE_QUALIFICATION_FIT=1 profile pending"
-    }
+    },
+    "receiver_all": {
+      "passed": 32,
+      "skipped": 0,
+      "seconds": 0.51,
+      "profile": "actual host receiver imported into disposable read/write/network-denied fixtures via systemPython3.12.3 + flask_cors"
+    },
+    "lifecycle": {
+      "passed": 143,
+      "skipped": 0,
+      "seconds": 55.16
+    },
+    "sensors_browser": {
+      "passed": 2,
+      "seconds": 7.6,
+      "node": "24.13.0",
+      "viewports": [
+        "1340x800",
+        "1280x720"
+      ],
+      "leaf_pids_max_events": 0,
+      "leaf_memory_events": 0,
+      "fixture_cleanup": "exact uniquely named Compose containers/networks/volumes and generated private simulation configuration removed; production stack unchanged; original tracked screenshot restored"
+    },
+    "browser_profiles": [
+      {
+        "profile": "test:e2e",
+        "exit": 0,
+        "seconds": 117.87,
+        "counters": {
+          "pids.events": "max 0",
+          "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0"
+        },
+        "source_revision": "36458d398b4709c7aa371a6d7deaa3f7fd2d3c22",
+        "passed": 79
+      },
+      {
+        "profile": "test:geometry",
+        "exit": 0,
+        "seconds": 103.025,
+        "counters": {
+          "pids.events": "max 0",
+          "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0"
+        },
+        "source_revision": "36458d398b4709c7aa371a6d7deaa3f7fd2d3c22",
+        "passed": 67
+      }
+    ],
+    "browser_profile": "Node22.22.0, Chromium, networkless namespace/loopback only,1worker,2CPU affinity, V8pool1/UVpool1/Rolldown1+2blocking/Rayon1/GoMax2; original128task1024\u20132048MiB limit retained; zero pids/memory events in both final commands.",
+    "operational": {
+      "passed": 1396,
+      "skipped": 3,
+      "seconds": 123.13,
+      "skip_coverage": "all3opt-in systemd cases executed in nativehost19pass profile"
+    },
+    "ml_hardening": {
+      "passed": 1413,
+      "skipped": 1,
+      "deselected": 1,
+      "seconds": 497.32,
+      "skip_reason": "hostedCI-only multiday source replay",
+      "deselected_reason": "dedicated explicit qualification-fit profile runs separately"
+    },
+    "hosted_ci_remaining": [
+      "test_installed_shade_calibration.py::test_synthetic_multiday_original_source_replay_learns_all_required_bands (CI=true on actual hosted runner)"
+    ]
   },
-  "release_handoff": "reaudit-20261021.md"
+  "release_handoff": "reaudit-20261021.md",
+  "capability_dispositions": [
+    {
+      "capability": "controls",
+      "status": "existing_source_and_fixture_boundaries_verified",
+      "sources": [
+        "openhab/rules/night-load-owner.js",
+        "src/lib/controls/controlState.js",
+        "src/lib/controls/catalog.js",
+        "src/lib/releaseMode.js",
+        "src/lib/openhab/proxyPolicy.js"
+      ],
+      "evidence": "Three live managed owner source hashes match; full2803unit gate covers night-load/greywater/feeder matrices and safe-compat frontend/server gates; natural completed receipts read only.",
+      "external_dependency": "Existing failed/offline device providers; no audit physical test."
+    },
+    {
+      "capability": "sensors",
+      "status": "software_contracts_and_isolated_integration_verified",
+      "evidence": "69contract,11actualComposeintegration,2actualSSEbrowser tests; registry/epoch/duration/retention/database recovery.",
+      "installed": "healthy empty registry; no devicecommissioning",
+      "external_dependency": "Production resource limits remain unbounded and require separately scoped operator approval/readback; actual radio commissioning needs explicit epoch/policy and real packet evidence."
+    },
+    {
+      "capability": "nostr",
+      "status": "exact_binary_disposable_crypto_and_durable_journal_verified",
+      "evidence": "Pinned nak8authentication+8encryptedloopbackdeliverychecks; completion659cases includes realPostgreSQLcontracts; recurring approved profile and signer source/hash readback.",
+      "external_dependency": "No household message sent; relay acceptance does not prove operatorreceipt."
+    },
+    {
+      "capability": "household_architecture",
+      "status": "source_bound_advisory_contracts_verified",
+      "sources": [
+        "openhab/scripts/household/intents.py",
+        "openhab/scripts/household/planning.py",
+        "openhab/scripts/household/resources.py"
+      ],
+      "evidence": "FullOpenHABpartitions plus receipt-integrity gate; immutable originals, typed intent/arbiter/replay; planner translation/action default gates retained; feeder excluded.",
+      "external_dependency": "Waterinventory/nominalstorage/causalaction support remain unknown or unqualified."
+    },
+    {
+      "capability": "access_and_operations",
+      "status": "fixed_projection_and_private_reader_contracts_verified",
+      "evidence": "Fullfrontend proxy/encodedpath/privatefs, OpenHABsourcebinding/cancellation/lock, completion/operational and actualnative resource/systemd/Postgres profiles.",
+      "external_dependency": "No unapproved migration, backup platform, service restart or sourcepackage replacement."
+    },
+    {
+      "capability": "ui_and_solar",
+      "status": "installed_readonly_and_newsource_fixtures_distinct",
+      "evidence": "Installed16routeviewports GET-only pass; newsourceunit/parser suite and browser gate; terrainDST/disjointwindows/expiry/safeentry handling; correctedPV/thermal consumers retain numerical identities.",
+      "external_dependency": "Mapdaylight remains unvalidated5min estimate; all predictive/physical qualification separate."
+    },
+    {
+      "capability": "weather_and_long_horizon_scoring",
+      "status": "durable_original_bound_lifecycle_stress_verified",
+      "evidence": "336h restart/window/policy/epoch/evaluation-version tests; backlog fairness/diagnostics, lowdisk/transaction/atomicreport and archivecapacities;309foundation.",
+      "external_dependency": "Unknown undiscovered population and missing/future outcomes not counted as observed or qualified."
+    }
+  ],
+  "test_input_hashes": {
+    "package-lock.json": "35c941310fa1036b091d40e2840db925233e36c0c9826ad39e26d436ef11774b",
+    "requirements-test.txt": "7d57d9382597ac34a8fa2cc7d75ba8c91799806b7d60ccf47522a6320abac52f",
+    "requirements-weathernext.txt": "d8dd94396d803d4cc6e8b42acbbc6e6a646b67cf41da215260256ff2b4c5090f",
+    "services/lorawan/requirements.txt": "284687e31088617aa8cc632b3ed16781770c09ea71af1dfc9abb6ed8f6409181"
+  },
+  "compatible_installation_handoff": {
+    "installed": false,
+    "selector_or_package_switch_authorized": false,
+    "files": [
+      {
+        "surface": "weathernext-ingest",
+        "path": "openhab/scripts/weather_learning/worker.py",
+        "installed_producer_revision": "b940f154b1ffc1d7d8de8684e0c9e6a9ef511f08",
+        "before_sha256": "8b26a907286e5583d6dc87589b35136d94e249824eb27e6ecd752f23637084d3",
+        "source_candidate_sha256": "b51a4d6f6211f4daa166ce9d6797f302ed6d8d6b2d819a4da5d602a97979baed",
+        "installed_bytes_equal_reviewed_baseline": true
+      },
+      {
+        "surface": "weathernext-evaluate",
+        "path": "openhab/scripts/weather_learning/monitoring.py",
+        "installed_producer_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+        "before_sha256": "506bd4c46b0b1df25421421c42f7bf760de323c3fd86adfcc7467eca0cc27b64",
+        "source_candidate_sha256": "617c6ab2d959d31c7ea45010a4e5da5ff5763a1f06a627348917047116a466c3",
+        "installed_bytes_equal_reviewed_baseline": true
+      },
+      {
+        "surface": "weathernext-evaluate",
+        "path": "openhab/scripts/weather_learning/pending_scores.py",
+        "installed_producer_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+        "before_sha256": "05e946bfd2a4fe24a8f852afbe442fed6c44161b0ae4eed5aaf0a6729201e6c3",
+        "source_candidate_sha256": "57be055f81c4c4aca5f0ae7a7e30709fe5d54a2b2e930e7884833fe34d00c97c",
+        "installed_bytes_equal_reviewed_baseline": true
+      },
+      {
+        "surface": "weathernext-evaluate",
+        "path": "openhab/scripts/weather_learning/correction_monitor.py",
+        "installed_producer_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+        "before_sha256": "e2844f225336e192063e99ad627ee3486e7b4100d2a9b6bf5e6dbfeeb216d2f5",
+        "source_candidate_sha256": "a335288c3a17d048ea9c3dc924c999a768ce0b47e15ebe2c2b9e7fbbaf9b21ed",
+        "installed_bytes_equal_reviewed_baseline": true
+      },
+      {
+        "surface": "weathernext-evaluate",
+        "path": "openhab/scripts/weather_learning/solar_shadow.py",
+        "installed_producer_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+        "before_sha256": "a2fa1dd0932c0a3b3eaaa8803ea7a03e88a4ba23a00d253d2a4eebcf59b7f4b0",
+        "source_candidate_sha256": "403f754dc2d0144b73b0acb80ec399770b516ad383becd50ad1dbfba1d568ad9",
+        "installed_bytes_equal_reviewed_baseline": true
+      },
+      {
+        "surface": "weathernext-evaluate",
+        "path": "openhab/scripts/weather_learning/energy_shadow.py",
+        "installed_producer_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+        "before_sha256": "bdbb0426b37e4d7c93fc144f9850b1cbfa65caf544053808095e084479982ef7",
+        "source_candidate_sha256": "c29e77c8a46413eea3076ef5c4c628456bfb387887e918c87587b34391502fee",
+        "installed_bytes_equal_reviewed_baseline": true
+      }
+    ],
+    "mandatory_boundary": "These identities describe adoption inputs, not an installed package. Do not replace the dirty checkout or a legacy numerical producer wholesale with this branch. Preserve per-surface versions/dispatch and validate an independently built immutable package before any separately authorized switch. If installed bytes differ from reviewed baseline, port only the demonstrated nonnumerical repair and rerun that original package contract before adoption."
+  }
 }

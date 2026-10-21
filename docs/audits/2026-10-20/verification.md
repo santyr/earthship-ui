@@ -1,5 +1,7 @@
 # Verification evidence
 
+Current October 21 source audit status: [reaudit-20261021.json](reaudit-20261021.json), with [scoped release handoff](reaudit-20261021.md) and [current runtime map](reaudit-20261021-runtime.json). These supersede historical pending prose only for their named source/evidence surfaces. October 20 deployment identities and physical/statistical limits remain historical evidence.
+
 Current final-candidate evidence is appended below. Earlier pending/failing statements are preserved chronological evidence and are superseded only by an explicit later result for the identified revision.
 Audit base: `65ee7e95d58e6a6101700da3eccea67c9fea0ec7`. Initial remote CI [39434796248](https://github.com/santyr/earthship-ui/actions/runs/39434796248) failed OpenHAB shards 0/1; separate [thermal delivery](https://github.com/santyr/earthship-ui/actions/runs/39434796413) passed. Remote main and no open PRs verified at start. Local complete baseline not yet established.
 
