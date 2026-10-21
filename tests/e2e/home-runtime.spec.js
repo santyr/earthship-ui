@@ -1448,8 +1448,8 @@ test('upstream freshness reaches the tablet header without value changes', async
   await runtime.emitState('BMS_SOC_Evidence_JSON', socReceipt(await page.evaluate(() => Date.now())));
   await page.evaluate(() => {
     const source = window.__fixtureEventSources.at(-1);
-    for (const name of ['AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', 'AmbientWeatherWS2902A_IndoorSensor_Temperature']) {
-      source.onmessage({ data: JSON.stringify({ topic: `openhab/items/${name}/stateupdated`, payload: JSON.stringify({ value: 'unchanged', lastStateUpdate: Date.now() }) }) });
+    for (const [name, value] of [['AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', '73.4'], ['AmbientWeatherWS2902A_IndoorSensor_Temperature', '70.2']]) {
+      source.onmessage({ data: JSON.stringify({ topic: `openhab/items/${name}/stateupdated`, payload: JSON.stringify({ value, lastStateUpdate: Date.now() }) }) });
     }
   });
   await expect(page.locator('[data-header-alert-winner]')).toHaveCount(0);
@@ -1494,3 +1494,39 @@ test('Energy charts recover from a transient history failure without a reload', 
   await expect(page.locator('.pv-chart .hc-canvas svg')).toBeVisible({ timeout: 15000 });
   expect(runtime.pageErrors).toEqual([]);
 });
+
+
+for (const target of TARGETS) {
+  test(`Home retains a coherent temperature pair through reconnect and recovery at ${target.name}`, async ({ page }) => {
+    await page.route('**/fixture-openhab/rest/things*', route => route.fulfill({ json: [] }));
+    const runtime = await openHomeFixture(page, target);
+    await expect(page.locator('.outdoor-main .big-temp')).toHaveText('73°');
+    await page.evaluate(() => {
+      window.__acceptedTemperatureAt = Date.now() - 1000;
+      window.__fixtureEventSources.at(-1).onmessage({ data: JSON.stringify({
+        topic: 'openhab/items/AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature/stateupdated',
+        payload: JSON.stringify({ value: '70', lastStateUpdate: window.__acceptedTemperatureAt }),
+      }) });
+    });
+    await expect(page.locator('.outdoor-main .big-temp')).toHaveText('70°');
+    await page.route('**/fixture-openhab/rest/items?*', route => route.fulfill({
+      json: itemSnapshot({ [OUTDOOR]: '40' }).map(row => row.name === OUTDOOR
+        ? { ...row, lastStateUpdate: Date.now() - 3600000 } : row),
+    }));
+    const collection = page.waitForResponse(response => response.url().includes('/fixture-openhab/rest/items?'));
+    await page.evaluate(() => window.__fixtureEventSources.at(-1).onopen());
+    await collection;
+    await expect(page.getByRole('img', { name: 'openHAB connection: live' })).toBeVisible();
+    await expect(page.locator('.outdoor-main .big-temp')).toHaveText('70°');
+    await runtime.emitState(OUTDOOR, '71');
+    await expect(page.locator('[data-header-alert-winner]')).toContainText('Outdoor temperature freshness unavailable');
+    await page.evaluate(() => window.__fixtureEventSources.at(-1).onmessage({ data: JSON.stringify({
+      topic: 'openhab/items/AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature/stateupdated',
+      payload: JSON.stringify({ value: '71', lastStateUpdate: Date.now() }),
+    }) }));
+    await expect(page.locator('.outdoor-main .big-temp')).toHaveText('71°');
+    await expect(page.locator('[data-header-alert-winner]')).toHaveCount(0);
+    expect(runtime.pageErrors).toEqual([]); expect(runtime.attemptedNonGetRequests).toEqual([]);
+    expect(runtime.unexpectedExternalRequests).toEqual([]);
+  });
+}

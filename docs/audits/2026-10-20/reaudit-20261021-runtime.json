@@ -1,0 +1,1487 @@
+{
+  "schema": "earthship-reaudit-runtime-compatibility/v1",
+  "checked_at": "2026-10-21T15:19:44.781658+00:00",
+  "status": "current_effective_bindings_and_bounded_domain_outputs_recorded",
+  "source_baseline": "87a70336fa52a19a282941af1bcd80b2f63ded52",
+  "method": "read-only systemctl, fixed file identities, bounded local REST GET and selected Docker properties",
+  "surfaces": [
+    {
+      "surface": "earthship-ui",
+      "owner": "earthship-ui.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "bc7a22cd4ca9b647b6f9e9ae0652ad7220c1426129aea4143554c2685937ba3a",
+          "git_revision": "02e3fcbc405d6018ad01977bbd7a3fa3af5f2ea5",
+          "dirty": true
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "69e471929b32e53949ea9f0974926d310967af8b9e6ee4e084d0e83038341688",
+      "environment_file_bindings": [
+        {
+          "sha256": "b281838d66dbe648487bec4101fc26286643b1254c0f89acd53c9e5edc956936",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Tue 2026-10-20 15:39:28 MDT",
+        "ExecMainExitTimestamp": ""
+      },
+      "launcher_profile": {},
+      "domain_output_status": "installed_get_only_browser_16_route_viewports_passed",
+      "installed_changes_from_reaudit": false,
+      "effective_environment": {
+        "allowlisted_keys": [
+          "EARTHSHIP_UI_SOLAR_ROOT",
+          "RELEASE_MODE"
+        ],
+        "bindings_sha256": "8a750fa138291836e064adeff6025754bd4c21ef3063dfe048889494f83b8539",
+        "files_in_effective_order": [
+          {
+            "sha256": "b281838d66dbe648487bec4101fc26286643b1254c0f89acd53c9e5edc956936",
+            "bytes": 194,
+            "mode": "0o600"
+          }
+        ]
+      },
+      "configured_inputs": [],
+      "release_mode": "safe-compat",
+      "solar_worker": {
+        "worker_sha256": "eec70f40dd336be83005ca18387ab3d984b71ad81cd4151c1b591cdcdc12dcb6",
+        "horizon_sha256": "07facf1033dacb27aac1daf4c864d645ef4b6c0a0ffdc257b3f39d25ae4dee5e"
+      },
+      "compatibility_disposition": "intentional dirty checkout overlay, safe-compat; source repairs in this branch uninstalled",
+      "permitted_operations": "original replay and existing scheduled role only; no audit-authorized selection/activation/message/device expansion",
+      "last_domain_output_disposition": "Installed GET-only browser readback completed across16route/viewports with zero page errors/mutations/externalrequests/outeroverflow; see installed_browser_readback. This preserved overlay is distinct from the uninstalled source repairs.",
+      "retention_policy": "Retain original source package, existing selectors, source-bound artifacts and historical producer dispatch; audit did not replace any installed pin."
+    },
+    {
+      "surface": "daily-pv-potential",
+      "owner": "daily-pv-potential.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "a71a358c36860cf3720787dbf77ca481a791153a7353f58bcf1463d6e3be8ce3",
+          "git_revision": "a85da5e376bcb5285fcaeeb0496052dbef7a204f",
+          "dirty": false
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "6af037d3f742193afc5c6e6b196c38b64ef4e26a3afb194388a85153a8b2d79e",
+      "environment_file_bindings": [
+        {
+          "sha256": "53f30930e7866b194f6156064d00acd20342024d5bad561a14fd5abbdd067812",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 08:46:02 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 08:46:04 MDT"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "512",
+        "--preferred-mib": "1024",
+        "--tasks": "48",
+        "--seconds": "600"
+      },
+      "domain_output_status": "configured_output_identity_schema_and_available_clocks_read_back",
+      "installed_changes_from_reaudit": false,
+      "effective_environment": {
+        "allowlisted_keys": [
+          "EARTHSHIP_DAILY_PV_LIBRARIES",
+          "EARTHSHIP_DAILY_PV_ROOT",
+          "PYTHONPATH"
+        ],
+        "bindings_sha256": "4bb06adad949d8292f5435d9027bdde87f38367758ad9f1df361e0210406f875",
+        "files_in_effective_order": [
+          {
+            "sha256": "83049704614392b680496cf60be7ae668608d17e5c0bd2a8b5d458ff343cfcda",
+            "bytes": 372,
+            "mode": "0o600"
+          },
+          {
+            "sha256": "53f30930e7866b194f6156064d00acd20342024d5bad561a14fd5abbdd067812",
+            "bytes": 206,
+            "mode": "0o600"
+          }
+        ]
+      },
+      "configured_inputs": [
+        {
+          "role": "--libraries",
+          "sha256": "a2598ce6676449328b8b307cfba8df573d820136726837084bcb98b46aaa65b7",
+          "bytes": 728,
+          "mode": "0o600"
+        },
+        {
+          "role": "--calibration",
+          "sha256": "6192f8fc407d57d99e916c7fb7ff9d23aaaad8071820155e77536b32d4a5f2ee",
+          "bytes": 95134,
+          "mode": "0o600"
+        }
+      ],
+      "last_domain_output": {
+        "sha256": "a936ab98ce31a3c8c65e119e08374b0c935246b246decbaf30edce077172e332",
+        "bytes": 3758,
+        "schema": "earthship-daily-pv-potential/v3",
+        "generatedAt": "2026-10-21T14:46:03.346940+00:00",
+        "validUntil": "2026-10-21T16:16:03.346940+00:00",
+        "automatic_actuation": false,
+        "physical_calibration_qualified": false
+      },
+      "compatibility_disposition": "serving-only original-v1 compatibility producera85da5e; original selected clocks/bytes retained",
+      "permitted_operations": "original replay and existing scheduled role only; no audit-authorized selection/activation/message/device expansion",
+      "retention_policy": "Retain original source package, existing selectors, source-bound artifacts and historical producer dispatch; audit did not replace any installed pin."
+    },
+    {
+      "surface": "daily-pv-score",
+      "owner": "daily-pv-score.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "7f145f9f84d415147e12d8ada7f41fe24dc0a3c85723d25687146c9d9887e262",
+          "git_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+          "dirty": false
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "6104a2f3a669d289a55276d13239519e7f06c18e7b0c561c50cbdfa6a48b825a",
+      "environment_file_bindings": [
+        {
+          "sha256": "e4d099aaa45dd51144665fec5282b0fb3a81e4009c0d751410fc6beaa8d28df2",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 08:55:05 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 08:55:06 MDT"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "256",
+        "--preferred-mib": "512",
+        "--tasks": "24",
+        "--seconds": "90"
+      },
+      "domain_output_status": "configured_output_identity_schema_and_available_clocks_read_back",
+      "installed_changes_from_reaudit": false,
+      "effective_environment": {
+        "allowlisted_keys": [
+          "EARTHSHIP_DAILY_PV_LIBRARIES",
+          "EARTHSHIP_DAILY_PV_ROOT",
+          "PYTHONPATH"
+        ],
+        "bindings_sha256": "bb53fc0d89f66ac695e7afe67ec215b871984cff5b35f0208f9a1f0d853ac90a",
+        "files_in_effective_order": [
+          {
+            "sha256": "83049704614392b680496cf60be7ae668608d17e5c0bd2a8b5d458ff343cfcda",
+            "bytes": 372,
+            "mode": "0o600"
+          },
+          {
+            "sha256": "e4d099aaa45dd51144665fec5282b0fb3a81e4009c0d751410fc6beaa8d28df2",
+            "bytes": 83,
+            "mode": "0o600"
+          }
+        ]
+      },
+      "configured_inputs": [],
+      "last_domain_output": {
+        "sha256": "8026a5d9057b69476a587669a0166569feee0437d51fde83a62719795ee060f8",
+        "bytes": 630,
+        "status": "scored",
+        "checked_at": "2026-10-21T14:55:05.972163+00:00",
+        "automatic_actuation": false,
+        "physical_calibration_qualified": false
+      },
+      "compatibility_disposition": "current corrected scorer8f3747; original-producer dispatch preserves issued receipts",
+      "permitted_operations": "original replay and existing scheduled role only; no audit-authorized selection/activation/message/device expansion",
+      "retention_policy": "Retain original source package, existing selectors, source-bound artifacts and historical producer dispatch; audit did not replace any installed pin."
+    },
+    {
+      "surface": "household-calibrated-energy",
+      "owner": "household-calibrated-energy.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "a71a358c36860cf3720787dbf77ca481a791153a7353f58bcf1463d6e3be8ce3",
+          "git_revision": "a85da5e376bcb5285fcaeeb0496052dbef7a204f",
+          "dirty": false
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "0004d98be85b1434e3bf9d6b4f75976f6bee760c25b5ce598b3ee3a3c9021675",
+      "environment_file_bindings": [
+        {
+          "sha256": "c3e3325783add9f3d1bfebdb3de9899f5b27275f66602f156888d3d12fa04e06",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 09:15:38 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 09:15:41 MDT"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "256",
+        "--preferred-mib": "768",
+        "--tasks": "24",
+        "--seconds": "90"
+      },
+      "domain_output_status": "configured_output_identity_schema_and_available_clocks_read_back",
+      "installed_changes_from_reaudit": false,
+      "effective_environment": {
+        "allowlisted_keys": [
+          "EARTHSHIP_CALIBRATED_ENERGY_ROOT",
+          "PYTHONPATH"
+        ],
+        "bindings_sha256": "f2cf371b398ebcee5203e765af41cca66ec60f8e5b94a75c204c2d93dea1487c",
+        "files_in_effective_order": [
+          {
+            "sha256": "88086f6e764c22c6484de25cbe72d039e3cf017f9d1634326a32c7bcaae1064a",
+            "bytes": 102,
+            "mode": "0o600"
+          },
+          {
+            "sha256": "c3e3325783add9f3d1bfebdb3de9899f5b27275f66602f156888d3d12fa04e06",
+            "bytes": 215,
+            "mode": "0o600"
+          }
+        ]
+      },
+      "configured_inputs": [],
+      "last_domain_output": {
+        "sha256": "d0b07e1513c0242ff2ad9ef3908e34f727f657a53ad5f97d3ed82f32ad4fabaf",
+        "bytes": 6767,
+        "schema": "earthship-household-calibrated-energy-observation/v3",
+        "status": "projected_provisional_calibrated_potential",
+        "generated_at": "2026-10-21T15:15:40.972721+00:00",
+        "issued_at": "2026-10-21T15:15:15+00:00",
+        "valid_until": "2026-10-21T15:30:15+00:00",
+        "receipt_sha256": "e80bca2fbb1e52f59f27ee183dda17bb4875375e674957380d2de9409756ace7",
+        "view_sha256": "0a679b17a6e34e807049a9a23cd504a75ca431a3e3dd8684870e1ef0436a754e",
+        "automatic_actuation": false,
+        "physical_calibration_qualified": false
+      },
+      "compatibility_disposition": "same original-v1 serving compatibility; original PV correction and nominal storage remain distinct",
+      "permitted_operations": "original replay and existing scheduled role only; no audit-authorized selection/activation/message/device expansion",
+      "retention_policy": "Retain original source package, existing selectors, source-bound artifacts and historical producer dispatch; audit did not replace any installed pin."
+    },
+    {
+      "surface": "household-calibrated-score",
+      "owner": "household-calibrated-score.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "7f145f9f84d415147e12d8ada7f41fe24dc0a3c85723d25687146c9d9887e262",
+          "git_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+          "dirty": false
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "545fbc7e13a741ecd2e4e2bf80cfc166a73ce0986e0795b7fdb7021d4607df91",
+      "environment_file_bindings": [
+        {
+          "sha256": "11b28e409cf7a88e1919d8e26b643896fe00b559ffa342ac3bd13c1dfec22a68",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 09:16:00 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 09:16:08 MDT"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "256",
+        "--preferred-mib": "768",
+        "--tasks": "24",
+        "--seconds": "90"
+      },
+      "domain_output_status": "configured_output_identity_schema_and_available_clocks_read_back",
+      "installed_changes_from_reaudit": false,
+      "effective_environment": {
+        "allowlisted_keys": [
+          "EARTHSHIP_CALIBRATED_SCORE_ROOT",
+          "PYTHONPATH"
+        ],
+        "bindings_sha256": "a97b18da93c3d41d7805f30b7d39a495f3b323e47cec4cb3fafbb3a7efe35acb",
+        "files_in_effective_order": [
+          {
+            "sha256": "9950d0d1c2a2cae7f445e221484159671bb269cea8ff0089b2c2972d627ffb43",
+            "bytes": 101,
+            "mode": "0o600"
+          },
+          {
+            "sha256": "11b28e409cf7a88e1919d8e26b643896fe00b559ffa342ac3bd13c1dfec22a68",
+            "bytes": 91,
+            "mode": "0o600"
+          }
+        ]
+      },
+      "configured_inputs": [],
+      "last_domain_output": {
+        "sha256": "8c636a2cba9e8118c58c16aab3aba16b922ff7f4ee738c5fb3e952ee8ce6cd27",
+        "bytes": 1861,
+        "schema": "earthship-household-calibrated-energy-performance/v2",
+        "generated_at": "2026-10-21T15:16:08.245701+00:00",
+        "valid_until": "2026-10-21T16:16:08.245701+00:00",
+        "view_sha256": "d476c58bf86f8c37a850374761bbf0b4aadf21e0721a8c66428f83378fd14c97",
+        "automatic_actuation": false,
+        "graduated": false,
+        "physical_calibration_qualified": false
+      },
+      "compatibility_disposition": "current corrected scorer8f3747; all registered immutable original producers retained",
+      "permitted_operations": "original replay and existing scheduled role only; no audit-authorized selection/activation/message/device expansion",
+      "retention_policy": "Retain original source package, existing selectors, source-bound artifacts and historical producer dispatch; audit did not replace any installed pin."
+    },
+    {
+      "surface": "local-forecast-shadow",
+      "owner": "local-forecast-shadow.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "f450ac7a4b7a109af63637157aa170d4f56c8528d84026498192579ecdee6f31",
+          "git_revision": "5c0e16df32756b45f2489434d819d431cb7ee3ac",
+          "dirty": false
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "d643c12ec9693cf3409dd18d8884d52fc100154c2c33693e6dec2633253fc631",
+      "environment_file_bindings": [
+        {
+          "sha256": "12324be55304f2591ef5ba3b139c87cf666a505942e44ca8383084cc0ba4be34",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 08:44:25 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 08:44:28 MDT"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "256",
+        "--preferred-mib": "512",
+        "--tasks": "24",
+        "--seconds": "120"
+      },
+      "domain_output_status": "configured_output_identity_schema_and_available_clocks_read_back",
+      "installed_changes_from_reaudit": false,
+      "effective_environment": {
+        "allowlisted_keys": [
+          "EARTHSHIP_WEATHER_ARCHIVE",
+          "EARTHSHIP_WEATHER_CODE_REVISION",
+          "EARTHSHIP_WEATHER_CODE_ROOT",
+          "EARTHSHIP_WEATHER_PYTHON",
+          "EARTHSHIP_WEATHER_SHADOW_STATE",
+          "EARTHSHIP_WEATHER_TEMPERATURE_POLICY",
+          "PYTHONPATH"
+        ],
+        "bindings_sha256": "ac31d6a5072b9f033f92a0eb5e43e48d649084df85078a402443b339338aafe4",
+        "files_in_effective_order": [
+          {
+            "sha256": "8a3de7ec60a1280fa0ce2b13332f9bae136e73c20a4c2813eed696266ac4ed81",
+            "bytes": 744,
+            "mode": "0o600"
+          },
+          {
+            "sha256": "730cd9f0e93f9f36a494f29e586dc2299473ac4ecfba7bfddb88060ea6359c91",
+            "bytes": 170,
+            "mode": "0o600"
+          },
+          {
+            "sha256": "12324be55304f2591ef5ba3b139c87cf666a505942e44ca8383084cc0ba4be34",
+            "bytes": 299,
+            "mode": "0o600"
+          }
+        ]
+      },
+      "configured_inputs": [
+        {
+          "role": "--temperature-policy",
+          "sha256": "96e05c1ceac6c1219c1ec6106595b479c0ddcd97819a6780b832619895fcf0cb",
+          "bytes": 940,
+          "mode": "0o600"
+        }
+      ],
+      "last_domain_output": {
+        "sha256": "7c01e3be21da718ef37732888b19f0b0082e895c925f116614d32d8e76f53a86",
+        "bytes": 32621,
+        "schema": "earthship-weather-shadow-issue/v3",
+        "code_revision": "5c0e16df32756b45f2489434d819d431cb7ee3ac",
+        "issue_sha256": "7c01e3be21da718ef37732888b19f0b0082e895c925f116614d32d8e76f53a86",
+        "completed_at": "2026-10-21T14:44:28.004680+00:00"
+      },
+      "compatibility_disposition": "serving-only original numerical compatibility producer5c0e16d; v3 issue/wind originals, not corrected-weighted fitting",
+      "permitted_operations": "original replay and existing scheduled role only; no audit-authorized selection/activation/message/device expansion",
+      "retention_policy": "Retain original source package, existing selectors, source-bound artifacts and historical producer dispatch; audit did not replace any installed pin."
+    },
+    {
+      "surface": "local-forecast-train",
+      "owner": "local-forecast-train.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "77fbcbb844a0d2b379af2021ac13942c77cc7ee1dcbece4587064140a7b3adc7",
+          "git_revision": "520bdd81ba94a14908655bda2e83138131bb1986",
+          "dirty": false
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "e47d9530164f3108b28641106bd6aba93bee51341f9591e2f28a54033f42bb33",
+      "environment_file_bindings": [
+        {
+          "sha256": "20c337139ef7e6292e56ccddf58d4f4d051a270b0411e2583d92008c29a248df",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 06:35:32 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 06:38:23 MDT"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "512",
+        "--preferred-mib": "2048",
+        "--tasks": "48",
+        "--seconds": "900"
+      },
+      "domain_output_status": "morning_candidate_post_selection_observed_and_consumed",
+      "installed_changes_from_reaudit": false,
+      "evidence": "reaudit-20261021-natural.json",
+      "serving_admission_sha256": "f47bf9a8f3201ac5169c86d0b4d272517647a61169b52863eb543d7fbd966af5",
+      "effective_environment": {
+        "allowlisted_keys": [
+          "EARTHSHIP_WEATHER_ARCHIVE",
+          "EARTHSHIP_WEATHER_CODE_REVISION",
+          "EARTHSHIP_WEATHER_CODE_ROOT",
+          "EARTHSHIP_WEATHER_PYTHON",
+          "EARTHSHIP_WEATHER_SHADOW_STATE",
+          "EARTHSHIP_WEATHER_TEMPERATURE_POLICY",
+          "PYTHONPATH"
+        ],
+        "bindings_sha256": "e573c6fd2f4fc9f98681563dc9bc12080b8622262c193ccbc75550588a15a709",
+        "files_in_effective_order": [
+          {
+            "sha256": "8a3de7ec60a1280fa0ce2b13332f9bae136e73c20a4c2813eed696266ac4ed81",
+            "bytes": 744,
+            "mode": "0o600"
+          },
+          {
+            "sha256": "65244331147d823b1e3ed6a0536935999c5179f0291bfe9142a6ec598279d3d6",
+            "bytes": 247,
+            "mode": "0o600"
+          },
+          {
+            "sha256": "730cd9f0e93f9f36a494f29e586dc2299473ac4ecfba7bfddb88060ea6359c91",
+            "bytes": 170,
+            "mode": "0o600"
+          },
+          {
+            "sha256": "488d42dcd709db03bae45e7a89f11a90b6ee8f083762059fd5afeb65a15ec2ba",
+            "bytes": 309,
+            "mode": "0o600"
+          },
+          {
+            "sha256": "20c337139ef7e6292e56ccddf58d4f4d051a270b0411e2583d92008c29a248df",
+            "bytes": 335,
+            "mode": "0o600"
+          }
+        ]
+      },
+      "configured_inputs": [],
+      "post_config_sha256": "cde733c8fba1addb060e36bcda70dd2012762826c0f869cc5cca781ee0bdb40a",
+      "post_contract": {
+        "worker_sha256": "218decf2bfe89d23b19d5e0d307ad977b0d1cdeea8fc5717a04b7bcd6f38417f",
+        "candidate_and_serving_separate": true,
+        "consumer_root_identity_sha256": "dffd5366c9a9405841efcff3e90aeb4fc0c28e6b84843a9680294b71af75ca35"
+      },
+      "candidate_selection": {
+        "sha256": "ad9f8fc9143885f918d597f81becd7c37b8b8b5bb227300f9f900a590d34abad",
+        "bytes": 463,
+        "schema": "earthship-thermal-weather-selection/v1",
+        "automatic_actuation": false
+      },
+      "candidate_selection_admission": {
+        "sha256": "b38fdf78acf2c5c16eeb51f29730fea79ddbc12a15570d2ae080b6264333aacd",
+        "bytes": 9590,
+        "schema": "earthship-thermal-weather-admission/v1",
+        "admission_sha256": "e30befbe7f96c49be918e72f5954ed8a6f9c418b9dc691d34e2ec10c6db0df8c",
+        "automatic_actuation": false,
+        "physical_calibration_qualified": false
+      },
+      "selection": {
+        "sha256": "f306cf33c94eb93c916a693a2ea016cffa284a577ef7bff1886535b466d9a68f",
+        "bytes": 474,
+        "schema": "earthship-thermal-weather-selection/v1",
+        "automatic_actuation": false
+      },
+      "selection_admission": {
+        "sha256": "fb1d935f10426214efb058730a7db530cc57a8b05d3c4f45f5e53fa1b796c6be",
+        "bytes": 18327,
+        "schema": "earthship-thermal-weather-admission/v1",
+        "admission_sha256": "f47bf9a8f3201ac5169c86d0b4d272517647a61169b52863eb543d7fbd966af5",
+        "automatic_actuation": false,
+        "physical_calibration_qualified": false
+      },
+      "compatibility_disposition": "declared original uniform-row training reader; separate candidate and compatible serving post; not relabelled corrected weighting",
+      "permitted_operations": "original replay and existing scheduled role only; no audit-authorized selection/activation/message/device expansion",
+      "retention_policy": "Retain original source package, existing selectors, source-bound artifacts and historical producer dispatch; audit did not replace any installed pin."
+    },
+    {
+      "surface": "pv-calibration-train",
+      "owner": "pv-calibration-train.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "22d8797dd4feb2061277fbcf2186893a20c2e39f313cdc76c6c1e4d9819ad71e",
+          "git_revision": "0b3f6fc0a5ec0e86cd4af65604241d9532b2f1ad",
+          "dirty": false
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "3c15d29b08e4c888e87cabb371453f3245ab7682dcda028ccc2a4f3cfa5c3391",
+      "environment_file_bindings": [
+        {
+          "sha256": "74b46df24d04631e39e190424eb47900ec6cd3999d01c7e60120d19e9fa55110",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 07:16:11 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 07:18:24 MDT"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "512",
+        "--preferred-mib": "2048",
+        "--tasks": "48",
+        "--seconds": "900"
+      },
+      "domain_output_status": "natural_retention_result_and_pointer_verified",
+      "installed_changes_from_reaudit": false,
+      "evidence": "pv_morning_learning in this record",
+      "effective_environment": {
+        "allowlisted_keys": [
+          "PYTHONPATH"
+        ],
+        "bindings_sha256": "555e2af1126b62c99a8aed0e635f99fb51f1f241e8e7c2db4cafe3550c675e73",
+        "files_in_effective_order": [
+          {
+            "sha256": "f9f3c201b957beea399b1efda93a056aafe235ffc32ef58b19385f855ff399c2",
+            "bytes": 375,
+            "mode": "0o600"
+          },
+          {
+            "sha256": "74b46df24d04631e39e190424eb47900ec6cd3999d01c7e60120d19e9fa55110",
+            "bytes": 217,
+            "mode": "0o600"
+          }
+        ]
+      },
+      "configured_inputs": [],
+      "last_domain_output": {
+        "sha256": "eac2d288cdfce312738dc9649a3fcddd251575e687ac4a3e37c74ac4ad63256c",
+        "bytes": 864,
+        "status": "daily_pv_learning_complete",
+        "checked_at": "2026-10-21T13:18:23.875442+00:00",
+        "result_sha256": "e55f83ab940b50189338f07e2d1c764ca9fd549495d2076c6fead551996f8dd6",
+        "automatic_actuation": false
+      },
+      "candidate_result": {
+        "sha256": "62e3f4ee9bc07882b22e023ffb0a6e4cfef4370c879da40287f559d79a79774d",
+        "bytes": 107277,
+        "schema": "earthship-historical-pv-directional-experiment/v1",
+        "receipt_sha256": "1044a9344e9fc61ecede249d0388cffd747db4c42dff610a0911bdeb8fec19dc",
+        "automatic_actuation": false
+      },
+      "candidate_metadata_fields": [
+        "automatic_actuation",
+        "created_at",
+        "dataset_sha256",
+        "final_model",
+        "fit_executed",
+        "horizon_raw",
+        "model_selection_scope",
+        "parent_experiment_path",
+        "parent_receipt_sha256",
+        "production_model_changed",
+        "prospective_score",
+        "receipt_sha256",
+        "report",
+        "runtime_manifest",
+        "schema",
+        "system_raw",
+        "training_model_sha256"
+      ],
+      "compatibility_disposition": "corrected baseline/local-day/target-weighted candidate generation0b3f6fc; retain-selection forbids promotion over original incumbent",
+      "permitted_operations": "original replay and existing scheduled role only; no audit-authorized selection/activation/message/device expansion",
+      "candidate_proof": "reaudit-20261021-pv-morning.json",
+      "retention_policy": "Retain original source package, existing selectors, source-bound artifacts and historical producer dispatch; audit did not replace any installed pin."
+    },
+    {
+      "surface": "thermal-native-daily",
+      "owner": "thermal-native-daily.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "53578adf7a4cee2dac665703f8abacbd5f8659f01c8980b1d355bd22908ecd66",
+          "git_revision": "bef677e1f9a8fe353f9b0c504ba19c48a1cc0c7a",
+          "dirty": false
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "c2004b44d8ceddfc4249c0caf3ba787f4f93875bdd1a50adf29eeef4aced29fd",
+      "environment_file_bindings": [],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 06:50:25 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 06:52:31 MDT"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "512",
+        "--preferred-mib": "2048",
+        "--tasks": "48",
+        "--seconds": "1800"
+      },
+      "domain_output_status": "configured_output_identity_schema_and_available_clocks_read_back",
+      "installed_changes_from_reaudit": false,
+      "effective_environment": {
+        "allowlisted_keys": [
+          "PYTHONPATH"
+        ],
+        "bindings_sha256": "880ebc99e547404e44cad8b040001e04ce248ceb709343fdeabc908dc34044ef",
+        "files_in_effective_order": []
+      },
+      "configured_inputs": [
+        {
+          "role": "--config",
+          "sha256": "cfd602e0a4039d03f2db71017cf51617ada836b9fc6e38d3a31ac5ca484129d6",
+          "bytes": 2402,
+          "mode": "0o600"
+        }
+      ],
+      "last_domain_output": {
+        "sha256": "25537a888c0f6dbe4bf88392c1149a7c6ac69b2bdd3f68206c16b08f41e76fa4",
+        "bytes": 624,
+        "status": "native_family_activated",
+        "automatic_actuation": false
+      },
+      "compatibility_disposition": "bef677e source controller; genuine later fit activates a separately immutable native family transaction",
+      "permitted_operations": "original replay and existing scheduled role only; no audit-authorized selection/activation/message/device expansion",
+      "retention_policy": "Retain original source package, existing selectors, source-bound artifacts and historical producer dispatch; audit did not replace any installed pin."
+    },
+    {
+      "surface": "thermal-native-geometry-prepare",
+      "owner": "thermal-native-geometry-prepare.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "2fbacaea79f77fcdc5c6dfa94311ab0ad4e2153016d71a9472ad235b30afac0a",
+          "git_revision": null,
+          "identity_kind": "source_bound_native_stage_verified_by_original_producer_replay",
+          "manifest_evidence": "reaudit-20261021-natural.json"
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "f1ae0568659d5b013af45fe33e545010a00942b80c930d7922e0b34c8ced2032",
+      "environment_file_bindings": [],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 09:18:05 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 09:18:09 MDT"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "256",
+        "--preferred-mib": "512",
+        "--tasks": "24",
+        "--seconds": "90"
+      },
+      "domain_output_status": "original_producer_replay_verified",
+      "installed_changes_from_reaudit": false,
+      "evidence": "reaudit-20261021-natural.json",
+      "selected_artifact_sha256": "344992d58c80f8a7a661b720b5ebc9027dc2972673540bca77580139fea6b0de",
+      "selected_deployment_sha256": "5b232f20fa6ac02ce89e2048af0a74016e2997a6b78ec41673b325336ca02d1b",
+      "consumer_admission_sha256": "f47bf9a8f3201ac5169c86d0b4d272517647a61169b52863eb543d7fbd966af5",
+      "verified_delivered_issue": "2026-10-21T12:55:15+00:00",
+      "effective_environment": {
+        "allowlisted_keys": [
+          "PYTHONPATH"
+        ],
+        "bindings_sha256": "217e2c8bbda37be83be185b933ac30093a77c0e40afe05f9dce625f35daa2e82",
+        "files_in_effective_order": []
+      },
+      "configured_inputs": [
+        {
+          "role": "--config",
+          "sha256": "eb4d421be361e6e09cf7bd4319d1cd1ffc85b1935836f57e0de42089f008bb1e",
+          "bytes": 2151,
+          "mode": "0o600"
+        },
+        {
+          "role": "--libraries",
+          "sha256": "a2598ce6676449328b8b307cfba8df573d820136726837084bcb98b46aaa65b7",
+          "bytes": 728,
+          "mode": "0o600"
+        }
+      ],
+      "selected_stage": {
+        "sha256": "5b232f20fa6ac02ce89e2048af0a74016e2997a6b78ec41673b325336ca02d1b",
+        "bytes": 56515,
+        "schema": "earthship-household-cycle-deployment/v3",
+        "code_revision": "bef677e1f9a8fe353f9b0c504ba19c48a1cc0c7a",
+        "artifact_sha256": "344992d58c80f8a7a661b720b5ebc9027dc2972673540bca77580139fea6b0de",
+        "automatic_actuation": false
+      },
+      "effective_deployment_sha256": "5b232f20fa6ac02ce89e2048af0a74016e2997a6b78ec41673b325336ca02d1b",
+      "consumer_source_revision": "bef677e1f9a8fe353f9b0c504ba19c48a1cc0c7a",
+      "compatibility_disposition": "selected native family; geometry originals are model/runtime bound, not on-demand inference fallback",
+      "permitted_operations": "original replay and existing scheduled role only; no audit-authorized selection/activation/message/device expansion",
+      "retention_policy": "Retain original source package, existing selectors, source-bound artifacts and historical producer dispatch; audit did not replace any installed pin."
+    },
+    {
+      "surface": "thermal-provisional-forecast",
+      "owner": "thermal-provisional-forecast.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "2fbacaea79f77fcdc5c6dfa94311ab0ad4e2153016d71a9472ad235b30afac0a",
+          "git_revision": null,
+          "identity_kind": "source_bound_native_stage_verified_by_original_producer_replay",
+          "manifest_evidence": "reaudit-20261021-natural.json"
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "a4fd2fe28f2eb70451fcbe0d701f4937700a471c9f29e8b1b40c58c638534d92",
+      "environment_file_bindings": [],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 09:14:45 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 09:15:46 MDT"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "256",
+        "--preferred-mib": "512",
+        "--tasks": "24",
+        "--seconds": "90"
+      },
+      "domain_output_status": "original_producer_replay_verified",
+      "installed_changes_from_reaudit": false,
+      "evidence": "reaudit-20261021-natural.json",
+      "selected_artifact_sha256": "344992d58c80f8a7a661b720b5ebc9027dc2972673540bca77580139fea6b0de",
+      "selected_deployment_sha256": "5b232f20fa6ac02ce89e2048af0a74016e2997a6b78ec41673b325336ca02d1b",
+      "consumer_admission_sha256": "f47bf9a8f3201ac5169c86d0b4d272517647a61169b52863eb543d7fbd966af5",
+      "verified_delivered_issue": "2026-10-21T12:55:15+00:00",
+      "effective_environment": {
+        "allowlisted_keys": [
+          "PYTHONPATH"
+        ],
+        "bindings_sha256": "217e2c8bbda37be83be185b933ac30093a77c0e40afe05f9dce625f35daa2e82",
+        "files_in_effective_order": []
+      },
+      "configured_inputs": [
+        {
+          "role": "--config",
+          "sha256": "4e18d595af01bec9ac077fb7212e9f4f85403774327eb82118d77ed11309c4aa",
+          "bytes": 734,
+          "mode": "0o600"
+        },
+        {
+          "role": "--forecast-config",
+          "sha256": "eb4d421be361e6e09cf7bd4319d1cd1ffc85b1935836f57e0de42089f008bb1e",
+          "bytes": 2151,
+          "mode": "0o600"
+        }
+      ],
+      "selected_stage": {
+        "sha256": "5b232f20fa6ac02ce89e2048af0a74016e2997a6b78ec41673b325336ca02d1b",
+        "bytes": 56515,
+        "schema": "earthship-household-cycle-deployment/v3",
+        "code_revision": "bef677e1f9a8fe353f9b0c504ba19c48a1cc0c7a",
+        "artifact_sha256": "344992d58c80f8a7a661b720b5ebc9027dc2972673540bca77580139fea6b0de",
+        "automatic_actuation": false
+      },
+      "effective_deployment_sha256": "5b232f20fa6ac02ce89e2048af0a74016e2997a6b78ec41673b325336ca02d1b",
+      "consumer_source_revision": "bef677e1f9a8fe353f9b0c504ba19c48a1cc0c7a",
+      "compatibility_disposition": "selected immutable native producer; conditioned temperature/irradiance, raw weather preserved for PV",
+      "permitted_operations": "original replay and existing scheduled role only; no audit-authorized selection/activation/message/device expansion",
+      "retention_policy": "Retain original source package, existing selectors, source-bound artifacts and historical producer dispatch; audit did not replace any installed pin."
+    },
+    {
+      "surface": "thermal-provisional-score",
+      "owner": "thermal-provisional-score.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "2fbacaea79f77fcdc5c6dfa94311ab0ad4e2153016d71a9472ad235b30afac0a",
+          "git_revision": null,
+          "identity_kind": "immutable_package_requires_manifest_readback"
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "30f9f7c43c266951466090eff24e10ee0db4a3094e75e5503f74c9203bb05c55",
+      "environment_file_bindings": [],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 09:18:20 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 09:18:41 MDT"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "256",
+        "--preferred-mib": "512",
+        "--tasks": "24",
+        "--seconds": "120"
+      },
+      "domain_output_status": "configured_output_identity_schema_and_available_clocks_read_back",
+      "installed_changes_from_reaudit": false,
+      "effective_environment": {
+        "allowlisted_keys": [
+          "PYTHONPATH"
+        ],
+        "bindings_sha256": "217e2c8bbda37be83be185b933ac30093a77c0e40afe05f9dce625f35daa2e82",
+        "files_in_effective_order": []
+      },
+      "configured_inputs": [
+        {
+          "role": "--config",
+          "sha256": "eb4d421be361e6e09cf7bd4319d1cd1ffc85b1935836f57e0de42089f008bb1e",
+          "bytes": 2151,
+          "mode": "0o600"
+        }
+      ],
+      "selected_stage": {
+        "sha256": "5b232f20fa6ac02ce89e2048af0a74016e2997a6b78ec41673b325336ca02d1b",
+        "bytes": 56515,
+        "schema": "earthship-household-cycle-deployment/v3",
+        "code_revision": "bef677e1f9a8fe353f9b0c504ba19c48a1cc0c7a",
+        "artifact_sha256": "344992d58c80f8a7a661b720b5ebc9027dc2972673540bca77580139fea6b0de",
+        "automatic_actuation": false
+      },
+      "effective_deployment_sha256": "5b232f20fa6ac02ce89e2048af0a74016e2997a6b78ec41673b325336ca02d1b",
+      "consumer_source_revision": "bef677e1f9a8fe353f9b0c504ba19c48a1cc0c7a",
+      "last_domain_output": {
+        "sha256": "884c812500a07fb1a5100bc7b5193c18d471d591327a6c2123ecb1f858065e7b",
+        "bytes": 964,
+        "schema": "earthship-provisional-thermal-performance/v1",
+        "artifact_sha256": "344992d58c80f8a7a661b720b5ebc9027dc2972673540bca77580139fea6b0de",
+        "graduated": false
+      },
+      "compatibility_disposition": "current and retained native dispatch; model-specific prospective support remains separate",
+      "permitted_operations": "original replay and existing scheduled role only; no audit-authorized selection/activation/message/device expansion",
+      "retention_policy": "Retain original source package, existing selectors, source-bound artifacts and historical producer dispatch; audit did not replace any installed pin."
+    },
+    {
+      "surface": "thermal-primal",
+      "owner": "thermal-primal.service",
+      "source_pins": [],
+      "effective_command_and_source_bindings_sha256": "bd51d4f7d660877e70330fd42393c79c2891c36f8cdf94e54ad05d674bfa511b",
+      "environment_file_bindings": [
+        {
+          "sha256": "8b28140c708216b09859589f10ef128c2a53d75bce4a9bdf8afe9f1500e9efc4",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 09:14:53 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 09:14:56 MDT"
+      },
+      "launcher_profile": {},
+      "domain_output_status": "effective_binding_verified_domain_receipt_not_claimed",
+      "installed_changes_from_reaudit": false,
+      "effective_environment": {
+        "allowlisted_keys": [
+          "PYTHONPATH"
+        ],
+        "bindings_sha256": "4ef5e6692c80616f2bec41a8415225edbcf514b50db63e3f30b61590219e9347",
+        "files_in_effective_order": [
+          {
+            "sha256": "8b28140c708216b09859589f10ef128c2a53d75bce4a9bdf8afe9f1500e9efc4",
+            "bytes": 698,
+            "mode": "0o600"
+          }
+        ]
+      },
+      "configured_inputs": [],
+      "installed_release_profile": {
+        "file_sha256": "e1449a99983f1a82878edff89b9f780459d3c8f2bb1d4a622e9a6da2784594fe",
+        "effective_expected_sha256": "e1449a99983f1a82878edff89b9f780459d3c8f2bb1d4a622e9a6da2784594fe",
+        "runtime_manifest_sha256": "dd3fc03c41dcc22612512434dd4fa9607e551a0b60766db8aca04a1ff32e3508",
+        "signer_binary_sha256": "2620c86f7a2b466a41977ae7e318d1810c727503deaf53ea1c76a5ac24e6f927",
+        "source_defaults_and_approved_release_gates_are_distinct": true
+      },
+      "compatibility_disposition": "separately approved immutable recurring profile; generic source defaults do not imply deployment gates or operator receipt",
+      "permitted_operations": "original replay and existing scheduled role only; no audit-authorized selection/activation/message/device expansion",
+      "last_domain_output_disposition": "unit execution and exact release profile read back; no new message sent; actual operator receipt remains an external observation",
+      "retention_policy": "Retain original source package, existing selectors, source-bound artifacts and historical producer dispatch; audit did not replace any installed pin."
+    },
+    {
+      "surface": "weathernext-evaluate",
+      "owner": "weathernext-evaluate.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "0e9268e72ff6b6f7cfea3e4a9d05fc42c4c0c8216fbd2420f7305d1d1e110aa3",
+          "git_revision": null,
+          "identity_kind": "immutable_package_requires_manifest_readback"
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "f429d8f10d0c73b91096a77be1c095611cf4f890c08457dfbda090afd14fd4b6",
+      "environment_file_bindings": [
+        {
+          "sha256": "3c7928f8c84ec58995df7829193a212ffa72318cc443816dc8cd5a406e74ddab",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 08:52:19 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 08:52:53 MDT"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "256",
+        "--preferred-mib": "512",
+        "--tasks": "24",
+        "--seconds": "120"
+      },
+      "domain_output_status": "configured_output_identity_schema_and_available_clocks_read_back",
+      "installed_changes_from_reaudit": false,
+      "effective_environment": {
+        "allowlisted_keys": [
+          "EARTHSHIP_WEATHER_ARCHIVE",
+          "EARTHSHIP_WEATHER_CODE_REVISION",
+          "EARTHSHIP_WEATHER_CODE_ROOT",
+          "EARTHSHIP_WEATHER_PYTHON",
+          "EARTHSHIP_WEATHER_SHADOW_STATE",
+          "EARTHSHIP_WEATHER_TEMPERATURE_POLICY",
+          "PYTHONPATH"
+        ],
+        "bindings_sha256": "f7bfed482a13ea675da8e7d25f13b9219f86d87e82cd530b981ba6371c11725e",
+        "files_in_effective_order": [
+          {
+            "sha256": "8a3de7ec60a1280fa0ce2b13332f9bae136e73c20a4c2813eed696266ac4ed81",
+            "bytes": 744,
+            "mode": "0o600"
+          },
+          {
+            "sha256": "056d43820dee23147dd2cc2d7049c83163ac6ddfcba52e1280a91ca9f1b96a99",
+            "bytes": 258,
+            "mode": "0o600"
+          },
+          {
+            "sha256": "730cd9f0e93f9f36a494f29e586dc2299473ac4ecfba7bfddb88060ea6359c91",
+            "bytes": 170,
+            "mode": "0o600"
+          },
+          {
+            "sha256": "3c7928f8c84ec58995df7829193a212ffa72318cc443816dc8cd5a406e74ddab",
+            "bytes": 291,
+            "mode": "0o600"
+          }
+        ]
+      },
+      "configured_inputs": [
+        {
+          "role": "--temperature-policy",
+          "sha256": "96e05c1ceac6c1219c1ec6106595b479c0ddcd97819a6780b832619895fcf0cb",
+          "bytes": 940,
+          "mode": "0o600"
+        }
+      ],
+      "last_domain_output": {
+        "sha256": "48faba397be15c075ed4f0d366ec0e7d1a4d8c0863f36dd4b8a2a0c6fa936a4c",
+        "bytes": 55456,
+        "schema": "earthship-weathernext-weather-performance/v2",
+        "generated_at": "2026-10-21T14:52:19.752129+00:00",
+        "valid_until": "2026-10-21T16:52:19.752129+00:00",
+        "code_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+        "report_sha256": "80b39461ded2bc9ee44eb086445706f27a06ca3bdb37a2b620b3fd60f9551b28",
+        "automatic_actuation": false
+      },
+      "installed_package_manifest": {
+        "code_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+        "source_files_verified": 353,
+        "source_inventory_sha256": "49be86a7d44d940dee5964c1e7d5f363930b5ee2012bbf8088a1de21623577ea"
+      },
+      "compatibility_disposition": "independent immutable8f3747 evaluator; newest branch monitor repairs not installed",
+      "permitted_operations": "original replay and existing scheduled role only; no audit-authorized selection/activation/message/device expansion",
+      "retention_policy": "Retain original source package, existing selectors, source-bound artifacts and historical producer dispatch; audit did not replace any installed pin."
+    },
+    {
+      "surface": "weathernext-ingest",
+      "owner": "weathernext-ingest.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "24bd3090768e86b500d414262d5e799706d77a9797bfe56b30c0314feeaffb5e",
+          "git_revision": "b940f154b1ffc1d7d8de8684e0c9e6a9ef511f08",
+          "dirty": false
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "b94e27b610247f0c699921b89d53bc3789d0fc6c6950f452771f68131d86e37c",
+      "environment_file_bindings": [
+        {
+          "sha256": "3c793ec6ae8515c680b16b79aef5cfad24761c7f58d3f341388143dc1c067e54",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 08:41:10 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 08:41:32 MDT"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "256",
+        "--preferred-mib": "256",
+        "--tasks": "24",
+        "--seconds": "90"
+      },
+      "domain_output_status": "configured_output_identity_schema_and_available_clocks_read_back",
+      "installed_changes_from_reaudit": false,
+      "effective_environment": {
+        "allowlisted_keys": [
+          "EARTHSHIP_WEATHER_ARCHIVE",
+          "EARTHSHIP_WEATHER_CODE_REVISION",
+          "EARTHSHIP_WEATHER_CODE_ROOT",
+          "EARTHSHIP_WEATHER_COLLECTOR_CODE_ROOT",
+          "EARTHSHIP_WEATHER_PYTHON",
+          "EARTHSHIP_WEATHER_SHADOW_STATE",
+          "EARTHSHIP_WEATHER_TEMPERATURE_POLICY"
+        ],
+        "bindings_sha256": "cc7511bd57b4efac492a4f8a4158b51ef4e92d37f59fac269ebaee43550e3cd3",
+        "files_in_effective_order": [
+          {
+            "sha256": "8a3de7ec60a1280fa0ce2b13332f9bae136e73c20a4c2813eed696266ac4ed81",
+            "bytes": 744,
+            "mode": "0o600"
+          },
+          {
+            "sha256": "3c793ec6ae8515c680b16b79aef5cfad24761c7f58d3f341388143dc1c067e54",
+            "bytes": 176,
+            "mode": "0o600"
+          }
+        ]
+      },
+      "configured_inputs": [],
+      "last_domain_output": {
+        "snapshot_sha256": "402888e7c2548113593152e3c880550378d011a953e360bb0a05ea130495d3e2",
+        "initialized_at": "2026-10-21T07:00:00+00:00",
+        "completed_at": "2026-10-21T14:41:32.060576+00:00",
+        "original_hash_and_schema_validated": true,
+        "point_count": 576
+      },
+      "compatibility_disposition": "pinned WeatherNext-only collector; archive readback proves originals, no new acquisition by audit",
+      "permitted_operations": "original replay and existing scheduled role only; no audit-authorized selection/activation/message/device expansion",
+      "retention_policy": "Retain original source package, existing selectors, source-bound artifacts and historical producer dispatch; audit did not replace any installed pin."
+    },
+    {
+      "surface": "weathernext-publish",
+      "owner": "weathernext-publish.service",
+      "source_pins": [
+        {
+          "root_identity_sha256": "205fac3e37424e58e4d9aa7f9775f4381f50252a0cffb5a49ec877c702f95936",
+          "git_revision": null,
+          "identity_kind": "immutable_package_requires_manifest_readback"
+        }
+      ],
+      "effective_command_and_source_bindings_sha256": "c3740e019188011ce566de9acae13f2a6829ebcefc7c057bda009bce96edaf03",
+      "environment_file_bindings": [
+        {
+          "sha256": "23973c63f2edde6885f78dea4bc39c8e3175f5abada4c3c212e6beb2153fae9d",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 08:48:01 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 08:48:39 MDT"
+      },
+      "launcher_profile": {
+        "--minimum-mib": "256",
+        "--preferred-mib": "512",
+        "--tasks": "24",
+        "--seconds": "90"
+      },
+      "domain_output_status": "configured_output_identity_schema_and_available_clocks_read_back",
+      "installed_changes_from_reaudit": false,
+      "effective_environment": {
+        "allowlisted_keys": [
+          "EARTHSHIP_WEATHER_ARCHIVE",
+          "EARTHSHIP_WEATHER_CODE_REVISION",
+          "EARTHSHIP_WEATHER_CODE_ROOT",
+          "EARTHSHIP_WEATHER_PRODUCTION_CONFIG",
+          "EARTHSHIP_WEATHER_PYTHON",
+          "EARTHSHIP_WEATHER_SHADOW_STATE",
+          "EARTHSHIP_WEATHER_TEMPERATURE_POLICY"
+        ],
+        "bindings_sha256": "9708e6f0278c9205a198000b7a1f43d6a02f53a630218ca1acc41a35f57a67a2",
+        "files_in_effective_order": [
+          {
+            "sha256": "8a3de7ec60a1280fa0ce2b13332f9bae136e73c20a4c2813eed696266ac4ed81",
+            "bytes": 744,
+            "mode": "0o600"
+          },
+          {
+            "sha256": "23973c63f2edde6885f78dea4bc39c8e3175f5abada4c3c212e6beb2153fae9d",
+            "bytes": 502,
+            "mode": "0o600"
+          }
+        ]
+      },
+      "configured_inputs": [
+        {
+          "role": "--config",
+          "sha256": "21225a71ee6d4e57c1b8cb08b40fd01c4d89464d86f09788eb58b76a8e4e8e57",
+          "bytes": 4575,
+          "mode": "0o600"
+        }
+      ],
+      "installed_package_manifest": {
+        "code_revision": "850f753cd52c7bf9f4462441d425a52413fe9a74",
+        "source_files_verified": 28,
+        "runtime_manifest_sha256": "6a6d1bd932193693ee20b63dd0de800c5ef01ba9ba468450f03f42c09c6ac600",
+        "release_sha256": "5af7e7083dfb563146abd2cb07069440e57ee3c76ca40da0c5ecaffac5752703"
+      },
+      "last_domain_output": {
+        "sha256": "af6271ee683eb8e70cff3d7f941048c1b6539734145009b987dc14a2938a5c04",
+        "bytes": 1261,
+        "schema": "earthship-weather-publication-run/v1",
+        "status": "PUBLISHED",
+        "result_sha256": "56e235fc9529a5435f72102e8e15bcacdacef7a372c5927205be047d1745d620",
+        "automatic_actuation": false
+      },
+      "compatibility_disposition": "externally admitted immutable writer package; exact declared runtime/release hashes checked",
+      "permitted_operations": "original replay and existing scheduled role only; no audit-authorized selection/activation/message/device expansion",
+      "retention_policy": "Retain original source package, existing selectors, source-bound artifacts and historical producer dispatch; audit did not replace any installed pin."
+    }
+  ],
+  "domain_outputs_pending": [],
+  "control_owners": {
+    "night_load": {
+      "installed_source_sha256": "fb41b43161fb6a69e55199d02d15c9f2645d76ddd61d4b327f8a06c3f366373e",
+      "source_matches": true,
+      "status": {
+        "status": "IDLE",
+        "statusDetail": "NONE"
+      },
+      "domain_execution_or_physical_qualification": "not_inferred_from_rule_status",
+      "last_result_readbacks": {
+        "NightLoadOverride_Result": {
+          "state_sha256": "d9fc0e74a41c4d7de1cc049ff675063c2aa2cfd3fa0a060c8d4ae7b82ecd4cd0",
+          "status": "completed",
+          "at": "2026-10-21T15:00:04.049Z",
+          "reason": "completed",
+          "request_identity_sha256": "c6bcc0895b24311ef21750009a21f4622e3a1a46a6d34f54ea36b7d401a225a4"
+        },
+        "NightLoadDevice_Result": {
+          "state_sha256": "334b2e9ec7fa1df10a35f47f767ab90a59639bb3315e0f061083661719b78cba",
+          "status": "completed",
+          "at": "2026-10-21T13:50:42.009Z",
+          "reason": "completed",
+          "request_identity_sha256": "283368e5270bc0b15923d92502881a3e720993db556a5332305fef0d13aae725"
+        }
+      }
+    },
+    "greywater": {
+      "installed_source_sha256": "4c34780e544d80af8eb36d047a949fa30e0198bb50fa57650285052db3c52d9b",
+      "source_matches": true,
+      "status": {
+        "status": "IDLE",
+        "statusDetail": "NONE"
+      },
+      "domain_execution_or_physical_qualification": "not_inferred_from_rule_status"
+    },
+    "feeder_manual_payment": {
+      "installed_source_sha256": "730053e0f3245cb83461e3fe6e3b05d49c8b508631e8cdb4a889c8be8d915978",
+      "source_matches": true,
+      "status": {
+        "status": "IDLE",
+        "statusDetail": "NONE"
+      },
+      "domain_execution_or_physical_qualification": "not_inferred_from_rule_status"
+    }
+  },
+  "provider_inventory": {
+    "count": 84,
+    "retired_provider_matches": 0
+  },
+  "sensor_ingester": {
+    "image_reference": "earthship-observations:8f3747aef3d8a80bef8b638e712af099981a5d4f",
+    "image_id": "sha256:d7734141f83feccf25ed3bd6cf40086bb7882bd045a9568b3b431dd4db2f220e",
+    "memory_limit_bytes": 0,
+    "memory_swap_limit": 0,
+    "nano_cpus": 0,
+    "pids_limit": "<no value>",
+    "health": "healthy",
+    "resource_disposition": "production limits remain unbounded; staging caps do not apply",
+    "device_qualification": "not_inferred_from_service_health",
+    "registry_readback": {
+      "schema": "earthship-sensor-registry/v1",
+      "registry_file_sha256": "ede0f56e28ff82ca502fe234390bbffd7b94394d3550dbf9fe5ac381d70d8d8c",
+      "registered_devices": 0,
+      "device_online_or_commissioned_not_inferred": true
+    }
+  },
+  "route_disposition": {
+    "active": [
+      "home",
+      "energy",
+      "weather",
+      "earthship",
+      "shades",
+      "controls"
+    ],
+    "aliases_to_earthship": [
+      "household",
+      "ventilation"
+    ]
+  },
+  "household_planner_replay": {
+    "owner": "thermal-provisional-forecast.service / immutable native stage",
+    "translator_enabled": false,
+    "actuation_authorized": false,
+    "status": "original_full_snapshot_model_plan_arbiter_replayed",
+    "proof": "reaudit-20261021-household-plan.json",
+    "receipt_sha256": "8fdca4410a599bee677869cc17321d8ba5d462b396ba92782fcee72d42114130",
+    "decision_at": "2026-10-21T12:55:30.354351+00:00",
+    "runtime_files_verified": 68,
+    "scope": "Original12:55:15Z issued capture,12:55:30.354351Z plan, exact original producer/native runtime and68-file source/companion closure; pure full replay equals retained receipt, zero network/children; historical replay, not current-valid action permission."
+  },
+  "pv_morning_learning": {
+    "checked_at": "2026-10-21T13:18:23.875442+00:00",
+    "status": "daily_pv_learning_complete",
+    "result_sha256": "e55f83ab940b50189338f07e2d1c764ca9fd549495d2076c6fead551996f8dd6",
+    "fit_executed": {
+      "comparison": true,
+      "serving": true
+    },
+    "selection": {
+      "automatic_actuation": false,
+      "previous_file_sha256": "6192f8fc407d57d99e916c7fb7ff9d23aaaad8071820155e77536b32d4a5f2ee",
+      "promotion_permitted": false,
+      "selected_model_sha256": "f7ed8273c8ee8c2e5c07961165659fe803fa318a1ec55bdebb1ae2078428ad83",
+      "selected_receipt_sha256": "cb35190177692c70fac55d6a9ead6607a9100f991ab360acbe63560d1cc8dbe5",
+      "serving_availability": "not_assessed",
+      "status": "incumbent_retained_by_policy"
+    },
+    "actual_selection_file_sha256": "6192f8fc407d57d99e916c7fb7ff9d23aaaad8071820155e77536b32d4a5f2ee",
+    "scope": "Natural corrected candidate and unchanged incumbent numerically/source-verified through original0b3f6fc producer;355files/768pairs/v2baseline/v3fit, no audit fit or promotion. See reaudit-20261021-pv-morning.json."
+  },
+  "natural_cycle_limits": [
+    "Stored original delivery receipts validated, no new OpenHAB observation query.",
+    "No fit, collection, publication, selector change, service restart, control or message performed.",
+    "New source repairs remain uninstalled.",
+    "Fixture parity and scheduled success do not establish physical or statistical skill.",
+    "GET-only installed browser coverage is the preserved dirty overlay, not deployment evidence for the new source repairs."
+  ],
+  "environment_binding_status": "fresh effective inline and ordered EnvironmentFile hashes; non-secret path key allowlist; no command/configuration payload retained",
+  "installed_browser_readback": {
+    "checkedAt": "2026-10-21T15:42:51.175Z",
+    "profile": "actual installed UI, GET-only browser guard, no hardware/control interaction",
+    "results": [
+      {
+        "viewport": {
+          "width": 1340,
+          "height": 800
+        },
+        "route": "home",
+        "scrollHeight": 800,
+        "clientHeight": 800,
+        "scrollWidth": 1340,
+        "clientWidth": 1340,
+        "bodyHeight": 800,
+        "canvas": 0
+      },
+      {
+        "viewport": {
+          "width": 1340,
+          "height": 800
+        },
+        "route": "weather",
+        "scrollHeight": 800,
+        "clientHeight": 800,
+        "scrollWidth": 1340,
+        "clientWidth": 1340,
+        "bodyHeight": 800,
+        "canvas": 0
+      },
+      {
+        "viewport": {
+          "width": 1340,
+          "height": 800
+        },
+        "route": "energy",
+        "scrollHeight": 800,
+        "clientHeight": 800,
+        "scrollWidth": 1340,
+        "clientWidth": 1340,
+        "bodyHeight": 800,
+        "canvas": 0
+      },
+      {
+        "viewport": {
+          "width": 1340,
+          "height": 800
+        },
+        "route": "earthship",
+        "scrollHeight": 800,
+        "clientHeight": 800,
+        "scrollWidth": 1340,
+        "clientWidth": 1340,
+        "bodyHeight": 800,
+        "canvas": 0
+      },
+      {
+        "viewport": {
+          "width": 1340,
+          "height": 800
+        },
+        "route": "controls",
+        "scrollHeight": 800,
+        "clientHeight": 800,
+        "scrollWidth": 1340,
+        "clientWidth": 1340,
+        "bodyHeight": 800,
+        "canvas": 0
+      },
+      {
+        "viewport": {
+          "width": 1340,
+          "height": 800
+        },
+        "route": "shades",
+        "scrollHeight": 800,
+        "clientHeight": 800,
+        "scrollWidth": 1340,
+        "clientWidth": 1340,
+        "bodyHeight": 800,
+        "canvas": 0
+      },
+      {
+        "viewport": {
+          "width": 1340,
+          "height": 800
+        },
+        "route": "ventilation",
+        "scrollHeight": 800,
+        "clientHeight": 800,
+        "scrollWidth": 1340,
+        "clientWidth": 1340,
+        "bodyHeight": 800,
+        "canvas": 0
+      },
+      {
+        "viewport": {
+          "width": 1340,
+          "height": 800
+        },
+        "route": "household",
+        "scrollHeight": 800,
+        "clientHeight": 800,
+        "scrollWidth": 1340,
+        "clientWidth": 1340,
+        "bodyHeight": 800,
+        "canvas": 0
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "route": "home",
+        "scrollHeight": 720,
+        "clientHeight": 720,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "bodyHeight": 720,
+        "canvas": 0
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "route": "weather",
+        "scrollHeight": 720,
+        "clientHeight": 720,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "bodyHeight": 720,
+        "canvas": 0
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "route": "energy",
+        "scrollHeight": 720,
+        "clientHeight": 720,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "bodyHeight": 720,
+        "canvas": 0
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "route": "earthship",
+        "scrollHeight": 720,
+        "clientHeight": 720,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "bodyHeight": 720,
+        "canvas": 0
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "route": "controls",
+        "scrollHeight": 720,
+        "clientHeight": 720,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "bodyHeight": 720,
+        "canvas": 0
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "route": "shades",
+        "scrollHeight": 720,
+        "clientHeight": 720,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "bodyHeight": 720,
+        "canvas": 0
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "route": "ventilation",
+        "scrollHeight": 720,
+        "clientHeight": 720,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "bodyHeight": 720,
+        "canvas": 0
+      },
+      {
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "route": "household",
+        "scrollHeight": 720,
+        "clientHeight": 720,
+        "scrollWidth": 1280,
+        "clientWidth": 1280,
+        "bodyHeight": 720,
+        "canvas": 0
+      }
+    ],
+    "pageErrors": [],
+    "unexpectedMutationAttempts": [],
+    "blockedExternalRequests": []
+  }
+}

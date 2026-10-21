@@ -173,8 +173,11 @@ def read_day(geometry_root, horizon_path, now):
                         raise ValueError('bounded geometry cache required')
         selected = None
         for name in sorted(names):
-            raw, signature = _read(root_fd, name, private=True, maximum=MAX_BYTES, guard=guard)
             try:
+                # Trust is established per selected original. An unrelated
+                # unsafe entry is refused, never read through or admitted; it
+                # cannot invalidate an independently verified current series.
+                raw, signature = _read(root_fd, name, private=True, maximum=MAX_BYTES, guard=guard)
                 original = loads(raw)
                 request = original.get('request')
                 if not isinstance(request, dict):
@@ -186,7 +189,9 @@ def read_day(geometry_root, horizon_path, now):
                         first_endpoint not in instants or last_endpoint not in instants):
                     continue
                 report = project_day(raw, horizon_raw, now)
-            except (ValueError, TypeError, KeyError, OverflowError, RecursionError, UnicodeError):
+            except TimeoutError:
+                raise
+            except (OSError, ValueError, TypeError, KeyError, OverflowError, RecursionError, UnicodeError):
                 continue
             guard()
             key = (original['request']['requested_at'], report['geometryAvailableAt'], report['geometrySha256'])

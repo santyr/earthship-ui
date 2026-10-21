@@ -336,3 +336,19 @@ def test_terrain_daylight_skips_nonobject_json_without_losing_valid_current_cach
     root,_,horizon,now=private_daylight_cache(tmp_path,angles={1:(20,180)})
     malformed=root/'nonobject.geometry.json';malformed.write_bytes(raw);malformed.chmod(0o600)
     assert daylight_api().read_day(root,horizon,now)['terrainSunlightSeconds']==300
+
+
+@pytest.mark.parametrize('damage',['public_mode','symlink','hardlink','directory'])
+def test_terrain_daylight_rejects_unrelated_unsafe_entries_without_hiding_valid_current_original(tmp_path,damage):
+    root,current,horizon,now=private_daylight_cache(tmp_path,angles={1:(20,180)})
+    unrelated=root/'unrelated.geometry.json'
+    if damage=='public_mode':unrelated.write_text('{}');unrelated.chmod(0o644)
+    elif damage=='symlink':unrelated.symlink_to(current)
+    elif damage=='hardlink':
+        other=tmp_path/'other';other.write_text('{}');other.chmod(0o600);unrelated.hardlink_to(other)
+    else:unrelated.mkdir(mode=0o700)
+    before=current.read_bytes()
+    report=daylight_api().read_day(root,horizon,now)
+    assert report['terrainSunlightSeconds']==300
+    assert report['physical_calibration_qualified'] is False
+    assert current.read_bytes()==before

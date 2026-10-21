@@ -1,0 +1,1064 @@
+{
+  "schema": "earthship-reaudit-delta/v1",
+  "plan": "docs/superpowers/plans/2026-10-21-post-remediation-audit.md",
+  "baseline": "87a70336fa52a19a282941af1bcd80b2f63ded52",
+  "branch": "audit/reaudit-20261021",
+  "live_checkout_base": "02e3fcbc405d6018ad01977bbd7a3fa3af5f2ea5",
+  "status": "source_release_verified_published_uninstalled",
+  "tasks": {
+    "0": {
+      "status": "current_surface_map_complete",
+      "evidence": {
+        "surfaces": 16,
+        "control_owners_exact": 3,
+        "provider_inventory": {
+          "count": 84,
+          "retired_provider_matches": 0
+        },
+        "sensor_production_limits": "still unbounded; no cap changes authorized or made",
+        "remaining": [],
+        "full_household_plan": "reaudit-20261021-household-plan.json:68originalsource/companion files and native runtime matched, pure full plan/arbiter replay equal,2.515s, no acquisition/publication/action."
+      }
+    },
+    "1": {
+      "status": "source_fixed_integrated_gates_and_independent_review_passed",
+      "finding": "R20261021-01",
+      "installed": false,
+      "runtime_observed": "fixture_only",
+      "qualified": false,
+      "evidence": {
+        "baseline": "72 passed in 5 focused files",
+        "red": "17 failed, 14 passed; malformed snapshot also produced an unhandled TypeError",
+        "boundary_red": "5 failed, 15 passed",
+        "focused": "131 passed in 7 files",
+        "unit": "183 files, 2803 passed, Node 22.22.0 / Vitest 4.1.12, 53.08s",
+        "browser": "3 passed, isolated Chromium, both 1340x800 and 1280x720; no mutation/page errors",
+        "limitations": [
+          "All six repairs remain uninstalled. Earlier capped setup attempts are historical failures; final local bounded profiles and actual hosted matrix passed. No resource guard was relaxed."
+        ]
+      }
+    },
+    "2": {
+      "status": "source_fixed_integrated_gates_and_independent_review_passed",
+      "finding": "R20261021-02",
+      "installed": false,
+      "runtime_observed": "disposable_original_bound_fixtures",
+      "qualified": false,
+      "evidence": {
+        "red": "7 failed, 14 passed, 8 subtests passed",
+        "focused": "19 passed, 10 subtests passed",
+        "foundation": "298 unittest cases passed, Python 3.12.3; pinned WeatherNext environment",
+        "contract": "Existing v2 monitor and nested v1 comparison envelopes retained. Failed derivation/aggregation is identified in source_withheld by domain and stage; it is not counted as pending. No browser route/parser for this private monitor report exists at execution revision.",
+        "global_stops": "TimeoutError and AdmissionDeferred propagate; guard expiration prevents report publication.",
+        "durability": "Aggregation failure does not discard or recompute committed temperature score manifests across restart."
+      }
+    },
+    "3": {
+      "status": "source_fixed_integrated_gates_and_independent_review_passed",
+      "finding": "R20261021-03",
+      "installed": false,
+      "runtime_observed": "disposable_selector_and_original_fit_fixtures",
+      "qualified": false,
+      "evidence": {
+        "original_red": "4 failures then expected uncaught KeyboardInterrupt; remaining readback cases separately 6 failed/9 passed; directory sync missing 1 failed; dependency sync 2 failed; child exit truthfulness 2 failed/2 passed",
+        "related_green": "66 passed, historical daily + thermal admit/conditioning + interval overlap",
+        "outcomes": [
+          "unchanged is byte identity only, not usable-admission qualification",
+          "changed_verified requires exact configured consumer closure, reviewed worker proof, original file references, preserved models/expiry/epoch/horizon, and repeat selector/runtime readback",
+          "changed_unverified or unreadable is explicitly uncertain; no automatic retry/rollback",
+          "child failure/timeout/cancellation remain separate from observed selector outcome; unobserved child exit is null"
+        ],
+        "durability": "Immutable dependencies and their parent directories sync before selection; selector directory sync follows rename. Failure after rename never restores old bytes.",
+        "deadline": "Child budget remains unchanged; readback uses existing reserved owner time and stops at least 5 seconds before the owner deadline."
+      }
+    },
+    "4": {
+      "status": "six_lifecycle_cases_and_natural_proofs_verified",
+      "evidence": {
+        "lifecycle_tests": "104 passed with pinned Solar_PV 24d2, 19.91s",
+        "natural_thermal": "reaudit-20261021-natural.json: morning original producer delivery replay passed, 4.443s, zero network/children",
+        "pv": "reaudit-20261021-pv-morning.json: 355source files,768pairs, corrected v2 baseline/v3 fit and original incumbent bytes verified through original0b3f6fc package; promotion_permitted=false.",
+        "current_lifecycle_gate": "143passed/55.16s, actual scheduled entrypoints/disposable orchestration, six-case ownership in release handoff",
+        "full_household_plan": "reaudit-20261021-household-plan.json"
+      },
+      "remaining": []
+    },
+    "5": {
+      "status": "source_fixed_integrated_gates_and_independent_review_passed",
+      "finding": "R20261021-04",
+      "installed": false,
+      "evidence": {
+        "backlog_red": "3 failed (temperature/queue) plus 1 failed correction diagnostic",
+        "global_resource_red": "4 MemoryError subcases failed after initial optional-boundary repair; fatal allocation errors now propagate alongside deadline/admission stops",
+        "stress": "94 passed,16 subtests,31.25s; 336h/restart/late discovery/policy/epoch/version separation, source-index replacement/supersession, fairness, low disk, failed transaction, interrupted atomic report replace and full21-origin cohort growth",
+        "foundation": "305cases passed at the intermediate stage; subsequent309-case foundation and final normal/hosted shards include all final regressions.",
+        "archive_capacity": "RED2 exact native worker regressions; GREEN13 tests/3 subtests. Counts and canonical bytes advance after each successful retained snapshot; excess interim refuses without deleting first original. Exact 10000 count refuses before reader initialization. No auto pruning."
+      },
+      "capacity": {
+        "temperature_main_database_max_mib": 512,
+        "correction_main_database_max_mib": 128,
+        "archive_limit_gib": 16,
+        "archive_objects_max": 10000,
+        "shadow_objects_max": 10000,
+        "shadow_files_max_gib": 2,
+        "minimum_free_mib": 32,
+        "retention": "no automatic original/score pruning; caps refuse new writes",
+        "report_bytes_max": 524288,
+        "correction_report_bytes_max": 65536,
+        "correction_display_score_limit": 2048,
+        "correction_omission_disclosure": "report_scores_truncated and projection_coverage; original scores retained"
+      },
+      "clock_semantics": "Seven-day allowance limits original outcome availability, not discovery time. Target-point temperature receipts must already have persisted by target; late query cannot renew that clock. Known due wait is measured since target maturity and is separate from retry time.",
+      "contract": "Added bounded operational metadata in private existing report envelopes; fixed browser projection schemas unchanged. No forecast, weighting, score identity, scope, promotion or authority change.",
+      "additional_finding": "R20261021-06"
+    },
+    "6": {
+      "status": "source_fixed_integrated_gates_and_independent_review_passed",
+      "finding": "R20261021-05",
+      "installed": false,
+      "evidence": {
+        "red": "4 failed against production read_day (unrelated public-mode file, symlink, hardlink, directory)",
+        "focused": "128 Python tests passed,14.96s; DST, geometry/cache trust, raw/corrected thermal overlap, PV baseline/calendar and storage consumers",
+        "combined": "152passed/12subtests at an intermediate stage; final local and actual hosted source partitions subsequently passed."
+      },
+      "policy": "Reject individual unsafe/unreplayable entries. Root/horizon trust failures, source/selected-file mutation, population bounds and deadlines invalidate the projection. Selected originals still require private owner/mode, no symlink or hardlink, original hash/runtime replay and repeat readback. No unsafe source contributes to the result.",
+      "numerical_change": false,
+      "remaining": []
+    },
+    "7": {
+      "status": "capability_dispositions_and_local_gates_verified",
+      "evidence": "Capability/requirement cross-reference in capability_dispositions and release_handoff; all existing active routes/auxiliary aliases and producer/consumer groups have explicit software, installed and external dispositions."
+    },
+    "8": {
+      "status": "integrated_release_verified",
+      "evidence": "All5actual hosted workflows/13jobs passed at exact source tree; CI-only multiday replay executed, ML1414passed with no skips; all local required/native profiles retained separately."
+    },
+    "9": {
+      "status": "published_pr_and_scoped_handoff_verified",
+      "evidence": "PR43 published under explicit authorization; per-surface original retention, source/environment/adoption hashes, outputs and scoped rollback in release handoff; no merge/deployment authorized or performed."
+    }
+  },
+  "finding_seed": {
+    "revision": "87a70336fa52a19a282941af1bcd80b2f63ded52",
+    "findings": [
+      {
+        "id": "R20261021-01",
+        "severity": "P2",
+        "status": "source_excerpt_reproduced",
+        "title": "Older temperature state can inherit newer freshness evidence",
+        "files": [
+          "src/lib/openhab/store.js",
+          "src/lib/openhab/sse.js",
+          "src/lib/alerts/staleness.js"
+        ],
+        "probe": "evidence/temperature-snapshot-probe.mjs",
+        "required_agent_action": "Reproduce with production module imports, preserve coherent state/evidence ordering, add maintained regression."
+      },
+      {
+        "id": "R20261021-02",
+        "severity": "P2",
+        "status": "fault_injection_reproduced",
+        "title": "Optional solar/rain forecast derivation can abort unrelated temperature scoring",
+        "files": [
+          "openhab/scripts/weather_learning/monitoring.py"
+        ],
+        "probe": "evidence/monitor-isolation-probe.py",
+        "required_agent_action": "Isolate optional-domain errors without swallowing global admission/deadline failures; verify partial-report consumers."
+      },
+      {
+        "id": "R20261021-03",
+        "severity": "P2",
+        "status": "fault_injection_reproduced",
+        "title": "Failed thermal post-step claims previous selector preserved without readback",
+        "files": [
+          "openhab/scripts/thermal_weather_readmit_post.py",
+          "openhab/scripts/thermal_weather_readmit.py",
+          "openhab/scripts/test_historical_weather_daily.py"
+        ],
+        "probe": "evidence/post-selector-status-probe.py",
+        "required_agent_action": "Add bounded original/after selector evidence and explicit uncertain outcome; no unconditional rollback or retry."
+      }
+    ],
+    "production_incidents_established": false
+  },
+  "authority": {
+    "planner_translation": false,
+    "automatic_actuation": false,
+    "deployment_authorized_by_plan": false
+  },
+  "historical_findings": [
+    {
+      "id": "A00",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A01",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A02",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A03",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A04",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A05",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A06",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A07",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A08",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A09",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A10",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A11",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A12",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A13",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A14",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A15",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A16",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "C01",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "C02",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "C03",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "C04",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "C05",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "C06",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "C07",
+      "status": "intentional_boundary_preserved_verified"
+    },
+    {
+      "id": "A17",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "C08",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "C09",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "C10",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "C11",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A18",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A19",
+      "status": "fixed_integrated_verified_installed"
+    },
+    {
+      "id": "A20",
+      "status": "fixed_integrated_verified_installed"
+    },
+    {
+      "id": "A21",
+      "status": "fixed_integrated_verified"
+    },
+    {
+      "id": "A22",
+      "status": "fixed_integrated_verified"
+    }
+  ],
+  "runtime_map": "reaudit-20261021-runtime.json",
+  "test_companion_profiles": [
+    {
+      "pin": "24d2e8984810cb596fe9792768510a356786f709",
+      "tree_sha": "ea293f26ea3f3317b46bcf9ef1efa01c9b7d2bc7",
+      "files_checked_against_git_objects": 197,
+      "mismatches": []
+    },
+    {
+      "pin": "7b70117bcfb9599a12d0325771ed1103f083fa5c",
+      "tree_sha": "526e7de5c50490da1ae465967040320c75d0d7dd",
+      "files_checked_against_git_objects": 228,
+      "mismatches": []
+    }
+  ],
+  "additional_findings": [
+    {
+      "id": "R20261021-04",
+      "severity": "P2",
+      "title": "Durable progress lacked backlog age and verified capacity diagnostics",
+      "status": "source_fixed_integrated_gates_and_independent_review_passed",
+      "task": 5
+    },
+    {
+      "id": "R20261021-05",
+      "severity": "P2",
+      "title": "Unrelated unsafe geometry cache entry suppresses a valid current-day estimate",
+      "status": "source_fixed_integrated_gates_and_independent_review_passed",
+      "task": 6
+    },
+    {
+      "id": "R20261021-06",
+      "severity": "P2",
+      "title": "Full plus interim acquisition can exceed archive byte/object caps",
+      "status": "source_fixed_integrated_gates_and_independent_review_passed",
+      "task": 5
+    }
+  ],
+  "source_freeze": {
+    "schema": "earthship-reaudit-source-freeze/v1",
+    "source_commit": "36458d398b4709c7aa371a6d7deaa3f7fd2d3c22",
+    "non_documentation_manifest_sha256": "374dd3e971785be6e037bb2646138d20a1ad5fda54bd534e382f7195c90b2b3a",
+    "tracked_non_documentation_files": 1724,
+    "changed_files": {
+      "openhab/scripts/site_daylight.py": "1b15fc6b964a5639459155f4230794cca99e0682109c7ca993af8715d0fc5ee2",
+      "openhab/scripts/test_astro_geometry_series.py": "5c7983cbe4a5d778323cdb78a5ce9c0aa29feb6a3d0c91035522c00275e585c9",
+      "openhab/scripts/test_historical_weather_daily.py": "38bd7ccf1182a891971bcb93e77cd7917d6a4373ddc5cee4bb040fc18c8e7c35",
+      "openhab/scripts/test_thermal_weather_admit.py": "adc77ce3b0da63501c214463eb9ed4a9cba9532bb8df9ef5931f7d809034a6fb",
+      "openhab/scripts/test_weather_correction_monitor.py": "21fe96fae78a6464dae3c93c03a99d6dde59a6ca5674c9c3f3c7d9a2ca1c25a7",
+      "openhab/scripts/thermal_weather_readmit.py": "1c64cc4ea44b4c85449fc9a0df43c455ad31d9b9ca97dbe9d46ee4a8f0886b50",
+      "openhab/scripts/thermal_weather_readmit_post.py": "e47bc59a2f22fa5048d9cf75cf47eb223c4d1bd240ca73ae24c4d932ba5504dc",
+      "openhab/scripts/weather_learning/correction_monitor.py": "a335288c3a17d048ea9c3dc924c999a768ce0b47e15ebe2c2b9e7fbbaf9b21ed",
+      "openhab/scripts/weather_learning/energy_shadow.py": "c29e77c8a46413eea3076ef5c4c628456bfb387887e918c87587b34391502fee",
+      "openhab/scripts/weather_learning/monitoring.py": "617c6ab2d959d31c7ea45010a4e5da5ff5763a1f06a627348917047116a466c3",
+      "openhab/scripts/weather_learning/pending_scores.py": "57be055f81c4c4aca5f0ae7a7e30709fe5d54a2b2e930e7884833fe34d00c97c",
+      "openhab/scripts/weather_learning/solar_shadow.py": "403f754dc2d0144b73b0acb80ec399770b516ad383becd50ad1dbfba1d568ad9",
+      "openhab/scripts/weather_learning/tests/test_hourly_collection.py": "2c165dbace271705816516b1d247232eda9887d069824aff6c8643fedd3d3dad",
+      "openhab/scripts/weather_learning/tests/test_monitoring.py": "2b6c713c5d7e85230afe85bd66f853982a28696ff72418fc374f590a71082e8a",
+      "openhab/scripts/weather_learning/tests/test_pending_scores.py": "671c1d8f4297f4b2f6fcd8718ed79e2f6cbd87a5af5ce6f8db7a1896b9c3c6b1",
+      "openhab/scripts/weather_learning/tests/test_performance.py": "7c139b81b8c789a0db0b851649c7bd54ffce9f194566ee4ca310f7030d559ebf",
+      "openhab/scripts/weather_learning/worker.py": "b51a4d6f6211f4daa166ce9d6797f302ed6d8d6b2d819a4da5d602a97979baed",
+      "src/lib/alerts/staleness.js": "0c61f018d6162bc58d4bf6ae8f72902550195408d07eaba42c2f4cce7a048924",
+      "src/lib/openhab/sse.js": "f1928affc0f38cea0fc73305d7a84cf9b915725e20fd6cbc50577881940b09fa",
+      "src/lib/openhab/store.js": "83b1d55d61ec849edf05da9cd0ff3434486be7a68353c9bc307ebfa9f907cf28",
+      "tests/alert-staleness.test.js": "a93236c7cdcd22d65dda9976cf0a0412bfc06533662e9cb05f0011c5863586e1",
+      "tests/e2e/home-runtime.spec.js": "397eaa2d04afa5ddaaabb3eb1e5fd9f1b4a7e59beebf573b37d4e7b928374007",
+      "tests/e2e/weather-earthship-layout.spec.js": "d7ce66683ef34c5ea2a7efff1e04be48b0fb62dbdff4262d994d9d512f9985ed",
+      "tests/openhab-reconciliation.test.js": "2abe7d562d4dad43cfb4a7b1f0791dc17bbb3576d71a795d78ab33eb30fc85ef",
+      "tests/store.test.js": "657cc891e892c9bb2e98907b0fb4ad0bac45423668b5a1478f9d5761c191408c",
+      "tests/temperature-evidence-ordering.test.js": "790f83031452e07e4c91065e7babe7f8b30cb53bc10d6ed4b62912b1f4edd740"
+    },
+    "dependency_lock_sha256": "35c941310fa1036b091d40e2840db925233e36c0c9826ad39e26d436ef11774b",
+    "workflow_sha256": {
+      ".github/workflows/ci.yml": "36623b9bd430f6b92066f7e7bab863e8b3055a0eb1d8931c28820bc44fef7ebc",
+      ".github/workflows/forecast-ml-hardening.yml": "2426eef763a6c39b75b2cfd23ace20b2d8c524654985ea4d214f37797733129c",
+      ".github/workflows/household-receipt-integrity.yml": "2a0617a3cc030eee97039b7f9f3e10f6e91a3bc0ec4efab7dfe17496ac6028fb",
+      ".github/workflows/sensors.yml": "817635927b2f2e7bf796bdca8b36c8b1a9607afec1acba6e7e5b25b0c570c7bf",
+      ".github/workflows/thermal-delivery.yml": "c0fa23359346ce1a95e03fae4f521593700bd8df58b08e1fa89b7bd269b8a794"
+    },
+    "documentation_descendants_allowed_only_if_manifest_matches": true,
+    "previous_source_freeze": {
+      "schema": "earthship-reaudit-source-freeze/v1",
+      "source_commit": "00e6a921e28d6bd77d51a4f82e141f1e8ea3f609",
+      "non_documentation_manifest_sha256": "3eebc25c7e7e950830353c4ae8f13c38f5154d379b3a3d75a3bf080b5ce3b3a4",
+      "tracked_non_documentation_files": 1724,
+      "changed_files": {
+        "openhab/scripts/site_daylight.py": "1b15fc6b964a5639459155f4230794cca99e0682109c7ca993af8715d0fc5ee2",
+        "openhab/scripts/test_astro_geometry_series.py": "5c7983cbe4a5d778323cdb78a5ce9c0aa29feb6a3d0c91035522c00275e585c9",
+        "openhab/scripts/test_historical_weather_daily.py": "38bd7ccf1182a891971bcb93e77cd7917d6a4373ddc5cee4bb040fc18c8e7c35",
+        "openhab/scripts/test_thermal_weather_admit.py": "adc77ce3b0da63501c214463eb9ed4a9cba9532bb8df9ef5931f7d809034a6fb",
+        "openhab/scripts/test_weather_correction_monitor.py": "21fe96fae78a6464dae3c93c03a99d6dde59a6ca5674c9c3f3c7d9a2ca1c25a7",
+        "openhab/scripts/thermal_weather_readmit.py": "1c64cc4ea44b4c85449fc9a0df43c455ad31d9b9ca97dbe9d46ee4a8f0886b50",
+        "openhab/scripts/thermal_weather_readmit_post.py": "e47bc59a2f22fa5048d9cf75cf47eb223c4d1bd240ca73ae24c4d932ba5504dc",
+        "openhab/scripts/weather_learning/correction_monitor.py": "a335288c3a17d048ea9c3dc924c999a768ce0b47e15ebe2c2b9e7fbbaf9b21ed",
+        "openhab/scripts/weather_learning/energy_shadow.py": "c29e77c8a46413eea3076ef5c4c628456bfb387887e918c87587b34391502fee",
+        "openhab/scripts/weather_learning/monitoring.py": "617c6ab2d959d31c7ea45010a4e5da5ff5763a1f06a627348917047116a466c3",
+        "openhab/scripts/weather_learning/pending_scores.py": "57be055f81c4c4aca5f0ae7a7e30709fe5d54a2b2e930e7884833fe34d00c97c",
+        "openhab/scripts/weather_learning/solar_shadow.py": "403f754dc2d0144b73b0acb80ec399770b516ad383becd50ad1dbfba1d568ad9",
+        "openhab/scripts/weather_learning/tests/test_hourly_collection.py": "2c165dbace271705816516b1d247232eda9887d069824aff6c8643fedd3d3dad",
+        "openhab/scripts/weather_learning/tests/test_monitoring.py": "2b6c713c5d7e85230afe85bd66f853982a28696ff72418fc374f590a71082e8a",
+        "openhab/scripts/weather_learning/tests/test_pending_scores.py": "671c1d8f4297f4b2f6fcd8718ed79e2f6cbd87a5af5ce6f8db7a1896b9c3c6b1",
+        "openhab/scripts/weather_learning/tests/test_performance.py": "7c139b81b8c789a0db0b851649c7bd54ffce9f194566ee4ca310f7030d559ebf",
+        "openhab/scripts/weather_learning/worker.py": "b51a4d6f6211f4daa166ce9d6797f302ed6d8d6b2d819a4da5d602a97979baed",
+        "src/lib/alerts/staleness.js": "0c61f018d6162bc58d4bf6ae8f72902550195408d07eaba42c2f4cce7a048924",
+        "src/lib/openhab/sse.js": "f1928affc0f38cea0fc73305d7a84cf9b915725e20fd6cbc50577881940b09fa",
+        "src/lib/openhab/store.js": "83b1d55d61ec849edf05da9cd0ff3434486be7a68353c9bc307ebfa9f907cf28",
+        "tests/alert-staleness.test.js": "a93236c7cdcd22d65dda9976cf0a0412bfc06533662e9cb05f0011c5863586e1",
+        "tests/e2e/home-runtime.spec.js": "397eaa2d04afa5ddaaabb3eb1e5fd9f1b4a7e59beebf573b37d4e7b928374007",
+        "tests/openhab-reconciliation.test.js": "2abe7d562d4dad43cfb4a7b1f0791dc17bbb3576d71a795d78ab33eb30fc85ef",
+        "tests/store.test.js": "657cc891e892c9bb2e98907b0fb4ad0bac45423668b5a1478f9d5761c191408c",
+        "tests/temperature-evidence-ordering.test.js": "790f83031452e07e4c91065e7babe7f8b30cb53bc10d6ed4b62912b1f4edd740"
+      },
+      "dependency_lock_sha256": "35c941310fa1036b091d40e2840db925233e36c0c9826ad39e26d436ef11774b",
+      "workflow_sha256": {
+        ".github/workflows/ci.yml": "36623b9bd430f6b92066f7e7bab863e8b3055a0eb1d8931c28820bc44fef7ebc",
+        ".github/workflows/forecast-ml-hardening.yml": "2426eef763a6c39b75b2cfd23ace20b2d8c524654985ea4d214f37797733129c",
+        ".github/workflows/household-receipt-integrity.yml": "2a0617a3cc030eee97039b7f9f3e10f6e91a3bc0ec4efab7dfe17496ac6028fb",
+        ".github/workflows/sensors.yml": "817635927b2f2e7bf796bdca8b36c8b1a9607afec1acba6e7e5b25b0c570c7bf",
+        ".github/workflows/thermal-delivery.yml": "c0fa23359346ce1a95e03fae4f521593700bd8df58b08e1fa89b7bd269b8a794"
+      },
+      "documentation_descendants_allowed_only_if_manifest_matches": true
+    },
+    "change_since_previous": "Only two duplicate Item rows removed from a maintained browser fixture; production source, lockfiles, Python and workflows unchanged."
+  },
+  "verification": {
+    "status": "local_and_hosted_matrix_passed",
+    "unit": {
+      "files": 183,
+      "passed": 2803,
+      "node": "22.22.0",
+      "vitest": "4.1.12",
+      "seconds": 52.99
+    },
+    "build": {
+      "passed": true,
+      "seconds": 1.68,
+      "warning": "existing large icon bundle"
+    },
+    "weathernext_foundation": {
+      "passed": 309,
+      "seconds": 44.557,
+      "profile": "requirements-weathernext.txt, Python3.12.3"
+    },
+    "workflow_validation": {
+      "passed": true,
+      "actionlint": "1.7.7",
+      "go": "1.22.2"
+    },
+    "provisional_ui_contract": {
+      "passed": 12
+    },
+    "sensors_contracts": {
+      "passed": 69,
+      "skipped": 11,
+      "pytest": "8.3.5",
+      "skip_reason": "opt-in integration; executed separately"
+    },
+    "sensors_integration": {
+      "passed": 11,
+      "skipped": 0,
+      "seconds": 37.75,
+      "pytest": "8.3.5",
+      "isolation": "unique disposable Compose project, alternate loopback-only ports bridged into networkless namespace; no production service modified"
+    },
+    "native_profiles": [
+      {
+        "profile": "completion-isolated",
+        "passed": 656,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "exit": 0,
+        "seconds": 166.158
+      },
+      {
+        "profile": "completion-pg",
+        "passed": 3,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "exit": 0,
+        "seconds": 26.119
+      },
+      {
+        "profile": "host",
+        "passed": 19,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "exit": 0,
+        "seconds": 30.139
+      },
+      {
+        "profile": "receiver",
+        "passed": 5,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "exit": 0,
+        "seconds": 1.116
+      }
+    ],
+    "intentional_failure": {
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "gate": "maintained test_hourly_collection.py::HourlyCollectionTests::test_full_and_interim_batch_cannot_exceed_archive_byte_cap",
+      "scope": "disposable source copy with only cumulative-byte guard disabled; release source unchanged",
+      "result": "failed at expected capacity assertion, not import/setup failure"
+    },
+    "counts_are_not_added_across_overlapping_profiles": true,
+    "crypto": {
+      "status": "passed",
+      "nak_sha256": "ba918fafd1b030bc50958a5b218c6386f4c3a57c1e469562d3947e858e0ba56e",
+      "nak_version": "0.20.7",
+      "authentication_checks": 8,
+      "delivery_checks": 8,
+      "scope": "disposable local keys, exact root-owned copy, networkless namespace with loopback relay; no household keys or messages; delivery journal is an explicit test double",
+      "resource_profile": "64tasks;24task attempts were invalid due signer process thread requirements"
+    },
+    "shards": [
+      {
+        "source_revision": "c1c319245665a7d215dac9a08db59b09985f70ab",
+        "shard": 0,
+        "seconds": 516.552,
+        "profiles": [
+          {
+            "profile": "general",
+            "files": 153,
+            "exit": 0
+          }
+        ],
+        "passed": 2233,
+        "skipped": 8,
+        "subtests": 68
+      },
+      {
+        "source_revision": "c1c319245665a7d215dac9a08db59b09985f70ab",
+        "shard": 1,
+        "seconds": 603.802,
+        "profiles": [
+          {
+            "profile": "general",
+            "files": 140,
+            "exit": 0
+          }
+        ],
+        "passed": 2070,
+        "skipped": 5,
+        "subtests": 117
+      },
+      {
+        "source_revision": "00e6a921e28d6bd77d51a4f82e141f1e8ea3f609",
+        "shard": 2,
+        "seconds": 642.473,
+        "profiles": [
+          {
+            "profile": "general",
+            "files": 151,
+            "exit": 0
+          },
+          {
+            "profile": "pinned_bms_aux",
+            "files": 1,
+            "exit": 0
+          }
+        ],
+        "passed": 2322,
+        "skipped": 8,
+        "subtests": 69
+      }
+    ],
+    "renewal_for_archive_fix": "Worker and hourly collection tests both belong to shard1; full309foundation and13targeted tests/3subtests passed at00e6a92 after shard1 atc1c3192. Third shard at00e6a92 includes separate pinnedBMSaux1pass. Final source digest permits only documentation descendants.",
+    "skips_disposition": {
+      "receiver": "All affected receiver/radiation/rain/temperature integration files run in actual host-dependency profile:32passed,zero skipped; covers all14shard dependency skips plus related tests.",
+      "resource": "all selected opt-in native resource/systemd cases executed in actual capped scope",
+      "earth_engine": "all3SDK query tests execute in separate309case pinned WeatherNext foundation without cloud access",
+      "multiweek_replay": "Executed on actual GitHub Actions runner with CI=true in forecast-ml:1414passed/0skips/1explicitqualification-fit deselection; dedicated qualification-fit also passed exactly1case without skip.",
+      "qualification_fit": "Dedicated explicit opt-in job executed exactly1expected testcase, zero skipped/errors/failures,5.65s."
+    },
+    "receiver_all": {
+      "passed": 32,
+      "skipped": 0,
+      "seconds": 0.51,
+      "profile": "actual host receiver imported into disposable read/write/network-denied fixtures via systemPython3.12.3 + flask_cors"
+    },
+    "lifecycle": {
+      "passed": 143,
+      "skipped": 0,
+      "seconds": 55.16
+    },
+    "sensors_browser": {
+      "passed": 2,
+      "seconds": 7.6,
+      "node": "24.13.0",
+      "viewports": [
+        "1340x800",
+        "1280x720"
+      ],
+      "leaf_pids_max_events": 0,
+      "leaf_memory_events": 0,
+      "fixture_cleanup": "exact uniquely named Compose containers/networks/volumes and generated private simulation configuration removed; production stack unchanged; original tracked screenshot restored"
+    },
+    "browser_profiles": [
+      {
+        "profile": "test:e2e",
+        "exit": 0,
+        "seconds": 117.87,
+        "counters": {
+          "pids.events": "max 0",
+          "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0"
+        },
+        "source_revision": "36458d398b4709c7aa371a6d7deaa3f7fd2d3c22",
+        "passed": 79
+      },
+      {
+        "profile": "test:geometry",
+        "exit": 0,
+        "seconds": 103.025,
+        "counters": {
+          "pids.events": "max 0",
+          "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0"
+        },
+        "source_revision": "36458d398b4709c7aa371a6d7deaa3f7fd2d3c22",
+        "passed": 67
+      }
+    ],
+    "browser_profile": "Node22.22.0, Chromium, networkless namespace/loopback only,1worker,2CPU affinity, V8pool1/UVpool1/Rolldown1+2blocking/Rayon1/GoMax2; original128task1024\u20132048MiB limit retained; zero pids/memory events in both final commands.",
+    "operational": {
+      "passed": 1396,
+      "skipped": 3,
+      "seconds": 123.13,
+      "skip_coverage": "all3opt-in systemd cases executed in nativehost19pass profile"
+    },
+    "ml_hardening": {
+      "passed": 1413,
+      "skipped": 1,
+      "deselected": 1,
+      "seconds": 497.32,
+      "skip_reason": "hostedCI-only multiday source replay",
+      "deselected_reason": "dedicated explicit qualification-fit profile runs separately"
+    },
+    "hosted_ci_remaining": [],
+    "release_source_revision": "36458d398b4709c7aa371a6d7deaa3f7fd2d3c22",
+    "gate_identity_notes": "Each shard/result carries its execution revision; unit/build/foundation/native at00e6a92. Later36458d3 only removes two duplicate rows from browser fixture; final79/67browser suites ran at36458d3. All other source/lock/workflow bytes remain unchanged. Collector renewal is separately recorded; no overlapping counts added.",
+    "receipt_integrity": {
+      "passed": 526,
+      "skipped": 0,
+      "seconds": 186.83
+    },
+    "qualification_fit": {
+      "passed": 1,
+      "skipped": 0,
+      "seconds": 5.65,
+      "explicit_optin": "EARTHSHIP_REMOTE_QUALIFICATION_FIT=1",
+      "junit_exact_case_and_no_skip_assertions_passed": true
+    },
+    "independent_review": {
+      "reviewed_head": "c22632d799d36290c70bde31b8f80cce7663b13c",
+      "reviewer": "fresh independent whole-branch review via requesting-code-review / executing-plans",
+      "critical": 0,
+      "important": 0,
+      "minor_source": 0,
+      "minor_documentation": 1,
+      "disposition": "Source ready to integrate. Follow-up at27934c4 resolved prior Minor documentation finding; all26changed-file hashes match freeze and no non-documentation drift since36458d3. Actual hosted-CI requirement subsequently satisfied by hosted_validation; installation/qualification remain separate.",
+      "hosted_verification_required": true,
+      "documentation_followup_head": "27934c4209d0f262e33968c3fac53fe506f54a9f",
+      "documentation_finding_resolved": true,
+      "hosted_verification_satisfied": true
+    }
+  },
+  "release_handoff": "reaudit-20261021.md",
+  "capability_dispositions": [
+    {
+      "capability": "controls",
+      "status": "existing_source_and_fixture_boundaries_verified",
+      "sources": [
+        "openhab/rules/night-load-owner.js",
+        "src/lib/controls/controlState.js",
+        "src/lib/controls/catalog.js",
+        "src/lib/releaseMode.js",
+        "src/lib/openhab/proxyPolicy.js"
+      ],
+      "evidence": "Three live managed owner source hashes match; full2803unit gate covers night-load/greywater/feeder matrices and safe-compat frontend/server gates; natural completed receipts read only.",
+      "external_dependency": "Existing failed/offline device providers; no audit physical test."
+    },
+    {
+      "capability": "sensors",
+      "status": "software_contracts_and_isolated_integration_verified",
+      "evidence": "69contract,11actualComposeintegration,2actualSSEbrowser tests; registry/epoch/duration/retention/database recovery.",
+      "installed": "healthy empty registry; no devicecommissioning",
+      "external_dependency": "Production resource limits remain unbounded and require separately scoped operator approval/readback; actual radio commissioning needs explicit epoch/policy and real packet evidence."
+    },
+    {
+      "capability": "nostr",
+      "status": "exact_binary_disposable_crypto_and_durable_journal_verified",
+      "evidence": "Pinned nak8authentication+8encryptedloopbackdeliverychecks; completion659cases includes realPostgreSQLcontracts; recurring approved profile and signer source/hash readback.",
+      "external_dependency": "No household message sent; relay acceptance does not prove operatorreceipt."
+    },
+    {
+      "capability": "household_architecture",
+      "status": "source_bound_advisory_contracts_verified",
+      "sources": [
+        "openhab/scripts/household/intents.py",
+        "openhab/scripts/household/planning.py",
+        "openhab/scripts/household/resources.py"
+      ],
+      "evidence": "FullOpenHABpartitions plus receipt-integrity gate; immutable originals, typed intent/arbiter/replay; planner translation/action default gates retained; feeder excluded.",
+      "external_dependency": "Waterinventory/nominalstorage/causalaction support remain unknown or unqualified."
+    },
+    {
+      "capability": "access_and_operations",
+      "status": "fixed_projection_and_private_reader_contracts_verified",
+      "evidence": "Fullfrontend proxy/encodedpath/privatefs, OpenHABsourcebinding/cancellation/lock, completion/operational and actualnative resource/systemd/Postgres profiles.",
+      "external_dependency": "No unapproved migration, backup platform, service restart or sourcepackage replacement."
+    },
+    {
+      "capability": "ui_and_solar",
+      "status": "installed_readonly_and_newsource_fixtures_distinct",
+      "evidence": "Installed16routeviewports GET-only pass; newsourceunit/parser suite and browser gate; terrainDST/disjointwindows/expiry/safeentry handling; correctedPV/thermal consumers retain numerical identities.",
+      "external_dependency": "Mapdaylight remains unvalidated5min estimate; all predictive/physical qualification separate."
+    },
+    {
+      "capability": "weather_and_long_horizon_scoring",
+      "status": "durable_original_bound_lifecycle_stress_verified",
+      "evidence": "336h restart/window/policy/epoch/evaluation-version tests; backlog fairness/diagnostics, lowdisk/transaction/atomicreport and archivecapacities;309foundation.",
+      "external_dependency": "Unknown undiscovered population and missing/future outcomes not counted as observed or qualified."
+    }
+  ],
+  "test_input_hashes": {
+    "package-lock.json": "35c941310fa1036b091d40e2840db925233e36c0c9826ad39e26d436ef11774b",
+    "requirements-test.txt": "7d57d9382597ac34a8fa2cc7d75ba8c91799806b7d60ccf47522a6320abac52f",
+    "requirements-weathernext.txt": "d8dd94396d803d4cc6e8b42acbbc6e6a646b67cf41da215260256ff2b4c5090f",
+    "services/lorawan/requirements.txt": "284687e31088617aa8cc632b3ed16781770c09ea71af1dfc9abb6ed8f6409181"
+  },
+  "compatible_installation_handoff": {
+    "installed": false,
+    "selector_or_package_switch_authorized": false,
+    "files": [
+      {
+        "surface": "weathernext-ingest",
+        "path": "openhab/scripts/weather_learning/worker.py",
+        "installed_producer_revision": "b940f154b1ffc1d7d8de8684e0c9e6a9ef511f08",
+        "before_sha256": "8b26a907286e5583d6dc87589b35136d94e249824eb27e6ecd752f23637084d3",
+        "source_candidate_sha256": "b51a4d6f6211f4daa166ce9d6797f302ed6d8d6b2d819a4da5d602a97979baed",
+        "installed_bytes_equal_reviewed_baseline": true
+      },
+      {
+        "surface": "weathernext-evaluate",
+        "path": "openhab/scripts/weather_learning/monitoring.py",
+        "installed_producer_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+        "before_sha256": "506bd4c46b0b1df25421421c42f7bf760de323c3fd86adfcc7467eca0cc27b64",
+        "source_candidate_sha256": "617c6ab2d959d31c7ea45010a4e5da5ff5763a1f06a627348917047116a466c3",
+        "installed_bytes_equal_reviewed_baseline": true
+      },
+      {
+        "surface": "weathernext-evaluate",
+        "path": "openhab/scripts/weather_learning/pending_scores.py",
+        "installed_producer_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+        "before_sha256": "05e946bfd2a4fe24a8f852afbe442fed6c44161b0ae4eed5aaf0a6729201e6c3",
+        "source_candidate_sha256": "57be055f81c4c4aca5f0ae7a7e30709fe5d54a2b2e930e7884833fe34d00c97c",
+        "installed_bytes_equal_reviewed_baseline": true
+      },
+      {
+        "surface": "weathernext-evaluate",
+        "path": "openhab/scripts/weather_learning/correction_monitor.py",
+        "installed_producer_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+        "before_sha256": "e2844f225336e192063e99ad627ee3486e7b4100d2a9b6bf5e6dbfeeb216d2f5",
+        "source_candidate_sha256": "a335288c3a17d048ea9c3dc924c999a768ce0b47e15ebe2c2b9e7fbbaf9b21ed",
+        "installed_bytes_equal_reviewed_baseline": true
+      },
+      {
+        "surface": "weathernext-evaluate",
+        "path": "openhab/scripts/weather_learning/solar_shadow.py",
+        "installed_producer_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+        "before_sha256": "a2fa1dd0932c0a3b3eaaa8803ea7a03e88a4ba23a00d253d2a4eebcf59b7f4b0",
+        "source_candidate_sha256": "403f754dc2d0144b73b0acb80ec399770b516ad383becd50ad1dbfba1d568ad9",
+        "installed_bytes_equal_reviewed_baseline": true
+      },
+      {
+        "surface": "weathernext-evaluate",
+        "path": "openhab/scripts/weather_learning/energy_shadow.py",
+        "installed_producer_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+        "before_sha256": "bdbb0426b37e4d7c93fc144f9850b1cbfa65caf544053808095e084479982ef7",
+        "source_candidate_sha256": "c29e77c8a46413eea3076ef5c4c628456bfb387887e918c87587b34391502fee",
+        "installed_bytes_equal_reviewed_baseline": true
+      }
+    ],
+    "mandatory_boundary": "These identities describe adoption inputs, not an installed package. Do not replace the dirty checkout or a legacy numerical producer wholesale with this branch. Preserve per-surface versions/dispatch and validate an independently built immutable package before any separately authorized switch. If installed bytes differ from reviewed baseline, port only the demonstrated nonnumerical repair and rerun that original package contract before adoption."
+  },
+  "dimensions": {
+    "source_fixed": "R20261021-01 through -06 fixed; normal-harness regressions, final independent review, full local/native profiles and all13actual hosted jobs passed.",
+    "installed": false,
+    "runtime_observed": "Preserved installed surfaces mapped; natural thermal/PV and full household plan replay verified. New repairs observed in disposable tests only.",
+    "statistically_or_physically_qualified": false
+  },
+  "remaining_implementable_work": [],
+  "remaining_verification_dependencies": [],
+  "remaining_deployment_dependencies": "All six repairs uninstalled; require scoped compatible package adoption/source/env/readback and natural cycle acceptance from release handoff; no audit service/selector switch.",
+  "hosted_validation": {
+    "schema": "earthship-reaudit-hosted-validation/v1",
+    "source_commit": "a246d462fe79d913f2461df64cbbf5a2de53e98a",
+    "base_commit": "87a70336fa52a19a282941af1bcd80b2f63ded52",
+    "tested_merge_commit": "f1be4c88f4df3f40ad6b91fc905b7ee0212f1ad3",
+    "tested_merge_file_tree_equal": true,
+    "pull_request": 43,
+    "pull_request_url": "https://github.com/santyr/earthship-ui/pull/43",
+    "checked_at": "2026-10-21 16:57:12 UTC",
+    "workflow_runs": [
+      {
+        "id": 39636250781,
+        "name": "Thermal delivery qualification",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/santyr/earthship-ui/actions/runs/39636250781"
+      },
+      {
+        "id": 39636250822,
+        "name": "Distributed sensor qualification",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/santyr/earthship-ui/actions/runs/39636250822"
+      },
+      {
+        "id": 39636251016,
+        "name": "Household receipt integrity",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/santyr/earthship-ui/actions/runs/39636251016"
+      },
+      {
+        "id": 39636250821,
+        "name": "Forecast ML hardening",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/santyr/earthship-ui/actions/runs/39636250821"
+      },
+      {
+        "id": 39636250798,
+        "name": "CI",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/santyr/earthship-ui/actions/runs/39636250798"
+      }
+    ],
+    "jobs": [
+      {
+        "id": 119347424350,
+        "name": "nak-authentication",
+        "run_id": 39636250798,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/santyr/earthship-ui/actions/runs/39636250798/job/119347424350",
+        "summaries": [
+          "{\"bunker_verified\": false, \"checks\": [\"valid_authenticated_roundtrip\", \"outer_id_tamper_rejected\", \"outer_signature_tamper_rejected\", \"forged_seal_signature_rejected\", \"seal_content_signature_binding\", \"mismatched_raw_rumor_author_rejected\", \"corrupt_ciphertext_rejected\", \"wrong_outer_recipient_rejected\"], \"household_keys_used\": false, \"journal_writes\": 0, \"nak_path\": \"/home/runner/work/_temp/nak-qualification\", \"nak_sha256\": \"ba918fafd1b030bc50958a5b218c6386f4c3a57c1e469562d3947e858e0ba56e\", \"nak_version\": \"nak version v0.20.7\", \"production_ready\": false, \"relay_delivery_verified\": false, \"scope\": \"disposable-local-key-authentication\", \"status\": \"passed\", \"version\": 1}"
+        ],
+        "skip_reason_counts": {}
+      },
+      {
+        "id": 119347424673,
+        "name": "test",
+        "run_id": 39636250798,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/santyr/earthship-ui/actions/runs/39636250798/job/119347424673",
+        "summaries": [
+          " Test Files  183 passed (183)",
+          "      Tests  2803 passed (2803)",
+          "558 passed, 101 skipped in 18.82s",
+          "1396 passed, 3 skipped in 145.65s (0:02:25)"
+        ],
+        "skip_reason_counts": {
+          "pinned stock nak unavailable": 58,
+          "explicit isolated stdin-capable nak qualification pin required": 42,
+          "original pinned host binary unavailable": 1,
+          "explicit isolated user-systemd qualification required": 3
+        }
+      },
+      {
+        "id": 119347424739,
+        "name": "weathernext-foundation",
+        "run_id": 39636250798,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/santyr/earthship-ui/actions/runs/39636250798/job/119347424739",
+        "summaries": [
+          "Ran 309 tests in 75.653s"
+        ],
+        "skip_reason_counts": {}
+      },
+      {
+        "id": 119347424895,
+        "name": "browser-fixtures",
+        "run_id": 39636250798,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/santyr/earthship-ui/actions/runs/39636250798/job/119347424895",
+        "summaries": [
+          "  79 passed (1.6m)"
+        ],
+        "skip_reason_counts": {}
+      },
+      {
+        "id": 119347424924,
+        "name": "OpenHAB tests (2/3)",
+        "run_id": 39636250798,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/santyr/earthship-ui/actions/runs/39636250798/job/119347424924",
+        "summaries": [
+          "2323 passed, 7 skipped, 69 subtests passed in 1132.18s (0:18:52)",
+          "1 passed in 1.78s",
+          "general_pytest_exit=0 bms_aux_pytest_exit=0"
+        ],
+        "skip_reason_counts": {
+          "full qualification model fitting is restricted to hosted CI": 1,
+          "host receiver source unavailable": 3,
+          "requires isolated pinned Earth Engine environment": 3
+        }
+      },
+      {
+        "id": 119347424935,
+        "name": "OpenHAB tests (1/3)",
+        "run_id": 39636250798,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/santyr/earthship-ui/actions/runs/39636250798/job/119347424935",
+        "summaries": [
+          "2073 passed, 5 skipped, 117 subtests passed in 814.84s (0:13:34)",
+          "general_pytest_exit=0 bms_aux_pytest_exit=0"
+        ],
+        "skip_reason_counts": {
+          "host receiver source unavailable": 5
+        }
+      },
+      {
+        "id": 119347425020,
+        "name": "OpenHAB tests (0/3)",
+        "run_id": 39636250798,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/santyr/earthship-ui/actions/runs/39636250798/job/119347425020",
+        "summaries": [
+          "2233 passed, 8 skipped, 68 subtests passed in 751.68s (0:12:31)",
+          "general_pytest_exit=0 bms_aux_pytest_exit=0"
+        ],
+        "skip_reason_counts": {
+          "requires an explicitly selected capped publication scope": 2,
+          "host receiver source unavailable": 6
+        }
+      },
+      {
+        "id": 119347423582,
+        "name": "qualification-fit",
+        "run_id": 39636250821,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/santyr/earthship-ui/actions/runs/39636250821/job/119347423582",
+        "summaries": [
+          "1 passed in 8.72s",
+          "qualification_fit_executed=1 skipped=0 failures=0"
+        ],
+        "skip_reason_counts": {}
+      },
+      {
+        "id": 119347424086,
+        "name": "forecast-ml",
+        "run_id": 39636250821,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/santyr/earthship-ui/actions/runs/39636250821/job/119347424086",
+        "summaries": [
+          "1414 passed, 1 deselected in 1006.82s (0:16:46)"
+        ],
+        "skip_reason_counts": {}
+      },
+      {
+        "id": 119347423833,
+        "name": "software-path",
+        "run_id": 39636250822,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/santyr/earthship-ui/actions/runs/39636250822/job/119347423833",
+        "summaries": [
+          "======================== 11 passed in 69.38s (0:01:09) =========================",
+          "  2 passed (11.3s)"
+        ],
+        "skip_reason_counts": {}
+      },
+      {
+        "id": 119347424503,
+        "name": "contracts",
+        "run_id": 39636250822,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/santyr/earthship-ui/actions/runs/39636250822/job/119347424503",
+        "summaries": [
+          "======================== 69 passed, 11 skipped in 1.08s ========================"
+        ],
+        "skip_reason_counts": {}
+      },
+      {
+        "id": 119347424964,
+        "name": "receipt-integrity",
+        "run_id": 39636251016,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/santyr/earthship-ui/actions/runs/39636251016/job/119347424964",
+        "summaries": [
+          "526 passed in 280.08s (0:04:40)"
+        ],
+        "skip_reason_counts": {}
+      },
+      {
+        "id": 119347423749,
+        "name": "encrypted-delivery",
+        "run_id": 39636250781,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/santyr/earthship-ui/actions/runs/39636250781/job/119347423749",
+        "summaries": [
+          "{\"checks\": [\"real_signer_encrypt_decrypt_self_check\", \"wrong_keyer_identity_rejected\", \"signed_recipient_relay_routes\", \"real_nip42_challenge\", \"exact_relay_acceptance_for_both_copies\", \"operator_and_sender_copies_decrypt_to_exact_prompt\", \"authenticated_reply_and_encrypted_storage_receipt\", \"restart_does_not_republish_accepted_events\"], \"external_relay_delivery_verified\": false, \"household_bunker_verified\": false, \"household_keys_used\": false, \"journal_test_double\": true, \"production_journal_writes\": 0, \"production_ready\": false, \"scope\": \"real-local-key-and-loopback-relay\", \"status\": \"passed\", \"version\": 1}"
+        ],
+        "skip_reason_counts": {}
+      }
+    ],
+    "receipt_only_descendants_require_unchanged_source_manifest": true,
+    "non_documentation_manifest_sha256": "374dd3e971785be6e037bb2646138d20a1ad5fda54bd534e382f7195c90b2b3a"
+  },
+  "publication": {
+    "branch": "audit/reaudit-20261021",
+    "pull_request": 43,
+    "url": "https://github.com/santyr/earthship-ui/pull/43",
+    "state": "open",
+    "publication_authorized": true,
+    "merge_authorized": false,
+    "deployment_authorized": false
+  }
+}

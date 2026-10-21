@@ -140,3 +140,31 @@ class PerformanceContractTests(unittest.TestCase):
             row['score_sha256']=identity({k:v for k,v in row.items() if k!='score_sha256'})
             with self.subTest(late_target=late_target),self.assertRaisesRegex(ValueError,'clocks|arrival'):
                 validate_temperature_score(row)
+
+    def test_full_long_horizon_origins_and_source_cohort_growth_fit_the_fixed_report_cap(self):
+        from weather_learning.contracts import canonical
+        from weather_learning.performance import summarize_temperature_scores,temperature_evaluation_key
+        from weather_learning.shadow import TRAIN_OFFSETS
+        template=self.scores()[0];scores=[]
+        # Twenty-one daily originals can contribute to a seven-day target
+        # window when each actually issued the full336h sparse population.
+        # This is sealed synthetic score-volume evidence, not measured skill.
+        for day in range(-14,7):
+            issue=T+timedelta(days=day,minutes=30)
+            for offset in sorted(TRAIN_OFFSETS):
+                target=T+timedelta(days=day,hours=offset)
+                if offset>336 or not T<=target<T+timedelta(days=7):continue
+                row=deepcopy(template);row.update(issued_at=issue.isoformat(),target_at=target.isoformat(),
+                    issue_sha256=identity({'issue':day}),issue_generation=identity({'generation':day}),
+                    outcome_available_at=target.isoformat(),outcome_sha256=identity({'measurement':target.isoformat()}),
+                    model_sha256=identity({'model':day}),numerical_producer=identity({'source':day})[:40])
+                row['evaluation_key']=temperature_evaluation_key(issue_sha256=row['issue_sha256'],target_at=row['target_at'],
+                    source_grid=row['grid_sha256'],sensor_epoch=row['sensor_epoch'],observation_policy_sha256=row['observation_policy_sha256'])
+                row['score_sha256']=identity({k:v for k,v in row.items() if k!='score_sha256'});scores.append(row)
+        report=summarize_temperature_scores(scores)
+        self.assertEqual(len(report['artifact_cohorts']),21)
+        self.assertEqual(len(report['policy_cohorts']),21)
+        self.assertEqual(len(report['pair_manifest']),report['raw']['pairs'])
+        self.assertEqual(report['raw']['pairs'],sum(c['comparison']['raw']['pairs'] for c in report['artifact_cohorts'].values()))
+        self.assertLess(len(canonical(report)),448*1024) # preserves64KiB for other domains
+        self.assertFalse(report['release_authorized']);self.assertFalse(report['calibration_qualified'])

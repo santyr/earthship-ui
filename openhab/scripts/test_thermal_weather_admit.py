@@ -207,3 +207,53 @@ def test_cold_compatibility_proof_is_closed_and_preserves_original_procedure(tmp
     if damage=='different_predictions':proof['models']['irradiance_w_m2']['consumer_predictions_sha256']='f'*64
     proof['proof_sha256']=identity({k:v for k,v in proof.items() if k!='proof_sha256'})
     with pytest.raises(ValueError):api.validate_proof(proof,original=original,runtime=runtime)
+
+
+def test_selector_directory_sync_failure_after_publication_keeps_new_selection(tmp_path,monkeypatch):
+    import os,stat
+    import thermal_weather_readmit as api
+    args,kwargs,_,_,_=bridge_fixture(tmp_path,monkeypatch)
+    before=args['selection'].read_bytes();original=os.fsync;replace=os.replace;published=[False]
+    def record_publish(source,target):
+        result=replace(source,target)
+        if target==args['selection']:published[0]=True
+        return result
+    def fail_directory(fd):
+        if published[0] and stat.S_ISDIR(os.fstat(fd).st_mode):raise OSError('fixture directory sync failure')
+        return original(fd)
+    monkeypatch.setattr(os,'replace',record_publish);monkeypatch.setattr(os,'fsync',fail_directory)
+    with pytest.raises(OSError,match='directory sync'):api.readmit(**kwargs)
+    assert args['selection'].read_bytes()!=before
+
+
+def test_cold_bridge_syncs_retained_dependencies_before_selecting(tmp_path,monkeypatch):
+    import os,stat
+    from pathlib import Path
+    import thermal_weather_readmit as api
+    args,kwargs,_,_,_=bridge_fixture(tmp_path,monkeypatch)
+    sync=os.fsync;replace=os.replace;synced=set()
+    def record_sync(fd):
+        sync(fd)
+        if stat.S_ISDIR(os.fstat(fd).st_mode):synced.add(Path(os.readlink('/proc/self/fd/'+str(fd))))
+    def publish(source,target):
+        if Path(target)==kwargs['selection']:
+            assert {kwargs['output'],kwargs['output']/'admissions',kwargs['output'].parent}<=synced
+        return replace(source,target)
+    monkeypatch.setattr(os,'fsync',record_sync);monkeypatch.setattr(os,'replace',publish)
+    result=api.readmit(**kwargs)
+    assert result['status']=='thermal_weather_readmitted'
+
+
+def test_cold_bridge_refuses_selection_if_dependency_directory_sync_fails(tmp_path,monkeypatch):
+    import os,stat
+    from pathlib import Path
+    import thermal_weather_readmit as api
+    args,kwargs,_,_,_=bridge_fixture(tmp_path,monkeypatch)
+    before=args['selection'].read_bytes();sync=os.fsync
+    def fail_dependency(fd):
+        if stat.S_ISDIR(os.fstat(fd).st_mode) and Path(os.readlink('/proc/self/fd/'+str(fd)))==kwargs['output']:
+            raise OSError('fixture dependency directory sync failure')
+        return sync(fd)
+    monkeypatch.setattr(os,'fsync',fail_dependency)
+    with pytest.raises(OSError,match='dependency directory sync'):api.readmit(**kwargs)
+    assert args['selection'].read_bytes()==before

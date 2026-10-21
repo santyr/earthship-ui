@@ -184,3 +184,39 @@ it('preserves an Astro statechanged delta before its matching stateupdated evide
   // is manufactured for the newer transport delta.
   expect(get(store.itemUpdateEvidence).Sun_TimeLeft).toMatchObject({ lastKnown: 1770000000000, state: '10 d' });
 });
+
+
+it('keeps a temperature update pair received during a delayed snapshot', async () => {
+  const name = 'AmbientWeatherWS2902A_IndoorSensor_Temperature';
+  const at = Date.now() - 60000;
+  const client = makeClient(); client.getAllItems.mockResolvedValue([{ name, state: '70', lastStateUpdate: at }]);
+  await boot(client);
+  const snapshot = deferred(); client.getAllItems.mockReturnValueOnce(snapshot.promise);
+  hooks.onReconnect(); hooks.onUpdateEvidence(name, at + 1, '71');
+  snapshot.resolve([{ name, state: '40', lastStateUpdate: at - 1000 }]);
+  await vi.advanceTimersByTimeAsync(0);
+  expect(get(store.items)[name]).toBe('71');
+  expect(get(store.itemUpdateEvidence)[name]).toMatchObject({ state: '71', lastKnown: at + 1, available: true });
+  expect(client.sendCommand).not.toHaveBeenCalled();
+});
+
+it.each([[null], [{ name: 'A' }], [{ name: 'A', state: '1' }, { name: 'A', state: '2' }]])(
+  'retries a malformed collection without an unhandled rejection (%j)', async (...rows) => {
+    const client = makeClient(); await boot(client);
+    client.getAllItems.mockResolvedValueOnce(rows).mockResolvedValue([{ name: 'A', state: 'RECOVERED' }]);
+    hooks.onReconnect(); await vi.advanceTimersByTimeAsync(0);
+    expect(get(store.connection)).not.toBe('live'); expect(get(store.items).A).toBe('OFF');
+    await vi.advanceTimersByTimeAsync(20);
+    expect(get(store.items).A).toBe('RECOVERED'); expect(get(store.connection)).toBe('live');
+    expect(client.sendCommand).not.toHaveBeenCalled();
+  });
+
+it('starts a declared new session without clocks or state from the previous source', async () => {
+  const name = 'AmbientWeatherWS2902A_IndoorSensor_Temperature'; const at = Date.now() - 60000;
+  const first = makeClient(); first.getAllItems.mockResolvedValue([{ name, state: '70', lastStateUpdate: at }]);
+  await boot(first);
+  const second = makeClient(); second.getAllItems.mockResolvedValue([{ name, state: '40', lastStateUpdate: at - 1000 }]);
+  await boot(second);
+  expect(get(store.items)[name]).toBe('40');
+  expect(get(store.itemUpdateEvidence)[name]).toMatchObject({ state: '40', lastKnown: at - 1000, available: true });
+});

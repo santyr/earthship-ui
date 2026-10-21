@@ -1,6 +1,7 @@
 """Prospective weather outcome monitoring from retained issues; no fit or promotion."""
 from datetime import datetime,time,timedelta
 from zoneinfo import ZoneInfo
+from household_job_budget import AdmissionDeferred
 from .contracts import canonical,identity,instant,digest
 from .evidence import utc
 from .performance import (score_temperature,summarize_temperature_scores,validate_temperature_score,
@@ -8,8 +9,8 @@ from .performance import (score_temperature,summarize_temperature_scores,validat
 from .pending_scores import PendingScores
 from .features import local_temperature_outcome
 from .shadow import _read
-from .solar_shadow import solar_window_forecast,compare_solar_windows,_source as validate_solar
-from .energy_shadow import rain_day_forecast,compare_rain_products,_rain_source as validate_rain
+from .solar_shadow import solar_window_forecast,compare_solar_windows,solar_comparison_report,_source as validate_solar
+from .energy_shadow import rain_day_forecast,compare_rain_products,rain_comparison_report,_rain_source as validate_rain
 
 
 def monitor_once(archive,state,*,now,site,sensor_epoch,code_revision,observation_policy_sha256,
@@ -57,8 +58,18 @@ def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,obse
             if instant(value['assessed_at'])>now:raise ValueError('future local outcome refused')
             if apply:state._write(path,value,immutable=True)
             return value
+        except (TimeoutError,AdmissionDeferred,MemoryError):raise
         except Exception as error:
             guard();withheld.append(dict(kind=kind,target=target,reason=type(error).__name__));return None
+    def optional(kind,operation,**context):
+        # Cancellation, owner deadlines and resource admission are global stops;
+        # an optional data/derivation fault is scoped to its issue and domain.
+        guard()
+        try:
+            result=operation();guard();return result
+        except (TimeoutError,AdmissionDeferred,MemoryError):raise
+        except Exception as error:
+            guard();withheld.append(dict(kind=kind,reason=type(error).__name__[:80],**context));return None
     issues=[]
     for name in names:
         guard()
@@ -76,19 +87,23 @@ def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,obse
         end=datetime.combine(next_day,time.min,zone).astimezone(now.tzinfo)
         start=completed.replace(minute=0,second=0,microsecond=0)+timedelta(hours=1)
         if start<end:
-            forecast=solar_window_forecast(snapshot,issued_at=issued,completed_at=completed,start=start,end=end)
-            solar_forecasts.append(forecast)
-            if end+timedelta(minutes=2)<=now:
-                value=source('solar',dict(start=start.isoformat(),end=end.isoformat()),lambda:read_solar(start,end,now),validate_solar)
-                if value is not None:solar_sources.append(value)
-            else:pending['solar']+=1
-        forecast=rain_day_forecast(snapshot,issued_at=issued,completed_at=completed,local_date=next_day)
-        rain_forecasts.append(forecast)
-        rain_end=datetime.combine(next_day+timedelta(days=1),time.min,zone).astimezone(now.tzinfo)
-        if rain_end+timedelta(minutes=2)<=now:
-            value=source('rain',next_day.isoformat(),lambda:read_rain(next_day,now),validate_rain)
-            if value is not None:rain_sources.append(value)
-        else:pending['rain']+=1
+            forecast=optional('solar_derivation',lambda:solar_window_forecast(snapshot,issued_at=issued,completed_at=completed,start=start,end=end),
+                issue_sha256=identity(original))
+            if forecast is not None:
+                solar_forecasts.append(forecast)
+                if end+timedelta(minutes=2)<=now:
+                    value=source('solar',dict(start=start.isoformat(),end=end.isoformat()),lambda:read_solar(start,end,now),validate_solar)
+                    if value is not None:solar_sources.append(value)
+                else:pending['solar']+=1
+        forecast=optional('rain_derivation',lambda:rain_day_forecast(snapshot,issued_at=issued,completed_at=completed,local_date=next_day),
+            issue_sha256=identity(original))
+        if forecast is not None:
+            rain_forecasts.append(forecast)
+            rain_end=datetime.combine(next_day+timedelta(days=1),time.min,zone).astimezone(now.tzinfo)
+            if rain_end+timedelta(minutes=2)<=now:
+                value=source('rain',next_day.isoformat(),lambda:read_rain(next_day,now),validate_rain)
+                if value is not None:rain_sources.append(value)
+            else:pending['rain']+=1
     bootstrap=queue.bootstrap(archive,site=site,now=now,guard=guard)
     temperature_limit=min(32 if read_corrections is not None else 64,max(1,64-source_attempts))
     due=queue.due(now,limit=temperature_limit);loaded=[]
@@ -103,6 +118,7 @@ def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,obse
     try:
         guard();metadata=read_temperature(sorted({target.target_at for _,_,target,_ in loaded}),now) if loaded else {};guard()
         if not isinstance(metadata,dict):raise ValueError('explicit temperature observation mapping required')
+    except (TimeoutError,AdmissionDeferred,MemoryError):raise
     except Exception as error:
         guard();metadata={};withheld.append(dict(kind='temperature',reason=type(error).__name__))
     missing=0
@@ -120,7 +136,7 @@ def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,obse
     scores=list(queue.iter_scores(now-timedelta(days=7),now))
     temperature=summarize_temperature_scores(scores,withheld=missing)
     temperature['coverage_window']=queue.window_counts(now-timedelta(days=7),now,now=now)
-    temperature['work']=dict(bootstrap=bootstrap,states=queue.counts(),dependencies=queue.source_dependencies(),
+    temperature['work']=dict(bootstrap=bootstrap,states=queue.counts(),dependencies=queue.source_dependencies(),backlog=queue.backlog(now),
         batch_limit=temperature_limit,observation_arrival_allowance_days=7,report_target_window_days=7)
     corrections=None
     if read_corrections is not None:
@@ -129,14 +145,20 @@ def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,obse
         remaining=min(32,max(0,64-source_attempts-len(loaded)))
         try:
             guard();corrections=read_corrections(now=now,limit=remaining,apply=apply,guard=guard);guard()
+        except (TimeoutError,AdmissionDeferred,MemoryError):raise
         except Exception as error:
             guard();corrections=dict(status='unavailable',reason=type(error).__name__,automatic_actuation=False)
+    guard()
+    solar=optional('solar_aggregation',lambda:compare_solar_windows(solar_forecasts,solar_sources))
+    rain=optional('rain_aggregation',lambda:compare_rain_products(rain_forecasts,rain_sources))
+    if solar is None:solar=solar_comparison_report(pairs=[],withheld=[],cohorts={},decisions=[])
+    if rain is None:rain=rain_comparison_report(pairs=[],withheld=[],cohorts={},decisions=[])
     guard()
     report=dict(schema='earthship-weathernext-weather-performance/v2',provider='weathernext3',generated_at=now.isoformat(),
         valid_until=(now+timedelta(hours=2)).isoformat(),code_revision=code_revision,observation_policy_sha256=observation_policy_sha256,
         scoring_scope='original_daily_issues_and_frozen_local_predictions',issues=len(issues),
         temperature=temperature,corrections=corrections,
-        solar=compare_solar_windows(solar_forecasts,solar_sources),rain=compare_rain_products(rain_forecasts,rain_sources),
+        solar=solar,rain=rain,
         pending=pending,source_withheld=withheld,calibration_qualified=False,release_authorized=False,automatic_actuation=False)
     report['report_sha256']=identity(report)
     if len(canonical(report))>512*1024:raise ValueError('bounded weather performance report required')

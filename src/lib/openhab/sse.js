@@ -10,7 +10,7 @@ export function parseUpdateEvidenceSSEMessage(raw) {
   let payload;
   try { payload = JSON.parse(message.payload); } catch { payload = null; }
   return { name: match[1], lastStateUpdate: payload?.lastStateUpdate,
-    ...(ASTRO_EVIDENCE_ITEMS.includes(match[1]) ? { state: payload?.value === undefined ? undefined : String(payload.value) } : {}) };
+    state: payload?.value == null ? undefined : String(payload.value) };
 }
 
 export function parseSSEMessage(raw) {

@@ -57,3 +57,50 @@ class HourlyCollectionTests(unittest.TestCase):
     def test_partial_band_archive_cannot_suppress_complete_acquisition(self):
         self.archive.store_snapshot(full_snapshot(T,hours=360))
         result=self.collect();self.assertEqual(result['downloaded_snapshots'],2)
+
+    def test_full_and_interim_batch_cannot_exceed_archive_byte_cap(self):
+        from weather_learning.contracts import canonical,identity,validate_snapshot
+        def padded(init,hours,mib):
+            value=complete(init,hours);source=value['source_originals'][0];before=identity(source)
+            source['payload']['retained_metadata_padding']=''
+            padding=mib*1024**2-len(canonical(value))
+            self.assertGreater(padding,0)
+            source['payload']['retained_metadata_padding']='x'*padding
+            after=identity(source)
+            for row in value['points']:
+                if row['source_digest']==before:row['source_digest']=after
+            return validate_snapshot(value)
+        incumbent=self.archive.store_snapshot(padded(T-timedelta(hours=6),360,7))
+        self.reader.fetch_points.side_effect=lambda *,run,bands_by_grid,horizon:padded(__import__('datetime').datetime.fromisoformat(run['start_time']),horizon,5)
+        cap=16*1024**2
+        self.assertLess(sum(p.stat().st_size for p in self.archive.objects.glob('*.json'))+8*1024**2,cap)
+        with self.assertRaisesRegex(ValueError,'capacity'):
+            collect_once(self.reader,self.archive,probe=False,horizon=360,include_interim=True,
+                clock=lambda:self.now,free_bytes=10**9,max_archive_bytes=cap)
+        self.assertLessEqual(sum(p.stat().st_size for p in self.archive.objects.glob('*.json')),cap)
+        self.assertEqual(self.archive.read(incumbent)['snapshot_sha256'],incumbent)
+        self.assertEqual(len(list(self.archive.objects.glob('*.json'))),2)
+
+    def test_exact_archive_object_cap_refuses_before_acquisition(self):
+        import os
+        for index in range(10000):
+            path=self.archive.objects/(f'{index:064x}'+'.json')
+            fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+            os.write(fd,b'{}');os.close(fd)
+        with self.assertRaisesRegex(ValueError,'object-count'):
+            self.collect()
+        self.reader.initialize.assert_not_called()
+        self.assertEqual(len(list(self.archive.objects.glob('*.json'))),10000)
+
+    def test_batch_at_object_capacity_keeps_first_original_and_refuses_second(self):
+        import os
+        for index in range(9999):
+            path=self.archive.objects/(f'{index:064x}'+'.json')
+            fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+            os.write(fd,b'{}');os.close(fd)
+        with self.assertRaisesRegex(ValueError,'object-count'):
+            self.collect()
+        self.assertEqual(len(list(self.archive.objects.glob('*.json'))),10000)
+        first=self.archive.completed_run(T.isoformat(),horizon=360,
+            required={tuple(band.rsplit('_',1)) for bands in DEFAULT_BANDS.values() for band in bands},as_of=self.now)
+        self.assertEqual(first['initialized_at'],T.isoformat())

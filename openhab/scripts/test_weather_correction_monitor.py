@@ -345,3 +345,16 @@ def test_future_original_waits_without_blocking_later_indexed_mature_work(tmp_pa
     later=monitor_corrections(s,now=NOW+timedelta(days=1,hours=3),**kwargs)
     assert later['states']=={'completed':2}
     assert later['intake_dependencies']=={}
+
+
+def test_correction_backlog_reports_interval_maturity_wait_and_actual_database_cap(tmp_path):
+    from weather_learning.correction_monitor import CorrectionStore,monitor_corrections
+    s=state(tmp_path);store=CorrectionStore(s);store.retain(issue())
+    report=monitor_corrections(s,now=NOW+timedelta(hours=5),observation_policy_sha256='f'*64,
+        read_wind=outcome,read_solar=outcome,apply=True,limit=0)
+    backlog=report['known_work_backlog']
+    assert backlog['population']=='known_enqueued_work_only'
+    assert backlog['due']==1 and backlog['oldest_due_wait_seconds']==10680
+    assert backlog['target_clock']=='interval_end'
+    assert backlog['main_database_max_bytes']==128*1024**2
+    assert report['observations_attempted']==0 and report['states']=={'pending':1}

@@ -268,6 +268,8 @@ def monitor_corrections(state,*,now,observation_policy_sha256,read_wind,read_sol
             else:db.execute("UPDATE work SET state=?,retry=?,reason=? WHERE key=? AND state='pending'",('unrecoverable_original' if reason=='original_forecast_missing' else 'expired' if now>=instant(expires) else 'pending',(now+timedelta(hours=1)).isoformat(),reason,key))
     # Output stays bounded; totals remain durable even when detail is capped.
     with store.connect() as db:
+        from .pending_scores import backlog_summary
+        backlog=backlog_summary(db,scope,now);backlog['target_clock']='interval_end'
         states=dict(db.execute('SELECT state,COUNT(*) FROM work WHERE scope=? GROUP BY state',(scope,)))
         intake_dependencies=dict(db.execute('SELECT reason,COUNT(*) FROM intake_failures WHERE scope=? GROUP BY reason',(scope,)))
         reasons=dict(db.execute("SELECT reason,COUNT(*) FROM work WHERE scope=? AND state!='completed' GROUP BY reason",(scope,)))
@@ -294,7 +296,7 @@ def monitor_corrections(state,*,now,observation_policy_sha256,read_wind,read_sol
     generated=now if clock is None else utc(clock())
     if not now<=generated<=now+timedelta(seconds=90):raise ValueError('bounded correction report completion clock required')
     report=dict(schema='earthship-correction-performance/v2',generated_at=generated.isoformat(),evaluation_version=VERSION,evaluation_contract_sha256=CONTRACT_SHA256,
-        observations_attempted=attempted,observations_attempted_by_kind=attempted_by_kind,observation_budget=limit,reserved_kind_shares=shares,states=states,intake_dependencies=intake_dependencies,withheld_reasons=reasons,score_dependencies=score_dependencies,cohorts=reports,policy_cohorts=policy_reports(scores),calibration_qualified=False,sampling=CONTRACT['population'],
+        observations_attempted=attempted,observations_attempted_by_kind=attempted_by_kind,observation_budget=limit,reserved_kind_shares=shares,states=states,known_work_backlog=backlog,intake_dependencies=intake_dependencies,withheld_reasons=reasons,score_dependencies=score_dependencies,cohorts=reports,policy_cohorts=policy_reports(scores),calibration_qualified=False,sampling=CONTRACT['population'],
         historical_gaps=['wind_issues_overwritten_before_immutable_retention'],dependencies=dependencies,native_original_dependencies=native_dependencies,native_discovery=getattr(discover,'last_status',None),report_target_window_days=7,report_score_limit=2048,report_total_scored_pairs=total_scores,report_scores_truncated=total_scores>len(scores),
         physical_calibration_qualified=False,distribution_calibration_qualified=False,release_authorized=False,automatic_actuation=False)
     report['projection_coverage']=dict(artifact_cohorts_total=len(report['cohorts']),procedure_cohorts_total=len(report['policy_cohorts']),

@@ -167,11 +167,17 @@ def compare_solar_windows(forecasts,outcomes):
                     timing_windows=len(timings),centroid_mae_vs_proxy_hours=None if not timings else sum(abs(v) for v in timings)/len(timings))
             summaries[str(duration)]=dict(windows=len(rows),products=products)
         cohorts[cohort]=dict(windows=sum(len(rows) for rows in durations.values()),by_window_hours=summaries)
+    return solar_comparison_report(pairs=pairs,withheld=withheld,cohorts=cohorts,
+        decisions=[dict(start=r['start'],end=r['end'],issued_at=r['issued_at'],completed_at=r['completed_at'],forecast_sha256=r['forecast_sha256']) for _,r in sorted(decisions.items())])
+
+
+def solar_comparison_report(*,pairs,withheld,cohorts,decisions):
+    """Closed report envelope, also used when aggregation is explicitly withheld."""
     body=dict(schema='earthship-weathernext-solar-proxy-comparison/v1',provider='weathernext3',qualification='SHADOW_ONLY',
         selection_rule='latest_retained_issue_completed_by_window_start_before_missingness_or_outcomes',
         observation_basis='persisted_sample_and_hold_lux_proxy',calibrated_ghi_skill_qualified=False,direct_component_skill_qualified=False,
         direct_comparison_basis='direct_beam_vs_total_lux_proxy_diagnostic_only',pv_calibration_changed=False,
         pairs=pairs,withheld=withheld,cohorts=cohorts,
-        decisions=[dict(start=r['start'],end=r['end'],issued_at=r['issued_at'],completed_at=r['completed_at'],forecast_sha256=r['forecast_sha256']) for _,r in sorted(decisions.items())],
+        decisions=decisions,
         automatic_actuation=False)
     return body|{'report_sha256':identity(body)}

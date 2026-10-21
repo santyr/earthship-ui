@@ -1,5 +1,7 @@
 # Release and handoff
 
+Current October 21 source audit status: [reaudit-20261021.json](reaudit-20261021.json), with [scoped release handoff](reaudit-20261021.md) and [current runtime map](reaudit-20261021-runtime.json). These supersede historical pending prose only for their named source/evidence surfaces. October 20 deployment identities and physical/statistical limits remain historical evidence.
+
 The owner subsequently approved merging and deployment. [Current approved rollout evidence](deployment.md) supersedes the pre-approval installation-pending statements below for the specifically recorded surfaces. The following source-release and rollback record remains historical evidence; physical/statistical qualification is still separate.
 
 Historical pre-approval source status (superseded by the approved final supplement below): software scope verified complete at `8f6e9183b3cba1cdaa1310102f000e7a2db65bb2`; deployment and physical qualification are separate, pending explicit dependencies. Live dirty checkout, private configuration and immutable source packages remain untouched. Remote main begins at `65ee7e95d58e6a6101700da3eccea67c9fea0ec7`.

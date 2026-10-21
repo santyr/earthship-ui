@@ -85,7 +85,7 @@ describe('store', () => {
     applySnapshot([{ name, state: '70', lastStateUpdate: sourceAt }]);
     applyState(name, '71');
     applyState('TS_B', '2');
-    expect(get(itemUpdateEvidence)[name]).toEqual({ lastKnown: sourceAt, available: true });
+    expect(get(itemUpdateEvidence)[name]).toEqual({ lastKnown: sourceAt, available: false, state: '70' });
     expect(get(itemUpdateEvidence).TS_B).toBeUndefined();
   });
 
