@@ -7,7 +7,7 @@
   "status": "in_progress",
   "tasks": {
     "0": {
-      "status": "in_progress",
+      "status": "current_effective_bindings_recorded",
       "evidence": {
         "surfaces": 16,
         "control_owners_exact": 3,
@@ -16,7 +16,7 @@
           "retired_provider_matches": 0
         },
         "sensor_production_limits": "still unbounded; no cap changes authorized or made",
-        "remaining": "Complete source-package/environment/selector/output bindings for every surface; current runtime map explicitly marks partial readback."
+        "remaining": "Final release acceptance cross-reference only; all16source/environment maps and11configured outputs recorded, installed UI GET-only16viewports passed."
       }
     },
     "1": {
@@ -77,12 +77,10 @@
       "evidence": {
         "lifecycle_tests": "104 passed with pinned Solar_PV 24d2, 19.91s",
         "natural_thermal": "reaudit-20261021-natural.json: morning original producer delivery replay passed, 4.443s, zero network/children",
-        "pv": "natural corrected learner result and unchanged incumbent pointer verified in runtime map"
+        "pv": "reaudit-20261021-pv-morning.json: 355source files,768pairs, corrected v2 baseline/v3 fit and original incumbent bytes verified through original0b3f6fc package; promotion_permitted=false."
       },
       "remaining": [
-        "Finish requirement-to-test ownership for all six lifecycle cases across installed procedures.",
-        "Validate corrected PV candidate identities/numeric procedure; verify other surface outputs and effective environment composition.",
-        "New source patches are not installed."
+        "Finish six-case ownership cross-reference and final integrated gate. New source patches are uninstalled."
       ]
     },
     "5": {
@@ -93,7 +91,8 @@
         "backlog_red": "3 failed (temperature/queue) plus 1 failed correction diagnostic",
         "global_resource_red": "4 MemoryError subcases failed after initial optional-boundary repair; fatal allocation errors now propagate alongside deadline/admission stops",
         "stress": "94 passed,16 subtests,31.25s; 336h/restart/late discovery/policy/epoch/version separation, source-index replacement/supersession, fairness, low disk, failed transaction, interrupted atomic report replace and full21-origin cohort growth",
-        "foundation": "305 unittest cases passed,41.943s before the final additional namespace characterization; normal source shards will include it"
+        "foundation": "305 unittest cases passed,41.943s before the final additional namespace characterization; normal source shards will include it",
+        "archive_capacity": "RED2 exact native worker regressions; GREEN13 tests/3 subtests. Counts and canonical bytes advance after each successful retained snapshot; excess interim refuses without deleting first original. Exact 10000 count refuses before reader initialization. No auto pruning."
       },
       "capacity": {
         "temperature_main_database_max_mib": 512,
@@ -110,7 +109,8 @@
         "correction_omission_disclosure": "report_scores_truncated and projection_coverage; original scores retained"
       },
       "clock_semantics": "Seven-day allowance limits original outcome availability, not discovery time. Target-point temperature receipts must already have persisted by target; late query cannot renew that clock. Known due wait is measured since target maturity and is separate from retry time.",
-      "contract": "Added bounded operational metadata in private existing report envelopes; fixed browser projection schemas unchanged. No forecast, weighting, score identity, scope, promotion or authority change."
+      "contract": "Added bounded operational metadata in private existing report envelopes; fixed browser projection schemas unchanged. No forecast, weighting, score identity, scope, promotion or authority change.",
+      "additional_finding": "R20261021-06"
     },
     "6": {
       "status": "source_fixed_locally_verified_integrated_pending",
@@ -350,6 +350,213 @@
       "title": "Unrelated unsafe geometry cache entry suppresses a valid current-day estimate",
       "status": "source_fixed_locally_verified_integrated_pending",
       "task": 6
+    },
+    {
+      "id": "R20261021-06",
+      "severity": "P2",
+      "title": "Full plus interim acquisition can exceed archive byte/object caps",
+      "status": "source_fixed_locally_verified_integrated_pending",
+      "task": 5
     }
-  ]
+  ],
+  "source_freeze": {
+    "schema": "earthship-reaudit-source-freeze/v1",
+    "source_commit": "00e6a921e28d6bd77d51a4f82e141f1e8ea3f609",
+    "non_documentation_manifest_sha256": "3eebc25c7e7e950830353c4ae8f13c38f5154d379b3a3d75a3bf080b5ce3b3a4",
+    "tracked_non_documentation_files": 1724,
+    "changed_files": {
+      "openhab/scripts/site_daylight.py": "1b15fc6b964a5639459155f4230794cca99e0682109c7ca993af8715d0fc5ee2",
+      "openhab/scripts/test_astro_geometry_series.py": "5c7983cbe4a5d778323cdb78a5ce9c0aa29feb6a3d0c91035522c00275e585c9",
+      "openhab/scripts/test_historical_weather_daily.py": "38bd7ccf1182a891971bcb93e77cd7917d6a4373ddc5cee4bb040fc18c8e7c35",
+      "openhab/scripts/test_thermal_weather_admit.py": "adc77ce3b0da63501c214463eb9ed4a9cba9532bb8df9ef5931f7d809034a6fb",
+      "openhab/scripts/test_weather_correction_monitor.py": "21fe96fae78a6464dae3c93c03a99d6dde59a6ca5674c9c3f3c7d9a2ca1c25a7",
+      "openhab/scripts/thermal_weather_readmit.py": "1c64cc4ea44b4c85449fc9a0df43c455ad31d9b9ca97dbe9d46ee4a8f0886b50",
+      "openhab/scripts/thermal_weather_readmit_post.py": "e47bc59a2f22fa5048d9cf75cf47eb223c4d1bd240ca73ae24c4d932ba5504dc",
+      "openhab/scripts/weather_learning/correction_monitor.py": "a335288c3a17d048ea9c3dc924c999a768ce0b47e15ebe2c2b9e7fbbaf9b21ed",
+      "openhab/scripts/weather_learning/energy_shadow.py": "c29e77c8a46413eea3076ef5c4c628456bfb387887e918c87587b34391502fee",
+      "openhab/scripts/weather_learning/monitoring.py": "617c6ab2d959d31c7ea45010a4e5da5ff5763a1f06a627348917047116a466c3",
+      "openhab/scripts/weather_learning/pending_scores.py": "57be055f81c4c4aca5f0ae7a7e30709fe5d54a2b2e930e7884833fe34d00c97c",
+      "openhab/scripts/weather_learning/solar_shadow.py": "403f754dc2d0144b73b0acb80ec399770b516ad383becd50ad1dbfba1d568ad9",
+      "openhab/scripts/weather_learning/tests/test_hourly_collection.py": "2c165dbace271705816516b1d247232eda9887d069824aff6c8643fedd3d3dad",
+      "openhab/scripts/weather_learning/tests/test_monitoring.py": "2b6c713c5d7e85230afe85bd66f853982a28696ff72418fc374f590a71082e8a",
+      "openhab/scripts/weather_learning/tests/test_pending_scores.py": "671c1d8f4297f4b2f6fcd8718ed79e2f6cbd87a5af5ce6f8db7a1896b9c3c6b1",
+      "openhab/scripts/weather_learning/tests/test_performance.py": "7c139b81b8c789a0db0b851649c7bd54ffce9f194566ee4ca310f7030d559ebf",
+      "openhab/scripts/weather_learning/worker.py": "b51a4d6f6211f4daa166ce9d6797f302ed6d8d6b2d819a4da5d602a97979baed",
+      "src/lib/alerts/staleness.js": "0c61f018d6162bc58d4bf6ae8f72902550195408d07eaba42c2f4cce7a048924",
+      "src/lib/openhab/sse.js": "f1928affc0f38cea0fc73305d7a84cf9b915725e20fd6cbc50577881940b09fa",
+      "src/lib/openhab/store.js": "83b1d55d61ec849edf05da9cd0ff3434486be7a68353c9bc307ebfa9f907cf28",
+      "tests/alert-staleness.test.js": "a93236c7cdcd22d65dda9976cf0a0412bfc06533662e9cb05f0011c5863586e1",
+      "tests/e2e/home-runtime.spec.js": "397eaa2d04afa5ddaaabb3eb1e5fd9f1b4a7e59beebf573b37d4e7b928374007",
+      "tests/openhab-reconciliation.test.js": "2abe7d562d4dad43cfb4a7b1f0791dc17bbb3576d71a795d78ab33eb30fc85ef",
+      "tests/store.test.js": "657cc891e892c9bb2e98907b0fb4ad0bac45423668b5a1478f9d5761c191408c",
+      "tests/temperature-evidence-ordering.test.js": "790f83031452e07e4c91065e7babe7f8b30cb53bc10d6ed4b62912b1f4edd740"
+    },
+    "dependency_lock_sha256": "35c941310fa1036b091d40e2840db925233e36c0c9826ad39e26d436ef11774b",
+    "workflow_sha256": {
+      ".github/workflows/ci.yml": "36623b9bd430f6b92066f7e7bab863e8b3055a0eb1d8931c28820bc44fef7ebc",
+      ".github/workflows/forecast-ml-hardening.yml": "2426eef763a6c39b75b2cfd23ace20b2d8c524654985ea4d214f37797733129c",
+      ".github/workflows/household-receipt-integrity.yml": "2a0617a3cc030eee97039b7f9f3e10f6e91a3bc0ec4efab7dfe17496ac6028fb",
+      ".github/workflows/sensors.yml": "817635927b2f2e7bf796bdca8b36c8b1a9607afec1acba6e7e5b25b0c570c7bf",
+      ".github/workflows/thermal-delivery.yml": "c0fa23359346ce1a95e03fae4f521593700bd8df58b08e1fa89b7bd269b8a794"
+    },
+    "documentation_descendants_allowed_only_if_manifest_matches": true
+  },
+  "verification": {
+    "status": "in_progress",
+    "unit": {
+      "files": 183,
+      "passed": 2803,
+      "node": "22.22.0",
+      "vitest": "4.1.12",
+      "seconds": 52.99
+    },
+    "build": {
+      "passed": true,
+      "seconds": 1.68,
+      "warning": "existing large icon bundle"
+    },
+    "weathernext_foundation": {
+      "passed": 309,
+      "seconds": 44.557,
+      "profile": "requirements-weathernext.txt, Python3.12.3"
+    },
+    "workflow_validation": {
+      "passed": true,
+      "actionlint": "1.7.7",
+      "go": "1.22.2"
+    },
+    "provisional_ui_contract": {
+      "passed": 12
+    },
+    "sensors_contracts": {
+      "passed": 69,
+      "skipped": 11,
+      "pytest": "8.3.5",
+      "skip_reason": "opt-in integration; executed separately"
+    },
+    "sensors_integration": {
+      "passed": 11,
+      "skipped": 0,
+      "seconds": 37.75,
+      "pytest": "8.3.5",
+      "isolation": "unique disposable Compose project, alternate loopback-only ports bridged into networkless namespace; no production service modified"
+    },
+    "native_profiles": [
+      {
+        "profile": "completion-isolated",
+        "passed": 656,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "exit": 0,
+        "seconds": 166.158
+      },
+      {
+        "profile": "completion-pg",
+        "passed": 3,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "exit": 0,
+        "seconds": 26.119
+      },
+      {
+        "profile": "host",
+        "passed": 19,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "exit": 0,
+        "seconds": 30.139
+      },
+      {
+        "profile": "receiver",
+        "passed": 5,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "exit": 0,
+        "seconds": 1.116
+      }
+    ],
+    "intentional_failure": {
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "gate": "maintained test_hourly_collection.py::HourlyCollectionTests::test_full_and_interim_batch_cannot_exceed_archive_byte_cap",
+      "scope": "disposable source copy with only cumulative-byte guard disabled; release source unchanged",
+      "result": "failed at expected capacity assertion, not import/setup failure"
+    },
+    "source_revision_at_tests": "00e6a921e28d6bd77d51a4f82e141f1e8ea3f609",
+    "counts_are_not_added_across_overlapping_profiles": true,
+    "crypto": {
+      "status": "passed",
+      "nak_sha256": "ba918fafd1b030bc50958a5b218c6386f4c3a57c1e469562d3947e858e0ba56e",
+      "nak_version": "0.20.7",
+      "authentication_checks": 8,
+      "delivery_checks": 8,
+      "scope": "disposable local keys, exact root-owned copy, networkless namespace with loopback relay; no household keys or messages; delivery journal is an explicit test double",
+      "resource_profile": "64tasks;24task attempts were invalid due signer process thread requirements"
+    },
+    "shards": [
+      {
+        "source_revision": "c1c319245665a7d215dac9a08db59b09985f70ab",
+        "shard": 0,
+        "seconds": 516.552,
+        "profiles": [
+          {
+            "profile": "general",
+            "files": 153,
+            "exit": 0
+          }
+        ],
+        "passed": 2233,
+        "skipped": 8,
+        "subtests": 68
+      },
+      {
+        "source_revision": "c1c319245665a7d215dac9a08db59b09985f70ab",
+        "shard": 1,
+        "seconds": 603.802,
+        "profiles": [
+          {
+            "profile": "general",
+            "files": 140,
+            "exit": 0
+          }
+        ],
+        "passed": 2070,
+        "skipped": 5,
+        "subtests": 117
+      },
+      {
+        "source_revision": "00e6a921e28d6bd77d51a4f82e141f1e8ea3f609",
+        "shard": 2,
+        "seconds": 642.473,
+        "profiles": [
+          {
+            "profile": "general",
+            "files": 151,
+            "exit": 0
+          },
+          {
+            "profile": "pinned_bms_aux",
+            "files": 1,
+            "exit": 0
+          }
+        ],
+        "passed": 2322,
+        "skipped": 8,
+        "subtests": 69
+      }
+    ],
+    "renewal_for_archive_fix": "Worker and hourly collection tests both belong to shard1; full309foundation and13targeted tests/3subtests passed at00e6a92 after shard1 atc1c3192. Third shard at00e6a92 includes separate pinnedBMSaux1pass. Final source digest permits only documentation descendants.",
+    "skips_disposition": {
+      "receiver": "all5receiver test functions executed through system Python with flask_cors in native receiver profile; sharded parametrizations overlap",
+      "resource": "all selected opt-in native resource/systemd cases executed in actual capped scope",
+      "earth_engine": "all3SDK query tests execute in separate309case pinned WeatherNext foundation without cloud access",
+      "multiweek_replay": "CI=true-only test intentionally remains hosted-only; no forged CI identity",
+      "qualification_fit": "dedicated explicit EARTHSHIP_REMOTE_QUALIFICATION_FIT=1 profile pending"
+    }
+  },
+  "release_handoff": "reaudit-20261021.md"
 }

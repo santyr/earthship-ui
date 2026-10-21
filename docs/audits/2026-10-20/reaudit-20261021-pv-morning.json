@@ -1,0 +1,31 @@
+{
+  "automatic_actuation": false,
+  "baseline_rule": "ending_hour_radiation_split_right_endpoint_geometry_interpolated_point_weather_v2",
+  "candidate_model_sha256": "6682a7ad8ba71aeb19c364ce75528fc76cf415fab922b611967a1c0f8f5b4615",
+  "candidate_receipt_sha256": "1044a9344e9fc61ecede249d0388cffd747db4c42dff610a0911bdeb8fec19dc",
+  "candidate_rule": "fixed_45_degree_target_weighted_gain_with_24_target_physics_prior_v3",
+  "candidate_schema": "earthship-pv-directional-calibration/v3",
+  "checked_at": "2026-10-21T15:18:13.683812+00:00",
+  "dataset_sha256": "1ba988e071a2c34aa2ff0d7335329e466e917a22077a9bb9d57c670e1d9c70cf",
+  "fit_executed": {
+    "comparison": true,
+    "serving": true
+  },
+  "incumbent_file_sha256": "6192f8fc407d57d99e916c7fb7ff9d23aaaad8071820155e77536b32d4a5f2ee",
+  "independent_day_basis": "interval_start_local_date",
+  "originals_unchanged": true,
+  "owner_result_sha256": "e55f83ab940b50189338f07e2d1c764ca9fd549495d2076c6fead551996f8dd6",
+  "pair_count": 768,
+  "physical_calibration_qualified": false,
+  "promotion_permitted": false,
+  "proof_sha256": "6e98cf09a090a5888a0cde1d7ddde2958324178d056ee755efefd25a81777552",
+  "readback_child_processes": 0,
+  "readback_network_calls": 0,
+  "schema": "earthship-reaudit-pv-morning/v1",
+  "seconds": 0.258,
+  "selection_or_fit_performed_by_readback": false,
+  "source_files_verified": 355,
+  "source_manifest_sha256": "14b067906d32fda25797214af3d2752e7167efcd68323b52adea0903ca9ac1b4",
+  "source_revision": "0b3f6fc0a5ec0e86cd4af65604241d9532b2f1ad",
+  "status": "corrected_candidate_and_retained_incumbent_verified"
+}

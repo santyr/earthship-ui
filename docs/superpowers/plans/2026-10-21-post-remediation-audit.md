@@ -4,11 +4,11 @@
 
 **Goal:** Repair the remaining demonstrated source-level defects, verify the interactions introduced by the recent remediation and deployment work, and close all newly discovered in-scope implementation gaps with reproducible evidence—without repeating the previous audit or expanding forecast/control authority.
 
-**Repository:** `santyr/earthship-ui`  
-**Freshly reviewed baseline:** `87a70336fa52a19a282941af1bcd80b2f63ded52` (`main`, merge of PR #42, October 20, 2026).  
-**Plan date:** October 21, 2026.  
-**Suggested repository destination:** `docs/superpowers/plans/2026-10-21-post-remediation-audit.md`.  
-**Architecture:** Existing Svelte/Vite dashboard, OpenHAB REST/SSE and managed control owners, Python weather/thermal/PV pipelines, retained source-bound numerical producers, PostgreSQL observations, durable weather-scoring queues, and observation-service integrations. Preserve these boundaries; make focused repairs.  
+**Repository:** `santyr/earthship-ui`
+**Freshly reviewed baseline:** `87a70336fa52a19a282941af1bcd80b2f63ded52` (`main`, merge of PR #42, October 20, 2026).
+**Plan date:** October 21, 2026.
+**Suggested repository destination:** `docs/superpowers/plans/2026-10-21-post-remediation-audit.md`.
+**Architecture:** Existing Svelte/Vite dashboard, OpenHAB REST/SSE and managed control owners, Python weather/thermal/PV pipelines, retained source-bound numerical producers, PostgreSQL observations, durable weather-scoring queues, and observation-service integrations. Preserve these boundaries; make focused repairs.
 **Specification:** This goal plus current repository requirements and the established October 20 audit/operational records. Earlier handoffs supply historical evidence, not an instruction to repeat their work.
 
 ## 1. Evidence boundary and changed starting point
@@ -81,10 +81,10 @@ Where available, use authorized read-only local inspection to establish current 
 
 ### Task 1 — Make temperature values and freshness evidence coherent
 
-**Finding R20261021-01 — confirmed source-excerpt reproduction; P2.**  
-**Inspect/modify:** `src/lib/openhab/store.js`, `src/lib/openhab/sse.js`, `src/lib/openhab/timestamp.js`, `src/lib/alerts/staleness.js`.  
-**Tests:** extend maintained store/SSE/freshness suites; add a browser fixture to the existing Home runtime suite where practical.  
-**Consumes:** source timestamps, item snapshots, SSE state/evidence events and the existing reconciliation sequence.  
+**Finding R20261021-01 — confirmed source-excerpt reproduction; P2.**
+**Inspect/modify:** `src/lib/openhab/store.js`, `src/lib/openhab/sse.js`, `src/lib/openhab/timestamp.js`, `src/lib/alerts/staleness.js`.
+**Tests:** extend maintained store/SSE/freshness suites; add a browser fixture to the existing Home runtime suite where practical.
+**Consumes:** source timestamps, item snapshots, SSE state/evidence events and the existing reconciliation sequence.
 **Produces:** coherent displayed source state with truthful freshness; no new freshness clock based on browser arrival.
 
 `applyUpdateEvidence()` rejects an older source timestamp for both curated temperature and Astro Items. `applySnapshot()` respects that rejection when choosing the **value** only for Astro Items. A rejected older temperature value is therefore installed while the newer freshness evidence remains. Temperature `stateupdated` parsing also carries the timestamp without its value, unlike Astro; examine the complete event/state association rather than patching only a label. [S05][S13][S14]
@@ -101,10 +101,10 @@ The attached probe sets temperature to 70 with evidence at 12:05 UTC, then appli
 
 ### Task 2 — Isolate optional weather-domain failures
 
-**Finding R20261021-02 — confirmed fault-injection path; P2.**  
-**Inspect/modify:** `openhab/scripts/weather_learning/monitoring.py`, `solar_shadow.py`, `energy_shadow.py`, the existing monitor worker/public projection consumers as needed.  
-**Proposed new test file:** `openhab/scripts/test_weather_monitor_fault_isolation.py`, unless a maintained equivalent already exists.  
-**Consumes:** retained issue/snapshot originals, domain-specific forecast derivation and outcome readers, durable pending queues, approved work/time budgets.  
+**Finding R20261021-02 — confirmed fault-injection path; P2.**
+**Inspect/modify:** `openhab/scripts/weather_learning/monitoring.py`, `solar_shadow.py`, `energy_shadow.py`, the existing monitor worker/public projection consumers as needed.
+**Proposed new test file:** `openhab/scripts/test_weather_monitor_fault_isolation.py`, unless a maintained equivalent already exists.
+**Consumes:** retained issue/snapshot originals, domain-specific forecast derivation and outcome readers, durable pending queues, approved work/time budgets.
 **Produces:** independently truthful temperature/solar/rain/correction results with explicit per-domain failures.
 
 The current monitor catches issue-loading errors and local outcome-read errors, but calls `solar_window_forecast()` and `rain_day_forecast()` outside those isolation boundaries. Those calls occur **before** temperature queue bootstrap/scoring. A solar derivation failure propagates out and prevents temperature work from being reached. End-of-run domain aggregation also needs an explicit error-boundary review. [S06]
@@ -121,10 +121,10 @@ The attached probe injects `ValueError('one original solar grid required')` at t
 
 ### Task 3 — Report selector outcomes from durable evidence, not child exit status
 
-**Finding R20261021-03 — confirmed parent-function fault injection; P2.**  
-**Inspect/modify:** `openhab/scripts/thermal_weather_readmit_post.py`, `thermal_weather_readmit.py`, and the existing private-file/selection validators.  
-**Tests:** extend `openhab/scripts/test_historical_weather_daily.py` and the existing thermal admission/replay tests.  
-**Consumes:** original candidate/serving selectors, the bounded child operation, exact proof/admission validators and immutable source references.  
+**Finding R20261021-03 — confirmed parent-function fault injection; P2.**
+**Inspect/modify:** `openhab/scripts/thermal_weather_readmit_post.py`, `thermal_weather_readmit.py`, and the existing private-file/selection validators.
+**Tests:** extend `openhab/scripts/test_historical_weather_daily.py` and the existing thermal admission/replay tests.
+**Consumes:** original candidate/serving selectors, the bounded child operation, exact proof/admission validators and immutable source references.
 **Produces:** an accurate verified-new / unchanged / uncertain outcome without unsafe retries or rollback.
 
 The post-step returns `thermal_readmit_unavailable_previous_preserved` for every nonzero child exit. Its CLI exception handler also uses that status. It never compares the selector before and after execution. The worker writes the new selector near the end of `readmit()`, then returns; process failure can occur after publication but before successful termination. Therefore a failed exit is not proof that the old selection survived. The existing test checks a nonzero exit but does not simulate a child that published first. [S15][S16][S17]
@@ -142,7 +142,7 @@ The attached fault-injection probe writes a different temporary selector and ret
 
 ### Task 4 — Verify the complete scheduled producer/consumer lifecycle
 
-**Depends on:** Task 0; Task 3 for modified post-step release. Tasks 1/2 may be developed independently after the baseline is established.  
+**Depends on:** Task 0; Task 3 for modified post-step release. Tasks 1/2 may be developed independently after the baseline is established.
 **Status:** required follow-through and integration audit, not a claim that the previously repaired A22 is still broken.
 
 Current deployment records describe multiple intentional source families: an incumbent-compatible weather writer/trainer, corrected evaluator, incumbent-compatible PV serving, corrected PV candidate generation with `--retain-selection`, and a separately bound thermal consumer/admission. They also record the earlier A20 future-selection and A22 admission-compatibility defects. Preserve their fixes and use those incidents to audit complete lifecycle transitions, not only today's successful forecast. [S08][S12][S18]
