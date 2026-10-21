@@ -37,7 +37,13 @@
     {
       "id": "WN-06",
       "requirement": "Use dew point, pressure, wind components, and cloud structure appropriately",
-      "owning_tasks": "3, 5"
+      "owning_tasks": "3, 5",
+      "status": "implemented_locally_with_actual_feature_dispositions_not_deployed",
+      "evidence": [
+        "atmospheric-semantics.md",
+        "atmospheric-experiment.json",
+        "task5-verification.json"
+      ]
     },
     {
       "id": "WN-07",
@@ -186,18 +192,32 @@
       "task": 5,
       "title": "Add atmospheric context and controlled feature ablations",
       "gate": "added fields have useful, truthful consumers; feature groups get evidence-backed dispositions; no atmospheric field silently grants action authority or changes PV cooling wind.",
-      "status": "in_progress_consumer_locally_verified_experiments_pending",
+      "status": "complete_locally_incumbents_retained_not_deployed",
       "steps": 5,
       "evidence": [
         "atmospheric-semantics.md",
-        "task5-consumer-verification.json",
-        "atmospheric-ablation-protocol.json"
+        "atmospheric-ablation-protocol.json",
+        "atmospheric-ablations.md",
+        "atmospheric-experiment.json",
+        "task5-verification.json"
       ],
-      "remaining": [
-        "actual individual dewpoint/pressure/direction/cloud ablations for temperature/local-wind/thermal",
-        "gain-only versus one bounded scalar-wind challenger"
-      ],
-      "production_installed": false
+      "remaining": [],
+      "production_installed": false,
+      "tests": {
+        "affected_backend_passed": 570,
+        "normal_sdk_profile_skips": 4,
+        "backend_subtests": 163,
+        "isolated_sdk_executed": 4,
+        "isolated_sdk_skips": 0,
+        "frontend_unchanged_source_evidence": "task5-consumer-verification.json",
+        "frontend_tests": 2869,
+        "browser_cases": 16,
+        "eligible_original_pairs": 9159,
+        "fitted_artifacts": 317,
+        "original_files_verified": 1021,
+        "forecast_originals": 274,
+        "experiment_seconds": 91.87771754898131
+      }
     },
     {
       "task": 6,
