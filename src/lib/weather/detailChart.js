@@ -1,4 +1,5 @@
 import { precipitationMetric } from './presentation.js';
+import { temperatureCapabilityAt } from './capabilityForecast.js';
 const AXIS_COLOR = '#8b93a1';
 const GRID_COLOR = '#242b38';
 
@@ -16,23 +17,42 @@ function display(value, suffix) {
     : `—${suffix}`;
 }
 
-function tooltipFormatter(params, precipitation) {
+function tooltipFormatter(params, precipitation, nativeHours) {
   const values = Object.fromEntries(
     (Array.isArray(params) ? params : []).map(({ seriesName, value }) => [seriesName, value]),
   );
   const label = params?.[0]?.axisValue ?? 'Forecast';
+  const native=nativeHours?.[(Array.isArray(params)?params:[])[0]?.dataIndex];
   return [
     `<strong>${label}</strong>`,
     `Temperature: ${display(values.Temperature, '°F')}`,
     `Precipitation: ${precipitation.format(values.Precipitation)}`,
     `Radiation: ${display(values.Radiation, ' W/m²')}`,
     `Wind: ${display(values.Wind, ' mph')}`,
+    ...(native ? [`WeatherNext raw mean: ${display(native.meanF,'°F')}`,
+      native.rangeStatus==='available' ? `WeatherNext p10–p90: ${display(native.p10F,'°F')}–${display(native.p90F,'°F')} (local coverage unverified)` : 'WeatherNext range unavailable',
+      ...(native.p50F===null?[]:[`WeatherNext median: ${display(native.p50F,'°F')}`])] : []),
   ].join('<br>');
 }
 
-export function buildWeatherDetailOption({ hours = [], widthPx = 900 } = {}) {
+export function buildWeatherDetailOption({ hours = [], widthPx = 900, capabilities = null } = {}) {
   const wide = Number(widthPx) >= 760;
   const precipitation = precipitationMetric(hours);
+  const nativeHours=hours.map(hour=>temperatureCapabilityAt(capabilities,hour.at));
+  const nativeSeries=nativeHours.some(Boolean)?[
+    {
+      name:'WeatherNext p10–p90',type:'custom',yAxisIndex:0,silent:true,
+      encode:{x:0,y:[1,2]},
+      data:nativeHours.flatMap((h,index)=>h?.rangeStatus==='available'?[[index,h.p10F,h.p90F]]:[]),
+      renderItem:(_params,api)=>{
+        const low=api.coord([api.value(0),api.value(1)]),high=api.coord([api.value(0),api.value(2)]);
+        const width=Math.abs(api.size([1,0])[0]);
+        return {type:'rect',shape:{x:low[0]-width/2,y:Math.min(low[1],high[1]),width,height:Math.abs(low[1]-high[1])},style:{fill:'#a78bfa',opacity:.18}};
+      },
+    },
+    {name:'WeatherNext raw mean',type:'line',yAxisIndex:0,data:nativeHours.map(h=>h?.meanF??null),smooth:false,showSymbol:false,connectNulls:false,lineStyle:{width:1,type:'dashed',color:'#c4b5fd'}},
+    ...(nativeHours.some(h=>h?.p50F!=null)?[{name:'WeatherNext median',type:'line',yAxisIndex:0,data:nativeHours.map(h=>h?.p50F??null),smooth:false,showSymbol:false,connectNulls:false,lineStyle:{width:1,type:'dotted',color:'#94a3b8'}}]:[]),
+  ]:[];
   return {
     animation: false,
     backgroundColor: 'transparent',
@@ -46,7 +66,7 @@ export function buildWeatherDetailOption({ hours = [], widthPx = 900 } = {}) {
     tooltip: {
       trigger: 'axis',
       confine: true,
-      formatter: params => tooltipFormatter(params, precipitation),
+      formatter: params => tooltipFormatter(params, precipitation, nativeHours),
     },
     xAxis: {
       type: 'category',
@@ -98,6 +118,7 @@ export function buildWeatherDetailOption({ hours = [], widthPx = 900 } = {}) {
       },
     ],
     series: [
+      ...nativeSeries,
       {
         name: 'Radiation',
         type: 'bar',

@@ -11,35 +11,36 @@ import { parseCapturedPvPerformance } from './capturedPvPerformance.js';
 import { parseBatteryPerformance } from './batteryPerformance.js';
 import { parseEnergyObservation, parseEnergyPerformance } from './energyObservation.js';
 import { parseProfiledObservation, parseProfiledPerformance } from './profiledObservation.js';
+import {parseWeatherCapabilities,MAX_CAPABILITY_BYTES} from '../weather/capabilityForecast.js';
 
 // Preserve Vite's default sensitive-file exclusions and add private agent and
 // receipt staging. Filesystem permissions alone do not constrain the web server.
 export const HOUSEHOLD_FS_DENY = ['.env', '.env.*', '*.{crt,pem,key,p12,pfx,cer,der}', '.npmrc', '.yarnrc.yml',
   '**/.git/**', '**/.superpowers/**', '**/.codex/**', '**/.aws/**'];
 
-function ownedFile(info) {
+function ownedFile(info,maximumBytes) {
   return info.isFile() && info.uid === process.getuid() && (info.mode & 0o777) === 0o600
-    && info.nlink === 1 && info.size <= OBSERVATION_MAX_BYTES;
+    && info.nlink === 1 && info.size <= maximumBytes;
 }
 function same(a, b) {
   return ['dev', 'ino', 'mode', 'uid', 'nlink', 'size', 'mtimeMs', 'ctimeMs'].every(key => a[key] === b[key]);
 }
-async function readObservation(path, nowMs, validate = parseHouseholdObservation) {
+async function readObservation(path, nowMs, validate = parseHouseholdObservation, maximumBytes = OBSERVATION_MAX_BYTES) {
   if (resolve(path) !== path || await realpath(path) !== path) throw new Error('unavailable');
   const parent = await stat(dirname(path));
   if (!parent.isDirectory() || parent.uid !== process.getuid() || (parent.mode & 0o777) !== 0o700) throw new Error('unavailable');
   const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
   try {
     const original = await handle.stat();
-    if (!ownedFile(original)) throw new Error('unavailable');
-    const bytes = Buffer.alloc(OBSERVATION_MAX_BYTES + 1);
+    if (!ownedFile(original,maximumBytes)) throw new Error('unavailable');
+    const bytes = Buffer.alloc(maximumBytes + 1);
     let length = 0;
     while (length < bytes.length) {
       const result = await handle.read(bytes, length, bytes.length - length, null);
       if (!result.bytesRead) break;
       length += result.bytesRead;
     }
-    if (length > OBSERVATION_MAX_BYTES || length !== original.size
+    if (length > maximumBytes || length !== original.size
       || !same(original, await handle.stat()) || !same(original, await lstat(path))
       || !same(parent, await stat(dirname(path))) || await realpath(path) !== path) throw new Error('unavailable');
     const raw = new TextDecoder('utf-8', { fatal: true }).decode(bytes.subarray(0, length));
@@ -62,12 +63,14 @@ export function householdObservationPlugin({
   capturedPvCachePath = resolve(homedir(), '.local/state/household-intel/captured-pv-performance.json'),
   pvPerformanceCachePath = resolve(homedir(), '.local/state/household-intel/daily-pv-performance.json'),
   dailyPvCachePath = resolve(homedir(), '.local/state/household-intel/daily-pv-potential.json'),
+  weatherCapabilitiesPath = resolve(homedir(), '.local/state/earthship-weather/shadow/google-local-v2/weather-capabilities.json'),
   now = Date.now,
 } = {}) {
   const attach = server => { server.middlewares.use(async (req, res, next) => {
     let url;
     try { url = new URL(req.url || '/', 'http://localhost'); } catch { return next(); }
     const route = {
+      '/api/weather-capabilities': [weatherCapabilitiesPath, (raw,options)=>parseWeatherCapabilities(raw,options).state==='ready', MAX_CAPABILITY_BYTES],
       '/api/daily-pv-performance': [pvPerformanceCachePath, parsePvPerformance],
       '/api/daily-pv-potential': [dailyPvCachePath, parseDailyPvPotential],
       '/api/household-chronological-summary': [chronologicalCachePath, parseChronologicalSummary],
@@ -87,7 +90,7 @@ export function householdObservationPlugin({
     res.setHeader('X-Content-Type-Options', 'nosniff');
     if (req.method !== 'GET') { res.setHeader('Allow', 'GET'); res.writeHead(405).end('{"status":"unavailable"}'); return; }
     if (url.search) { res.writeHead(400).end('{"status":"unavailable"}'); return; }
-    try { const raw = await readObservation(route[0], now(), route[1]); res.writeHead(200).end(raw); }
+    try { const raw = await readObservation(route[0], now(), route[1], route[2]); res.writeHead(200).end(raw); }
     catch { if (!res.headersSent) res.writeHead(503); res.end('{"status":"unavailable"}'); }
   }); };
   return { name: 'household-observation', configureServer: attach, configurePreviewServer: attach };

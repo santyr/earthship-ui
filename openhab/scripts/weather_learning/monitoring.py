@@ -14,13 +14,13 @@ from .energy_shadow import rain_day_forecast,compare_rain_products,rain_comparis
 
 
 def monitor_once(archive,state,*,now,site,sensor_epoch,code_revision,observation_policy_sha256,
-                 read_temperature,read_solar,read_rain,apply=False,guard=lambda:None,read_corrections=None):
+                 read_temperature,read_solar,read_rain,apply=False,guard=lambda:None,read_corrections=None,read_capabilities=None):
     import tempfile
     from pathlib import Path
     if type(apply) is not bool:raise ValueError('explicit monitor publication required')
     arguments=dict(now=now,site=site,sensor_epoch=sensor_epoch,code_revision=code_revision,
         observation_policy_sha256=observation_policy_sha256,read_temperature=read_temperature,
-        read_solar=read_solar,read_rain=read_rain,apply=apply,guard=guard,read_corrections=read_corrections)
+        read_solar=read_solar,read_rain=read_rain,apply=apply,guard=guard,read_corrections=read_corrections,read_capabilities=read_capabilities)
     context=dict(sensor_epoch=sensor_epoch,observation_policy_sha256=observation_policy_sha256,
         evaluation_version=EVALUATION_VERSION,evaluation_contract_sha256=EVALUATION_CONTRACT_SHA256)
     if apply:
@@ -33,7 +33,7 @@ def monitor_once(archive,state,*,now,site,sensor_epoch,code_revision,observation
 
 
 def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,observation_policy_sha256,
-                 read_temperature,read_solar,read_rain,apply,guard,read_corrections):
+                 read_temperature,read_solar,read_rain,apply,guard,read_corrections,read_capabilities):
     now=utc(now);digest(observation_policy_sha256)
     if type(apply) is not bool:raise ValueError('explicit monitor publication required')
     names=state.training_issue_names(now-timedelta(days=7),now,sensor_epoch=sensor_epoch)
@@ -42,6 +42,7 @@ def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,obse
     pending=dict(solar=0,rain=0);withheld=[];zone=ZoneInfo(site.timezone)
     source_attempts=0
     if read_corrections is not None and not callable(read_corrections):raise ValueError('callable correction monitor required')
+    if read_capabilities is not None and not callable(read_capabilities):raise ValueError('callable capability monitor required')
     def source(kind,target,read,validate):
         nonlocal source_attempts
         key=identity(dict(kind=kind,target=target,policy_sha256=observation_policy_sha256))
@@ -105,7 +106,8 @@ def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,obse
                 if value is not None:rain_sources.append(value)
             else:pending['rain']+=1
     bootstrap=queue.bootstrap(archive,site=site,now=now,guard=guard)
-    temperature_limit=min(32 if read_corrections is not None else 64,max(1,64-source_attempts))
+    capability_reserve=min(8,max(0,64-source_attempts)) if read_capabilities is not None else 0
+    temperature_limit=min(32 if read_corrections is not None else 64,max(1,64-source_attempts-capability_reserve))
     due=queue.due(now,limit=temperature_limit);loaded=[]
     for work in due:
         guard()
@@ -139,10 +141,23 @@ def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,obse
     temperature['work']=dict(bootstrap=bootstrap,states=queue.counts(),dependencies=queue.source_dependencies(),backlog=queue.backlog(now),
         batch_limit=temperature_limit,observation_arrival_allowance_days=7,report_target_window_days=7)
     corrections=None
+    capability_attempts=0
+    if read_capabilities is not None:
+        # An optional fault may follow successful reads, so its full reservation
+        # remains consumed on failure. Never lend an unknown partial budget.
+        capability_attempts=capability_reserve
+        try:
+            guard();capabilities=read_capabilities(now=now,limit=capability_reserve,apply=apply,guard=guard);guard()
+            used=capabilities['observations_attempted']
+            if type(used) is not int or not 0<=used<=capability_reserve:raise ValueError('bounded capability observation accounting required')
+            capability_attempts=used
+        except (TimeoutError,AdmissionDeferred,MemoryError):raise
+        except Exception as error:
+            guard();withheld.append(dict(kind='capabilities',reason=type(error).__name__))
     if read_corrections is not None:
         # Legacy daily windows and every attempted queue label share one budget.
         # Reserve temperature work, then lend only the remaining quota.
-        remaining=min(32,max(0,64-source_attempts-len(loaded)))
+        remaining=min(32,max(0,64-source_attempts-len(loaded)-capability_attempts))
         try:
             guard();corrections=read_corrections(now=now,limit=remaining,apply=apply,guard=guard);guard()
         except (TimeoutError,AdmissionDeferred,MemoryError):raise

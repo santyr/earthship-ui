@@ -22,6 +22,10 @@ const mocks = vi.hoisted(() => {
 vi.mock('../../src/lib/charts/loadEcharts.js', () => ({
   getEcharts: async () => ({ init: mocks.init }),
 }));
+vi.mock('../../src/lib/weather/capabilityState.js', async () => {
+  const { writable } = await import('svelte/store');
+  return { weatherCapabilityRaw: writable(null), weatherCapabilityClock: writable(Date.now()) };
+});
 
 import WeatherDetailModal from '../../src/lib/ui/WeatherDetailModal.svelte';
 import { items } from '../../src/lib/openhab/store.js';
@@ -30,6 +34,8 @@ import {
   openWeatherDetail,
 } from '../../src/lib/weather/detailStore.js';
 import { currentRoute } from '../../src/routes.js';
+import { weatherCapabilityRaw, weatherCapabilityClock } from '../../src/lib/weather/capabilityState.js';
+import { capabilityFixture, CAPABILITY_NOW } from '../fixtures/weather-capabilities.js';
 
 function payload({ count = 12, stale = false, precipSumIn, hourPrecipIn, version = 1, firstTempF = 60 } = {}) {
   return JSON.stringify({
@@ -92,6 +98,8 @@ describe('WeatherDetailModal', () => {
       disconnect() {}
     };
     currentRoute.set('home');
+    weatherCapabilityRaw.set(null);
+    weatherCapabilityClock.set(CAPABILITY_NOW);
     items.set({ Forecast_10Day_JSON: payload() });
     mocks.init.mockClear();
     mocks.chart.setOption.mockClear();
@@ -132,6 +140,29 @@ describe('WeatherDetailModal', () => {
       { renderer: 'svg' },
     ));
     expect(mocks.chart.setOption).toHaveBeenCalled();
+  });
+
+  it('shows original raw ranges separately from displayed temperature and withdraws expired ranges', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(CAPABILITY_NOW);
+    items.set({ Forecast_10Day_JSON: payload().replaceAll('2026-07-19', '2026-10-21') });
+    weatherCapabilityRaw.set(JSON.stringify(capabilityFixture()));
+    addOpener();
+    render(WeatherDetailModal);
+    openWeatherDetail({ date: '2026-10-21', label: 'Today' });
+    await screen.findByRole('dialog', { name: /Today forecast/i });
+    expect(screen.getByText('WeatherNext p10–p90; local coverage not yet verified')).toBeTruthy();
+    expect(screen.getAllByText('Raw p10–p90: 32°–50°').length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Raw median/)).toBeNull();
+    expect(screen.getByText(/initialized 6h ago/)).toBeTruthy();
+    await waitFor(() => expect(mocks.chart.setOption.mock.calls.at(-1)?.[0].series.some(s => s.name === 'WeatherNext p10–p90')).toBe(true));
+    const option = mocks.chart.setOption.mock.calls.at(-1)[0];
+    expect(option.series.find(s => s.name === 'Temperature').data.some(v => v > 50)).toBe(true);
+    expect(option.series.find(s => s.name === 'WeatherNext raw mean').data.filter(v => v !== null).every(v => v === 68)).toBe(true);
+    weatherCapabilityClock.set(CAPABILITY_NOW + 3600000);
+    await waitFor(() => expect(screen.queryByText('WeatherNext p10–p90; local coverage not yet verified')).toBeNull());
+    await waitFor(() => expect(mocks.chart.setOption.mock.calls.at(-1)[0].series.some(s => s.name === 'WeatherNext p10–p90')).toBe(false));
+    expect(screen.getAllByTestId('weather-detail-hour').length).toBeGreaterThan(0);
   });
 
   it('renders producer-corrected v2 temperatures without applying correction items again', async () => {

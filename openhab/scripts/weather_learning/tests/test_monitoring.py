@@ -96,6 +96,33 @@ class MonitoringTests(unittest.TestCase):
         self.assertEqual(report['corrections']['status'],'unavailable')
         self.assertFalse(report['automatic_actuation'])
 
+    def test_capability_and_correction_observations_share_existing_64_attempt_budget(self):
+        for day in (1,2,3):
+            origin=T+timedelta(days=day)
+            self.archive.store_snapshot(full_snapshot(init=origin,hours=360))
+            shadow_once(self.archive,self.state,now=origin+timedelta(minutes=30),site=SITE,
+                sensor_epoch=EPOCH,code_revision=REVISION,horizon=336,clock=lambda:origin+timedelta(minutes=31))
+        capabilities=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit']))
+        corrections=Mock(return_value={})
+        self.run_monitor(now=T+timedelta(days=5),read_capabilities=capabilities,read_corrections=corrections)
+        legacy=self.solar.call_count+self.rain.call_count
+        temperature=len(self.temperature.call_args.args[0])
+        self.assertEqual(capabilities.call_args.kwargs['limit'],8)
+        self.assertLessEqual(legacy+temperature+8+corrections.call_args.kwargs['limit'],64)
+
+    def test_optional_capability_failure_cannot_hide_legacy_scores_or_lend_used_budget(self):
+        capabilities=Mock(side_effect=ConnectionError('private optional details'))
+        corrections=Mock(return_value={})
+        report=self.run_monitor(read_capabilities=capabilities,read_corrections=corrections)
+        self.assertEqual(report['temperature']['raw']['pairs'],2)
+        self.assertTrue(any(w['kind']=='capabilities' for w in report['source_withheld']))
+        self.assertNotIn('private optional details',str(report))
+        self.assertLessEqual(corrections.call_args.kwargs['limit'],64-2-8)
+
+    def test_capability_monitor_shared_deadline_remains_a_global_stop(self):
+        with self.assertRaises(TimeoutError):
+            self.run_monitor(read_capabilities=Mock(side_effect=TimeoutError('owner deadline')))
+
     def test_legacy_window_reads_also_consume_the_job_observation_budget(self):
         for day in (1,2,3):
             origin=T+timedelta(days=day)

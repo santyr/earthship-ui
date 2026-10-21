@@ -99,9 +99,15 @@ def main(argv=None):
             return monitor_corrections(state,now=now,observation_policy_sha256=policy_sha256,
                 read_wind=wind,read_solar=proxy,limit=limit,apply=apply,guard=guard,discover=discover,
                 clock=lambda:datetime.now(timezone.utc))
+        capability_reader=None
+        from .capability_scoring import DATABASE,monitor_capabilities
+        if (state.root/DATABASE).exists():
+            def capability_reader(*,now,limit,apply,guard):
+                return monitor_capabilities(state,now=now,sensor_epoch=epoch,observation_policy_sha256=policy_sha256,
+                    read_temperature=temperatures,limit=limit,apply=apply,guard=guard)
         with collector_lock(state.root/'monitor.lock'):
             report=monitor_once(archive,state,now=datetime.now(timezone.utc),site=site,sensor_epoch=epoch,code_revision=args.code_revision,
-                observation_policy_sha256=policy_sha256,read_temperature=temperatures,read_solar=solar,read_rain=rainfall,apply=args.apply,guard=guard,read_corrections=corrections)
+                observation_policy_sha256=policy_sha256,read_temperature=temperatures,read_solar=solar,read_rain=rainfall,apply=args.apply,guard=guard,read_corrections=corrections,read_capabilities=capability_reader)
         print(json.dumps(dict(status='weather_performance_refreshed' if args.apply else 'weather_performance_prepared',
             temperature_pairs=0 if report['temperature']['raw'] is None else report['temperature']['raw']['pairs'],
             solar_pairs=len(report['solar']['pairs']),rain_days=len(report['rain']['pairs']),pending=report['pending'],

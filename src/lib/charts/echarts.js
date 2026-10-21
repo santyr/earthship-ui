@@ -1,5 +1,5 @@
 import * as echarts from 'echarts/core';
-import { BarChart, CandlestickChart, LineChart } from 'echarts/charts';
+import { BarChart, CandlestickChart, CustomChart, LineChart } from 'echarts/charts';
 import {
   GridComponent,
   LegendComponent,
@@ -12,6 +12,7 @@ echarts.use([
   LineChart,
   BarChart,
   CandlestickChart,
+  CustomChart,
   GridComponent,
   LegendComponent,
   MarkPointComponent,
