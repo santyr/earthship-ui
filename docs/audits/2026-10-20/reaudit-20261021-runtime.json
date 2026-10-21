@@ -53,7 +53,7 @@
       },
       "compatibility_disposition": "intentional dirty checkout overlay, safe-compat; source repairs in this branch uninstalled",
       "permitted_operations": "original replay and existing scheduled role only; no audit-authorized selection/activation/message/device expansion",
-      "last_domain_output_disposition": "active original service with safe-compat and exact solar worker/horizon pins; final actual GET-only browser readback still pending",
+      "last_domain_output_disposition": "Installed GET-only browser readback completed across16route/viewports with zero page errors/mutations/externalrequests/outeroverflow; see installed_browser_readback. This preserved overlay is distinct from the uninstalled source repairs.",
       "retention_policy": "Retain original source package, existing selectors, source-bound artifacts and historical producer dispatch; audit did not replace any installed pin."
     },
     {
