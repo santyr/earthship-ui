@@ -66,6 +66,10 @@ def prepare_near_term_correction(archive,*,decision_at,site,selection_path,origi
         model,selection=load_selection(selection_path,kind='outdoor_temperature_c',now=now,sensor_epoch=sensor_epoch)
         if model['timezone']!=site.timezone:raise ValueError('selected near-term model timezone differs')
     except (OSError,ValueError,KeyError,TypeError):return _freeze(body)
+    # A failed origin still belongs to this selected artifact's fallback policy.
+    body['model']=dict(model_sha256=model['model_sha256'],selection_sha256=selection['selection_sha256'],
+        available_at=selection['available_at'],trained_at=model['trained_at'],
+        training_end=model['training_end'],correction_limit_c=model['correction_limit'])
     try:
         if origin_metadata is None or origin_acquired_at is None:raise ValueError('actual acquired origin required')
         origin,capture=_origin(snapshot,now=now,metadata=origin_metadata,acquired_at=origin_acquired_at,sensor_epoch=sensor_epoch)

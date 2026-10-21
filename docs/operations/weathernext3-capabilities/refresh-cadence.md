@@ -52,8 +52,48 @@ fallback, preserving the near forecast. The prepared product declares
 forecast or an installed extended correction.
 
 The frozen `refresh-evaluation-protocol.json` sets matching, weights, source
-classes, publication clocks and support before outcome comparisons. Remaining
-Task6 work is to implement and run the matched qualified-outcome evaluation,
-revision/fallback diagnostics, bounded durable profile-decision score queue and
+classes, publication clocks and support before outcome comparisons. The scoring
+sample keeps every native endpoint through ceil(decision+24h), plus offsets48,
+72,120,168,240,336 from the first future native hour. Complete extended originals
+remain retained. This is a declared bounded score sample, not all-hour scoring.
+Only targets strictly later than confirmed publication completion enter scores.
+Actual published forecasts and known-at-decision policy replays are identified
+separately. Missing comparisons and outcomes never become zeros. Dates have equal
+weight, then targets within a date, then forecast origins for that target.
+
+The final offline experiment completed in34.38s, with385 exact production source
+files and165 immutable input files retained and verified unchanged. Literal
+receipt-source replay yielded375 qualified forecast-target pairs against26
+unique measured targets on2local dates. There were570 mature sampled targets
+without a retained qualified outcome and574 not-yet-mature targets. These counts
+cover1519 declared targets from the frozen49publication population. No fitting,
+network connection, child process or installed-state change occurred.
+
+| Same375matched forecast-target pairs | MAE C |
+| --- | ---: |
+| Latest retained48h collection, next24h | 1.445759 |
+| Actual published near/extended serving policy | 1.481400 |
+| Latest retained360h collection, next24h | 1.591796 |
+
+These are descriptive results:2local dates do not satisfy the3date gate. Retain
+all current serving policies. The collected48h subset is not asserted to prove
+Google's nominal product class. Repeated forecasts are not375independent local
+observations. Date-block intervals are descriptive with no probability claim.
+
+No new near24 correction was prepared for those original historical decisions.
+Its corrected-only matched support is0. The full fallback policy retains all375
+original raw predictions, with the explicit reason `NEAR24_NOT_PREPARED`; it does
+not acquire apparent skill from invented historical corrections. A selected
+model with a missing origin retains its artifact identity for fallback attribution.
+Tests distinguish corrected-only matched support from the full raw-fallback
+policy, including the case where correction is available on only one target.
+
+The private experiment contains original publication profiles, same-target
+revisions, initialization/availability/local issue ages, source grids, exact
+observation acquisition clocks, complete group/subgroup diagnostics and source
+packages. `refresh-experiment.json` exposes a bounded summary with hashed sensor
+phase identity and no original measurement paths or device identifiers.
+
+Remaining Task6 work is the bounded durable profile-decision score queue and
 prospective integration. Long-horizon maturity and restart behavior still need
 verification. Tasks7–11 remain required for the full capability goal.

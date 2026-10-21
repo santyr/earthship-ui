@@ -36,5 +36,19 @@
   "qualification": "general3percent improvement and5percent supported-subgroup regression gate; retain incumbent until independently reviewed; probability claims require separate qualification",
   "probability_claim": false,
   "automatic_actuation": false,
-  "protocol_sha256": "75699486886d7e49694c4c4252c83a565710f2e1953b5aaf72cf89961ec1f838"
+  "durable_score_sampling": {
+    "near": "all native endpoints through ceil(decision+24h)",
+    "long_offsets_from_first_future_native_hour": [
+      48,
+      72,
+      120,
+      168,
+      240,
+      336
+    ],
+    "complete_original_extended_product_retained": true,
+    "claim": "predeclared bounded score target sample, not exhaustive all-hour verification"
+  },
+  "score_contract_sha256": "2ecf7ada5d0e2d0e722d1ba28d100fb72aedc3655b52af84399ea50355c59410",
+  "protocol_sha256": "5d5ec944833ac7dc268cfcea4515186275d2487217fdc9c0533e85151749a31f"
 }

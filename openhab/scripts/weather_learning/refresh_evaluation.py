@@ -8,7 +8,7 @@ from datetime import timedelta
 import json
 
 from .archive import Archive
-from .config import Site
+from .config import Site,COLLECTIONS
 from .contracts import canonical,digest,identity,instant
 from .evidence import utc
 from .provider import REQUIRED,TEMPERATURE,load_production_forecast
@@ -69,7 +69,11 @@ def _source(profile,snapshot,decision):
         times=[instant(p['valid_at']) for p in snapshot['points'] if p['variable']==variable and p['statistic']=='mean' and p['value'] is not None]
         if not times:raise ValueError('original profile coverage unavailable')
         last.append(max(times))
-    source=dict(profile['source']);initialized=instant(source['initialized_at']);completed=instant(source['ingestion_completed_at'])
+    cells={(p['latitude'],p['longitude']) for p in snapshot['points'] if p['variable']==TEMPERATURE and p['statistic']=='mean'}
+    if len(cells)!=1:raise ValueError('one original native temperature cell required')
+    latitude,longitude=next(iter(cells))
+    grid=identity(dict(site=snapshot['site'],collection=COLLECTIONS['station'],variable=TEMPERATURE,latitude=latitude,longitude=longitude))
+    source=dict(profile['source'],grid_sha256=grid);initialized=instant(source['initialized_at']);completed=instant(source['ingestion_completed_at'])
     source.update(initialization_age_hours=(decision-initialized).total_seconds()/3600,
         availability_lag_hours=(completed-initialized).total_seconds()/3600,
         remaining_native_hours=(min(last)-decision).total_seconds()/3600)
