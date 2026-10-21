@@ -37,6 +37,12 @@ class TransportTests(unittest.TestCase):
   s=Session(Response(status=403));t=self.transport(s)
   response,body=t.request('https://earthengine.googleapis.com/v1/projects/earthship-weather-research/config')
   self.assertEqual(response.status,403);self.assertEqual(len(s.calls),1)
+ def test_trace_retains_only_allowlisted_error_status_without_private_message(self):
+  data=json.dumps({'error':{'status':'RESOURCE_EXHAUSTED','message':'operator-private'}}).encode()
+  t=self.transport(Session(Response(data,status=403)))
+  t.request('https://earthengine.googleapis.com/v1/projects/earthship-weather-research/config')
+  self.assertEqual(t.trace[-1]['error_status'],'RESOURCE_EXHAUSTED')
+  self.assertNotIn('operator-private',json.dumps(t.trace))
  def test_total_deadline_and_request_count_refused(self):
   ticks=iter([0,121]);t=self.transport(clock=lambda:next(ticks))
   with self.assertRaises(AccessRefused):t.request('https://earthengine.googleapis.com/v1/projects/earthship-weather-research/config')

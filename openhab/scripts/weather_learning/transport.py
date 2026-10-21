@@ -50,6 +50,12 @@ class BoundedTransport:
                 if self.clock()-self.started>self.policy.max_seconds:raise AccessRefused('total acquisition deadline exceeded')
                 self.trace.append(dict(method=method,path=url.path,status=response.status_code,bytes=len(data),
                     quota_project_header=any(k.lower()=='x-goog-user-project' for k in headers)))
+                if response.status_code>=400:
+                    try:
+                        code=json.loads(data).get('error',{}).get('status')
+                        if code in ('RESOURCE_EXHAUSTED','PERMISSION_DENIED','NOT_FOUND','INVALID_ARGUMENT','UNAVAILABLE'):
+                            self.trace[-1]['error_status']=code
+                    except (ValueError,TypeError,AttributeError):pass
                 if response.status_code==200 and url.path==path+'config':
                     try:self.noncommercial_verified=json.loads(data).get('registrationState')=='REGISTERED_NOT_COMMERCIALLY'
                     except (ValueError,TypeError,AttributeError):raise AccessRefused('project registration response malformed') from None
