@@ -1,0 +1,82 @@
+{
+  "schema": "earthship-weather-capability-task4-verification/v1",
+  "source_manifest_sha256": "b761b4c83c9518cab94777f2d6800ee93917d373e96c9cab14b79cce8e6a67c1",
+  "jobs": [
+    {
+      "name": "backend",
+      "exit": 0,
+      "seconds": 97.11466921400279
+    },
+    {
+      "name": "sdk",
+      "exit": 0,
+      "seconds": 2.1003655570093542
+    },
+    {
+      "name": "pv",
+      "exit": 0,
+      "seconds": 67.11300819600001
+    },
+    {
+      "name": "thermal",
+      "exit": 0,
+      "seconds": 29.109635157044977
+    },
+    {
+      "name": "original-v1",
+      "exit": 0,
+      "seconds": 2.1019713720306754
+    }
+  ],
+  "backend": {
+    "passed": 729,
+    "normal_profile_sdk_skips": 4,
+    "subtests": 163
+  },
+  "isolated_sdk": {
+    "executed": 4,
+    "skipped": 0,
+    "outbound_sockets_blocked": true
+  },
+  "original_v1": {
+    "schema": "earthship-task4-original-v1-replay/v1",
+    "base": "731745a984ddd91882159e43d1775ff32051c92f",
+    "sources": [
+      {
+        "snapshot_sha256": "b67493470f5b9133429d41affae01f7a380eac074ce10dcc9f0a648b0009ffe9",
+        "v1_forecast_sha256": "e1a489309b4fb88d19c02f3402fad7189adce5d016ce1cda0caa2633c45d5e96",
+        "original_v1_packet_identical": true,
+        "v2_point_rows_identical": true
+      },
+      {
+        "snapshot_sha256": "dac3a7b96c65401e9d1683b5aee3b69170dc67dc2effa1a4360f699a1712a6be",
+        "v1_forecast_sha256": "d22f018ac772cbae6ea7618bec9e0ad48e006827efc7b5644b739950043068e8",
+        "original_v1_packet_identical": true,
+        "v2_point_rows_identical": true
+      },
+      {
+        "snapshot_sha256": "05a156c047370cc0846a799a1d54f4ec7e1ecdc6327f9c3f0b96e1e117ed8c51",
+        "v1_forecast_sha256": "675e0231de1b8474a6724d6a12ea963d7906d8ecb3283438f5f5c68e38f3355c",
+        "original_v1_packet_identical": true,
+        "v2_point_rows_identical": true
+      }
+    ],
+    "legacy_pv_source_unchanged": true,
+    "production_changed": false
+  },
+  "experiments": {
+    "solar": {
+      "experiment_sha256": "95b5a9b5e7cd317d1c9c5bc2ab1a678811bd23152c8e3e4e7a69cbc2c159c2ad",
+      "source_package_sha256": "cdcbe1677969a8ad4cc539ab0be482066250ba3e7901205db470c8fd4266724d",
+      "duration_seconds": 66.54784295009449
+    },
+    "thermal-solar": {
+      "experiment_sha256": "fa707e2592ff60b3b5c54254eaf9fd6e21e29932c91a7897e720366202012bb5",
+      "source_package_sha256": "b761b4c83c9518cab94777f2d6800ee93917d373e96c9cab14b79cce8e6a67c1",
+      "duration_seconds": 28.261577252997085
+    }
+  },
+  "frontend_unchanged_since": "be657e0",
+  "production_changed": false,
+  "incumbent_methods_retained": true
+}

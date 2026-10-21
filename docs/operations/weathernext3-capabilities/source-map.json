@@ -20,8 +20,8 @@
       "feature": "native_solar_components",
       "existing": "total/direct hourly mean J/m2 already retained",
       "source": "worker.py \u2192 provider.py",
-      "current_consumer": "Task4 explicit v2 forcing/shared PV path and retained-data matched experiment implemented; incumbent retained, production unchanged",
-      "planned_extension": "Complete distinct comparable-trajectory thermal experiment and Task4 final gate; preserve v1 producer"
+      "current_consumer": "Task4 explicit v2/shared PV path and matched retained PV/thermal comparisons verified; incumbent methods retained, production unchanged",
+      "planned_extension": "Task10 diagnostic status/details and Task11 integrated source/rollback gates"
     },
     {
       "feature": "dew_point_pressure",

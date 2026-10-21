@@ -1,11 +1,11 @@
 {
   "schema": "earthship-native-solar-pv-experiment-summary/v1",
-  "status": "pv_experiment_complete_thermal_task_still_in_progress",
-  "checked_at": "2026-10-21T20:52:33.890978+00:00",
-  "experiment_sha256": "fe7acaaa2ebceeb0e28740cc5ec155693bd9a61a928781ab87d9f1b316e34fcb",
+  "status": "pv_comparison_complete_incumbent_retained",
+  "checked_at": "2026-10-21T21:12:37.018439+00:00",
+  "experiment_sha256": "95b5a9b5e7cd317d1c9c5bc2ab1a678811bd23152c8e3e4e7a69cbc2c159c2ad",
   "parent_dataset_sha256": "1ba988e071a2c34aa2ff0d7335329e466e917a22077a9bb9d57c670e1d9c70cf",
-  "source_package_sha256": "dda2f83cdc5d73ddacba32bc81fa63e5fb6df2394935d073605c47ea3bee4541",
-  "retained_numerical_source_files": 375,
+  "source_package_sha256": "cdcbe1677969a8ad4cc539ab0be482066250ba3e7901205db470c8fd4266724d",
+  "retained_numerical_source_files": 377,
   "protocol_sha256": "5249b253e084ecd6105f0c19eb711a8e99b4b962e1034afcc2c89b1723afea7a",
   "source_replay": {
     "weather_originals": 59,
@@ -13,7 +13,7 @@
     "geometry_series": 31,
     "forecast_pairs": 768,
     "unique_measured_targets": 768,
-    "duration_seconds": 66.12202676385641
+    "duration_seconds": 66.54784295009449
   },
   "weighting": "equal_local_date_then_measured_target_then_forecast",
   "training_maximum_days": 28,
@@ -296,7 +296,7 @@
     }
   ],
   "verification": {
-    "affected_backend_passed": 667,
+    "affected_backend_passed": 729,
     "isolated_sdk_skips": 4,
     "subtests_passed": 163,
     "new_related_solar_passed": 65,
@@ -305,10 +305,7 @@
     "isolated_sdk_execution_skips": 0,
     "outbound_sdk_connections_blocked": true
   },
-  "remaining": [
-    "distinct-target thermal experiment on comparable recorded action/state trajectories",
-    "Task4 final integration and verification gate"
-  ],
+  "remaining": [],
   "production_changed": false,
   "actual_cloud_probe": false,
   "automatic_promotion": false,

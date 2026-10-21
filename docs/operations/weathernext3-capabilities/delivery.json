@@ -26,7 +26,13 @@
     {
       "id": "WN-05",
       "requirement": "Compare native direct/total solar against the current decomposition",
-      "owning_tasks": "4"
+      "owning_tasks": "4",
+      "status": "comparison_verified_incumbent_retained",
+      "evidence": [
+        "pv-experiment.json",
+        "thermal-experiment.json",
+        "task4-verification.json"
+      ]
     },
     {
       "id": "WN-06",
@@ -165,16 +171,15 @@
       "task": 4,
       "title": "Implement and evaluate native direct/total solar",
       "gate": "conserved interval semantics and train/serve parity; later held-out PV/thermal comparison; recorded disposition. \u201cNative components available\u201d is not permission to replace the current method.",
-      "status": "in_progress_pv_kernel_and_retained_experiment_verified_thermal_pending",
+      "status": "complete_locally_incumbent_retained_not_deployed",
       "steps": 7,
       "evidence": [
         "solar-semantics.json",
         "solar-components.md",
-        "pv-experiment.json"
-      ],
-      "remaining": [
-        "distinct thermal target/model experiment on comparable recorded action/state trajectories",
-        "final Task4 integration and verification gate"
+        "pv-experiment.json",
+        "thermal-solar-protocol.json",
+        "thermal-experiment.json",
+        "task4-verification.json"
       ]
     },
     {
@@ -271,27 +276,47 @@
     {
       "id": "T09",
       "scenario": "Solar 1.8 MJ total / 1.08 MJ direct over 1 h",
-      "expected_result": "500/300/200 W/m\u00b2 total/direct-horizontal/diffuse"
+      "expected_result": "500/300/200 W/m\u00b2 total/direct-horizontal/diffuse",
+      "status": "verified",
+      "evidence": [
+        "task4-verification.json"
+      ]
     },
     {
       "id": "T10",
       "scenario": "Ideal constant 30\u00b0 elevation",
-      "expected_result": "300 W/m\u00b2 direct-horizontal corresponds to 600 W/m\u00b2 DNI"
+      "expected_result": "300 W/m\u00b2 direct-horizontal corresponds to 600 W/m\u00b2 DNI",
+      "status": "verified",
+      "evidence": [
+        "task4-verification.json"
+      ]
     },
     {
       "id": "T11",
       "scenario": "Real varying elevation/hour crossing/terrain masking",
-      "expected_result": "Declared reconstruction conserves original energy before terrain loss; diffuse is not incorrectly erased"
+      "expected_result": "Declared reconstruction conserves original energy before terrain loss; diffuse is not incorrectly erased",
+      "status": "verified",
+      "evidence": [
+        "task4-verification.json"
+      ]
     },
     {
       "id": "T12",
       "scenario": "Missing direct or substantial direct>total",
-      "expected_result": "Explicit versioned total-only fallback/rejection, no silent fabricated component"
+      "expected_result": "Explicit versioned total-only fallback/rejection, no silent fabricated component",
+      "status": "verified",
+      "evidence": [
+        "task4-verification.json"
+      ]
     },
     {
       "id": "T13",
       "scenario": "Same inputs to training and serving",
-      "expected_result": "Exact or predeclared numerical-tolerance parity and identical units/intervals"
+      "expected_result": "Exact or predeclared numerical-tolerance parity and identical units/intervals",
+      "status": "verified",
+      "evidence": [
+        "task4-verification.json"
+      ]
     },
     {
       "id": "T14",
