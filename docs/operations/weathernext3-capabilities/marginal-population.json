@@ -1,0 +1,364 @@
+{
+  "schema": "earthship-marginal-population-summary/v1",
+  "status": "task7_in_progress_actual_cohort_model_results_and_prospective_wiring_pending",
+  "population_sha256": "0ea917b0ba91fbfa974cc68763417e6ad1bf3bc36b672d102874785a3cc440b2",
+  "population_proof_sha256": "a405a2f320270bf5ee1faff888672f34c752448eb551dc17e6473c3fac392db2",
+  "policy_sha256": "8b81c06fb15c8f9f1e25c1ee14f08bef2d154532f9f8f1ada44ee7c1ccaa4298",
+  "original_forecasts": 347,
+  "original_input_files": 717,
+  "retained_source_files": 391,
+  "counts": {
+    "solar_proxy": 3936,
+    "temperature": 20071,
+    "wind": 1738
+  },
+  "cohorts": [
+    {
+      "cohort_sha256": "1ec9bd153e4bd3cb5d7fb40306b8bc4790879f9e377d1727f79b4ceb9216020e",
+      "kind": "wind",
+      "source_class": "recorded_ingestion_availability",
+      "grid_sha256": "42a208c1be2284dea7b84552eb23b5ede0654bdf55962d17e923c454e98299e0",
+      "pairs": 92,
+      "measured_targets": 27,
+      "local_dates": 3,
+      "target_start": "2026-10-18T20:00:00+00:00",
+      "target_end": "2026-10-20T23:00:00+00:00",
+      "model_comparison_status": "pending"
+    },
+    {
+      "cohort_sha256": "21c9493d4129d5a7d894cc91b3239efd625503d1f724f83a98f0a0d88a125f57",
+      "kind": "temperature",
+      "source_class": "historical_assumed_availability",
+      "grid_sha256": "f820ddf90204d6927c7070c0769e57e301c97c80fd955681f457f471ca860004",
+      "pairs": 570,
+      "measured_targets": 570,
+      "local_dates": 148,
+      "target_start": "2026-01-05T09:00:00+00:00",
+      "target_end": "2026-09-18T03:00:00+00:00",
+      "model_comparison_status": "pending"
+    },
+    {
+      "cohort_sha256": "26aaab137913099653a12019a49a09d173512b0aaade0673de2a0b3ca1b4529a",
+      "kind": "temperature",
+      "source_class": "recorded_ingestion_availability",
+      "grid_sha256": "f820ddf90204d6927c7070c0769e57e301c97c80fd955681f457f471ca860004",
+      "pairs": 77,
+      "measured_targets": 27,
+      "local_dates": 2,
+      "target_start": "2026-10-19T21:00:00+00:00",
+      "target_end": "2026-10-20T23:00:00+00:00",
+      "model_comparison_status": "pending"
+    },
+    {
+      "cohort_sha256": "33533832f5c835cbc4ab451ad8cbf1e58b58475e830878dc28f10334dd1b1666",
+      "kind": "solar_proxy",
+      "source_class": "recorded_ingestion_availability",
+      "grid_sha256": "42a208c1be2284dea7b84552eb23b5ede0654bdf55962d17e923c454e98299e0",
+      "pairs": 984,
+      "measured_targets": 43,
+      "local_dates": 3,
+      "target_start": "2026-10-19T10:00:00+00:00",
+      "target_end": "2026-10-21T06:00:00+00:00",
+      "model_comparison_status": "pending"
+    },
+    {
+      "cohort_sha256": "576bf66147ecdb97e890188d144c76c46b1a7709ae80b850cd10e77901e56e29",
+      "kind": "temperature",
+      "source_class": "historical_assumed_availability",
+      "grid_sha256": "f820ddf90204d6927c7070c0769e57e301c97c80fd955681f457f471ca860004",
+      "pairs": 2168,
+      "measured_targets": 274,
+      "local_dates": 12,
+      "target_start": "2026-10-09T14:00:00+00:00",
+      "target_end": "2026-10-20T23:00:00+00:00",
+      "model_comparison_status": "pending"
+    },
+    {
+      "cohort_sha256": "5db3e6c0b4b1eb74f8ac3cb4344e5fb78355b687369e7615f527ce9aac506b8d",
+      "kind": "temperature",
+      "source_class": "historical_assumed_availability",
+      "grid_sha256": "f820ddf90204d6927c7070c0769e57e301c97c80fd955681f457f471ca860004",
+      "pairs": 3381,
+      "measured_targets": 1483,
+      "local_dates": 76,
+      "target_start": "2026-01-01T15:00:00+00:00",
+      "target_end": "2026-09-19T03:00:00+00:00",
+      "model_comparison_status": "pending"
+    },
+    {
+      "cohort_sha256": "63cc3a39b5ee4e4459f6744d216b9de223ed9b31b61bf5616d74d2956e6c7884",
+      "kind": "temperature",
+      "source_class": "historical_assumed_availability",
+      "grid_sha256": "f820ddf90204d6927c7070c0769e57e301c97c80fd955681f457f471ca860004",
+      "pairs": 6648,
+      "measured_targets": 2318,
+      "local_dates": 113,
+      "target_start": "2026-01-02T10:00:00+00:00",
+      "target_end": "2026-09-19T23:00:00+00:00",
+      "model_comparison_status": "pending"
+    },
+    {
+      "cohort_sha256": "648eb4f73d9b5817c4827d5d7f0aabd77df6eabdb686eab16c59f7cead589de8",
+      "kind": "temperature",
+      "source_class": "historical_assumed_availability",
+      "grid_sha256": "f820ddf90204d6927c7070c0769e57e301c97c80fd955681f457f471ca860004",
+      "pairs": 1804,
+      "measured_targets": 460,
+      "local_dates": 20,
+      "target_start": "2026-09-20T10:00:00+00:00",
+      "target_end": "2026-10-09T13:00:00+00:00",
+      "model_comparison_status": "pending"
+    },
+    {
+      "cohort_sha256": "65393a5f7597ac83dcaa9d8196ce79eee112403ab30be16afdf3674c1c803df0",
+      "kind": "temperature",
+      "source_class": "historical_assumed_availability",
+      "grid_sha256": "f820ddf90204d6927c7070c0769e57e301c97c80fd955681f457f471ca860004",
+      "pairs": 3392,
+      "measured_targets": 463,
+      "local_dates": 21,
+      "target_start": "2026-09-20T01:00:00+00:00",
+      "target_end": "2026-10-09T13:00:00+00:00",
+      "model_comparison_status": "pending"
+    },
+    {
+      "cohort_sha256": "742f30b8423d1aa97437b23cf5a4b105efbfdbd5ac1be26a2ef926dd41295b3f",
+      "kind": "solar_proxy",
+      "source_class": "historical_assumed_availability",
+      "grid_sha256": "42a208c1be2284dea7b84552eb23b5ede0654bdf55962d17e923c454e98299e0",
+      "pairs": 1204,
+      "measured_targets": 43,
+      "local_dates": 3,
+      "target_start": "2026-10-19T10:00:00+00:00",
+      "target_end": "2026-10-21T06:00:00+00:00",
+      "model_comparison_status": "pending"
+    },
+    {
+      "cohort_sha256": "8b5fffff7b5bab1a9cee1d072d13b8dec4749f7fdf7cdb6e8d2396ca21822587",
+      "kind": "temperature",
+      "source_class": "recorded_ingestion_availability",
+      "grid_sha256": "f820ddf90204d6927c7070c0769e57e301c97c80fd955681f457f471ca860004",
+      "pairs": 189,
+      "measured_targets": 51,
+      "local_dates": 3,
+      "target_start": "2026-10-18T21:00:00+00:00",
+      "target_end": "2026-10-20T23:00:00+00:00",
+      "model_comparison_status": "pending"
+    },
+    {
+      "cohort_sha256": "9ab1d57c394abcf7aadc62cebfb3c58a865a230e92d9f1dac34a640cf54ccca7",
+      "kind": "solar_proxy",
+      "source_class": "historical_assumed_availability",
+      "grid_sha256": "42a208c1be2284dea7b84552eb23b5ede0654bdf55962d17e923c454e98299e0",
+      "pairs": 296,
+      "measured_targets": 43,
+      "local_dates": 3,
+      "target_start": "2026-10-19T10:00:00+00:00",
+      "target_end": "2026-10-21T06:00:00+00:00",
+      "model_comparison_status": "pending"
+    },
+    {
+      "cohort_sha256": "9b9d1502e610541f7d4abbf9acaea3c7768c24093af52091886301a4b1ab59da",
+      "kind": "solar_proxy",
+      "source_class": "recorded_ingestion_availability",
+      "grid_sha256": "42a208c1be2284dea7b84552eb23b5ede0654bdf55962d17e923c454e98299e0",
+      "pairs": 731,
+      "measured_targets": 34,
+      "local_dates": 3,
+      "target_start": "2026-10-19T19:00:00+00:00",
+      "target_end": "2026-10-21T06:00:00+00:00",
+      "model_comparison_status": "pending"
+    },
+    {
+      "cohort_sha256": "b0106148418d348a375bb7fb32c45299fbb1bbdac2a824dee9c1754d9bb2d3d5",
+      "kind": "temperature",
+      "source_class": "historical_assumed_availability",
+      "grid_sha256": "f820ddf90204d6927c7070c0769e57e301c97c80fd955681f457f471ca860004",
+      "pairs": 74,
+      "measured_targets": 49,
+      "local_dates": 13,
+      "target_start": "2026-09-20T09:00:00+00:00",
+      "target_end": "2026-10-09T09:00:00+00:00",
+      "model_comparison_status": "pending"
+    },
+    {
+      "cohort_sha256": "b6f3f5a082cfa67c341c3a04327e0dc3bdbbece0853c70cd483e4658bd174ab4",
+      "kind": "wind",
+      "source_class": "historical_assumed_availability",
+      "grid_sha256": "42a208c1be2284dea7b84552eb23b5ede0654bdf55962d17e923c454e98299e0",
+      "pairs": 105,
+      "measured_targets": 55,
+      "local_dates": 28,
+      "target_start": "2026-09-20T02:00:00+00:00",
+      "target_end": "2026-10-20T21:00:00+00:00",
+      "model_comparison_status": "pending"
+    },
+    {
+      "cohort_sha256": "bc9261d01df0fa02c3cc6bb65d802992a953b511dddb912bf9fbc319af5ecea2",
+      "kind": "temperature",
+      "source_class": "historical_assumed_availability",
+      "grid_sha256": "f820ddf90204d6927c7070c0769e57e301c97c80fd955681f457f471ca860004",
+      "pairs": 236,
+      "measured_targets": 73,
+      "local_dates": 19,
+      "target_start": "2026-09-21T09:00:00+00:00",
+      "target_end": "2026-10-09T09:00:00+00:00",
+      "model_comparison_status": "pending"
+    },
+    {
+      "cohort_sha256": "c274e2e224bf9087f8c605d817140776f71336205ca1b2fee9bb88f78f80539f",
+      "kind": "wind",
+      "source_class": "historical_assumed_availability",
+      "grid_sha256": "42a208c1be2284dea7b84552eb23b5ede0654bdf55962d17e923c454e98299e0",
+      "pairs": 1448,
+      "measured_targets": 371,
+      "local_dates": 29,
+      "target_start": "2026-09-20T15:00:00+00:00",
+      "target_end": "2026-10-20T01:00:00+00:00",
+      "model_comparison_status": "pending"
+    },
+    {
+      "cohort_sha256": "c38f43437335ed929b4db8de1da8b3fae55695b4c59fd448c405755a318ae6fc",
+      "kind": "temperature",
+      "source_class": "historical_assumed_availability",
+      "grid_sha256": "f820ddf90204d6927c7070c0769e57e301c97c80fd955681f457f471ca860004",
+      "pairs": 92,
+      "measured_targets": 46,
+      "local_dates": 12,
+      "target_start": "2026-10-09T15:00:00+00:00",
+      "target_end": "2026-10-20T21:00:00+00:00",
+      "model_comparison_status": "pending"
+    },
+    {
+      "cohort_sha256": "c92924ca362dc904d43d8ef2a50df1f02e59dcd147f121044789d75c82d55e95",
+      "kind": "temperature",
+      "source_class": "historical_assumed_availability",
+      "grid_sha256": "f820ddf90204d6927c7070c0769e57e301c97c80fd955681f457f471ca860004",
+      "pairs": 276,
+      "measured_targets": 276,
+      "local_dates": 72,
+      "target_start": "2026-01-11T09:00:00+00:00",
+      "target_end": "2026-09-18T03:00:00+00:00",
+      "model_comparison_status": "pending"
+    },
+    {
+      "cohort_sha256": "d575c38ad13e751bc2862de2de122d0a44e520a3f34d7120a1bde0ac3d3326a5",
+      "kind": "solar_proxy",
+      "source_class": "historical_assumed_availability",
+      "grid_sha256": "42a208c1be2284dea7b84552eb23b5ede0654bdf55962d17e923c454e98299e0",
+      "pairs": 688,
+      "measured_targets": 43,
+      "local_dates": 3,
+      "target_start": "2026-10-19T10:00:00+00:00",
+      "target_end": "2026-10-21T06:00:00+00:00",
+      "model_comparison_status": "pending"
+    },
+    {
+      "cohort_sha256": "dbe66cd4f8432319fdbc1ab098246bf5232ed6e058dae2e8a6a339d344226fe3",
+      "kind": "wind",
+      "source_class": "historical_assumed_availability",
+      "grid_sha256": "42a208c1be2284dea7b84552eb23b5ede0654bdf55962d17e923c454e98299e0",
+      "pairs": 92,
+      "measured_targets": 50,
+      "local_dates": 25,
+      "target_start": "2026-09-22T14:00:00+00:00",
+      "target_end": "2026-10-20T21:00:00+00:00",
+      "model_comparison_status": "pending"
+    },
+    {
+      "cohort_sha256": "e6484f7c39880e1cd99a3094baf6cc101eaf0c00f81e3e333e7cfa881bef3de3",
+      "kind": "solar_proxy",
+      "source_class": "historical_assumed_availability",
+      "grid_sha256": "42a208c1be2284dea7b84552eb23b5ede0654bdf55962d17e923c454e98299e0",
+      "pairs": 33,
+      "measured_targets": 17,
+      "local_dates": 1,
+      "target_start": "2026-10-19T10:00:00+00:00",
+      "target_end": "2026-10-20T03:00:00+00:00",
+      "model_comparison_status": "pending"
+    },
+    {
+      "cohort_sha256": "e70eddbca3645960295fbcf195425461a522217aff688a490a9eea13f51b66ae",
+      "kind": "wind",
+      "source_class": "recorded_ingestion_availability",
+      "grid_sha256": "42a208c1be2284dea7b84552eb23b5ede0654bdf55962d17e923c454e98299e0",
+      "pairs": 1,
+      "measured_targets": 1,
+      "local_dates": 1,
+      "target_start": "2026-10-20T19:00:00+00:00",
+      "target_end": "2026-10-20T20:00:00+00:00",
+      "model_comparison_status": "pending"
+    },
+    {
+      "cohort_sha256": "f7732c1085a2761e425f55547070dcaeabc26e3554c93bafbf1848555a67c810",
+      "kind": "temperature",
+      "source_class": "historical_assumed_availability",
+      "grid_sha256": "f820ddf90204d6927c7070c0769e57e301c97c80fd955681f457f471ca860004",
+      "pairs": 980,
+      "measured_targets": 254,
+      "local_dates": 11,
+      "target_start": "2026-10-09T14:00:00+00:00",
+      "target_end": "2026-10-20T03:00:00+00:00",
+      "model_comparison_status": "pending"
+    },
+    {
+      "cohort_sha256": "fd0e5739e22269a50ce44d8024ff3663b0394b5726daa0ebbdc4f399a30ae95d",
+      "kind": "temperature",
+      "source_class": "historical_assumed_availability",
+      "grid_sha256": "f820ddf90204d6927c7070c0769e57e301c97c80fd955681f457f471ca860004",
+      "pairs": 184,
+      "measured_targets": 46,
+      "local_dates": 12,
+      "target_start": "2026-10-09T15:00:00+00:00",
+      "target_end": "2026-10-20T21:00:00+00:00",
+      "model_comparison_status": "pending"
+    }
+  ],
+  "native_statistics_census": [
+    {
+      "kind": "solar_proxy",
+      "points": 111864,
+      "statistic": "mean"
+    },
+    {
+      "kind": "temperature",
+      "points": 112128,
+      "statistic": "mean"
+    },
+    {
+      "kind": "temperature",
+      "points": 112128,
+      "statistic": "p10"
+    },
+    {
+      "kind": "temperature",
+      "points": 112128,
+      "statistic": "p90"
+    },
+    {
+      "kind": "wind",
+      "points": 111850,
+      "statistic": "mean"
+    }
+  ],
+  "original_package_raw_bytes": 734902027,
+  "original_package_compressed_bytes": 75201505,
+  "population_capture_seconds": 72.21825178596191,
+  "cohort_assignment": "retrospective_observed_measurement_strata; no historical as-issued or future-phase availability claim",
+  "solar_proxy": {
+    "qualified_original_windows": 2,
+    "unique_hourly_targets": 43,
+    "local_target_dates": [
+      "2026-10-19",
+      "2026-10-20",
+      "2026-10-21"
+    ],
+    "minimum_training_targets": 48,
+    "training_support_sufficient": false
+  },
+  "actual_candidate_comparisons_complete": false,
+  "production_changed": false,
+  "local_coverage_qualified": false,
+  "probability_claim": false,
+  "automatic_actuation": false
+}
