@@ -1,0 +1,21 @@
+{
+  "schema": "earthship-task7-science-progress-verification/v1",
+  "status": "retained_science_verified_task7_prospective_software_still_required",
+  "population_sha256": "0ea917b0ba91fbfa974cc68763417e6ad1bf3bc36b672d102874785a3cc440b2",
+  "population_proof_sha256": "a405a2f320270bf5ee1faff888672f34c752448eb551dc17e6473c3fac392db2",
+  "cohort_proof_sha256": "0fa5c5e4638b2587e75015b5bdc592239ac6572815ba94e62b4b0c2aefb770dd",
+  "public_summary_sha256": "07e078c3b06594d5e91b1e4b14f5158dab041550493da80e4111126448435628",
+  "public_summary_file_sha256": "4c18ef4624eb74fd51d7fc104cda8cb1aae5a5d6e1801942e0a4e0218eddc9bf",
+  "cohorts": 25,
+  "models": 379,
+  "predictions": 7980,
+  "tests": {
+    "backend_passed": 597,
+    "normal_profile_sdk_skips": 4,
+    "subtests_passed": 163,
+    "dedicated_marginal_cases": 41
+  },
+  "task7_complete": false,
+  "production_changed": false,
+  "automatic_actuation": false
+}

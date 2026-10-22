@@ -41,10 +41,50 @@ pairs across 25 cohorts: 20,071 temperature, 1,738 scalar wind, and 3,936
 forecast-to-proxy matches. The 43 unique proxy hours span three local target
 dates (the last is a single midnight endpoint); repeated forecasts do not
 increase that target count. Fewer than 48 training targets is an explicit solar
-support blocker. Actual cohort comparisons are in progress.
+support blocker. All 25 cohort comparisons are complete; fitted originals and score replay are
+verified in [the experiment summary](marginal-experiment.json).
 
 Software currently covers the kernels, original-source adapters, chronological
 comparison, immutable prediction scoring and bounded offline experiment entry
-point. Actual complete-cohort results and prospective monitor/status wiring are
-still required. The default raw temperature range and current point forecasts
+point. Prospective retention, scoring and monitor/status wiring are still required. The default raw temperature range and current point forecasts
 remain independently usable.
+
+
+## Actual retained comparison results
+
+All 25 experiments finished separately within the 120-second bound (maximum
+25.80 seconds; 133.64 seconds summed sequentially). They retained 379 models and
+7,980 original outer prediction records. Independent replay checked source
+packages, training membership and availability, empirical quantiles and adaptive
+weights, fitted prediction math, and all matched/fallback score reports. These
+are retrospective diagnostics, not forecasts issued before their outcomes.
+
+Three cases pass the frozen score/subgroup review gate:
+
+| Candidate and comparator | Lead | Matched targets / local dates | Result |
+| --- | --- | --- | --- |
+| Adaptive temperature vs raw native mean | 24–72 h | 90 / 4 | MAE 2.35548 → 2.27889 °C; 3.25% improvement |
+| Temperature location/scale vs empirical residual intervals | 1–24 h | 94 / 4 | IS80 7.01087 → 6.72161 °C; 4.13% improvement |
+| Nonnegative scalar wind vs empirical residual intervals | 1–24 h | 167 / 10 | IS80 3.15230 → 2.17975 m/s; 30.85% improvement |
+
+No compatible original incumbent point predictions were retained for this
+population, so the adaptive comparator is explicitly the raw mean. It does not
+measure a gain over today's selected local correction. Other temperature
+comparisons fail supported subgroup/gain gates or have insufficient support.
+Both temperature review cases cover autumn and only four local target dates.
+The temperature normal case passes against the empirical benchmark and fails
+its separate comparison gate against raw native bounds.
+
+Wind's weighted coverage is 0.8014 versus empirical 0.7436, with width 1.3498
+versus 1.7439 m/s and point MAE 0.44065 versus 0.70297 m/s. This meets the limited
+coverage/date support check for further review. Its observations are explicitly
+unqualified numeric history, and its outer cases contain neither observed zero
+wind nor any season except autumn. Neither its zero atom nor all-season
+calibration is established. Recorded-ingestion outer cohorts have no eligible
+past-available fitted candidate; their explicit raw fallback remains visible.
+Solar's 43 distinct qualified target hours cannot supply 48 training targets;
+all solar model comparisons remain insufficient rather than silently omitted.
+
+Every candidate remains unselected and locally unqualified. The three score
+cases merit prospective shadow evaluation under their own source/measurement
+identity; they do not authorize a probability display, deployment or actuation.
