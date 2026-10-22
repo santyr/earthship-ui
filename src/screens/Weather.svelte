@@ -1,7 +1,7 @@
 <script>
   import { itemUpdateEvidence, thingStatuses } from '../lib/openhab/store.js';
   import { nativeCurrentSkyContext } from '../lib/weather/astroPresentation.js';
-  import { stationPresentation } from '../lib/weather/stationPresentation.js';
+  import { stationPresentation, rainPeriodText } from '../lib/weather/stationPresentation.js';
 
   import { onMount } from 'svelte';
   import {
@@ -154,7 +154,7 @@
   const rainFooter = $derived.by(() => {
     if (station.mode === 'v2') {
       const amount = value => value === null ? '—' : `${value.toFixed(2)}″`;
-      return `event ${amount(station.rain.event)} · wk ${amount(station.rain.week)} · mo ${amount(station.rain.month)}`;
+      return `event ${amount(station.rain.event)} · wk ${rainPeriodText(station.rain, 'week')} · mo ${rainPeriodText(station.rain, 'month')}`;
     }
     const parts = [];
     if (hasItem('AmbientWeatherWS2902A_RainFallEvent'))
@@ -282,8 +282,8 @@
   >
     <StatTile
       label="Rain"
-      value={fmt(rainDay, '', 2)}
-      unit="&#8243;"
+      value={station.mode === 'v2' ? rainPeriodText(station.rain, 'day') : fmt(rainDay, '', 2)}
+      unit={station.mode === 'v2' ? '' : '″'}
       accent={colors.rain}
       footer={rainFooter}
     />

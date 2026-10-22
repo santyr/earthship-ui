@@ -24,7 +24,7 @@ const DERIVED = ['DewPointTemperature','HeatIndex','WindChill','ApparentTemperat
 function unavailable(mode = 'v2') {
   return { mode, status:'unavailable', current:Object.fromEntries([...FIELD_SPECS.map(([name])=>name),...DERIVED.map(name=>A+name)].map(name=>[name,null])),
     pressure:{value:null,trend:null,label:'Station pressure',trendLabel:'3h trend unavailable'},
-    rain:{day:null,week:null,month:null,event:null,hour:null,rate:null,partialDay:null} };
+    rain:{day:null,week:null,month:null,event:null,hour:null,rate:null,partialDay:null,partialWeek:null,partialMonth:null} };
 }
 
 export function stationPresentation(states, { nowMs = Date.now() } = {}) {
@@ -92,8 +92,9 @@ export function stationPresentation(states, { nowMs = Date.now() } = {}) {
       if (p?.unit !== unit || !Number.isFinite(start) || !Number.isFinite(end)
           || (['day','week','month'].includes(target) && !(clock(p.periodValidUntil)>nowMs))
           || end < start || end > nowMs+5000 || nowMs-end >= 120000 || (duration && end-start !== duration)) continue;
-      if (target === 'day' && finite(p.partial_lower_bound) && p.partial_lower_bound >= 0 && p.partial_lower_bound <= 100000) {
-        result.rain.partialDay = p.partial_lower_bound;
+      if (['day','week','month'].includes(target) && finite(p.partial_lower_bound)
+          && p.partial_lower_bound >= 0 && p.partial_lower_bound <= 100000) {
+        result.rain['partial'+target[0].toUpperCase()+target.slice(1)] = p.partial_lower_bound;
       }
       if (finite(p.value) && finite(p.lower) && finite(p.upper) && p.lower >= 0
           && p.lower <= p.value && p.value <= p.upper && p.upper <= 100000) result.rain[target] = p.value;
@@ -101,4 +102,12 @@ export function stationPresentation(states, { nowMs = Date.now() } = {}) {
   }
   result.status = result.pressure.value !== null || Object.values(result.rain).some(finite) ? 'partial' : 'unavailable';
   return result;
+}
+
+/** Complete totals and observed lower bounds retain distinct visible meanings. */
+export function rainPeriodText(rain, period) {
+  const value=rain?.[period];
+  if (finite(value) && value>=0) return `${value.toFixed(2)}″`;
+  const partial=rain?.['partial'+period[0].toUpperCase()+period.slice(1)];
+  return finite(partial) && partial>=0 ? `≥${partial.toFixed(2)}″ · partial` : '—';
 }
