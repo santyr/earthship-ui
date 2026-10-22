@@ -89,3 +89,49 @@ Task 9 still needs its complete rain target/collection/experiment/queue gates;
 Tasks 10 and 11 remain required. Receiver repairs must be integrated before the
 final completion claim. Unknown physical calibration and genuinely immature
 windows are finite evidence dependencies, not reasons to leave software undone.
+
+## Receiver implementation progress (2026-10-22)
+
+The independently releasable counter repair is PR #45. Its final fresh-context
+review found a confirmation-boundary issue: a pre-gap spike could count as the
+first post-gap confirmation. A RED→GREEN regression now requires withheld at
+128 seconds and recovery at 144 seconds for 100@0 → 101@112 → 101@128 → 101@144.
+All 61 release tests pass. Exact old/new receiver bytes and helper-first apply /
+receiver-first rollback are staged and rehearsed. This entry does not claim
+production installation; the deployment receipt must establish that separately.
+
+The maintained adapter and relay changes are implemented locally with 50 focused
+passing tests. They are not wired into the production WSGI entry point yet:
+consumer schema, expiry behavior, migration tests and release verification remain.
+The adapter starts with no cache-derived freshness, pins the surveyed identities,
+expires individual fields, preserves actual WH31E channels, rejects duplicate
+values and replayed decode clocks, and withholds unsupported derived values.
+Existing raw temperature/rain/radiation hooks still execute before its response.
+The legacy solar field remains capped at 1200; the separately named v2 lux proxy
+reaches 1578.53 W/m² at 200000 lux. No incumbent electrical coefficients consume
+that new profile. Field receipt and radio decode clocks remain distinct; neither
+is called a sensor measurement timestamp.
+
+The user separately reported pressure always displaying steady. The installed
+implementation keeps only 12 readings and treats insufficient history as steady.
+The corrected local adapter requires continuous three-hour support, uses a
+boundary bracket at the exact three-hour start, and classifies only when the
+possible change agrees with a 0.01 inHg threshold. Cold, interrupted, stale or
+threshold-ambiguous history is unavailable. This is an explicitly local three-hour
+trend, not a claim to reproduce the console's own pressure bar graph. Tests place
+the entire pressure change in the first hour, leave the final hour flat, and prove
+rising/falling/steady classifications independently of the old twelve-reading
+failure. Do not seed this support from the legacy cache during deployment.
+
+The event product is a local reconstruction. It first requires a complete known
+quiet 24-hour interval under 1 mm, then retains event accumulation until a complete
+quiet 24-hour interval after that event has at least 24 hours of history. This
+avoids the legacy one-hour reset and prevents a small new event being erased
+immediately by a pre-event dry window. Unknown start/gap coverage stays unknown;
+console micro-timing equivalence and physical gauge calibration remain unproven.
+
+Heat-index validation follows the NWS preliminary/simple estimate averaged with
+ambient temperature, followed by the Rothfusz equation and low/high humidity
+adjustments when applicable. Source:
+https://www.wpc.ncep.noaa.gov/html/heatindex_equation.shtml
+No default humidity or wind is substituted into derived values.
