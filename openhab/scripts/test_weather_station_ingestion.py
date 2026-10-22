@@ -41,6 +41,17 @@ def test_derived_values_require_real_current_humidity_and_wind():
  assert v['AmbientWeatherWS2902A_ApparentTemperature'] is not None
 
 
+def test_transition_apparent_temperature_keeps_real_wind_effect():
+ s=state();observe(s,outside(tempf='65',humidity='50',windspeedmph='10'))
+ v=snap(s)['flat']
+ assert v['AmbientWeatherWS2902A_ApparentTemperature']==pytest.approx(58.4,abs=.1)
+
+
+def test_huge_or_noncanonical_sensor_identity_is_a_rejection_not_an_exception():
+ s=state()
+ assert observe(s,dict(model='Fineoffset-WH32B',id='2'*5000,tempinf='70')) is False
+
+
 def test_pressure_is_station_absolute_and_cold_trend_unavailable():
  s=state();observe(s,dict(model='Fineoffset-WH32B',id='235',baromabsin='23.89'))
  v=snap(s)

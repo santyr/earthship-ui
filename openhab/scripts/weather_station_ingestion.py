@@ -114,7 +114,9 @@ class StationState:
         with self.lock:
             at = self._clock(at, tick)
             model, raw_id = _one(packet, 'model'), _one(packet, 'id')
-            if not isinstance(raw_id, (str, int)) or isinstance(raw_id, bool) or not str(raw_id).isdigit():
+            if (not isinstance(model, str) or not isinstance(raw_id, (str, int))
+                    or isinstance(raw_id, bool) or not 1 <= len(str(raw_id)) <= 10
+                    or not str(raw_id).isascii() or not str(raw_id).isdigit()):
                 return False
             sid = int(raw_id)
             role = IDENTITIES.get((model, sid))
@@ -214,7 +216,15 @@ class StationState:
             if t is not None and speed is not None:
                 flat['AmbientWeatherWS2902A_WindChill'] = round(35.74+.6215*t-35.75*speed**.16+.4275*t*speed**.16, 1) if t <= 50 and speed > 3 else round(t, 1)
             if t is not None and rh is not None and speed is not None:
-                flat['AmbientWeatherWS2902A_ApparentTemperature'] = (flat['AmbientWeatherWS2902A_WindChill'] if t <= 50 else hi)
+                if t <= 50 and speed > 3:
+                    apparent = flat['AmbientWeatherWS2902A_WindChill']
+                elif t >= 80:
+                    apparent = hi
+                else:
+                    c = (t-32)/1.8
+                    vapor = rh/100*6.105*math.exp(17.27*c/(237.7+c))
+                    apparent = round((c+.33*vapor-.70*speed*.44704-4)*1.8+32,1)
+                flat['AmbientWeatherWS2902A_ApparentTemperature'] = apparent
             if direction is not None:
                 flat['AmbientWeatherWS2902A_WindDirectionCardinal'] = ('N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW')[int((direction+11.25)/22.5)%16]
             if uv is not None:
