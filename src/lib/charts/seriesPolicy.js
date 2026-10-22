@@ -14,6 +14,8 @@ const SERIES = new Map([
   ['Shelly_HT1_Indoor_Temperature', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: TEMPERATURE_UNITS }],
   ['Forecast_Temp', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: TEMPERATURE_UNITS, domain: 'forecast' }],
   ['AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: ['', 'inHg', 'hPa', 'mbar'] }],
+  ['WeatherStation_PressureAbsoluteV2', { expectedCadenceMs: ONE_MINUTE_MS, allowedUnits: ['', 'inHg', 'hPa', 'mbar'] }],
+  ['WeatherStation_RainDayV2', { expectedCadenceMs: ONE_MINUTE_MS, allowedUnits: ['', 'in', '″', 'mm'] }],
   ['AmbientWeatherWS2902A_WindSpeed', { expectedCadenceMs: ONE_MINUTE_MS, allowedUnits: ['', 'mph', 'km/h', 'm/s'] }],
   ['AmbientWeatherWS2902A_WindGust', { expectedCadenceMs: ONE_MINUTE_MS, allowedUnits: ['', 'mph', 'km/h', 'm/s'] }],
   ['AmbientWeatherWS2902A_RainFallDay', { expectedCadenceMs: FIVE_MINUTES_MS, allowedUnits: ['', 'in', '″', 'mm'] }],

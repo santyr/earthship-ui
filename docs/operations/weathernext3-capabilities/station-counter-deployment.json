@@ -1,0 +1,63 @@
+{
+  "actualUIViewed": [
+    "home",
+    "weather"
+  ],
+  "allPullRequestChecksPassed": true,
+  "allStationIngestionIssuesFixed": false,
+  "automaticActuation": false,
+  "deploymentManifestSHA256": "ebae2aeb09a58fa4a5baee20f0ed97422765efb884b620b25cae621fda0253b4",
+  "installedFiles": [
+    {
+      "name": "weather_station_counter.py",
+      "new_sha256": "45627239559a5ea422c8186de3ef0cfd3f71743bfcd0566105330a8e7ba0e270",
+      "old_sha256": null
+    },
+    {
+      "name": "weather_rain_receiver.py",
+      "new_sha256": "d29699a4fbb8a09f70c7e75dd09cb677e3f59307a9271b6c10ddfabd1c822876",
+      "old_sha256": "d47a6a9e038e78f4ca492fe35dc2420a2123edf5431b2c596e36c3acdaee23f4"
+    }
+  ],
+  "mergeCommit": "e2e148c210d6bcc97cc7f35f6ab2ce4150c708e5",
+  "nativeFaults": 0,
+  "nativeSchemaVersion": 1,
+  "naturalPacketCounts": [
+    2,
+    7
+  ],
+  "naturalPacketTimes": [
+    "2026-10-22T17:31:10.137131+00:00",
+    "2026-10-22T17:32:30.352222+00:00"
+  ],
+  "newEpoch": "f63d5268-f9ea-42bb-b664-99ae35aa8c4d",
+  "oldEpoch": "d09cfc9d-3cb6-4377-bd38-e45027e77929",
+  "pressureBugStillVisible": true,
+  "pressureFixDeployed": false,
+  "pullRequest": "https://github.com/santyr/earthship-ui/pull/45",
+  "reload": "graceful Gunicorn master HUP",
+  "retainedProofFiles": {
+    "apply-receipt.json": "5bb5588454d49cc55ec8363a761e8026727e3c1efb9a87a6a65bf1bfe765fa55",
+    "deploy-ws2902-counter.py": "308733139e15d366624aa11fb3f80050e465dc47b2734dd14461ca3be8ee3f7b",
+    "manifest.json": "ebae2aeb09a58fa4a5baee20f0ed97422765efb884b620b25cae621fda0253b4",
+    "natural-counter-1.json": "24ab6fb77facdec78df6ab38ef85a1467989e5789bea504143b1032a064cbb22",
+    "natural-counter-2.json": "35428a0a8a70d9e1a3718d588d0df86e1a9dbe5d9b1210a883bf86fb7199dba9",
+    "originals/weather_rain_receiver.py": "d47a6a9e038e78f4ca492fe35dc2420a2123edf5431b2c596e36c3acdaee23f4",
+    "sources/weather_rain_receiver.py": "d29699a4fbb8a09f70c7e75dd09cb677e3f59307a9271b6c10ddfabd1c822876",
+    "sources/weather_station_counter.py": "45627239559a5ea422c8186de3ef0cfd3f71743bfcd0566105330a8e7ba0e270",
+    "ui-home.png": "1a2e6a691fe2dc43008b9fe8e587cc063dbc6424e5b77c4f5982ff6ff108bd8d",
+    "ui-proof.json": "708537578966cec736e7ccecc037796fb3a5bf02c0375515fd8cc127a65ec9b0",
+    "ui-weather.png": "d23ffd8f9462bd4ccdc0cfe30d246c1605aba20a87eb92a37a53d80c3d5a5dd5",
+    "view-ws2902-counter-release-verified.mjs": "a2c839653ab52b7784caf70b1fdab4a495790087ae06a6da4b1e19acaa0cb529",
+    "view-ws2902-counter-release.mjs": "71808358de07f8a5140c4e1f5f813f7cd9a3fe14eefa3a7c5b37724af4cfa03e"
+  },
+  "schema": "earthship-station-counter-deployment-proof/v1",
+  "sensorIntegrationFirstAttempt": "two unrelated missing-Item 404 failures; same commit rerun passed",
+  "serviceActive": true,
+  "sourceRevision": "88e62996e29b9e108b07c6f561c121e35c49860a",
+  "syntheticProductionPackets": false,
+  "targetedReleaseTestsPassed": 61,
+  "uiMutationAttempts": 0,
+  "uiPageErrors": 0,
+  "verifiedAt": "2026-10-22T17:37:14.161996+00:00"
+}

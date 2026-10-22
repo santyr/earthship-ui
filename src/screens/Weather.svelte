@@ -1,6 +1,7 @@
 <script>
   import { itemUpdateEvidence, thingStatuses } from '../lib/openhab/store.js';
   import { nativeCurrentSkyContext } from '../lib/weather/astroPresentation.js';
+  import { stationPresentation } from '../lib/weather/stationPresentation.js';
 
   import { onMount } from 'svelte';
   import {
@@ -16,7 +17,7 @@
   const temperatureRefresh = createLatestRefreshCoordinator();
   const outdoorToday = $derived(historyExtremaForDay(
     outdoorTodayHistory, temperatureHistoryDay, wallClock,
-    $items.AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature,
+    stationItems.AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature,
   ));
 
   async function refreshOutdoorToday() {
@@ -56,7 +57,7 @@
       }
     };
     refreshOutdoorToday();
-    const timer = setInterval(update, 60000);
+    const timer = setInterval(update, 5000);
     const historyTimer = setInterval(refreshOutdoorToday, 300000);
     document.addEventListener('visibilitychange', update);
     return () => {
@@ -141,20 +142,33 @@
     openWeatherDetail({ date: day.date, label: day.label });
   }
 
+  const station = $derived(stationPresentation($items, { nowMs:Math.max(wallClock,Date.now()) }));
+  const stationItems = $derived(station.mode === 'legacy' ? $items : {...$items,...station.current});
+  const pressureValue = $derived(station.mode === 'legacy'
+    ? stationItems.AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative : station.pressure.value);
+  const pressureItem = $derived(station.mode === 'legacy'
+    ? 'AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative' : 'WeatherStation_PressureAbsoluteV2');
+  const rainDay = $derived(station.mode === 'legacy' ? stationItems.AmbientWeatherWS2902A_RainFallDay : station.rain.day);
+
   // ---- Rain footer (mirrors Home's Rain tile) ------------------------------
   const rainFooter = $derived.by(() => {
+    if (station.mode === 'v2') {
+      const amount = value => value === null ? '—' : `${value.toFixed(2)}″`;
+      return `event ${amount(station.rain.event)} · wk ${amount(station.rain.week)} · mo ${amount(station.rain.month)}`;
+    }
     const parts = [];
     if (hasItem('AmbientWeatherWS2902A_RainFallEvent'))
-      parts.push(`event ${fmt($items.AmbientWeatherWS2902A_RainFallEvent, '″', 2)}`);
+      parts.push(`event ${fmt(stationItems.AmbientWeatherWS2902A_RainFallEvent, '″', 2)}`);
     if (hasItem('AmbientWeatherWS2902A_RainFallWeek'))
-      parts.push(`wk ${fmt($items.AmbientWeatherWS2902A_RainFallWeek, '″', 2)}`);
+      parts.push(`wk ${fmt(stationItems.AmbientWeatherWS2902A_RainFallWeek, '″', 2)}`);
     if (hasItem('AmbientWeatherWS2902A_RainFallMonth'))
-      parts.push(`mo ${fmt($items.AmbientWeatherWS2902A_RainFallMonth, '″', 2)}`);
+      parts.push(`mo ${fmt(stationItems.AmbientWeatherWS2902A_RainFallMonth, '″', 2)}`);
     return parts.join(' · ');
   });
 
   const baroTrend = $derived.by(() => {
-    const t = $items.AmbientWeatherWS2902A_PressureTrend;
+    if (station.mode === 'v2') return station.pressure.trendLabel;
+    const t = stationItems.AmbientWeatherWS2902A_PressureTrend;
     return t && t !== 'NULL' && t !== 'UNDEF' ? String(t).toLowerCase() : '—';
   });
 
@@ -172,18 +186,18 @@
   function openRainChart() {
     openChart({
       title: 'Rain',
-      series: [{ name: 'AmbientWeatherWS2902A_RainFallDay', color: colors.rain, label: 'Rain/day' }],
+      series: [{ name: station.mode === 'legacy' ? 'AmbientWeatherWS2902A_RainFallDay' : 'WeatherStation_RainDayV2', color: colors.rain, label: 'Rain/day' }],
       hours: 24,
     });
   }
   function openPressureChart() {
     openChart({
-      title: 'Pressure',
+      title: 'Station pressure (absolute)',
       series: [
         {
-          name: 'AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative',
+          name: pressureItem,
           color: colors.label,
-          label: 'Pressure',
+          label: 'Station pressure',
         },
       ],
       hours: 24,
@@ -203,16 +217,16 @@
               color={skyIconColor(skyIcon) ?? 'currentColor'}
             />
           </span>
-          <span class="cur-temp">{fmt($items.AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature, '°')}</span>
+          <span class="cur-temp">{fmt(stationItems.AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature, '°')}</span>
           <div class="cur-meta">
             <div class="cur-feels">
-              feels like {fmt($items.AmbientWeatherWS2902A_ApparentTemperature, '°')}
+              feels like {fmt(stationItems.AmbientWeatherWS2902A_ApparentTemperature, '°')}
             </div>
             <div class="cur-hilo">
               H {fmt(outdoorToday.high, '°')} &nbsp;/&nbsp; L {fmt(outdoorToday.low, '°')}
             </div>
             <div class="cur-hum">
-              {fmt($items.AmbientWeatherWS2902A_WeatherDataWs2902a_RelativeHumidity, '%')} RH
+              {fmt(stationItems.AmbientWeatherWS2902A_WeatherDataWs2902a_RelativeHumidity, '%')} RH
             </div>
           </div>
         </div>
@@ -252,10 +266,10 @@
   >
     <StatTile
       label="Wind"
-      value={fmt($items.AmbientWeatherWS2902A_WindSpeed, '', 0)}
+      value={fmt(stationItems.AmbientWeatherWS2902A_WindSpeed, '', 0)}
       unit=" mph"
       accent={colors.wind}
-      footer={`gust ${fmt($items.AmbientWeatherWS2902A_WindGust, ' mph', 0)}`}
+      footer={`gust ${fmt(stationItems.AmbientWeatherWS2902A_WindGust, ' mph', 0)}`}
     />
   </div>
 
@@ -268,7 +282,7 @@
   >
     <StatTile
       label="Rain"
-      value={fmt($items.AmbientWeatherWS2902A_RainFallDay, '', 2)}
+      value={fmt(rainDay, '', 2)}
       unit="&#8243;"
       accent={colors.rain}
       footer={rainFooter}
@@ -283,8 +297,8 @@
     onkeydown={(e) => onKeyActivate(e, openPressureChart)}
   >
     <StatTile
-      label="Pressure"
-      value={fmt($items.AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative, '', 2)}
+      label="Station pressure"
+      value={fmt(pressureValue, '', 2)}
       unit=" inHg"
       accent={colors.label}
       footer={baroTrend}

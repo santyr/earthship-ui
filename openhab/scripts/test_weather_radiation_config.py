@@ -81,6 +81,7 @@ def test_bad_config_leaves_legacy_working_without_private_log_details(caplog):
 
 @pytest.mark.parametrize('enabled', [False, True])
 def test_wsgi_hook_is_default_off_and_only_explicitly_enabled(monkeypatch, policy_file, enabled):
+    monkeypatch.setenv('WEATHER_STATION_INGESTION_ENABLE', '0')
     app = Flask('radiation-wsgi')
     app.add_url_rule('/weather', 'legacy', lambda: 'legacy')
     monkeypatch.setitem(sys.modules, 'weather', SimpleNamespace(app=app))

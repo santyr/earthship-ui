@@ -1,0 +1,69 @@
+{
+  "assessed_at": "2026-10-22T16:30:50.003328+00:00",
+  "decoder_binary_sha256": "3c99f2a0c9bcc8577a466a878f42264eee5b974632f7d3c166ff4fc0d8b1c576",
+  "decoder_negative_replay_sha256": "7681c37a7f418c90ddae757db847e7c8d4f63e52f669d48c4bc166189b230011",
+  "decoder_replay_sha256": "223234441fd26f045b9dfb53483dd44e47c38f5ad3ca26e586f34e1a104d3f43",
+  "decoder_version": "25.02-17-g8e813dda",
+  "findings": [
+    {
+      "id": "AW01",
+      "status": "confirmed_not_fixed"
+    },
+    {
+      "id": "AW02",
+      "status": "confirmed_not_fixed"
+    },
+    {
+      "id": "AW03",
+      "status": "confirmed_not_fixed"
+    },
+    {
+      "id": "AW04",
+      "status": "confirmed_not_fixed"
+    },
+    {
+      "id": "AW05",
+      "status": "confirmed_not_fixed"
+    },
+    {
+      "id": "AW06",
+      "status": "confirmed_not_fixed"
+    },
+    {
+      "id": "AW07",
+      "status": "confirmed_not_fixed"
+    }
+  ],
+  "guard_test_log_sha256": "9f086d45c1f884fbf793dfc958cba18c760a317b91a8adebea8ee634136bedd1",
+  "isolated_guard_tests_passed": 93,
+  "isolated_guard_tests_skipped": 0,
+  "legacy_numerical_reproductions": 6,
+  "legacy_reproduction_sha256": "51c865c399ba928d1d2b4e5ae91b02053afc37871867e194be3f0bf5ee12dd22",
+  "live_readback_file_sha256s": [
+    "9294423fc11eb645044b3895cedec4c7a87f1e0e697475bce7495a0aa74bd53b",
+    "aef454653440700f3e671b2cc682e35888e812a0767a9000348dbdcf102f58e8",
+    "aa43e67128c4f05ef04071de91d8d54baa1837da100a3133d85da6d3bb30ae77",
+    "ab61f0bb01553803e77e45c0b61457893ed7e98d262cff7bd67dca1dd3ce2b5d",
+    "8e9e51ae8ac08c5ea094009635a4927bd55753e096c4866f90ada94d23e596b3",
+    "18b67ed2b5f4736f5fcc23bc217ef0ef79968c2780a0b275d4e684c3eb11ee1d",
+    "cd47435a73032bb5a46cc57fb97fb05feea36ea9220a1812dbe3bbdf42640938",
+    "57ba228b835459c5f7f06dc84b118222d4e14e3b7bb21cd20d97ff9262ef48a2",
+    "b55f5bfb8c212dc56fc99472f8b0acd5c0899149ac6a85a4bd54078606aeb48f",
+    "466ec272fafd32db0e7454052dc6a6dcf720a3659ccfbe55ffad0efaba381ab3",
+    "04e095033c1f6c5c08ef49b3eb841919902c4775ffd08c64a42869540b105941"
+  ],
+  "manufacturer_manual_sha256": "5bb5b3b7e01fd9e36446f54d58c61c676aefef02a47e8ed3d1eb5ec41eca9ea3",
+  "native_gap_reproductions": 1,
+  "offline_corrupt_frames_rejected": 4,
+  "offline_decoder_frames": 8,
+  "physical_calibration_qualified": false,
+  "production_code_changed": false,
+  "production_state_changed": false,
+  "radio_opened": false,
+  "schema": "earthship-ws2902-ingestion-audit-summary/v1",
+  "services_restarted": false,
+  "source_manifest_sha256": "1699be94698c16d00c9cd88cc1cfbd7ed88fc812f0c9b8094957705c0a572062",
+  "station": "Ambient Weather WS-2902",
+  "status": "confirmed_issues; raw_decoder_units_verified; derived_products_and_recovery_need_corrections",
+  "verification_sha256": "93dcfe633f2c701b9f3003d10e6d331a3bad212c919fac61ef47e6701735d0af"
+}
