@@ -137,3 +137,23 @@ def test_candidate_runtime_binds_actual_interpreter_and_numerical_binary_bytes()
     changed['bundle_sha256']=identity({k:v for k,v in changed.items() if k!='bundle_sha256'})
     with pytest.raises(ValueError,match='numerical|environment'):
         api().load_candidate_bundle(changed,expected_sha256=changed['bundle_sha256'],policy=POLICY)
+
+
+def test_contiguous_lead_bundle_can_only_map_its_original_parent_cohort_and_lead_range():
+    from weather_learning.contracts import identity
+    raw=pairs();parent=raw[0].forecast.cohort_sha256
+    descriptor=dict(method='contiguous_whole_native_leads_greedy_capacity/v1',parent_cohort_sha256=parent,lower_exclusive_hours=0.,upper_inclusive_hours=2.)
+    pin=identity(descriptor);rows=[replace(p,forecast=replace(p.forecast,cohort_sha256=pin)) for p in raw]
+    prepared=fitted(rows,partition=descriptor);value=api().predict_candidates(prepared.bundle,frame(15),policy=POLICY)
+    assert value['status']=='read_only_shadow_candidates'
+    assert value['marginals']['temperature_normal']['cohort_sha256']==pin
+    beyond=replace(frame(15),target_start=(T+timedelta(days=15,hours=12)).isoformat(),target_end=(T+timedelta(days=15,hours=12)).isoformat())
+    assert api().predict_candidates(prepared.bundle,beyond,policy=POLICY)['reason']=='candidate_cohort_changed'
+    wrong=replace(frame(15),cohort_sha256='f'*64)
+    assert api().predict_candidates(prepared.bundle,wrong,policy=POLICY)['reason']=='candidate_cohort_changed'
+
+
+def test_fine_cohort_training_cannot_claim_a_different_parent_or_range():
+    descriptor=dict(method='contiguous_whole_native_leads_greedy_capacity/v1',parent_cohort_sha256='f'*64,lower_exclusive_hours=2.,upper_inclusive_hours=4.)
+    with pytest.raises(ValueError,match='partition|cohort|range'):
+        fitted(partition=descriptor)

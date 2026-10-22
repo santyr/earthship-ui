@@ -96,3 +96,19 @@ def test_incompatible_optional_bundle_keeps_raw_issue_independently_available():
     assert all(row['raw']['mean']==pytest.approx(10.) for row in prepared['rows'])
     assert prepared['status']=='raw_fallback'
     assert prepared['withheld']['candidate_temperature']=='candidate_numeric_runtime_changed'
+
+
+def test_contiguous_lead_candidate_issues_use_fine_forecast_identity_and_replay():
+    from weather_learning.probabilistic_artifacts import fit_candidates
+    from weather_learning.contracts import identity
+    original=issue().to_dict();first=original['rows'][0]['forecast']
+    partition=dict(method='contiguous_whole_native_leads_greedy_capacity/v1',parent_cohort_sha256=first['cohort_sha256'],lower_exclusive_hours=0.,upper_inclusive_hours=2.)
+    fine=identity(partition)
+    rows=[replace(p,forecast=replace(p.forecast,cohort_sha256=fine,grid_sha256=first['grid_sha256'])) for p in pairs()]
+    bundle=fit_candidates(rows,cutoff=T+timedelta(days=15),completed_at=T+timedelta(days=15,minutes=1),policy=POLICY,population_sha256='a'*64,partition=partition).bundle
+    body=issue(bundles=[bundle]).to_dict()
+    assert [r['candidates']['status'] for r in body['rows'][:3]]==['read_only_shadow_candidates','read_only_shadow_candidates','raw_fallback']
+    assert body['rows'][0]['forecast']['cohort_sha256']==fine
+    prediction=body['rows'][0]['candidates']['marginals']['temperature_normal']
+    assert prediction['input_sha256']==body['rows'][0]['forecast']['input_sha256']
+    assert api().validate_marginal_issue(body,policy=POLICY,replay=True)==body

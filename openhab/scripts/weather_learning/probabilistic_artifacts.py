@@ -4,7 +4,7 @@ These are explicit unselected shadow products. Historical counterfactual fits
 cannot be relabeled as actually completed candidates. A caller must retain the
 original training input object before acknowledging a bundle or issuing it.
 """
-from dataclasses import dataclass,asdict
+from dataclasses import dataclass,asdict,replace
 from datetime import datetime,timedelta,timezone
 from pathlib import Path
 from hashlib import sha256
@@ -14,7 +14,7 @@ from .evidence import utc
 from . import probabilistic as k
 
 NUMERICAL_FILES=tuple('openhab/scripts/weather_learning/'+name+'.py' for name in (
-    'probabilistic','probabilistic_artifacts','probabilistic_issue','probabilistic_retained','contracts','evidence','config','normalize',
+    'probabilistic','probabilistic_artifacts','probabilistic_issue','probabilistic_population','probabilistic_retained','contracts','evidence','config','normalize',
     'weathernext_ee','historical','features','pv_training_sources','historical_pairs','historical_serving',
     'atmospheric_retained','atmospheric_dataset','weather_response','weights'))
 ROOT=Path(__file__).resolve().parents[3]
@@ -43,7 +43,32 @@ def numerical_environment():
 def _families(kind):return ('empirical','temperature_normal','adaptive') if kind=='temperature' else ('empirical','nonnegative')
 
 
-def fit_candidates(rows,*,cutoff,policy,population_sha256,completed_at=None,guard=lambda:None):
+def _partition(value,*,cohort_sha256,lead_scope_hours):
+    if value is None:return None
+    fields={'method','parent_cohort_sha256','lower_exclusive_hours','upper_inclusive_hours'}
+    if (not isinstance(value,dict) or set(value)!=fields or value['method']!='contiguous_whole_native_leads_greedy_capacity/v1' or
+            identity(value)!=cohort_sha256 or not all(finite(value[n]) for n in ('lower_exclusive_hours','upper_inclusive_hours'))):
+        raise ValueError('original contiguous lead partition and cohort required')
+    digest(value['parent_cohort_sha256']);low,high=value['lower_exclusive_hours'],value['upper_inclusive_hours']
+    if not lead_scope_hours[0]<=low<high<=lead_scope_hours[1]:raise ValueError('partition range outside original broad lead scope')
+    return dict(value)
+
+
+def _in_partition(partition,frame):
+    lead=(instant(frame.target_end)-instant(frame.origin)).total_seconds()/3600
+    return partition is None or partition['lower_exclusive_hours']<lead<=partition['upper_inclusive_hours']
+
+
+def candidate_frame(bundle,frame):
+    """Map only a declared raw parent and lead range into its fitted cohort."""
+    body=bundle.to_dict();partition=_partition(body.get('partition'),cohort_sha256=body['cohort_sha256'],lead_scope_hours=body['lead_scope_hours'])
+    parents={body['cohort_sha256']} if partition is None else {body['cohort_sha256'],partition['parent_cohort_sha256']}
+    if (frame.cohort_sha256 not in parents or not _in_partition(partition,frame) or
+            (frame.kind,frame.grid_sha256,frame.timezone,k._lead(frame.origin,frame.target_end),frame.availability_basis)!=(body['kind'],body['grid_sha256'],body['timezone'],body['lead_scope_hours'],body['availability_basis'])):return None
+    return replace(frame,cohort_sha256=body['cohort_sha256'])
+
+
+def fit_candidates(rows,*,cutoff,policy,population_sha256,completed_at=None,partition=None,guard=lambda:None):
     """One coherent recorded-origin cohort, with real label/fit availability.
 
     Cold hyperparameters are fixed by the pre-outcome protocol. A historical
@@ -53,8 +78,11 @@ def fit_candidates(rows,*,cutoff,policy,population_sha256,completed_at=None,guar
     if not rows or len({k._cohort(r.forecast) for r in rows})!=1 or any(r.forecast.availability_basis!='recorded_ingestion_availability' for r in rows):
         raise ValueError('one recorded prospective candidate training cohort required')
     source=numerical_manifest();environment=numerical_environment();kernel=k._source();selected=k._eligible(rows,cutoff,False,policy);f=rows[0].forecast
+    partition=_partition(partition,cohort_sha256=f.cohort_sha256,lead_scope_hours=k._lead(f.origin,f.target_end))
+    if any(not _in_partition(partition,r.forecast) for r in rows):raise ValueError('training forecast outside declared partition range')
     training=dict(schema='earthship-marginal-candidate-training-inputs/v1',population_sha256=population_sha256,
         cutoff=cutoff.isoformat(),pairs=[asdict(p) for p in selected],numerical_manifest=source,numerical_environment=environment,kernel_producer_sha256=kernel,policy_sha256=policy['policy_sha256'])
+    if partition is not None:training['partition']=partition
     training['training_inputs_sha256']=identity(training);models={};selection={}
     for family in _families(f.kind):
         guard();parameter=max(policy['adaptive']['half_life_candidates_hours']) if family=='adaptive' else max(policy['optimization']['ridge_candidates']);selection[family]=parameter
@@ -72,6 +100,7 @@ def fit_candidates(rows,*,cutoff,policy,population_sha256,completed_at=None,guar
         support=k._support(selected),models=models,selection=selection,selection_basis='predeclared_cold_parameters_before_any_prospective_outcomes',
         training_inputs_sha256=training['training_inputs_sha256'],population_sha256=population_sha256,policy_sha256=policy['policy_sha256'],
         numerical_manifest=source,numerical_environment=environment,kernel_producer_sha256=kernel,retrospective_only=False,issued=False,local_coverage_qualified=False,probability_claim=False,automatic_actuation=False)
+    if partition is not None:body['partition']=partition
     bundle=k._freeze(CandidateBundle,body,'bundle_sha256')
     return FittedCandidates(bundle,canonical(training))
 
@@ -86,6 +115,7 @@ def load_candidate_bundle(value,*,expected_sha256,policy,require_current=True):
         raise ValueError('unchanged original prospective candidate bundle required')
     if require_current and (value.get('numerical_manifest')!=numerical_manifest() or value.get('numerical_environment')!=numerical_environment() or value.get('kernel_producer_sha256')!=k._source()):
         raise ValueError('candidate numerical preprocessing runtime differs')
+    _partition(value.get('partition'),cohort_sha256=value['cohort_sha256'],lead_scope_hours=value['lead_scope_hours'])
     if set(value.get('models',{}))!=set(_families(value['kind'])):raise ValueError('declared original candidate families required')
     cutoff,ready,completed,expiry=map(instant,(value['cutoff'],value['ready_at'],value['actual_completed_at'],value['expires_at']))
     if not cutoff<=ready==completed<expiry<=completed+timedelta(days=14):raise ValueError('actual candidate completion and original expiry required')
@@ -105,11 +135,13 @@ def load_candidate_bundle(value,*,expected_sha256,policy,require_current=True):
 def predict_candidates(bundle,frame,*,policy):
     if not isinstance(bundle,CandidateBundle) or not isinstance(frame,k.ForecastInput):raise ValueError('original candidate bundle and forecast-only input required')
     body=bundle.to_dict();load_candidate_bundle(body,expected_sha256=body['bundle_sha256'],policy=policy)
+    mapped=candidate_frame(bundle,frame)
     families=_families(body['kind']);local={family:None for family in families if family!='adaptive'};adaptive=None;reason=None
     if instant(frame.origin)<instant(body['ready_at']):reason='candidate_not_ready'
     elif instant(frame.origin)>=instant(body['expires_at']):reason='candidate_expired'
-    elif (frame.kind,frame.cohort_sha256,frame.grid_sha256,frame.timezone,k._lead(frame.origin,frame.target_end),frame.availability_basis)!=(body['kind'],body['cohort_sha256'],body['grid_sha256'],body['timezone'],body['lead_scope_hours'],body['availability_basis']):reason='candidate_cohort_changed'
+    elif mapped is None:reason='candidate_cohort_changed'
     else:
+        frame=mapped
         for family,model in body['models'].items():
             restored=None
             if model is not None:
@@ -137,7 +169,9 @@ def _decode_original(encoded,*,maximum):
 
 def _check_training(bundle,training):
     body=bundle.to_dict();fields={'schema','population_sha256','cutoff','pairs','numerical_manifest','numerical_environment','kernel_producer_sha256','policy_sha256','training_inputs_sha256'}
-    if (not isinstance(training,dict) or set(training)!=fields or training['schema']!='earthship-marginal-candidate-training-inputs/v1' or
+    if 'partition' in body:fields.add('partition')
+    partition=_partition(body.get('partition'),cohort_sha256=body['cohort_sha256'],lead_scope_hours=body['lead_scope_hours'])
+    if (not isinstance(training,dict) or set(training)!=fields or training.get('partition')!=partition or training['schema']!='earthship-marginal-candidate-training-inputs/v1' or
             training['training_inputs_sha256']!=body['training_inputs_sha256'] or training['training_inputs_sha256']!=identity({n:v for n,v in training.items() if n!='training_inputs_sha256'}) or
             any(training[n]!=body[n] for n in ('population_sha256','cutoff','numerical_manifest','numerical_environment','kernel_producer_sha256','policy_sha256')) or
             not isinstance(training['pairs'],list) or len(training['pairs'])>10000):raise ValueError('original candidate training object differs')
@@ -145,7 +179,7 @@ def _check_training(bundle,training):
     for raw in training['pairs']:
         args=dict(raw['forecast']);args.pop('input_sha256');pair=k.CalibrationPair(forecast=k.ForecastInput(**args),value=raw['value'],outcome_ready_at=raw['outcome_ready_at'],actual_outcome_available_at=raw['actual_outcome_available_at'],receipt_sha256=raw['receipt_sha256'])
         f=pair.forecast;cutoff=instant(body['cutoff'])
-        if (asdict(pair)!=raw or f.availability_basis!='recorded_ingestion_availability' or
+        if (not _in_partition(partition,f) or asdict(pair)!=raw or f.availability_basis!='recorded_ingestion_availability' or
                 (f.kind,f.cohort_sha256,f.grid_sha256,f.timezone,k._lead(f.origin,f.target_end))!=(body['kind'],body['cohort_sha256'],body['grid_sha256'],body['timezone'],body['lead_scope_hours']) or
                 not cutoff-timedelta(days=28)<=instant(f.target_end)<cutoff or instant(pair.actual_outcome_available_at)>=cutoff or instant(f.actual_source_available_at)>=cutoff):
             raise ValueError('actual past-available original candidate training required')

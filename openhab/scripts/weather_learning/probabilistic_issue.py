@@ -5,7 +5,7 @@ from hashlib import sha256
 from .contracts import canonical,identity,instant,finite
 from .evidence import utc
 from . import probabilistic as k
-from .probabilistic_artifacts import CandidateBundle,load_candidate_bundle,predict_candidates
+from .probabilistic_artifacts import CandidateBundle,load_candidate_bundle,predict_candidates,candidate_frame
 from .probabilistic_retained import prepare_marginal_source
 
 PRODUCT_OFFSETS=(*range(1,25),48,72,120,168,240,336)
@@ -119,11 +119,12 @@ def prepare_marginal_issue(*,snapshots,decision,site,contexts,bundles,policy,gua
                 frame=source.forecast(kind,target=at,quality=quality,origin=decision)
                 if frame is not None:choices.append((source.initialized_at,source.actual_available_at,source.snapshot_sha256,frame))
             if not choices:continue
-            frame=max(choices,key=lambda c:c[:3])[3];candidates=[b for b in working_bundles if (b.to_dict()['kind'],b.to_dict()['cohort_sha256'])==(kind,frame.cohort_sha256)]
+            frame=max(choices,key=lambda c:c[:3])[3];candidates=[b for b in working_bundles if candidate_frame(b,frame) is not None]
             if len(candidates)>1:raise ValueError('ambiguous marginal candidate bundle; no automatic selection')
             if kind not in qualities:value=_fallback(frame,'origin_measurement_context_unavailable',policy)
             elif not candidates:value=_fallback(frame,withheld.get('candidate_'+kind,'candidate_bundle_unavailable'),policy)
-            else:value=predict_candidates(candidates[0],frame,policy=policy)
+            else:
+                frame=candidate_frame(candidates[0],frame);value=predict_candidates(candidates[0],frame,policy=policy)
             raw=dict(mean=frame.baseline,p10=frame.p10,p50=frame.p50,p90=frame.p90)
             row=dict(offset=offset,forecast=asdict(frame),raw=raw,candidates=value);row['row_sha256']=identity(row);rows.append(row)
     active=any(r['candidates']['status']=='read_only_shadow_candidates' for r in rows)

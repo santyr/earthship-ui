@@ -15,7 +15,7 @@ def run(*,population,cohort_sha256,state_root,policy,apply=False,clock=lambda:da
     rows,metadata=restore_population(Path(population),policy=policy,read=_read,guard=guard)
     selected=[p for p in rows if p.forecast.cohort_sha256==cohort_sha256]
     if not selected or len(selected)>10000 or any(p.forecast.availability_basis!='recorded_ingestion_availability' for p in selected):raise ValueError('one recorded-ingestion cohort required for actual candidates')
-    guard();prepared=fit_candidates(selected,cutoff=clock(),policy=policy,population_sha256=metadata['population_sha256'],guard=guard);guard()
+    guard();prepared=fit_candidates(selected,cutoff=clock(),policy=policy,population_sha256=metadata['population_sha256'],partition=metadata.get('partitions',{}).get(cohort_sha256),guard=guard);guard()
     body=prepared.bundle.to_dict();reference=None
     if apply:
         from weather_learning.shadow import ShadowStore
