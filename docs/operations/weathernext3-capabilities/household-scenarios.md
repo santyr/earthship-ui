@@ -42,7 +42,8 @@ never shuffled independently. Original inputs are bounded to 16 MiB/10,000 rows.
 Constructed wind/solar are nonnegative. Solar perturbations retain the original
 native mean direct fraction, a fixed assumption rather than inferred direct-beam
 uncertainty. Unsupported fractions or out-of-domain constructed trajectories are
-refused. Sampling and reconciliation remain visible in the original recipe. Missing
+refused, including wind outside the shared component model's 0–250 mph domain.
+A refused residual construction is counted explicitly before propagation. Sampling and reconciliation remain visible in the original recipe. Missing
 future-label availability, phase/cohort mismatches and sparse support produce an
 explicit `insufficient_evidence` disposition. No upstream members or ECC are
 claimed.

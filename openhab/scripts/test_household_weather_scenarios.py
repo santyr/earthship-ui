@@ -157,3 +157,24 @@ def test_compatible_component_response_projects_indoor_air_without_reusing_proxy
  assert out['thermal']['indoor_air_f']==predict_response(model,features=features['features'],origin_air_f=70.,policy=THERMAL_POLICY)
  assert out['thermal']['uses_legacy_proxy_coefficients'] is False and out['thermal']['north_wall_f'] is None
  assert out['probability_claim'] is False
+
+
+
+@pytest.mark.parametrize('observed_wind,expected_cases',[(70.,6),(100.,0)])
+def test_joint_reconciliation_refuses_wind_outside_shared_component_model_domain(observed_wind,expected_cases):
+ c=context();c['forcing']=make_native_component_forecast(snapshot(hours=6,wind_m_s=80*.44704),origin=ORIGIN,horizon_hours=3,available_by=ORIGIN,site=SITE)
+ blocks=[]
+ for original in residual_blocks():
+  value=original.to_dict()
+  for observation in value['observations']:observation['wind_m_s']=observed_wind
+  blocks.append(api().make_residual_block(forcing=value['original_forecast'],observations=value['observations'],cohort_sha256='c'*64))
+ result=api().joint_scenarios(**c,blocks=blocks,cohort_sha256='c'*64)
+ assert len(result['scenarios'])==expected_cases
+ if not expected_cases:
+  assert result['status']=='insufficient_evidence' and result['reason']=='all_constructed_trajectories_refused'
+  assert result['construction_refusals']=={'constructed_trajectory_outside_supported_domain':6}
+ else:
+  arguments=dict(positions=geometry(start=ORIGIN,count=36),array=ARRAY,horizon_profile=HORIZON,initial_soc_pct=80.,nominal_bank_kwh=10.,load_ac_w=500.,thermal_context=None)
+  projection=api().propagate(result['scenarios'][0],**arguments)
+  assert projection['pv']['potential_pv_kwh']>=0
+  assert all(0<=row['windMph']<=250 for row in result['scenarios'][0].to_dict()['rows'])

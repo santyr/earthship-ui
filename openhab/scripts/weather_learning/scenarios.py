@@ -45,7 +45,8 @@ def _compile(original,recipe,policy,block=None):
             row['solar']['total_j_m2']*=recipe['solar_multiplier']
             if row['solar']['direct_j_m2'] is not None:row['solar']['direct_j_m2']*=recipe['solar_multiplier']
         row['solar']['source_digest']=recipe_pin
-        if not -40<=row['tempF']<=140 or not 0<=row['radiationWm2']<=1600:raise ValueError('constructed weather outside original physical domain')
+        if (not -40<=row['tempF']<=140 or not 0<=row['radiationWm2']<=1600 or
+                not finite(row['windMph']) or not 0<=row['windMph']<=250):raise ValueError('constructed weather outside original physical domain')
     value=dict(schema=SCHEMA,source='constructed_from_weathernext3_not_native_members',origin=source['origin'],horizon_hours=source['horizon_hours'],issued_at=source['issued_at'],captured_at=source['captured_at'],site=source['site'],rows=rows,rows_sha256=identity(rows),snapshot_sha256=source['snapshot_sha256'],recipe=deepcopy(recipe),policy=deepcopy(policy),original_forecast=deepcopy(source),release_authorized=False,automatic_actuation=False,probability_claim=False,block_original=deepcopy(block))
     value['forecast_sha256']=identity(value);return value
 

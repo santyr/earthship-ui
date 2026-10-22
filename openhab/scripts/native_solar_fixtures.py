@@ -8,11 +8,11 @@ SITE=Site(40.,-105.,'UTC')
 ARRAY=dict(module_count=1,module_nameplate_w=1000.,dc_nameplate_w=1000.,surface_azimuth_degrees=180.,surface_tilt_degrees=30.)
 HORIZON=[dict(azimuth_degrees=7.5*i,elevation_degrees=0.) for i in range(48)]
 
-def snapshot(*,hours=8,total_j=1800000.,direct_j=1080000.,temperature_k=None):
+def snapshot(*,hours=8,total_j=1800000.,direct_j=1080000.,temperature_k=None,wind_m_s=2.):
     result=[]
     for grid,bands,values in [
         ('station',['station_head_temperature_2m_mean'],[293.15]),
-        ('gridded',['surface_solar_radiation_downwards_1hr_mean','total_sky_direct_solar_radiation_at_surface_1hr_mean','wind_speed_10m_mean'],[total_j,direct_j,2.]),
+        ('gridded',['surface_solar_radiation_downwards_1hr_mean','total_sky_direct_solar_radiation_at_surface_1hr_mean','wind_speed_10m_mean'],[total_j,direct_j,wind_m_s]),
     ]:
         raw=dict(metadata=[],region=[['id','longitude','latitude','time',*bands]])
         for hour in range(1,hours+1):
