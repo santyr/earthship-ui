@@ -1,11 +1,12 @@
 # Household weather scenarios — implementation in progress
 
 Task 8 remains in progress. Its deterministic construction, one bounded joint
-method and initial weather-scoring kernels are implemented locally. Retained report publication/replay, training-only joint-extreme diagnostics and
-source-replayed household outcome scoring are also implemented. The original native air/wall adapter and explicit default-off source-adapted
-producer now pass focused verification. Actual eligible-data assessment, experiments
-and integrated task gates remain required. Nothing
-is installed, selected or physically/statistically qualified by these tests.
+method, source-replayed scoring and complete selected-population projection and
+outcome experiments are implemented locally. The default-off current-producer
+worker and original native air/wall adapter pass focused verification. The
+maintained retained-producer handoff and integrated task gate remain required.
+Nothing is installed, selected or physically/statistically qualified by these
+experiments.
 
 The [frozen protocol](scenario-protocol.json) was committed before any real Task 8
 outcome assessment. It fixes three conditional cases: the original central means,
@@ -255,8 +256,8 @@ archive receipts and 36 new captures through the existing restricted read-only
 role. Every raw packet, acquisition envelope and source identity is retained
 privately. Original forecasts and the selected origin population are unchanged.
 These are source-admission counts; complete energy-window/censoring checks and
-matched model errors are assessed separately. Full-population outcome scoring
-remains in progress.
+matched model errors are assessed separately. Full-population outcome scoring and independent original-source verification
+are complete for that fixed collection cutoff.
 
 A measured 24-hour target uses 25 hourly originals totaling 38,101,333 bytes.
 Household target records now admit 48 MiB, with at most 25 original energy hours
@@ -267,3 +268,48 @@ original scope. Focused verification passes 53 tests, including full-day target
 replay, refusal of oversized originals/collections and assessment replay above
 16 MiB. Whole-task verification and the maintained retained-producer handoff are
 still required.
+
+
+The [complete outcome experiment](scenario-household-outcomes.json) accounts for
+all 62 selected originals: 57 projected and five withheld for source skew. There
+are 264 mature origin–horizon assessments; 21 further horizons were immature at
+the fixed acquisition cutoff. All 264 air and north-wall endpoints are observed.
+There are 254 matching nominal-SoC grid minima; ten windows are withheld because
+the original model's initial SoC differs from the independently acquired origin
+endpoint. Each available target is compared separately with all three cases.
+Four independent verification partitions rederive observed energy coverage,
+nominal-SoC minima, temperature values, full original target identities and every
+reported error without refitting. They verify 2,346 application error pairs and
+replay 3.73 GB of overlapping original target content through retained source
+references. Repeated cases/horizons retain explicit support counts; they do not
+create additional independent dates.
+
+At 24 elapsed hours the central case has 41 air/wall comparisons over three target
+local dates: descriptive MAE is 3.94 °F for air and 1.19 °F for north wall. The
+39 matching battery comparisons have MAE 5.38 nominal-SoC percentage points.
+These are conditional comparisons against actual behavior with the original
+fixed load, state, actions and coefficients. They do not establish as-issued
+forecast skill, causal benefit, total household uncertainty or a qualified risk
+product. The report retains all three cases and all five horizons without
+selecting a winner from their errors.
+
+The 67 energy-hour originals contain qualified power over nearly their entire
+span, with no ambiguous sequence failures, but every hour has a subsecond
+publication gap. Controller output has 3599.635–3599.746 qualified seconds per
+hour. Exact full-window captured-energy totals remain unavailable; the gaps are
+not silently filled. The potential-energy proxy additionally has only 32 eligible
+low-SoC/charging bins out of 804 five-minute bins. These explicit coverage and
+censoring limits prevent daily-energy MAE from being asserted on these originals.
+Covered-time energy remains distinguishable from an exact daily total.
+
+The [joint-source audit](scenario-joint-evidence.json) checks all 104,264 pairs in
+the complete frozen native marginal corpus: 81,731 temperature, 18,597 wind and
+3,936 reported solar-proxy pairs. Their actual acquisition followed their own
+original forecast issue. The 43 unique source-qualified solar-proxy hours span
+three dates and do not supply physical GHI. The 388 unique wind observation
+targets have no sensor-health receipts. Consequently there are zero complete
+qualified physical temperature/wind/GHI blocks and zero eligible template dates,
+below the frozen minimum of eight. Actual multivariate energy/variogram scores,
+dependence/ramp/extreme diagnostics and trajectory coverage are explicitly
+unavailable. Synthetic software tests exercise their formulas; no substitute
+physical measurements, upstream members, ranks or risk probabilities are created.
