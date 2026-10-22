@@ -1,0 +1,32 @@
+{
+  "schema": "earthship-weathernext-deployment-policy/v2",
+  "amended_on": "2026-10-22",
+  "authority": "Explicit user instruction to replace existing models during Step11, retrain on historical data where needed, use new models in production and compare against real data without parallel shadow mode.",
+  "deployment_mode": "direct_production_replacement",
+  "parallel_shadow_required": false,
+  "advance_superiority_required_for_deployment": false,
+  "historical_retraining_authorized": true,
+  "production_model_replacement_authorized": true,
+  "automatic_promotion": false,
+  "automatic_actuation": false,
+  "scientific_qualification_changed": false,
+  "original_experiment_results_immutable": true,
+  "predeployment_requirements": [
+    "Exact per-model replacement method/artifact/procedure/source manifest",
+    "Valid target and sufficient causally available training inputs for the method",
+    "Historical retraining on corrected numerical source when needed",
+    "Compatible readers, required normal tests and exact-source review",
+    "Verified selectors/admission/readback and rollback"
+  ],
+  "after_deployment": [
+    "Retain actual emitted production predictions before targets occur",
+    "Score against real original observations after maturity",
+    "Report calibration/skill/coverage/subgroups and unavailable evidence separately",
+    "Use old artifacts for rollback and historical replay without a parallel shadow schedule"
+  ],
+  "unsupported_targets": "Record exact missing input or numerical training-support dependency and explicit target-specific raw fallback/withholding; no fabricated model or probability, no blanket delay of valid replacements.",
+  "pending_scientific_outcomes_block_deployment": false,
+  "deployment_completed": false,
+  "additional_cloud_collection_authorized": false,
+  "collection_scope": "Existing authorized collection and retained historical data only; model-replacement instruction does not expand cloud-access authorization."
+}

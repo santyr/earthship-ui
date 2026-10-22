@@ -2,9 +2,9 @@
 
 > **For the coding agent:** Execute this plan task by task using the repository's existing implementation and review workflow. Where the Superpowers skills are available, use `executing-plans` or the established subagent-driven workflow, test-driven development, and verification before completion. Preserve completed audit repairs and unrelated work. This is a new capability-expansion goal, not a restart of the correctness audit.
 
-**Goal:** Make effective, measurable use of WeatherNext 3's available statistics, solar components, atmospheric context, and hourly forecast updates to improve the Earthship's weather display and read-only thermal/energy guidance, while preserving source truth, operational reliability, no-billing access, and existing control authority.
+**Goal:** Make effective, measurable use of WeatherNext 3's available statistics, solar components, atmospheric context, and hourly forecast updates to improve the Earthship's weather display and read-only thermal/energy guidance, and deploy the new models/improvements as the active production methods in Step 11, with evaluation against real observations after deployment, while preserving source truth, operational reliability, no-billing access, and existing control authority.
 
-**Architecture:** Extend the existing statistics-only acquisition, immutable archive, typed forecast adapters, local learning, and bounded scoring services. Add a versioned supplemental forecast product for richer weather information without changing the meaning of legacy payloads. Introduce numerical alternatives as separately identified challengers; retain current serving choices unless later, matched evidence supports a reviewed change.
+**Architecture:** Extend the existing statistics-only acquisition, immutable archive, typed forecast adapters, local learning, and bounded scoring services. Add a versioned supplemental forecast product for richer weather information without changing the meaning of legacy payloads. Develop separately identified new methods, retrain on historical data where needed, and replace the existing production models during Step 11. Evaluate the actual production predictions against real data afterward; a parallel shadow period is not required. Scientific qualification remains separate from deployment.
 
 **Tech stack:** Existing Python/OpenHAB/PostgreSQL/SQLite forecasting and evidence services; Google Earth Engine statistics access; Svelte/Vite/ECharts frontend; existing pytest/Vitest/Playwright and native qualification profiles. Use the exact supported versions and companion source pins from the executing revision.
 
@@ -13,6 +13,26 @@
 **Prepared:** October 21, 2026. **Source baseline inspected:** `cdfaa6b51b568423a5aada34a930094c7cf0730b`, merge of PR #43, which follows `87a70336fa52a19a282941af1bcd80b2f63ded52`. Reconcile any later changes before execution. [S01]
 
 **Evidence boundary:** Planning used public source and current provider/research documentation. Private household observations, effective service settings, account eligibility/usage, installed packages, and current fitted weights were not inspected here. The local coding agent must establish those facts. Source merge, passing fixtures, installation, actual operation, forecast skill, and physical qualification are distinct claims.
+
+## October 22, 2026 deployment amendment
+
+The user explicitly requests replacing the existing models during Step 11, using
+the new models and improvements in production and comparing their actual issued
+predictions against real observations. Retrain on historical data where needed.
+A separate parallel shadow period is not required. This instruction supersedes
+the original incumbent-retention and pre-deployment superiority requirements for
+this rollout. Preserve the original experiments and their conclusions: choosing
+experimental production use does not retroactively turn a losing/insufficient
+comparison into demonstrated improvement.
+
+The deployment decision and scientific qualification are separate. Software,
+source, target, training-data and numerical-validity checks still apply. Missing
+class/event support cannot produce a fabricated fitted rain model; absent joint
+inputs cannot produce a fabricated coherent scenario. Use explicit target-level
+fallback/withholding when such inputs are absent, without holding up other valid
+new production methods. Probability, physical calibration, causal benefit and
+all-season skill remain unclaimed until separately evidenced. No new actuator,
+provider, full-ensemble, billing or host-resource authority is granted. Additional cloud-collection authorization is unchanged; use existing authorized collection and historical data for this replacement.
 
 ## 1. Mandate, scope, and priority
 
@@ -132,7 +152,7 @@ Keep all forecasts for the same observation together when estimating uncertainty
 
 Point outputs: MAE, RMSE, signed bias, tails, and relevant energy/temperature utility. Quantile outputs: pinball scores, interval coverage/width, and an explicitly defined weighted interval score where quantiles support it. Compute CRPS only for a declared full predictive distribution or a clearly labeled numerical approximation with specified interpolation/tails. Rain occurrence: Brier score and reliability relative to training-only climatology. Joint scenarios: temporal/cross-variable dependence diagnostics plus multivariate and application-level scores where supported. Coverage alone can be improved by uselessly widening intervals; assess sharpness/proper scores too.
 
-Each experiment closes with one of `adopt_candidate`, `retain_incumbent`, `reject_candidate`, or `insufficient_evidence`, supported by a source-bound report. Scientific evidence can support a scoped read-only rollout; it does not itself grant deployment permission. No universal 30-day requirement and no automatic qualification reset after every ordinary refit. Qualify the declared training/serving procedure while retaining artifact-level diagnostics.
+Each scientific experiment retains its source-bound disposition: `adopt_candidate`, `retain_incumbent`, `reject_candidate`, or `insufficient_evidence`. The October 22 user instruction separately authorizes direct experimental production replacement in Step 11 without a parallel shadow period or proof of superior skill first. Preserve the predeclared 3% improvement, subgroup-regression and uncertainty criteria for reporting scientific evidence; they are not deployment-entry gates for this rollout. Fit only valid target definitions with the required available training inputs; retain original predictions and evaluate their real outcomes after deployment. No universal 30-day wait and no automatic qualification reset after every ordinary refit. Qualify the declared training/serving procedure while retaining artifact-level diagnostics.
 
 ## 6. Ordered implementation tasks
 
@@ -222,7 +242,7 @@ Each group has an explicit consumer, dataset signature, coverage policy, byte/ro
 - [ ] Evaluate in two steps: native components without refitting electrical correction; then like-for-like separately refitted corrections using each baseline. Match outcomes and censoring policy. Do not compare a newly refitted challenger against an intentionally mismatched old calibration.
 - [ ] Evaluate thermal benefit only on comparable recorded action/state trajectories. Do not replace a lux-proxy empirical thermal target with physical GHI or facade heat gain without a distinct target/model experiment. Do not stack proxy and electrical corrections by default.
 
-**Gate:** conserved interval semantics and train/serve parity; later held-out PV/thermal comparison; recorded disposition. “Native components available” is not permission to replace the current method.
+**Gate:** conserved interval semantics and train/serve parity; later held-out PV/thermal comparison; recorded disposition. Availability alone is not evidence of improvement; Step 11 uses the October 22 authorization for a reviewed, source-valid production replacement with fresh compatible calibration where needed.
 
 ### Task 5 — Add atmospheric context and controlled feature ablations
 
@@ -266,7 +286,7 @@ Each group has an explicit consumer, dataset signature, coverage policy, byte/ro
 - [ ] Compare point error, interval sharpness/coverage and proper scores across lead, local hour, season and supported regimes. Report absent regimes and group sizes. Avoid claiming rare-event or all-season calibration from dense but narrow data.
 - [ ] Wire bounded prospective scoring and status into the existing monitor; expose separate raw and local-calibrated products only under their actual qualification state.
 
-**Gate:** full implementation and tests exist, with results on all eligible data and specific evidence blockers otherwise. A contender that loses remains unselected; raw ranges and current point forecasts remain usable.
+**Gate:** full implementation and tests exist, with results on all eligible data and specific evidence blockers otherwise. Retain the actual scientific comparison result. Step 11 may install the new technically valid method under the October 22 experimental production authorization; raw ranges and explicit validity fallbacks remain usable without a shadow prerequisite.
 
 ### Task 8 — Build household stress cases and test coherent scenarios
 
@@ -294,7 +314,7 @@ Each group has an explicit consumer, dataset signature, coverage policy, byte/ro
 - [x] Implement a small two-part model: occurrence probability and conditional positive amount. Use training-only climatology as the probability benchmark. If a censored shifted-gamma method is chosen instead, document why and keep the model set bounded. [R04]
 - [x] Probability labels identify a locally learned forecast, target interval and method; they are not native Google probabilities. A cumulative probability must come from an appropriately trained interval target or coherent joint method, not summed hourly probabilities/quantiles.
 - [x] Fit only when the prescribed class/event support exists. All-dry, sparse-wet and unseen-regime cases produce explicit `insufficient_evidence`, not a fabricated calibrated probability. Complete the fixtures, collection, scoring and pending evidence report anyway.
-- [x] Keep raw production rain unless a reviewed selection meets the predeclared criteria. Support roof-collection decisions with rainfall information only; do not calculate cistern availability without independently approved roof/runoff/reserve/inventory inputs.
+- [x] Record the raw production rain baseline and scientific selection disposition at the Task 9 assessment. Step 11 governs the later authorized replacement: use the new rain method when its target and required training class/event inputs are valid, or name the exact dependency and declared raw fallback. Do not manufacture wet-event support or calibrated probability. Support roof-collection decisions with rainfall information only; do not calculate cistern availability without independently approved roof/runoff/reserve/inventory inputs.
 
 **Gate:** no gain is promoted for looking good only on dry days. Each head and candidate has matched coverage, scores, uncertainty and a clear retained/selected/deferred disposition.
 
@@ -313,20 +333,23 @@ Each group has an explicit consumer, dataset signature, coverage policy, byte/ro
 
 **Gate:** every recommendation has a disposition; no fabricated probability, freshness, physical calibration, or completeness claim reaches the UI.
 
-### Task 11 — Verify, stage, and deliver the integrated system
+### Task 11 — Verify, retrain, replace production models, and evaluate real outcomes
 
-**Files:** affected normal tests and workflows, release/source manifests, selector/admission readers, existing deployment tooling, and one current capability delivery record.
+**Files:** affected normal tests/workflows, retraining and active-serving adapters, release/source/model/selector manifests, deployment/rollback tooling, actual-issued evaluators and one current delivery record.
 
-**Consumes:** complete implementation and experiment records. **Produces:** reviewed source release; authorized scoped deployment where permitted; verified rollback; exact remaining qualification dependencies.
+**Consumes:** complete implementations, available historical observations, retained experiment/source records and the October 22 direct-production authorization. **Produces:** reviewed and verified replacement models active in production, actual-outcome evaluation, exact rollback and honest remaining scientific dependencies.
 
-- [ ] Run normal dependency-pinned unit/build/browser checks, all required OpenHAB partitions, WeatherNext SDK/contracts, sensor/receipt/native/delivery gates affected by shared changes, and numerical golden/old-producer replay. Inventory new tests into current CI ownership; do not claim completion from focused subsets.
-- [ ] Test consumer-first schema migration and reader compatibility before new producers publish. Test optional-field failure, new source closures, original admission expiry, fit no-op, genuine new fit, interrupted promotion, post-publish nonzero exit, concurrent selector edits and rollback. Preserve the post-PR #43 readback truthfulness.
-- [ ] Keep corrected fitting and incumbent-compatible serving packages explicit. Do not apply old electrical coefficients to a changed baseline under the same identity or replace every pinned runtime with main indiscriminately.
-- [ ] Use feature flags/profile selectors for reversible rollout: richer read-only display first; bounded acquisition next; shadow challengers; only evidence-backed and authorized serving selections afterward. Archive growth and cost must be observed at each stage.
-- [ ] Read back installed source, environment, schemas, selected artifacts, effective resource caps and current report consumers. Verify available natural cycles; do not manually publish, refit, restart or stimulate hardware without applicable authorization.
-- [ ] Freeze a final verification revision and evidence manifest. Report what is implemented, passing, installed, naturally exercised, scientifically supported, and still blocked. Include exact rollback for changed surfaces and a finite evidence checklist for pending wet events, horizon maturity or observation quality.
+- [ ] Build a per-model replacement manifest naming the existing and replacement method, training procedure, artifact, numerical source closure, input/observation cohort, effective default and exact rollback. New methods are the production target, not optional shadow challengers left alongside the incumbent. Record any target that cannot produce a valid fitted prediction with its concrete missing input/support; do not substitute a blanket incumbent-retention rule.
+- [ ] Retrain against the available historical data where needed, using the corrected production numerical path and already available observations. Preserve chronological cutoffs, target definitions, sensor/grid epochs and the small declared method set. Store fresh artifact/procedure identities and original fit clocks. Refit electrical calibration when changing the PV/solar baseline; never apply old coefficients to a changed baseline under the old identity. Keep immutable historical source packages and experiment results replayable.
+- [ ] Run normal dependency-pinned unit/build/browser checks, all required OpenHAB partitions, WeatherNext SDK/contracts, sensor/receipt/native/delivery gates affected by shared changes, and numerical golden/old-producer replay. Inventory every new test into current CI ownership. Review the exact integrated source and concrete replacement manifest before release.
+- [ ] Migrate compatible readers and schemas before new production outputs publish. Test optional-field failure, source-closure changes, original admission expiry, fit no-op, genuine new fit, interrupted promotion, post-publish nonzero exit, concurrent selector edits and rollback. Preserve post-PR #43 readback truthfulness. Create new production admission/emission identities rather than changing immutable shadow receipts or qualification flags.
+- [ ] Deploy the richer read-only consumers and required bounded acquisition, then switch the registered replacement models/improvements to the active production defaults in Step 11. Use reversible selectors/flags. No separate parallel shadow deployment or elapsed shadow-scoring period is required, and the scientific improvement thresholds are not deployment-entry gates under this user-authorized experimental production rollout.
+- [ ] Retain the actual predictions emitted by the replacement models before their targets occur and compare them with real observations after target maturity through the bounded evaluator. Report point, interval, rain and household metrics only for their valid targets/cohorts. Use preserved historical comparisons where comparable; do not run the old models in parallel or invent old live predictions. Keep scoring, qualification and production admission distinct.
+- [ ] Read back installed source, environment, schemas, effective selectors/artifacts, resource caps and current report consumers. Observe archive growth and actual request/byte/runtime costs at each stage. Verify available natural cycles and view the UI against actual OpenHAB data. Historical retraining and model replacement are authorized by the October 22 instruction; do not fabricate observations, stimulate hardware or grant new control/billing authority.
+- [ ] Verify exact rollback for each changed source, reader, model and selector. Retain old artifacts for rollback and historical replay, without scheduling a parallel shadow pipeline. A runtime validity failure may use its explicitly declared safe fallback; retain newly emitted originals and scoring state across rollback.
+- [ ] Freeze the final verification revision, source/evidence manifest and delivery record. Separate implemented, passing, installed, active, naturally exercised and scientifically supported claims. Include the post-deployment evaluation schedule and a finite checklist for remaining wet events, horizon maturity and measurement quality. These pending scientific outcomes do not postpone otherwise valid production replacement or unblocked engineering.
 
-**Gate:** changes are reviewable and tested against the actual current source; deployment/operation claims have their own evidence. The agent does not mark unsupported candidates as winners to close the task.
+**Gate:** The reviewed integrated source and newly trained/registered methods are installed as the active production defaults, with original as-issued scoring against real observations and verified rollback. No parallel shadow period or advance proof of superior skill is required. Invalid inputs, unsupported target definitions and unqualified probability/physical claims remain refused; deployment is not a claim of improvement.
 
 ## 7. Required regression scenarios
 
@@ -401,7 +424,7 @@ Completion requires:
 1. Every WN requirement has an implemented and verified result or a precise, genuine external dependency. Deliberately unused capabilities have documented dispositions, not hidden TODOs.
 2. Existing temperature ranges, atmospheric context, optional-domain isolation, original selection/profile clocks, and cost/resource safeguards work end to end.
 3. Native solar, refresh, adaptive/marginal, joint-scenario and rainfall comparison software and normal-harness tests are complete. All locally supported experiments have run and retain reproducible results; unsupported experiments identify exact missing evidence. No blanket “research later” substitutes for implementable work.
-4. Every proposed serving change has a predeclared, matched baseline comparison and an explicit disposition. Retaining the incumbent is acceptable; unsupported promotion is not.
+4. Every production replacement has an explicit method/artifact/procedure/source manifest, historical retraining where needed, valid inputs, integration tests, installed-selector readback and rollback. Preserve predeclared historical comparison results and evaluate actual replacement predictions against real outcomes. A separate shadow period or superior-score gate is not required for the October 22 authorized rollout. Name exact unsupported targets individually; do not use blanket incumbent retention as completion.
 5. Old source/forecast/model/score evidence remains replayable. New schema readers, current consumers and source closures are migrated together; rollback preserves newly emitted originals and scoring state.
 6. The exact integrated source passes its required tests. Installed and natural-cycle evidence is separately recorded where authorized and available.
 7. No new billing, provider, full-ensemble access, private-data exposure, planner/feeder authority, or weakened safety/resource gate was introduced.
