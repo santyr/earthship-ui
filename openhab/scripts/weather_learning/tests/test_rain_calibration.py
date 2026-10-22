@@ -15,13 +15,13 @@ PRODUCTS=('total_precipitation_1hr','imerg_tp_1hr','experimental_tp_1hr')
 def api():return import_module('weather_learning.rain_calibration')
 
 
-def rain_snapshot(day=date(2026,10,20),zone='America/Denver',missing=None,hours=60):
+def rain_snapshot(day=date(2026,10,20),zone='America/Denver',missing=None,hours=60,mean_mm=1.):
  local=ZoneInfo(zone);start=datetime.combine(day,time.min,local).astimezone(timezone.utc);end=datetime.combine(day+timedelta(days=1),time.min,local).astimezone(timezone.utc)
  init=start-timedelta(hours=12);init=init.replace(hour=init.hour//6*6);site=Site(40.,-105.,zone);bands=[p+'_'+s for p in PRODUCTS for s in ('mean','p10','p50','p90')]
  raw=dict(metadata=[],region=[['id','longitude','latitude','time',*bands]])
  for h in range(1,hours+1):
   at=init+timedelta(hours=h);raw['metadata'].append(dict(**{'system:index':'rain'+str(h)},start_time=init.isoformat(),end_time=at.isoformat(),forecast_hour=h,ingestion_time_utc=init.timestamp()+900))
-  values=[None if missing==p else .001*(i+1) if s=='mean' else 0. for i,p in enumerate(PRODUCTS) for s in ('mean','p10','p50','p90')]
+  values=[None if missing==p else mean_mm/1000*(i+1) if s=='mean' else 0. for i,p in enumerate(PRODUCTS) for s in ('mean','p10','p50','p90')]
   raw['region'].append(['rain'+str(h),site.longitude,site.latitude,at.timestamp()*1000,*values])
  source=parse_collection_response(raw,collection=COLLECTIONS['gridded'],bands=bands,site=site,initialized_at=init,horizon=hours)
  snapshot=make_snapshot([source],site=site,initialized_at=init,first_seen_at=init+timedelta(minutes=20),completed_at=init+timedelta(minutes=21))

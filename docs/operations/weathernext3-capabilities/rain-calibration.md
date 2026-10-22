@@ -1,8 +1,8 @@
 # Rain comparison and occurrence/amount experiment — implementation in progress
 
 Task 9 is in progress. The [frozen protocol](rain-calibration-protocol.json)
-retains the original evaluation policy's wet-threshold and support rules. No Task 9
-final outcome evaluation or candidate fitting has occurred. Current production rain
+retains the original evaluation policy's wet-threshold and support rules. No Task 9 real-data
+final outcome evaluation or coefficient fitting has occurred. Synthetic tests exercise fitting and scoring. Current production rain
 is retained; this document does not select a product or qualify a probability.
 
 The comparison keeps total, IMERG and experimental precipitation heads separate
@@ -28,12 +28,17 @@ one daily target per date would contradict that window. The original three-wet-
 event minimum, held-out local-date blocks and 3%/5% selection/regression rules are
 preserved. One bounded method is used, with no hyperparameter search.
 
-Decoder specifications do not substitute for local measurement-resolution evidence.
-The [upstream Fine Offset decoder](https://github.com/merbanan/rtl_433/blob/master/src/devices/fineoffset.c)
-distinguishes WH24 and WH65 rain-counter scaling. The local reader accepts both
-model labels, so a hardware label alone cannot establish the locally measured
-resolution or physical rain calibration. Original source-policy and acquisition
-identities must accompany any evidence used to instantiate the threshold rule.
+The installed station is an **Ambient Weather WS-2902**, identified by the user.
+The [manufacturer manual](https://ambientweather.com/mwdownloads/download/link/id/567/)
+(version 1.12, page 47) specifies nominal rain resolution of **0.01 inch
+(0.254 mm)**. The [station context](station-context.json) retains this identity and
+reference. If confirmed for the local decoded counter, the frozen two-resolution-
+step rule gives a 0.508 mm event threshold, with the existing boundary/resolution
+ambiguity band. Manufacturer resolution describes the nominal measurement step;
+it does not establish local gauge accuracy or independently measured local
+resolution. The current frozen model policy still records that distinction.
+Receiver WH24/WH65 decoder aliases no longer leave the physical station model
+unknown; its original counter/scaling evidence remains part of verification.
 
 Source-bound interval forecasts and counter observations now replay their literal
 originals. The shared native counter kernel supports explicit rolling and partial
@@ -46,8 +51,19 @@ accuracy. Source-availability timestamps come from acquisition completion, not
 from the last old database row. Forecast completion at or after the target start
 cannot enter a complete-interval comparison.
 
-Remaining work includes the two-part fitter and original prediction scoring,
-matched actual collection and experiments,
-retained prospective evidence/pending status, integration tests and disposition.
+The bounded fitter, matched point/event/probability scores, day-block uncertainty,
+original prediction records and complete hourly timing helper are implemented.
+A 36-day synthetic experiment exercises 12 causal outer fits, using only earlier
+acquired training labels; passing its gate means eligibility for review, with no
+production selection or probability qualification. Retrospective experiments and
+prospective shadows are scored separately. Existing rain gain artifacts apply
+only to exact 24-hour elapsed targets under their original timezone contract.
+
+The [complete source inventory](rain-source-inventory.json) freezes 358 native
+originals before Task 9 gauge outcomes are collected. Larger archives are retained
+in full; each experiment has its own bounded input and runtime allowance.
+Remaining work includes target derivation, matched read-only counter collection
+and actual experiments, retained prospective pending work, integration tests and
+a final disposition.
 Rainfall information does not authorize cistern-availability calculations or
 hardware actions.

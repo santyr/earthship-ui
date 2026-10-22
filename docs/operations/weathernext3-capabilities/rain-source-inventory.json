@@ -1,0 +1,20 @@
+{
+  "automatic_actuation": false,
+  "historical_originals": 268,
+  "interval_families": [
+    "calendar",
+    "data_partition",
+    "decision_selection"
+  ],
+  "inventoried_at": "2026-10-22T16:08:49.232451+00:00",
+  "inventory_sha256": "96db45263e112c692e5d39c3ca8a8674b6777e413ce423a1b44c6af6ac46754e",
+  "observation_cutover": "2026-10-09T13:10:00+00:00",
+  "original_bytes": 704208194,
+  "policy_sha256": "e064f05044d5cf6f518578a673c66726289df58290100045ff4ca53e0db52d7c",
+  "production_changed": false,
+  "recorded_source_originals": 90,
+  "schema": "earthship-rain-source-inventory-summary/v1",
+  "selection_before_outcomes": true,
+  "source_count": 358,
+  "status": "original_sources_frozen_before_outcomes; target_derivation_and_read_only_counter_collection_pending"
+}
