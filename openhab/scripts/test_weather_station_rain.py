@@ -78,3 +78,12 @@ def test_bad_counter_does_not_turn_a_return_into_rain_or_preserve_complete_windo
  state.observe(100.,at=end+timedelta(seconds=32),tick=(end+timedelta(seconds=32)).timestamp())
  p=snapshot(state,end+timedelta(seconds=32))['products'];assert p['day']['partial_lower_bound']==0.
  assert p['rolling_hour']['value'] is None
+
+
+def test_wide_boundary_bracket_does_not_become_a_precise_calendar_total():
+ state=products();midnight=START+timedelta(days=1)
+ for offset,counter in [(-30,100.),(30,100.1),(46,100.11)]:
+  at=midnight+timedelta(seconds=offset);state.observe(counter,at=at,tick=at.timestamp())
+ p=snapshot(state,midnight+timedelta(seconds=46))['products']['day']
+ assert p['value'] is None and p['lower']==pytest.approx(.01) and p['upper']==pytest.approx(.11)
+ assert p['partial_lower_bound']==pytest.approx(.01)

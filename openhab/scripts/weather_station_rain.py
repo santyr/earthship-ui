@@ -11,6 +11,7 @@ from weather_station_counter import CounterTracker
 
 UTC = timezone.utc
 MAX_POINTS = 20000
+MAX_BOUNDARY_WIDTH_IN = .02  # Same uncertainty limit as native rain intervals.
 
 
 class RainProducts:
@@ -107,8 +108,9 @@ class RainProducts:
             upper = max(0., current-bracket[0])*factor if known else None
             partial = (max(0., current-self.phase[1])*factor
                        if fresh and self.phase and start <= self.phase[0] else 0.)
-            return dict(value=(lower+upper)/2 if known else None,
-                        lower=lower, upper=upper, partial_lower_bound=partial if fresh else None,
+            precise = known and upper-lower <= MAX_BOUNDARY_WIDTH_IN*factor+1e-9
+            return dict(value=(lower+upper)/2 if precise else None,
+                        lower=lower, upper=upper, partial_lower_bound=max(partial,lower or 0.) if fresh else None,
                         unit='in/h' if factor == 6 else 'in',
                         start=start.isoformat() if start else None,
                         end=end.isoformat() if end else None,
