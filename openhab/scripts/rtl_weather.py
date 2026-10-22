@@ -102,7 +102,7 @@ def normalize_wh65b_packet(data):
 
 def _finite_field(data, name, minimum, maximum):
     value = data.get(name)
-    if type(value) not in (int, float) or not math.isfinite(value) or not minimum <= value <= maximum:
+    if type(value) not in (int, float) or not minimum <= value <= maximum or not math.isfinite(value):
         return None
     return float(value)
 
@@ -134,7 +134,7 @@ def packet_payload(data):
     model, sid = data.get('model'), data.get('id')
     identities = {'Fineoffset-WH65B': {WH65B_STATION_ID}, 'Fineoffset-WH24': {WH65B_STATION_ID},
                   'Fineoffset-WH32B': {235}, 'AmbientWeather-WH31E': {193, 223}}
-    if type(sid) is not int or sid not in identities.get(model, set()):
+    if not isinstance(model, str) or type(sid) is not int or sid not in identities.get(model, set()):
         return None
     result = {'model': model, 'id': sid}
     outdoor = model in ('Fineoffset-WH65B', 'Fineoffset-WH24')
@@ -228,7 +228,11 @@ def main():
 
                 if data.get('model') == 'Fineoffset-WH32B':
                     _log_wh32b_id(data)
-                payload = packet_payload(data)
+                try:
+                    payload = packet_payload(data)
+                except (ValueError, TypeError, OverflowError):
+                    logging.warning('Invalid decoder measurements')
+                    continue
                 if payload is not None and _should_send(payload['model'], payload['id']):
                     send_data_to_flask(payload)
 

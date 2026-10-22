@@ -60,7 +60,7 @@ export function stationPresentation(states, { nowMs = Date.now() } = {}) {
   for (const [source,high,low] of [['WeatherDataWs2902a_Temperature','MaxDailyOutdoorTemp','MinDailyOutdoorTemp'],
     ['WeatherDataWs2902a_RelativeHumidity','MaxDailyOutdoorHumidity','MinDailyOutdoorHumidity'],['WindGust','MaxDailyWindGust',null]]) {
     const e=report.dailyExtrema?.[A+source];
-    if (!available(source) || e?.complete!==true) continue;
+    if (!available(source) || e?.complete!==true || !(clock(e.periodValidUntil)>nowMs)) continue;
     if (finite(e.high) && e.high===report.flat?.[A+high]) result.current[A+high]=e.high;
     if (low && finite(e.low) && e.low===report.flat?.[A+low]) result.current[A+low]=e.low;
   }
@@ -85,11 +85,12 @@ export function stationPresentation(states, { nowMs = Date.now() } = {}) {
     }
   }
   const rain = report.rain;
-  if (rain?.schema === 'earthship-station-rain-products/v2' && rain.status === 'fresh') {
+  if (rain?.schema === 'earthship-station-rain-products/v2' && rain.status === 'fresh' && available('RainFallTotal')) {
     for (const [target,key,unit,duration] of [['day','day','in'],['week','week','in'],['month','month','in'],
       ['event','event','in'],['hour','rolling_hour','in',3600000],['rate','rate_10min','in/h',600000]]) {
       const p = rain.products?.[key], start=clock(p?.start), end=clock(p?.end);
       if (p?.unit !== unit || !Number.isFinite(start) || !Number.isFinite(end)
+          || (['day','week','month'].includes(target) && !(clock(p.periodValidUntil)>nowMs))
           || end < start || end > nowMs+5000 || nowMs-end >= 120000 || (duration && end-start !== duration)) continue;
       if (target === 'day' && finite(p.partial_lower_bound) && p.partial_lower_bound >= 0 && p.partial_lower_bound <= 100000) {
         result.rain.partialDay = p.partial_lower_bound;
