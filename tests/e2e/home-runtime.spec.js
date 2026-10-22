@@ -1015,7 +1015,7 @@ function expectHomeCardSeparation(geometry) {
     statAlign: 'center',
     statDirection: 'column',
     iconDisplay: 'flex',
-    valueWhiteSpace: 'nowrap',
+    valueWhiteSpace: 'normal',
   });
   expect(battery.arc.right).toBeLessThanOrEqual(battery.meta.left + 0.5);
   expect(battery.icon.right).toBeLessThanOrEqual(battery.indicator.left + 0.5);
