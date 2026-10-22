@@ -73,6 +73,7 @@ def test_invalid_enabled_policy_preserves_legacy_route_and_sanitizes_logs(caplog
 
 @pytest.mark.parametrize('enabled', [False, True])
 def test_real_wsgi_entrypoint_preserves_app_and_only_opts_in_explicitly(monkeypatch, policy_file, enabled):
+    monkeypatch.setenv('WEATHER_STATION_INGESTION_ENABLE', '0')
     app = Flask(__name__)
     app.add_url_rule('/weather', 'legacy', lambda: 'legacy')
     monkeypatch.setitem(sys.modules, 'weather', SimpleNamespace(app=app))

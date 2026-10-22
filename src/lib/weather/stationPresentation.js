@@ -3,9 +3,27 @@ const REPORT = 'WeatherStation_Quality_JSON';
 const PRESSURE = 'WeatherStation_PressureAbsoluteV2';
 const finite = value => typeof value === 'number' && Number.isFinite(value);
 const clock = value => typeof value === 'string' ? Date.parse(value) : NaN;
+const A = 'AmbientWeatherWS2902A_';
+const FIELD_SPECS = [
+  [A+'WeatherDataWs2902a_Temperature','outdoor',-40,149],
+  [A+'WeatherDataWs2902a_RelativeHumidity','outdoor',0,100],
+  ...[['WindSpeed',112],['WindGust',112],['WindDirectionDegrees',360],['RainFallTotal',100000],['SolarRadiation',1200],['UVIndex',15],['OutdoorBatteryStatus',1]]
+    .map(([name,max])=>[A+name,'outdoor',0,max]),
+  ['WeatherStation_LightLuxV2','outdoor',0,200000],['WeatherStation_SolarProxyV2','outdoor',0,1600],
+  [PRESSURE,'indoor',300*.02953,1100*.02953],
+  [A+'IndoorSensor_Temperature','indoor',-40,140],[A+'IndoorSensor_RelativeHumidity','indoor',0,100],
+  ...[[193,'north_wall'],[223,'bedroom']].flatMap(([sid,role])=>[
+    [A+`WH31E_${sid}_Temperature`,role,-40,140],[A+`WH31E_${sid}_RelativeHumidity`,role,0,100],
+    [A+`WH31E_${sid}_BatteryStatus`,role,0,1]]),
+];
+const DERIVED = ['DewPointTemperature','HeatIndex','WindChill','ApparentTemperature','WindDirectionCardinal','UVDanger',
+  'MaxDailyOutdoorTemp','MinDailyOutdoorTemp','MaxDailyOutdoorHumidity','MinDailyOutdoorHumidity','MaxDailyWindGust',
+  'PressureTrend','WeatherDataWs2902a_PressureRelative','WeatherDataWs2902A_PressureRelative',
+  'RainFallHourlyRate','RainFallDay','RainFallWeek','RainFallMonth','RainFallEvent','WindDirection'];
 
 function unavailable(mode = 'v2') {
-  return { mode, status:'unavailable', pressure:{value:null,trend:null,label:'Station pressure',trendLabel:'3h trend unavailable'},
+  return { mode, status:'unavailable', current:Object.fromEntries([...FIELD_SPECS.map(([name])=>name),...DERIVED.map(name=>A+name)].map(name=>[name,null])),
+    pressure:{value:null,trend:null,label:'Station pressure',trendLabel:'3h trend unavailable'},
     rain:{day:null,week:null,month:null,event:null,hour:null,rate:null,partialDay:null} };
 }
 
@@ -19,6 +37,33 @@ export function stationPresentation(states, { nowMs = Date.now() } = {}) {
   if (report?.schema !== 'earthship-station-ingestion/v2') return result;
   const generated = clock(report.generatedAt);
   if (!Number.isFinite(generated) || generated > nowMs+5000 || nowMs-generated >= 90000) return result;
+  for (const [name,role,min,max] of FIELD_SPECS) {
+    const f=report.fields?.[name],received=clock(f?.receivedAt),deadline=clock(f?.validUntil);
+    const value=name.endsWith('BatteryStatus') ? f?.value===1 ? 'OK' : f?.value===0 ? 'Low' : null : f?.value;
+    if (f?.status==='fresh' && f.role===role && finite(f.value) && f.value>=min && f.value<=max
+        && value===report.flat?.[name] && received<=nowMs+5000 && deadline>nowMs
+        && deadline>received && deadline-received<=120000) result.current[name]=value;
+  }
+  const available = name => result.current[A+name] !== null;
+  for (const [name,required] of [['DewPointTemperature',['WeatherDataWs2902a_Temperature','WeatherDataWs2902a_RelativeHumidity']],
+    ['HeatIndex',['WeatherDataWs2902a_Temperature','WeatherDataWs2902a_RelativeHumidity']],
+    ['WindChill',['WeatherDataWs2902a_Temperature','WindSpeed']],
+    ['ApparentTemperature',['WeatherDataWs2902a_Temperature','WeatherDataWs2902a_RelativeHumidity','WindSpeed']]]) {
+    const value=report.flat?.[A+name];
+    if (required.every(available) && finite(value)) result.current[A+name]=value;
+  }
+  for (const [name,required,values] of [['WindDirectionCardinal','WindDirectionDegrees',['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW']],
+    ['UVDanger','UVIndex',['low','moderate','high','very high','extreme']]]) {
+    if (available(required) && values.includes(report.flat?.[A+name])) result.current[A+name]=report.flat[A+name];
+  }
+  result.current[A+'WindDirection']=result.current[A+'WindDirectionDegrees'];
+  for (const [source,high,low] of [['WeatherDataWs2902a_Temperature','MaxDailyOutdoorTemp','MinDailyOutdoorTemp'],
+    ['WeatherDataWs2902a_RelativeHumidity','MaxDailyOutdoorHumidity','MinDailyOutdoorHumidity'],['WindGust','MaxDailyWindGust',null]]) {
+    const e=report.dailyExtrema?.[A+source];
+    if (!available(source) || e?.complete!==true) continue;
+    if (finite(e.high) && e.high===report.flat?.[A+high]) result.current[A+high]=e.high;
+    if (low && finite(e.low) && e.low===report.flat?.[A+low]) result.current[A+low]=e.low;
+  }
   const field = report.fields?.[PRESSURE];
   const received = clock(field?.receivedAt), deadline = clock(field?.validUntil);
   if (field?.status === 'fresh' && field.role === 'indoor' && finite(field.value)
@@ -31,9 +76,9 @@ export function stationPresentation(states, { nowMs = Date.now() } = {}) {
     if (p?.identity === 'station_absolute' && p.method === 'three_hour_boundary_bracket_change_0.01inHg/v1'
         && finite(p.supportSeconds) && p.supportSeconds >= 10800 && p.supportSeconds <= 10920
         && Array.isArray(bounds) && bounds.length === 2 && bounds.every(finite) && bounds[0] <= bounds[1]) {
-      const trend = bounds[0] > .01 ? 'rising' : bounds[1] < -.01 ? 'falling'
-        : bounds[0] >= -.01 && bounds[1] <= .01 ? 'steady' : null;
-      if (trend && trend === report.flat?.AmbientWeatherWS2902A_PressureTrend) {
+      const trend = bounds[0] > .01+1e-9 ? 'rising' : bounds[1] < -.01-1e-9 ? 'falling'
+        : bounds[0] >= -.01-1e-9 && bounds[1] <= .01+1e-9 ? 'steady' : null;
+      if (trend && trend === report.flat?.WeatherStation_PressureTrendV2) {
         result.pressure.trend = trend;
         result.pressure.trendLabel = `3h ${trend}`;
       }

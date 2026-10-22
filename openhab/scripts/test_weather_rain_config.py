@@ -69,6 +69,7 @@ def test_wsgi_release_is_explicit_and_environment_can_disable(monkeypatch, tmp_p
         app.add_url_rule('/weather', 'legacy', lambda: 'legacy')
         monkeypatch.setitem(sys.modules, 'weather', SimpleNamespace(app=app))
         monkeypatch.setenv('WEATHER_TEMP_EVIDENCE_ENABLE', '0')
+        monkeypatch.setenv('WEATHER_STATION_INGESTION_ENABLE', '0')
         monkeypatch.setenv('WEATHER_RAIN_EVIDENCE_ENABLE', enabled)
         monkeypatch.setenv('WEATHER_RAIN_EVIDENCE_POLICY', str(path))
         spec = importlib.util.spec_from_file_location('isolated_rain_wsgi_' + enabled, source)

@@ -56,11 +56,11 @@ def test_pressure_is_station_absolute_and_cold_trend_unavailable():
  s=state();observe(s,dict(model='Fineoffset-WH32B',id='235',baromabsin='23.89'))
  v=snap(s)
  assert v['flat']['WeatherStation_PressureAbsoluteV2']==23.89
- assert v['flat']['AmbientWeatherWS2902A_PressureTrend'] is None
+ assert v['flat']['WeatherStation_PressureTrendV2'] is None
  assert v['pressure']['identity']=='station_absolute'
 
 
-@pytest.mark.parametrize('change,expected',[(.06,'rising'),(-.06,'falling'),(0.,'steady')])
+@pytest.mark.parametrize('change,expected',[(.06,'rising'),(-.06,'falling'),(0.,'steady'),(.01,'steady'),(-.01,'steady')])
 def test_pressure_trend_uses_three_hours_not_the_last_twelve_packets(change,expected):
  s=state()
  # All change occurs more than an hour before the final receipt. The old
@@ -68,16 +68,16 @@ def test_pressure_trend_uses_three_hours_not_the_last_twelve_packets(change,expe
  for seconds in range(0,10801,60):
   value=24.+change*min(seconds/3600,1)
   observe(s,dict(model='Fineoffset-WH32B',id='235',baromabsin=str(value)),seconds)
- assert snap(s,10800)['flat']['AmbientWeatherWS2902A_PressureTrend']==expected
+ assert snap(s,10800)['flat']['WeatherStation_PressureTrendV2']==expected
  assert snap(s,10800)['pressure']['supportSeconds']==10800
 
 
 def test_pressure_gap_or_short_history_withholds_trend():
  s=state()
  for seconds in range(0,1801,60):observe(s,dict(model='Fineoffset-WH32B',id='235',baromabsin=str(24+seconds/10000)),seconds)
- assert snap(s,1800)['flat']['AmbientWeatherWS2902A_PressureTrend'] is None
+ assert snap(s,1800)['flat']['WeatherStation_PressureTrendV2'] is None
  observe(s,dict(model='Fineoffset-WH32B',id='235',baromabsin='24.2'),10800)
- assert snap(s,10800)['flat']['AmbientWeatherWS2902A_PressureTrend'] is None
+ assert snap(s,10800)['flat']['WeatherStation_PressureTrendV2'] is None
 
 
 def test_delayed_decode_cannot_extend_field_freshness_past_source_validity():
@@ -104,6 +104,43 @@ def test_replayed_outdoor_decode_does_not_refresh_expiry_or_recover_invalid_fiel
  observe(s,outside(tempf='68',radio_decode_utc=source))
  observe(s,outside(tempf='68',radio_decode_utc=source),110)
  assert snap(s,121)['flat']['AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature'] is None
+
+
+def test_conflicting_values_at_one_decode_clock_invalidate_the_field():
+ s=state();observe(s,outside(tempf='68',radio_decode_utc=NOW.isoformat()))
+ observe(s,outside(tempf='90',radio_decode_utc=NOW.isoformat()),16)
+ assert snap(s,16)['flat']['AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature'] is None
+
+
+def test_source_age_also_bounds_rain_products_and_partial_lower_bounds():
+ s=state();observe(s,outside(totalrainin='100',radio_decode_utc=NOW.isoformat()),110)
+ v=snap(s,121)['rain']
+ assert v['status']=='stale'
+ assert all(p['value'] is p['partial_lower_bound'] is None for p in v['products'].values())
+
+
+def test_battery_measurements_are_per_sensor_and_expire_independently():
+ s=state();observe(s,outside(tempf='68',battery_ok='0'))
+ observe(s,dict(model='AmbientWeather-WH31E',id='223',tempinf='71',battery_ok='1',channel='2'))
+ v=snap(s)['flat'];assert v['AmbientWeatherWS2902A_OutdoorBatteryStatus']=='Low'
+ assert v['AmbientWeatherWS2902A_WH31E_223_BatteryStatus']=='OK'
+ assert snap(s,121)['flat']['AmbientWeatherWS2902A_OutdoorBatteryStatus'] is None
+
+
+def test_daily_extrema_require_day_start_coverage_and_are_broken_by_invalid_fields():
+ s=import_module('weather_station_ingestion').StationState(timezone_name='UTC')
+ observe(s,outside(tempf='60',humidity='50',windgustmph='2'))
+ assert snap(s)['flat']['AmbientWeatherWS2902A_MaxDailyOutdoorTemp'] is None
+ # Continuous receipt support across midnight starts a new observed day.
+ end=7*3600+120
+ for seconds in range(60,end+1,60):
+  minute=seconds//60
+  observe(s,outside(tempf=str(60+minute%10),humidity='50',windgustmph=str(2+minute%3)),seconds)
+ v=snap(s,end)['flat'];assert v['AmbientWeatherWS2902A_MaxDailyOutdoorTemp']==62.
+ assert v['AmbientWeatherWS2902A_MinDailyOutdoorTemp']==60.
+ assert v['AmbientWeatherWS2902A_MaxDailyWindGust']==4.
+ observe(s,outside(tempf='NaN'),end+16)
+ assert snap(s,end+16)['flat']['AmbientWeatherWS2902A_MaxDailyOutdoorTemp'] is None
 
 
 def test_corrected_hook_runs_after_native_receipt_hooks_and_disabled_is_compatible():
@@ -160,3 +197,27 @@ def test_explicit_enabled_bad_configuration_is_unavailable_not_legacy():
  with app.test_client() as c:
   assert c.get('/weather').status_code==503
   assert c.get('/station_quality').status_code==503
+
+
+@pytest.mark.parametrize('enabled',[None,'0'])
+def test_released_wsgi_explicitly_enables_station_adapter_and_can_restore_legacy(monkeypatch,enabled):
+ import importlib.util,sys
+ from pathlib import Path
+ from types import SimpleNamespace
+ from flask import Flask
+ app=Flask('station-wsgi')
+ app.add_url_rule('/weather','legacy',lambda:'legacy')
+ app.add_url_rule('/get_received_data','get_all_received_data',lambda:{'legacy':True})
+ app.add_url_rule('/health','health_check',lambda:{'status':'ok'})
+ monkeypatch.setitem(sys.modules,'weather',SimpleNamespace(app=app))
+ for name in ('WEATHER_TEMP_EVIDENCE_ENABLE','WEATHER_RAIN_EVIDENCE_ENABLE','WEATHER_RADIATION_EVIDENCE_ENABLE'):
+  monkeypatch.setenv(name,'0')
+ monkeypatch.delenv('WEATHER_STATION_TIMEZONE',raising=False)
+ monkeypatch.delenv('WEATHER_STATION_INGESTION_ENABLE',raising=False)
+ if enabled is not None:monkeypatch.setenv('WEATHER_STATION_INGESTION_ENABLE',enabled)
+ spec=importlib.util.spec_from_file_location('isolated_station_wsgi',Path(__file__).with_name('weather_evidence_wsgi.py'))
+ module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+ with app.test_client() as c:
+  response=c.get('/weather',query_string=outside(tempf='68'))
+  assert response.text==('legacy' if enabled=='0' else 'OK')
+  assert c.get('/station_quality').status_code==(404 if enabled=='0' else 200)

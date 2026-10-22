@@ -135,3 +135,47 @@ ambient temperature, followed by the Rothfusz equation and low/high humidity
 adjustments when applicable. Source:
 https://www.wpc.ncep.noaa.gov/html/heatindex_equation.shtml
 No default humidity or wind is substituted into derived values.
+
+## Station v2 release preparation
+
+The rain-counter-only repair is now deployed through merged PR #45; see
+`station-counter-deployment.json` for natural packet progression and actual
+Home/Weather screenshots. That release intentionally does not claim pressure or
+all station issues fixed. The maintained station v2 release is prepared next.
+
+Station v2 now preserves battery measurements and their expiry, requires actual
+day-start receipt coverage for daily extrema, invalidates same-decode-clock
+conflicts, and applies source-age expiry to rain products. Pressure trend uses the
+separate `WeatherStation_PressureTrendV2` identity; the misleading old alias is
+retired rather than mixing its twelve-sample history with the three-hour method.
+A 1e-9 inHg comparison tolerance prevents binary rounding at exactly 0.01 inHg
+from becoming a false rising/falling classification. Both reader and producer
+have RED→GREEN threshold regressions.
+
+The UI validates each current field's own evidence. A missing/expired v2 report
+masks old current values; derived values require their current inputs. Both
+screens use a five-second expiry clock. New report/pressure/rain Items retain
+separate identities and old history. Existing historical/current legacy mode is
+available only when the v2 Item does not exist, including a deliberate rollback.
+The default-off generic adapter is explicitly activated in the reviewed WSGI
+release entry point after all raw receipt hooks; setting its enable flag to zero
+restores the legacy handler. Bad enabled configuration exposes unavailability.
+
+`openhab/weather-station-v2-resources.json` prepares eleven read-only channels
+and Items, initially disabled, with 90-second expiry. It adds no commands or
+rules and reuses the existing JDBC wildcard policy. A densely populated receipt
+snapshot measured 8306 bytes (1860-byte legacy flat response); the full-report
+binding has a 16384-byte buffer. The installation should conservatively increase
+the legacy response buffer from 2048 to 4096 for valid longer numeric values.
+Deploy schema/readers before activating the producer; preserve literal old
+files, Item/Thing/link configuration and source hashes for rollback. Preserve
+old cache files but never seed new freshness from them.
+
+Current local verification: 242 backend tests and 192 focused frontend tests
+pass; six Weather/Earthship browser cases passed after the current-field masking
+change. The production build must be repeated on the final release sources.
+Remaining release gates are the isolated branch review, migration/rollback
+rehearsal, live installation, natural readbacks and actual UI inspection. Neither
+this preparation entry nor a passing fixture constitutes deployment evidence.
+The non-radiation transition-range apparent-temperature formula is documented by
+https://www.bom.gov.au/info/thermal_stress/index.shtml .

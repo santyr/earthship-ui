@@ -29,6 +29,7 @@ OUT_FIELDS = {
     'light_lux': ('WeatherStation_LightLuxV2', 0, 200000),
     'solarproxywm2_v2': ('WeatherStation_SolarProxyV2', 0, 1600),
     'uv': ('AmbientWeatherWS2902A_UVIndex', 0, 15),
+    'battery_ok': ('AmbientWeatherWS2902A_OutdoorBatteryStatus', 0, 1),
 }
 INDOOR_FIELDS = {
     'tempinf': ('AmbientWeatherWS2902A_IndoorSensor_Temperature', -40, 140),
@@ -90,6 +91,7 @@ class StationState:
         self.sources = {}
         self.channels = {}
         self.pressures = []
+        self.extrema = {}
         self.rain = RainProducts(timezone_name=self.timezone_name,
                                  validity_seconds=self.validity, maximum_counter_in=100000.)
 
@@ -108,7 +110,29 @@ class StationState:
         if role == 'indoor':
             return INDOOR_FIELDS
         return {'tempinf': (f'AmbientWeatherWS2902A_WH31E_{sid}_Temperature', -40, 140),
-                'humidityin': (f'AmbientWeatherWS2902A_WH31E_{sid}_RelativeHumidity', 0, 100)}
+                'humidityin': (f'AmbientWeatherWS2902A_WH31E_{sid}_RelativeHumidity', 0, 100),
+                'battery_ok': (f'AmbientWeatherWS2902A_WH31E_{sid}_BatteryStatus', 0, 1)}
+
+    def _retire(self, name):
+        self.fields.pop(name, None)
+        if name in self.extrema:
+            self.extrema[name]['complete'] = False
+        if name == 'WeatherStation_PressureAbsoluteV2':
+            self.pressures.clear()
+
+    def _daily_sample(self, name, value, at, tick, previous):
+        start = self.rain._starts(at)['day']
+        entry = self.extrema.get(name)
+        continuous = (previous is not None and
+            datetime.fromisoformat(previous['validUntil']) >= at and
+            0 <= tick-previous['tick'] and tick <= previous['expiresTick'])
+        if entry is None or entry['start'] != start.isoformat():
+            complete = at == start or (continuous and datetime.fromisoformat(previous['receivedAt']) <= start)
+            self.extrema[name] = dict(start=start.isoformat(),low=value,high=value,complete=complete,
+                method='observed_receipt_samples_with_field_continuity/v1')
+        else:
+            entry.update(low=min(entry['low'],value),high=max(entry['high'],value),
+                         complete=entry['complete'] and continuous)
 
     def observe(self, packet, *, at, tick):
         with self.lock:
@@ -137,26 +161,35 @@ class StationState:
                         raise ValueError('expired radio decode')
                 except (ValueError, TypeError, AttributeError):
                     for name in mapping.values():
-                        self.fields.pop(name[0], None)
+                        self._retire(name[0])
                     if role == 'outdoor':
                         self.rain.invalidate()
                     return False
                 prior = self.sources.get(role)
-                if prior is not None and decoded <= prior:
+                fingerprint = tuple((key,_number(_one(packet,key),minimum,maximum))
+                    for key,(_name,minimum,maximum) in mapping.items() if key in packet)
+                if prior is not None and decoded <= prior[0]:
+                    if decoded == prior[0] and fingerprint != prior[1]:
+                        for key,(name,_lo,_hi) in mapping.items():
+                            if key in packet:
+                                self._retire(name)
+                                if key == 'totalrainin':self.rain.invalidate()
                     return False
-                self.sources[role] = decoded
+                self.sources[role] = decoded,fingerprint
             any_valid = False
             for key, (name, minimum, maximum) in mapping.items():
                 if key not in packet:
                     continue
                 value = _number(_one(packet, key), minimum, maximum)
+                if key == 'battery_ok' and value not in (0,1):
+                    value = None
                 if value is not None and key in ('solarradiation', 'solarproxywm2_v2'):
                     lux = _number(_one(packet, 'light_lux'), 0, 200000)
                     expected = None if lux is None else round(min(lux/126.7, maximum), 2)
                     if value != expected:
                         value = None
                 if value is None:
-                    self.fields.pop(name, None)
+                    self._retire(name)
                     if key == 'totalrainin':
                         self.rain.invalidate()
                     continue
@@ -168,10 +201,13 @@ class StationState:
                 deadline = at+timedelta(seconds=self.validity)
                 if decoded is not None:
                     deadline = min(deadline, decoded+timedelta(seconds=self.validity))
+                previous = self.fields.get(name)
                 self.fields[name] = dict(value=value, receivedAt=at.isoformat(),
                     validUntil=deadline.isoformat(),
                     radioDecodedAt=decoded.isoformat() if decoded else None,
                     role=role, tick=tick, expiresTick=tick+(deadline-at).total_seconds())
+                if role == 'outdoor' and key in ('tempf','humidity','windgustmph'):
+                    self._daily_sample(name,value,at,tick,previous)
                 any_valid = True
                 if key == 'baromabsin':
                     if self.pressures and (at-self.pressures[-1][0]).total_seconds() > self.validity:
@@ -205,8 +241,19 @@ class StationState:
                 evidence[name] = {k:v for k,v in record.items() if k not in ('tick','expiresTick')}
                 evidence[name]['status'] = 'fresh' if fresh else 'stale'
                 if fresh:
-                    flat[name] = record['value']
-            t, rh, speed, gust, direction, rain, solar, lux, proxy, uv = [flat[v[0]] for v in OUT_FIELDS.values()]
+                    flat[name] = ('OK' if record['value'] == 1 else 'Low') if name.endswith('BatteryStatus') else record['value']
+            t, rh, speed, gust, direction, rain, solar, lux, proxy, uv = [flat[OUT_FIELDS[key][0]] for key in
+                ('tempf','humidity','windspeedmph','windgustmph','winddir','totalrainin','solarradiation','light_lux','solarproxywm2_v2','uv')]
+            for source,high,low in (
+                ('tempf','MaxDailyOutdoorTemp','MinDailyOutdoorTemp'),
+                ('humidity','MaxDailyOutdoorHumidity','MinDailyOutdoorHumidity'),
+                ('windgustmph','MaxDailyWindGust',None)):
+                name = OUT_FIELDS[source][0]
+                entry = self.extrema.get(name)
+                if (flat[name] is not None and entry and entry['complete'] and
+                    entry['start'] == self.rain._starts(at)['day'].isoformat()):
+                    flat['AmbientWeatherWS2902A_'+high] = entry['high']
+                    if low:flat['AmbientWeatherWS2902A_'+low] = entry['low']
             hi = heat_index(t, rh)
             flat['AmbientWeatherWS2902A_HeatIndex'] = hi
             if t is not None and rh is not None and rh > 0:
@@ -229,6 +276,7 @@ class StationState:
                 flat['AmbientWeatherWS2902A_WindDirectionCardinal'] = ('N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW')[int((direction+11.25)/22.5)%16]
             if uv is not None:
                 flat['AmbientWeatherWS2902A_UVDanger'] = 'low' if uv < 3 else 'moderate' if uv < 6 else 'high' if uv < 8 else 'very high' if uv < 11 else 'extreme'
+            flat['WeatherStation_PressureTrendV2'] = None
             pressure_method = dict(identity='station_absolute', method='three_hour_boundary_bracket_change_0.01inHg/v1', supportSeconds=0)
             if self.pressures and flat['WeatherStation_PressureAbsoluteV2'] is not None:
                 duration = (self.pressures[-1][0]-self.pressures[0][0]).total_seconds()
@@ -240,16 +288,23 @@ class StationState:
                     lower = self.pressures[-1][1]-max(left[1],right[1])
                     upper = self.pressures[-1][1]-min(left[1],right[1])
                     pressure_method['changeBoundsInHg'] = [lower,upper]
-                    flat['AmbientWeatherWS2902A_PressureTrend'] = ('rising' if lower > .01 else 'falling' if upper < -.01 else 'steady' if lower >= -.01 and upper <= .01 else None)
+                    # Transport pressure is rounded to hundredths. Floating
+                    # subtraction must not turn exactly one count into >0.01.
+                    flat['WeatherStation_PressureTrendV2'] = ('rising' if lower > .01+1e-9 else 'falling' if upper < -.01-1e-9 else 'steady' if lower >= -.01-1e-9 and upper <= .01+1e-9 else None)
             sensors = {}
             for (model, sid), role in IDENTITIES.items():
-                required = [v[0] for v in self._mapping(role, sid).values()]
+                required = [v[0] for key,v in self._mapping(role, sid).items() if key != 'battery_ok']
                 sensors[role] = dict(status='fresh' if all(flat[n] is not None for n in required) else 'degraded',
                                      channel=self.channels.get(role))
+            rain_report = self.rain.snapshot(at=at,tick=tick)
+            if flat[OUT_FIELDS['totalrainin'][0]] is None:
+                rain_report['status'] = 'stale'
+                for product in rain_report['products'].values():
+                    for key in ('value','lower','upper','partial_lower_bound'):product[key] = None
             return dict(schema='earthship-station-ingestion/v2', streamEpoch=self.epoch,
                 generatedAt=at.isoformat(), status='ok' if all(s['status']=='fresh' for s in sensors.values()) else 'degraded',
                 flat=flat, fields=evidence, sensors=sensors, pressure=pressure_method,
-                rain=self.rain.snapshot(at=at, tick=tick),
+                rain=rain_report, dailyExtrema={name:dict(entry) for name,entry in self.extrema.items()},
                 consoleCalibration='unknown', solarIdentity='lux_proxy_126.7_v2_not_calibrated_irradiance')
 
 

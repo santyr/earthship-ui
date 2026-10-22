@@ -146,7 +146,7 @@ test('station v2 pressure shows absolute identity and withholds a cold steady tr
   const now=Date.now(), name='WeatherStation_PressureAbsoluteV2';
   await page.clock.install({time:new Date(now)});
   const report={schema:'earthship-station-ingestion/v2',generatedAt:new Date(now).toISOString(),
-    flat:{[name]:23.89,AmbientWeatherWS2902A_PressureTrend:'steady'},
+    flat:{[name]:23.89,WeatherStation_PressureTrendV2:'steady'},
     fields:{[name]:{value:23.89,receivedAt:new Date(now).toISOString(),validUntil:new Date(now+120000).toISOString(),role:'indoor',status:'fresh'}},
     pressure:{identity:'station_absolute',method:'three_hour_boundary_bracket_change_0.01inHg/v1',supportSeconds:720},
     rain:{schema:'earthship-station-rain-products/v2',status:'fresh',products:{}}};
@@ -156,6 +156,7 @@ test('station v2 pressure shows absolute identity and withholds a cold steady tr
   await expect(page.locator('.pressure-cell')).toContainText('3h trend unavailable');
   await expect(page.locator('.pressure-cell')).not.toContainText('steady');
   await expect(page.locator('.rain-cell')).not.toContainText('0.12');
+  await expect(page.locator('.current-cell .cur-temp')).not.toContainText('68');
   await page.goto(`${baseURL}#/home`,{waitUntil:'domcontentloaded'});
   await expect(page.locator('.baro-cell')).toContainText('23.89');
   await expect(page.locator('.baro-cell')).toContainText('3h trend unavailable');

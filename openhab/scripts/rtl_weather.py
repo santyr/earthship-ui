@@ -174,7 +174,7 @@ def packet_payload(data):
         result['battery_ok'] = data['battery_ok']
     if model == 'AmbientWeather-WH31E' and type(data.get('channel')) is int and 1 <= data['channel'] <= 8:
         result['channel'] = data['channel']
-    if outdoor and isinstance(data.get('time'), str) and len(data['time']) <= 40:
+    if isinstance(data.get('time'), str) and len(data['time']) <= 40:
         result['radio_decode_utc'] = data['time']
     return result
 

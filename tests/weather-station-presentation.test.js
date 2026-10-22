@@ -5,7 +5,7 @@ const now = Date.parse('2026-10-22T17:00:00Z');
 function report() {
   const name='WeatherStation_PressureAbsoluteV2';
   return { schema:'earthship-station-ingestion/v2',generatedAt:new Date(now).toISOString(),
-    flat:{[name]:23.89,AmbientWeatherWS2902A_PressureTrend:'rising'},
+    flat:{[name]:23.89,WeatherStation_PressureTrendV2:'rising'},
     fields:{[name]:{value:23.89,receivedAt:new Date(now-60000).toISOString(),validUntil:new Date(now+60000).toISOString(),role:'indoor',status:'fresh'}},
     pressure:{identity:'station_absolute',method:'three_hour_boundary_bracket_change_0.01inHg/v1',supportSeconds:10800,changeBoundsInHg:[.04,.05]},
     rain:{schema:'earthship-station-rain-products/v2',status:'fresh',products:{
@@ -29,7 +29,7 @@ describe('versioned station presentation',()=>{
   });
   it('never displays steady for a cold or gapped pressure history',()=>{
     const r=report();r.pressure.supportSeconds=720;
-    r.flat.AmbientWeatherWS2902A_PressureTrend='steady';
+    r.flat.WeatherStation_PressureTrendV2='steady';
     expect(stationPresentation(states(r),{nowMs:now}).pressure.trendLabel).toBe('3h trend unavailable');
   });
   it('expires both report and individual fields without falling back to legacy values',()=>{
@@ -38,13 +38,26 @@ describe('versioned station presentation',()=>{
     expect(stationPresentation(states(report()),{nowMs:now+91000}).rain.day).toBeNull();
   });
   it('requires bracket support consistent with the declared trend',()=>{
-    const r=report();r.pressure.changeBoundsInHg=[-.02,.03];r.flat.AmbientWeatherWS2902A_PressureTrend='steady';
+    const r=report();r.pressure.changeBoundsInHg=[-.02,.03];r.flat.WeatherStation_PressureTrendV2='steady';
     expect(stationPresentation(states(r),{nowMs:now}).pressure.trend).toBeNull();
+  });
+  it('handles binary rounding at the one-hundredth inHg threshold consistently',()=>{
+    const r=report();r.pressure.changeBoundsInHg=[.010000000000001,.010000000000001];
+    r.flat.WeatherStation_PressureTrendV2='steady';
+    expect(stationPresentation(states(r),{nowMs:now}).pressure.trend).toBe('steady');
   });
   it('withholds incomplete or malformed rain rather than inventing zero',()=>{
     const r=report();r.rain.products.day.value=null;r.rain.products.day.partial_lower_bound=.02;
     let v=stationPresentation(states(r),{nowMs:now});expect(v.rain.day).toBeNull();expect(v.rain.partialDay).toBe(.02);
     r.rain.products.rate_10min.unit='in';
     expect(stationPresentation(states(r),{nowMs:now}).rain.rate).toBeNull();
+  });
+  it('masks cached current fields unless their own original evidence is fresh',()=>{
+    const r=report(),name='AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature';
+    let v=stationPresentation(states(r),{nowMs:now});expect(v.current[name]).toBeNull();
+    r.flat[name]=68;r.fields[name]={value:68,role:'outdoor',status:'fresh',receivedAt:new Date(now-1000).toISOString(),validUntil:new Date(now+60000).toISOString()};
+    v=stationPresentation(states(r),{nowMs:now});expect(v.current[name]).toBe(68);
+    r.fields[name].validUntil=new Date(now-1).toISOString();
+    expect(stationPresentation(states(r),{nowMs:now}).current[name]).toBeNull();
   });
 });

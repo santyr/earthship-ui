@@ -1,0 +1,480 @@
+{
+  "version": 2,
+  "createOnly": true,
+  "things": [
+    {
+      "UID": "http:url:weatherStationV2",
+      "thingTypeUID": "http:url",
+      "label": "WS-2902 corrected station ingestion v2",
+      "enabled": false,
+      "configuration": {
+        "baseURL": "http://127.0.0.1:5000/station_quality",
+        "refresh": 30,
+        "timeout": 3000,
+        "bufferSize": 16384,
+        "stateMethod": "GET"
+      },
+      "channels": [
+        {
+          "id": "snapshot",
+          "uid": "http:url:weatherStationV2:snapshot",
+          "channelTypeUID": "http:string",
+          "kind": "STATE",
+          "itemType": "String",
+          "label": "Station ingestion quality and complete v2 snapshot",
+          "defaultTags": [],
+          "properties": {},
+          "configuration": {
+            "mode": "READONLY"
+          }
+        },
+        {
+          "id": "pressure",
+          "uid": "http:url:weatherStationV2:pressure",
+          "channelTypeUID": "http:number",
+          "kind": "STATE",
+          "itemType": "Number:Pressure",
+          "label": "Station pressure (absolute)",
+          "defaultTags": [],
+          "properties": {},
+          "configuration": {
+            "mode": "READONLY",
+            "unit": "inHg",
+            "stateTransformation": [
+              "JSONPATH:$.flat.WeatherStation_PressureAbsoluteV2"
+            ]
+          }
+        },
+        {
+          "id": "pressureTrend",
+          "uid": "http:url:weatherStationV2:pressureTrend",
+          "channelTypeUID": "http:string",
+          "kind": "STATE",
+          "itemType": "String",
+          "label": "Station pressure trend (three hours)",
+          "defaultTags": [],
+          "properties": {},
+          "configuration": {
+            "mode": "READONLY",
+            "stateTransformation": [
+              "JSONPATH:$.flat.WeatherStation_PressureTrendV2"
+            ]
+          }
+        },
+        {
+          "id": "solarProxy",
+          "uid": "http:url:weatherStationV2:solarProxy",
+          "channelTypeUID": "http:number",
+          "kind": "STATE",
+          "itemType": "Number:Intensity",
+          "label": "Solar proxy from lux v2 (not calibrated irradiance)",
+          "defaultTags": [],
+          "properties": {},
+          "configuration": {
+            "mode": "READONLY",
+            "unit": "W/m²",
+            "stateTransformation": [
+              "JSONPATH:$.flat.WeatherStation_SolarProxyV2"
+            ]
+          }
+        },
+        {
+          "id": "lightLux",
+          "uid": "http:url:weatherStationV2:lightLux",
+          "channelTypeUID": "http:number",
+          "kind": "STATE",
+          "itemType": "Number:Illuminance",
+          "label": "Outdoor illuminance",
+          "defaultTags": [],
+          "properties": {},
+          "configuration": {
+            "mode": "READONLY",
+            "unit": "lx",
+            "stateTransformation": [
+              "JSONPATH:$.flat.WeatherStation_LightLuxV2"
+            ]
+          }
+        },
+        {
+          "id": "rainDay",
+          "uid": "http:url:weatherStationV2:rainDay",
+          "channelTypeUID": "http:number",
+          "kind": "STATE",
+          "itemType": "Number:Length",
+          "label": "Rain since local midnight",
+          "defaultTags": [],
+          "properties": {},
+          "configuration": {
+            "mode": "READONLY",
+            "unit": "in",
+            "stateTransformation": [
+              "JSONPATH:$.rain.products.day.value"
+            ]
+          }
+        },
+        {
+          "id": "rainWeek",
+          "uid": "http:url:weatherStationV2:rainWeek",
+          "channelTypeUID": "http:number",
+          "kind": "STATE",
+          "itemType": "Number:Length",
+          "label": "Rain since Sunday midnight",
+          "defaultTags": [],
+          "properties": {},
+          "configuration": {
+            "mode": "READONLY",
+            "unit": "in",
+            "stateTransformation": [
+              "JSONPATH:$.rain.products.week.value"
+            ]
+          }
+        },
+        {
+          "id": "rainMonth",
+          "uid": "http:url:weatherStationV2:rainMonth",
+          "channelTypeUID": "http:number",
+          "kind": "STATE",
+          "itemType": "Number:Length",
+          "label": "Rain since month start",
+          "defaultTags": [],
+          "properties": {},
+          "configuration": {
+            "mode": "READONLY",
+            "unit": "in",
+            "stateTransformation": [
+              "JSONPATH:$.rain.products.month.value"
+            ]
+          }
+        },
+        {
+          "id": "rainEvent",
+          "uid": "http:url:weatherStationV2:rainEvent",
+          "channelTypeUID": "http:number",
+          "kind": "STATE",
+          "itemType": "Number:Length",
+          "label": "Local rain event (24-hour quiet criterion)",
+          "defaultTags": [],
+          "properties": {},
+          "configuration": {
+            "mode": "READONLY",
+            "unit": "in",
+            "stateTransformation": [
+              "JSONPATH:$.rain.products.event.value"
+            ]
+          }
+        },
+        {
+          "id": "rainHour",
+          "uid": "http:url:weatherStationV2:rainHour",
+          "channelTypeUID": "http:number",
+          "kind": "STATE",
+          "itemType": "Number:Length",
+          "label": "Rain in last hour",
+          "defaultTags": [],
+          "properties": {},
+          "configuration": {
+            "mode": "READONLY",
+            "unit": "in",
+            "stateTransformation": [
+              "JSONPATH:$.rain.products.rolling_hour.value"
+            ]
+          }
+        },
+        {
+          "id": "rainRate",
+          "uid": "http:url:weatherStationV2:rainRate",
+          "channelTypeUID": "http:number",
+          "kind": "STATE",
+          "itemType": "Number:Speed",
+          "label": "Ten-minute rain depth multiplied by six",
+          "defaultTags": [],
+          "properties": {},
+          "configuration": {
+            "mode": "READONLY",
+            "unit": "in/h",
+            "stateTransformation": [
+              "JSONPATH:$.rain.products.rate_10min.value"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "name": "WeatherStation_Quality_JSON",
+      "type": "String",
+      "label": "Station ingestion quality and complete v2 snapshot",
+      "category": "",
+      "tags": [],
+      "groupNames": [],
+      "metadata": {
+        "expire": {
+          "value": "90s,state=UNDEF",
+          "config": {}
+        }
+      }
+    },
+    {
+      "name": "WeatherStation_PressureAbsoluteV2",
+      "type": "Number:Pressure",
+      "label": "Station pressure (absolute)",
+      "category": "",
+      "tags": [],
+      "groupNames": [],
+      "metadata": {
+        "expire": {
+          "value": "90s,state=UNDEF",
+          "config": {}
+        },
+        "unit": {
+          "value": "inHg",
+          "config": {}
+        }
+      }
+    },
+    {
+      "name": "WeatherStation_PressureTrendV2",
+      "type": "String",
+      "label": "Station pressure trend (three hours)",
+      "category": "",
+      "tags": [],
+      "groupNames": [],
+      "metadata": {
+        "expire": {
+          "value": "90s,state=UNDEF",
+          "config": {}
+        }
+      }
+    },
+    {
+      "name": "WeatherStation_SolarProxyV2",
+      "type": "Number:Intensity",
+      "label": "Solar proxy from lux v2 (not calibrated irradiance)",
+      "category": "",
+      "tags": [],
+      "groupNames": [],
+      "metadata": {
+        "expire": {
+          "value": "90s,state=UNDEF",
+          "config": {}
+        },
+        "unit": {
+          "value": "W/m²",
+          "config": {}
+        }
+      }
+    },
+    {
+      "name": "WeatherStation_LightLuxV2",
+      "type": "Number:Illuminance",
+      "label": "Outdoor illuminance",
+      "category": "",
+      "tags": [],
+      "groupNames": [],
+      "metadata": {
+        "expire": {
+          "value": "90s,state=UNDEF",
+          "config": {}
+        },
+        "unit": {
+          "value": "lx",
+          "config": {}
+        }
+      }
+    },
+    {
+      "name": "WeatherStation_RainDayV2",
+      "type": "Number:Length",
+      "label": "Rain since local midnight",
+      "category": "",
+      "tags": [],
+      "groupNames": [],
+      "metadata": {
+        "expire": {
+          "value": "90s,state=UNDEF",
+          "config": {}
+        },
+        "unit": {
+          "value": "in",
+          "config": {}
+        }
+      }
+    },
+    {
+      "name": "WeatherStation_RainWeekV2",
+      "type": "Number:Length",
+      "label": "Rain since Sunday midnight",
+      "category": "",
+      "tags": [],
+      "groupNames": [],
+      "metadata": {
+        "expire": {
+          "value": "90s,state=UNDEF",
+          "config": {}
+        },
+        "unit": {
+          "value": "in",
+          "config": {}
+        }
+      }
+    },
+    {
+      "name": "WeatherStation_RainMonthV2",
+      "type": "Number:Length",
+      "label": "Rain since month start",
+      "category": "",
+      "tags": [],
+      "groupNames": [],
+      "metadata": {
+        "expire": {
+          "value": "90s,state=UNDEF",
+          "config": {}
+        },
+        "unit": {
+          "value": "in",
+          "config": {}
+        }
+      }
+    },
+    {
+      "name": "WeatherStation_RainEventV2",
+      "type": "Number:Length",
+      "label": "Local rain event (24-hour quiet criterion)",
+      "category": "",
+      "tags": [],
+      "groupNames": [],
+      "metadata": {
+        "expire": {
+          "value": "90s,state=UNDEF",
+          "config": {}
+        },
+        "unit": {
+          "value": "in",
+          "config": {}
+        }
+      }
+    },
+    {
+      "name": "WeatherStation_RainHourV2",
+      "type": "Number:Length",
+      "label": "Rain in last hour",
+      "category": "",
+      "tags": [],
+      "groupNames": [],
+      "metadata": {
+        "expire": {
+          "value": "90s,state=UNDEF",
+          "config": {}
+        },
+        "unit": {
+          "value": "in",
+          "config": {}
+        }
+      }
+    },
+    {
+      "name": "WeatherStation_RainRateV2",
+      "type": "Number:Speed",
+      "label": "Ten-minute rain depth multiplied by six",
+      "category": "",
+      "tags": [],
+      "groupNames": [],
+      "metadata": {
+        "expire": {
+          "value": "90s,state=UNDEF",
+          "config": {}
+        },
+        "unit": {
+          "value": "in/h",
+          "config": {}
+        }
+      }
+    }
+  ],
+  "links": [
+    {
+      "itemName": "WeatherStation_Quality_JSON",
+      "channelUID": "http:url:weatherStationV2:snapshot",
+      "configuration": {
+        "profile": "system:default"
+      }
+    },
+    {
+      "itemName": "WeatherStation_PressureAbsoluteV2",
+      "channelUID": "http:url:weatherStationV2:pressure",
+      "configuration": {
+        "profile": "system:default"
+      }
+    },
+    {
+      "itemName": "WeatherStation_PressureTrendV2",
+      "channelUID": "http:url:weatherStationV2:pressureTrend",
+      "configuration": {
+        "profile": "system:default"
+      }
+    },
+    {
+      "itemName": "WeatherStation_SolarProxyV2",
+      "channelUID": "http:url:weatherStationV2:solarProxy",
+      "configuration": {
+        "profile": "system:default"
+      }
+    },
+    {
+      "itemName": "WeatherStation_LightLuxV2",
+      "channelUID": "http:url:weatherStationV2:lightLux",
+      "configuration": {
+        "profile": "system:default"
+      }
+    },
+    {
+      "itemName": "WeatherStation_RainDayV2",
+      "channelUID": "http:url:weatherStationV2:rainDay",
+      "configuration": {
+        "profile": "system:default"
+      }
+    },
+    {
+      "itemName": "WeatherStation_RainWeekV2",
+      "channelUID": "http:url:weatherStationV2:rainWeek",
+      "configuration": {
+        "profile": "system:default"
+      }
+    },
+    {
+      "itemName": "WeatherStation_RainMonthV2",
+      "channelUID": "http:url:weatherStationV2:rainMonth",
+      "configuration": {
+        "profile": "system:default"
+      }
+    },
+    {
+      "itemName": "WeatherStation_RainEventV2",
+      "channelUID": "http:url:weatherStationV2:rainEvent",
+      "configuration": {
+        "profile": "system:default"
+      }
+    },
+    {
+      "itemName": "WeatherStation_RainHourV2",
+      "channelUID": "http:url:weatherStationV2:rainHour",
+      "configuration": {
+        "profile": "system:default"
+      }
+    },
+    {
+      "itemName": "WeatherStation_RainRateV2",
+      "channelUID": "http:url:weatherStationV2:rainRate",
+      "configuration": {
+        "profile": "system:default"
+      }
+    }
+  ],
+  "persistence": {
+    "serviceId": "jdbc",
+    "strategy": "everyChange",
+    "restoreOnStartup": true,
+    "existingWildcardPolicyOnly": true
+  }
+}

@@ -319,7 +319,7 @@
   const netToday = $derived(pvToday === null || loadToday === null ? null : pvToday - loadToday);
   const netTodayColor = $derived(netStateColor(netToday));
 
-  const outdoorTemp = $derived(num($items.AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature));
+  const outdoorTemp = $derived(num(stationItems.AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature));
   const astroContext = $derived({ states:$items, evidence:$itemUpdateEvidence, now:Math.max(wallClock, Date.now()),
     connected:$connection === 'live', sunOnline:$thingStatuses['astro:sun:local']?.status === 'ONLINE',
     moonOnline:$thingStatuses['astro:moon:local']?.status === 'ONLINE' });
@@ -327,9 +327,9 @@
     ...nativeCurrentSkyContext(astroContext),
   }));
   const outdoorIconColor = $derived(outdoorTemperatureIconColor(outdoorTemp));
-  const uvIndex = $derived(num($items.AmbientWeatherWS2902A_UVIndex));
+  const uvIndex = $derived(num(stationItems.AmbientWeatherWS2902A_UVIndex));
   const uvColor = $derived(uvIndexColor(uvIndex));
-  const indoorTemp = $derived(num($items.AmbientWeatherWS2902A_IndoorSensor_Temperature));
+  const indoorTemp = $derived(num(stationItems.AmbientWeatherWS2902A_IndoorSensor_Temperature));
   const outdoorToday = $derived(historyExtremaForDay(outdoorTodayHistory, temperatureHistoryDay, wallClock, outdoorTemp));
   const indoorToday = $derived(historyExtremaForDay(indoorTodayHistory, temperatureHistoryDay, wallClock, indoorTemp));
   const indoorIconColor = $derived(indoorTemperatureIconColor(indoorTemp));
@@ -347,13 +347,13 @@
   const battRuntimeEmpty = $derived(runtimeText(num($items.BMS_TimeToDischarge_Smoothed)));
   const battRuntimeFull = $derived(runtimeText(num($items.BMS_TimeToFull_Smoothed)));
 
-  const windDeg = $derived(num($items.AmbientWeatherWS2902A_WindDirection));
+  const windDeg = $derived(num(stationItems.AmbientWeatherWS2902A_WindDirection));
   const windSpeedR = $derived.by(() => {
-    const n = num($items.AmbientWeatherWS2902A_WindSpeed);
+    const n = num(stationItems.AmbientWeatherWS2902A_WindSpeed);
     return n === null ? null : Math.round(n);
   });
   const windGustR = $derived.by(() => {
-    const n = num($items.AmbientWeatherWS2902A_WindGust);
+    const n = num(stationItems.AmbientWeatherWS2902A_WindGust);
     return n === null ? null : Math.round(n);
   });
   const windGustColor = $derived(windSpeedColor(windGustR));
@@ -361,14 +361,15 @@
   const windAccent = $derived(windSpeedColor(windSpeedR));
 
   const station = $derived(stationPresentation($items, {nowMs:Math.max(wallClock,Date.now())}));
+  const stationItems = $derived(station.mode === 'legacy' ? $items : {...$items,...station.current});
   const pressureItem = $derived(station.mode === 'legacy' ? 'AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative' : 'WeatherStation_PressureAbsoluteV2');
-  const pressureValue = $derived(station.mode === 'legacy' ? $items.AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative : station.pressure.value);
-  const rainDayInches = $derived(station.mode === 'legacy' ? num($items.AmbientWeatherWS2902A_RainFallDay) : station.rain.day);
-  const rainWeekInches = $derived(station.mode === 'legacy' ? num($items.AmbientWeatherWS2902A_RainFallWeek) : station.rain.week);
+  const pressureValue = $derived(station.mode === 'legacy' ? stationItems.AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative : station.pressure.value);
+  const rainDayInches = $derived(station.mode === 'legacy' ? num(stationItems.AmbientWeatherWS2902A_RainFallDay) : station.rain.day);
+  const rainWeekInches = $derived(station.mode === 'legacy' ? num(stationItems.AmbientWeatherWS2902A_RainFallWeek) : station.rain.week);
   const rainDayGallons = $derived(harvestedGallons(rainDayInches));
   const rainWeekGallons = $derived(harvestedGallons(rainWeekInches));
   const rainIconColor = $derived(rainStateColor(rainDayInches));
-  const rainRateLabel = $derived(rainRateChip(station.mode === 'legacy' ? $items.AmbientWeatherWS2902A_RainFallHourlyRate : station.rain.rate));
+  const rainRateLabel = $derived(rainRateChip(station.mode === 'legacy' ? stationItems.AmbientWeatherWS2902A_RainFallHourlyRate : station.rain.rate));
   const rainValue = $derived(
     rainDayInches === null || rainDayGallons === null
       ? '—'
@@ -388,14 +389,14 @@
   const solarColor = $derived(solarPvColor(pvWatts));
 
   const pressureStatus = $derived.by(() => {
-    const result = pressurePresentation(station.mode === 'legacy' ? $items.AmbientWeatherWS2902A_PressureTrend : station.pressure.trend);
+    const result = pressurePresentation(station.mode === 'legacy' ? stationItems.AmbientWeatherWS2902A_PressureTrend : station.pressure.trend);
     return station.mode === 'legacy' ? result : {...result,label:station.pressure.trendLabel};
   });
 
   const zonesList = $derived.by(() => {
-    const room = num($items.AmbientWeatherWS2902A_IndoorSensor_Temperature);
+    const room = num(stationItems.AmbientWeatherWS2902A_IndoorSensor_Temperature);
     const mk = (label, name) => {
-      const t = num($items[name]);
+      const t = num(stationItems[name]);
       const delta = t === null || room === null ? null : Math.round((t - room) * 10) / 10;
       return { label, temp: t, delta };
     };
@@ -580,17 +581,17 @@
         <div class="outdoor-top">
           <div class="outdoor-main">
             <span class="cond-icon"><OhIcon icon={outdoorConditionIcon} size="2rem" color={outdoorIconColor} /></span>
-            <span class="big-temp">{fmt($items.AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature, '°')}</span>
+            <span class="big-temp">{fmt(stationItems.AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature, '°')}</span>
             <div class="outdoor-chips">
-              <span class="uv-chip" style="color: {uvColor}">UV {fmt($items.AmbientWeatherWS2902A_UVIndex)}</span>
+              <span class="uv-chip" style="color: {uvColor}">UV {fmt(stationItems.AmbientWeatherWS2902A_UVIndex)}</span>
               {#if rainRateLabel}
                 <span class="rain-rate-chip" style="color: {colors.rain}; border-color: {colors.rain}">{rainRateLabel}</span>
               {/if}
             </div>
           </div>
           <div class="outdoor-sub">
-            feels like {fmt($items.AmbientWeatherWS2902A_ApparentTemperature, '°')}
-            &middot; {fmt($items.AmbientWeatherWS2902A_WeatherDataWs2902a_RelativeHumidity, '%')} RH
+            feels like {fmt(stationItems.AmbientWeatherWS2902A_ApparentTemperature, '°')}
+            &middot; {fmt(stationItems.AmbientWeatherWS2902A_WeatherDataWs2902a_RelativeHumidity, '%')} RH
           </div>
           <div class="outdoor-hilo">
             H {fmt(outdoorToday.high, '°')} &nbsp;/&nbsp; L {fmt(outdoorToday.low, '°')}
@@ -616,10 +617,10 @@
             <span class="indoor-icon" style="color: {indoorIconColor}">
               <OhIcon icon="iconify:mdi:home-thermometer" size="2rem" />
             </span>
-            <div class="indoor-temp">{fmt($items.AmbientWeatherWS2902A_IndoorSensor_Temperature, '°')}</div>
+            <div class="indoor-temp">{fmt(stationItems.AmbientWeatherWS2902A_IndoorSensor_Temperature, '°')}</div>
           </div>
           <div class="indoor-meta">
-            <div class="indoor-hum">{fmt($items.AmbientWeatherWS2902A_IndoorSensor_RelativeHumidity, '%')} RH</div>
+            <div class="indoor-hum">{fmt(stationItems.AmbientWeatherWS2902A_IndoorSensor_RelativeHumidity, '%')} RH</div>
             <div class="indoor-hilo">H {fmt(indoorToday.high, '°')} / L {fmt(indoorToday.low, '°')}</div>
           </div>
         </div>
