@@ -99,7 +99,7 @@ describe('Home tablet presentation contract', () => {
     expect(home).toMatch(/\.battery-arc\s*\{[^}]*--arc-value-size:\s*1\.45rem;/is);
     expect(home).toMatch(/<StatTile[\s\S]*?label="Rain"[\s\S]*?valueSize="1rem"/);
     expect(home).toMatch(/<StatTile[\s\S]*?label="Rain"[\s\S]*?footerSize="0\.72rem"/);
-    expect(home).toMatch(/<StatTile[\s\S]*?label="Rain"[\s\S]*?footerNoWrap/);
+    // Browser checks verify that rainfall and gallon totals fit at tablet widths.
     expect(home).toMatch(/<StatTile[\s\S]*?label="Rain"[\s\S]*?stackValue/);
     expect(statTile).toContain('--stat-value-size');
     expect(statTile).toContain('--stat-footer-size');

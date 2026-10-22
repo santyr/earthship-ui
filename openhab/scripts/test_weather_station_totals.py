@@ -81,3 +81,14 @@ def test_invalid_owned_counter_packet_is_a_barrier_for_recorded_counts():
  s.observe(100.07,at=START+timedelta(seconds=60),tick=60)
  s.observe(100.08,at=START+timedelta(seconds=90),tick=90)
  assert s.snapshot(at=START+timedelta(seconds=90),tick=90)['products']['day']['recorded_in']==pytest.approx(.03)
+
+
+def test_rejected_duplicate_receipt_increment_never_reaches_durable_counts(tmp_path):
+ path=tmp_path/'rain.json'
+ s=RainProducts(timezone_name='America/Denver',validity_seconds=120,maximum_counter_in=100000,recorded_totals=RecordedRainTotals('America/Denver',path))
+ s.observe(100.,at=START,tick=0);s.observe(100.01,at=START,tick=1)
+ assert s.broken is True
+ s.observe(100.01,at=START+timedelta(seconds=30),tick=30)
+ assert s.snapshot(at=START+timedelta(seconds=30),tick=30)['products']['day']['recorded_in']==0
+ restored=RecordedRainTotals('America/Denver',path)
+ assert restored.periods['day']['amount_in']==0
