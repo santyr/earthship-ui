@@ -1,0 +1,202 @@
+{
+  "schema": "earthship-step11-production-replacements/v1",
+  "prepared_at": "2026-10-22T22:59:40.161771+00:00",
+  "status": "in_progress_not_installed",
+  "deployment_policy": "deployment-policy.json",
+  "parallel_shadow_required": false,
+  "production_replacements": [
+    {
+      "id": "home_temperature",
+      "current": {
+        "publication_version": 1,
+        "model": {
+          "parent_artifacts": [],
+          "sha256": null,
+          "status": "UNTRAINED"
+        },
+        "original_capture_sha256": "3bec62c66e7092f8d8f9bfdc0f78df1450352ffda25a6e7c844326dc2c3e11c1"
+      },
+      "replacement": {
+        "method": "Selected temperature_normal mean and marginal range, newly fitted on available original historical data under the current numerical closure. One selected family in the production path.",
+        "target": "Outdoor local temperature at exact native target times, scoped by source/grid/epoch/lead cohort.",
+        "artifact_sha256": null,
+        "production_admission_sha256": null,
+        "installed": false
+      },
+      "consumers": [
+        "Forecast_10Day_JSON",
+        "Forecast_Hourly_JSON",
+        "Forecast_Temp",
+        "daily high/low summaries",
+        "Home and Weather details"
+      ],
+      "remaining": [
+        "Rebuild current recorded-availability cohorts; fit and retain new actual-time bundles.",
+        "Implement the production publisher/reader contract with explicit point/marginal provenance and original decision clocks.",
+        "Activate the reviewed per-cohort admissions and score actual issued predictions after maturity."
+      ],
+      "limitations": [
+        "No unqualified80%coverage claim. Unsupported extended cohorts require a named raw fallback, not an invented fitted model."
+      ],
+      "rollback": "Restore the captured original selector/config/source bytes under the existing writer lock; preserve new originals and scores.",
+      "production_replaced": false
+    },
+    {
+      "id": "thermal_weather_temperature",
+      "current": {
+        "selection_sha256": "8fb011cf13160b361fba97669e31f926f2d539d4e8b5526a907aab6d40978e63",
+        "model_sha256": "8bafe77273fdf3edf040a9ef435bfeaa7f2d7e5bfafb8cbf9ba65d456346b12c",
+        "model_rule": "standardized_ridge_residual_v1",
+        "model_schema": "earthship-site-calibration/v1",
+        "trained_at": "2026-10-22T12:36:42.379693+00:00",
+        "available_at": "2026-10-22T12:37:11.967483+00:00"
+      },
+      "replacement": {
+        "method": "Consume the new production temperature procedure through an explicit source-bound thermal forcing adapter. Refit dependent response coefficients where the numerical baseline changes.",
+        "target": "Temperature forcing for read-only thermal predictions, separate from measurement truth.",
+        "artifact_sha256": null,
+        "production_admission_sha256": null,
+        "installed": false
+      },
+      "consumers": [
+        "household cycle",
+        "thermal forecast and stress projections"
+      ],
+      "remaining": [
+        "Trace the selected actual weather input into the thermal receipt.",
+        "Rebuild/retrain and register dependent source-valid artifacts where required.",
+        "Verify same-input training/serving parity and selector rollback."
+      ],
+      "limitations": [],
+      "rollback": "Restore the captured original selector/config/source bytes under the existing writer lock; preserve new originals and scores.",
+      "production_replaced": false
+    },
+    {
+      "id": "local_hourly_wind",
+      "current": {
+        "selection_sha256": "569032fd52ca4eaad48823737a9473a0aa4f5728e116afda8bf88282e8a005ae",
+        "model_sha256": "245abb6041a6f0d4e73138330de0e6d04728b7750f52f0994a89144bc07c455f",
+        "model_rule": "bounded_gain_with_unchanged_physics_prior_v1",
+        "model_schema": "earthship-site-weather-gain/v1",
+        "trained_at": "2026-10-22T12:37:10.981894+00:00",
+        "available_at": "2026-10-22T12:37:11.985640+00:00"
+      },
+      "replacement": {
+        "method": "Selected nonnegative local-hourly wind model mean, newly fitted and explicitly admitted; retain native wind separately for physical forcing.",
+        "target": "Local station hourly mean wind, not a native instantaneous wind or turbine/gust target.",
+        "artifact_sha256": null,
+        "production_admission_sha256": null,
+        "installed": false
+      },
+      "consumers": [
+        "local wind display/product",
+        "original-issued wind evaluator"
+      ],
+      "remaining": [
+        "Retain current original cohort and actual-time fit.",
+        "Integrate the new production hourly-target product and consumer.",
+        "Register/read back source-bound admission and natural emitted prediction."
+      ],
+      "limitations": [
+        "Numeric history does not acquire sensor-health/metrology qualification. No silent substitution into PV module-cooling physics."
+      ],
+      "rollback": "Restore the captured original selector/config/source bytes under the existing writer lock; preserve new originals and scores.",
+      "production_replaced": false
+    },
+    {
+      "id": "pv_electrical_storage",
+      "current": {
+        "selection_receipt_sha256": "cb35190177692c70fac55d6a9ead6607a9100f991ab360acbe63560d1cc8dbe5",
+        "training_model_sha256": "a7cbf87c26508943d40c08f94f4fcd2a0492d7c8470f73e083da23c00c6bfbd2",
+        "selection_file_sha256": "6192f8fc407d57d99e916c7fb7ff9d23aaaad8071820155e77536b32d4a5f2ee"
+      },
+      "replacement": {
+        "method": "Native total/direct-horizontal solar components with fresh compatible electrical calibration and new baseline/model identities.",
+        "target": "PV electrical energy and same-issue nominal storage projections.",
+        "artifact_sha256": null,
+        "production_admission_sha256": null,
+        "installed": false
+      },
+      "consumers": [
+        "daily PV potential",
+        "household calibrated energy",
+        "Energy outlook"
+      ],
+      "remaining": [
+        "Rebuild matched native-component baseline pairs from retained observations.",
+        "Refit the electrical correction against that baseline; preserve old original models.",
+        "Migrate both PV/storage consumers to the same new procedure, verify exact rollback."
+      ],
+      "limitations": [
+        "Do not apply old coefficients to a changed solar baseline. Nominal capacity remains separate from measured usable battery capacity."
+      ],
+      "rollback": "Restore the captured original selector/config/source bytes under the existing writer lock; preserve new originals and scores.",
+      "production_replaced": false
+    },
+    {
+      "id": "thermal_response",
+      "current": {
+        "artifact_sha256": "8e1007865b839b01a58c35b337d16be574e8e0553c54a47ca6b7d20c1354238a",
+        "model_receipt_sha256": "8c7cf72a70b81559b7465a212eed7c201b9b9ab9421995184f624aca7881d9ec",
+        "runtime_sha256": "b6736cd9f631736515b027676c7052c86fa6bd62b4e3ab7272b325bd3036d23f",
+        "candidate_schema": "earthship-provisional-thermal-candidate/v4",
+        "receipt_schema": "earthship-native-model-verification-receipt/v1"
+      },
+      "replacement": {
+        "method": "Fresh compatible thermal fit where the weather/solar numerical baseline changes, using the supported retained native observations and unchanged control authority.",
+        "target": "Measured air/wall response and read-only thermal trajectories.",
+        "artifact_sha256": null,
+        "production_admission_sha256": null,
+        "installed": false
+      },
+      "consumers": [
+        "household cycle",
+        "thermal forecast",
+        "deterministic stress"
+      ],
+      "remaining": [
+        "Audit current training-input and weather-forcing identities.",
+        "Retrain and register under the new forcing identity when supported.",
+        "Verify consumer/admission/rollback and actual observed output."
+      ],
+      "limitations": [
+        "No physical facade or causal action-benefit qualification inferred from operational replacement."
+      ],
+      "rollback": "Restore the captured original selector/config/source bytes under the existing writer lock; preserve new originals and scores.",
+      "production_replaced": false
+    },
+    {
+      "id": "rain_interval_amount",
+      "current": {
+        "method": "Raw native precipitation interval means in the current core forecast; observed station totals are a separate already-deployed source."
+      },
+      "replacement": {
+        "method": "Source-bound three-head interval choice and the two-part occurrence/amount method only for valid supported target/class/event cohorts.",
+        "target": "Calendar-day, rolling24h and remaining-day rainfall, with explicit interval identities.",
+        "artifact_sha256": null,
+        "production_admission_sha256": null,
+        "installed": false
+      },
+      "consumers": [
+        "forecast rainfall",
+        "rain comparison/evaluator",
+        "harvesting estimate inputs"
+      ],
+      "remaining": [
+        "Reassess causal training inputs under current source.",
+        "For each valid model, fit/admit a new original artifact and retain actual issued predictions.",
+        "Name invalid targets and use their explicit raw fallback; do not delay other replacement models."
+      ],
+      "limitations": [
+        "Independent local gauge resolution, wet/dry classes and distinct wet-event support remain concrete fitting dependencies. No invented occurrence probability or cistern inventory."
+      ],
+      "rollback": "Restore the captured original selector/config/source bytes under the existing writer lock; preserve new originals and scores.",
+      "production_replaced": false
+    }
+  ],
+  "before_capture_files": 13,
+  "before_capture_manifest_sha256": "72e90c3085dfabefadf7d81f81000c0165e56498b1f94a3707411c88bb9b97f0",
+  "automatic_actuation": false,
+  "additional_cloud_collection_authorized": false,
+  "historical_retraining_requirement": "Existing marginal candidate bundles accept recorded-ingestion cohorts only. Implement an explicit current-time production training contract for available historical evidence where needed; preserve original historical/operational availability classes and original experiment conclusions. Do not flip retrospective/shadow flags on old artifacts."
+}
