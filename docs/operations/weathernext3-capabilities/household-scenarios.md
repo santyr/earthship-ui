@@ -1,12 +1,11 @@
-# Household weather scenarios — implementation in progress
+# Household weather scenarios — locally verified advisory
 
-Task 8 remains in progress. Its deterministic construction, one bounded joint
-method, source-replayed scoring and complete selected-population projection and
-outcome experiments are implemented locally. The default-off current-producer
-worker and original native air/wall adapter pass focused verification. The
-maintained retained-producer handoff and integrated task gate remain required.
-Nothing is installed, selected or physically/statistically qualified by these
-experiments.
+Task 8 is complete locally. The [final verification](scenario-final-verification.json)
+binds its scenario software, complete frozen-population experiments, matching
+outcome assessment and five original-producer contract checks. The optional
+producer is off by default. Scientific support remains insufficient for physical
+calibration, local probability qualification or selecting these models for serving.
+The capability branch is not deployed. Tasks 9–11 continue separately.
 
 The [frozen protocol](scenario-protocol.json) was committed before any real Task 8
 outcome assessment. It fixes three conditional cases: the original central means,
@@ -267,8 +266,7 @@ and weather observations. The increased aggregate limits preserve complete raw
 receipts and replay. The frozen forecast/template construction limits retain their
 original scope. Focused verification passes 53 tests, including full-day target
 replay, refusal of oversized originals/collections and assessment replay above
-16 MiB. Whole-task verification and the maintained retained-producer handoff are
-still required.
+16 MiB. The final task gate and maintained retained-producer handoff are verified below.
 
 
 The [complete outcome experiment](scenario-household-outcomes.json) accounts for
@@ -314,3 +312,40 @@ below the frozen minimum of eight. Actual multivariate energy/variogram scores,
 dependence/ramp/extreme diagnostics and trajectory coverage are explicitly
 unavailable. Synthetic software tests exercise their formulas; no substitute
 physical measurements, upstream members, ranks or risk probabilities are created.
+
+
+The maintained retained-producer path uses the same optional worker with profile
+schema `earthship-optional-household-scenario-producer/v2`. It adds a closed
+`retained_producer` object containing schema
+`earthship-retained-native-scenario-producer/v1`, an explicit absolute `stage`,
+and its original `deployment_sha256`. All v1 fields remain required, including
+`enabled`, `state`, `energy_path`, `template_paths`,
+`observation_cohort_sha256` and `runtime_sha256`. Obtain the current parent pin
+with `python -m weather_learning.scenario_worker --print-runtime` under the
+intended interpreter and source package. An operator must explicitly enable the
+private profile. Preview uses `--profile /private/scenario-profile.json`;
+`--apply` permits only the separate private report archive and advisory cache.
+
+The bounded child runs `/usr/bin/python3` with the verified original stage's
+global imports and loads the new adapter in a separate namespace. It preserves
+the original capture, fitted model, source/environment checks and native physics.
+The current component PV/storage calculation remains source-bound in the parent.
+Retained reports include both complete literal production source packages and
+both numerical environments, original energy/plan bindings, prepared household
+inputs and native trajectory identities. Restoring a context rederives its
+preparation. A changed stage, adapter, binary, model identity or response binding
+is refused. Per-opportunity memoization keeps repeated report replay bounded and
+rechecks original source and binary bytes before reuse.
+
+All five retained forcing/conditioning contract groups reproduced all original
+thermal fields and full trajectories exactly for central, reduced-solar and
+warm/high-gain cases. Two additional forcing/conditioning labels are recorded
+where an earlier experiment lacked them. The five real private archive operations
+took 42–66 seconds, within the existing 90-second opportunity. Expired historical
+reports did not refresh the advisory cache. Fresh-cache publication, disabled
+profiles, original-model substitution, corrupt replies, changed sources/binaries
+and partial-publication behavior are covered by the maintained tests. The final
+suite passed 832 cases and 165 subtests; its four normal-profile SDK skips were
+executed separately under the pinned SDK with outbound sockets blocked, all four
+passing without skips. No service, controller, selector, fitted parameters or
+operational cache was changed by this task.

@@ -50,7 +50,7 @@ def _build(inputs,runtime,guard):
     if not isinstance(inputs,dict) or set(inputs)!=INPUTS or not isinstance(inputs['household_inputs'],dict) or set(inputs['household_inputs'])!=HOUSEHOLD:raise ValueError('closed original scenario inputs required')
     if inputs['owned_sources'] is not None:
         original=inputs['owned_sources']
-        if not isinstance(original,dict) or set(original)!={'energy','plan'}:raise ValueError('closed owned energy/plan originals required')
+        if not isinstance(original,dict) or set(original) not in ({'energy','plan'},{'energy','plan','retained_producer'}):raise ValueError('closed owned energy/plan originals required')
         from .scenario_worker import prepare_owned_inputs
         expected=prepare_owned_inputs(**original,guard=guard)
         if canonical(expected)!=canonical({k:inputs[k] for k in ('forcing','household_inputs')}):raise ValueError('scenario forcing/household inputs differ from original owned sources')

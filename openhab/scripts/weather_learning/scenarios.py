@@ -76,6 +76,9 @@ def stress_cases(*,forcing,policy):
 
 def _thermal(scenario,context,*,positions,horizon_profile,guard=lambda:None):
     if context is None:return dict(status='unavailable',reason='compatible_component_response_model_not_supplied',indoor_air_f=None,north_wall_f=None)
+    from .retained_scenarios import RetainedNativeContext,restore_retained_context,project_retained_scenario,SCHEMA as RETAINED_SCHEMA
+    if isinstance(context,dict) and context.get('schema')==RETAINED_SCHEMA:context=restore_retained_context(context,guard=guard)
+    if type(context) is RetainedNativeContext:return project_retained_scenario(scenario,context,positions=positions,guard=guard)
     from .native_scenarios import NativeScenarioContext,restore_native_context,project_native_scenario,SCHEMA as NATIVE_SCHEMA
     if isinstance(context,dict) and context.get('schema')==NATIVE_SCHEMA:context=restore_native_context(context,guard=guard)
     if type(context) is NativeScenarioContext:return project_native_scenario(scenario,context,positions=positions,guard=guard)
@@ -97,7 +100,8 @@ def propagate(scenario,*,positions,array,horizon_profile,initial_soc_pct,nominal
     guard();storage=simulate_storage(steps=pv['steps'],initial_soc_pct=initial_soc_pct,nominal_bank_kwh=nominal_bank_kwh,load_ac_w=load_ac_w)
     thermal=_thermal(scenario,thermal_context,positions=positions,horizon_profile=horizon_profile,guard=guard);guard()
     from .native_scenarios import NativeScenarioContext
-    original_context=thermal_context.to_dict() if type(thermal_context) is NativeScenarioContext else thermal_context
+    from .retained_scenarios import RetainedNativeContext
+    original_context=thermal_context.to_dict() if type(thermal_context) in (NativeScenarioContext,RetainedNativeContext) else thermal_context
     output=dict(schema='earthship-conditional-weather-scenario-projection/v1',scenario_sha256=v['forecast_sha256'],recipe=v['recipe'],pv=pv,nominal_storage=storage,minimum_nominal_soc_pct=min(initial_soc_pct,*(r['nominal_soc_pct'] for r in storage['trajectory'])),thermal=thermal,uncertainty_scope=v['policy']['uncertainty_scope'],inputs_sha256=identity(dict(positions=positions,array=array,horizon_profile=horizon_profile,initial_soc_pct=initial_soc_pct,nominal_bank_kwh=nominal_bank_kwh,load_ac_w=load_ac_w,thermal_context=original_context)),reserve_breach_probability=None,overheating_probability=None,probability_claim=False,physical_calibration_qualified=False,automatic_actuation=False)
     output['projection_sha256']=identity(output);return output
 

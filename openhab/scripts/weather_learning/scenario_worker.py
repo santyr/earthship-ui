@@ -15,6 +15,7 @@ from .scenarios import ResidualBlock
 from .scenario_reporting import prepare_report,retain_report,_runtime
 
 SCHEMA='earthship-optional-household-scenario-producer/v1'
+RETAINED_SCHEMA='earthship-optional-household-scenario-producer/v2'
 FIELDS={'schema','enabled','state','energy_path','template_paths','observation_cohort_sha256','runtime_sha256'}
 ROOT=Path(__file__).resolve().parents[3]
 
@@ -54,8 +55,11 @@ def _storage_inputs(snapshot,*,topology_source,origin):
     return dict(reason=reason,initial_soc_pct=soc['value'],nominal_bank_kwh=bank.get('nominal_usable_kwh'),current_load_reason=load_reason,
         current_load_w=load['value'] if load_reason is None else None,battery_soc_evidence_sha256=None if soc.get('evidence') is None else soc['evidence']['digest'],household_dc_scope=scope)
 
-def prepare_owned_inputs(*,energy,plan,guard=lambda:None):
+def prepare_owned_inputs(*,energy,plan,retained_producer=None,guard=lambda:None):
     """Derive new predictions from original inputs, never borrow old outputs."""
+    if retained_producer is not None:
+        from .retained_scenarios import prepare_retained_inputs
+        return prepare_retained_inputs(energy=energy,plan=plan,producer=retained_producer,guard=guard)
     from household_energy_forecast import FIELDS as ENERGY_FIELDS,INPUT_FIELDS
     from household.model_snapshot import restore_snapshot
     from household_pv_model import system_configuration
@@ -83,17 +87,26 @@ def prepare_owned_inputs(*,energy,plan,guard=lambda:None):
 
 
 def _profile(value):
-    if (not isinstance(value,dict) or set(value)!=FIELDS or value['schema']!=SCHEMA or type(value['enabled']) is not bool or
+    if (not isinstance(value,dict) or value.get('schema') not in (SCHEMA,RETAINED_SCHEMA) or
+        set(value)!=(FIELDS|{'retained_producer'} if value.get('schema')==RETAINED_SCHEMA else FIELDS) or type(value['enabled']) is not bool or
         not isinstance(value['template_paths'],list) or len(value['template_paths'])>10000 or
         len(set(value['template_paths']))!=len(value['template_paths'])):raise ValueError('closed bounded explicit scenario profile required')
     for name in ('state','energy_path'):
         if not isinstance(value[name],str) or not Path(value[name]).is_absolute():raise ValueError('explicit absolute scenario path required')
     if any(not isinstance(p,str) or not Path(p).is_absolute() for p in value['template_paths']):raise ValueError('absolute original residual paths required')
+    if value['schema']==RETAINED_SCHEMA:
+        from .retained_scenarios import producer_reference
+        producer_reference(value['retained_producer'])
     digest(value['observation_cohort_sha256']);digest(value['runtime_sha256'])
     return value
 
 
 def run(profile,*,policy,apply=False,clock=lambda:datetime.now(timezone.utc),guard=lambda:None):
+    from .retained_scenarios import retained_cache
+    with retained_cache():return _run(profile,policy=policy,apply=apply,clock=clock,guard=guard)
+
+
+def _run(profile,*,policy,apply=False,clock=lambda:datetime.now(timezone.utc),guard=lambda:None):
     from household_solar_score import read_forecast,unchanged
     from household_observation import _private_file
     if type(apply) is not bool:raise ValueError('explicit publication flag required')
@@ -105,7 +118,7 @@ def run(profile,*,policy,apply=False,clock=lambda:datetime.now(timezone.utc),gua
         if time.monotonic()>=deadline:raise TimeoutError('bounded household scenario opportunity elapsed')
     check();runtime=runtime_sha256()
     if runtime!=profile['runtime_sha256']:raise ValueError('explicit scenario producer source/environment pin differs')
-    energy,plan,originals=read_forecast(profile['energy_path']);prepared=prepare_owned_inputs(energy=energy,plan=plan,guard=check)
+    energy,plan,originals=read_forecast(profile['energy_path']);prepared=prepare_owned_inputs(energy=energy,plan=plan,retained_producer=profile.get('retained_producer'),guard=check)
     templates=[];original_blocks=[];total=0;rows=0
     for path in profile['template_paths']:
         check();raw,metadata=_private_file(Path(path),16*1024**2);total+=len(raw)
@@ -113,7 +126,9 @@ def run(profile,*,policy,apply=False,clock=lambda:datetime.now(timezone.utc),gua
         block=ResidualBlock(raw);rows+=len(block.to_dict()['residuals'])
         if rows>policy['maximum_template_rows']:raise ValueError('combined residual row budget exceeded')
         templates.append(block);original_blocks.append((Path(path),raw,metadata))
-    report=prepare_report(**prepared,owned_sources=dict(energy=energy,plan=plan),policy=policy,blocks=templates,cohort_sha256=profile['observation_cohort_sha256'],prepared_at=clock(),guard=check)
+    owned_sources=dict(energy=energy,plan=plan)
+    if profile['schema']==RETAINED_SCHEMA:owned_sources['retained_producer']=profile['retained_producer']
+    report=prepare_report(**prepared,owned_sources=owned_sources,policy=policy,blocks=templates,cohort_sha256=profile['observation_cohort_sha256'],prepared_at=clock(),guard=check)
     check();unchanged(originals)
     for path,raw,metadata in original_blocks:
         check()
