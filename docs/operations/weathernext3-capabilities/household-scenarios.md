@@ -238,8 +238,9 @@ The [projection experiment](scenario-projection-experiment.json) gives descripti
 ranges of hypothetical changes from each central case. Those are neither
 prediction intervals nor measured forecast errors. Source inputs are qualified at
 the original issue clock using the existing fixed-state contract; the inventory's
-original energy-receipt status was assessed later, so four cases whose source
-expired by publication can still have valid issue-time inputs. No old output is
+original energy-receipt status was assessed later. The fixed-state issue-time
+contract admits four additional origins; their original publication statuses
+remain preserved as separate facts. No old output is
 used as an invented load, capacity or measured state. This distinction changes
 none of the raw receipts. Matching actual outcome assessment is still pending.
 The current affected backend suite passed 823 tests and 165 subtests with four
