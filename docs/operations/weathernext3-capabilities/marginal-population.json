@@ -1,6 +1,6 @@
 {
   "schema": "earthship-marginal-population-summary/v1",
-  "status": "task7_in_progress_population_and_cohort_comparisons_verified_prospective_wiring_pending",
+  "status": "legacy_parent_population_verified_full_native_expansion_pending",
   "population_sha256": "0ea917b0ba91fbfa974cc68763417e6ad1bf3bc36b672d102874785a3cc440b2",
   "population_proof_sha256": "a405a2f320270bf5ee1faff888672f34c752448eb551dc17e6473c3fac392db2",
   "policy_sha256": "8b81c06fb15c8f9f1e25c1ee14f08bef2d154532f9f8f1ada44ee7c1ccaa4298",
@@ -386,5 +386,8 @@
   "local_coverage_qualified": false,
   "probability_claim": false,
   "automatic_actuation": false,
-  "cohort_proof_sha256": "0fa5c5e4638b2587e75015b5bdc592239ac6572815ba94e62b4b0c2aefb770dd"
+  "cohort_proof_sha256": "0fa5c5e4638b2587e75015b5bdc592239ac6572815ba94e62b4b0c2aefb770dd",
+  "complete_eligible_source_scope_verified": false,
+  "source_scope_audit_proof_sha256": "44a6cbe82088837e6cd03a3af3c4d55b4efd59d0860cd4a25e05bb26bf984975",
+  "scope": "legacy parent temperature/wind pairs plus all frozen solar matches"
 }

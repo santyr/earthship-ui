@@ -1,11 +1,11 @@
 {
   "schema": "earthship-task7-science-progress-verification/v1",
-  "status": "retained_science_verified_task7_prospective_software_still_required",
+  "status": "legacy_parent_science_verified_full_native_scope_and_prospective_integration_pending",
   "population_sha256": "0ea917b0ba91fbfa974cc68763417e6ad1bf3bc36b672d102874785a3cc440b2",
   "population_proof_sha256": "a405a2f320270bf5ee1faff888672f34c752448eb551dc17e6473c3fac392db2",
   "cohort_proof_sha256": "0fa5c5e4638b2587e75015b5bdc592239ac6572815ba94e62b4b0c2aefb770dd",
-  "public_summary_sha256": "07e078c3b06594d5e91b1e4b14f5158dab041550493da80e4111126448435628",
-  "public_summary_file_sha256": "4c18ef4624eb74fd51d7fc104cda8cb1aae5a5d6e1801942e0a4e0218eddc9bf",
+  "public_summary_sha256": "5496f7a32bbb25f7e435ad3eedcc5d936c9d3df9d38080de512270a04750010e",
+  "public_summary_file_sha256": "27a1e0de2668d7425e4d504384d73c05d49b39ea52bfd5ffffad44c1dc83f607",
   "cohorts": 25,
   "models": 379,
   "predictions": 7980,
@@ -17,5 +17,7 @@
   },
   "task7_complete": false,
   "production_changed": false,
-  "automatic_actuation": false
+  "automatic_actuation": false,
+  "complete_eligible_source_scope_verified": false,
+  "source_scope_audit_proof_sha256": "44a6cbe82088837e6cd03a3af3c4d55b4efd59d0860cd4a25e05bb26bf984975"
 }

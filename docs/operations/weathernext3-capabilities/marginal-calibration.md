@@ -1,6 +1,8 @@
 # Local marginal calibration — implementation in progress
 
-Task 7 is not complete or deployed. The frozen protocol is
+Task 7 is not complete or deployed. The existing 25-cohort comparisons cover
+the frozen legacy parent sample; a source-scope audit found additional usable
+native matches that must be included before the evaluation gate can close. The frozen protocol is
 [marginal-calibration-protocol.json](marginal-calibration-protocol.json).
 No challenger is selected and no local coverage or probability qualification is claimed.
 
@@ -41,16 +43,18 @@ pairs across 25 cohorts: 20,071 temperature, 1,738 scalar wind, and 3,936
 forecast-to-proxy matches. The 43 unique proxy hours span three local target
 dates (the last is a single midnight endpoint); repeated forecasts do not
 increase that target count. Fewer than 48 training targets is an explicit solar
-support blocker. All 25 cohort comparisons are complete; fitted originals and score replay are
+support blocker. All 25 legacy-parent cohort comparisons are complete; fitted originals and score replay are
 verified in [the experiment summary](marginal-experiment.json).
 
 Software currently covers the kernels, original-source adapters, chronological
 comparison, immutable prediction scoring and bounded offline experiment entry
-point. Prospective retention, scoring and monitor/status wiring are still required. The default raw temperature range and current point forecasts
+point. Actual-time candidate fitting, original model/source retention and prospective
+issue preparation now exist. Full native population expansion, durable issue
+emission/scoring and monitor/status integration are still required. The default raw temperature range and current point forecasts
 remain independently usable.
 
 
-## Actual retained comparison results
+## Legacy-parent comparison results
 
 All 25 experiments finished separately within the 120-second bound (maximum
 25.80 seconds; 133.64 seconds summed sequentially). They retained 379 models and
@@ -88,3 +92,34 @@ all solar model comparisons remain insufficient rather than silently omitted.
 Every candidate remains unselected and locally unqualified. The three score
 cases merit prospective shadow evaluation under their own source/measurement
 identity; they do not authorize a probability display, deployment or actuation.
+
+
+## Full-source coverage correction and prospective preparation
+
+The [source-scope audit](marginal-source-scope-audit.json) replays all 347 frozen
+forecast originals against the original measurement grids. It identifies 81,731
+temperature and 18,597 scalar-wind matches. Together with 3,936 solar-proxy matches,
+the complete native scope is 104,264 pairs. The legacy parents omit 61,660
+usable temperature pairs and 16,859 wind pairs, mainly at hourly longer leads
+and additional recorded origins. The old comparative scores remain evidence for
+their declared sample; they cannot close the all-eligible-data requirement.
+Those additional matches require bounded coherent datasets and fresh comparisons
+under the frozen numerical settings. No old model or score receipt is relabeled.
+
+The explicit actual-time fitter retains candidate models, literal training inputs
+and preprocessing source bytes. Its compatibility guard covers the interpreter
+and numerical binary hashes as well as preprocessing code and package versions.
+Preview creates no state namespace; explicit retention installs no current model
+selector. Historical assumed-readiness records are refused for these prospective
+artifacts. Original future labels remain ineligible until actual acquisition.
+
+A fresh private probe on the legacy recorded-ingestion population found 51
+distinct near-term temperature targets across three local dates, sufficient to
+fit its three predeclared candidate families at the actual current clock.
+The other five recorded cohorts retained explicit cold bundles. A qualified
+current native temperature receipt was acquired before the new decision; the
+compiler then prepared and fully replayed 88 raw/local rows from two exact
+retained weather originals: 24 local temperature rows and 64 raw fallbacks.
+The issue is **prepared, unissued and unqualified**. No production configuration,
+model selector, Item or cache was changed. [Preparation evidence](marginal-prospective-preparation.json)
+records the current prototype and its remaining integration work.

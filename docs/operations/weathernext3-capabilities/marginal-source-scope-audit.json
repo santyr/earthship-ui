@@ -1,0 +1,180 @@
+{
+  "schema": "earthship-marginal-eligible-source-scope-audit/v1",
+  "population_sha256": "0ea917b0ba91fbfa974cc68763417e6ad1bf3bc36b672d102874785a3cc440b2",
+  "forecast_originals": 347,
+  "parent_counts": {
+    "solar_proxy": 3936,
+    "temperature": 20071,
+    "wind": 1738
+  },
+  "all_native_T_wind_matches": [
+    {
+      "kind": "temperature",
+      "availability_basis": "historical_assumed_availability",
+      "lead_scope": "[0, 24]",
+      "pairs": 6236
+    },
+    {
+      "kind": "temperature",
+      "availability_basis": "historical_assumed_availability",
+      "lead_scope": "[168, 336]",
+      "pairs": 37821
+    },
+    {
+      "kind": "temperature",
+      "availability_basis": "historical_assumed_availability",
+      "lead_scope": "[24, 72]",
+      "pairs": 12397
+    },
+    {
+      "kind": "temperature",
+      "availability_basis": "historical_assumed_availability",
+      "lead_scope": "[72, 168]",
+      "pairs": 23691
+    },
+    {
+      "kind": "temperature",
+      "availability_basis": "recorded_ingestion_availability",
+      "lead_scope": "[0, 24]",
+      "pairs": 1052
+    },
+    {
+      "kind": "temperature",
+      "availability_basis": "recorded_ingestion_availability",
+      "lead_scope": "[24, 72]",
+      "pairs": 534
+    },
+    {
+      "kind": "wind",
+      "availability_basis": "historical_assumed_availability",
+      "lead_scope": "[0, 24]",
+      "pairs": 1448
+    },
+    {
+      "kind": "wind",
+      "availability_basis": "historical_assumed_availability",
+      "lead_scope": "[168, 336]",
+      "pairs": 7996
+    },
+    {
+      "kind": "wind",
+      "availability_basis": "historical_assumed_availability",
+      "lead_scope": "[24, 72]",
+      "pairs": 2900
+    },
+    {
+      "kind": "wind",
+      "availability_basis": "historical_assumed_availability",
+      "lead_scope": "[72, 168]",
+      "pairs": 5312
+    },
+    {
+      "kind": "wind",
+      "availability_basis": "recorded_ingestion_availability",
+      "lead_scope": "[0, 24]",
+      "pairs": 557
+    },
+    {
+      "kind": "wind",
+      "availability_basis": "recorded_ingestion_availability",
+      "lead_scope": "[24, 72]",
+      "pairs": 384
+    }
+  ],
+  "additional_matches": [
+    {
+      "kind": "temperature",
+      "availability_basis": "historical_assumed_availability",
+      "lead_scope": "[0, 24]",
+      "pairs": 71
+    },
+    {
+      "kind": "temperature",
+      "availability_basis": "historical_assumed_availability",
+      "lead_scope": "[168, 336]",
+      "pairs": 37379
+    },
+    {
+      "kind": "temperature",
+      "availability_basis": "historical_assumed_availability",
+      "lead_scope": "[24, 72]",
+      "pairs": 189
+    },
+    {
+      "kind": "temperature",
+      "availability_basis": "historical_assumed_availability",
+      "lead_scope": "[72, 168]",
+      "pairs": 22701
+    },
+    {
+      "kind": "temperature",
+      "availability_basis": "recorded_ingestion_availability",
+      "lead_scope": "[0, 24]",
+      "pairs": 863
+    },
+    {
+      "kind": "temperature",
+      "availability_basis": "recorded_ingestion_availability",
+      "lead_scope": "[24, 72]",
+      "pairs": 457
+    },
+    {
+      "kind": "wind",
+      "availability_basis": "historical_assumed_availability",
+      "lead_scope": "[168, 336]",
+      "pairs": 7996
+    },
+    {
+      "kind": "wind",
+      "availability_basis": "historical_assumed_availability",
+      "lead_scope": "[24, 72]",
+      "pairs": 2795
+    },
+    {
+      "kind": "wind",
+      "availability_basis": "historical_assumed_availability",
+      "lead_scope": "[72, 168]",
+      "pairs": 5220
+    },
+    {
+      "kind": "wind",
+      "availability_basis": "recorded_ingestion_availability",
+      "lead_scope": "[0, 24]",
+      "pairs": 465
+    },
+    {
+      "kind": "wind",
+      "availability_basis": "recorded_ingestion_availability",
+      "lead_scope": "[24, 72]",
+      "pairs": 383
+    }
+  ],
+  "additional_temperature_origin_value_status": [
+    {
+      "status": "origin_value_missing",
+      "availability_basis": "historical_assumed_availability",
+      "pairs": 1219
+    },
+    {
+      "status": "origin_value_present",
+      "availability_basis": "historical_assumed_availability",
+      "pairs": 59121
+    },
+    {
+      "status": "origin_value_present",
+      "availability_basis": "recorded_ingestion_availability",
+      "pairs": 1320
+    }
+  ],
+  "seconds": 71.6208872909192,
+  "production_changed": false,
+  "status": "additional_native_pairs_identified_complete_population_and_comparisons_pending",
+  "temperature_native_pairs": 81731,
+  "wind_native_pairs": 18597,
+  "additional_temperature_pairs": 61660,
+  "additional_wind_pairs": 16859,
+  "full_source_temperature_wind_solar_pairs": 104264,
+  "scope_complete": false,
+  "original_private_proof_sha256": "44a6cbe82088837e6cd03a3af3c4d55b4efd59d0860cd4a25e05bb26bf984975",
+  "summary_sha256": "ead36c3659e1d47bc92e7deaf5c787f0006669d5eb79ccf1e46a80695a79814b"
+}
