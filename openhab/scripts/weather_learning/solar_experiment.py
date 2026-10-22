@@ -56,6 +56,9 @@ def validate_retrospective_forcing(value):
 
 def validate_component_input(value):
     """Only the new pure model accepts retrospective forcing, never v1 consumers."""
+    from .scenarios import ScenarioForcing,validate_scenario
+    if type(value) is ScenarioForcing:
+        return validate_scenario(value),'constructed_unqualified_weather_sensitivity'
     if isinstance(value,dict) and value.get('schema')==SCHEMA:
         return validate_retrospective_forcing(value),'retrospective_development_forcing'
     value=validate_native_forecast(value)

@@ -81,7 +81,12 @@
     {
       "id": "WN-09",
       "requirement": "Provide stress scenarios; evaluate dependence-aware household scenarios before probabilities",
-      "owning_tasks": "8"
+      "owning_tasks": "8",
+      "status": "in_progress_stress_joint_and_weather_score_kernels_verified",
+      "evidence": [
+        "scenario-protocol.json",
+        "household-scenarios.md"
+      ]
     },
     {
       "id": "WN-10",
@@ -296,8 +301,19 @@
       "task": 8,
       "title": "Build household stress cases and test coherent scenarios",
       "gate": "useful stress cases work independently of probability qualification. Scenario software, experiments and explicit uncertainty limits are complete even if real evidence requires the probabilistic product to remain unavailable.",
-      "status": "planned_not_executed",
-      "steps": 6
+      "status": "in_progress_stress_joint_and_weather_score_kernels_verified",
+      "steps": 6,
+      "evidence": [
+        "scenario-protocol.json",
+        "household-scenarios.md"
+      ],
+      "remaining": [
+        "joint-extreme and household utility score implementation",
+        "original-bound advisory report/replay/publication",
+        "compatible wall model integration",
+        "actual complete eligible-source assessment and experiments",
+        "integrated task verification"
+      ]
     },
     {
       "task": 9,
