@@ -21,7 +21,99 @@
         "target": "Outdoor local temperature at exact native target times, scoped by source/grid/epoch/lead cohort.",
         "artifact_sha256": null,
         "production_admission_sha256": null,
-        "installed": false
+        "installed": false,
+        "prepared_models_by_lead": [
+          {
+            "actual_completed_at": "2026-10-22T23:24:43.099916+00:00",
+            "admission_sha256": "756c0c9b6f1d36a79fed1d7282ced33cf9e66cec10bd19060730829aa9b52428",
+            "artifact": {
+              "artifact_sha256": "887e9488e3fec5ca0dee662af1739b7afcdda8e5736b6ffc63432bb805ede96b",
+              "bundle_sha256": "e19159ddc4e18fba2d9daae0b5e25833912a85277f57e94400cfa44221c82354"
+            },
+            "bundle_sha256": "e19159ddc4e18fba2d9daae0b5e25833912a85277f57e94400cfa44221c82354",
+            "family": "temperature_normal",
+            "kind": "temperature",
+            "lead_scope_hours": [
+              0,
+              24
+            ],
+            "model_sha256": "d534cf1f73e67d74fa10ecbf9f1fee62b3ac1eac31ada91ca0c3dbede84813c9",
+            "training_availability_basis": "recorded_ingestion_availability",
+            "training_support": {
+              "local_dates": 3,
+              "pairs": 1052,
+              "targets": 53
+            }
+          },
+          {
+            "actual_completed_at": "2026-10-22T23:24:43.608445+00:00",
+            "admission_sha256": "d08f2fda6b17582877587b5aca3e6bcd26eda4f6e9e7471fa9f26fdf865e7faf",
+            "artifact": {
+              "artifact_sha256": "23dc473be4c44beeae1d99aa2a66cf0cc2a4406fdba77d54af0e893bd90a3004",
+              "bundle_sha256": "e9818fff81a28fdcd06f05b1aa11910220c2e63e6ea80eeb4c563580e284e2b7"
+            },
+            "bundle_sha256": "e9818fff81a28fdcd06f05b1aa11910220c2e63e6ea80eeb4c563580e284e2b7",
+            "family": "temperature_normal",
+            "kind": "temperature",
+            "lead_scope_hours": [
+              24,
+              72
+            ],
+            "model_sha256": "3176cf23f76b791761f098de028a964f344e8060e89b25569245c4d1db4bbf80",
+            "training_availability_basis": "historical_assumed_availability",
+            "training_support": {
+              "local_dates": 12,
+              "pairs": 2173,
+              "targets": 275
+            }
+          },
+          {
+            "actual_completed_at": "2026-10-22T23:24:44.532780+00:00",
+            "admission_sha256": "82eda1aec0bf2d49573452d5df108f896716453add577e88df1e21bce57b85e0",
+            "artifact": {
+              "artifact_sha256": "6f69174c3aa25c255862280ceb1d5d726c98dded04f702e970182d516859e2d1",
+              "bundle_sha256": "a781a7b0f651c302351b4fb530cd23f8e0a999fa1582e8f22eb2ff5aabcacc31"
+            },
+            "bundle_sha256": "a781a7b0f651c302351b4fb530cd23f8e0a999fa1582e8f22eb2ff5aabcacc31",
+            "family": "temperature_normal",
+            "kind": "temperature",
+            "lead_scope_hours": [
+              72,
+              168
+            ],
+            "model_sha256": "470980898b70f90c8f788eea01a96233935230e9dc4de8c4f5e46019b5f72dc9",
+            "training_availability_basis": "historical_assumed_availability",
+            "training_support": {
+              "local_dates": 12,
+              "pairs": 4400,
+              "targets": 275
+            }
+          },
+          {
+            "actual_completed_at": "2026-10-22T23:24:46.229371+00:00",
+            "admission_sha256": "6b6532f34be9f16dd5d0ee26fe1a5871c6af39e53697bb2e9b4def8ae08dae91",
+            "artifact": {
+              "artifact_sha256": "933ed9c0a0141b55ccd9a62c30e874452aefb28d682d6c973981cee9b2e372ab",
+              "bundle_sha256": "5674e940790e592f701660e083bce9413cda2a458976020ca39f987d61c2488b"
+            },
+            "bundle_sha256": "5674e940790e592f701660e083bce9413cda2a458976020ca39f987d61c2488b",
+            "family": "temperature_normal",
+            "kind": "temperature",
+            "lead_scope_hours": [
+              168,
+              336
+            ],
+            "model_sha256": "83e334e750dc2f78a38b85f7611e718b117bea55c21085a685d260a5adac0eb1",
+            "training_availability_basis": "historical_assumed_availability",
+            "training_support": {
+              "local_dates": 12,
+              "pairs": 7700,
+              "targets": 275
+            }
+          }
+        ],
+        "artifact_set_sha256": "a0853aeb21aebdc5143d4b5cc9c62bca1627bda4c20720c8bb67a1f9ef6af2a7",
+        "prepared": true
       },
       "consumers": [
         "Forecast_10Day_JSON",
@@ -31,7 +123,6 @@
         "Home and Weather details"
       ],
       "remaining": [
-        "Rebuild current recorded-availability cohorts; fit and retain new actual-time bundles.",
         "Implement the production publisher/reader contract with explicit point/marginal provenance and original decision clocks.",
         "Activate the reviewed per-cohort admissions and score actual issued predictions after maturity."
       ],
@@ -56,7 +147,99 @@
         "target": "Temperature forcing for read-only thermal predictions, separate from measurement truth.",
         "artifact_sha256": null,
         "production_admission_sha256": null,
-        "installed": false
+        "installed": false,
+        "prepared_models_by_lead": [
+          {
+            "actual_completed_at": "2026-10-22T23:24:43.099916+00:00",
+            "admission_sha256": "756c0c9b6f1d36a79fed1d7282ced33cf9e66cec10bd19060730829aa9b52428",
+            "artifact": {
+              "artifact_sha256": "887e9488e3fec5ca0dee662af1739b7afcdda8e5736b6ffc63432bb805ede96b",
+              "bundle_sha256": "e19159ddc4e18fba2d9daae0b5e25833912a85277f57e94400cfa44221c82354"
+            },
+            "bundle_sha256": "e19159ddc4e18fba2d9daae0b5e25833912a85277f57e94400cfa44221c82354",
+            "family": "temperature_normal",
+            "kind": "temperature",
+            "lead_scope_hours": [
+              0,
+              24
+            ],
+            "model_sha256": "d534cf1f73e67d74fa10ecbf9f1fee62b3ac1eac31ada91ca0c3dbede84813c9",
+            "training_availability_basis": "recorded_ingestion_availability",
+            "training_support": {
+              "local_dates": 3,
+              "pairs": 1052,
+              "targets": 53
+            }
+          },
+          {
+            "actual_completed_at": "2026-10-22T23:24:43.608445+00:00",
+            "admission_sha256": "d08f2fda6b17582877587b5aca3e6bcd26eda4f6e9e7471fa9f26fdf865e7faf",
+            "artifact": {
+              "artifact_sha256": "23dc473be4c44beeae1d99aa2a66cf0cc2a4406fdba77d54af0e893bd90a3004",
+              "bundle_sha256": "e9818fff81a28fdcd06f05b1aa11910220c2e63e6ea80eeb4c563580e284e2b7"
+            },
+            "bundle_sha256": "e9818fff81a28fdcd06f05b1aa11910220c2e63e6ea80eeb4c563580e284e2b7",
+            "family": "temperature_normal",
+            "kind": "temperature",
+            "lead_scope_hours": [
+              24,
+              72
+            ],
+            "model_sha256": "3176cf23f76b791761f098de028a964f344e8060e89b25569245c4d1db4bbf80",
+            "training_availability_basis": "historical_assumed_availability",
+            "training_support": {
+              "local_dates": 12,
+              "pairs": 2173,
+              "targets": 275
+            }
+          },
+          {
+            "actual_completed_at": "2026-10-22T23:24:44.532780+00:00",
+            "admission_sha256": "82eda1aec0bf2d49573452d5df108f896716453add577e88df1e21bce57b85e0",
+            "artifact": {
+              "artifact_sha256": "6f69174c3aa25c255862280ceb1d5d726c98dded04f702e970182d516859e2d1",
+              "bundle_sha256": "a781a7b0f651c302351b4fb530cd23f8e0a999fa1582e8f22eb2ff5aabcacc31"
+            },
+            "bundle_sha256": "a781a7b0f651c302351b4fb530cd23f8e0a999fa1582e8f22eb2ff5aabcacc31",
+            "family": "temperature_normal",
+            "kind": "temperature",
+            "lead_scope_hours": [
+              72,
+              168
+            ],
+            "model_sha256": "470980898b70f90c8f788eea01a96233935230e9dc4de8c4f5e46019b5f72dc9",
+            "training_availability_basis": "historical_assumed_availability",
+            "training_support": {
+              "local_dates": 12,
+              "pairs": 4400,
+              "targets": 275
+            }
+          },
+          {
+            "actual_completed_at": "2026-10-22T23:24:46.229371+00:00",
+            "admission_sha256": "6b6532f34be9f16dd5d0ee26fe1a5871c6af39e53697bb2e9b4def8ae08dae91",
+            "artifact": {
+              "artifact_sha256": "933ed9c0a0141b55ccd9a62c30e874452aefb28d682d6c973981cee9b2e372ab",
+              "bundle_sha256": "5674e940790e592f701660e083bce9413cda2a458976020ca39f987d61c2488b"
+            },
+            "bundle_sha256": "5674e940790e592f701660e083bce9413cda2a458976020ca39f987d61c2488b",
+            "family": "temperature_normal",
+            "kind": "temperature",
+            "lead_scope_hours": [
+              168,
+              336
+            ],
+            "model_sha256": "83e334e750dc2f78a38b85f7611e718b117bea55c21085a685d260a5adac0eb1",
+            "training_availability_basis": "historical_assumed_availability",
+            "training_support": {
+              "local_dates": 12,
+              "pairs": 7700,
+              "targets": 275
+            }
+          }
+        ],
+        "artifact_set_sha256": "a0853aeb21aebdc5143d4b5cc9c62bca1627bda4c20720c8bb67a1f9ef6af2a7",
+        "prepared": true
       },
       "consumers": [
         "household cycle",
@@ -86,14 +269,105 @@
         "target": "Local station hourly mean wind, not a native instantaneous wind or turbine/gust target.",
         "artifact_sha256": null,
         "production_admission_sha256": null,
-        "installed": false
+        "installed": false,
+        "prepared_models_by_lead": [
+          {
+            "actual_completed_at": "2026-10-22T23:24:48.210138+00:00",
+            "admission_sha256": "a9b71e280594e2eeb2cbb1cc20f20a2f7b05dcc518c26a89a1cae65d49c57dac",
+            "artifact": {
+              "artifact_sha256": "3c12a79c16ca13995aed95bbefb90e1ce4c13e11fcf4bf3909fe607f218498bd",
+              "bundle_sha256": "f3069a915db4da11af558fb98450d9dd27d12a1cc2a144fb124e66dd0e1d73c9"
+            },
+            "bundle_sha256": "f3069a915db4da11af558fb98450d9dd27d12a1cc2a144fb124e66dd0e1d73c9",
+            "family": "nonnegative",
+            "kind": "wind",
+            "lead_scope_hours": [
+              0,
+              24
+            ],
+            "model_sha256": "faf12d1e9f7535d04f6fd595f9d121df17494317365bf65461a53795ae09477c",
+            "training_availability_basis": "historical_assumed_availability",
+            "training_support": {
+              "local_dates": 25,
+              "pairs": 1208,
+              "targets": 307
+            }
+          },
+          {
+            "actual_completed_at": "2026-10-22T23:24:48.788036+00:00",
+            "admission_sha256": "6508ad02d37ea49451c0e0da64c163df119f88eced11283d6d997ef00cf71d8a",
+            "artifact": {
+              "artifact_sha256": "b4529959502e43f06c1ce722ad8c32b8c1f0c5c37c9c31ed5191dc3d96868a60",
+              "bundle_sha256": "973931d6c77bde44fc9a4d0c5582615e5b5745961b3a64ae3f1e9231a1cc6611"
+            },
+            "bundle_sha256": "973931d6c77bde44fc9a4d0c5582615e5b5745961b3a64ae3f1e9231a1cc6611",
+            "family": "nonnegative",
+            "kind": "wind",
+            "lead_scope_hours": [
+              24,
+              72
+            ],
+            "model_sha256": "f1399face7156b8b4bfff9925548dc64b371e84b69d8eed9afee839d1e780731",
+            "training_availability_basis": "historical_assumed_availability",
+            "training_support": {
+              "local_dates": 26,
+              "pairs": 2535,
+              "targets": 320
+            }
+          },
+          {
+            "actual_completed_at": "2026-10-22T23:24:49.836835+00:00",
+            "admission_sha256": "dfa3655cb2bafd922e3a22cfb6620ac5a3eb5b638ad301bb96690ab05eaef9ab",
+            "artifact": {
+              "artifact_sha256": "a9f75b9a9fd1c90425885a82451f2643378daccba7e45132290fbf370a604461",
+              "bundle_sha256": "1a08780d38983896f7edba6b340dd394aa9e251214b147461e857f863aa119cd"
+            },
+            "bundle_sha256": "1a08780d38983896f7edba6b340dd394aa9e251214b147461e857f863aa119cd",
+            "family": "nonnegative",
+            "kind": "wind",
+            "lead_scope_hours": [
+              72,
+              168
+            ],
+            "model_sha256": "9917e37390e8a1f4d0f51036849e773f814553271650f7d6536cab0212b37ffe",
+            "training_availability_basis": "historical_assumed_availability",
+            "training_support": {
+              "local_dates": 26,
+              "pairs": 5024,
+              "targets": 320
+            }
+          },
+          {
+            "actual_completed_at": "2026-10-22T23:24:51.635127+00:00",
+            "admission_sha256": "bc3b9f2b1c670c3525c82845fabfad417308d348d01f818cbbe29cf1bbbf45d1",
+            "artifact": {
+              "artifact_sha256": "bf5704dddd2574c621dd012abcf0c08fc4d778844cba63d5da96dc6d7dae35f0",
+              "bundle_sha256": "6ba1c6dd2067a8446462ae101c2d876aa36ed95b24f063102eb9e73b734380fe"
+            },
+            "bundle_sha256": "6ba1c6dd2067a8446462ae101c2d876aa36ed95b24f063102eb9e73b734380fe",
+            "family": "nonnegative",
+            "kind": "wind",
+            "lead_scope_hours": [
+              168,
+              336
+            ],
+            "model_sha256": "826ac575586f9d68cc5f2d8b94e88657abf8dad0ea7c9f1df87727664f62c672",
+            "training_availability_basis": "historical_assumed_availability",
+            "training_support": {
+              "local_dates": 26,
+              "pairs": 7724,
+              "targets": 320
+            }
+          }
+        ],
+        "artifact_set_sha256": "090e56af52a6a1e9be164b273376faf5eb93061e8f8b9688a699de456bcf92f3",
+        "prepared": true
       },
       "consumers": [
         "local wind display/product",
         "original-issued wind evaluator"
       ],
       "remaining": [
-        "Retain current original cohort and actual-time fit.",
         "Integrate the new production hourly-target product and consumer.",
         "Register/read back source-bound admission and natural emitted prediction."
       ],
@@ -198,5 +472,6 @@
   "before_capture_manifest_sha256": "72e90c3085dfabefadf7d81f81000c0165e56498b1f94a3707411c88bb9b97f0",
   "automatic_actuation": false,
   "additional_cloud_collection_authorized": false,
-  "historical_retraining_requirement": "Existing marginal candidate bundles accept recorded-ingestion cohorts only. Implement an explicit current-time production training contract for available historical evidence where needed; preserve original historical/operational availability classes and original experiment conclusions. Do not flip retrospective/shadow flags on old artifacts."
+  "historical_retraining_requirement": "Implemented actual-time production training with unchanged original availability classes. Eight selected temperature/wind cohort fits and literal source/training capsules are retained; activation and remaining dependent PV/thermal refits are pending.",
+  "prepared_temperature_wind_fit_evidence": "production-retraining-results.json"
 }

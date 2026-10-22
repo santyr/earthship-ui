@@ -172,5 +172,10 @@
         "median_source": "local_model_generated"
       }
     }
-  ]
+  ],
+  "producer_numerical_versions": {
+    "numpy": "1.26.4",
+    "scipy": "1.11.4",
+    "scope": "Original synthetic golden generated before refactor; the shared math also passes under the supported ML profile."
+  }
 }
