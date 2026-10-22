@@ -33,6 +33,14 @@ def test_short_interval_spike_return_does_not_rebase_to_bad_value():
  assert bad.status=='withheld' and back.delta_in==0 and state.baseline==100.
 
 
+def test_pre_gap_spike_cannot_confirm_a_post_gap_baseline():
+ state=tracker();observe(state,100.,0)
+ assert observe(state,101.,112).status=='withheld'
+ assert observe(state,101.,128).status=='withheld'
+ assert state.baseline==100.
+ assert observe(state,101.,144).status=='recovered'
+
+
 def test_consistent_hardware_reset_starts_a_new_phase_without_assigning_negative_rain():
  state=tracker();observe(state,100.,0);observe(state,0.,16);recovered=observe(state,0.01,32)
  assert recovered.status=='recovered' and recovered.delta_in is None and recovered.new_phase is True
