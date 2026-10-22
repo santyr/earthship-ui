@@ -239,3 +239,26 @@ class MonitoringTests(unittest.TestCase):
         self.assertTrue({r['score_sha256'] for r in first['temperature']['pair_manifest']}<=
                         {r['score_sha256'] for r in recovered['temperature']['pair_manifest']})
         self.temperature.assert_not_called()
+
+    def test_refresh_capability_and_correction_labels_share_global64_budget(self):
+        refresh=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit']))
+        capabilities=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit']))
+        corrections=Mock(return_value=dict(status='test'))
+        self.run_monitor(now=T+timedelta(days=2),read_refresh=refresh,read_capabilities=capabilities,read_corrections=corrections)
+        legacy=self.solar.call_count+self.rain.call_count
+        temperatures=sum(len(call.args[0]) for call in self.temperature.call_args_list)
+        total=legacy+temperatures+refresh.call_args.kwargs['limit']+capabilities.call_args.kwargs['limit']+corrections.call_args.kwargs['limit']
+        self.assertLessEqual(total,64);self.assertLessEqual(refresh.call_args.kwargs['limit'],8)
+
+    def test_optional_refresh_failure_preserves_core_scores_and_reservation(self):
+        refresh=Mock(side_effect=ConnectionError('private optional details'))
+        corrections=Mock(return_value=dict(status='test'))
+        report=self.run_monitor(read_refresh=refresh,read_corrections=corrections)
+        self.assertEqual(report['temperature']['raw']['pairs'],2)
+        self.assertTrue(any(w['kind']=='refresh' for w in report['source_withheld']))
+        self.assertNotIn('private optional details',str(report))
+        self.assertLessEqual(corrections.call_args.kwargs['limit'],64-2-8)
+
+    def test_refresh_resource_deadline_is_a_global_stop(self):
+        with self.assertRaises(TimeoutError):
+            self.run_monitor(read_refresh=Mock(side_effect=TimeoutError('deadline')))

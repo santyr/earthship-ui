@@ -48,7 +48,14 @@
     {
       "id": "WN-07",
       "requirement": "Measure actual hourly refresh value and separately identify near-term correction",
-      "owning_tasks": "6"
+      "owning_tasks": "6",
+      "status": "implemented_locally_actual_refresh_measured_near24_source_bound_not_deployed",
+      "evidence": [
+        "refresh-cadence.md",
+        "refresh-experiment.json",
+        "near24-compatibility.json",
+        "task6-verification.json"
+      ]
     },
     {
       "id": "WN-08",
@@ -223,8 +230,27 @@
       "task": 6,
       "title": "Evaluate actual hourly updates and a near-term correction profile",
       "gate": "the project can measure whether hourly refresh helps the forecasts it actually serves. New near-term corrections have independent identity, fallback, source binding, and evidence; an interim source cannot corrupt extended products.",
-      "status": "planned_not_executed",
-      "steps": 6
+      "status": "complete_locally_incumbents_retained_not_deployed",
+      "steps": 6,
+      "remaining": [],
+      "production_installed": false,
+      "evidence": [
+        "refresh-cadence.md",
+        "refresh-evaluation-protocol.json",
+        "refresh-experiment.json",
+        "near24-compatibility.json",
+        "task6-verification.json"
+      ],
+      "tests": {
+        "backend_passed": 555,
+        "normal_sdk_profile_skips": 4,
+        "backend_subtests": 163,
+        "actual_publications": 49,
+        "durable_targets": 1519,
+        "qualified_score_pairs": 375,
+        "qualified_targets": 26,
+        "qualified_local_dates": 2
+      }
     },
     {
       "task": 7,

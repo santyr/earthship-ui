@@ -105,9 +105,20 @@ def main(argv=None):
             def capability_reader(*,now,limit,apply,guard):
                 return monitor_capabilities(state,now=now,sensor_epoch=epoch,observation_policy_sha256=policy_sha256,
                     read_temperature=temperatures,limit=limit,apply=apply,guard=guard)
+        refresh_reader=None
+        from .refresh_queue import DATABASE as REFRESH_DATABASE,monitor_refresh,captured_refresh_outcomes
+        if (state.root/REFRESH_DATABASE).exists():
+            def refresh_reader(*,now,limit,apply,guard):
+                def outcomes(targets,assessed):
+                    return captured_refresh_outcomes(state,targets,assessed_at=assessed,sensor_epoch=epoch,
+                        observation_policy_sha256=policy_sha256,read_temperature=temperatures,apply=apply,
+                        clock=lambda:datetime.now(timezone.utc))
+                return monitor_refresh(state,archive=archive,site=site,now=now,sensor_epoch=epoch,
+                    observation_policy_sha256=policy_sha256,read_outcomes=outcomes,limit=limit,apply=apply,guard=guard,
+                    clock=lambda:datetime.now(timezone.utc))
         with collector_lock(state.root/'monitor.lock'):
             report=monitor_once(archive,state,now=datetime.now(timezone.utc),site=site,sensor_epoch=epoch,code_revision=args.code_revision,
-                observation_policy_sha256=policy_sha256,read_temperature=temperatures,read_solar=solar,read_rain=rainfall,apply=args.apply,guard=guard,read_corrections=corrections,read_capabilities=capability_reader)
+                observation_policy_sha256=policy_sha256,read_temperature=temperatures,read_solar=solar,read_rain=rainfall,apply=args.apply,guard=guard,read_corrections=corrections,read_capabilities=capability_reader,read_refresh=refresh_reader)
         print(json.dumps(dict(status='weather_performance_refreshed' if args.apply else 'weather_performance_prepared',
             temperature_pairs=0 if report['temperature']['raw'] is None else report['temperature']['raw']['pairs'],
             solar_pairs=len(report['solar']['pairs']),rain_days=len(report['rain']['pairs']),pending=report['pending'],

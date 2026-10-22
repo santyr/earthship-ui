@@ -28,9 +28,12 @@ RELEASE_FIELDS={'schema','provider','decision','reviewed_at','reviewed_by','code
     'site','horizon_hours','weather_lineage','automatic_actuation','gates','item_ownership_sha256'}
 SOURCE_FILES=tuple('openhab/scripts/weather_learning/'+name+'.py' for name in (
     '__init__','archive','config','contracts','evidence','features','normalize','provider',
-    'weathernext_ee','transport','production_publish','production_runtime','production_worker'))+tuple(
+    'weathernext_ee','transport','production_publish','production_runtime','production_worker',
+    'refresh_runtime','refresh_queue','refresh_scoring','refresh_evaluation','near_term_correction',
+    'historical_serving','site_calibration','historical_pairs','weather_response','weights','publish','shadow','training','provenance','worker'))+tuple(
     'openhab/scripts/'+name+'.py' for name in ('weather_publish','weather_source_files',
-    'openhab_runtime_io','astro_forecast_context','household_cycle_resources','household_job_run','household_job_launch',
+    'openhab_runtime_io','astro_forecast_context','hourly_temperature_runtime','daily_temperature_runtime',
+    'weather_temperature_config','weather_temperature_history','weather_temperature_reader','weather_temperature_evidence','household_cycle_resources','household_job_run','household_job_launch',
     'household_job_start','household_job_pool','household_job_budget','thermal_model/__init__',
     'thermal_model/capture_guard'))+('scripts/run-household-job.py',
     'deploy/weathernext-publish.service','deploy/weathernext-publish.timer')
@@ -199,7 +202,7 @@ class Admission:
 
 
 def run_worker(config_path,*,publish=False,guard=None,unit_reader=incumbent_units,
-        transport=None,clock=lambda:datetime.now(timezone.utc)):
+        transport=None,clock=lambda:datetime.now(timezone.utc),near_term_config_path=None):
     if type(publish) is not bool:raise ValueError('explicit publication mode required')
     if guard is None:
         from household_cycle_resources import publication_resource_preflight
@@ -212,6 +215,7 @@ def run_worker(config_path,*,publish=False,guard=None,unit_reader=incumbent_unit
     if type(transport) is not ProductionTransport or transport.base!=settings['openhab_base']:
         raise ValueError('exact configured state-only transport required')
     archive=Archive.open_readonly(_path(settings['archive']));astro_source=None
+    near_runtime=None;near_profile_status='NOT_REQUESTED'
     with SharedScoreLock(settings['shared_lock']):
         regional=_json(transport._request('/services/org.openhab.i18n/config',before_request=admission.verify))
         site=Site.from_openhab_config(regional)
@@ -236,6 +240,15 @@ def run_worker(config_path,*,publish=False,guard=None,unit_reader=incumbent_unit
             except (ValueError,TypeError,OverflowError):
                 pass
         admission.verify()
-    return run_publication(archive=archive,site=site,evidence_directory=settings['evidence_directory'],
+        if near_term_config_path is not None:
+            try:
+                from .refresh_runtime import from_config
+                near_runtime=from_config(near_term_config_path,archive=archive,site=site,clock=clock,guard=admission.verify)
+                near_profile_status='CONFIGURED'
+            except Exception:near_profile_status='UNAVAILABLE'
+    optional={} if near_runtime is None else dict(near_term_preparer=near_runtime.prepare,refresh_retainer=near_runtime.retain)
+    result=run_publication(archive=archive,site=site,evidence_directory=settings['evidence_directory'],
         shared_lock=settings['shared_lock'],code_revision=settings['code_revision'],transport=transport,
-        authorize=admission.verify,guard=guard,clock=clock,astro_source=astro_source,admission_sha256=admission.admission_sha256)
+        authorize=admission.verify,guard=guard,clock=clock,astro_source=astro_source,admission_sha256=admission.admission_sha256,**optional)
+    if near_term_config_path is not None:result['near_term_profile_status']=near_profile_status
+    return result

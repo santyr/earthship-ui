@@ -1,6 +1,6 @@
 {
   "schema": "earthship-refresh-experiment-summary/v1",
-  "status": "insufficient_evidence_task6_in_progress",
+  "status": "insufficient_evidence_task6_locally_implemented",
   "experiment_sha256": "1c287a55b05fe70476a6874917ae555202b2edd7e96911de55134348d3878453",
   "experiment_file_sha256": "8f7dc7dd22eeec9b73f1c477095a11438f4a009f341fe90da48cee7dbe463883",
   "dataset_sha256": "e8da31b624f3aafe008d689827f221fa1babab9bf276e8a8eb4b360439c52e75",
@@ -4072,10 +4072,7 @@
   "release_authorized": false,
   "automatic_actuation": false,
   "disposition": "retain all current serving and correction policies;26targets on2localdates do not satisfy3date gate",
-  "task6_remaining": [
-    "durable bounded profile-decision and score queue",
-    "prospective source-bound correction integration",
-    "long-horizon maturity/restart verification"
-  ],
-  "summary_sha256": "49c8d24769e726ea1ad8a74d4e3b92f507e4773c220465636b4b8e293d7baae5"
+  "task6_remaining": [],
+  "deployment_and_compatibility_owner": "Task11; no installation or source/model migration claimed",
+  "summary_sha256": "c8220c386463ca648dd521bedd6e6b2dbc727fdc1b5d2b904952ee29d8206f5a"
 }

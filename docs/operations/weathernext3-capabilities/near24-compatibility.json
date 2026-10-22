@@ -1,0 +1,18 @@
+{
+  "schema": "earthship-near24-compatibility-disposition/v1",
+  "status": "selected_model_rejected_source_runtime_mismatch",
+  "model_sha256": "ed95b1866cd2d33a15c2c9d043a05d53370b8a3503ea5c991be4995ca822327f",
+  "selection_sha256": "8e5cb3dc3a743ef50adcfbb131eaf668cad30b25268d7dc8dc48ddee453e2ba0",
+  "source_mismatches": [
+    {
+      "path": "openhab/scripts/weather_learning/site_calibration.py",
+      "selected_original_sha256": "6b4d8d3aae1626a595e2703aac7672713aef91849c757c6a0acb414d81692485",
+      "current_sha256": "c832413226b1305354291dc20ab206adfc650b5f0a4af9ea4a5924faf6dedff8"
+    }
+  ],
+  "fallback": "raw_native_near24",
+  "existing_installed_model_and_consumer_changed": false,
+  "source_checks_bypassed": false,
+  "next_owner": "Task11 compatibility staging; no implicit fitted-model or source migration",
+  "automatic_actuation": false
+}

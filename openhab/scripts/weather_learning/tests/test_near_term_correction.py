@@ -145,3 +145,25 @@ def test_missing_same_source_origin_bracket_does_not_borrow_extended_origin(cont
     assert value['hours'][0]['raw_c']==30
     assert value['status']=='RAW_FALLBACK'
     assert value['reason']=='ORIGIN_UNAVAILABLE'
+
+
+def test_near_correction_retains_original_selected_bytes_and_replays_after_pointer_changes(context):
+    args,_,_=context
+    record=api()(**args)
+    value=record.to_dict()
+    assert value['selected_originals']['selection_utf8']==args['selection_path'].read_text()
+    args['selection_path'].write_text('{}')
+    from weather_learning.near_term_correction import replay_near_correction
+    assert replay_near_correction(record,archive=args['archive'],site=SITE).to_dict()==value
+
+
+def test_rehashed_local_correction_cannot_replace_frozen_original_model_prediction(context):
+    args,_,_=context
+    value=api()(**args).to_dict()
+    assert value.get('selected_originals'), 'selected model originals must be retained for replay'
+    value['hours'][0]['local_c']+=1;value['hours'][0]['selected_c']+=1
+    from weather_learning.refresh_evaluation import _freeze
+    value.pop('record_sha256')
+    from weather_learning.near_term_correction import replay_near_correction
+    with pytest.raises(ValueError,match='original'):
+        replay_near_correction(_freeze(value),archive=args['archive'],site=SITE)

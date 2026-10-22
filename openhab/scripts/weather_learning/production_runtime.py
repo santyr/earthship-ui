@@ -117,7 +117,8 @@ def _capacity(root,check):
 
 def run_publication(*,archive,site,evidence_directory,shared_lock,code_revision,transport,
         authorize=None,guard,clock=lambda:datetime.now(timezone.utc),
-        required_horizon=timedelta(hours=336),astro_source=None,admission_sha256=None):
+        required_horizon=timedelta(hours=336),astro_source=None,admission_sha256=None,
+        near_term_preparer=None,refresh_retainer=None):
     """Publish only after held-lock, release, source and Item-owner admission.
 
     The result records state readbacks, not a JDBC delivery receipt or scientific
@@ -130,6 +131,9 @@ def run_publication(*,archive,site,evidence_directory,shared_lock,code_revision,
         raise ValueError('explicit Google runtime and release admission required')
     if admission_sha256 is not None and (not isinstance(admission_sha256,str) or re.fullmatch('[a-f0-9]{64}',admission_sha256) is None):
         raise ValueError('original production admission digest required')
+    optional=near_term_preparer is not None or refresh_retainer is not None
+    if optional and (not callable(near_term_preparer) or not callable(refresh_retainer)):
+        raise ValueError('paired optional near24 preparation/retention required')
     root=_directory(pathlib.Path(evidence_directory));decision=utc(clock())
     with SharedScoreLock(shared_lock) as held:
         guard();held.verify()
@@ -142,6 +146,15 @@ def run_publication(*,archive,site,evidence_directory,shared_lock,code_revision,
             if not decision<=now<=decision+timedelta(seconds=85):raise ValueError('publication lifetime elapsed')
             if authorize(provider) is not True:raise ValueError('qualified writer admission refused')
         check();states=production_states(provider,now=decision);_capacity(root,check)
+        near=None;near_status='NOT_REQUESTED'
+        if optional:
+            try:
+                near=near_term_preparer(decision,provider)
+                from .refresh_evaluation import RefreshRecord
+                if not isinstance(near,RefreshRecord) or near.to_dict()['decision_at']!=decision.isoformat():
+                    raise ValueError('exact decision-bound near24 preparation required')
+                near_status='PREPARED'
+            except Exception:near=None;near_status='UNAVAILABLE'
         attempt_path,attempt=_persist(root,dict(schema='earthship-weather-publication-attempt/v1',
             started_at=decision.isoformat(),code_revision=code_revision,admission_sha256=admission_sha256,provider=provider.to_dict(),
             states=states,states_sha256=identity(states),release_authorized=False,automatic_actuation=False),'attempt')
@@ -172,6 +185,15 @@ def run_publication(*,archive,site,evidence_directory,shared_lock,code_revision,
             attempt_sha256=attempt['attempt_sha256'],status=status,completed_at=utc(clock()).isoformat(),
             ownership_sha256=ownership,publication=publication,failure_kind=failure,failed_item=failed_item,
             release_authorized=False,automatic_actuation=False),'result')
-    return dict(status=status,attempt_path=str(attempt_path),result_path=str(result_path),
+        refresh_status='NOT_PUBLISHED'
+        if optional and status=='PUBLISHED':
+            try:
+                refresh_status=refresh_retainer(attempt,result,near)
+                if refresh_status not in ('retained_candidate','retained_raw_only','retained_historical_only'):
+                    raise ValueError('explicit optional refresh retention result required')
+            except Exception:refresh_status='UNAVAILABLE'
+    outcome=dict(status=status,attempt_path=str(attempt_path),result_path=str(result_path),
         attempt_sha256=attempt['attempt_sha256'],result_sha256=result['result_sha256'],
         release_authorized=False,automatic_actuation=False)
+    if optional:outcome.update(refresh_status=refresh_status,near_term_preparation_status=near_status)
+    return outcome
