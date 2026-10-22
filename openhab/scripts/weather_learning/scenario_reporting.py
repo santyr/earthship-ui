@@ -13,7 +13,7 @@ ROOT=Path(__file__).resolve().parents[3]
 MAX_BYTES=16*1024**2
 CACHE='scenario-advisory.json'
 FIELDS={'schema','inputs','runtime','output','report_sha256'}
-INPUTS={'forcing','policy','blocks','cohort_sha256','household_inputs','prepared_at'}
+INPUTS={'forcing','policy','blocks','cohort_sha256','household_inputs','prepared_at','owned_sources'}
 HOUSEHOLD={'positions','array','horizon_profile','initial_soc_pct','nominal_bank_kwh','load_ac_w','thermal_context'}
 
 
@@ -45,12 +45,22 @@ def _check_runtime(runtime):
 
 def _build(inputs,runtime,guard):
     if not isinstance(inputs,dict) or set(inputs)!=INPUTS or not isinstance(inputs['household_inputs'],dict) or set(inputs['household_inputs'])!=HOUSEHOLD:raise ValueError('closed original scenario inputs required')
+    if inputs['owned_sources'] is not None:
+        original=inputs['owned_sources']
+        if not isinstance(original,dict) or set(original)!={'energy','plan'}:raise ValueError('closed owned energy/plan originals required')
+        from .scenario_worker import prepare_owned_inputs
+        expected=prepare_owned_inputs(**original,guard=guard)
+        if canonical(expected)!=canonical({k:inputs[k] for k in ('forcing','household_inputs')}):raise ValueError('scenario forcing/household inputs differ from original owned sources')
     policy=_policy(inputs['policy']);forcing=inputs['forcing'];origin=instant(forcing['origin']);prepared=instant(inputs['prepared_at'])
     if prepared<max(origin,instant(forcing['captured_at'])):raise ValueError('scenario prepared before source/origin availability')
     guard();stress=stress_cases(forcing=forcing,policy=policy)
     blocks=[ResidualBlock(canonical(b)) for b in inputs['blocks']]
     joint=joint_scenarios(forcing=forcing,blocks=blocks,cohort_sha256=inputs['cohort_sha256'],policy=policy,guard=guard)
-    household=inputs['household_inputs'];stress_projections=[propagate(s,**household,guard=guard) for s in stress]
+    household=dict(inputs['household_inputs'])
+    if isinstance(household['thermal_context'],dict):
+        from .native_scenarios import SCHEMA as NATIVE_SCHEMA,restore_native_context
+        if household['thermal_context'].get('schema')==NATIVE_SCHEMA:household['thermal_context']=restore_native_context(household['thermal_context'],guard=guard)
+    stress_projections=[propagate(s,**household,guard=guard) for s in stress]
     joint_projections=[propagate(s,**household,guard=guard) for s in joint['scenarios']]
     joint={k:v for k,v in joint.items() if k!='scenarios'};joint['projections']=joint_projections
     output=dict(stress=stress_projections,joint=joint,uncertainty_scope=policy['uncertainty_scope'],probability_claim=False,automatic_actuation=False)
@@ -70,9 +80,9 @@ class ScenarioReport:
     def to_dict(self):return json.loads(self.content)
 
 
-def prepare_report(*,forcing,policy,blocks,cohort_sha256,household_inputs,prepared_at,guard=lambda:None):
+def prepare_report(*,forcing,policy,blocks,cohort_sha256,household_inputs,prepared_at,owned_sources=None,guard=lambda:None):
     if not isinstance(blocks,list) or len(blocks)>10000 or any(type(b) is not ResidualBlock for b in blocks):raise ValueError('bounded original residual templates required')
-    inputs=dict(forcing=forcing,policy=policy,blocks=[b.to_dict() for b in blocks],cohort_sha256=cohort_sha256,household_inputs=household_inputs,prepared_at=prepared_at.isoformat())
+    inputs=dict(forcing=forcing,policy=policy,blocks=[b.to_dict() for b in blocks],cohort_sha256=cohort_sha256,household_inputs=household_inputs,prepared_at=prepared_at.isoformat(),owned_sources=owned_sources)
     runtime=_runtime();guard();record=_build(inputs,runtime,guard);_check_runtime(runtime);guard()
     return ScenarioReport(canonical(record))
 
@@ -90,7 +100,7 @@ def public_view(report,*,guard=lambda:None):
     expiry=min(origin+timedelta(hours=2),end,instant(forcing['issued_at'])+timedelta(hours=24))
     def row(projection):
         thermal=projection['thermal'];storage=projection['nominal_storage']
-        return dict(name=projection['recipe']['name'],scenario_sha256=projection['scenario_sha256'],potential_pv_kwh=projection['pv']['potential_pv_kwh'],modeled_captured_pv_kwh=storage['modeled_captured_pv_kwh'],minimum_nominal_soc_pct=projection['minimum_nominal_soc_pct'],indoor_air_f=thermal['indoor_air_f'],north_wall_f=thermal['north_wall_f'],thermal_status=thermal['status'],thermal_reason=thermal['reason'],pv_method=projection['pv']['model_rule'],solar_source_support=projection['pv']['source_support'],pv_benchmark=projection['pv']['benchmark'],storage_method=storage['model_rule'],trajectory=[dict(at=p['at'],nominal_soc_pct=p['nominal_soc_pct'],cumulative_potential_pv_kwh=p['cumulative_potential_pv_kwh']) for p in storage['trajectory']])
+        return dict(name=projection['recipe']['name'],scenario_sha256=projection['scenario_sha256'],potential_pv_kwh=projection['pv']['potential_pv_kwh'],modeled_captured_pv_kwh=storage['modeled_captured_pv_kwh'],minimum_nominal_soc_pct=projection['minimum_nominal_soc_pct'],indoor_air_f=thermal['indoor_air_f'],north_wall_f=thermal['north_wall_f'],thermal_status=thermal['status'],thermal_reason=thermal['reason'],thermal_method=thermal.get('model_rule',thermal.get('features',{}).get('method')),thermal_input_scope=thermal.get('radiation_input_scope'),thermal_trajectory=[dict(at=p['at'],air_f=p['air_f'],north_wall_f=p['mass_f']) for p in thermal.get('trajectory',[])],pv_method=projection['pv']['model_rule'],solar_source_support=projection['pv']['source_support'],pv_benchmark=projection['pv']['benchmark'],storage_method=storage['model_rule'],trajectory=[dict(at=p['at'],nominal_soc_pct=p['nominal_soc_pct'],cumulative_potential_pv_kwh=p['cumulative_potential_pv_kwh']) for p in storage['trajectory']])
     joint=value['output']['joint'];public_joint={k:joint.get(k) for k in ('status','reason','method','seed','support','construction_refusals')};public_joint['scenario_count']=len(joint['projections'])
     public_joint['ranges']={name:None if not joint['projections'] else dict(min=min(p[name] for p in joint['projections']),max=max(p[name] for p in joint['projections'])) for name in ('minimum_nominal_soc_pct',)}
     view=dict(schema='earthship-weather-scenario-advisory/v1',generated_at=inputs['prepared_at'],origin=forcing['origin'],through=end.isoformat(),valid_until=expiry.isoformat(),source_forecast_sha256=forcing['forecast_sha256'],source_initialized_at=forcing['issued_at'],original_report_sha256=value['report_sha256'],policy_sha256=inputs['policy']['policy_sha256'],status='unqualified_conditional_sensitivity',product='constructed_weather_cases_not_native_members_or_current_serving_selection',stress=[row(p) for p in value['output']['stress']],joint=public_joint,uncertainty_scope=value['output']['uncertainty_scope'],issued_forecast_skill=False,physical_calibration_qualified=False,local_coverage_qualified=False,probability_claim=False,automatic_actuation=False)

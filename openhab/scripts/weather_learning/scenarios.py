@@ -73,8 +73,11 @@ def stress_cases(*,forcing,policy):
     return tuple(ScenarioForcing(canonical(_compile(forcing,recipe,policy))) for recipe in policy['stress_cases'])
 
 
-def _thermal(scenario,context,*,positions,horizon_profile):
+def _thermal(scenario,context,*,positions,horizon_profile,guard=lambda:None):
     if context is None:return dict(status='unavailable',reason='compatible_component_response_model_not_supplied',indoor_air_f=None,north_wall_f=None)
+    from .native_scenarios import NativeScenarioContext,restore_native_context,project_native_scenario,SCHEMA as NATIVE_SCHEMA
+    if isinstance(context,dict) and context.get('schema')==NATIVE_SCHEMA:context=restore_native_context(context,guard=guard)
+    if type(context) is NativeScenarioContext:return project_native_scenario(scenario,context,positions=positions,guard=guard)
     from .thermal_solar_experiment import component_features,predict_response,METHODS
     v=scenario.to_dict();fields={'schema','model','policy','origin_state','available_at'}
     if (not isinstance(context,dict) or set(context)!=fields or context['schema']!='earthship-component-thermal-scenario-context/v1' or
@@ -91,8 +94,10 @@ def propagate(scenario,*,positions,array,horizon_profile,initial_soc_pct,nominal
     v=validate_scenario(scenario);origin=instant(v['origin']);guard()
     pv=project_window_components(array=array,forecast=scenario,positions=positions,start=origin,end=origin+timedelta(hours=v['horizon_hours']),timezone_name=v['site']['timezone'],horizon_profile=horizon_profile)
     guard();storage=simulate_storage(steps=pv['steps'],initial_soc_pct=initial_soc_pct,nominal_bank_kwh=nominal_bank_kwh,load_ac_w=load_ac_w)
-    thermal=_thermal(scenario,thermal_context,positions=positions,horizon_profile=horizon_profile);guard()
-    output=dict(schema='earthship-conditional-weather-scenario-projection/v1',scenario_sha256=v['forecast_sha256'],recipe=v['recipe'],pv=pv,nominal_storage=storage,minimum_nominal_soc_pct=min(initial_soc_pct,*(r['nominal_soc_pct'] for r in storage['trajectory'])),thermal=thermal,uncertainty_scope=v['policy']['uncertainty_scope'],inputs_sha256=identity(dict(positions=positions,array=array,horizon_profile=horizon_profile,initial_soc_pct=initial_soc_pct,nominal_bank_kwh=nominal_bank_kwh,load_ac_w=load_ac_w,thermal_context=thermal_context)),reserve_breach_probability=None,overheating_probability=None,probability_claim=False,physical_calibration_qualified=False,automatic_actuation=False)
+    thermal=_thermal(scenario,thermal_context,positions=positions,horizon_profile=horizon_profile,guard=guard);guard()
+    from .native_scenarios import NativeScenarioContext
+    original_context=thermal_context.to_dict() if type(thermal_context) is NativeScenarioContext else thermal_context
+    output=dict(schema='earthship-conditional-weather-scenario-projection/v1',scenario_sha256=v['forecast_sha256'],recipe=v['recipe'],pv=pv,nominal_storage=storage,minimum_nominal_soc_pct=min(initial_soc_pct,*(r['nominal_soc_pct'] for r in storage['trajectory'])),thermal=thermal,uncertainty_scope=v['policy']['uncertainty_scope'],inputs_sha256=identity(dict(positions=positions,array=array,horizon_profile=horizon_profile,initial_soc_pct=initial_soc_pct,nominal_bank_kwh=nominal_bank_kwh,load_ac_w=load_ac_w,thermal_context=original_context)),reserve_breach_probability=None,overheating_probability=None,probability_claim=False,physical_calibration_qualified=False,automatic_actuation=False)
     output['projection_sha256']=identity(output);return output
 
 
