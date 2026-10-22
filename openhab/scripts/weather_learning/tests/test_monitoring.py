@@ -262,3 +262,28 @@ class MonitoringTests(unittest.TestCase):
     def test_refresh_resource_deadline_is_a_global_stop(self):
         with self.assertRaises(TimeoutError):
             self.run_monitor(read_refresh=Mock(side_effect=TimeoutError('deadline')))
+
+    def test_marginal_refresh_capability_and_legacy_labels_share_global64_budget(self):
+        marginal=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit']))
+        refresh=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit']))
+        capabilities=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit']))
+        corrections=Mock(return_value=dict(status='test'))
+        self.run_monitor(now=T+timedelta(days=2),read_marginals=marginal,read_refresh=refresh,read_capabilities=capabilities,read_corrections=corrections)
+        legacy=self.solar.call_count+self.rain.call_count
+        temperatures=sum(len(call.args[0]) for call in self.temperature.call_args_list)
+        total=legacy+temperatures+marginal.call_args.kwargs['limit']+refresh.call_args.kwargs['limit']+capabilities.call_args.kwargs['limit']+corrections.call_args.kwargs['limit']
+        self.assertLessEqual(total,64);self.assertLessEqual(marginal.call_args.kwargs['limit'],8)
+
+    def test_optional_marginal_partial_failure_consumes_full_reservation(self):
+        marginal=Mock(side_effect=ConnectionError('private marginal details'))
+        corrections=Mock(return_value=dict(status='test'))
+        report=self.run_monitor(read_marginals=marginal,read_corrections=corrections)
+        self.assertEqual(report['temperature']['raw']['pairs'],2)
+        self.assertTrue(any(w['kind']=='marginals' for w in report['source_withheld']))
+        self.assertNotIn('private marginal details',str(report))
+        self.assertLessEqual(corrections.call_args.kwargs['limit'],64-2-8)
+
+    def test_marginal_resource_failure_stops_the_global_monitor(self):
+        for error in (TimeoutError('deadline'),MemoryError('allocation')):
+            with self.subTest(error=type(error).__name__),self.assertRaises(type(error)):
+                self.run_monitor(read_marginals=Mock(side_effect=error))

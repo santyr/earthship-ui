@@ -178,3 +178,38 @@ there is no selected pointer. This preparation is unissued and unqualified, and
 protected configuration/selector bytes are unchanged. Durable emission,
 confirmation/recovery, bounded maturity scoring and monitor/status wiring are
 the next required implementation steps.
+
+
+## Durable shadow issuance and scoring progress
+
+The [durable progress evidence](marginal-durable-progress.json) records a new
+private shadow issue prepared from fresh native origin evidence and confirmed
+at 2026-10-22T03:47:40.637475Z. Its 88 literal raw/local rows are frozen with the
+original six fitted artifacts, training inputs and source bytes. The 24 local
+temperature rows reuse the original fitted values; no refit or selector change
+occurred. Restart readback reconstructs the same original issue and emission.
+The separate index registers 31 fixed future targets. No future label was
+queried or scored, and the installed household cache remains unchanged.
+
+Preparation alone is not issuance. The queue retains original inputs before
+cache publication, confirms actual cache write/readback completion, and preserves
+its emission receipt. Recovery without that receipt uses the actual recovery
+clock and withholds already-past targets from as-issued scoring. Later scoring
+reads saved predictions and literal first-acquired observations, never current
+weights or a regenerated view. Native temperature, qualified reported solar
+proxy and explicitly unqualified numeric wind retain their source meanings.
+The seven-day observation-arrival allowance applies to actual first acquisition;
+later discovery can reuse a timely original capture, including after 336-hour
+maturity. Completed scores survive restart and are not reread. Preview changes
+no retained issue, emission, observation or index bytes.
+
+The optional monitor reserves at most eight labels inside the existing global
+64-label budget. Unknown partial failures consume that reservation; resource
+failures remain global stops. It uses existing restricted local readers and is
+disabled when its separate index is absent. The 64 MiB index and existing shared
+immutable-object cap remain explicit, with no automatic pruning. Current tests
+pass 658 backend cases and 165 subtests; four isolated SDK-profile skips remain
+named. Task 7 still requires the closed optional producer profile, public GET
+status, complete prospective cohort/subgroup report, and remaining capacity and
+fault verification before its completion gate. No household service is enabled
+or changed by this private probe.

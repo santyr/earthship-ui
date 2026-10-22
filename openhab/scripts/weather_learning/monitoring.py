@@ -14,13 +14,13 @@ from .energy_shadow import rain_day_forecast,compare_rain_products,rain_comparis
 
 
 def monitor_once(archive,state,*,now,site,sensor_epoch,code_revision,observation_policy_sha256,
-                 read_temperature,read_solar,read_rain,apply=False,guard=lambda:None,read_corrections=None,read_capabilities=None,read_refresh=None):
+                 read_temperature,read_solar,read_rain,apply=False,guard=lambda:None,read_corrections=None,read_capabilities=None,read_refresh=None,read_marginals=None):
     import tempfile
     from pathlib import Path
     if type(apply) is not bool:raise ValueError('explicit monitor publication required')
     arguments=dict(now=now,site=site,sensor_epoch=sensor_epoch,code_revision=code_revision,
         observation_policy_sha256=observation_policy_sha256,read_temperature=read_temperature,
-        read_solar=read_solar,read_rain=read_rain,apply=apply,guard=guard,read_corrections=read_corrections,read_capabilities=read_capabilities,read_refresh=read_refresh)
+        read_solar=read_solar,read_rain=read_rain,apply=apply,guard=guard,read_corrections=read_corrections,read_capabilities=read_capabilities,read_refresh=read_refresh,read_marginals=read_marginals)
     context=dict(sensor_epoch=sensor_epoch,observation_policy_sha256=observation_policy_sha256,
         evaluation_version=EVALUATION_VERSION,evaluation_contract_sha256=EVALUATION_CONTRACT_SHA256)
     if apply:
@@ -33,7 +33,7 @@ def monitor_once(archive,state,*,now,site,sensor_epoch,code_revision,observation
 
 
 def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,observation_policy_sha256,
-                 read_temperature,read_solar,read_rain,apply,guard,read_corrections,read_capabilities,read_refresh):
+                 read_temperature,read_solar,read_rain,apply,guard,read_corrections,read_capabilities,read_refresh,read_marginals):
     now=utc(now);digest(observation_policy_sha256)
     if type(apply) is not bool:raise ValueError('explicit monitor publication required')
     names=state.training_issue_names(now-timedelta(days=7),now,sensor_epoch=sensor_epoch)
@@ -43,6 +43,7 @@ def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,obse
     source_attempts=0
     if read_corrections is not None and not callable(read_corrections):raise ValueError('callable correction monitor required')
     if read_capabilities is not None and not callable(read_capabilities):raise ValueError('callable capability monitor required')
+    if read_marginals is not None and not callable(read_marginals):raise ValueError('callable marginal monitor required')
     def source(kind,target,read,validate):
         nonlocal source_attempts
         key=identity(dict(kind=kind,target=target,policy_sha256=observation_policy_sha256))
@@ -108,7 +109,8 @@ def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,obse
     bootstrap=queue.bootstrap(archive,site=site,now=now,guard=guard)
     capability_reserve=min(8,max(0,64-source_attempts)) if read_capabilities is not None else 0
     refresh_reserve=min(8,max(0,64-source_attempts-capability_reserve)) if read_refresh is not None else 0
-    temperature_limit=min(32 if read_corrections is not None else 64,max(0,64-source_attempts-capability_reserve-refresh_reserve))
+    marginal_reserve=min(8,max(0,64-source_attempts-capability_reserve-refresh_reserve)) if read_marginals is not None else 0
+    temperature_limit=min(32 if read_corrections is not None else 64,max(0,64-source_attempts-capability_reserve-refresh_reserve-marginal_reserve))
     due=queue.due(now,limit=temperature_limit) if temperature_limit else [];loaded=[]
     for work in due:
         guard()
@@ -166,10 +168,21 @@ def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,obse
         except (TimeoutError,AdmissionDeferred,MemoryError):raise
         except Exception as error:
             guard();withheld.append(dict(kind='refresh',reason=type(error).__name__))
+    marginal_attempts=0
+    if read_marginals is not None:
+        marginal_attempts=marginal_reserve
+        try:
+            guard();marginals=read_marginals(now=now,limit=marginal_reserve,apply=apply,guard=guard);guard()
+            used=marginals['observations_attempted']
+            if type(used) is not int or not 0<=used<=marginal_reserve:raise ValueError('bounded marginal observation accounting required')
+            marginal_attempts=used
+        except (TimeoutError,AdmissionDeferred,MemoryError):raise
+        except Exception as error:
+            guard();withheld.append(dict(kind='marginals',reason=type(error).__name__))
     if read_corrections is not None:
         # Legacy daily windows and every attempted queue label share one budget.
         # Reserve temperature work, then lend only the remaining quota.
-        remaining=min(32,max(0,64-source_attempts-len(loaded)-capability_attempts-refresh_attempts))
+        remaining=min(32,max(0,64-source_attempts-len(loaded)-capability_attempts-refresh_attempts-marginal_attempts))
         try:
             guard();corrections=read_corrections(now=now,limit=remaining,apply=apply,guard=guard);guard()
         except (TimeoutError,AdmissionDeferred,MemoryError):raise

@@ -61,7 +61,7 @@
       "id": "WN-08",
       "requirement": "Test adaptive temperature correction and locally calibrated marginal uncertainty",
       "owning_tasks": "7",
-      "status": "in_progress_complete_native_comparisons_and_actual_candidate_preparation_verified_durable_monitor_pending",
+      "status": "in_progress_native_science_and_durable_shadow_scoring_verified_producer_status_and_report_pending",
       "evidence": [
         "marginal-calibration.md",
         "marginal-calibration-protocol.json",
@@ -73,7 +73,8 @@
         "marginal-native-population.json",
         "marginal-native-experiment.json",
         "marginal-native-verification.json",
-        "marginal-native-preparation.json"
+        "marginal-native-preparation.json",
+        "marginal-durable-progress.json"
       ]
     },
     {
@@ -270,7 +271,7 @@
       "task": 7,
       "title": "Implement bounded local marginal calibration",
       "gate": "full implementation and tests exist, with results on all eligible data and specific evidence blockers otherwise. A contender that loses remains unselected; raw ranges and current point forecasts remain usable.",
-      "status": "in_progress_complete_native_science_verified_durable_prospective_monitor_pending",
+      "status": "in_progress_durable_queue_monitor_verified_closed_producer_get_and_report_pending",
       "steps": 6
     },
     {

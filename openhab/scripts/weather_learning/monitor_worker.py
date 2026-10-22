@@ -10,6 +10,28 @@ from .monitoring import monitor_once
 from .worker import collector_lock
 
 
+
+def marginal_monitor_callback(state,*,observation_policy_sha256,sensor_epoch,read_temperature,read_wind,read_solar,clock):
+    """Opt in only with an existing separate index; reuse bounded native readers."""
+    from .marginal_queue import DATABASE,monitor_marginals
+    if not (state.root/DATABASE).exists():return None
+    from .marginal_outcomes import temperature_observation,wind_observation,solar_observation
+    from weather_source_files import _read as source_read
+    policy=json.loads(source_read(Path(__file__).resolve().parents[3]/'docs/operations/weathernext3-capabilities/marginal-calibration-protocol.json',65536,source=True))
+    def monitor(*,now,limit,apply,guard):
+        def observation(work,assessed):
+            start,end=map(instant,(work['start'],work['end']))
+            if work['kind']=='temperature':
+                point=read_temperature([end],assessed).get(end)
+                return None if point is None else temperature_observation(point,target=end,acquired_at=clock(),sensor_epoch=sensor_epoch,observation_policy_sha256=observation_policy_sha256)
+            if work['kind']=='wind':
+                point=read_wind(work,assessed)
+                return None if point is None else wind_observation(point,acquired_at=clock(),observation_policy_sha256=observation_policy_sha256)
+            point=read_solar(start,end,assessed)
+            return None if point is None else solar_observation(point,start=start,acquired_at=clock(),observation_policy_sha256=observation_policy_sha256)
+        return monitor_marginals(state,now=now,policy=policy,observation_policy_sha256=observation_policy_sha256,read_observation=observation,limit=limit,apply=apply,guard=guard,clock=clock)
+    return monitor
+
 def observation_policy_identity(*,temperature_policy,policies,cutover,sensor_epoch):
     """Changed measurement qualification must never pool prior score support."""
     return sha256(canonical(dict(schema='earthship-weather-observation-policy/v2',
@@ -116,9 +138,11 @@ def main(argv=None):
                 return monitor_refresh(state,archive=archive,site=site,now=now,sensor_epoch=epoch,
                     observation_policy_sha256=policy_sha256,read_outcomes=outcomes,limit=limit,apply=apply,guard=guard,
                     clock=lambda:datetime.now(timezone.utc))
+        marginal_reader=marginal_monitor_callback(state,observation_policy_sha256=policy_sha256,sensor_epoch=epoch,
+            read_temperature=temperatures,read_wind=wind,read_solar=solar,clock=lambda:datetime.now(timezone.utc))
         with collector_lock(state.root/'monitor.lock'):
             report=monitor_once(archive,state,now=datetime.now(timezone.utc),site=site,sensor_epoch=epoch,code_revision=args.code_revision,
-                observation_policy_sha256=policy_sha256,read_temperature=temperatures,read_solar=solar,read_rain=rainfall,apply=args.apply,guard=guard,read_corrections=corrections,read_capabilities=capability_reader,read_refresh=refresh_reader)
+                observation_policy_sha256=policy_sha256,read_temperature=temperatures,read_solar=solar,read_rain=rainfall,apply=args.apply,guard=guard,read_corrections=corrections,read_capabilities=capability_reader,read_refresh=refresh_reader,read_marginals=marginal_reader)
         print(json.dumps(dict(status='weather_performance_refreshed' if args.apply else 'weather_performance_prepared',
             temperature_pairs=0 if report['temperature']['raw'] is None else report['temperature']['raw']['pairs'],
             solar_pairs=len(report['solar']['pairs']),rain_days=len(report['rain']['pairs']),pending=report['pending'],
