@@ -137,3 +137,27 @@ def test_full_outer_candidate_experiment_is_causal_bounded_and_remains_unselecte
  assert group['candidate']['coverage']['predicted_targets']==12
  assert group['eligible_for_review'] is True and group['disposition']=='adopt_candidate'
  assert group['selected'] is result['as_issued_score'] is result['probability_calibration_qualified'] is False
+
+
+def test_missing_outer_labels_cannot_move_inner_dates_into_holdout(balanced):
+ fore,out=balanced
+ result=report((fore,out[:8]));cohort=next(iter(result['cohorts'].values()))
+ assert cohort['inner']['targets']==8
+ assert cohort['outer']['independent_dates']==0
+ assert cohort['outer']['target_sha256s']==[]
+
+
+def test_missing_inner_labels_cannot_move_original_holdout_dates_into_training(balanced):
+ fore,out=balanced
+ result=report((fore,out[4:]));cohort=next(iter(result['cohorts'].values()))
+ assert cohort['inner']['targets']==4
+ assert cohort['outer']['target_sha256s']==[f.to_dict()['forecast_sha256'] for f in fore[8:]]
+
+
+def test_missing_final_head_preserves_predeclared_outer_assignment(balanced):
+ fore,out=balanced
+ source,start,end=rain_snapshot(datetime(2026,6,12).date(),'UTC',mean_mm=.25,missing=PRODUCTS[1]);issued=start-timedelta(hours=2)
+ later=make_forecast(snapshot=source,start=start,end=end,issued_at=issued,completed_at=issued+timedelta(seconds=1),interval_kind='local_calendar_day',availability_basis='recorded_ingestion_availability')
+ result=report(([later,*fore],out));cohort=next(iter(result['cohorts'].values()))
+ assert cohort['inner']['targets']==8
+ assert cohort['outer']['target_sha256s']==[f.to_dict()['forecast_sha256'] for f in fore[8:11]]

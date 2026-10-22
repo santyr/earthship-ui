@@ -87,8 +87,9 @@ def _subgroups(pairs,candidate,baseline,policy):
     return output
 
 
-def _cohort_report(pairs,issues,policy,check):
-    raw={p:_point_result(pairs,[r['forecast']['products_mm'][p] for r in pairs]) for p in PRODUCTS};n=len(pairs);split=n-ceil(n/3);outer=pairs[split:];inner=pairs[:split]
+def _cohort_report(pairs,issues,policy,check,outer_targets):
+    raw={p:_point_result(pairs,[r['forecast']['products_mm'][p] for r in pairs]) for p in PRODUCTS};n=len(pairs);split=next((i for i,p in enumerate(pairs) if p['forecast']['forecast_sha256'] in outer_targets),n);outer=pairs[split:];inner=pairs[:split]
+    if any(p['forecast']['forecast_sha256'] not in outer_targets for p in outer):raise ValueError('original outer assignment is not chronological')
     outer_counts=support(outer);outer_counts['independent_dates']=outer_counts.pop('independent_target_dates')
     baseline=[p['forecast']['products_mm'][PRODUCTS[0]] for p in pairs];predictions=[];probabilities=[];climatology=[];gain=[];reasons=Counter()
     for pair in pairs:
@@ -165,18 +166,22 @@ def evaluate_rain(forecasts,observations,*,assessed_at,policy,issues=None,issue_
             if total>policy['limits']['maximum_original_bytes']:raise ValueError('rain originals and predictions exceed byte bound')
         if pin in issue_map and issue_map[pin]!=body:raise ValueError('conflicting original rain predictions')
         issue_map[pin]=body
-    cohorts=defaultdict(list);selected_total=0
+    cohorts=defaultdict(list);selected_total=0;outer_targets=set()
     for group in groups.values():
         # Raw comparisons have no training lookback. The 28-day window applies
         # exclusively to fitting; assessment may compare every retained date.
         selected,_=selected_forecasts(group,cutoff=assessed_at,policy=policy,guard=check,training_window=False);selected_total+=len(selected)
+        # Freeze holdout membership from independent original forecast dates,
+        # before head missingness, labels or gauge epochs partition the sample.
+        count=ceil(len(selected)/3)
+        if count:outer_targets.update(f['forecast_sha256'] for f in selected[-count:])
         for forecast in selected:
             if not forecast['common_complete_targets']:withheld['missing_precipitation_head']+=1;continue
             observation=outcome.get((instant(forecast['start']),instant(forecast['end'])))
             if observation is None:withheld['qualified_counter_interval_unavailable']+=1;continue
             c=context(forecast,observation['cohort_sha256']);cohorts[identity(c)].append(dict(forecast=forecast,observation=observation,date=target_date(forecast),context=c))
-    reports={pin:_cohort_report(pairs,issue_map,policy,check) for pin,pairs in sorted(cohorts.items())};check()
-    result=dict(schema='earthship-rain-matched-interval-evaluation/v1',prediction_mode=issue_mode,assessed_at=assessed_at.isoformat(),policy_sha256=policy['policy_sha256'],selected_targets=selected_total,matched_targets=sum(v['matched_targets'] for v in reports.values()),withheld=dict(withheld),cohorts=reports,original_forecast_sha256s=sorted(seen),original_observation_sha256s=sorted({v.to_dict()['observation_sha256'] for v in observations}),scoring_scope='retained_raw_means_and_original_local_interval_predictions; independent_cohorts_not_pooled',as_issued_score=False,probability_calibration_qualified=False,physical_calibration_qualified=False,raw_production_rain_retained=True,automatic_actuation=False)
+    reports={pin:_cohort_report(pairs,issue_map,policy,check,outer_targets) for pin,pairs in sorted(cohorts.items())};check()
+    result=dict(schema='earthship-rain-matched-interval-evaluation/v1',prediction_mode=issue_mode,assessed_at=assessed_at.isoformat(),policy_sha256=policy['policy_sha256'],selected_targets=selected_total,outer_assignment='final_third_of_independent_original_forecast_dates_before_missingness_or_observation_cohorts',original_outer_target_sha256s=sorted(outer_targets),matched_targets=sum(v['matched_targets'] for v in reports.values()),withheld=dict(withheld),cohorts=reports,original_forecast_sha256s=sorted(seen),original_observation_sha256s=sorted({v.to_dict()['observation_sha256'] for v in observations}),scoring_scope='retained_raw_means_and_original_local_interval_predictions; independent_cohorts_not_pooled',as_issued_score=False,probability_calibration_qualified=False,physical_calibration_qualified=False,raw_production_rain_retained=True,automatic_actuation=False)
     result['evaluation_sha256']=identity(result);return result
 
 
