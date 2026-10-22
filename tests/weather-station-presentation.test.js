@@ -5,14 +5,15 @@ const now = Date.parse('2026-10-22T17:00:00Z');
 function report() {
   const name='WeatherStation_PressureAbsoluteV2';
   return { schema:'earthship-station-ingestion/v2',generatedAt:new Date(now).toISOString(),
-    flat:{[name]:23.89,WeatherStation_PressureTrendV2:'rising'},
-    fields:{[name]:{value:23.89,receivedAt:new Date(now-60000).toISOString(),validUntil:new Date(now+60000).toISOString(),role:'indoor',status:'fresh'}},
+    flat:{[name]:23.89,WeatherStation_PressureTrendV2:'rising',AmbientWeatherWS2902A_RainFallTotal:100},
+    fields:{[name]:{value:23.89,receivedAt:new Date(now-60000).toISOString(),validUntil:new Date(now+60000).toISOString(),role:'indoor',status:'fresh'},
+      AmbientWeatherWS2902A_RainFallTotal:{value:100,role:'outdoor',status:'fresh',receivedAt:new Date(now).toISOString(),validUntil:new Date(now+120000).toISOString()}},
     pressure:{identity:'station_absolute',method:'three_hour_boundary_bracket_change_0.01inHg/v1',supportSeconds:10800,changeBoundsInHg:[.04,.05]},
     rain:{schema:'earthship-station-rain-products/v2',status:'fresh',products:{
-      day:{value:.1,unit:'in',start:'2026-10-22T06:00:00Z',end:new Date(now).toISOString(),lower:.1,upper:.1,partial_lower_bound:0},
+      day:{value:.1,unit:'in',start:'2026-10-22T06:00:00Z',end:new Date(now).toISOString(),periodValidUntil:'2026-10-23T06:00:00Z',lower:.1,upper:.1,partial_lower_bound:0},
       rate_10min:{value:.6,unit:'in/h',start:new Date(now-600000).toISOString(),end:new Date(now).toISOString(),lower:.6,upper:.6,partial_lower_bound:0}}}};
 }
-const states = payload => ({ WeatherStation_Quality_JSON:JSON.stringify(payload) });
+const states = payload => ({WeatherStation_Quality_JSON:JSON.stringify(payload)});
 
 describe('versioned station presentation',()=>{
   it('distinguishes legacy absence from an unavailable deployed report',()=>{
@@ -59,5 +60,22 @@ describe('versioned station presentation',()=>{
     v=stationPresentation(states(r),{nowMs:now});expect(v.current[name]).toBe(68);
     r.fields[name].validUntil=new Date(now-1).toISOString();
     expect(stationPresentation(states(r),{nowMs:now}).current[name]).toBeNull();
+  });
+  it('expires every rain product and partial when its own source evidence expires',()=>{
+    const r=report();r.fields.AmbientWeatherWS2902A_RainFallTotal.validUntil=new Date(now+10000).toISOString();
+    const v=stationPresentation(states(r),{nowMs:now+11000});
+    expect(v.rain.day).toBeNull();expect(v.rain.rate).toBeNull();expect(v.rain.partialDay).toBeNull();
+  });
+  it('does not display previous calendar periods or daily extrema after rollover',()=>{
+    const r=report(),boundary=Date.parse('2026-11-01T00:00:00Z'),before=boundary-30000;
+    r.generatedAt=new Date(before).toISOString();
+    for(const f of Object.values(r.fields)){f.receivedAt=new Date(before).toISOString();f.validUntil=new Date(before+120000).toISOString();}
+    r.rain.products.day={value:.1,unit:'in',start:'2026-10-31T00:00:00Z',end:new Date(before).toISOString(),periodValidUntil:new Date(boundary).toISOString(),lower:.1,upper:.1,partial_lower_bound:.1};
+    const name='AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature';
+    r.flat[name]=68;r.fields[name]={value:68,role:'outdoor',status:'fresh',receivedAt:new Date(before).toISOString(),validUntil:new Date(before+120000).toISOString()};
+    r.flat.AmbientWeatherWS2902A_MaxDailyOutdoorTemp=78;
+    r.dailyExtrema={[name]:{complete:true,high:78,low:60,start:'2026-10-31T00:00:00Z',periodValidUntil:new Date(boundary).toISOString()}};
+    const v=stationPresentation(states(r),{nowMs:boundary+5000});
+    expect(v.rain.day).toBeNull();expect(v.rain.partialDay).toBeNull();expect(v.current.AmbientWeatherWS2902A_MaxDailyOutdoorTemp).toBeNull();
   });
 });

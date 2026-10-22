@@ -128,7 +128,9 @@ class StationState:
             0 <= tick-previous['tick'] and tick <= previous['expiresTick'])
         if entry is None or entry['start'] != start.isoformat():
             complete = at == start or (continuous and datetime.fromisoformat(previous['receivedAt']) <= start)
-            self.extrema[name] = dict(start=start.isoformat(),low=value,high=value,complete=complete,
+            self.extrema[name] = dict(start=start.isoformat(),
+                periodValidUntil=self.rain._period_end('day', start).isoformat(),
+                low=value,high=value,complete=complete,
                 method='observed_receipt_samples_with_field_continuity/v1')
         else:
             entry.update(low=min(entry['low'],value),high=max(entry['high'],value),

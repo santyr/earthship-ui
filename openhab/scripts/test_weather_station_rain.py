@@ -87,3 +87,30 @@ def test_wide_boundary_bracket_does_not_become_a_precise_calendar_total():
  p=snapshot(state,midnight+timedelta(seconds=46))['products']['day']
  assert p['value'] is None and p['lower']==pytest.approx(.01) and p['upper']==pytest.approx(.11)
  assert p['partial_lower_bound']==pytest.approx(.01)
+
+
+@pytest.mark.parametrize('reset',[101.,0.])
+def test_confirmed_discontinuity_recovers_products_without_assigning_gap_rain(reset):
+ state=products();state.observe(100.,at=START,tick=0.)
+ for seconds,value in [(3600,reset),(3616,reset),(3632,reset+.01)]:
+  state.observe(value,at=START+timedelta(seconds=seconds),tick=float(seconds))
+ assert state.counter.baseline==pytest.approx(reset+.01) and not state.broken
+ p=state.snapshot(at=START+timedelta(seconds=3632),tick=3632.)['products']
+ assert p['day']['value'] is None and p['day']['partial_lower_bound']==pytest.approx(.01)
+
+
+def test_calendar_products_expire_at_boundary_even_before_next_natural_packet():
+ state=products();end=datetime(2026,10,31,23,59,tzinfo=UTC)
+ feed(state,end-timedelta(hours=25),end,rain=lambda at:.1 if at==end else 0.)
+ v=snapshot(state,end+timedelta(seconds=65))
+ assert v['products']['day']['value'] is None
+ assert v['products']['week']['partial_lower_bound'] is None
+ assert v['products']['month']['partial_lower_bound'] is None
+
+
+@pytest.mark.parametrize('date,hours', [('2026-03-08',23),('2026-11-01',25)])
+def test_calendar_deadline_uses_site_dst_day(date, hours):
+    from zoneinfo import ZoneInfo
+    state = products('America/Denver')
+    start = datetime.fromisoformat(date).replace(tzinfo=ZoneInfo('America/Denver')).astimezone(UTC)
+    assert (state._period_end('day', start)-start).total_seconds() == hours*3600

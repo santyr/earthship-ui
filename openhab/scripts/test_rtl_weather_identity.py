@@ -10,7 +10,7 @@ import pytest
 SOURCE = Path(__file__).with_name('rtl_weather.py')
 
 
-def relay(packet, observer=None):
+def relay(packet, observer=None, following=None):
     tree = ast.parse(SOURCE.read_text())
     main = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'main')
     normalize = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
@@ -21,7 +21,7 @@ def relay(packet, observer=None):
     def popen(*args, **kwargs):
         calls.append(args)
         if len(calls) > 1: raise FileNotFoundError('fixture stops relay loop')
-        return SimpleNamespace(stdout=[json.dumps(packet)], poll=lambda: 0)
+        return SimpleNamespace(stdout=[json.dumps(p) for p in [packet,*(following or [])]], poll=lambda: 0)
     namespace = {
         'subprocess': SimpleNamespace(Popen=popen, PIPE=-1, STDOUT=-2),
         'json': json, 'math': math, 'time': SimpleNamespace(sleep=lambda _: None),
@@ -86,6 +86,13 @@ def test_optional_observer_failure_does_not_interrupt_household_forwarding():
     sent = relay(packet('Fineoffset-WH65B', 206), observer=failing_observer)
     assert seen == [(206, 206)]
     assert len(sent) == 1 and sent[0]['id'] == 206 and sent[0]['tempf'] == 68
+
+
+@pytest.mark.parametrize('field,value,expected_count',[('model',[],1),('temperature_C',10**399,2)])
+def test_malformed_field_does_not_restart_radio_before_next_valid_frame(field,value,expected_count):
+    bad=packet('Fineoffset-WH65B',206);bad[field]=value
+    sent=relay(bad,following=[packet('Fineoffset-WH65B',206)])
+    assert len(sent)==expected_count and sent[-1]['tempf']==68.
 
 
 @pytest.mark.parametrize('rain_mm', [10, -1, float('nan'), float('inf')])

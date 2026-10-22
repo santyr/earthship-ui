@@ -34,6 +34,15 @@ class RainProducts:
                 'week': (day-timedelta(days=(day.weekday()+1) % 7)).astimezone(UTC),
                 'month': day.replace(day=1).astimezone(UTC)}
 
+    def _period_end(self, name, start):
+        local = start.astimezone(self.zone)
+        if name == 'month':
+            following = (local.replace(year=local.year+1, month=1) if local.month == 12
+                         else local.replace(month=local.month+1))
+        else:
+            following = local+timedelta(days=7 if name == 'week' else 1)
+        return following.astimezone(UTC)
+
     def _bracket(self, at):
         if not self.points or at < self.points[0][0] or at > self.points[-1][0]:
             return None
@@ -42,8 +51,9 @@ class RainProducts:
             return (self.points[i][1],)*2
         return self.points[i-1][1], self.points[i][1]
 
-    def invalidate(self):
-        self.counter.break_sequence()
+    def invalidate(self, *, break_counter_sequence=True):
+        if break_counter_sequence:
+            self.counter.break_sequence()
         self.broken = True
         self.anchors.clear()
         self.event = None
@@ -56,7 +66,9 @@ class RainProducts:
             return
         at = at.astimezone(UTC)
         if transition.status == 'withheld':
-            self.invalidate()
+            # Coverage is unknown, but the counter needs successive candidates
+            # to confirm a reset or a discontinuity without assigning gap rain.
+            self.invalidate(break_counter_sequence=False)
             return
         reset = self.broken or transition.new_phase or not self.points
         if reset:
@@ -124,6 +136,11 @@ class RainProducts:
         for name, start in self._starts(reference).items():
             anchor = self.anchors.get(name)
             products[name] = product(start, anchor[1] if anchor and anchor[0] == start else None)
+            deadline = self._period_end(name, start)
+            products[name]['periodValidUntil'] = deadline.isoformat()
+            if at >= deadline:
+                for key in ('value','lower','upper','partial_lower_bound'):
+                    products[name][key] = None
         event = self.event
         products['event'] = product(event[0] if event else reference,
                                     (event[1], event[1]) if event else None)

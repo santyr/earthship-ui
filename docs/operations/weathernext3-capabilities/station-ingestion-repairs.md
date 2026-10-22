@@ -179,3 +179,24 @@ rehearsal, live installation, natural readbacks and actual UI inspection. Neithe
 this preparation entry nor a passing fixture constitutes deployment evidence.
 The non-radiation transition-range apparent-temperature formula is documented by
 https://www.bom.gov.au/info/thermal_stress/index.shtml .
+
+
+### Whole release review corrections (2026-10-22)
+
+The independent review of release c2f4a13 found four integration defects. All
+four have failing regression evidence followed by passing tests in one fix pass:
+withholding rain coverage now preserves the counter's confirmation sequence;
+the UI gates every rain product and partial on the original counter field's
+freshness; calendar rain and daily extrema carry the site's explicit period
+expiry, including 23/25-hour DST days; and malformed decoder measurement fields
+remain contained within their record instead of restarting healthy RF capture.
+Invalid owned receipts still break counter confirmations. A confirmed new phase
+never assigns rain to the unknown gap. Server snapshots clear expired calendar
+values and partials before the next packet; cached UI reports apply the same
+period deadline without relying on the browser timezone.
+
+Verification after corrections: 225 backend tests and 194 frontend tests passed.
+The first frontend run exhausted its own 32-task test scope before assertions;
+a single-worker, two-CPU run within a 64-task scope passed. Shared household
+limits remain unchanged. Production installation and live verification remain
+required; these results describe source tests only.
