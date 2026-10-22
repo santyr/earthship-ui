@@ -53,3 +53,28 @@ def test_marginal_worker_scores_through_existing_native_temperature_reader(tmp_p
         read_temperature=temperature,read_wind=unexpected,read_solar=unexpected,clock=lambda:now)
     result=callback(now=now,limit=1,apply=True,guard=lambda:None)
     assert result['scored']==1 and len(calls)==1 and calls[0][0]==[at+timedelta(hours=1)]
+
+
+def test_rain_worker_is_disabled_without_its_separate_optional_index(tmp_path):
+    from types import SimpleNamespace
+    from test_weather_rain_day import POLICY as native,bounds
+    assert hasattr(monitor_worker,'rain_monitor_callback'),'optional rain worker callback missing'
+    callback=monitor_worker.rain_monitor_callback(SimpleNamespace(root=tmp_path),observation_policy_sha256='a'*64,native_policy=native,cutover=bounds()[0],connect=lambda:None,clock=lambda:T)
+    assert callback is None
+
+
+def test_rain_worker_uses_original_readonly_native_acquisitions_without_fitting(tmp_path):
+    from test_rain_queue import setup
+    from test_weather_rain_day import POLICY as native
+    from test_weather_rain_history import Connection
+    from datetime import timedelta
+    from unittest.mock import patch
+    module,state,queue,issue,key,start,end=setup(tmp_path);now=end+timedelta(minutes=2);connections=[]
+    def connect():
+        c=Connection();connections.append(c);return c
+    assert hasattr(monitor_worker,'rain_monitor_callback'),'optional rain worker callback missing'
+    callback=monitor_worker.rain_monitor_callback(state,observation_policy_sha256='a'*64,native_policy=native,cutover=start,connect=connect,clock=lambda:now)
+    with patch('weather_learning.rain_two_part.fit_two_part',side_effect=AssertionError('no scoring fit')):
+        result=callback(now=now,limit=1,apply=True,guard=lambda:None)
+    assert result['scored']==1 and result['observations_attempted']==1 and len(connections)==1
+    assert connections[0].session==dict(readonly=True,autocommit=False,isolation_level='REPEATABLE READ')

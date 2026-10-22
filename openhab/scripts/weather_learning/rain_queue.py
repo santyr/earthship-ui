@@ -32,13 +32,13 @@ def _checked(value,key):
     return value
 
 
-def public_view(issues):
-    rows=[];generated=max(instant(i['prepared_at']) for i in issues);expiry=generated+timedelta(hours=2)
+def public_view(issues, *, version=1):
+    rows=[];generated=max(instant(i['prepared_at']) for i in issues);expiry=generated+timedelta(hours=6 if version==2 else 2)
     for issue in issues:
         f=issue['forecast'];expiry=min(expiry,instant(f['initialized_at'])+timedelta(hours=24));local=issue['local_prediction']
         rows.append(dict(issue_sha256=issue['issue_sha256'],start=f['start'],end=f['end'],hours=f['hours'],interval_kind=f['interval_kind'],raw_means_mm=f['products_mm'],local=local,
                          source_available_at=f['actual_source_available_at'],initialized_at=f['initialized_at'],availability_basis=f['availability_basis']))
-    value=dict(schema='earthship-rain-shadow-view/v1',generated_at=generated.isoformat(),valid_until=expiry.isoformat(),rows=rows,
+    value=dict(schema='earthship-rain-shadow-view/v'+str(version),generated_at=generated.isoformat(),valid_until=expiry.isoformat(),rows=rows,
                product='read_only_unselected_interval_rain_shadow',native_google_probability=False,probability_calibration_qualified=False,physical_calibration_qualified=False,core_forecast_modified=False,automatic_actuation=False)
     value['report_sha256']=identity(value);return value
 
@@ -60,6 +60,7 @@ class RainQueue:
             db.execute('CREATE INDEX IF NOT EXISTS rain_due ON work(eligible,end,key)')
             db.execute('CREATE TABLE IF NOT EXISTS scores (scope TEXT,key TEXT,body TEXT,PRIMARY KEY(scope,key))')
             db.execute('CREATE TABLE IF NOT EXISTS attempts (scope TEXT,key TEXT,retry TEXT,reason TEXT,expired INTEGER,PRIMARY KEY(scope,key))')
+            db.execute('CREATE TABLE IF NOT EXISTS generations (key TEXT PRIMARY KEY,bundle TEXT NOT NULL)')
             db.execute('CREATE TABLE IF NOT EXISTS recovery (id INTEGER PRIMARY KEY CHECK(id=1),after_name TEXT)')
 
     @contextmanager
@@ -73,10 +74,15 @@ class RainQueue:
 
     def original(self,key):
         digest(key);value=_checked(_read(self.originals/(key+'.json'),MAX_BYTES),'wrapper_sha256')
-        if value.get('schema')!='earthship-retained-rain-shadow/v1' or value['wrapper_sha256']!=key or value.get('automatic_actuation') is not False:raise ValueError('original rain wrapper required')
+        if value.get('schema') not in ('earthship-retained-rain-shadow/v1','earthship-retained-rain-shadow/v2') or value['wrapper_sha256']!=key or value.get('automatic_actuation') is not False:raise ValueError('original rain wrapper required')
         issues=[RainIssue(canonical(i)).to_dict() for i in value['issues']]
         if not 1<=len(issues)<=32 or any(i['mode']!='prospective_shadow' or i['policy_original']!=self.policy for i in issues):raise ValueError('original prospective rain population required')
-        if public_view(issues)!=value['public_view']:raise ValueError('original rain view differs')
+        if public_view(issues,version=2 if value['schema'].endswith('/v2') else 1)!=value['public_view']:raise ValueError('original rain view differs')
+        if value.get('generation') is not None:digest(value['generation'])
+        if value.get('origin_context') is not None:
+            from .rain_origin import validate_origin
+            origin=validate_origin(value['origin_context'])
+            if any(i['observation_cohort_sha256']!=origin['cohort_sha256'] or instant(i['forecast']['issued_at'])<instant(origin['sources']['received_at']) for i in issues):raise ValueError('original rain origin/decision differs')
         producer=_checked(_read(self.producers/(value['producer_sha256']+'.json'),MAX_BYTES),'producer_sha256')
         if producer['producer_sha256']!=value['producer_sha256']:raise ValueError('original rain producer differs')
         pins={n:sha256(r['utf8'].encode()).hexdigest() for n,r in producer['sources'].items()}
@@ -96,21 +102,30 @@ class RainQueue:
             if old and (old[0]!=key or old[1] is not None and at is not None and old[1:]!=(at,pin)):raise ValueError('rain index generation differs')
             db.execute('INSERT OR IGNORE INTO bundles VALUES(?,?,?,?)',(key,key,at,pin))
             if emission is not None:db.execute('UPDATE bundles SET emitted=?,receipt=? WHERE key=?',(at,pin,key))
+            if emission is not None and wrapper.get('generation') is not None:
+                generation=wrapper['generation'];previous=db.execute('SELECT bundle FROM generations WHERE key=?',(generation,)).fetchone()
+                if previous is not None and previous!=(key,):raise ValueError('conflicting confirmed native rain generation')
+                db.execute('INSERT OR IGNORE INTO generations VALUES(?,?)',(generation,key))
             for ordinal,issue in enumerate(wrapper['issues']):
                 f=issue['forecast'];work=identity(dict(bundle=key,issue=issue['issue_sha256'],contract=CONTRACT_SHA256));eligible=int(at is not None and instant(at)<instant(f['start']))
                 db.execute('INSERT OR IGNORE INTO work VALUES(?,?,?,?,?,?)',(work,key,ordinal,f['start'],f['end'],eligible))
                 if emission is not None:db.execute('UPDATE work SET eligible=? WHERE key=?',(eligible,work))
 
-    def retain(self,issues):
+    def retain(self,issues,*,origin_context=None,generation=None):
         if not isinstance(issues,list) or not 1<=len(issues)<=32 or any(type(i) is not RainIssue for i in issues):raise ValueError('bounded typed rain issue bundle required')
         values=[RainIssue(i.content).to_dict() for i in issues]
         if any(i['mode']!='prospective_shadow' or i['policy_original']!=self.policy for i in values):raise ValueError('prospective rain originals and policy required')
+        if generation is not None:digest(generation)
+        if origin_context is not None:
+            from .rain_origin import validate_origin
+            origin_context=validate_origin(origin_context)
+            if any(i['observation_cohort_sha256']!=origin_context['cohort_sha256'] or instant(i['forecast']['issued_at'])<instant(origin_context['sources']['received_at']) for i in values):raise ValueError('rain origin must precede its decisions')
         sources=capture_sources(ROOT);pins={n:sha256(raw).hexdigest() for n,raw in sources.items()}
         if any(i['producer_sources']!=pins for i in values):raise ValueError('original rain producer must be retained without source substitution')
         producer=dict(schema='earthship-original-rain-producer/v1',sources={n:dict(sha256=pins[n],utf8=raw.decode()) for n,raw in sources.items()});producer['producer_sha256']=identity(producer);pp=self.producers/(producer['producer_sha256']+'.json')
         if not pp.exists():self.state._write(pp,producer,immutable=True)
         elif _read(pp,MAX_BYTES)!=producer:raise ValueError('immutable rain producer differs')
-        wrapper=dict(schema='earthship-retained-rain-shadow/v1',issues=values,producer_sha256=producer['producer_sha256'],public_view=public_view(values),automatic_actuation=False);wrapper['wrapper_sha256']=identity(wrapper);key=wrapper['wrapper_sha256'];p=self.originals/(key+'.json')
+        wrapper=dict(schema='earthship-retained-rain-shadow/v2',issues=values,origin_context=origin_context,generation=generation,producer_sha256=producer['producer_sha256'],public_view=public_view(values,version=2),automatic_actuation=False);wrapper['wrapper_sha256']=identity(wrapper);key=wrapper['wrapper_sha256'];p=self.originals/(key+'.json')
         if not p.exists():self.state._write(p,wrapper,immutable=True)
         elif _read(p,MAX_BYTES)!=wrapper:raise ValueError('immutable rain original differs')
         self._register(wrapper);return key
@@ -125,11 +140,25 @@ class RainQueue:
             emission=dict(schema='earthship-confirmed-rain-emission/v1',wrapper_sha256=key,cache_bytes_sha256=sha256(canonical(view)).hexdigest(),cache_write_completed_at=at.isoformat(),contract_sha256=CONTRACT_SHA256,automatic_actuation=False);emission['emission_sha256']=identity(emission);self.state._write(self.emissions/(key+'.json'),emission,immutable=True)
         self._register(wrapper,emission);return key
 
-    def publish(self,issues,*,clock=lambda:datetime.now(timezone.utc)):
+    def publish(self,issues,*,clock=lambda:datetime.now(timezone.utc),origin_context=None,generation=None):
         with collector_lock(self.state.root/'rain-publish.lock'):
-            self.recover(clock=clock);key=self.retain(issues);view=self.original(key)['public_view'];before=utc(clock())
+            # Preparation may race another producer. Check under the publication
+            # lock, before recovery or any replacement of the confirmed cache.
+            if generation is not None:
+                old=self.generation_bundle(generation)
+                if old is not None:return old
+            self.recover(clock=clock)
+            if generation is not None:
+                old=self.generation_bundle(generation)
+                if old is not None:return old
+            key=self.retain(issues,origin_context=origin_context,generation=generation);view=self.original(key)['public_view'];before=utc(clock())
             if not instant(view['generated_at'])<=before<instant(view['valid_until']):raise ValueError('rain view expired before publication')
             self.state._write(self.state.root/CACHE,view);return self.confirm(key,clock=clock,not_before=before)
+
+    def generation_bundle(self,generation):
+        with self.connect() as db:row=db.execute('SELECT bundle FROM generations WHERE key=?',(digest(generation),)).fetchone()
+        if row is None:return None
+        self.load_bundle(row[0]);return row[0]
 
     def load_bundle(self,key):
         wrapper=self.original(key);emission=self.emission(key,wrapper)

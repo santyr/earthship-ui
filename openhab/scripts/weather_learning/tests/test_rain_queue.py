@@ -193,3 +193,43 @@ def test_score_cohorts_do_not_pool_different_original_grids(tmp_path):
  assert len(m._comparisons([r,other])['cohorts'])==2
  other['raw']['total_precipitation_1hr']['absolute_error_mm']=0.
  with pytest.raises(ValueError,match='unchanged'):m._comparisons([other])
+
+
+def test_original_v1_wrapper_keeps_its_original_two_hour_view_lifetime(tmp_path):
+ from weather_learning.contracts import identity
+ m,s,q,issue,key,start,end=setup(tmp_path,publish=False);current=q.original(key)
+ legacy=dict(schema='earthship-retained-rain-shadow/v1',issues=current['issues'],producer_sha256=current['producer_sha256'],public_view=m.public_view(current['issues']),automatic_actuation=False);legacy['wrapper_sha256']=identity(legacy);oldkey=legacy['wrapper_sha256']
+ s._write(q.originals/(oldkey+'.json'),legacy,immutable=True);q._register(legacy);s._write(s.root/m.CACHE,legacy['public_view']);q.confirm(oldkey,clock=lambda:start-timedelta(minutes=30))
+ loaded,emitted=q.load_bundle(oldkey)
+ assert loaded['public_view']['schema']=='earthship-rain-shadow-view/v1'
+ assert instant(loaded['public_view']['valid_until'])-instant(loaded['public_view']['generated_at'])==timedelta(hours=2)
+ assert current['public_view']['schema']=='earthship-rain-shadow-view/v2'
+ assert instant(current['public_view']['valid_until'])-instant(current['public_view']['generated_at'])==timedelta(hours=6)
+
+
+def test_supported_original_probability_scores_against_training_only_climatology_without_refitting(tmp_path,monkeypatch):
+ from test_rain_two_part import population,fit,future
+ from test_weather_rain_day import POLICY as native,snapshot as packet
+ from weather_learning.rain_history import read_interval
+ import weather_learning.rain_two_part as fitter
+ m=api();data=population();model=fit(data)['model'];f=future(.25);body=f.to_dict();start,end=map(instant,(body['start'],body['end']));original=data[1][0].to_dict();source=original['sources']
+ issue=make_issue(f,model=model,observation_cohort_sha256=original['cohort_sha256'],policy=POLICY,prepared_at=instant(body['issued_at'])+timedelta(seconds=1),mode='prospective_shadow')
+ s=ShadowStore(tmp_path/'state');q=m.RainQueue(s,policy=POLICY);q.publish([issue],clock=lambda:instant(body['issued_at'])+timedelta(seconds=2))
+ rows=[];at=start-timedelta(seconds=30)
+ while at<=end+timedelta(seconds=120):
+  rows.append(packet(at,len(rows)+1,10.+(.12 if at>=start+timedelta(hours=12) else 0.)));at+=timedelta(seconds=90)
+ clock=[end+timedelta(seconds=120)]
+ def acquire(work,assessed):
+  times=iter([clock[0],clock[0]+timedelta(seconds=1)]);a=read_interval(lambda:Connection(carry=rows[0],rows=rows[1:]),start=start,end=end,cutover=instant(original['request']['cutover']),policy=native,resolution_source=source['resolution_source'],experiment_policy=POLICY,clock=lambda:next(times));clock[0]+=timedelta(seconds=1);return a
+ monkeypatch.setattr(fitter,'fit_two_part',lambda *a,**k:pytest.fail('scoring invoked a fit'))
+ r=m.monitor_rain(s,now=clock[0],policy=POLICY,observation_policy_sha256='a'*64,read_acquisition=acquire,clock=lambda:clock[0],limit=1,apply=True)
+ c=next(iter(r['comparisons']['cohorts'].values()));assert r['scored']==1 and c['local']['predicted_records']==1
+ assert c['local']['training_only_climatology_brier']==.25 and c['local']['brier']<.25
+ assert c['context']['local_model_sha256']==model['model_sha256'] and r['probability_calibration_qualified'] is False
+
+
+def test_publication_lock_rechecks_confirmed_generation_before_replacing_cache(tmp_path):
+ m,s,q,issue,key,start,end=setup(tmp_path,publish=False);first=q.publish([issue],generation='a'*64,clock=lambda:start-timedelta(minutes=50));before={p:p.read_bytes() for p in s.root.rglob('*') if p.is_file()}
+ body=issue.to_dict();later=make_issue(__import__('weather_learning.rain_calibration',fromlist=['RainForecast']).RainForecast(canonical(body['forecast'])),model=None,observation_cohort_sha256=body['observation_cohort_sha256'],policy=POLICY,prepared_at=instant(body['prepared_at'])+timedelta(minutes=1),mode='prospective_shadow')
+ second=q.publish([later],generation='a'*64,clock=lambda:start-timedelta(minutes=45))
+ assert second==first and {p:p.read_bytes() for p in s.root.rglob('*') if p.is_file()}==before

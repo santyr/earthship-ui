@@ -287,3 +287,28 @@ class MonitoringTests(unittest.TestCase):
         for error in (TimeoutError('deadline'),MemoryError('allocation')):
             with self.subTest(error=type(error).__name__),self.assertRaises(type(error)):
                 self.run_monitor(read_marginals=Mock(side_effect=error))
+
+    def test_rain_intervals_share_the_existing_global64_observation_budget(self):
+        rain_intervals=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit'],status='fixture',completed_scores=0,pending=1,expired=0,withheld={}))
+        marginal=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit']))
+        refresh=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit']))
+        capabilities=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit']))
+        corrections=Mock(return_value=dict(status='test'))
+        report=self.run_monitor(now=T+timedelta(days=2),read_rain_intervals=rain_intervals,read_marginals=marginal,read_refresh=refresh,read_capabilities=capabilities,read_corrections=corrections)
+        legacy=self.solar.call_count+self.rain.call_count
+        temperatures=sum(len(call.args[0]) for call in self.temperature.call_args_list)
+        total=legacy+temperatures+sum(x.call_args.kwargs['limit'] for x in (rain_intervals,marginal,refresh,capabilities,corrections))
+        self.assertLessEqual(total,64);self.assertLessEqual(rain_intervals.call_args.kwargs['limit'],8)
+        self.assertEqual(report['rain_intervals']['status'],'fixture')
+
+    def test_rain_interval_partial_failure_preserves_core_scores_and_reservation(self):
+        rain_intervals=Mock(side_effect=ConnectionError('private rain details'));corrections=Mock(return_value=dict(status='test'))
+        report=self.run_monitor(read_rain_intervals=rain_intervals,read_corrections=corrections)
+        self.assertEqual(report['temperature']['raw']['pairs'],2)
+        self.assertTrue(any(w['kind']=='rain_intervals' for w in report['source_withheld']))
+        self.assertNotIn('private rain details',str(report));self.assertLessEqual(corrections.call_args.kwargs['limit'],64-2-8)
+
+    def test_rain_interval_owner_failure_stops_the_entire_monitor(self):
+        for error in (TimeoutError('deadline'),MemoryError('allocation')):
+            with self.subTest(error=type(error).__name__),self.assertRaises(type(error)):
+                self.run_monitor(read_rain_intervals=Mock(side_effect=error))

@@ -14,13 +14,13 @@ from .energy_shadow import rain_day_forecast,compare_rain_products,rain_comparis
 
 
 def monitor_once(archive,state,*,now,site,sensor_epoch,code_revision,observation_policy_sha256,
-                 read_temperature,read_solar,read_rain,apply=False,guard=lambda:None,read_corrections=None,read_capabilities=None,read_refresh=None,read_marginals=None):
+                 read_temperature,read_solar,read_rain,apply=False,guard=lambda:None,read_corrections=None,read_capabilities=None,read_refresh=None,read_marginals=None,read_rain_intervals=None):
     import tempfile
     from pathlib import Path
     if type(apply) is not bool:raise ValueError('explicit monitor publication required')
     arguments=dict(now=now,site=site,sensor_epoch=sensor_epoch,code_revision=code_revision,
         observation_policy_sha256=observation_policy_sha256,read_temperature=read_temperature,
-        read_solar=read_solar,read_rain=read_rain,apply=apply,guard=guard,read_corrections=read_corrections,read_capabilities=read_capabilities,read_refresh=read_refresh,read_marginals=read_marginals)
+        read_solar=read_solar,read_rain=read_rain,apply=apply,guard=guard,read_corrections=read_corrections,read_capabilities=read_capabilities,read_refresh=read_refresh,read_marginals=read_marginals,read_rain_intervals=read_rain_intervals)
     context=dict(sensor_epoch=sensor_epoch,observation_policy_sha256=observation_policy_sha256,
         evaluation_version=EVALUATION_VERSION,evaluation_contract_sha256=EVALUATION_CONTRACT_SHA256)
     if apply:
@@ -33,7 +33,7 @@ def monitor_once(archive,state,*,now,site,sensor_epoch,code_revision,observation
 
 
 def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,observation_policy_sha256,
-                 read_temperature,read_solar,read_rain,apply,guard,read_corrections,read_capabilities,read_refresh,read_marginals):
+                 read_temperature,read_solar,read_rain,apply,guard,read_corrections,read_capabilities,read_refresh,read_marginals,read_rain_intervals):
     now=utc(now);digest(observation_policy_sha256)
     if type(apply) is not bool:raise ValueError('explicit monitor publication required')
     names=state.training_issue_names(now-timedelta(days=7),now,sensor_epoch=sensor_epoch)
@@ -44,6 +44,7 @@ def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,obse
     if read_corrections is not None and not callable(read_corrections):raise ValueError('callable correction monitor required')
     if read_capabilities is not None and not callable(read_capabilities):raise ValueError('callable capability monitor required')
     if read_marginals is not None and not callable(read_marginals):raise ValueError('callable marginal monitor required')
+    if read_rain_intervals is not None and not callable(read_rain_intervals):raise ValueError('callable rain interval monitor required')
     def source(kind,target,read,validate):
         nonlocal source_attempts
         key=identity(dict(kind=kind,target=target,policy_sha256=observation_policy_sha256))
@@ -110,7 +111,8 @@ def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,obse
     capability_reserve=min(8,max(0,64-source_attempts)) if read_capabilities is not None else 0
     refresh_reserve=min(8,max(0,64-source_attempts-capability_reserve)) if read_refresh is not None else 0
     marginal_reserve=min(8,max(0,64-source_attempts-capability_reserve-refresh_reserve)) if read_marginals is not None else 0
-    temperature_limit=min(32 if read_corrections is not None else 64,max(0,64-source_attempts-capability_reserve-refresh_reserve-marginal_reserve))
+    rain_reserve=min(8,max(0,64-source_attempts-capability_reserve-refresh_reserve-marginal_reserve)) if read_rain_intervals is not None else 0
+    temperature_limit=min(32 if read_corrections is not None else 64,max(0,64-source_attempts-capability_reserve-refresh_reserve-marginal_reserve-rain_reserve))
     due=queue.due(now,limit=temperature_limit) if temperature_limit else [];loaded=[]
     for work in due:
         guard()
@@ -179,10 +181,26 @@ def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,obse
         except (TimeoutError,AdmissionDeferred,MemoryError):raise
         except Exception as error:
             guard();withheld.append(dict(kind='marginals',reason=type(error).__name__))
+    rain_attempts=0;rain_interval_report=None
+    if read_rain_intervals is not None:
+        rain_attempts=rain_reserve
+        try:
+            guard();intervals=read_rain_intervals(now=now,limit=rain_reserve,apply=apply,guard=guard);guard()
+            used=intervals['observations_attempted']
+            if type(used) is not int or not 0<=used<=rain_reserve:raise ValueError('bounded rain interval observation accounting required')
+            rain_attempts=used
+            # Detailed matched scores retain their own bounded report; avoid
+            # multiplying the fixed core performance payload with every scope.
+            rain_interval_report={k:intervals[k] for k in ('schema','status','generated_at','valid_until','scope_sha256','completed_scores','pending','expired','prepared_not_confirmed','withheld','report_sha256') if k in intervals}
+            rain_interval_report['observations_attempted']=used
+        except (TimeoutError,AdmissionDeferred,MemoryError):raise
+        except Exception as error:
+            guard();withheld.append(dict(kind='rain_intervals',reason=type(error).__name__))
+            rain_interval_report=dict(status='unavailable',reason=type(error).__name__,partial_state='unknown')
     if read_corrections is not None:
         # Legacy daily windows and every attempted queue label share one budget.
         # Reserve temperature work, then lend only the remaining quota.
-        remaining=min(32,max(0,64-source_attempts-len(loaded)-capability_attempts-refresh_attempts-marginal_attempts))
+        remaining=min(32,max(0,64-source_attempts-len(loaded)-capability_attempts-refresh_attempts-marginal_attempts-rain_attempts))
         try:
             guard();corrections=read_corrections(now=now,limit=remaining,apply=apply,guard=guard);guard()
         except (TimeoutError,AdmissionDeferred,MemoryError):raise
@@ -198,7 +216,7 @@ def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,obse
         valid_until=(now+timedelta(hours=2)).isoformat(),code_revision=code_revision,observation_policy_sha256=observation_policy_sha256,
         scoring_scope='original_daily_issues_and_frozen_local_predictions',issues=len(issues),
         temperature=temperature,corrections=corrections,
-        solar=solar,rain=rain,
+        solar=solar,rain=rain,rain_intervals=rain_interval_report,
         pending=pending,source_withheld=withheld,calibration_qualified=False,release_authorized=False,automatic_actuation=False)
     report['report_sha256']=identity(report)
     if len(canonical(report))>512*1024:raise ValueError('bounded weather performance report required')
