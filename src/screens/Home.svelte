@@ -31,7 +31,7 @@
   import { bitcoinReceiptState } from '../lib/ui/bitcoinReceipt.js';
   import { officeHallwayTemperature } from '../lib/thermal/officeHallwayTemperature.js';
   import { parsePredictionReceipt } from '../lib/forecast/predictionReceipt.js';
-  import { stationPresentation } from '../lib/weather/stationPresentation.js';
+  import { stationPresentation, rainPeriodText } from '../lib/weather/stationPresentation.js';
   import { estimateDailyLoadKWh } from '../lib/ui/dailyLoad.js';
   import {
     batteryPowerFlowPresentation,
@@ -368,16 +368,16 @@
   const rainWeekInches = $derived(station.mode === 'legacy' ? num(stationItems.AmbientWeatherWS2902A_RainFallWeek) : station.rain.week);
   const rainDayGallons = $derived(harvestedGallons(rainDayInches));
   const rainWeekGallons = $derived(harvestedGallons(rainWeekInches));
-  const rainIconColor = $derived(rainStateColor(rainDayInches));
+  const rainIconColor = $derived(rainStateColor(rainDayInches ?? station.rain.partialDay));
   const rainRateLabel = $derived(rainRateChip(station.mode === 'legacy' ? stationItems.AmbientWeatherWS2902A_RainFallHourlyRate : station.rain.rate));
   const rainValue = $derived(
     rainDayInches === null || rainDayGallons === null
-      ? '—'
+      ? station.mode === 'v2' && station.rain.partialDay !== null ? rainPeriodText(station.rain, 'day') : '—'
       : `${rainDayInches.toFixed(2)}″ / ${rainDayGallons.toLocaleString('en-US')} gal`
   );
   const rainFooter = $derived(
     rainWeekInches === null || rainWeekGallons === null
-      ? 'Week —'
+      ? station.mode === 'v2' ? `Week ${rainPeriodText(station.rain, 'week')}` : 'Week —'
       : `Week ${rainWeekInches.toFixed(2)}″ / ${rainWeekGallons.toLocaleString('en-US')} gal`
   );
 
@@ -737,6 +737,8 @@
     role="button"
     tabindex="0"
     aria-label="Open Rain chart"
+    aria-description="Partial totals are recorded lower bounds; earlier rain in the period is unavailable."
+    title="Partial totals are recorded lower bounds; earlier rain in the period is unavailable."
     onclick={openRainChart}
     onkeydown={(e) => onKeyActivate(e, openRainChart)}
   >
@@ -750,6 +752,7 @@
       footer={rainFooter}
       valueSize="1rem"
       footerSize="0.72rem"
+      wrapValue={rainDayInches === null && station.rain.partialDay !== null}
       footerNoWrap
       stackValue
       centerContent
