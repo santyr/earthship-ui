@@ -31,6 +31,7 @@
   import { bitcoinReceiptState } from '../lib/ui/bitcoinReceipt.js';
   import { officeHallwayTemperature } from '../lib/thermal/officeHallwayTemperature.js';
   import { parsePredictionReceipt } from '../lib/forecast/predictionReceipt.js';
+  import { stationPresentation } from '../lib/weather/stationPresentation.js';
   import { estimateDailyLoadKWh } from '../lib/ui/dailyLoad.js';
   import {
     batteryPowerFlowPresentation,
@@ -159,7 +160,7 @@
   }
   async function refreshBaroSpark() {
     return pressureRefresh.run(
-      signal => fetchHistorySafe('AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative', 6, signal),
+      signal => fetchHistorySafe(pressureItem, 6, signal),
       data => { baroSpark = data; },
     );
   }
@@ -200,7 +201,7 @@
   }
 
   const SPARK_REFRESH_MS = 300000; // 5 minutes
-  const WALL_CLOCK_REFRESH_MS = 60000; // one minute
+  const WALL_CLOCK_REFRESH_MS = 5000; // expire station fields even while the UI is idle
   let sparkRefreshTimer;
   let wallClockTimer;
 
@@ -359,12 +360,15 @@
   const windMaxColor = $derived(windSpeedColor(windGustMaxToday));
   const windAccent = $derived(windSpeedColor(windSpeedR));
 
-  const rainDayInches = $derived(num($items.AmbientWeatherWS2902A_RainFallDay));
-  const rainWeekInches = $derived(num($items.AmbientWeatherWS2902A_RainFallWeek));
+  const station = $derived(stationPresentation($items, {nowMs:Math.max(wallClock,Date.now())}));
+  const pressureItem = $derived(station.mode === 'legacy' ? 'AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative' : 'WeatherStation_PressureAbsoluteV2');
+  const pressureValue = $derived(station.mode === 'legacy' ? $items.AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative : station.pressure.value);
+  const rainDayInches = $derived(station.mode === 'legacy' ? num($items.AmbientWeatherWS2902A_RainFallDay) : station.rain.day);
+  const rainWeekInches = $derived(station.mode === 'legacy' ? num($items.AmbientWeatherWS2902A_RainFallWeek) : station.rain.week);
   const rainDayGallons = $derived(harvestedGallons(rainDayInches));
   const rainWeekGallons = $derived(harvestedGallons(rainWeekInches));
   const rainIconColor = $derived(rainStateColor(rainDayInches));
-  const rainRateLabel = $derived(rainRateChip($items.AmbientWeatherWS2902A_RainFallHourlyRate));
+  const rainRateLabel = $derived(rainRateChip(station.mode === 'legacy' ? $items.AmbientWeatherWS2902A_RainFallHourlyRate : station.rain.rate));
   const rainValue = $derived(
     rainDayInches === null || rainDayGallons === null
       ? '—'
@@ -383,7 +387,10 @@
   const curtailColor = $derived(curtailmentColor(curtailHours));
   const solarColor = $derived(solarPvColor(pvWatts));
 
-  const pressureStatus = $derived(pressurePresentation($items.AmbientWeatherWS2902A_PressureTrend));
+  const pressureStatus = $derived.by(() => {
+    const result = pressurePresentation(station.mode === 'legacy' ? $items.AmbientWeatherWS2902A_PressureTrend : station.pressure.trend);
+    return station.mode === 'legacy' ? result : {...result,label:station.pressure.trendLabel};
+  });
 
   const zonesList = $derived.by(() => {
     const room = num($items.AmbientWeatherWS2902A_IndoorSensor_Temperature);
@@ -480,7 +487,7 @@
   function openRainChart() {
     openChart({
       title: 'Rain',
-      series: [{ name: 'AmbientWeatherWS2902A_RainFallDay', color: colors.rain, label: 'Rain/day' }],
+      series: [{ name: station.mode === 'legacy' ? 'AmbientWeatherWS2902A_RainFallDay' : 'WeatherStation_RainDayV2', color: colors.rain, label: 'Rain/day' }],
       hours: 24,
     });
   }
@@ -493,12 +500,12 @@
   }
   function openBaroChart() {
     openChart({
-      title: 'Pressure',
+      title: 'Station pressure (absolute)',
       series: [
         {
-          name: 'AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative',
+          name: pressureItem,
           color: colors.label,
-          label: 'Pressure',
+          label: 'Station pressure',
         },
       ],
       hours: 24,
@@ -706,7 +713,7 @@
     class="cell baro-cell clickable"
     role="button"
     tabindex="0"
-    aria-label="Open Barometric pressure chart"
+    aria-label="Open Station pressure chart"
     onclick={openBaroChart}
     onkeydown={(e) => onKeyActivate(e, openBaroChart)}
   >
@@ -715,7 +722,7 @@
         <div class="baro-head">
           <span class="baro-status-icon" style="color: {pressureStatus.color}"><OhIcon icon={pressureStatus.icon} size="1.15rem" /></span>
           <div class="baro-value">
-            {fmt($items.AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative, '', 2)} <span class="unit">inHg</span>
+            {fmt(pressureValue, '', 2)} <span class="unit">inHg</span>
           </div>
         </div>
         <div class="baro-spark"><Sparkline data={baroSpark} color={colors.label} lineWidth={2} smoothingAlpha={0.12} heldUntil={wallClock} /></div>

@@ -2,6 +2,7 @@ import { expect, test } from './fixture-test.js';
 import { createServer } from 'vite';
 import { readFileSync } from 'node:fs';
 
+
 const validShadow = JSON.parse(readFileSync(new URL('../fixtures/thermal-shadow-v1-available.json', import.meta.url), 'utf8'));
 
 const TARGETS = [
@@ -114,7 +115,7 @@ test.afterAll(async () => {
   await server?.close();
 });
 
-async function openFixture(page, route, target) {
+async function openFixture(page, route, target, extraItems = []) {
   await page.setViewportSize({ width: target.width, height: target.height });
   await page.route('**/config.json', (request) => request.fulfill({
     json: {
@@ -127,8 +128,8 @@ async function openFixture(page, route, target) {
     const now = Date.now();
     const status = `reason=idle,scheduleVersion=1,evaluatedAt=${new Date(now).toISOString()},scheduling=conditional,nextPump=east,nextEligibleAt=${new Date(now + 45 * 60_000).toISOString()}`;
     return request.fulfill({
-      json: ITEMS.map((item) => item.name === 'SouthOutlet_AutoStatus'
-        ? { ...item, state: status } : item),
+      json: [...ITEMS.map((item) => item.name === 'SouthOutlet_AutoStatus'
+        ? { ...item, state: status } : item), ...extraItems],
     });
   });
   await page.route('**/fixture-openhab/rest/events?*', (request) => request.fulfill({
@@ -140,6 +141,28 @@ async function openFixture(page, route, target) {
   await page.goto(`${baseURL}#/${route}`, { waitUntil: 'domcontentloaded' });
   await page.locator(`.${route}-grid`).waitFor();
 }
+
+test('station v2 pressure shows absolute identity and withholds a cold steady trend', async ({page}) => {
+  const now=Date.now(), name='WeatherStation_PressureAbsoluteV2';
+  await page.clock.install({time:new Date(now)});
+  const report={schema:'earthship-station-ingestion/v2',generatedAt:new Date(now).toISOString(),
+    flat:{[name]:23.89,AmbientWeatherWS2902A_PressureTrend:'steady'},
+    fields:{[name]:{value:23.89,receivedAt:new Date(now).toISOString(),validUntil:new Date(now+120000).toISOString(),role:'indoor',status:'fresh'}},
+    pressure:{identity:'station_absolute',method:'three_hour_boundary_bracket_change_0.01inHg/v1',supportSeconds:720},
+    rain:{schema:'earthship-station-rain-products/v2',status:'fresh',products:{}}};
+  await openFixture(page,'weather',TARGETS[0],[{name:'WeatherStation_Quality_JSON',type:'String',state:JSON.stringify(report)}]);
+  await expect(page.locator('.pressure-cell')).toContainText('23.89');
+  await expect(page.locator('.pressure-cell')).toContainText('Station pressure');
+  await expect(page.locator('.pressure-cell')).toContainText('3h trend unavailable');
+  await expect(page.locator('.pressure-cell')).not.toContainText('steady');
+  await expect(page.locator('.rain-cell')).not.toContainText('0.12');
+  await page.goto(`${baseURL}#/home`,{waitUntil:'domcontentloaded'});
+  await expect(page.locator('.baro-cell')).toContainText('23.89');
+  await expect(page.locator('.baro-cell')).toContainText('3h trend unavailable');
+  await page.clock.runFor(95000);
+  await expect(page.locator('.baro-cell')).not.toContainText('23.89');
+  await expect(page.locator('.baro-cell')).not.toContainText('30.12');
+});
 
 async function expectRouteBounded(page, route) {
   const result = await page.evaluate((routeName) => {
