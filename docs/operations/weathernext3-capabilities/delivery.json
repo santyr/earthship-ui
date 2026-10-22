@@ -61,7 +61,7 @@
       "id": "WN-08",
       "requirement": "Test adaptive temperature correction and locally calibrated marginal uncertainty",
       "owning_tasks": "7",
-      "status": "in_progress_native_science_and_durable_shadow_scoring_verified_producer_status_and_report_pending",
+      "status": "complete_locally_unselected_unqualified_not_deployed",
       "evidence": [
         "marginal-calibration.md",
         "marginal-calibration-protocol.json",
@@ -74,7 +74,8 @@
         "marginal-native-experiment.json",
         "marginal-native-verification.json",
         "marginal-native-preparation.json",
-        "marginal-durable-progress.json"
+        "marginal-durable-progress.json",
+        "task7-verification.json"
       ]
     },
     {
@@ -271,8 +272,25 @@
       "task": 7,
       "title": "Implement bounded local marginal calibration",
       "gate": "full implementation and tests exist, with results on all eligible data and specific evidence blockers otherwise. A contender that loses remains unselected; raw ranges and current point forecasts remain usable.",
-      "status": "in_progress_durable_queue_monitor_verified_closed_producer_get_and_report_pending",
-      "steps": 6
+      "status": "complete_locally_unselected_unqualified_not_deployed",
+      "steps": 6,
+      "remaining": [],
+      "production_installed": false,
+      "evidence": [
+        "marginal-calibration.md",
+        "marginal-native-experiment.json",
+        "task7-verification.json"
+      ],
+      "tests": {
+        "backend_passed": 676,
+        "normal_sdk_skips": 4,
+        "backend_subtests": 165,
+        "frontend_passed": 2890,
+        "frontend_files": 188,
+        "browser_passed": 36,
+        "build_exit": 0,
+        "report_regressions": 5
+      }
     },
     {
       "task": 8,

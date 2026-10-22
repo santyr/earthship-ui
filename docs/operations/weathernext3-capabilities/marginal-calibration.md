@@ -1,6 +1,6 @@
-# Local marginal calibration — implementation in progress
+# Local marginal calibration — locally complete, unqualified
 
-Task 7 is not complete or deployed. Complete frozen native coverage now includes
+Task 7 is locally complete and not deployed. Complete frozen native coverage includes
 104,264 pairs across 29 bounded cohorts, with all comparisons and original
 prediction math replayed. The closed optional producer/public status and
 prospective cohort/subgroup reports remain required. The earlier 25-cohort legacy sample is preserved
@@ -210,9 +210,66 @@ The optional monitor reserves at most eight labels inside the existing global
 64-label budget. Unknown partial failures consume that reservation; resource
 failures remain global stops. It uses existing restricted local readers and is
 disabled when its separate index is absent. The 64 MiB index and existing shared
-immutable-object cap remain explicit, with no automatic pruning. Current tests
-pass 658 backend cases and 165 subtests; four isolated SDK-profile skips remain
-named. Task 7 still requires the closed optional producer profile, public GET
-status, complete prospective cohort/subgroup report, and remaining capacity and
-fault verification before its completion gate. No household service is enabled
+immutable-object cap remain explicit, with no automatic pruning. This earlier durable-queue checkpoint is superseded by the complete Task 7 verification below. Its immutable evidence remains unchanged. No household service is enabled
 or changed by this private probe.
+
+
+## Completed closed producer and prospective reporting
+
+[Task 7 verification](task7-verification.json) is the current completion record.
+The independent final numerical replay checked all 29 coherent native cohorts,
+877 original models and 40,681 outer predictions without refitting. The original
+395-file scientific package remains immutable. The current 399-file producer
+package adds reporting and transport; its 68 closed runtime pins are distinct
+from the unchanged 19-file numerical identity of retained fitted artifacts.
+
+The standalone optional producer is disabled unless its explicit private profile
+has `enabled=true`. Run with `PYTHONPATH=openhab/scripts python -m
+weather_learning.marginal_runtime --profile ABSOLUTE_PATH`; append `--apply` to
+retain and publish only its separate read-only shadow cache. The closed schema
+`earthship-marginal-production-profile/v1` requires enabled, archive, state, site
+(latitude/longitude/timezone), explicit bundle-to-artifact hashes,
+temperature_policy, temperature_db_config, optional solar_origin_context and
+runtime_manifest. Use the existing resource launcher; internal deadline is 90
+seconds. Preview preserves every state byte. No timer or household model selector
+is installed. Missing or source-incompatible models produce explicit raw fallback;
+reading historical originals never authorizes serving incompatible weights.
+
+The actual private producer emitted 88 rows: 24 local temperature candidates and
+64 raw fallbacks, with a v2 confirmation binding exact cache bytes. Three private
+issues retain 93 future sample targets. Original fitted artifacts and protected
+inputs were unchanged. One earlier issue, confirmed before its 04:00 UTC target,
+was scored against the actual qualified native-temperature capture. The latest
+report reuses that first capture under its exact new scoring-producer identity;
+one target on one date cannot establish skill. Five cold source cohorts remain
+explicit fallbacks. Nothing was written to the installed household cache.
+
+Prospective comparisons group exact configured model sets, kind/unit,
+observation policy and scoring producer, then expose matched and fallback-inclusive
+scores with lead/hour/season/regime support, absent groups and descriptive date
+bootstrap intervals. Numeric wind retains its unqualified source meaning.
+Temperature model mean and empirical median point diagnostics stay available when
+raw interval bounds are absent. These auxiliary diagnostics cannot satisfy or
+change the frozen interval/probability selection gates. Raw median, WIS and CRPS
+are never invented from two native quantiles. Qualification and promotion remain
+false. Reports cover 28 target days, at most 10,000 summarized scores, and flag
+truncation; every original score remains retained.
+
+The fixed GET `/api/weather-marginals` exposes at most 256 KiB from the owned
+shadow cache and its fixed sibling confirmation. It rejects parameters and
+mutations, malformed/private/stale data, unsafe paths and unconfirmed publication.
+V2 binds the exact original bytes, including encoding prefixes. Original v1
+emission receipts remain readable by their original scoring path; this endpoint
+requires v2 and never upgrades old receipts. The actual private HTTP probe returned
+200 with exact producer bytes, 400 for query parameters and 405 for POST.
+The default UI does not poll this optional endpoint; integrated UI is Task 10.
+
+Verification: 676 backend tests and 165 subtests passed, with four named tests
+requiring the unchanged isolated SDK profile skipped in this interpreter;
+2,890 frontend tests in 188 files, 36 networkless Home/Weather browser cases and
+the build passed. Fault tests cover 21 daily issues/231 targets, 336-hour maturity,
+expired-model fallback, low disk, exact-byte confirmation, partial publication
+and SQL recovery. The monitor reserves at most eight attempts within its existing
+64-label budget. The separate 64 MiB index and shared 2 GiB/10,000-object cap have
+no automatic pruning. Earlier progress summaries retain their original incomplete
+status as historical checkpoints. Tasks 8–11 and deployment remain outstanding.

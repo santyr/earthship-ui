@@ -135,3 +135,61 @@ def test_backwards_clock_after_cache_write_cannot_confirm_publication(tmp_path):
     with pytest.raises(ValueError,match='clock|publication'):
         q.publish(issue,model_artifacts=artifacts,clock=lambda:next(ticks))
     assert q.summary()['confirmed']==0
+
+
+def test_confirmed_emission_binds_exact_public_cache_bytes(tmp_path):
+    from hashlib import sha256
+    state,q,key,_,_,_=setup(tmp_path);_,emission=q.load(key)
+    assert emission['schema']=='earthship-confirmed-marginal-emission/v2'
+    assert emission['cache_bytes_sha256']==sha256((state.root/api().CACHE).read_bytes()).hexdigest()
+
+
+def test_original_v1_emission_remains_readable_for_original_scoring(tmp_path):
+    state,q,key,_,at,_=setup(tmp_path)
+    path=q.emissions/(key+'.json');value=json.loads(path.read_bytes());value.pop('cache_bytes_sha256',None);value['schema']='earthship-confirmed-marginal-emission/v1'
+    value['emission_sha256']=identity({k:v for k,v in value.items() if k!='emission_sha256'});path.write_bytes(canonical(value))
+    with q.connect() as db:db.execute('UPDATE issues SET emission_digest=? WHERE key=?',(value['emission_sha256'],key))
+    assert q.load(key)[1]==value
+    assert run(state,at+timedelta(hours=1,minutes=2),limit=1)['scored']==1
+
+
+def test_emission_recovers_after_transaction_failure_without_changing_original_clock(tmp_path,monkeypatch):
+    import sqlite3
+    state,q,key,issue,at,refs=setup(tmp_path,publish=False);register=q._register
+    def fail_after_originals(wrapper,emission=None):
+        if emission is not None:raise sqlite3.OperationalError('synthetic index failure')
+        return register(wrapper,emission)
+    monkeypatch.setattr(q,'_register',fail_after_originals)
+    with pytest.raises(sqlite3.OperationalError):q.publish(issue,model_artifacts=refs,clock=lambda:at+timedelta(seconds=1))
+    original=json.loads((q.emissions/(key+'.json')).read_bytes());assert q.summary()['confirmed']==0
+    monkeypatch.setattr(q,'_register',register);q.recover(clock=lambda:at+timedelta(minutes=3))
+    assert q.load(key)[1]==original and q.summary()['confirmed']==1
+    assert run(state,at+timedelta(hours=1,minutes=2),limit=1)['scored']==1
+
+
+def test_low_disk_refuses_before_cache_or_original_mutation(tmp_path,monkeypatch):
+    state,q,_,issue,at,refs=setup(tmp_path,publish=False);before={p:p.read_bytes() for p in state.root.rglob('*') if p.is_file()}
+    from types import SimpleNamespace
+    monkeypatch.setattr(api().shutil,'disk_usage',lambda *a:SimpleNamespace(free=0))
+    with pytest.raises(ValueError,match='headroom'):q.publish(issue,model_artifacts=refs,clock=lambda:at)
+    after={p:p.read_bytes() for p in state.root.rglob('*') if p.is_file() and p.name!='marginal-publish.lock'}
+    assert after==before
+
+
+def test_three_week_queue_growth_keeps_originals_and_expired_model_fallback(tmp_path):
+    from weather_learning.probabilistic_artifacts import read_candidates
+    from weather_learning.probabilistic_issue import prepare_marginal_issue,temperature_context
+    state,q,_,_,at,refs=setup(tmp_path,publish=False)
+    model_path=state.root/'marginal-models'/(next(iter(refs.values()))+'.json');original_model=model_path.read_bytes()
+    bundle=read_candidates(state,next(iter(refs.values())),policy=POLICY);keys=[]
+    for day in range(21):
+        decision=at+timedelta(days=day);ctx=temperature_context(receipt(decision),sampled_at=decision,acquired_at=decision,sensor_epoch=EPOCH)
+        issue=prepare_marginal_issue(snapshots=[native_snapshot(day=15+day,hours=360)],decision=decision,site=SITE,contexts={'temperature':ctx},bundles=[bundle],policy=POLICY)
+        keys.append(q.publish(issue,model_artifacts=refs,clock=lambda:decision+timedelta(seconds=1)))
+    summary=q.summary();assert summary['issues']==summary['confirmed']==21 and summary['targets']==231
+    assert summary['database_allocated_bytes']<summary['database_maximum_bytes'] and model_path.read_bytes()==original_model
+    assert json.loads((state.root/api().CACHE).read_bytes())['status']=='raw_fallback'
+    assert len(set(keys))==21 and len(list(q.originals.glob('*.json')))==21 and len(list(q.emissions.glob('*.json')))==21
+    calls=[]
+    result=run(state,at+timedelta(days=21),limit=8,read_observation=lambda work,now:calls.append(work))
+    assert len(calls)==result['observations_attempted']==8 and result['scored']==0 and result['pending']==231

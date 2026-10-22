@@ -6,6 +6,7 @@ from pathlib import Path
 from hashlib import sha256
 import json,os,shutil,sqlite3,stat,tempfile
 from household_job_budget import AdmissionDeferred
+from weather_source_files import _read as _read_bytes
 from .contracts import canonical,digest,identity,instant
 from .evidence import utc
 from .shadow import _read,_directory
@@ -28,7 +29,7 @@ def _checked(value,key):
 
 
 def _producer():
-    paths=[Path(__file__),Path(__file__).with_name('marginal_outcomes.py'),Path(__file__).with_name('probabilistic_evaluation.py')]
+    paths=[Path(__file__),Path(__file__).with_name('marginal_outcomes.py'),Path(__file__).with_name('probabilistic_evaluation.py'),Path(__file__).with_name('marginal_reporting.py')]
     return identity({p.name:sha256(p.read_bytes()).hexdigest() for p in paths})
 
 
@@ -93,9 +94,10 @@ class MarginalQueue:
 
     def _emission(self,key,wrapper):
         value=_checked(_read(self.emissions/(key+'.json'),65536),'emission_sha256');issue=wrapper['issue']
-        if (value.get('schema')!='earthship-confirmed-marginal-emission/v1' or value.get('issue_sha256')!=key or value.get('wrapper_sha256')!=wrapper['wrapper_sha256'] or
+        if (value.get('schema') not in ('earthship-confirmed-marginal-emission/v1','earthship-confirmed-marginal-emission/v2') or value.get('issue_sha256')!=key or value.get('wrapper_sha256')!=wrapper['wrapper_sha256'] or
                 value.get('report_sha256')!=wrapper['public_view']['report_sha256'] or value.get('contract_sha256')!=CONTRACT_SHA256 or value.get('automatic_actuation') is not False or
                 not instant(issue['decision_at'])<=instant(value['cache_write_completed_at'])<instant(wrapper['public_view']['valid_until'])):raise ValueError('original marginal emission differs')
+        if value['schema']=='earthship-confirmed-marginal-emission/v2' and value.get('cache_bytes_sha256')!=sha256(canonical(wrapper['public_view'])).hexdigest():raise ValueError('original marginal emission byte binding differs')
         return value
 
     def _register(self,wrapper,emission=None):
@@ -116,18 +118,19 @@ class MarginalQueue:
         value=validate_marginal_issue(issue.to_dict(),policy=self.policy,replay=True);key=value['issue_sha256']
         if set(model_artifacts)!=set(value['bundle_originals']):raise ValueError('all original candidate artifacts required')
         for pin,artifact in model_artifacts.items():
-            if read_candidates(self.state,artifact,policy=self.policy).to_dict()!=value['bundle_originals'][pin]:raise ValueError('original fitted artifact differs')
+            if read_candidates(self.state,artifact,policy=self.policy,require_current=False).to_dict()!=value['bundle_originals'][pin]:raise ValueError('original fitted artifact differs')
         wrapper=dict(schema='earthship-retained-marginal-issue/v1',storage_key=key,issue=value,model_artifacts=model_artifacts,public_view=public_issue(value,policy=self.policy),automatic_actuation=False);wrapper['wrapper_sha256']=identity(wrapper)
         self.state._write(self.originals/(key+'.json'),wrapper,immutable=True);self._register(wrapper);return key
 
     def confirm(self,key,*,clock,not_before=None):
         wrapper=self._original(key);expected=wrapper['public_view']
-        if _read(self.state.root/CACHE,MAX_BYTES)!=expected:raise ValueError('actual marginal cache readback differs')
+        cache_bytes=_read_bytes(self.state.root/CACHE,MAX_BYTES)
+        if cache_bytes!=canonical(expected):raise ValueError('actual marginal cache byte readback differs')
         try:emission=self._emission(key,wrapper)
         except FileNotFoundError:
             completed=utc(clock())
             if not max(instant(expected['generated_at']),instant(expected['generated_at']) if not_before is None else utc(not_before))<=completed<instant(expected['valid_until']):raise ValueError('actual marginal publication clock outside original lifetime')
-            emission=dict(schema='earthship-confirmed-marginal-emission/v1',issue_sha256=key,wrapper_sha256=wrapper['wrapper_sha256'],report_sha256=expected['report_sha256'],cache_write_completed_at=completed.isoformat(),contract_sha256=CONTRACT_SHA256,automatic_actuation=False)
+            emission=dict(schema='earthship-confirmed-marginal-emission/v2',cache_bytes_sha256=sha256(cache_bytes).hexdigest(),issue_sha256=key,wrapper_sha256=wrapper['wrapper_sha256'],report_sha256=expected['report_sha256'],cache_write_completed_at=completed.isoformat(),contract_sha256=CONTRACT_SHA256,automatic_actuation=False)
             emission['emission_sha256']=identity(emission);self.state._write(self.emissions/(key+'.json'),emission,immutable=True)
         self._register(wrapper,emission);return key
 
@@ -194,7 +197,7 @@ def _score(issue,emission,row,outcome):
     adaptive=row['candidates']['adaptive'];adaptive_score=None
     if compatible and adaptive and adaptive['candidate_used']:adaptive_score=dict(absolute_error=abs(adaptive['value']-body['value']),signed_error=adaptive['value']-body['value'])
     value=dict(schema='earthship-original-emitted-marginal-score/v1',contract_sha256=CONTRACT_SHA256,issue_sha256=issue['issue_sha256'],emission_sha256=emission['emission_sha256'],row_sha256=row['row_sha256'],forecast=asdict(frame),bundle_sha256=row['candidates']['bundle_sha256'],
-        observation={k:v for k,v in body.items() if k!='original'},raw=_raw_score(frame,body['value']),local=local,adaptive=adaptive_score,measurement_cohort_compatible=compatible,
+        configured_bundle_sha256s=sorted(issue['bundle_originals']),model_set_sha256=identity(sorted(issue['bundle_originals'])),scoring_producer_sha256=_producer(),emitted_at=emission['cache_write_completed_at'],observation={k:v for k,v in body.items() if k!='original'},raw=_raw_score(frame,body['value']),local=local,adaptive=adaptive_score,measurement_cohort_compatible=compatible,
         fallback_reason=row['candidates']['reason'] if compatible else 'observed_measurement_cohort_changed',issued=True,local_coverage_qualified=False,probability_claim=False,automatic_actuation=False)
     value['score_sha256']=identity(value);return value
 
@@ -245,7 +248,10 @@ def _monitor(queue,scope,now,policy,read,limit,apply,clock,guard):
     with queue.connect() as db:
         total=db.execute('SELECT COUNT(*) FROM scores WHERE scope=?',(scope,)).fetchone()[0]
         pending=db.execute('SELECT COUNT(*) FROM targets t JOIN issues i ON i.key=t.issue AND i.emitted IS NOT NULL LEFT JOIN scores s ON s.scope=? AND s.key=t.key WHERE t.eligible=1 AND s.key IS NULL',(scope,)).fetchone()[0]
-    result=dict(schema='earthship-marginal-performance/v1',status='applied' if apply else 'preview',generated_at=assessed.isoformat(),valid_until=(assessed+timedelta(hours=2)).isoformat(),scope_sha256=scope,scored=completed if apply else 0,would_score=0 if apply else completed,observations_attempted=attempted,completed_scores=total,pending=pending,prepared_not_confirmed=capacity['issues']-capacity['confirmed'],withheld=withheld,capacity=capacity,arrival_deadline_basis='actual first observation acquisition within7days; later discovery allowed',local_coverage_qualified=False,probability_claim=False,automatic_actuation=False)
+        records=db.execute('SELECT body FROM scores WHERE scope=? AND target>=? AND target<=? ORDER BY target DESC,key LIMIT 10001',(scope,(assessed-timedelta(days=28)).isoformat(),assessed.isoformat())).fetchall()
+    from .marginal_reporting import summarize_scores
+    comparisons=summarize_scores([json.loads(r[0]) for r in records[:10000]],policy=queue.policy,guard=guard)
+    result=dict(schema='earthship-marginal-performance/v1',status='applied' if apply else 'preview',generated_at=assessed.isoformat(),valid_until=(assessed+timedelta(hours=2)).isoformat(),scope_sha256=scope,scored=completed if apply else 0,would_score=0 if apply else completed,observations_attempted=attempted,completed_scores=total,pending=pending,prepared_not_confirmed=capacity['issues']-capacity['confirmed'],withheld=withheld,capacity=capacity,arrival_deadline_basis='actual first observation acquisition within7days; later discovery allowed',comparisons=comparisons,report_target_window_days=28,summary_truncated=len(records)>10000,local_coverage_qualified=False,probability_claim=False,automatic_actuation=False)
     result['report_sha256']=identity(result)
     if apply:queue.state._write(queue.state.root/'marginal-performance.json',result)
     return result

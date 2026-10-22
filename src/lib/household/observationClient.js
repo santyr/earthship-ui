@@ -1,3 +1,4 @@
+import {MAX_MARGINAL_BYTES} from '../weather/marginalForecast.js';
 import { OBSERVATION_MAX_BYTES } from './observation.js';
 import {MAX_CAPABILITY_BYTES} from '../weather/capabilityForecast.js';
 
@@ -40,3 +41,5 @@ export const loadPvPerformance = signal => load('/api/daily-pv-performance', sig
 export const loadTerrainDaylight = signal => load('/api/terrain-daylight', signal);
 
 export const loadWeatherCapabilities = signal => load('/api/weather-capabilities',signal,MAX_CAPABILITY_BYTES);
+
+export const loadWeatherMarginals = signal => load('/api/weather-marginals',signal,MAX_MARGINAL_BYTES);

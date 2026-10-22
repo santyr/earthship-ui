@@ -3,6 +3,7 @@ import { parsePvPerformance } from '../energy/pvPerformance.js';
 import { parseDailyPvPotential } from '../energy/dailyPvPotential.js';
 import { parseChronologicalSummary } from './chronology.js';
 import { constants } from 'node:fs';
+import {createHash} from 'node:crypto';
 import { open, realpath, stat, lstat } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { homedir } from 'node:os';
@@ -12,6 +13,7 @@ import { parseBatteryPerformance } from './batteryPerformance.js';
 import { parseEnergyObservation, parseEnergyPerformance } from './energyObservation.js';
 import { parseProfiledObservation, parseProfiledPerformance } from './profiledObservation.js';
 import {parseWeatherCapabilities,MAX_CAPABILITY_BYTES} from '../weather/capabilityForecast.js';
+import {parseWeatherMarginals,validateMarginalEmission,MAX_MARGINAL_BYTES,MAX_MARGINAL_EMISSION_BYTES} from '../weather/marginalForecast.js';
 
 // Preserve Vite's default sensitive-file exclusions and add private agent and
 // receipt staging. Filesystem permissions alone do not constrain the web server.
@@ -25,7 +27,7 @@ function ownedFile(info,maximumBytes) {
 function same(a, b) {
   return ['dev', 'ino', 'mode', 'uid', 'nlink', 'size', 'mtimeMs', 'ctimeMs'].every(key => a[key] === b[key]);
 }
-async function readObservation(path, nowMs, validate = parseHouseholdObservation, maximumBytes = OBSERVATION_MAX_BYTES) {
+async function readObservation(path, nowMs, validate = parseHouseholdObservation, maximumBytes = OBSERVATION_MAX_BYTES, onBytes = null) {
   if (resolve(path) !== path || await realpath(path) !== path) throw new Error('unavailable');
   const parent = await stat(dirname(path));
   if (!parent.isDirectory() || parent.uid !== process.getuid() || (parent.mode & 0o777) !== 0o700) throw new Error('unavailable');
@@ -43,6 +45,7 @@ async function readObservation(path, nowMs, validate = parseHouseholdObservation
     if (length > maximumBytes || length !== original.size
       || !same(original, await handle.stat()) || !same(original, await lstat(path))
       || !same(parent, await stat(dirname(path))) || await realpath(path) !== path) throw new Error('unavailable');
+    if(onBytes)onBytes(bytes.subarray(0,length));
     const raw = new TextDecoder('utf-8', { fatal: true }).decode(bytes.subarray(0, length));
     if (!validate(raw, { nowMs })) throw new Error('unavailable');
     return raw;
@@ -63,6 +66,7 @@ export function householdObservationPlugin({
   capturedPvCachePath = resolve(homedir(), '.local/state/household-intel/captured-pv-performance.json'),
   pvPerformanceCachePath = resolve(homedir(), '.local/state/household-intel/daily-pv-performance.json'),
   dailyPvCachePath = resolve(homedir(), '.local/state/household-intel/daily-pv-potential.json'),
+  weatherMarginalsPath = resolve(homedir(), '.local/state/earthship-weather/shadow/google-local-v2/marginal-candidates.json'),
   weatherCapabilitiesPath = resolve(homedir(), '.local/state/earthship-weather/shadow/google-local-v2/weather-capabilities.json'),
   now = Date.now,
 } = {}) {
@@ -70,6 +74,7 @@ export function householdObservationPlugin({
     let url;
     try { url = new URL(req.url || '/', 'http://localhost'); } catch { return next(); }
     const route = {
+      '/api/weather-marginals': [weatherMarginalsPath, (raw,options)=>parseWeatherMarginals(raw,options).state==='ready', MAX_MARGINAL_BYTES],
       '/api/weather-capabilities': [weatherCapabilitiesPath, (raw,options)=>parseWeatherCapabilities(raw,options).state==='ready', MAX_CAPABILITY_BYTES],
       '/api/daily-pv-performance': [pvPerformanceCachePath, parsePvPerformance],
       '/api/daily-pv-potential': [dailyPvCachePath, parseDailyPvPotential],
@@ -90,7 +95,16 @@ export function householdObservationPlugin({
     res.setHeader('X-Content-Type-Options', 'nosniff');
     if (req.method !== 'GET') { res.setHeader('Allow', 'GET'); res.writeHead(405).end('{"status":"unavailable"}'); return; }
     if (url.search) { res.writeHead(400).end('{"status":"unavailable"}'); return; }
-    try { const raw = await readObservation(route[0], now(), route[1], route[2]); res.writeHead(200).end(raw); }
+    try {
+      const at=now();let cacheBytesSha256=null;
+      const raw = await readObservation(route[0], at, route[1], route[2],url.pathname==='/api/weather-marginals'?bytes=>{cacheBytesSha256=createHash('sha256').update(bytes).digest('hex')}:null);
+      if(url.pathname==='/api/weather-marginals'){
+        const view=parseWeatherMarginals(raw,{nowMs:at});
+        const receipt=resolve(dirname(weatherMarginalsPath),'marginal-emissions',view.issueSha256+'.json');
+        await readObservation(receipt,at,(emission,options)=>validateMarginalEmission(emission,{view,cacheBytesSha256,...options}),MAX_MARGINAL_EMISSION_BYTES);
+      }
+      res.writeHead(200).end(raw);
+    }
     catch { if (!res.headersSent) res.writeHead(503); res.end('{"status":"unavailable"}'); }
   }); };
   return { name: 'household-observation', configureServer: attach, configurePreviewServer: attach };
