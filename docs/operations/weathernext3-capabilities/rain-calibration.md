@@ -35,8 +35,19 @@ model labels, so a hardware label alone cannot establish the locally measured
 resolution or physical rain calibration. Original source-policy and acquisition
 identities must accompany any evidence used to instantiate the threshold rule.
 
-Remaining work includes source-bound interval/label contracts, the two-part fitter
-and original prediction scoring, matched actual collection and experiments,
+Source-bound interval forecasts and counter observations now replay their literal
+originals. The shared native counter kernel supports explicit rolling and partial
+intervals while preserving the existing daily reader output and refusal rules.
+Resolution declarations require a matching sensor/policy, actual availability and
+at least three consistent independently counted tip trials. Missing or invalid
+resolution evidence withholds the occurrence label while preserving qualified
+continuous-depth diagnostics. This declaration does not qualify physical gauge
+accuracy. Source-availability timestamps come from acquisition completion, not
+from the last old database row. Forecast completion at or after the target start
+cannot enter a complete-interval comparison.
+
+Remaining work includes the two-part fitter and original prediction scoring,
+matched actual collection and experiments,
 retained prospective evidence/pending status, integration tests and disposition.
 Rainfall information does not authorize cistern-availability calculations or
 hardware actions.
