@@ -1,8 +1,11 @@
 # Rain comparison and occurrence/amount experiment — implementation in progress
 
 Task 9 is in progress. The [frozen protocol](rain-calibration-protocol.json)
-retains the original evaluation policy's wet-threshold and support rules. No Task 9 real-data
-final outcome evaluation or coefficient fitting has occurred. Synthetic tests exercise fitting and scoring. Current production rain
+retains the original evaluation policy's wet-threshold and support rules. The [actual interval experiment](rain-experiment.json) now contains matched
+continuous-depth scores, timing diagnostics and original-source replay. All
+37 outer candidate-fit attempts correctly refused because their historical
+original decisions preceded actual acquisition of the retained labels. Synthetic
+tests exercise supported fitting and scoring. Current production rain
 is retained; this document does not select a product or qualify a probability.
 
 The comparison keeps total, IMERG and experimental precipitation heads separate
@@ -62,9 +65,45 @@ only to exact 24-hour elapsed targets under their original timezone contract.
 The [complete source inventory](rain-source-inventory.json) freezes 358 native
 originals before Task 9 gauge outcomes are collected. Larger archives are retained
 in full; each experiment has its own bounded input and runtime allowance.
-Remaining work includes target derivation, matched read-only counter collection
-and actual experiments, retained prospective pending work, integration tests and
-a final disposition.
+The actual collection retained 217 original counter acquisitions: 200 qualified
+continuous intervals and 17 gap/restart refusals. All three heads were rederived
+from the complete original Google capsules for 375 mature forecasts. Thirteen
+forecast scopes yield 97 independent target-and-scope pairs, of which 80 match
+qualified observations in twenty measurement cohorts. These counts are not a
+pooled independent sample size. Every scope preserves its original availability
+basis, grid, interval, lead, gauge policy and receiver epoch. Local-calendar,
+rolling and remaining-day results remain separate.
+
+The final-third assignment is frozen from original independent forecast dates
+before missing heads, unavailable labels or measurement epochs partition the
+sample. All eighty original experimental prediction records and all thirty-seven
+fit refusals replay exactly with their literal 415-file producing package. Six
+older gain models also reproduce under their three original producer packages,
+retaining their v1 coefficients and identities. Five original forecasts have an
+applicable earlier gain prediction; unsupported duration, timezone or availability
+retains an explicit refusal. No coefficient is refitted during outcome scoring.
+The largest scope used 22,032,186 original bytes and 46.95 seconds, within the
+frozen 48 MiB and 120-second experiment bounds.
+
+Separate read-only queries retained all 312 predeclared hourly windows: 309
+qualified and three refused. Every one of the 97 preselected target-and-scope
+pairs has a timing result or explicit refusal. Eighty have complete coherent
+hourly support; twenty-nine support a nonzero counter-depth centroid diagnostic.
+Zero depth and tied peaks never invent a peak time or a probability. All
+seventeen timing batches replay exactly with independent point checks.
+
+There is still no source-bound independent resolution document, so occurrence
+classes, wet-event selection, probability calibration and physical gauge accuracy
+remain unsupported. All local candidates and alternative raw-head selections
+remain unselected with `insufficient_evidence`; the raw production rain is
+retained. Retrospective comparisons are explicitly not as-issued skill.
+
+The future queue now retains literal originals and producing bytes, requires
+actual byte-confirmed cache emission before scoring, handles delayed maturity,
+receiver-epoch changes, retries, preview and restart recovery without fitting.
+Its originals share the existing private shadow capacity guard. Optional runtime
+and existing-monitor integration, real future emissions and the final Task9 gate
+remain required.
 Rainfall information does not authorize cistern-availability calculations or
 hardware actions.
 
