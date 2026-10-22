@@ -91,3 +91,13 @@ it('preserves day, Sunday-week and month lower bounds while full totals remain u
  const expired=stationPresentation(states(r),{nowMs:now}).rain;
  expect(expired.partialDay).toBeNull();expect(expired.partialWeek).toBeNull();expect(expired.partialMonth).toBeNull();
 });
+
+it('preserves durable recorded totals separately from complete scientific intervals',()=>{
+ const r=report();r.rain.recordedMethod='sum_accepted_continuous_receipt_increments/v1';
+ Object.assign(r.rain.products.day,{value:null,lower:null,upper:null,partial_lower_bound:.06,recorded_in:.08});
+ const rain=stationPresentation(states(r),{nowMs:now}).rain;
+ expect(rain.day).toBeNull();expect(rain.recordedDay).toBe(.08);expect(rain.partialDay).toBe(.06);
+ r.rain.recordedMethod='unknown';expect(stationPresentation(states(r),{nowMs:now}).rain.recordedDay).toBeNull();
+ r.rain.recordedMethod='sum_accepted_continuous_receipt_increments/v1';
+ expect(stationPresentation(states(r),{nowMs:now+121000}).rain.recordedDay).toBeNull();
+});

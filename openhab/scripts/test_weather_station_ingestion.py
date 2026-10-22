@@ -221,3 +221,39 @@ def test_released_wsgi_explicitly_enables_station_adapter_and_can_restore_legacy
   response=c.get('/weather',query_string=outside(tempf='68'))
   assert response.text==('legacy' if enabled=='0' else 'OK')
   assert c.get('/station_quality').status_code==(404 if enabled=='0' else 200)
+
+
+def test_existing_openhab_consumers_receive_rain_amounts_and_absolute_pressure():
+ s=state();observe(s,outside(totalrainin='100'));observe(s,outside(totalrainin='100.02'),60)
+ observe(s,dict(model='Fineoffset-WH32B',id='235',baromabsin='23.83'),60)
+ v=snap(s,60)
+ assert v['flat']['AmbientWeatherWS2902A_RainFallDay']==pytest.approx(.02)
+ assert v['flat']['AmbientWeatherWS2902A_RainFallWeek']==pytest.approx(.02)
+ assert v['flat']['AmbientWeatherWS2902A_WeatherDataWs2902A_PressureRelative']==23.83
+ assert v['compatibility']['pressureIdentity']=='station_absolute'
+ assert v['rain']['products']['day']['value'] is None
+ assert snap(s,181)['flat']['AmbientWeatherWS2902A_RainFallDay'] is None
+ assert snap(s,181)['rain']['products']['day']['recorded_in'] is None
+
+
+def test_configured_recorded_rain_file_is_used_after_restart_without_restoring_freshness(tmp_path):
+ from weather_station_totals import RecordedRainTotals
+ p=tmp_path/'rain.json';recorded=RecordedRainTotals('America/Denver',p)
+ recorded.observe(None,at=NOW,previous_at=None);recorded.observe(.02,at=NOW+timedelta(seconds=60),previous_at=NOW)
+ s=import_module('weather_station_ingestion').StationState(timezone_name='America/Denver',rain_totals_path=p)
+ assert snap(s,90)['flat']['AmbientWeatherWS2902A_RainFallDay'] is None
+ observe(s,outside(totalrainin='100.03'),90)
+ assert snap(s,90)['flat']['AmbientWeatherWS2902A_RainFallDay']==pytest.approx(.02)
+
+
+def test_corrupt_display_ledger_does_not_disable_other_station_measurements(tmp_path):
+ p=tmp_path/'rain.json';p.write_text('{broken');p.chmod(0o600)
+ s=import_module('weather_station_ingestion').StationState(timezone_name='America/Denver',rain_totals_path=p)
+ assert observe(s,outside(tempf='68')) is True
+ assert snap(s)['flat']['AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature']==68.
+ assert snap(s)['rain']['recordedPersistence']=='unavailable'
+
+
+def test_legacy_openhab_labels_receive_hundredth_inch_amounts_without_counter_float_noise():
+ s=state();observe(s,outside(totalrainin='104.92979014'));observe(s,outside(totalrainin='104.94979010'),60)
+ assert snap(s,60)['flat']['AmbientWeatherWS2902A_RainFallDay']==.02

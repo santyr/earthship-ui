@@ -5,12 +5,14 @@ radio decode clocks, when available, are distinct and cannot renew on replay.
 """
 from datetime import datetime, timedelta, timezone
 import math
+import logging
 import os
 from threading import RLock
 import time
 from uuid import uuid4
 
 from weather_station_rain import RainProducts
+from weather_station_totals import RecordedRainTotals
 
 UTC = timezone.utc
 OUTDOOR = 'Fineoffset-WH65B'
@@ -78,8 +80,9 @@ def heat_index(t, rh):
 
 
 class StationState:
-    def __init__(self, *, timezone_name, validity_seconds=120):
+    def __init__(self, *, timezone_name, validity_seconds=120, rain_totals_path=None):
         self.timezone_name = timezone_name
+        self.rain_totals_path = rain_totals_path
         self.validity = validity_seconds
         self.lock = RLock()
         self.last_clock = None
@@ -92,8 +95,15 @@ class StationState:
         self.channels = {}
         self.pressures = []
         self.extrema = {}
+        try:
+            recorded = RecordedRainTotals(self.timezone_name, self.rain_totals_path)
+        except (OSError,ValueError,TypeError,KeyError):
+            recorded = RecordedRainTotals(self.timezone_name)
+            recorded.persistence_error = True
+            logging.getLogger(__name__).error('Recorded rain history unavailable; live station ingestion retained')
         self.rain = RainProducts(timezone_name=self.timezone_name,
-                                 validity_seconds=self.validity, maximum_counter_in=100000.)
+                                 validity_seconds=self.validity, maximum_counter_in=100000.,
+                                 recorded_totals=recorded)
 
     def _clock(self, at, tick):
         if not isinstance(at, datetime) or at.utcoffset() is None or type(tick) not in (int, float) or not math.isfinite(tick):
@@ -234,7 +244,7 @@ class StationState:
                 names.extend(v[0] for v in self._mapping('extra', sid).values())
             flat = dict.fromkeys(names)
             flat.update({'AmbientWeatherWS2902A_'+name: None for name in DERIVED})
-            # Retired misnamed alias does not claim relative/sea-level pressure.
+            # Deprecated transport alias; compatibility metadata identifies absolute pressure.
             flat['AmbientWeatherWS2902A_WeatherDataWs2902A_PressureRelative'] = None
             evidence = {}
             for name, record in self.fields.items():
@@ -302,21 +312,33 @@ class StationState:
             if flat[OUT_FIELDS['totalrainin'][0]] is None:
                 rain_report['status'] = 'stale'
                 for product in rain_report['products'].values():
-                    for key in ('value','lower','upper','partial_lower_bound'):product[key] = None
+                    for key in ('value','lower','upper','partial_lower_bound','recorded_in'):
+                        if key in product: product[key] = None
+            # Existing OpenHAB pages and chart consumers retain their Item names.
+            # Display counts never replace the complete interval qualification.
+            for period, suffix in (('day','Day'),('week','Week'),('month','Month')):
+                product = rain_report['products'][period]
+                amount = product['value'] if product['value'] is not None else product.get('recorded_in')
+                flat['AmbientWeatherWS2902A_RainFall'+suffix] = round(amount, 2) if amount is not None else None
+            rate = rain_report['products']['rate_10min']['value']
+            flat['AmbientWeatherWS2902A_RainFallHourlyRate'] = round(rate, 2) if rate is not None else None
+            flat['AmbientWeatherWS2902A_RainFallEvent'] = rain_report['products']['event']['value']
+            flat['AmbientWeatherWS2902A_WeatherDataWs2902A_PressureRelative'] = flat['WeatherStation_PressureAbsoluteV2']
+            flat['AmbientWeatherWS2902A_PressureTrend'] = flat['WeatherStation_PressureTrendV2']
             return dict(schema='earthship-station-ingestion/v2', streamEpoch=self.epoch,
                 generatedAt=at.isoformat(), status='ok' if all(s['status']=='fresh' for s in sensors.values()) else 'degraded',
                 flat=flat, fields=evidence, sensors=sensors, pressure=pressure_method,
-                rain=rain_report, dailyExtrema={name:dict(entry) for name,entry in self.extrema.items()},
+                rain=rain_report, compatibility={'pressureIdentity':'station_absolute','rainIdentity':'recorded_continuous_increments_or_complete_boundary_total'}, dailyExtrema={name:dict(entry) for name,entry in self.extrema.items()},
                 consoleCalibration='unknown', solarIdentity='lux_proxy_126.7_v2_not_calibrated_irradiance')
 
 
-def install_station_ingestion(app, *, enabled=False, timezone_name=None, clock=None, monotonic=None):
+def install_station_ingestion(app, *, enabled=False, timezone_name=None, clock=None, monotonic=None, rain_totals_path=None):
     if enabled is not True:
         return None
     from flask import jsonify, request
     if 'station_quality' in app.view_functions:
         raise ValueError('station adapter already installed')
-    state = StationState(timezone_name=timezone_name)
+    state = StationState(timezone_name=timezone_name, rain_totals_path=rain_totals_path)
     clock = clock or (lambda: datetime.now(UTC))
     monotonic = monotonic or time.monotonic
     def current():
@@ -346,7 +368,8 @@ def configure_station_ingestion(app, environ=None):
         if env.get('WEATHER_STATION_INGESTION_ENABLE') != '1':
             raise ValueError('explicit station ingestion activation required')
         return install_station_ingestion(app, enabled=True,
-            timezone_name=env.get('WEATHER_STATION_TIMEZONE'))
+            timezone_name=env.get('WEATHER_STATION_TIMEZONE'),
+            rain_totals_path=env.get('WEATHER_STATION_RAIN_TOTALS'))
     except (ValueError, TypeError, KeyError):
         from flask import jsonify, request
         app.logger.error('enabled station ingestion configuration unavailable')

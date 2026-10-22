@@ -24,7 +24,7 @@ const DERIVED = ['DewPointTemperature','HeatIndex','WindChill','ApparentTemperat
 function unavailable(mode = 'v2') {
   return { mode, status:'unavailable', current:Object.fromEntries([...FIELD_SPECS.map(([name])=>name),...DERIVED.map(name=>A+name)].map(name=>[name,null])),
     pressure:{value:null,trend:null,label:'Station pressure',trendLabel:'3h trend unavailable'},
-    rain:{day:null,week:null,month:null,event:null,hour:null,rate:null,partialDay:null,partialWeek:null,partialMonth:null} };
+    rain:{day:null,week:null,month:null,event:null,hour:null,rate:null,partialDay:null,partialWeek:null,partialMonth:null,recordedDay:null,recordedWeek:null,recordedMonth:null} };
 }
 
 export function stationPresentation(states, { nowMs = Date.now() } = {}) {
@@ -92,6 +92,10 @@ export function stationPresentation(states, { nowMs = Date.now() } = {}) {
       if (p?.unit !== unit || !Number.isFinite(start) || !Number.isFinite(end)
           || (['day','week','month'].includes(target) && !(clock(p.periodValidUntil)>nowMs))
           || end < start || end > nowMs+5000 || nowMs-end >= 120000 || (duration && end-start !== duration)) continue;
+      if (['day','week','month'].includes(target) && rain.recordedMethod === 'sum_accepted_continuous_receipt_increments/v1'
+          && finite(p.recorded_in) && p.recorded_in>=0 && p.recorded_in<=100000) {
+        result.rain['recorded'+target[0].toUpperCase()+target.slice(1)] = p.recorded_in;
+      }
       if (['day','week','month'].includes(target) && finite(p.partial_lower_bound)
           && p.partial_lower_bound >= 0 && p.partial_lower_bound <= 100000) {
         result.rain['partial'+target[0].toUpperCase()+target.slice(1)] = p.partial_lower_bound;
