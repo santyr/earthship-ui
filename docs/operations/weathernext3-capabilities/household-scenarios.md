@@ -221,3 +221,26 @@ regression failed before repair, then 49 focused cases passed. Its real original
 source batch passed two origins/six 24-hour trajectories/30 component projections
 with central parity within 1e-9 °F. Existing source guards, weights, admissions
 and expiry clocks are preserved.
+
+
+The complete frozen projection experiment is now verified: all 32 bounded
+batches account for all 62 original forecasts, with 57 projected origins and five
+withheld for original BMS/load source skew. It retains 855 component projections
+(three cases × five horizons) and 171 full 24-hour original native air/wall
+trajectories. All central native trajectories match their literal original with
+maximum absolute difference 0 °F. Verification checks every retained input/package
+digest, every origin exactly once, modeled energy/storage balances, bounded SoC,
+and 57,804 zero-valued modeled nighttime segments. The three original forcing
+families remain separate (34 overlap-mean, 20 right-selector and three linear
+origins). Counts of repeated segments/hour uses are not independent evidence.
+
+The [projection experiment](scenario-projection-experiment.json) gives descriptive
+ranges of hypothetical changes from each central case. Those are neither
+prediction intervals nor measured forecast errors. Source inputs are qualified at
+the original issue clock using the existing fixed-state contract; the inventory's
+original energy-receipt status was assessed later, so four cases whose source
+expired by publication can still have valid issue-time inputs. No old output is
+used as an invented load, capacity or measured state. This distinction changes
+none of the raw receipts. Matching actual outcome assessment is still pending.
+The current affected backend suite passed 823 tests and 165 subtests with four
+named isolated SDK-profile skips after the legacy-conditioner change.

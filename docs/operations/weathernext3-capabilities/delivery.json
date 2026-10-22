@@ -82,14 +82,15 @@
       "id": "WN-09",
       "requirement": "Provide stress scenarios; evaluate dependence-aware household scenarios before probabilities",
       "owning_tasks": "8",
-      "status": "in_progress_original_producer_stress_verified_outcome_experiments_pending",
+      "status": "in_progress_complete_projection_experiment_verified_actual_outcomes_pending",
       "evidence": [
         "scenario-protocol.json",
         "household-scenarios.md",
         "scenario-adapter-verification.json",
         "scenario-original-producer-verification.json",
         "scenario-experiment-protocol.json",
-        "scenario-population.json"
+        "scenario-population.json",
+        "scenario-projection-experiment.json"
       ]
     },
     {
@@ -305,7 +306,7 @@
       "task": 8,
       "title": "Build household stress cases and test coherent scenarios",
       "gate": "useful stress cases work independently of probability qualification. Scenario software, experiments and explicit uncertainty limits are complete even if real evidence requires the probabilistic product to remain unavailable.",
-      "status": "in_progress_original_producer_stress_verified_outcome_experiments_pending",
+      "status": "in_progress_complete_projection_experiment_verified_actual_outcomes_pending",
       "steps": 6,
       "evidence": [
         "scenario-protocol.json",
@@ -313,10 +314,11 @@
         "scenario-adapter-verification.json",
         "scenario-original-producer-verification.json",
         "scenario-experiment-protocol.json",
-        "scenario-population.json"
+        "scenario-population.json",
+        "scenario-projection-experiment.json"
       ],
       "remaining": [
-        "bounded selected-origin household/weather experiments and joint eligibility assessment",
+        "actual matching household/weather outcomes and joint evidence eligibility assessment",
         "maintained source-adapted retained-producer handoff",
         "integrated task verification"
       ]
