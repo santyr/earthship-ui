@@ -100,6 +100,85 @@ def normalize_wh65b_packet(data):
     return tips * 0.254, wind_avg * wind_scale, wind_max * wind_scale
 
 
+def _finite_field(data, name, minimum, maximum):
+    value = data.get(name)
+    if type(value) not in (int, float) or not minimum <= value <= maximum or not math.isfinite(value):
+        return None
+    return float(value)
+
+
+def _unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError('duplicate decoder field')
+        result[key] = value
+    return result
+
+
+def _reject_constant(_value):
+    raise ValueError('nonfinite decoder constant')
+
+
+def decode_packet(line):
+    if len(line) > 16384:
+        raise ValueError('decoder line exceeds bound')
+    data = json.loads(line, object_pairs_hook=_unique_object, parse_constant=_reject_constant)
+    if not isinstance(data, dict):
+        raise ValueError('decoder object required')
+    return data
+
+
+def packet_payload(data):
+    """Pin identities, validate each measurement, preserve independent fields."""
+    model, sid = data.get('model'), data.get('id')
+    identities = {'Fineoffset-WH65B': {WH65B_STATION_ID}, 'Fineoffset-WH24': {WH65B_STATION_ID},
+                  'Fineoffset-WH32B': {235}, 'AmbientWeather-WH31E': {193, 223}}
+    if not isinstance(model, str) or type(sid) is not int or sid not in identities.get(model, set()):
+        return None
+    result = {'model': model, 'id': sid}
+    outdoor = model in ('Fineoffset-WH65B', 'Fineoffset-WH24')
+    temperature = _finite_field(data, 'temperature_C', -40, 65 if outdoor else 60)
+    if temperature is not None:
+        result['tempf' if outdoor else 'tempinf'] = round(temperature * 1.8 + 32, 2)
+    humidity = _finite_field(data, 'humidity', 0, 100)
+    if humidity is not None:
+        result['humidity' if outdoor else 'humidityin'] = humidity
+    if outdoor:
+        for source, target, maximum, scale in (
+                ('wind_dir_deg', 'winddir', 360, 1),
+                ('wind_avg_m_s', 'windspeedmph', 112, 2.23694 * (.51/1.12 if model == 'Fineoffset-WH24' else 1)),
+                ('wind_max_m_s', 'windgustmph', 112, 2.23694 * (.51/1.12 if model == 'Fineoffset-WH24' else 1)),
+                ('uvi', 'uv', 15, 1)):
+            value = _finite_field(data, source, 0, maximum)
+            if value is not None:
+                result[target] = round(value * scale, 2)
+        rain = _finite_field(data, 'rain_mm', 0, 65535*.3)
+        normalized = normalize_wh65b_packet(dict(model=model, rain_mm=rain, wind_avg_m_s=0, wind_max_m_s=0))
+        if normalized is not None:
+            result['totalrainin'] = normalized[0] * .03937
+        lux = _finite_field(data, 'light_lux', 0, 200000)
+        if lux is not None:
+            result['light_lux'] = lux
+            result['solarradiation'] = round(min(lux/126.7, 1200.), 2)
+            result['solarproxywm2_v2'] = round(lux/126.7, 2)
+    elif model == 'Fineoffset-WH32B':
+        pressure = _finite_field(data, 'pressure_hPa', 300, 1100)
+        if pressure is not None:
+            result['baromabsin'] = round(pressure * .02953, 2)
+            # Deprecated transport alias only: absolute station pressure.
+            result['baromrelin'] = result['baromabsin']
+    if len(result) == 2:
+        return None
+    if data.get('battery_ok') in (0, 1) and type(data.get('battery_ok')) in (int, float):
+        result['battery_ok'] = data['battery_ok']
+    if model == 'AmbientWeather-WH31E' and type(data.get('channel')) is int and 1 <= data['channel'] <= 8:
+        result['channel'] = data['channel']
+    if isinstance(data.get('time'), str) and len(data['time']) <= 40:
+        result['radio_decode_utc'] = data['time']
+    return result
+
+
 def main():
     # Note: Use -F json so we get the data, but we merged stderr to see errors
     rtl_433_command = [
@@ -137,111 +216,25 @@ def main():
                     continue
 
                 try:
-                    data = json.loads(line)
+                    data = decode_packet(line)
                     if _lg_record_packet is not None and isinstance(data, dict):
                         try:
                             _lg_record_packet('/var/lib/lightning-goats-weather/snapshot.db', data, WH65B_STATION_ID)
                         except Exception:
                             logging.warning('Lightning Goats weather observation unavailable')
-                except json.JSONDecodeError:
+                except (ValueError, TypeError, OverflowError):
                     logging.warning(f"Invalid JSON: {line}")
                     continue
 
-                model = data.get("model")
-                if not model:
-                    continue
-
-                # --- Outdoor WH65B/WH24 ---
-                if model in ("Fineoffset-WH65B", "Fineoffset-WH24"):
-                    # Station ID filter (2026-07-16): a neighbor WS-2902-family
-                    # station in RF range was being merged in, flip-flopping the
-                    # cumulative rain counter (97.16 <-> 114.76 in) and wiping
-                    # the daily rain accumulator. Our array is id 206 (verified
-                    # against lifetime rain total). NOTE: id changes on station
-                    # battery replacement — re-survey with the ID log if data
-                    # goes silent after a battery swap.
-                    if data.get("id") != WH65B_STATION_ID:
-                        logging.info(f"Ignoring foreign WH65B id={data.get('id')} (rain_mm={data.get('rain_mm')})")
-                        continue
-                    req = [
-                        "temperature_C", "humidity", "wind_dir_deg",
-                        "wind_avg_m_s", "wind_max_m_s",
-                        "rain_mm", "light_lux", "uvi"
-                    ]
-                    if all(k in data for k in req):
-                        normalized = normalize_wh65b_packet(data)
-                        if normalized is None:
-                            logging.warning("Rejecting ambiguous WH65B rain/wind units for id=%s model=%s",
-                                            data["id"], model)
-                            continue
-                        rain_mm, wind_avg_m_s, wind_max_m_s = normalized
-                        payload = {
-                            "model": model,
-                            "id": data["id"],
-                            "tempf": round(data["temperature_C"] * 1.8 + 32, 2),
-                            "humidity": round(float(data["humidity"]), 2),
-                            "winddir": round(float(data["wind_dir_deg"])),
-                            "windspeedmph": round(wind_avg_m_s * 2.23694, 2),
-                            "windgustmph": round(wind_max_m_s * 2.23694, 2),
-                            "totalrainin": rain_mm * 0.03937,
-                            "solarradiation": round(min(data["light_lux"] / 126.7, 1200.0), 2),  # clamp to max ground-level irradiance
-                            "uv": round(float(data["uvi"]), 2)
-                        }
-                        # Optional observer inputs: retain originals, never
-                        # replace the decode clock with HTTP send/receive time.
-                        payload["light_lux"] = data["light_lux"]
-                        if "time" in data:
-                            payload["radio_decode_utc"] = data["time"]
-                        if "battery_ok" in data:
-                            payload["battery_ok"] = data["battery_ok"]
-                        sid = data.get("id")
-                        if _should_send(model, sid):
-                            send_data_to_flask(payload)
-                    else:
-                        logging.warning(f"Missing keys for {model}: {list(data.keys())}")
-
-                # --- Indoor WH32B ---
-                elif model == "Fineoffset-WH32B":
+                if data.get('model') == 'Fineoffset-WH32B':
                     _log_wh32b_id(data)
-                    req = ["temperature_C", "humidity", "id"]
-                    if all(k in data for k in req):
-                        sid = data["id"]
-                        payload = {
-                            "model": model,
-                            "id": sid,
-                            "tempinf": round(data["temperature_C"] * 1.8 + 32, 2),
-                            "humidityin": round(float(data["humidity"]), 2)
-                        }
-                        if "pressure_hPa" in data:
-                            payload["baromrelin"] = round(float(data["pressure_hPa"]) * 0.02953, 2)
-                        if _should_send(model, sid):
-                            send_data_to_flask(payload)
-                    else:
-                        logging.warning(f"Missing keys for WH32B: {list(data.keys())}")
-
-                # --- Ambient WH31E ---
-                elif model == "AmbientWeather-WH31E":
-                    req = ["temperature_C", "humidity", "id"]
-                    if all(k in data for k in req):
-                        sid = data["id"]
-                        payload = {
-                            "model": model,
-                            "id": sid,
-                            "tempinf": round(data["temperature_C"] * 1.8 + 32, 2),
-                            "humidityin": round(float(data["humidity"]), 2)
-                        }
-                        if "battery_ok" in data:
-                            payload["battery_ok"] = data["battery_ok"]
-                        # Keep the actual transmitted channel for commissioning.
-                        if type(data.get("channel")) is int and 1 <= data["channel"] <= 8:
-                            payload["channel"] = data["channel"]
-                        if _should_send(model, sid):
-                            send_data_to_flask(payload)
-                    else:
-                        logging.warning(f"Missing keys for WH31E: {list(data.keys())}")
-
-                else:
-                    logging.info(f"Unhandled model '{model}': {data}")
+                try:
+                    payload = packet_payload(data)
+                except (ValueError, TypeError, OverflowError):
+                    logging.warning('Invalid decoder measurements')
+                    continue
+                if payload is not None and _should_send(payload['model'], payload['id']):
+                    send_data_to_flask(payload)
 
             # Once the loop exits, check why the process stopped
             rc = process.poll()

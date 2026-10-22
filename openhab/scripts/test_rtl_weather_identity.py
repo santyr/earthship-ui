@@ -10,7 +10,7 @@ import pytest
 SOURCE = Path(__file__).with_name('rtl_weather.py')
 
 
-def relay(packet, observer=None):
+def relay(packet, observer=None, following=None):
     tree = ast.parse(SOURCE.read_text())
     main = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'main')
     normalize = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
@@ -21,7 +21,7 @@ def relay(packet, observer=None):
     def popen(*args, **kwargs):
         calls.append(args)
         if len(calls) > 1: raise FileNotFoundError('fixture stops relay loop')
-        return SimpleNamespace(stdout=[json.dumps(packet)], poll=lambda: 0)
+        return SimpleNamespace(stdout=[json.dumps(p) for p in [packet,*(following or [])]], poll=lambda: 0)
     namespace = {
         'subprocess': SimpleNamespace(Popen=popen, PIPE=-1, STDOUT=-2),
         'json': json, 'math': math, 'time': SimpleNamespace(sleep=lambda _: None),
@@ -33,7 +33,8 @@ def relay(packet, observer=None):
         # in this AST-only household forwarding fixture.
         '_lg_record_packet': observer,
     }
-    exec(compile(ast.Module(body=[normalize, main], type_ignores=[]), str(SOURCE), 'exec'), namespace)
+    helpers = [node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name in {'packet_payload', 'decode_packet', '_finite_field', '_unique_object', '_reject_constant'}]
+    exec(compile(ast.Module(body=[normalize, *helpers, main], type_ignores=[]), str(SOURCE), 'exec'), namespace)
     namespace['main']()
     assert len(calls) == 2
     return sent
@@ -69,7 +70,7 @@ def test_both_decoder_labels_forward_same_wh65b_tip_and_wind_values(model):
     assert relay(packet(model, 206)) == [{'model': model, 'id': 206, 'tempf': 68.0, 'humidity': 45.0,
         'winddir': 180, 'windspeedmph': 2.85, 'windgustmph': 2.28,
         'totalrainin': 10275 * 0.254 * 0.03937,
-        'solarradiation': 100.0, 'uv': 1.0, 'light_lux': 12670}]
+        'solarradiation': 100.0, 'solarproxywm2_v2': 100.0, 'uv': 1.0, 'light_lux': 12670}]
 
 
 @pytest.mark.parametrize('sensor_id', [207, None, '206'])
@@ -87,11 +88,22 @@ def test_optional_observer_failure_does_not_interrupt_household_forwarding():
     assert len(sent) == 1 and sent[0]['id'] == 206 and sent[0]['tempf'] == 68
 
 
+@pytest.mark.parametrize('field,value,expected_count',[('model',[],1),('temperature_C',10**399,2)])
+def test_malformed_field_does_not_restart_radio_before_next_valid_frame(field,value,expected_count):
+    bad=packet('Fineoffset-WH65B',206);bad[field]=value
+    sent=relay(bad,following=[packet('Fineoffset-WH65B',206)])
+    assert len(sent)==expected_count and sent[-1]['tempf']==68.
+
+
 @pytest.mark.parametrize('rain_mm', [10, -1, float('nan'), float('inf')])
 def test_ambiguous_or_nonfinite_rain_count_is_not_forwarded(rain_mm):
     value = packet('Fineoffset-WH24', 206)
     value['rain_mm'] = rain_mm
-    assert relay(value) == []
+    sent = relay(value)
+    if not math.isfinite(rain_mm):
+        assert sent == []  # Non-standard JSON invalidates the whole decoder record.
+    else:
+        assert len(sent) == 1 and sent[0]['tempf'] == 68 and 'totalrainin' not in sent[0]
 
 
 @pytest.mark.parametrize('tips', [0, 1, 10275, 65535])
