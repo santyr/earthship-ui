@@ -67,7 +67,7 @@ class RainProducts:
             self.invalidate()
             return
         at = at.astimezone(UTC)
-        self.recorded.observe(transition.delta_in if not self.broken else None, at=at, previous_at=self.last_at)
+        recorded_delta = transition.delta_in if not self.broken else None
         if transition.status == 'withheld':
             # Coverage is unknown, but the counter needs successive candidates
             # to confirm a reset or a discontinuity without assigning gap rain.
@@ -84,6 +84,7 @@ class RainProducts:
         if self.points and at <= self.points[-1][0]:
             self.invalidate()
             return
+        self.recorded.observe(recorded_delta, at=at, previous_at=self.last_at)
         self.points.append((at, float(counter_in)))
         self.last_at, self.last_tick = at, float(tick)
         for name, start in self._starts(at).items():
