@@ -4,13 +4,11 @@ The caller chooses one fitted method explicitly and supplies the real release
 owner's admission at prediction time. Old candidate/training receipts are never
 rewritten. Experimental production use conveys no calibration or action authority.
 """
-from pathlib import Path
-from hashlib import sha256
 import json
 from .contracts import canonical,digest,identity,instant,finite
 from .evidence import utc
 from . import probabilistic as kernel
-from .probabilistic_artifacts import CandidateBundle,load_candidate_bundle,candidate_frame,numerical_manifest
+from .probabilistic_artifacts import CandidateBundle,load_candidate_bundle,candidate_frame
 
 SCHEMA='earthship-experimental-production-model-admission/v1'
 TARGETS={'temperature':'outdoor_temperature_c','wind':'local_station_hour_mean_wind_m_s','solar_proxy':'qualified_lux_proxy_hour_mean_w_m2'}
@@ -20,8 +18,8 @@ FIELDS={'schema','kind','target_kind','method_family','bundle_sha256','model_sha
 
 
 def _runtime():
-    path=Path(__file__)
-    return numerical_manifest()|{'openhab/scripts/weather_learning/production_model_admission.py':sha256(path.read_bytes()).hexdigest()}
+    from .production_training import production_manifest
+    return production_manifest()
 
 
 def _authorization(value,expected):
@@ -33,9 +31,11 @@ def _authorization(value,expected):
 
 
 def _bundle(bundle,policy):
-    if not isinstance(bundle,CandidateBundle):raise ValueError('original actually fitted bundle required')
+    from .production_training import ProductionBundle,load_production_bundle
+    if not isinstance(bundle,(CandidateBundle,ProductionBundle)):raise ValueError('original actually fitted bundle required')
     body=bundle.to_dict()
-    load_candidate_bundle(body,expected_sha256=body['bundle_sha256'],policy=policy,require_current=True)
+    loader=load_production_bundle if isinstance(bundle,ProductionBundle) else load_candidate_bundle
+    loader(body,expected_sha256=body['bundle_sha256'],policy=policy,require_current=True)
     return body
 
 
@@ -80,14 +80,20 @@ def predict_production(bundle,admission,frame,*,policy,authorize=None):
     must retain the actual emitted output separately before it becomes issued.
     """
     receipt=json.loads(canonical(admission));at=instant(frame.origin);body=_validate(bundle,receipt,policy=policy,at=at)
-    mapped=candidate_frame(bundle,frame)
+    from .production_training import ProductionBundle,production_frame
+    mapped=production_frame(bundle,frame) if isinstance(bundle,ProductionBundle) else candidate_frame(bundle,frame)
     if mapped is None:raise ValueError('production model target/cohort differs')
     if not callable(authorize):raise ValueError('current production owner admission required')
     checked=json.loads(canonical(receipt))
     if authorize(checked) is not True or checked!=receipt:raise ValueError('unchanged current production owner admission required')
     family=receipt['method_family'];model=body['models'][family]
     restored=object.__new__(kernel.CalibrationModel);object.__setattr__(restored,'_raw',canonical(model))
-    if family=='adaptive':
+    if isinstance(bundle,ProductionBundle):
+        selected=kernel.marginal_components(family=family,parameters=model['parameters'],frame=mapped,policy=policy)
+        if selected is None:raise ValueError('selected production model unavailable for native statistics')
+        selected=dict(selected,model_sha256=model['model_sha256'])
+        point,statistic=selected['point_estimate'],selected['point_estimate_kind']
+    elif family=='adaptive':
         selected=kernel.adaptive_point(restored,mapped,policy=policy)
         if not selected or selected.get('candidate_used') is not True:raise ValueError('selected production adaptive model unavailable')
         point,statistic=selected['value'],'adaptive_point'
@@ -104,5 +110,9 @@ def predict_production(bundle,admission,frame,*,policy,authorize=None):
         source_forecast_sha256=frame.forecast_sha256,source_available_at=frame.actual_source_available_at,
         admission_sha256=receipt['admission_sha256'],bundle_sha256=body['bundle_sha256'],model_sha256=receipt['model_sha256'],method_family=family,
         point_estimate=point,point_estimate_kind=statistic,raw_mean=frame.baseline,raw_median=frame.p50,
+        source_input_sha256=frame.input_sha256,serving_cohort_sha256=body['cohort_sha256'],
+        training_availability_basis=body.get('training_availability_basis',body['availability_basis']),
+        distribution=selected.get('distribution'),distribution_parameters=selected.get('parameters'),
+        local_quantiles=selected.get('quantiles'),quantile_levels=selected.get('quantile_levels'),
         local_coverage_qualified=False,probability_claim=False,issued=False,automatic_actuation=False)
     result['prediction_sha256']=identity(result);return result

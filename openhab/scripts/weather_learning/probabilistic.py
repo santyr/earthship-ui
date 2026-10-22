@@ -285,12 +285,31 @@ def _positive_parameters(mu,sigma):
     return p,mean
 
 
-def predict_marginal(model,frame,*,policy,retrospective=False):
-    if type(retrospective) is not bool:raise ValueError('explicit boolean retrospective context required')
-    if model is None:return None
-    body=_model(model,frame,policy,retrospective)
-    if body is None:return None
-    family=body['family'];parameters=body['parameters'];kind=frame.kind
+def validate_marginal_parameters(*,family,parameters,kind):
+    """Validate the fixed family's fitted numeric domain without making a forecast."""
+    if kind not in KINDS or family not in ('temperature_normal','empirical','nonnegative'):
+        raise ValueError('declared marginal parameters and forecast target required')
+    count=5 if family=='empirical' else 3
+    if not isinstance(parameters,list) or len(parameters)!=count or any(not finite(v) for v in parameters):
+        raise ValueError('finite bounded marginal parameter vector required')
+    if family=='temperature_normal':
+        if kind!='temperature' or not (-6<=parameters[0]<=6 and 0<=parameters[1]<=400 and 0<=parameters[2]<=4):raise ValueError('bounded temperature parameters required')
+    elif family=='nonnegative':
+        if kind=='temperature' or not (-2<=parameters[0]<=2 and 0<=parameters[1]<=3 and log(.05)<=parameters[2]<=log(2.5)):raise ValueError('bounded nonnegative parameters required')
+    elif parameters!=sorted(parameters):raise ValueError('ordered empirical residual parameters required')
+    return list(parameters)
+
+
+def marginal_components(*,family,parameters,frame,policy):
+    """Pure shared forecast math; model/production admission belongs to the caller.
+
+    This does not relabel a model, observation, source cohort or issued record.
+    The historical and actual-time production readers share these exact formulas.
+    """
+    policy=_policy(policy)
+    if not isinstance(frame,ForecastInput):raise ValueError('original marginal forecast input required')
+    validate_marginal_parameters(family=family,parameters=parameters,kind=frame.kind)
+    kind=frame.kind
     if family=='temperature_normal':
         if frame.width is None:return None
         delta,a,b=parameters;mu=frame.baseline+delta;floor=policy['empirical']['minimum_interval_half_width']['temperature']
@@ -311,6 +330,20 @@ def predict_marginal(model,frame,*,policy,retrospective=False):
     else:return None
     low,high=policy['domains'][kind]
     if any(not finite(q) or not low<=q<=high for q in (*quantiles,mean)) or quantiles!=sorted(quantiles):return None
+    return dict(distribution=distribution,parameters=params,mean=None if family=='empirical' else mean,
+        point_estimate=mean,point_estimate_kind='model_median' if family=='empirical' else 'model_mean',
+        quantile_levels=list(LEVELS),quantiles=quantiles)
+
+
+def predict_marginal(model,frame,*,policy,retrospective=False):
+    if type(retrospective) is not bool:raise ValueError('explicit boolean retrospective context required')
+    if model is None:return None
+    body=_model(model,frame,policy,retrospective)
+    if body is None:return None
+    family=body['family'];kind=frame.kind
+    computed=marginal_components(family=family,parameters=body['parameters'],frame=frame,policy=policy)
+    if computed is None:return None
+    distribution,params,mean,quantiles=computed['distribution'],computed['parameters'],computed['point_estimate'],computed['quantiles']
     value=dict(schema='earthship-local-marginal-prediction/v1',kind=kind,origin=frame.origin,target_start=frame.target_start,target_end=frame.target_end,
         forecast_sha256=frame.forecast_sha256,input_sha256=frame.input_sha256,grid_sha256=frame.grid_sha256,cohort_sha256=frame.cohort_sha256,
         model_sha256=body['model_sha256'],policy_sha256=policy['policy_sha256'],model_ready_at=body['ready_at'],model_actual_completed_at=body['actual_completed_at'],

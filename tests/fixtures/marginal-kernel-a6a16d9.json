@@ -1,0 +1,176 @@
+{
+  "schema": "earthship-marginal-kernel-refactor-golden/v1",
+  "input_scope": "Synthetic normal-harness fixtures, not household observations.",
+  "producer_revision": "a6a16d9",
+  "producer_files_sha256": {
+    "config.py": "65499c391de0df18e1177fc31c70e251e4b08fc4c81f9ad009c15b9a6e8fca6b",
+    "contracts.py": "da661a56a4d0d3d012d643d007538c54ccb2ce0511ff5f6a29ec32392eb71543",
+    "evidence.py": "94b77d1dc4d0d2bc93fa00f91ef620a54216d2a239f65348e29c3311bf024663",
+    "probabilistic.py": "51b1b53fbfd57494afc39ed2944747ffd48f5ebc2335ff4534aa87cd85edac85"
+  },
+  "parameters_abs_tolerance": 1e-08,
+  "prediction_abs_tolerance": 1e-08,
+  "cases": [
+    {
+      "family": "temperature_normal",
+      "kind": "temperature",
+      "fitted_parameters": [
+        2.0567735177403175,
+        0.0,
+        0.0
+      ],
+      "prediction": {
+        "distribution": "normal",
+        "parameters": {
+          "mu": 12.056773517740318,
+          "sigma": 0.25
+        },
+        "mean": 12.056773517740318,
+        "point_estimate": 12.056773517740318,
+        "point_estimate_kind": "model_mean",
+        "quantile_levels": [
+          0.1,
+          0.25,
+          0.5,
+          0.75,
+          0.9
+        ],
+        "quantiles": [
+          11.736385626354167,
+          11.888151080191298,
+          12.056773517740318,
+          12.225395955289338,
+          12.377161409126469
+        ],
+        "raw_native": {
+          "mean": 10.0,
+          "p10": 8.0,
+          "p50": null,
+          "p90": 12.0
+        },
+        "median_source": "local_model_generated"
+      }
+    },
+    {
+      "family": "empirical",
+      "kind": "temperature",
+      "fitted_parameters": [
+        1.7782240016119726,
+        2.0,
+        2.0282240016119726,
+        2.168294196961579,
+        2.2782240016119726
+      ],
+      "prediction": {
+        "distribution": "empirical_residual_quantiles",
+        "parameters": {},
+        "mean": null,
+        "point_estimate": 12.028224001611973,
+        "point_estimate_kind": "model_median",
+        "quantile_levels": [
+          0.1,
+          0.25,
+          0.5,
+          0.75,
+          0.9
+        ],
+        "quantiles": [
+          11.778224001611973,
+          12.0,
+          12.028224001611973,
+          12.168294196961579,
+          12.278224001611973
+        ],
+        "raw_native": {
+          "mean": 10.0,
+          "p10": 8.0,
+          "p50": null,
+          "p90": 12.0
+        },
+        "median_source": "local_model_generated"
+      }
+    },
+    {
+      "family": "nonnegative",
+      "kind": "wind",
+      "fitted_parameters": [
+        -0.08804253838804056,
+        0.7838864179031355,
+        -2.995732273553991
+      ],
+      "prediction": {
+        "distribution": "zero_atom_plus_positive_log1p_normal",
+        "parameters": {
+          "mu_log": -0.08804253838804056,
+          "sigma_log": 0.05000000000000001,
+          "zero_probability": 0.9608681677276213
+        },
+        "mean": 0.0008017105405123427,
+        "point_estimate": 0.0008017105405123427,
+        "point_estimate_kind": "model_mean",
+        "quantile_levels": [
+          0.1,
+          0.25,
+          0.5,
+          0.75,
+          0.9
+        ],
+        "quantiles": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "raw_native": {
+          "mean": 0.0,
+          "p10": null,
+          "p50": null,
+          "p90": null
+        },
+        "median_source": "local_model_generated"
+      }
+    },
+    {
+      "family": "nonnegative",
+      "kind": "solar_proxy",
+      "fitted_parameters": [
+        -0.12879146539200875,
+        0.9601893032272232,
+        -2.995732273553991
+      ],
+      "prediction": {
+        "distribution": "zero_atom_plus_positive_log1p_normal",
+        "parameters": {
+          "mu_log": -0.12879146539200875,
+          "sigma_log": 0.05000000000000001,
+          "zero_probability": 0.995
+        },
+        "mean": 8.020687785032802e-05,
+        "point_estimate": 8.020687785032802e-05,
+        "point_estimate_kind": "model_mean",
+        "quantile_levels": [
+          0.1,
+          0.25,
+          0.5,
+          0.75,
+          0.9
+        ],
+        "quantiles": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "raw_native": {
+          "mean": 0.0,
+          "p10": null,
+          "p50": null,
+          "p90": null
+        },
+        "median_source": "local_model_generated"
+      }
+    }
+  ]
+}
