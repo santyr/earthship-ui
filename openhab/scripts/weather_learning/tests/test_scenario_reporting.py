@@ -110,3 +110,15 @@ def test_public_case_exposes_actual_total_only_fallback_instead_of_only_native_m
   assert row['solar_source_support']['native_hours']==0
   assert row['solar_source_support']['fallback_hours']==1
   assert row['solar_source_support']['fallback_reasons']['native_direct_unavailable']==1
+
+
+
+def test_assessment_can_retain_and_replay_a_multi_receipt_outcome_over_16_mib():
+ from test_household_scenario_outcomes import padded_energy_inputs
+ from weather_learning.scenario_household import household_targets
+ target_inputs=padded_energy_inputs(3,2400,3000);targets=household_targets(**target_inputs)
+ a=args();a.update(context(hours=3));a['household_inputs'].update(initial_soc_pct=70.,positions=geometry(start=ORIGIN,count=36));report=api().prepare_report(**a)
+ result=api().assess_report(report,household_targets=targets,assessed_at=target_inputs['assessed_at'])
+ assert len(canonical(result))>16*1024**2
+ assert result['household']['scenarios'][0]['actual']['captured_controller_dc_kwh']==pytest.approx(3.)
+ assert api().replay_assessment(canonical(result),report=report)==result

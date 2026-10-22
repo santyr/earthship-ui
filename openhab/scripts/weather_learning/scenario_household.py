@@ -7,6 +7,8 @@ from .contracts import canonical,identity,instant,finite
 
 FIELDS={'schema','request','sources','targets','target_sha256'}
 REQUEST={'start','end','assessed_at','source_epoch','sensor_epochs','bank_config_raw','bank_epoch','nominal_bank_kwh','initial_soc_pct'}
+MAX_TARGET_BYTES=48*1024**2
+MAX_ENERGY_SOURCE_BYTES=16*1024**2
 NAMES=('potential_array_proxy_kwh','captured_controller_dc_kwh','minimum_hour_grid_soc_pct','indoor_air_f','north_wall_f')
 
 
@@ -17,7 +19,7 @@ def _target(value,reason,basis,**extra):
 def _build(request,sources):
     from household.evidence import epoch
     from household.energy_outcome_sources import _bank
-    if (not isinstance(request,dict) or set(request)!=REQUEST or not isinstance(sources,dict) or set(sources)!={'energy','battery','temperature'} or len(canonical(sources))>16*1024**2):raise ValueError('closed bounded original household target context required')
+    if (not isinstance(request,dict) or set(request)!=REQUEST or not isinstance(sources,dict) or set(sources)!={'energy','battery','temperature'} or len(canonical(sources))>MAX_TARGET_BYTES):raise ValueError('closed bounded original household target context required')
     start,end,assessed=map(instant,(request['start'],request['end'],request['assessed_at']));hours=(end-start).total_seconds()/3600
     if not 1<=hours<=24 or hours!=int(hours) or assessed<end+timedelta(minutes=5):raise ValueError('mature complete elapsed-hour household horizon required')
     epoch(request['source_epoch'])
@@ -42,6 +44,7 @@ def _energy(sources,start,end,assessed,bank_start):
     if not isinstance(sources,list) or len(sources)>25:raise ValueError('bounded original household energy hours required')
     bins={};policy=None
     for source in sources:
+        if len(canonical(source))>MAX_ENERGY_SOURCE_BYTES:raise ValueError('bounded individual original energy hour required')
         source=validate_source(source)
         if (instant(source['received_at'])>assessed or not instant(source['start'])<end or not start<instant(source['end'])):raise ValueError('matching actually available energy hour required')
         if bank_start is not None and instant(source['bank_start'])!=bank_start:raise ValueError('original energy bank boundary differs')
@@ -111,7 +114,7 @@ def _temperatures(sources,request,end,assessed):
 class HouseholdTargets:
     content:bytes
     def __post_init__(self):
-        if not isinstance(self.content,bytes) or len(self.content)>16*1024**2:raise ValueError('bounded original household targets required')
+        if not isinstance(self.content,bytes) or len(self.content)>MAX_TARGET_BYTES:raise ValueError('bounded original household targets required')
         value=json.loads(self.content)
         if (not isinstance(value,dict) or set(value)!=FIELDS or canonical(_build(value['request'],value['sources']))!=canonical(value)):raise ValueError('household targets differ from original source replay')
     def to_dict(self):return json.loads(self.content)

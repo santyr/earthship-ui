@@ -245,3 +245,25 @@ used as an invented load, capacity or measured state. This distinction changes
 none of the raw receipts. Matching actual outcome assessment is still pending.
 The current affected backend suite passed 823 tests and 165 subtests with four
 named isolated SDK-profile skips after the legacy-conditioner change.
+
+
+Matching outcome acquisition is complete for the collection cutoff recorded in
+[the source audit](scenario-outcome-acquisition.json). All 138 BMS endpoints and
+86 native air/north-wall targets per role replay as qualified under the original
+hardware/sensor phases. There are 67 original energy hours: 31 reused immutable
+archive receipts and 36 new captures through the existing restricted read-only
+role. Every raw packet, acquisition envelope and source identity is retained
+privately. Original forecasts and the selected origin population are unchanged.
+These are source-admission counts; complete energy-window/censoring checks and
+matched model errors are assessed separately. Full-population outcome scoring
+remains in progress.
+
+A measured 24-hour target uses 25 hourly originals totaling 38,101,333 bytes.
+Household target records now admit 48 MiB, with at most 25 original energy hours
+and a 16 MiB limit per hour. Full assessments admit 64 MiB for the target collection
+and weather observations. The increased aggregate limits preserve complete raw
+receipts and replay. The frozen forecast/template construction limits retain their
+original scope. Focused verification passes 53 tests, including full-day target
+replay, refusal of oversized originals/collections and assessment replay above
+16 MiB. Whole-task verification and the maintained retained-producer handoff are
+still required.

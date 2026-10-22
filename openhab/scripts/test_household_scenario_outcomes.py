@@ -134,3 +134,39 @@ def test_fractional_window_missing_boundary_hour_withholds_energy_only():
  assert targets['captured_controller_dc_kwh']['value'] is None
  assert targets['minimum_hour_grid_soc_pct']['value']==70.
  assert targets['indoor_air_f']['value']==75.
+
+
+
+def padded_energy_inputs(hours,rows_per_hour,width):
+ import test_weather_energy_history as energy
+ from test_household_pv_window import raw
+ args=inputs();policy=args['energy_sources'][0]['policy_raw'];sources=[]
+ for hour in range(hours):
+  start=ORIGIN+timedelta(hours=hour)
+  with patch.multiple(energy,START=start,END=start+timedelta(hours=1),POLICY=policy):source=energy.source(soc=70)
+  source['rows']['power']=[]
+  for index in range(rows_per_hour):
+   at=start+timedelta(seconds=index*3600/rows_per_hour);value=raw(at,index+1,1000);source['rows']['power'].append([at.isoformat(),value+' '*max(0,width-len(value))])
+  source['bank_start']=args['energy_sources'][0]['bank_start'];source['source_sha256']=identity({k:v for k,v in source.items() if k!='source_sha256'});sources.append(source)
+ args.update(end=ORIGIN+timedelta(hours=hours),assessed_at=ORIGIN+timedelta(hours=hours+1),energy_sources=sources,battery_endpoint_sources={},temperature_sources={})
+ return args
+
+
+def test_full_24h_original_energy_collection_can_exceed_single_receipt_bound():
+ args=padded_energy_inputs(24,300,2500)
+ assert len(canonical(args['energy_sources']))>16*1024**2
+ result=api().household_targets(**args)
+ assert result.to_dict()['targets']['captured_controller_dc_kwh']['value']==pytest.approx(24.)
+ assert result.to_dict()['targets']['potential_array_proxy_kwh']['value']==pytest.approx(24.)
+ assert api().HouseholdTargets(result.content).to_dict()==result.to_dict()
+
+
+def test_outcome_collection_does_not_admit_oversized_individual_energy_receipt():
+ args=padded_energy_inputs(1,6000,3000)
+ with pytest.raises(ValueError):api().household_targets(**args)
+
+
+def test_household_outcome_record_refuses_valid_aggregate_over_48_mib():
+ args=padded_energy_inputs(4,4500,3000)
+ assert all(len(canonical(s))<16*1024**2 for s in args['energy_sources'])
+ with pytest.raises(ValueError):api().household_targets(**args)

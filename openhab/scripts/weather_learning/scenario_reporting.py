@@ -8,9 +8,12 @@ from .contracts import canonical,identity,instant
 from .scenarios import _policy,stress_cases,joint_scenarios,ResidualBlock,propagate
 from .source_bundle import capture_sources
 from .probabilistic_artifacts import numerical_environment
+from .scenario_household import MAX_TARGET_BYTES
 
 ROOT=Path(__file__).resolve().parents[3]
 MAX_BYTES=16*1024**2
+# Outcome collections retain up to 25 hourly originals.
+MAX_ASSESSMENT_BYTES=MAX_TARGET_BYTES+MAX_BYTES
 CACHE='scenario-advisory.json'
 FIELDS={'schema','inputs','runtime','output','report_sha256'}
 INPUTS={'forcing','policy','blocks','cohort_sha256','household_inputs','prepared_at','owned_sources'}
@@ -145,12 +148,12 @@ def assess_report(report,*,household_targets=None,weather_observations=None,asse
         if joint['scenarios']:weather=assess_joint(joint['scenarios'],observations=weather_observations,assessed_at=assessed,training_blocks=blocks,guard=guard)
     result=dict(schema='earthship-original-scenario-assessment/v1',original_report_sha256=value['report_sha256'],runtime_sha256=value['runtime']['source_package_sha256'],inputs=dict(household_targets=target,weather_observations=weather_observations,assessed_at=assessed.isoformat()),household=household,weather=weather,as_issued_score=False,physical_calibration_qualified=False,local_coverage_qualified=False,probability_claim=False,automatic_actuation=False)
     result['assessment_sha256']=identity(result)
-    if len(canonical(result))>MAX_BYTES:raise ValueError('bounded original scenario assessment exceeded')
+    if len(canonical(result))>MAX_ASSESSMENT_BYTES:raise ValueError('bounded original scenario assessment exceeded')
     _check_runtime(value['runtime']);guard();return result
 
 
 def replay_assessment(raw,*,report,guard=lambda:None):
-    if not isinstance(raw,bytes) or len(raw)>MAX_BYTES:raise ValueError('bounded original scenario assessment required')
+    if not isinstance(raw,bytes) or len(raw)>MAX_ASSESSMENT_BYTES:raise ValueError('bounded original scenario assessment required')
     from .scenario_household import HouseholdTargets
     value=json.loads(raw)
     fields={'schema','original_report_sha256','runtime_sha256','inputs','household','weather','as_issued_score','physical_calibration_qualified','local_coverage_qualified','probability_claim','automatic_actuation','assessment_sha256'}
