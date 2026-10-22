@@ -20,6 +20,7 @@
     footerNoWrap = false,
     centerContent = false,
     stackValue = false,
+    wrapValue = false,
     hideLabel = false,
     accessibleLabel = label,
     fill = false,
@@ -45,7 +46,7 @@
     class="stat-content"
     data-stat-content-centered={centerContent ? '' : undefined}
   >
-    <div class="stat" class:stacked={stackValue}>
+    <div class="stat" class:stacked={stackValue} class:wrap-value={wrapValue}>
       {#if iconName}
         <span class="state-icon" style="color: {iconColor}">
           <OhIcon icon={iconName} size={iconSize} />
@@ -53,7 +54,7 @@
       {:else if icon}
         <span class="icon">{icon}</span>
       {/if}
-      <span class="value">{display}</span>
+      <span class="value" class:wrap={wrapValue}>{display}</span>
     </div>
     {#if footer}
       <div class="footer" class:nowrap={footerNoWrap}>{footer}</div>
@@ -96,6 +97,8 @@
     color: #e6edf3;
     white-space: nowrap;
   }
+  .stat.wrap-value { width: 100%; }
+  .value.wrap { white-space: normal; overflow-wrap: anywhere; max-width: 100%; }
   .footer {
     margin-top: 0.35rem;
     font-size: var(--stat-footer-size, 0.8rem);
