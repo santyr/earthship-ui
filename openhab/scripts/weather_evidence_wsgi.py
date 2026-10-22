@@ -30,4 +30,5 @@ radiation_evidence_collector = configure_radiation_receiver(app)
 station_ingestion = configure_station_ingestion(app, {
     'WEATHER_STATION_INGESTION_ENABLE': os.environ.get('WEATHER_STATION_INGESTION_ENABLE', '1'),
     'WEATHER_STATION_TIMEZONE': os.environ.get('WEATHER_STATION_TIMEZONE', 'America/Denver'),
+    'WEATHER_STATION_RAIN_TOTALS': os.environ.get('WEATHER_STATION_RAIN_TOTALS', '/home/sat/.config/hex/weather-station-rain-totals.json'),
 })

@@ -31,7 +31,7 @@
   import { bitcoinReceiptState } from '../lib/ui/bitcoinReceipt.js';
   import { officeHallwayTemperature } from '../lib/thermal/officeHallwayTemperature.js';
   import { parsePredictionReceipt } from '../lib/forecast/predictionReceipt.js';
-  import { stationPresentation, rainPeriodText } from '../lib/weather/stationPresentation.js';
+  import { stationPresentation } from '../lib/weather/stationPresentation.js';
   import { estimateDailyLoadKWh } from '../lib/ui/dailyLoad.js';
   import {
     batteryPowerFlowPresentation,
@@ -364,20 +364,20 @@
   const stationItems = $derived(station.mode === 'legacy' ? $items : {...$items,...station.current});
   const pressureItem = $derived(station.mode === 'legacy' ? 'AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative' : 'WeatherStation_PressureAbsoluteV2');
   const pressureValue = $derived(station.mode === 'legacy' ? stationItems.AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative : station.pressure.value);
-  const rainDayInches = $derived(station.mode === 'legacy' ? num(stationItems.AmbientWeatherWS2902A_RainFallDay) : station.rain.day);
-  const rainWeekInches = $derived(station.mode === 'legacy' ? num(stationItems.AmbientWeatherWS2902A_RainFallWeek) : station.rain.week);
+  const rainDayInches = $derived(station.mode === 'legacy' ? num(stationItems.AmbientWeatherWS2902A_RainFallDay) : (station.rain.day ?? station.rain.recordedDay));
+  const rainWeekInches = $derived(station.mode === 'legacy' ? num(stationItems.AmbientWeatherWS2902A_RainFallWeek) : (station.rain.week ?? station.rain.recordedWeek));
   const rainDayGallons = $derived(harvestedGallons(rainDayInches));
   const rainWeekGallons = $derived(harvestedGallons(rainWeekInches));
   const rainIconColor = $derived(rainStateColor(rainDayInches ?? station.rain.partialDay));
   const rainRateLabel = $derived(rainRateChip(station.mode === 'legacy' ? stationItems.AmbientWeatherWS2902A_RainFallHourlyRate : station.rain.rate));
   const rainValue = $derived(
     rainDayInches === null || rainDayGallons === null
-      ? station.mode === 'v2' && station.rain.partialDay !== null ? rainPeriodText(station.rain, 'day') : '—'
+      ? '—'
       : `${rainDayInches.toFixed(2)}″ / ${rainDayGallons.toLocaleString('en-US')} gal`
   );
   const rainFooter = $derived(
     rainWeekInches === null || rainWeekGallons === null
-      ? station.mode === 'v2' ? `Week ${rainPeriodText(station.rain, 'week')}` : 'Week —'
+      ? 'Week —'
       : `Week ${rainWeekInches.toFixed(2)}″ / ${rainWeekGallons.toLocaleString('en-US')} gal`
   );
 
@@ -488,7 +488,7 @@
   function openRainChart() {
     openChart({
       title: 'Rain',
-      series: [{ name: station.mode === 'legacy' ? 'AmbientWeatherWS2902A_RainFallDay' : 'WeatherStation_RainDayV2', color: colors.rain, label: 'Rain/day' }],
+      series: [{ name: 'AmbientWeatherWS2902A_RainFallDay', color: colors.rain, label: 'Recorded rain/day' }],
       hours: 24,
     });
   }
@@ -737,8 +737,8 @@
     role="button"
     tabindex="0"
     aria-label="Open Rain chart"
-    aria-description="Partial totals are recorded lower bounds; earlier rain in the period is unavailable."
-    title="Partial totals are recorded lower bounds; earlier rain in the period is unavailable."
+    aria-description="Recorded rainfall and estimated harvested gallons. Only observed rain increments are counted; unknown gaps are excluded. Harvesting estimate uses 3,500 sq ft, 0.623 gal per sq ft-inch and 80% collection efficiency."
+    title="Recorded rainfall and estimated harvested gallons. Only observed rain increments are counted; unknown gaps are excluded. Harvesting estimate uses 3,500 sq ft, 0.623 gal per sq ft-inch and 80% collection efficiency."
     onclick={openRainChart}
     onkeydown={(e) => onKeyActivate(e, openRainChart)}
   >
@@ -752,8 +752,7 @@
       footer={rainFooter}
       valueSize="1rem"
       footerSize="0.72rem"
-      wrapValue={rainDayInches === null && station.rain.partialDay !== null}
-      footerNoWrap
+      wrapValue={true}
       stackValue
       centerContent
       hideLabel fill clip

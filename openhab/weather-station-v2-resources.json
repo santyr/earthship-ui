@@ -210,7 +210,7 @@
             "mode": "READONLY",
             "unit": "in",
             "stateTransformation": [
-              "JSONPATH:$.rain.products.day.partial_lower_bound"
+              "JSONPATH:$.rain.products.day.recorded_in"
             ]
           }
         },
@@ -227,7 +227,7 @@
             "mode": "READONLY",
             "unit": "in",
             "stateTransformation": [
-              "JSONPATH:$.rain.products.week.partial_lower_bound"
+              "JSONPATH:$.rain.products.week.recorded_in"
             ]
           }
         },
@@ -244,7 +244,7 @@
             "mode": "READONLY",
             "unit": "in",
             "stateTransformation": [
-              "JSONPATH:$.rain.products.month.partial_lower_bound"
+              "JSONPATH:$.rain.products.month.recorded_in"
             ]
           }
         }
@@ -281,6 +281,13 @@
         "unit": {
           "value": "inHg",
           "config": {}
+        },
+        "stateDescription": {
+          "value": " ",
+          "config": {
+            "pattern": "%.2f %unit%",
+            "readOnly": true
+          }
         }
       }
     },
@@ -349,6 +356,13 @@
         "unit": {
           "value": "in",
           "config": {}
+        },
+        "stateDescription": {
+          "value": " ",
+          "config": {
+            "pattern": "%.2f %unit%",
+            "readOnly": true
+          }
         }
       }
     },
@@ -367,6 +381,13 @@
         "unit": {
           "value": "in",
           "config": {}
+        },
+        "stateDescription": {
+          "value": " ",
+          "config": {
+            "pattern": "%.2f %unit%",
+            "readOnly": true
+          }
         }
       }
     },
@@ -385,6 +406,13 @@
         "unit": {
           "value": "in",
           "config": {}
+        },
+        "stateDescription": {
+          "value": " ",
+          "config": {
+            "pattern": "%.2f %unit%",
+            "readOnly": true
+          }
         }
       }
     },
@@ -403,6 +431,13 @@
         "unit": {
           "value": "in",
           "config": {}
+        },
+        "stateDescription": {
+          "value": " ",
+          "config": {
+            "pattern": "%.2f %unit%",
+            "readOnly": true
+          }
         }
       }
     },
@@ -421,6 +456,13 @@
         "unit": {
           "value": "in",
           "config": {}
+        },
+        "stateDescription": {
+          "value": " ",
+          "config": {
+            "pattern": "%.2f %unit%",
+            "readOnly": true
+          }
         }
       }
     },
@@ -439,6 +481,13 @@
         "unit": {
           "value": "in/h",
           "config": {}
+        },
+        "stateDescription": {
+          "value": " ",
+          "config": {
+            "pattern": "%.2f %unit%",
+            "readOnly": true
+          }
         }
       }
     },

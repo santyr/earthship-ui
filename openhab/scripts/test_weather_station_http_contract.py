@@ -27,4 +27,12 @@ def test_incomplete_calendar_amounts_have_explicit_recorded_lower_bound_items():
         assert item['type']=='Number:Length' and 'lower bound' in item['label'].lower()
         assert item['metadata']['expire']['value']=='90s,state=UNDEF'
         assert 'partial' in item['metadata']['stateDescription']['config']['pattern']
-        assert channel['configuration']['stateTransformation']==['JSONPATH:$.rain.products.'+period.lower()+'.partial_lower_bound']
+        assert channel['configuration']['stateTransformation']==['JSONPATH:$.rain.products.'+period.lower()+'.recorded_in']
+
+
+def test_rain_and_pressure_items_retain_hundredth_unit_display_precision():
+    r=json.loads((ROOT/'openhab/weather-station-v2-resources.json').read_bytes())
+    names={'WeatherStation_PressureAbsoluteV2',*('WeatherStation_Rain'+x+'V2' for x in ('Day','Week','Month','Event','Hour','Rate'))}
+    for item in r['items']:
+        if item['name'] in names:
+            assert item['metadata']['stateDescription']['config']=={'pattern':'%.2f %unit%','readOnly':True}

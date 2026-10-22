@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from weather_station_counter import CounterTracker
+from weather_station_totals import RecordedRainTotals
 
 UTC = timezone.utc
 MAX_POINTS = 20000
@@ -15,8 +16,9 @@ MAX_BOUNDARY_WIDTH_IN = .02  # Same uncertainty limit as native rain intervals.
 
 
 class RainProducts:
-    def __init__(self, *, timezone_name, validity_seconds, maximum_counter_in):
+    def __init__(self, *, timezone_name, validity_seconds, maximum_counter_in, recorded_totals=None):
         self.zone = ZoneInfo(timezone_name)
+        self.recorded = recorded_totals if recorded_totals is not None else RecordedRainTotals(timezone_name)
         self.counter = CounterTracker(validity_seconds=validity_seconds,
                                       maximum_counter_in=maximum_counter_in)
         self.validity = validity_seconds
@@ -65,6 +67,7 @@ class RainProducts:
             self.invalidate()
             return
         at = at.astimezone(UTC)
+        self.recorded.observe(transition.delta_in if not self.broken else None, at=at, previous_at=self.last_at)
         if transition.status == 'withheld':
             # Coverage is unknown, but the counter needs successive candidates
             # to confirm a reset or a discontinuity without assigning gap rain.
@@ -138,8 +141,10 @@ class RainProducts:
             products[name] = product(start, anchor[1] if anchor and anchor[0] == start else None)
             deadline = self._period_end(name, start)
             products[name]['periodValidUntil'] = deadline.isoformat()
+            recorded = self.recorded.periods.get(name)
+            products[name]['recorded_in'] = (recorded['amount_in'] if fresh and recorded and recorded['start'] == start.isoformat() else None)
             if at >= deadline:
-                for key in ('value','lower','upper','partial_lower_bound'):
+                for key in ('value','lower','upper','partial_lower_bound','recorded_in'):
                     products[name][key] = None
         event = self.event
         products['event'] = product(event[0] if event else reference,
@@ -147,4 +152,6 @@ class RainProducts:
         products['event']['method'] = 'local_event_24h_under_1mm_reset/v1'
         return dict(schema='earthship-station-rain-products/v2',
                     status='fresh' if fresh else 'stale' if end else 'unavailable',
+                    recordedMethod='sum_accepted_continuous_receipt_increments/v1',
+                    recordedPersistence='unavailable' if self.recorded.persistence_error else 'durable' if self.recorded.path is not None else 'memory_only',
                     products=products)
