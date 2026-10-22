@@ -82,11 +82,13 @@
       "id": "WN-09",
       "requirement": "Provide stress scenarios; evaluate dependence-aware household scenarios before probabilities",
       "owning_tasks": "8",
-      "status": "in_progress_native_adapter_and_source_worker_verified_actual_compatibility_withheld",
+      "status": "in_progress_original_producer_stress_verified_outcome_experiments_pending",
       "evidence": [
         "scenario-protocol.json",
         "household-scenarios.md",
-        "scenario-adapter-verification.json"
+        "scenario-adapter-verification.json",
+        "scenario-original-producer-verification.json",
+        "scenario-experiment-protocol.json"
       ]
     },
     {
@@ -302,16 +304,18 @@
       "task": 8,
       "title": "Build household stress cases and test coherent scenarios",
       "gate": "useful stress cases work independently of probability qualification. Scenario software, experiments and explicit uncertainty limits are complete even if real evidence requires the probabilistic product to remain unavailable.",
-      "status": "in_progress_native_adapter_and_source_worker_verified_actual_compatibility_withheld",
+      "status": "in_progress_original_producer_stress_verified_outcome_experiments_pending",
       "steps": 6,
       "evidence": [
         "scenario-protocol.json",
         "household-scenarios.md",
-        "scenario-adapter-verification.json"
+        "scenario-adapter-verification.json",
+        "scenario-original-producer-verification.json",
+        "scenario-experiment-protocol.json"
       ],
       "remaining": [
-        "actual complete eligible-source assessment and experiments",
-        "compatible retained native producer assessment without bypassing original source guards",
+        "bounded selected-origin household/weather experiments and joint eligibility assessment",
+        "maintained source-adapted retained-producer handoff",
         "integrated task verification"
       ]
     },

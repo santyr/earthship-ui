@@ -118,3 +118,22 @@ def test_original_report_serializes_native_context_once_and_exposes_hourly_air_w
  assert view['stress'][0]['thermal_method']==capture['output']['model_rule']
  assert view['stress'][0]['north_wall_f'] is not None
  assert b'native_source_paths' not in canonical(view) and b'/home/' not in canonical(view)
+
+
+def test_original_producer_scalar_forcing_does_not_import_new_component_PV_package(monkeypatch):
+ import builtins
+ module=api();original_import=builtins.__import__
+ def original_packages_only(name,*args,**kwargs):
+  if name=='household_pv_components':raise ModuleNotFoundError('original native producer predates the component PV package')
+  return original_import(name,*args,**kwargs)
+ monkeypatch.setattr(builtins,'__import__',original_packages_only)
+ start=ISSUE.replace(minute=0,second=0,microsecond=0);actions=dict(indoor_shade_closed=0.,outdoor_shade_present=1.,vent_open=0.)
+ rows=[dict(at=(start+timedelta(hours=i)).isoformat(),tempF=50.+i*2,radiationWm2=500.,windMph=4.) for i in range(2)]
+ forcing=module._forcings(rows,start,1,actions)
+ assert len(forcing)==12 and forcing[-1].outdoor_f==52.
+ from test_thermal_weather_conditioning import context as conditioning,ISSUE as issue
+ from thermal_model.installed_shade_dynamics import InstalledShadeForcing
+ from household.thermal_weather_conditioning import apply_conditioning
+ proof=conditioning();raw=(InstalledShadeForcing(issue+timedelta(minutes=5),50.3075,500.,**actions),)
+ capture=dict(issued_at=issue.isoformat(),inputs_available_at=(issue-timedelta(seconds=1)).isoformat(),weather_conditioning=proof)
+ assert module._condition(raw,proof['rows'],capture,53.6)==apply_conditioning(raw,proof,issue=issue,available=issue-timedelta(seconds=1),initial_outdoor_f=53.6)

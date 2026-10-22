@@ -63,13 +63,21 @@ def _dependencies(context,guard):
         verify_bindings(capture['weather_conditioning'],guard=guard)
 
 
+def _temperature(rows,times,at):
+    """Original point-temperature interpolation, independent of later PV adapters."""
+    from bisect import bisect_left
+    index=bisect_left(times,at)
+    if index==0 or index==len(times):raise ValueError('original scalar temperature bracket required')
+    weight=(at-times[index-1]).total_seconds()/3600
+    return rows[index-1]['tempF']*(1-weight)+rows[index]['tempF']*weight
+
+
 def _forcings(rows,origin,hours,actions):
-    from household_pv_components import _point
     from thermal_model.installed_shade_origin import ending_hour_mean
     from thermal_model.installed_shade_dynamics import InstalledShadeForcing,STEP
     times=[instant(r['at']) for r in rows];radiation=[r['radiationWm2'] for r in rows];out=[]
     for i in range(1,hours*12+1):
-        at=origin+i*STEP;temperature,_=_point(rows,times,at)
+        at=origin+i*STEP;temperature=_temperature(rows,times,at)
         out.append(InstalledShadeForcing(at,temperature,ending_hour_mean(times,radiation,at-STEP,at),actions['indoor_shade_closed'],actions['outdoor_shade_present'],actions['vent_open']))
     return tuple(out)
 
@@ -107,13 +115,12 @@ def _condition(forcings,rows,capture,initial_outdoor_f):
     from .historical_serving import temperature_features
     from .irradiance_learning import irradiance_features
     from household_solar_horizon import horizon_height
-    from household_pv_components import _point
     from thermal_model.installed_shade_origin import ending_hour_mean
     issue=instant(capture['issued_at']);available=instant(capture['inputs_available_at'])
     original=validate_context(capture['weather_conditioning'],issue=issue,available=available)
     if [r['at'] for r in rows]!=[r['at'] for r in original['rows']]:raise ValueError('constructed conditioning must retain exact original time grid')
     models=original['admission']['models'];times=[instant(r['at']) for r in rows]
-    raw_origin=rows[0]['tempF'] if times[0]==issue else _point(rows,times,issue)[0]
+    raw_origin=rows[0]['tempF'] if times[0]==issue else _temperature(rows,times,issue)
     bias=(initial_outdoor_f-raw_origin)*5/9;temperatures={};radiation=[]
     points={p['at']:p for p in original['midpoint_positions']}
     for row,at in zip(rows,times):

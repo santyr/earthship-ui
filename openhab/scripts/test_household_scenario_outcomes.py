@@ -96,3 +96,41 @@ def test_resealed_derived_household_values_cannot_bypass_original_source_replay(
  value=api().household_targets(**inputs()).to_dict();value['targets']['captured_controller_dc_kwh']['value']=0.
  value['target_sha256']=identity({k:v for k,v in value.items() if k!='target_sha256'})
  with pytest.raises(ValueError):api().HouseholdTargets(canonical(value))
+
+
+def fractional_inputs():
+ args=inputs();offset=timedelta(seconds=15);start,end=args['start']+offset,args['end']+offset
+ from household.battery_outcomes import build_endpoint_source
+ args['battery_endpoint_sources']={}
+ for key,source in inputs()['battery_endpoint_sources'].items():
+  target=instant(key)+offset
+  args['battery_endpoint_sources'][target.isoformat()]=build_endpoint_source(rows=[(instant(at),raw) for at,raw in source['rows']],target_at=target,requested_at=instant(source['requested_at'])+offset,received_at=instant(source['received_at'])+offset,item_id=source['item_id'])
+ import test_weather_energy_history as energy
+ from test_household_pv_window import raw
+ policy=args['energy_sources'][0]['policy_raw']
+ with patch.multiple(energy,START=END,END=END+timedelta(hours=1),POLICY=policy):following=energy.source(soc=70)
+ following['rows']['power']=[[at,raw(instant(at),61+i,2000)] for i,(at,_) in enumerate(following['rows']['power'])]
+ following['bank_start']=args['energy_sources'][0]['bank_start'];following['source_sha256']=identity({k:v for k,v in following.items() if k!='source_sha256'})
+ args['energy_sources'].append(following);args.update(start=start,end=end,assessed_at=END+timedelta(hours=1,minutes=6))
+ from weather_temperature_sources import build_temperature_source
+ from weather_temperature_evidence import TemperaturePolicy
+ args['temperature_sources']={role:build_temperature_source(rows=[(instant(at),raw) for at,raw in packet['native_rows']],targets=[end],assessed_at=args['assessed_at'],stream=packet['stream'],policy=TemperaturePolicy(**packet['policy']),sensor_epoch=packet['sensor_epoch']) for role,packet in args['temperature_sources'].items()}
+ return args
+
+
+def test_fractional_native_origin_scores_exact_power_overlap_and_unshifted_endpoint_truth():
+ args=fractional_inputs();targets=api().household_targets(**args).to_dict()['targets']
+ expected=(3585*1000+15*2000)/3600000
+ assert targets['potential_array_proxy_kwh']['value']==pytest.approx(expected)
+ assert targets['captured_controller_dc_kwh']['value']==pytest.approx(expected)
+ assert targets['minimum_hour_grid_soc_pct']['value']==70.
+ assert targets['indoor_air_f']['value']==75. and targets['north_wall_f']['value']==72.
+
+
+def test_fractional_window_missing_boundary_hour_withholds_energy_only():
+ args=fractional_inputs();args['energy_sources']=args['energy_sources'][:1]
+ targets=api().household_targets(**args).to_dict()['targets']
+ assert targets['potential_array_proxy_kwh']['value'] is None
+ assert targets['captured_controller_dc_kwh']['value'] is None
+ assert targets['minimum_hour_grid_soc_pct']['value']==70.
+ assert targets['indoor_air_f']['value']==75.

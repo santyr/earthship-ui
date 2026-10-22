@@ -19,7 +19,7 @@ def _build(request,sources):
     from household.energy_outcome_sources import _bank
     if (not isinstance(request,dict) or set(request)!=REQUEST or not isinstance(sources,dict) or set(sources)!={'energy','battery','temperature'} or len(canonical(sources))>16*1024**2):raise ValueError('closed bounded original household target context required')
     start,end,assessed=map(instant,(request['start'],request['end'],request['assessed_at']));hours=(end-start).total_seconds()/3600
-    if not 1<=hours<=24 or hours!=int(hours) or start.second or start.microsecond or start.minute%5 or assessed<end+timedelta(minutes=5):raise ValueError('mature complete elapsed-hour household horizon required')
+    if not 1<=hours<=24 or hours!=int(hours) or assessed<end+timedelta(minutes=5):raise ValueError('mature complete elapsed-hour household horizon required')
     epoch(request['source_epoch'])
     if not finite(request['nominal_bank_kwh']) or not .001<=request['nominal_bank_kwh']<=10000 or not finite(request['initial_soc_pct']) or not 0<=request['initial_soc_pct']<=100:raise ValueError('original nominal storage assumptions required')
     if not isinstance(request['sensor_epochs'],dict) or set(request['sensor_epochs'])!={'air','mass'}:raise ValueError('explicit household sensor phase map required')
@@ -37,6 +37,8 @@ def _build(request,sources):
 
 def _energy(sources,start,end,assessed,bank_start):
     from .energy_history import validate_source,summarize_hour
+    from earthship_energy.power_evidence import build_power_intervals,PowerSequenceError
+    from household_pv_window import policy_cutover
     if not isinstance(sources,list) or len(sources)>25:raise ValueError('bounded original household energy hours required')
     bins={};policy=None
     for source in sources:
@@ -44,18 +46,30 @@ def _energy(sources,start,end,assessed,bank_start):
         if (instant(source['received_at'])>assessed or not instant(source['start'])<end or not start<instant(source['end'])):raise ValueError('matching actually available energy hour required')
         if bank_start is not None and instant(source['bank_start'])!=bank_start:raise ValueError('original energy bank boundary differs')
         if policy is not None and policy!=source['policy_raw']:raise ValueError('mixed original power policies refused')
-        policy=source['policy_raw']
+        policy=source['policy_raw'];native={}
+        for field in ('pv.input_power_w','pv.output_power_w'):
+            try:native[field]=build_power_intervals([(instant(at),raw) for at,raw in source['rows']['power']],field,instant(source['start']),instant(source['end']),cutover=policy_cutover(policy))
+            except (ValueError,PowerSequenceError):native[field]=[]
         for row in summarize_hour(source):
-            left,right=map(instant,(row['start'],row['end']))
-            if left<start or right>end:continue
+            left,right=max(start,instant(row['start'])),min(end,instant(row['end']))
+            if left>=right:continue
             if row['start'] in bins:raise ValueError('duplicate original energy intervals refused')
-            bins[row['start']]=row
-    expected=[(start+timedelta(minutes=5*i)).isoformat() for i in range(int((end-start).total_seconds()/300))]
-    full=set(bins)==set(expected);captured=potential=0.;capture_ok=potential_ok=full
+            # Keep the original complete-bin censoring policy. Integrate native
+            # qualified power intervals over the exact overlap, never prorate a
+            # five-minute energy total or round a fractional forecast origin.
+            fields={}
+            for field,values in native.items():
+                pieces=[(max(0.,(min(v.end,right)-max(v.start,left)).total_seconds()),v.watts) for v in values if v.start<right and left<v.end]
+                fields[field]=dict(covered_seconds=fsum(t for t,w in pieces),positive_kwh=fsum(t*max(0,w) for t,w in pieces)/3600000)
+            bins[row['start']]=dict(start=left,end=right,fields=fields,potential_proxy_eligible=row['potential_proxy_eligible'])
+    cursor=start;full=True
+    for row in sorted(bins.values(),key=lambda r:r['start']):
+        full=full and row['start']==cursor;cursor=row['end']
+    full=full and cursor==end;captured=potential=0.;capture_ok=potential_ok=full
     for row in bins.values():
-        output=row['fields']['pv.output_power_w'];input_=row['fields']['pv.input_power_w']
-        capture_ok=capture_ok and output['covered_seconds']>=300-1e-6
-        potential_ok=potential_ok and row['potential_proxy_eligible'] and input_['covered_seconds']>=300-1e-6
+        output=row['fields']['pv.output_power_w'];input_=row['fields']['pv.input_power_w'];seconds=(row['end']-row['start']).total_seconds()
+        capture_ok=capture_ok and output['covered_seconds']>=seconds-1e-6
+        potential_ok=potential_ok and row['potential_proxy_eligible'] and input_['covered_seconds']>=seconds-1e-6
         captured+=output['positive_kwh'];potential+=input_['positive_kwh']
     return dict(potential_array_proxy_kwh=_target(potential if potential_ok else None,None if potential_ok else 'complete_uncensored_potential_proxy_window_required','qualified_input_power_low_SOC_charging_proxy; not calibrated array potential'),captured_controller_dc_kwh=_target(captured if capture_ok else None,None if capture_ok else 'complete_qualified_controller_output_window_required','known_controller_DC_output_over_exact_elapsed_window'))
 

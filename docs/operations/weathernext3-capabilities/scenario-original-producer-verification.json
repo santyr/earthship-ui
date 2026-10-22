@@ -1,0 +1,85 @@
+{
+  "schema": "earthship-native-original-scenario-progress/v1",
+  "status": "task8_in_progress_original_producer_stress_verified",
+  "checked_at": "2026-10-22T06:56:05.696550+00:00",
+  "original_runtime_sha256": "b6736cd9f631736515b027676c7052c86fa6bd62b4e3ab7272b325bd3036d23f",
+  "original_model_sha256": "8e1007865b839b01a58c35b337d16be574e8e0553c54a47ca6b7d20c1354238a",
+  "original_source_package_sha256": "cd584bd3f5d19d9e163575530d015f19212cea931839236c68762626e77d44e4",
+  "adapter_source_package_sha256": "b5c97077a3cb78c954eb717f30d91330b7a9a0be872ef18554569d2df330eb50",
+  "input_sha256": "51c4c44ea1a590423a3336fac86ff9ee426e0b6fc60792831f9b2cf6f87df23c",
+  "child_result_sha256": "1bc4f61a8e983f5564cd162d0df198747ab6378a4f3c7b7ac273c74fda076abb",
+  "actual_experiment": {
+    "duration_seconds": 8.29609779198654,
+    "horizon_hours": 24,
+    "cases": [
+      "central",
+      "reduced_solar",
+      "warm_high_gain"
+    ],
+    "trajectory_points_per_case": [
+      24,
+      24,
+      24
+    ],
+    "central_max_abs_parity_f": 0.0,
+    "required_tolerance_f": 1e-09,
+    "original_native_source_imports_verified": true,
+    "original_interpreter": "/usr/bin/python3",
+    "original_runtime_guard_passed": true,
+    "original_conditioning_math_source_unchanged": true,
+    "source_packages_and_input_receipts_retained": true,
+    "source_guard_bypass": false,
+    "weights_or_selector_changes": false,
+    "probability_claim": false,
+    "automatic_actuation": false
+  },
+  "inventory": {
+    "first_origin": "2026-10-20T18:55:15+00:00",
+    "forecast_receipts": 383,
+    "last_origin": "2026-10-22T06:40:15+00:00",
+    "local_dates": [
+      "2026-10-20",
+      "2026-10-21",
+      "2026-10-22"
+    ],
+    "missing_plans": 0,
+    "pv_statuses": {
+      "projected_provisional_array_potential:None": 383
+    },
+    "refused_stages": 0,
+    "stages": 8,
+    "storage_statuses": {
+      "conditional_nominal_simulation:None": 339,
+      "unavailable:household_AC_load_unavailable": 25,
+      "unavailable:source_skew": 19
+    },
+    "unique_origins": 383
+  },
+  "selection": {
+    "origins": 37,
+    "rule": "earliest original per UTC issue-hour; missingness retained; chosen before actual outcomes",
+    "selection_sha256": "25cc57583f6c7d4b07365731d3f3913f0f1c1d3cfebfbdc6664f0e310b5ae296",
+    "protocol_sha256": "4e731c3c53e2f04649b5eb88bfc7cefa90e58a735ead698059d6ec61cd2927da"
+  },
+  "regressions": {
+    "original_producer_missing_component_module": {
+      "red": 1,
+      "green_native_tests": 12
+    },
+    "fractional_native_issue": {
+      "red": 2,
+      "green_affected_tests": 49
+    },
+    "combined_current_tests": {
+      "passed": 61,
+      "seconds": 56.62
+    },
+    "counts_overlap": true
+  },
+  "remaining": [
+    "bounded experiment across all selected origins/horizons",
+    "actual matching household/weather outcome assessments and joint eligibility inventory",
+    "source-adapted retained-producer integration and complete Task8 verification"
+  ],
+  "verification_sha256": "f3ef38b82647de8304cc0376c3763afe22b158bc506e2cf7d0ec438bdde80174"
+}

@@ -147,3 +147,34 @@ Current native-adapter/source-worker verification passed 68 focused tests and th
 skips remain explicit; overlapping counts are not added. Complete native conditioning
 requires its original time grid; unsupported partial grids are refused. The earlier
 837-case run above precedes these additions and is not evidence for them.
+
+
+The next original-producer assessment succeeds under the retained deployment's
+actual interpreter and source imports, with the new construction adapter loaded
+under a separate package name. Its original runtime guard passes without replacing
+any module or source identity. All three 24-hour native air/wall stress cases ran;
+the central trajectory matches the literal original within 1e-9 °F. Exact adapter
+and original source packages, scripts and energy/plan input receipts are retained.
+The three conditioning mathematical source files are byte-identical across those
+packages. The standalone default-off current-runtime worker still refuses the old
+model; a maintained retained-producer handoff remains required. See
+[original producer verification](scenario-original-producer-verification.json).
+
+Actual source inventory found eight verified retained stages and 383 energy
+forecast receipts over three local dates, with all adjacent plans present. Of those
+receipts, 339 report conditional nominal-storage inputs and 44 name AC-load/skew
+limitations. The additional [experiment protocol](scenario-experiment-protocol.json)
+freezes one earliest original per UTC issue-hour, independently of its numerical
+output or later outcomes. It retains missingness, never replaces a refused origin,
+and binds all 37 selected receipts before assessment. Experiments use at most eight
+origins/90 seconds per batch and all five existing horizons. This is an explicit
+hourly representative experiment over the complete inventoried population.
+
+Native issue seconds remain exact. Household targets now accept fractional origins
+and integrate the native qualified power intervals over their precise overlap.
+Complete-bin censoring rules remain unchanged; no five-minute total is prorated.
+Missing boundary-hour power withholds energy while independent battery/temperature
+targets can still be scored. The new regressions failed before repair; 61 combined
+current native/household/report/energy/battery tests pass (overlapping earlier runs).
+No actual matching household-outcome experiment is claimed complete by this
+source/geometry/projection progress.
