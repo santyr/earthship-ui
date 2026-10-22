@@ -1,0 +1,108 @@
+{
+  "schema": "earthship-ws2902-openhab-compat-deployment/v1",
+  "release": "9f626593b7b26abd0b23d55363a58537ff02193c",
+  "merge": "3124361f86c76052aeea7bb6f0821b54af727bf3",
+  "pull_request": "https://github.com/santyr/earthship-ui/pull/48",
+  "deployed_at": "2026-10-22T21:57:07.774371+00:00",
+  "verified_at": "2026-10-22T21:57:59.229845+00:00",
+  "manifest_sha256": "b38d3b058ac7be176dfeab38316255a34a27dd8e40fa4a816b7c9a259342f00e",
+  "file_apply_rollback_rehearsed": true,
+  "partial_file_rollback_prefixes_verified": 7,
+  "ci_green_checks": 14,
+  "backend_tests": 139,
+  "frontend_tests": 2815,
+  "frontend_test_files": 184,
+  "browser_home_station_cases": 41,
+  "production_build_passed": true,
+  "original_counter_rows_replayed": 61499,
+  "initial_ledger_sha256": "fc676eed84449fdb55bc1aa20c69127ab18d995858f63160c2089899385d5b75",
+  "sensor_or_item_commands": 0,
+  "persistence_history_writes": 0,
+  "measurement_freshness_seeded_from_saved_counts": false,
+  "http_worker_reloads": 1,
+  "rf_listener": {
+    "MainPID": "2987344",
+    "NRestarts": "1",
+    "ActiveState": "active"
+  },
+  "rf_listener_restarted": false,
+  "readback": {
+    "today_in": 0.15,
+    "week_in": 0.29,
+    "today_estimated_gallons": 262,
+    "week_estimated_gallons": 506,
+    "station_pressure_inHg": 23.84
+  },
+  "ui": {
+    "pages": [
+      {
+        "screen": "home",
+        "width": 1340,
+        "height": 800,
+        "rain_text": "0.15\u2033 / 262 gal\nWeek 0.29\u2033 / 506 gal"
+      },
+      {
+        "screen": "home",
+        "width": 1280,
+        "height": 720,
+        "rain_text": "0.15\u2033 / 262 gal\nWeek 0.29\u2033 / 506 gal"
+      },
+      {
+        "screen": "openhab-overview",
+        "width": 1340,
+        "height": 900,
+        "rain_text": "Rain\n0.15 in/262 g\nWeek: 0.29 in/506 g"
+      }
+    ],
+    "page_errors": [],
+    "unexpected_requests": [],
+    "native_overview_and_home_1280_screenshots_viewed": true,
+    "visible_partial_on_home": false
+  },
+  "limitations": [
+    "Recorded display counts exclude unknown gaps and do not qualify complete scientific rain intervals.",
+    "Console calibration remains unknown.",
+    "Three-hour pressure trend needs uninterrupted live history after reload; native overview currently renders its unknown footer as UNDEF.",
+    "Rolling rain hour and rate products warm up independently; prior typed channel values expire through unchanged 90-second expiry."
+  ],
+  "source_files": [
+    {
+      "name": "openhab/scripts/weather_station_totals.py",
+      "new_sha256": "00e34dee3e09e87673fc1905c8173f1185276bfa87d39c13877486249e7629d8",
+      "mode": 420
+    },
+    {
+      "name": "openhab/scripts/weather_station_rain.py",
+      "new_sha256": "a3dffe8d7ed9678264e16ee2dea75c33975010e9a71d0a8ba082fe876a920a73",
+      "mode": 420
+    },
+    {
+      "name": "openhab/scripts/weather_station_ingestion.py",
+      "new_sha256": "1ea1b45aa0e0d23730a7332080ef6c2b27054ef8554f348e4f06e23028206108",
+      "mode": 420
+    },
+    {
+      "name": "openhab/scripts/weather_evidence_wsgi.py",
+      "new_sha256": "66270b9e87e8cd91da23240eddf0f9fcf99fef76581df0d5512a1ad7cc098445",
+      "mode": 420
+    },
+    {
+      "name": "src/lib/weather/stationPresentation.js",
+      "new_sha256": "460f6a5315808021fb8437e391ec91ff137709a8da70a7d1adb3aee9e248e981",
+      "mode": 420
+    },
+    {
+      "name": "src/screens/Home.svelte",
+      "new_sha256": "81156f17d78725cd22adf68adc8787adf8157482e83ecca80f032d941443898f",
+      "mode": 420
+    }
+  ],
+  "permanent_artifacts": "/home/sat/earthship-ui/.superpowers/artifacts/ws2902-openhab-compat-verified-release-20261022",
+  "prior_bug_and_correction": [
+    "The preceding adapter blanked aliases still consumed by the native OpenHAB overview.",
+    "HTTP numeric channel item types must be generic Number; dimensions remain on Items.",
+    "Typed numeric default integer display rounded rain and pressure.",
+    "The prior partial UI patch omitted requested harvesting estimates and counted only its latest session."
+  ],
+  "broader_capability_goal_complete": false
+}
