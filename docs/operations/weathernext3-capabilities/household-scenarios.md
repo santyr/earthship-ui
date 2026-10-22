@@ -178,3 +178,17 @@ targets can still be scored. The new regressions failed before repair; 61 combin
 current native/household/report/energy/battery tests pass (overlapping earlier runs).
 No actual matching household-outcome experiment is claimed complete by this
 source/geometry/projection progress.
+
+
+Before opening matching outcome values, registered scoring history revealed seven
+additional historical stages outside that first native-state directory. The
+[current population](scenario-population.json) includes those registrations and
+retains the original origin cutoff. It contains 648 distinct receipts across
+four local dates and 17 verified stage directories (some have no forecast before
+the cutoff). The experiment-protocol v2 records this pre-outcome population
+amendment and binds the new complete selection; the earlier 37-origin protocol,
+selection and preliminary projection batch remain retained. Construction policy,
+model choices, all five horizons and earliest-per-hour sampling stay unchanged.
+A seven-origin first attempt hit its 90-second bound; two-origin partitions passed
+without increasing the limit or replacing any origin. All 819 current affected
+backend tests and 165 subtests passed, with four named isolated SDK-profile skips.

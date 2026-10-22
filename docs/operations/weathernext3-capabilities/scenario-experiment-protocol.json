@@ -1,12 +1,12 @@
 {
-  "schema": "earthship-weather-household-scenario-experiment-policy/v1",
-  "frozen_at": "2026-10-22T06:52:06.527278+00:00",
+  "schema": "earthship-weather-household-scenario-experiment-policy/v2",
+  "frozen_at": "2026-10-22T07:13:01.795288+00:00",
   "construction_policy_sha256": "4d1f3bfb5e8b82d460e8d2848fa78c01aed7cad06d4b21f02670fb70320990f5",
-  "source_inventory_sha256": "169094b6191f8a566d836b6df0070cf2da5f12d9a7275f63defa38b85d8f8aad",
-  "selection_sha256": "25cc57583f6c7d4b07365731d3f3913f0f1c1d3cfebfbdc6664f0e310b5ae296",
-  "population_forecast_receipts": 383,
-  "selected_origins": 37,
-  "origin_selection": "all verified retained stages under the registered native-state root; one original per UTC issue-hour, earliest origin then file SHA; chosen before source replay and outcomes, no replacement after a refusal",
+  "source_inventory_sha256": "0050dffc4c1f17a722c8df1fab4dc9755211fd1fbc20d89f18cb27f95ca287c2",
+  "selection_sha256": "33151941c197d01f5cc422900ab5de8c64f895b8931cc480d6df99c02c89f97a",
+  "population_forecast_receipts": 648,
+  "selected_origins": 62,
+  "origin_selection": "all verified retained stages under registered native-state root plus explicitly registered historical stages; origin<=frozen original cutoff; one original per UTC issue-hour, earliest origin then file SHA; selected before source replay/outcomes, no replacement after refusal",
   "horizons_hours": [
     1,
     3,
@@ -33,5 +33,8 @@
   "probability_claim": false,
   "automatic_actuation": false,
   "model_or_service_changes": false,
-  "experiment_policy_sha256": "4e731c3c53e2f04649b5eb88bfc7cefa90e58a735ead698059d6ec61cd2927da"
+  "parent_experiment_policy_sha256": "4e731c3c53e2f04649b5eb88bfc7cefa90e58a735ead698059d6ec61cd2927da",
+  "amendment": "Include discovered registered historical stages before any actual matching outcome values are inspected; no construction/model/horizon/threshold or sampling-rule change",
+  "origin_cutoff": "2026-10-22T06:41:50.673771+00:00",
+  "experiment_policy_sha256": "6165cfc7d93db3e57c68e154051943efbc6e45dcca8f9ed375c06b5e6137c2bf"
 }

@@ -88,7 +88,8 @@
         "household-scenarios.md",
         "scenario-adapter-verification.json",
         "scenario-original-producer-verification.json",
-        "scenario-experiment-protocol.json"
+        "scenario-experiment-protocol.json",
+        "scenario-population.json"
       ]
     },
     {
@@ -311,7 +312,8 @@
         "household-scenarios.md",
         "scenario-adapter-verification.json",
         "scenario-original-producer-verification.json",
-        "scenario-experiment-protocol.json"
+        "scenario-experiment-protocol.json",
+        "scenario-population.json"
       ],
       "remaining": [
         "bounded selected-origin household/weather experiments and joint eligibility assessment",

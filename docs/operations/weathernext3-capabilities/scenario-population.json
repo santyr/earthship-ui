@@ -1,0 +1,46 @@
+{
+  "schema": "earthship-household-scenario-population/v1",
+  "checked_at": "2026-10-22T07:10:43.269654+00:00",
+  "origin_cutoff": "2026-10-22T06:41:50.673771+00:00",
+  "inventory_sha256": "0050dffc4c1f17a722c8df1fab4dc9755211fd1fbc20d89f18cb27f95ca287c2",
+  "registered_history_sha256": "775fcb981c229773c4464c04e6399f6609dec68a689ff27419d4c2a179d27006",
+  "summary": {
+    "first_origin": "2026-10-19T17:50:15+00:00",
+    "forecast_receipts": 648,
+    "last_origin": "2026-10-22T06:40:15+00:00",
+    "local_dates": [
+      "2026-10-19",
+      "2026-10-20",
+      "2026-10-21",
+      "2026-10-22"
+    ],
+    "missing_plans": 0,
+    "pv_statuses": {
+      "projected_provisional_array_potential:None": 648
+    },
+    "refused_stages": 0,
+    "stages": 17,
+    "storage_statuses": {
+      "conditional_nominal_simulation:None": 566,
+      "unavailable:household_AC_load_unavailable": 48,
+      "unavailable:source_skew": 34
+    },
+    "unique_origins": 648
+  },
+  "selection": {
+    "origins": 62,
+    "selection_sha256": "33151941c197d01f5cc422900ab5de8c64f895b8931cc480d6df99c02c89f97a",
+    "policy_sha256": "6165cfc7d93db3e57c68e154051943efbc6e45dcca8f9ed375c06b5e6137c2bf",
+    "storage_input_statuses": {
+      "unavailable:household_AC_load_unavailable": 5,
+      "conditional_nominal_simulation:None": 53,
+      "unavailable:source_skew": 4
+    }
+  },
+  "stages_with_forecasts": 12,
+  "forecast_issue_hours": 62,
+  "outcomes_not_yet_assessed": true,
+  "probability_claim": false,
+  "automatic_actuation": false,
+  "population_sha256": "92db364d0bb170282a2607e4bca8f65998f4f022930a30019478e8f71b98d414"
+}
