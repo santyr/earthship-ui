@@ -372,7 +372,7 @@
   const rainRateLabel = $derived(rainRateChip(station.mode === 'legacy' ? stationItems.AmbientWeatherWS2902A_RainFallHourlyRate : station.rain.rate));
   const rainValue = $derived(
     rainDayInches === null || rainDayGallons === null
-      ? station.mode === 'v2' && station.rain.partialDay !== null ? `Today ${rainPeriodText(station.rain, 'day')}` : '—'
+      ? station.mode === 'v2' && station.rain.partialDay !== null ? rainPeriodText(station.rain, 'day') : '—'
       : `${rainDayInches.toFixed(2)}″ / ${rainDayGallons.toLocaleString('en-US')} gal`
   );
   const rainFooter = $derived(
@@ -752,6 +752,7 @@
       footer={rainFooter}
       valueSize="1rem"
       footerSize="0.72rem"
+      wrapValue={rainDayInches === null && station.rain.partialDay !== null}
       footerNoWrap
       stackValue
       centerContent

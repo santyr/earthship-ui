@@ -19,13 +19,26 @@ async function open(page,route,width,height,amount,complete=false){
  await page.route('**/api/**',r=>r.fulfill({status:503,json:{status:'unavailable'}}));
  await page.goto(baseURL+'#/'+route);await expect(page.locator('.rain-cell')).toBeVisible();return page.locator('.rain-cell');
 }
+async function readableText(tile){
+ const bounds=await tile.evaluate(e=>{
+  const outer=e.getBoundingClientRect();return [...e.querySelectorAll('.value,.footer')].map(el=>{
+   const range=document.createRange();range.selectNodeContents(el);const b=range.getBoundingClientRect();
+   return {left:b.left,right:b.right,top:b.top,bottom:b.bottom,outer:{left:outer.left,right:outer.right,top:outer.top,bottom:outer.bottom}};
+  });
+ });
+ for(const b of bounds){expect(b.left).toBeGreaterThanOrEqual(b.outer.left+3);expect(b.right).toBeLessThanOrEqual(b.outer.right-3);expect(b.top).toBeGreaterThanOrEqual(b.outer.top);expect(b.bottom).toBeLessThanOrEqual(b.outer.bottom);}
+}
 for(const [width,height] of [[1340,800],[1280,720]])for(const route of ['home','weather']){
  test(`partial day and week rainfall stay visible at ${route} ${width}x${height}`,async({page},info)=>{
   const tile=await open(page,route,width,height,.03);await expect(tile).toContainText('≥0.03″');await expect(tile).toContainText(/partial/i);await expect(tile).toContainText(/(?:Week|wk) ≥0.03″/);await expect(tile).not.toContainText('gal');await expect(tile).not.toContainText('99.99');
-  const size=await tile.evaluate(e=>({sw:e.scrollWidth,cw:e.clientWidth}));expect(size.sw).toBeLessThanOrEqual(size.cw);
+  const size=await tile.evaluate(e=>({sw:e.scrollWidth,cw:e.clientWidth}));expect(size.sw).toBeLessThanOrEqual(size.cw);await readableText(tile);
   await tile.screenshot({path:info.outputPath('rain-partial.png')});
   await page.clock.fastForward(91000);await expect(tile).not.toContainText('≥0.03');await expect(tile).toContainText('—');
  });
 }
 test('zero observed during an incomplete period is visibly partial',async({page})=>{const tile=await open(page,'home',1280,720,0);await expect(tile).toContainText('≥0.00″');await expect(tile).toContainText('partial');await expect(tile).not.toContainText('gal');});
 test('complete day/week totals keep their existing meaning',async({page})=>{const tile=await open(page,'home',1280,720,.1,true);await expect(tile).toContainText('0.10″');await expect(tile).toContainText('Week 0.10″');await expect(tile).not.toContainText('partial');await expect(tile).not.toContainText('≥');});
+
+for(const amount of [10.03,100000])test(`larger partial amounts remain fully readable: ${amount}`,async({page})=>{
+ const tile=await open(page,'home',1280,720,amount);await expect(tile).toContainText(`≥${amount.toFixed(2)}″`);await readableText(tile);
+});
