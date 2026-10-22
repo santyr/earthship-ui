@@ -1,0 +1,268 @@
+{
+  "schema": "openhab-advertised-http-channel-types/v1",
+  "openhab_version": "5.2.3",
+  "source": "GET /rest/channel-types/http:number and http:string",
+  "types": {
+    "http:number": {
+      "parameters": [
+        {
+          "description": "Transformation pattern used when receiving values. Multiple transformations can be chained by listing each transformation on a separate line, or by concatenating them with \"\u2229\".",
+          "label": "State Transformation",
+          "name": "stateTransformation",
+          "required": false,
+          "type": "TEXT",
+          "readOnly": false,
+          "multiple": true,
+          "advanced": false,
+          "verify": false,
+          "limitToOptions": true,
+          "options": [],
+          "filterCriteria": []
+        },
+        {
+          "description": "Transformation pattern used when sending values. Multiple transformations can be chained by listing each transformation on a separate line, or by concatenating them with \"\u2229\".",
+          "label": "Command Transformation",
+          "name": "commandTransformation",
+          "required": false,
+          "type": "TEXT",
+          "readOnly": false,
+          "multiple": true,
+          "advanced": false,
+          "verify": false,
+          "limitToOptions": true,
+          "options": [],
+          "filterCriteria": []
+        },
+        {
+          "description": "This value is added to the base URL configured in the thing for retrieving values.",
+          "label": "State URL Extension",
+          "name": "stateExtension",
+          "required": false,
+          "type": "TEXT",
+          "readOnly": false,
+          "multiple": false,
+          "advanced": true,
+          "verify": false,
+          "limitToOptions": true,
+          "options": [],
+          "filterCriteria": []
+        },
+        {
+          "description": "Refresh channel state after command execution",
+          "label": "Refresh after Command",
+          "name": "refreshAfterCommand",
+          "required": false,
+          "type": "BOOLEAN",
+          "readOnly": false,
+          "multiple": false,
+          "advanced": true,
+          "verify": false,
+          "limitToOptions": true,
+          "options": [],
+          "filterCriteria": []
+        },
+        {
+          "description": "This value is added to the base URL configured in the thing for sending values.",
+          "label": "Command URL Extension",
+          "name": "commandExtension",
+          "required": false,
+          "type": "TEXT",
+          "readOnly": false,
+          "multiple": false,
+          "advanced": true,
+          "verify": false,
+          "limitToOptions": true,
+          "options": [],
+          "filterCriteria": []
+        },
+        {
+          "description": "Content for state request (only used if method is POST/PUT)",
+          "label": "State Content",
+          "name": "stateContent",
+          "required": false,
+          "type": "TEXT",
+          "readOnly": false,
+          "multiple": false,
+          "advanced": true,
+          "verify": false,
+          "limitToOptions": true,
+          "options": [],
+          "filterCriteria": []
+        },
+        {
+          "default": "READWRITE",
+          "label": "Read/Write Mode",
+          "name": "mode",
+          "required": false,
+          "type": "TEXT",
+          "readOnly": false,
+          "multiple": false,
+          "advanced": true,
+          "verify": false,
+          "limitToOptions": true,
+          "options": [
+            {
+              "label": "Read/Write",
+              "value": "READWRITE"
+            },
+            {
+              "label": "Read Only",
+              "value": "READONLY"
+            },
+            {
+              "label": "Write Only",
+              "value": "WRITEONLY"
+            }
+          ],
+          "filterCriteria": []
+        },
+        {
+          "description": "Unit to append to the (transformed) value.",
+          "label": "Unit",
+          "name": "unit",
+          "required": false,
+          "type": "TEXT",
+          "readOnly": false,
+          "multiple": false,
+          "advanced": true,
+          "verify": false,
+          "limitToOptions": true,
+          "options": [],
+          "filterCriteria": []
+        }
+      ],
+      "parameterGroups": [],
+      "label": "Number Channel",
+      "itemType": "Number",
+      "kind": "STATE",
+      "tags": [
+        "Channel",
+        "Control"
+      ],
+      "UID": "http:number",
+      "advanced": false
+    },
+    "http:string": {
+      "parameters": [
+        {
+          "description": "Transformation pattern used when receiving values. Multiple transformations can be chained by listing each transformation on a separate line, or by concatenating them with \"\u2229\".",
+          "label": "State Transformation",
+          "name": "stateTransformation",
+          "required": false,
+          "type": "TEXT",
+          "readOnly": false,
+          "multiple": true,
+          "advanced": false,
+          "verify": false,
+          "limitToOptions": true,
+          "options": [],
+          "filterCriteria": []
+        },
+        {
+          "description": "Transformation pattern used when sending values. Multiple transformations can be chained by listing each transformation on a separate line, or by concatenating them with \"\u2229\".",
+          "label": "Command Transformation",
+          "name": "commandTransformation",
+          "required": false,
+          "type": "TEXT",
+          "readOnly": false,
+          "multiple": true,
+          "advanced": false,
+          "verify": false,
+          "limitToOptions": true,
+          "options": [],
+          "filterCriteria": []
+        },
+        {
+          "description": "This value is added to the base URL configured in the thing for retrieving values.",
+          "label": "State URL Extension",
+          "name": "stateExtension",
+          "required": false,
+          "type": "TEXT",
+          "readOnly": false,
+          "multiple": false,
+          "advanced": true,
+          "verify": false,
+          "limitToOptions": true,
+          "options": [],
+          "filterCriteria": []
+        },
+        {
+          "description": "This value is added to the base URL configured in the thing for sending values.",
+          "label": "Command URL Extension",
+          "name": "commandExtension",
+          "required": false,
+          "type": "TEXT",
+          "readOnly": false,
+          "multiple": false,
+          "advanced": true,
+          "verify": false,
+          "limitToOptions": true,
+          "options": [],
+          "filterCriteria": []
+        },
+        {
+          "description": "Content for state request (only used if method is POST/PUT)",
+          "label": "State Content",
+          "name": "stateContent",
+          "required": false,
+          "type": "TEXT",
+          "readOnly": false,
+          "multiple": false,
+          "advanced": true,
+          "verify": false,
+          "limitToOptions": true,
+          "options": [],
+          "filterCriteria": []
+        },
+        {
+          "description": "Refresh channel state after command execution",
+          "label": "Refresh after Command",
+          "name": "refreshAfterCommand",
+          "required": false,
+          "type": "BOOLEAN",
+          "readOnly": false,
+          "multiple": false,
+          "advanced": true,
+          "verify": false,
+          "limitToOptions": true,
+          "options": [],
+          "filterCriteria": []
+        },
+        {
+          "default": "READWRITE",
+          "label": "Read/Write Mode",
+          "name": "mode",
+          "required": false,
+          "type": "TEXT",
+          "readOnly": false,
+          "multiple": false,
+          "advanced": true,
+          "verify": false,
+          "limitToOptions": true,
+          "options": [
+            {
+              "label": "Read/Write",
+              "value": "READWRITE"
+            },
+            {
+              "label": "Read Only",
+              "value": "READONLY"
+            },
+            {
+              "label": "Write Only",
+              "value": "WRITEONLY"
+            }
+          ],
+          "filterCriteria": []
+        }
+      ],
+      "parameterGroups": [],
+      "label": "String Channel",
+      "itemType": "String",
+      "kind": "STATE",
+      "tags": [],
+      "UID": "http:string",
+      "advanced": false
+    }
+  }
+}

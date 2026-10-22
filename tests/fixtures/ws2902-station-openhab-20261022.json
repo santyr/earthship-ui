@@ -1,0 +1,336 @@
+{
+  "description": "Actual receiver snapshot read alongside OpenHAB Items. recorded_in values derived by production replay from original persisted receipts, without changing original measurement clocks.",
+  "report": {
+    "consoleCalibration": "unknown",
+    "dailyExtrema": {
+      "AmbientWeatherWS2902A_WeatherDataWs2902a_RelativeHumidity": {
+        "complete": false,
+        "high": 99.0,
+        "low": 84.0,
+        "method": "observed_receipt_samples_with_field_continuity/v1",
+        "periodValidUntil": "2026-10-23T06:00:00+00:00",
+        "start": "2026-10-22T06:00:00+00:00"
+      },
+      "AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature": {
+        "complete": false,
+        "high": 55.58,
+        "low": 52.16,
+        "method": "observed_receipt_samples_with_field_continuity/v1",
+        "periodValidUntil": "2026-10-23T06:00:00+00:00",
+        "start": "2026-10-22T06:00:00+00:00"
+      },
+      "AmbientWeatherWS2902A_WindGust": {
+        "complete": false,
+        "high": 6.85,
+        "low": 0.0,
+        "method": "observed_receipt_samples_with_field_continuity/v1",
+        "periodValidUntil": "2026-10-23T06:00:00+00:00",
+        "start": "2026-10-22T06:00:00+00:00"
+      }
+    },
+    "fields": {
+      "AmbientWeatherWS2902A_IndoorSensor_RelativeHumidity": {
+        "radioDecodedAt": "2026-10-22T21:12:58+00:00",
+        "receivedAt": "2026-10-22T21:12:58.673655+00:00",
+        "role": "indoor",
+        "status": "fresh",
+        "validUntil": "2026-10-22T21:14:58+00:00",
+        "value": 47.0
+      },
+      "AmbientWeatherWS2902A_IndoorSensor_Temperature": {
+        "radioDecodedAt": "2026-10-22T21:12:58+00:00",
+        "receivedAt": "2026-10-22T21:12:58.673655+00:00",
+        "role": "indoor",
+        "status": "fresh",
+        "validUntil": "2026-10-22T21:14:58+00:00",
+        "value": 69.98
+      },
+      "AmbientWeatherWS2902A_OutdoorBatteryStatus": {
+        "radioDecodedAt": "2026-10-22T21:13:49+00:00",
+        "receivedAt": "2026-10-22T21:13:50.062071+00:00",
+        "role": "outdoor",
+        "status": "fresh",
+        "validUntil": "2026-10-22T21:15:49+00:00",
+        "value": 1.0
+      },
+      "AmbientWeatherWS2902A_RainFallTotal": {
+        "radioDecodedAt": "2026-10-22T21:13:49+00:00",
+        "receivedAt": "2026-10-22T21:13:50.062071+00:00",
+        "role": "outdoor",
+        "status": "fresh",
+        "validUntil": "2026-10-22T21:15:49+00:00",
+        "value": 104.98979002000002
+      },
+      "AmbientWeatherWS2902A_SolarRadiation": {
+        "radioDecodedAt": "2026-10-22T21:13:49+00:00",
+        "receivedAt": "2026-10-22T21:13:50.062071+00:00",
+        "role": "outdoor",
+        "status": "fresh",
+        "validUntil": "2026-10-22T21:15:49+00:00",
+        "value": 19.08
+      },
+      "AmbientWeatherWS2902A_UVIndex": {
+        "radioDecodedAt": "2026-10-22T21:13:49+00:00",
+        "receivedAt": "2026-10-22T21:13:50.062071+00:00",
+        "role": "outdoor",
+        "status": "fresh",
+        "validUntil": "2026-10-22T21:15:49+00:00",
+        "value": 0.0
+      },
+      "AmbientWeatherWS2902A_WH31E_193_BatteryStatus": {
+        "radioDecodedAt": "2026-10-22T21:13:25+00:00",
+        "receivedAt": "2026-10-22T21:13:25.936298+00:00",
+        "role": "north_wall",
+        "status": "fresh",
+        "validUntil": "2026-10-22T21:15:25+00:00",
+        "value": 1.0
+      },
+      "AmbientWeatherWS2902A_WH31E_193_RelativeHumidity": {
+        "radioDecodedAt": "2026-10-22T21:13:25+00:00",
+        "receivedAt": "2026-10-22T21:13:25.936298+00:00",
+        "role": "north_wall",
+        "status": "fresh",
+        "validUntil": "2026-10-22T21:15:25+00:00",
+        "value": 46.0
+      },
+      "AmbientWeatherWS2902A_WH31E_193_Temperature": {
+        "radioDecodedAt": "2026-10-22T21:13:25+00:00",
+        "receivedAt": "2026-10-22T21:13:25.936298+00:00",
+        "role": "north_wall",
+        "status": "fresh",
+        "validUntil": "2026-10-22T21:15:25+00:00",
+        "value": 69.44
+      },
+      "AmbientWeatherWS2902A_WH31E_223_BatteryStatus": {
+        "radioDecodedAt": "2026-10-22T21:13:00+00:00",
+        "receivedAt": "2026-10-22T21:13:00.249724+00:00",
+        "role": "bedroom",
+        "status": "fresh",
+        "validUntil": "2026-10-22T21:15:00+00:00",
+        "value": 1.0
+      },
+      "AmbientWeatherWS2902A_WH31E_223_RelativeHumidity": {
+        "radioDecodedAt": "2026-10-22T21:13:00+00:00",
+        "receivedAt": "2026-10-22T21:13:00.249724+00:00",
+        "role": "bedroom",
+        "status": "fresh",
+        "validUntil": "2026-10-22T21:15:00+00:00",
+        "value": 49.0
+      },
+      "AmbientWeatherWS2902A_WH31E_223_Temperature": {
+        "radioDecodedAt": "2026-10-22T21:13:00+00:00",
+        "receivedAt": "2026-10-22T21:13:00.249724+00:00",
+        "role": "bedroom",
+        "status": "fresh",
+        "validUntil": "2026-10-22T21:15:00+00:00",
+        "value": 68.72
+      },
+      "AmbientWeatherWS2902A_WeatherDataWs2902a_RelativeHumidity": {
+        "radioDecodedAt": "2026-10-22T21:13:49+00:00",
+        "receivedAt": "2026-10-22T21:13:50.062071+00:00",
+        "role": "outdoor",
+        "status": "fresh",
+        "validUntil": "2026-10-22T21:15:49+00:00",
+        "value": 99.0
+      },
+      "AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature": {
+        "radioDecodedAt": "2026-10-22T21:13:49+00:00",
+        "receivedAt": "2026-10-22T21:13:50.062071+00:00",
+        "role": "outdoor",
+        "status": "fresh",
+        "validUntil": "2026-10-22T21:15:49+00:00",
+        "value": 52.16
+      },
+      "AmbientWeatherWS2902A_WindDirectionDegrees": {
+        "radioDecodedAt": "2026-10-22T21:13:49+00:00",
+        "receivedAt": "2026-10-22T21:13:50.062071+00:00",
+        "role": "outdoor",
+        "status": "fresh",
+        "validUntil": "2026-10-22T21:15:49+00:00",
+        "value": 262.0
+      },
+      "AmbientWeatherWS2902A_WindGust": {
+        "radioDecodedAt": "2026-10-22T21:13:49+00:00",
+        "receivedAt": "2026-10-22T21:13:50.062071+00:00",
+        "role": "outdoor",
+        "status": "fresh",
+        "validUntil": "2026-10-22T21:15:49+00:00",
+        "value": 1.14
+      },
+      "AmbientWeatherWS2902A_WindSpeed": {
+        "radioDecodedAt": "2026-10-22T21:13:49+00:00",
+        "receivedAt": "2026-10-22T21:13:50.062071+00:00",
+        "role": "outdoor",
+        "status": "fresh",
+        "validUntil": "2026-10-22T21:15:49+00:00",
+        "value": 0.14
+      },
+      "WeatherStation_LightLuxV2": {
+        "radioDecodedAt": "2026-10-22T21:13:49+00:00",
+        "receivedAt": "2026-10-22T21:13:50.062071+00:00",
+        "role": "outdoor",
+        "status": "fresh",
+        "validUntil": "2026-10-22T21:15:49+00:00",
+        "value": 2418.0
+      },
+      "WeatherStation_PressureAbsoluteV2": {
+        "radioDecodedAt": "2026-10-22T21:12:58+00:00",
+        "receivedAt": "2026-10-22T21:12:58.673655+00:00",
+        "role": "indoor",
+        "status": "fresh",
+        "validUntil": "2026-10-22T21:14:58+00:00",
+        "value": 23.83
+      },
+      "WeatherStation_SolarProxyV2": {
+        "radioDecodedAt": "2026-10-22T21:13:49+00:00",
+        "receivedAt": "2026-10-22T21:13:50.062071+00:00",
+        "role": "outdoor",
+        "status": "fresh",
+        "validUntil": "2026-10-22T21:15:49+00:00",
+        "value": 19.08
+      }
+    },
+    "flat": {
+      "AmbientWeatherWS2902A_ApparentTemperature": 52.7,
+      "AmbientWeatherWS2902A_DewPointTemperature": 51.9,
+      "AmbientWeatherWS2902A_HeatIndex": 51.9,
+      "AmbientWeatherWS2902A_IndoorSensor_RelativeHumidity": 47.0,
+      "AmbientWeatherWS2902A_IndoorSensor_Temperature": 69.98,
+      "AmbientWeatherWS2902A_MaxDailyOutdoorHumidity": null,
+      "AmbientWeatherWS2902A_MaxDailyOutdoorTemp": null,
+      "AmbientWeatherWS2902A_MaxDailyWindGust": null,
+      "AmbientWeatherWS2902A_MinDailyOutdoorHumidity": null,
+      "AmbientWeatherWS2902A_MinDailyOutdoorTemp": null,
+      "AmbientWeatherWS2902A_OutdoorBatteryStatus": "OK",
+      "AmbientWeatherWS2902A_PressureTrend": null,
+      "AmbientWeatherWS2902A_RainFallDay": null,
+      "AmbientWeatherWS2902A_RainFallEvent": null,
+      "AmbientWeatherWS2902A_RainFallHourlyRate": null,
+      "AmbientWeatherWS2902A_RainFallMonth": null,
+      "AmbientWeatherWS2902A_RainFallTotal": 104.98979002000002,
+      "AmbientWeatherWS2902A_RainFallWeek": null,
+      "AmbientWeatherWS2902A_SolarRadiation": 19.08,
+      "AmbientWeatherWS2902A_UVDanger": "low",
+      "AmbientWeatherWS2902A_UVIndex": 0.0,
+      "AmbientWeatherWS2902A_WH31E_193_BatteryStatus": "OK",
+      "AmbientWeatherWS2902A_WH31E_193_RelativeHumidity": 46.0,
+      "AmbientWeatherWS2902A_WH31E_193_Temperature": 69.44,
+      "AmbientWeatherWS2902A_WH31E_223_BatteryStatus": "OK",
+      "AmbientWeatherWS2902A_WH31E_223_RelativeHumidity": 49.0,
+      "AmbientWeatherWS2902A_WH31E_223_Temperature": 68.72,
+      "AmbientWeatherWS2902A_WeatherDataWs2902A_PressureRelative": null,
+      "AmbientWeatherWS2902A_WeatherDataWs2902a_RelativeHumidity": 99.0,
+      "AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature": 52.16,
+      "AmbientWeatherWS2902A_WindChill": 52.2,
+      "AmbientWeatherWS2902A_WindDirectionCardinal": "W",
+      "AmbientWeatherWS2902A_WindDirectionDegrees": 262.0,
+      "AmbientWeatherWS2902A_WindGust": 1.14,
+      "AmbientWeatherWS2902A_WindSpeed": 0.14,
+      "WeatherStation_LightLuxV2": 2418.0,
+      "WeatherStation_PressureAbsoluteV2": 23.83,
+      "WeatherStation_PressureTrendV2": null,
+      "WeatherStation_SolarProxyV2": 19.08
+    },
+    "generatedAt": "2026-10-22T21:13:51.955666+00:00",
+    "pressure": {
+      "identity": "station_absolute",
+      "method": "three_hour_boundary_bracket_change_0.01inHg/v1",
+      "supportSeconds": 3240.109271
+    },
+    "rain": {
+      "products": {
+        "day": {
+          "end": "2026-10-22T21:13:50.062071+00:00",
+          "lower": null,
+          "method": "receipt_counter_boundary_brackets/v1",
+          "partial_lower_bound": 0.059999880000006556,
+          "periodValidUntil": "2026-10-23T06:00:00+00:00",
+          "start": "2026-10-22T06:00:00+00:00",
+          "unit": "in",
+          "upper": null,
+          "value": null,
+          "recorded_in": 0.07999984000001348
+        },
+        "event": {
+          "end": "2026-10-22T21:13:50.062071+00:00",
+          "lower": null,
+          "method": "local_event_24h_under_1mm_reset/v1",
+          "partial_lower_bound": 0.0,
+          "start": "2026-10-22T21:13:50.062071+00:00",
+          "unit": "in",
+          "upper": null,
+          "value": null
+        },
+        "month": {
+          "end": "2026-10-22T21:13:50.062071+00:00",
+          "lower": null,
+          "method": "receipt_counter_boundary_brackets/v1",
+          "partial_lower_bound": 0.059999880000006556,
+          "periodValidUntil": "2026-11-01T06:00:00+00:00",
+          "start": "2026-10-01T06:00:00+00:00",
+          "unit": "in",
+          "upper": null,
+          "value": null,
+          "recorded_in": 0.2199995600000193
+        },
+        "rate_10min": {
+          "end": "2026-10-22T21:13:50.062071+00:00",
+          "lower": 0.1199997600001268,
+          "method": "receipt_counter_boundary_brackets/v1",
+          "partial_lower_bound": 0.1199997600001268,
+          "start": "2026-10-22T21:03:50.062071+00:00",
+          "unit": "in/h",
+          "upper": 0.1199997600001268,
+          "value": 0.1199997600001268
+        },
+        "rolling_hour": {
+          "end": "2026-10-22T21:13:50.062071+00:00",
+          "lower": 0.059999880000006556,
+          "method": "receipt_counter_boundary_brackets/v1",
+          "partial_lower_bound": 0.059999880000006556,
+          "start": "2026-10-22T20:13:50.062071+00:00",
+          "unit": "in",
+          "upper": 0.059999880000006556,
+          "value": 0.059999880000006556
+        },
+        "week": {
+          "end": "2026-10-22T21:13:50.062071+00:00",
+          "lower": null,
+          "method": "receipt_counter_boundary_brackets/v1",
+          "partial_lower_bound": 0.059999880000006556,
+          "periodValidUntil": "2026-10-25T06:00:00+00:00",
+          "start": "2026-10-18T06:00:00+00:00",
+          "unit": "in",
+          "upper": null,
+          "value": null,
+          "recorded_in": 0.2199995600000193
+        }
+      },
+      "schema": "earthship-station-rain-products/v2",
+      "status": "fresh",
+      "recordedMethod": "sum_accepted_continuous_receipt_increments/v1"
+    },
+    "schema": "earthship-station-ingestion/v2",
+    "sensors": {
+      "bedroom": {
+        "channel": 3,
+        "status": "fresh"
+      },
+      "indoor": {
+        "channel": null,
+        "status": "fresh"
+      },
+      "north_wall": {
+        "channel": 1,
+        "status": "fresh"
+      },
+      "outdoor": {
+        "channel": null,
+        "status": "fresh"
+      }
+    },
+    "solarIdentity": "lux_proxy_126.7_v2_not_calibrated_irradiance",
+    "status": "ok",
+    "streamEpoch": "ab2a13b6-d1fe-4fef-88ea-cabc7d90a2d2"
+  }
+}

@@ -33,7 +33,7 @@
           "uid": "http:url:weatherStationV2:pressure",
           "channelTypeUID": "http:number",
           "kind": "STATE",
-          "itemType": "Number:Pressure",
+          "itemType": "Number",
           "label": "Station pressure (absolute)",
           "defaultTags": [],
           "properties": {},
@@ -66,13 +66,13 @@
           "uid": "http:url:weatherStationV2:solarProxy",
           "channelTypeUID": "http:number",
           "kind": "STATE",
-          "itemType": "Number:Intensity",
+          "itemType": "Number",
           "label": "Solar proxy from lux v2 (not calibrated irradiance)",
           "defaultTags": [],
           "properties": {},
           "configuration": {
             "mode": "READONLY",
-            "unit": "W/m²",
+            "unit": "W/m\u00b2",
             "stateTransformation": [
               "JSONPATH:$.flat.WeatherStation_SolarProxyV2"
             ]
@@ -83,7 +83,7 @@
           "uid": "http:url:weatherStationV2:lightLux",
           "channelTypeUID": "http:number",
           "kind": "STATE",
-          "itemType": "Number:Illuminance",
+          "itemType": "Number",
           "label": "Outdoor illuminance",
           "defaultTags": [],
           "properties": {},
@@ -100,7 +100,7 @@
           "uid": "http:url:weatherStationV2:rainDay",
           "channelTypeUID": "http:number",
           "kind": "STATE",
-          "itemType": "Number:Length",
+          "itemType": "Number",
           "label": "Rain since local midnight",
           "defaultTags": [],
           "properties": {},
@@ -117,7 +117,7 @@
           "uid": "http:url:weatherStationV2:rainWeek",
           "channelTypeUID": "http:number",
           "kind": "STATE",
-          "itemType": "Number:Length",
+          "itemType": "Number",
           "label": "Rain since Sunday midnight",
           "defaultTags": [],
           "properties": {},
@@ -134,7 +134,7 @@
           "uid": "http:url:weatherStationV2:rainMonth",
           "channelTypeUID": "http:number",
           "kind": "STATE",
-          "itemType": "Number:Length",
+          "itemType": "Number",
           "label": "Rain since month start",
           "defaultTags": [],
           "properties": {},
@@ -151,7 +151,7 @@
           "uid": "http:url:weatherStationV2:rainEvent",
           "channelTypeUID": "http:number",
           "kind": "STATE",
-          "itemType": "Number:Length",
+          "itemType": "Number",
           "label": "Local rain event (24-hour quiet criterion)",
           "defaultTags": [],
           "properties": {},
@@ -168,7 +168,7 @@
           "uid": "http:url:weatherStationV2:rainHour",
           "channelTypeUID": "http:number",
           "kind": "STATE",
-          "itemType": "Number:Length",
+          "itemType": "Number",
           "label": "Rain in last hour",
           "defaultTags": [],
           "properties": {},
@@ -185,7 +185,7 @@
           "uid": "http:url:weatherStationV2:rainRate",
           "channelTypeUID": "http:number",
           "kind": "STATE",
-          "itemType": "Number:Speed",
+          "itemType": "Number",
           "label": "Ten-minute rain depth multiplied by six",
           "defaultTags": [],
           "properties": {},
@@ -194,6 +194,57 @@
             "unit": "in/h",
             "stateTransformation": [
               "JSONPATH:$.rain.products.rate_10min.value"
+            ]
+          }
+        },
+        {
+          "id": "rainDayRecorded",
+          "uid": "http:url:weatherStationV2:rainDayRecorded",
+          "channelTypeUID": "http:number",
+          "kind": "STATE",
+          "itemType": "Number",
+          "label": "Rain day recorded lower bound",
+          "defaultTags": [],
+          "properties": {},
+          "configuration": {
+            "mode": "READONLY",
+            "unit": "in",
+            "stateTransformation": [
+              "JSONPATH:$.rain.products.day.recorded_in"
+            ]
+          }
+        },
+        {
+          "id": "rainWeekRecorded",
+          "uid": "http:url:weatherStationV2:rainWeekRecorded",
+          "channelTypeUID": "http:number",
+          "kind": "STATE",
+          "itemType": "Number",
+          "label": "Rain week recorded lower bound",
+          "defaultTags": [],
+          "properties": {},
+          "configuration": {
+            "mode": "READONLY",
+            "unit": "in",
+            "stateTransformation": [
+              "JSONPATH:$.rain.products.week.recorded_in"
+            ]
+          }
+        },
+        {
+          "id": "rainMonthRecorded",
+          "uid": "http:url:weatherStationV2:rainMonthRecorded",
+          "channelTypeUID": "http:number",
+          "kind": "STATE",
+          "itemType": "Number",
+          "label": "Rain month recorded lower bound",
+          "defaultTags": [],
+          "properties": {},
+          "configuration": {
+            "mode": "READONLY",
+            "unit": "in",
+            "stateTransformation": [
+              "JSONPATH:$.rain.products.month.recorded_in"
             ]
           }
         }
@@ -230,6 +281,13 @@
         "unit": {
           "value": "inHg",
           "config": {}
+        },
+        "stateDescription": {
+          "value": " ",
+          "config": {
+            "pattern": "%.2f %unit%",
+            "readOnly": true
+          }
         }
       }
     },
@@ -260,7 +318,7 @@
           "config": {}
         },
         "unit": {
-          "value": "W/m²",
+          "value": "W/m\u00b2",
           "config": {}
         }
       }
@@ -298,6 +356,13 @@
         "unit": {
           "value": "in",
           "config": {}
+        },
+        "stateDescription": {
+          "value": " ",
+          "config": {
+            "pattern": "%.2f %unit%",
+            "readOnly": true
+          }
         }
       }
     },
@@ -316,6 +381,13 @@
         "unit": {
           "value": "in",
           "config": {}
+        },
+        "stateDescription": {
+          "value": " ",
+          "config": {
+            "pattern": "%.2f %unit%",
+            "readOnly": true
+          }
         }
       }
     },
@@ -334,6 +406,13 @@
         "unit": {
           "value": "in",
           "config": {}
+        },
+        "stateDescription": {
+          "value": " ",
+          "config": {
+            "pattern": "%.2f %unit%",
+            "readOnly": true
+          }
         }
       }
     },
@@ -352,6 +431,13 @@
         "unit": {
           "value": "in",
           "config": {}
+        },
+        "stateDescription": {
+          "value": " ",
+          "config": {
+            "pattern": "%.2f %unit%",
+            "readOnly": true
+          }
         }
       }
     },
@@ -370,6 +456,13 @@
         "unit": {
           "value": "in",
           "config": {}
+        },
+        "stateDescription": {
+          "value": " ",
+          "config": {
+            "pattern": "%.2f %unit%",
+            "readOnly": true
+          }
         }
       }
     },
@@ -388,6 +481,88 @@
         "unit": {
           "value": "in/h",
           "config": {}
+        },
+        "stateDescription": {
+          "value": " ",
+          "config": {
+            "pattern": "%.2f %unit%",
+            "readOnly": true
+          }
+        }
+      }
+    },
+    {
+      "name": "WeatherStation_RainDayRecordedV2",
+      "type": "Number:Length",
+      "label": "Rain day \u2014 recorded lower bound",
+      "category": "",
+      "tags": [],
+      "groupNames": [],
+      "metadata": {
+        "expire": {
+          "value": "90s,state=UNDEF",
+          "config": {}
+        },
+        "unit": {
+          "value": "in",
+          "config": {}
+        },
+        "stateDescription": {
+          "value": "",
+          "config": {
+            "pattern": "\u2265%.2f %unit% (partial)",
+            "readOnly": true
+          }
+        }
+      }
+    },
+    {
+      "name": "WeatherStation_RainWeekRecordedV2",
+      "type": "Number:Length",
+      "label": "Rain week \u2014 recorded lower bound",
+      "category": "",
+      "tags": [],
+      "groupNames": [],
+      "metadata": {
+        "expire": {
+          "value": "90s,state=UNDEF",
+          "config": {}
+        },
+        "unit": {
+          "value": "in",
+          "config": {}
+        },
+        "stateDescription": {
+          "value": "",
+          "config": {
+            "pattern": "\u2265%.2f %unit% (partial)",
+            "readOnly": true
+          }
+        }
+      }
+    },
+    {
+      "name": "WeatherStation_RainMonthRecordedV2",
+      "type": "Number:Length",
+      "label": "Rain month \u2014 recorded lower bound",
+      "category": "",
+      "tags": [],
+      "groupNames": [],
+      "metadata": {
+        "expire": {
+          "value": "90s,state=UNDEF",
+          "config": {}
+        },
+        "unit": {
+          "value": "in",
+          "config": {}
+        },
+        "stateDescription": {
+          "value": "",
+          "config": {
+            "pattern": "\u2265%.2f %unit% (partial)",
+            "readOnly": true
+          }
         }
       }
     }
@@ -466,6 +641,27 @@
     {
       "itemName": "WeatherStation_RainRateV2",
       "channelUID": "http:url:weatherStationV2:rainRate",
+      "configuration": {
+        "profile": "system:default"
+      }
+    },
+    {
+      "itemName": "WeatherStation_RainDayRecordedV2",
+      "channelUID": "http:url:weatherStationV2:rainDayRecorded",
+      "configuration": {
+        "profile": "system:default"
+      }
+    },
+    {
+      "itemName": "WeatherStation_RainWeekRecordedV2",
+      "channelUID": "http:url:weatherStationV2:rainWeekRecorded",
+      "configuration": {
+        "profile": "system:default"
+      }
+    },
+    {
+      "itemName": "WeatherStation_RainMonthRecordedV2",
+      "channelUID": "http:url:weatherStationV2:rainMonthRecorded",
       "configuration": {
         "profile": "system:default"
       }
