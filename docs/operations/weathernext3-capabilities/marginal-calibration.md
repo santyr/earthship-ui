@@ -1,8 +1,10 @@
 # Local marginal calibration — implementation in progress
 
-Task 7 is not complete or deployed. The existing 25-cohort comparisons cover
-the frozen legacy parent sample; a source-scope audit found additional usable
-native matches that must be included before the evaluation gate can close. The frozen protocol is
+Task 7 is not complete or deployed. Complete frozen native coverage now includes
+104,264 pairs across 29 bounded cohorts, with all comparisons and original
+prediction math replayed. Durable prospective emission/scoring and monitor/status
+integration remain required. The earlier 25-cohort legacy sample is preserved
+separately. The frozen protocol is
 [marginal-calibration-protocol.json](marginal-calibration-protocol.json).
 No challenger is selected and no local coverage or probability qualification is claimed.
 
@@ -49,8 +51,8 @@ verified in [the experiment summary](marginal-experiment.json).
 Software currently covers the kernels, original-source adapters, chronological
 comparison, immutable prediction scoring and bounded offline experiment entry
 point. Actual-time candidate fitting, original model/source retention and prospective
-issue preparation now exist. Full native population expansion, durable issue
-emission/scoring and monitor/status integration are still required. The default raw temperature range and current point forecasts
+issue preparation now exist. Complete native population expansion and comparisons
+are verified. Durable issue emission/scoring and monitor/status integration are still required. The default raw temperature range and current point forecasts
 remain independently usable.
 
 
@@ -103,8 +105,10 @@ the complete native scope is 104,264 pairs. The legacy parents omit 61,660
 usable temperature pairs and 16,859 wind pairs, mainly at hourly longer leads
 and additional recorded origins. The old comparative scores remain evidence for
 their declared sample; they cannot close the all-eligible-data requirement.
-Those additional matches require bounded coherent datasets and fresh comparisons
-under the frozen numerical settings. No old model or score receipt is relabeled.
+Those additional matches are now included in separately identified coherent datasets
+and fresh comparisons under unchanged numerical settings. All original values,
+targets and availability clocks survived repartition/readback. No old model or
+score receipt is relabeled.
 
 The explicit actual-time fitter retains candidate models, literal training inputs
 and preprocessing source bytes. Its compatibility guard covers the interpreter
@@ -123,3 +127,54 @@ retained weather originals: 24 local temperature rows and 64 raw fallbacks.
 The issue is **prepared, unissued and unqualified**. No production configuration,
 model selector, Item or cache was changed. [Preparation evidence](marginal-prospective-preparation.json)
 records the current prototype and its remaining integration work.
+
+
+## Complete frozen native comparison and current preparation
+
+The [complete inventory](marginal-native-population.json),
+[comparison report](marginal-native-experiment.json) and
+[verification](marginal-native-verification.json) supersede the legacy sample for
+full-source coverage. They retain 81,731 temperature, 18,597 wind and 3,936
+solar-proxy matches from all 347 frozen source originals. Oversized coherent
+groups are partitioned into adjacent whole-native-lead blocks chosen from counts
+only, within the original source, measurement quality, grid, timezone and broad
+lead class. The largest of 29 cohorts has 9,954 rows, below the 10,000-row bound.
+An earlier exact-hour partition sensitivity pass (288 cohorts, 475 models,
+40,908 outer records) remains preserved separately; it is not pooled with the
+canonical results.
+
+All 29 canonical experiments completed within 120 seconds each (maximum 38.70
+seconds; 360.85 seconds summed sequentially). They retained 877 fitted models
+and 40,681 outer prediction records. Independent replay verified source-package
+bytes, original datasets, model/training membership and past availability,
+empirical weighted quantiles, adaptive decay, normal and nonnegative prediction
+math, and every matched/fallback score and gate. These remain retrospective
+experiments, not outcomes from operationally issued candidates.
+
+Twelve comparison gates pass: eight temperature comparisons in limited
+source/quality/lead cohorts, and nonnegative wind versus empirical intervals in
+all four broad lead ranges. These are overlapping comparisons, not twelve
+independent discoveries. Temperature review cases have only three to seven
+local target dates, below the eight-date probability-review minimum. One
+long-lead temperature normal case has 97.1% coverage; another has 67.7% coverage,
+so better interval score alone does not establish 80% calibration. Wind's
+score gains range from 17.4% to 34.6%, with 78.7–85.4% weighted coverage on
+157–180 targets over ten or eleven local dates. Its measurement source remains
+unqualified numeric history; no physical or all-season probability claim follows.
+All failures, absent regimes, subgroup supports and fallback-inclusive results
+remain in the complete report. Solar still has only 43 distinct qualified
+proxy hours, below the 48-target training minimum. No contender is promoted.
+
+The [new actual-time preparation](marginal-native-preparation.json) uses all six
+recorded-ingestion cohorts of the expanded collection. Near-term temperature
+has 53 past-available targets across three local dates and fits the three frozen
+families. Other cohorts remain cold: mid-term temperature has 29 targets across
+two dates; wind has 29 targets across three dates or 19 across two; solar has 43
+or 34 targets across three dates. Repeated forecast matches do not inflate those
+target counts. A fresh native origin receipt acquired before the decision yields
+88 fully replayed rows: 24 local temperature candidates and 64 raw fallbacks.
+Six private original artifacts are retained with literal training/source bytes;
+there is no selected pointer. This preparation is unissued and unqualified, and
+protected configuration/selector bytes are unchanged. Durable emission,
+confirmation/recovery, bounded maturity scoring and monitor/status wiring are
+the next required implementation steps.
