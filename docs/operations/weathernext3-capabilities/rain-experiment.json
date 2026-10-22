@@ -17945,9 +17945,9 @@
   },
   "pending_evidence": [
     "Source-bound independent resolution document with at least three independently counted local tip trials and actual availability.",
-    "Per interval/lead/grid/measurement cohort: at least twelve causal training targets in28days, six wet, six below threshold and three independent wet events.",
-    "Final-third outer dates fixed before missingness: at least eight date blocks, six wet/six below threshold/three events and matched amount, wet amount and Brier improvements with paired uncertainty.",
-    "Future confirmed original emissions must mature under the implemented bounded queue; current engineering integration and final capability gates remain required."
+    "Per interval/lead/grid/measurement cohort: twelve causal training targets in28days, six wet, six below threshold and three independent wet events.",
+    "Fixed final-third outer cohort: eight date blocks, six wet/six below threshold/three wet events and predeclared matched improvement/uncertainty/subgroup gates.",
+    "The 28 confirmed future intervals must mature naturally; first/last targets and original emission are retained without renewed clocks."
   ],
   "as_issued_score": false,
   "probability_calibration_qualified": false,
@@ -17955,7 +17955,30 @@
   "automatic_actuation": false,
   "production_model_changed": false,
   "cloud_queries": 0,
-  "task9_complete": false,
-  "report_sha256": "35ebc19f0c70d1f4a4ce8452d09f98481e48591a8ae58f0bdb5f871bce29625e",
-  "scoring_plan_sha256": "22e8986e777cdf62f25cd0ae895e77a5484e53bfb8fd5cf2749254f7feb3b9e1"
+  "task9_complete": true,
+  "report_sha256": "4aa9cf066acf5a94f6da5578855e7b362b263a48d36ebb5f1d896db78d249eea",
+  "scoring_plan_sha256": "22e8986e777cdf62f25cd0ae895e77a5484e53bfb8fd5cf2749254f7feb3b9e1",
+  "prospective_engineering": {
+    "proofs": {
+      "preview": "12c0232042562d71d48cf334d6d10bc6b5c83bf085890b0530c73dbdc47dcf82",
+      "apply": "acd5726cf74bcae9eaca5673923049cd78fa787dbbf8f10a051737766ec49b18",
+      "repeat": "4f91ce3859118eaf771187fb43a3491110b5c9dd4aa39ce3745b720ea56d563c",
+      "restart": "1a91c63ca4ee91fd4a2bee5e7954bba2bc0ce9d8bea75770313fc6261841844e"
+    },
+    "intervals": 28,
+    "native_originals": 2,
+    "interval_kinds": [
+      "local_calendar_day",
+      "remaining_day",
+      "rolling_24_hours"
+    ],
+    "same_generation_no_clock_renewal": true,
+    "index_rebuild_recovers_exact_emission": true,
+    "pending": 28,
+    "expired": 0,
+    "first_start": "2026-10-22T21:00:00+00:00",
+    "last_end": "2026-11-05T21:00:00+00:00",
+    "local_probability_rows": 0
+  },
+  "final_verification_sha256": "f93a1b584dfe06aacb94ec02e513383e926e5a553b5dad931f79416827e499f4"
 }

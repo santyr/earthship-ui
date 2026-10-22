@@ -289,12 +289,12 @@ Each group has an explicit consumer, dataset signature, coverage policy, byte/ro
 
 **Consumes:** separate precipitation-head originals/statistics and qualified accumulation observations. **Produces:** matched product comparison, bounded local occurrence/amount experiment, original forecast retention, and a selection disposition.
 
-- [ ] Compare all three raw products on the same complete targets. Separate local-calendar daily totals, rolling 24-hour totals, and partial remaining-day totals; retain interval and DST semantics. Mean totals may be summed; marginal rain quantiles may not.
-- [ ] Predeclare wet-event thresholds consistent with gauge resolution/boundary uncertainty and relevant household use. Do not classify ambiguous small accumulation as certainly wet/dry. Assess wet-event amount, false alarms, missed events and timing as well as aggregate error.
-- [ ] Implement a small two-part model: occurrence probability and conditional positive amount. Use training-only climatology as the probability benchmark. If a censored shifted-gamma method is chosen instead, document why and keep the model set bounded. [R04]
-- [ ] Probability labels identify a locally learned forecast, target interval and method; they are not native Google probabilities. A cumulative probability must come from an appropriately trained interval target or coherent joint method, not summed hourly probabilities/quantiles.
-- [ ] Fit only when the prescribed class/event support exists. All-dry, sparse-wet and unseen-regime cases produce explicit `insufficient_evidence`, not a fabricated calibrated probability. Complete the fixtures, collection, scoring and pending evidence report anyway.
-- [ ] Keep raw production rain unless a reviewed selection meets the predeclared criteria. Support roof-collection decisions with rainfall information only; do not calculate cistern availability without independently approved roof/runoff/reserve/inventory inputs.
+- [x] Compare all three raw products on the same complete targets. Separate local-calendar daily totals, rolling 24-hour totals, and partial remaining-day totals; retain interval and DST semantics. Mean totals may be summed; marginal rain quantiles may not.
+- [x] Predeclare wet-event thresholds consistent with gauge resolution/boundary uncertainty and relevant household use. Do not classify ambiguous small accumulation as certainly wet/dry. Assess wet-event amount, false alarms, missed events and timing as well as aggregate error.
+- [x] Implement a small two-part model: occurrence probability and conditional positive amount. Use training-only climatology as the probability benchmark. If a censored shifted-gamma method is chosen instead, document why and keep the model set bounded. [R04]
+- [x] Probability labels identify a locally learned forecast, target interval and method; they are not native Google probabilities. A cumulative probability must come from an appropriately trained interval target or coherent joint method, not summed hourly probabilities/quantiles.
+- [x] Fit only when the prescribed class/event support exists. All-dry, sparse-wet and unseen-regime cases produce explicit `insufficient_evidence`, not a fabricated calibrated probability. Complete the fixtures, collection, scoring and pending evidence report anyway.
+- [x] Keep raw production rain unless a reviewed selection meets the predeclared criteria. Support roof-collection decisions with rainfall information only; do not calculate cistern availability without independently approved roof/runoff/reserve/inventory inputs.
 
 **Gate:** no gain is promoted for looking good only on dry days. Each head and candidate has matched coverage, scores, uncertainty and a clear retained/selected/deferred disposition.
 
