@@ -67,3 +67,8 @@ and actual experiments, retained prospective pending work, integration tests and
 a final disposition.
 Rainfall information does not authorize cistern-availability calculations or
 hardware actions.
+
+The [installed gathering audit](station-ingestion-audit.md) verifies the RTL-SDR
+decoder against manufacturer documentation and records confirmed legacy
+derivation and counter-recovery defects. Its raw-versus-derived distinctions
+govern which observations may enter the calibration experiment.

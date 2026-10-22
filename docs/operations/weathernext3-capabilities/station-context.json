@@ -1,12 +1,13 @@
 {
   "automatic_actuation": false,
-  "context_sha256": "57b4f88aac326775ce83b05c488e9b0ab30a22666dd92d8790157f2f46188d0a",
+  "context_sha256": "7f430373554df62b8d26b3d030d20ce2927638bdc26cdeab793733c96cffd77e",
   "identified_at": "2026-10-22T16:14:29.419625+00:00",
   "manufacturer": "Ambient Weather",
   "model": "WS-2902",
   "rain": {
+    "decoder_scaling_audit": "station-ingestion-audit.json",
     "independently_measured_local_resolution_mm": null,
-    "local_counter_scaling_and_resolution_verification": "pending; retain_native_source_policy_and_counter_evidence",
+    "local_counter_scaling_and_resolution_verification": "installed_decoder_and_relay_scaling_verified_by_offline_frame_replay; independent_local_physical_tip_measurement_not_performed",
     "manufacturer_nominal_resolution_inches": 0.01,
     "manufacturer_nominal_resolution_mm": 0.254,
     "manufacturer_reference": {
