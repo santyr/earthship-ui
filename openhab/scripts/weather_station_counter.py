@@ -55,5 +55,7 @@ class CounterTracker:
             if cause==reason and 0<age<=self.validity_seconds and 0<tick_age<=self.validity_seconds and 0<=value-before<=MAXIMUM_STEP_IN:
                 self._baseline(value,at,tick)
                 return CounterTransition('recovered','confirmed_counter_reset' if delta<0 else 'confirmed_post_gap_counter',None,True)
-        self.candidate=(float(value),at,float(tick),reason)
+        # A short-interval spike cannot become a first post-gap confirmation
+        # merely because the next receipt crosses the freshness boundary.
+        self.candidate=(float(value),at,float(tick),reason) if eligible else None
         return CounterTransition('withheld',reason,None)
