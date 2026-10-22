@@ -2,8 +2,8 @@
 
 Task 7 is not complete or deployed. Complete frozen native coverage now includes
 104,264 pairs across 29 bounded cohorts, with all comparisons and original
-prediction math replayed. Durable prospective emission/scoring and monitor/status
-integration remain required. The earlier 25-cohort legacy sample is preserved
+prediction math replayed. The closed optional producer/public status and
+prospective cohort/subgroup reports remain required. The earlier 25-cohort legacy sample is preserved
 separately. The frozen protocol is
 [marginal-calibration-protocol.json](marginal-calibration-protocol.json).
 No challenger is selected and no local coverage or probability qualification is claimed.
@@ -52,7 +52,9 @@ Software currently covers the kernels, original-source adapters, chronological
 comparison, immutable prediction scoring and bounded offline experiment entry
 point. Actual-time candidate fitting, original model/source retention and prospective
 issue preparation now exist. Complete native population expansion and comparisons
-are verified. Durable issue emission/scoring and monitor/status integration are still required. The default raw temperature range and current point forecasts
+are verified. Durable original emission/confirmation and bounded monitor scoring
+now exist; the closed producer/public status and prospective cohort summaries
+are still required. The default raw temperature range and current point forecasts
 remain independently usable.
 
 
@@ -176,8 +178,9 @@ target counts. A fresh native origin receipt acquired before the decision yields
 Six private original artifacts are retained with literal training/source bytes;
 there is no selected pointer. This preparation is unissued and unqualified, and
 protected configuration/selector bytes are unchanged. Durable emission,
-confirmation/recovery, bounded maturity scoring and monitor/status wiring are
-the next required implementation steps.
+confirmation/recovery and bounded monitor scoring are implemented below. The
+closed producer/public status and prospective cohort/subgroup reports remain
+required.
 
 
 ## Durable shadow issuance and scoring progress
