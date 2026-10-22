@@ -84,19 +84,20 @@ def collect_once(reader,archive,*,probe=True,horizon=360,free_bytes=None,max_arc
             ingestion_completed_at=snapshot['ingestion_completed_at'],points=len(snapshot['points']),
             elapsed_seconds=round(time.monotonic()-started,3),production_writes=False,automatic_actuation=False)
         if include_interim:result.update(downloaded_snapshots=downloaded,near_term=near)
+        def capacity():
+            remaining=max_archive_bytes-used
+            free=shutil.disk_usage(archive.root).free if free_bytes is None else free_bytes
+            maximum=len(runs)+sum(h in p.horizons for p in profiles for _,h in runs)
+            return dict(objects=len(objects),object_limit=10000,bytes=used,byte_limit=max_archive_bytes,
+                remaining_bytes=remaining,upper_bytes_per_new_original=8*1024**2,
+                upper_bound_originals_remaining=max(0,min(10000-len(objects),remaining//(8*1024**2))),
+                maximum_new_objects_per_cycle=maximum,maximum_archive_growth_bytes_per_cycle=maximum*8*1024**2,
+                conservative_complete_cycles_remaining=max(0,min((10000-len(objects))//maximum,remaining//(maximum*8*1024**2))),
+                free_bytes=free,eecu_remaining=None)
         if profiles:
             from .capability_acquisition import collect_profiles
-            def capacity():
-                remaining=max_archive_bytes-used
-                free=shutil.disk_usage(archive.root).free if free_bytes is None else free_bytes
-                maximum=len(runs)+sum(h in p.horizons for p in profiles for _,h in runs)
-                return dict(objects=len(objects),object_limit=10000,bytes=used,byte_limit=max_archive_bytes,
-                    remaining_bytes=remaining,upper_bytes_per_new_original=8*1024**2,
-                    upper_bound_originals_remaining=max(0,min(10000-len(objects),remaining//(8*1024**2))),
-                    maximum_new_objects_per_cycle=maximum,maximum_archive_growth_bytes_per_cycle=maximum*8*1024**2,
-                    conservative_complete_cycles_remaining=max(0,min((10000-len(objects))//maximum,remaining//(maximum*8*1024**2))),
-                    free_bytes=free,eecu_remaining=None)
             groups,budget=collect_profiles(reader,archive,runs=runs,profiles=profiles,clock=clock,retain=retain,capacity=capacity)
             result.update(schema='earthship-weathernext-ingest-result/v2',capabilities=groups,acquisition_budget=budget,
                 archive_capacity=capacity(),downloaded_snapshots=downloaded,elapsed_seconds=round(time.monotonic()-started,3))
+        if not probe:result['archive_capacity']=capacity()
         return result

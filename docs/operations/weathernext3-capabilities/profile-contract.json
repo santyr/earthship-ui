@@ -634,6 +634,190 @@
       "eecu_cost": null,
       "cost_basis": "request_transfer_and_wall_time_bounds_not_eecu",
       "profile_sha256": "858ae94c53216a2b82e37d696e88d3b7df0d3e60633a8e37388fc8ec432160c1"
+    },
+    {
+      "name": "uncertainty-complete-v1",
+      "bands": [
+        [
+          "station",
+          "station_head_temperature_2m_mean"
+        ],
+        [
+          "station",
+          "station_head_temperature_2m_p10"
+        ],
+        [
+          "station",
+          "station_head_temperature_2m_p25"
+        ],
+        [
+          "station",
+          "station_head_temperature_2m_p50"
+        ],
+        [
+          "station",
+          "station_head_temperature_2m_p75"
+        ],
+        [
+          "station",
+          "station_head_temperature_2m_p90"
+        ],
+        [
+          "gridded",
+          "surface_solar_radiation_downwards_1hr_mean"
+        ],
+        [
+          "gridded",
+          "surface_solar_radiation_downwards_1hr_p10"
+        ],
+        [
+          "gridded",
+          "surface_solar_radiation_downwards_1hr_p50"
+        ],
+        [
+          "gridded",
+          "surface_solar_radiation_downwards_1hr_p90"
+        ],
+        [
+          "gridded",
+          "wind_speed_10m_mean"
+        ],
+        [
+          "gridded",
+          "wind_speed_10m_p10"
+        ],
+        [
+          "gridded",
+          "wind_speed_10m_p50"
+        ],
+        [
+          "gridded",
+          "wind_speed_10m_p90"
+        ]
+      ],
+      "consumer": "marginal_and_temperature_detail",
+      "optional": true,
+      "priority": 1,
+      "horizons": [
+        48,
+        360
+      ],
+      "frequency": "existing_collection_cycle",
+      "remote_allowed": true,
+      "max_bytes": 8388608,
+      "max_seconds": 75,
+      "max_requests": 32,
+      "max_pixels": 16,
+      "attempts": 2,
+      "version": 1,
+      "grid_policy": "one_existing_native_cell_per_collection_no_percentile_interpolation",
+      "units": [
+        {
+          "grid": "station",
+          "band": "station_head_temperature_2m_mean",
+          "native": "K",
+          "unit": "degC",
+          "period_seconds": 0
+        },
+        {
+          "grid": "station",
+          "band": "station_head_temperature_2m_p10",
+          "native": "K",
+          "unit": "degC",
+          "period_seconds": 0
+        },
+        {
+          "grid": "station",
+          "band": "station_head_temperature_2m_p25",
+          "native": "K",
+          "unit": "degC",
+          "period_seconds": 0
+        },
+        {
+          "grid": "station",
+          "band": "station_head_temperature_2m_p50",
+          "native": "K",
+          "unit": "degC",
+          "period_seconds": 0
+        },
+        {
+          "grid": "station",
+          "band": "station_head_temperature_2m_p75",
+          "native": "K",
+          "unit": "degC",
+          "period_seconds": 0
+        },
+        {
+          "grid": "station",
+          "band": "station_head_temperature_2m_p90",
+          "native": "K",
+          "unit": "degC",
+          "period_seconds": 0
+        },
+        {
+          "grid": "gridded",
+          "band": "surface_solar_radiation_downwards_1hr_mean",
+          "native": "J m**-2",
+          "unit": "W m-2",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "surface_solar_radiation_downwards_1hr_p10",
+          "native": "J m**-2",
+          "unit": "W m-2",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "surface_solar_radiation_downwards_1hr_p50",
+          "native": "J m**-2",
+          "unit": "W m-2",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "surface_solar_radiation_downwards_1hr_p90",
+          "native": "J m**-2",
+          "unit": "W m-2",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "wind_speed_10m_mean",
+          "native": "m s**-1",
+          "unit": "m s-1",
+          "period_seconds": 0
+        },
+        {
+          "grid": "gridded",
+          "band": "wind_speed_10m_p10",
+          "native": "m s**-1",
+          "unit": "m s-1",
+          "period_seconds": 0
+        },
+        {
+          "grid": "gridded",
+          "band": "wind_speed_10m_p50",
+          "native": "m s**-1",
+          "unit": "m s-1",
+          "period_seconds": 0
+        },
+        {
+          "grid": "gridded",
+          "band": "wind_speed_10m_p90",
+          "native": "m s**-1",
+          "unit": "m s-1",
+          "period_seconds": 0
+        }
+      ],
+      "coverage": "complete_requested_targets_from_initialization_not_from_arrival",
+      "max_rows_per_grid": 360,
+      "max_normalized_points": 5040,
+      "archive_growth_upper_bytes_per_original": 8388608,
+      "eecu_cost": null,
+      "cost_basis": "request_transfer_and_wall_time_bounds_not_eecu",
+      "profile_sha256": "f9b503a98fe3df937562bd21e37b6ec012fbf455ffc195e8a2bafadacff62a19"
     }
   ],
   "shared_limits": {
@@ -652,5 +836,6 @@
     "public_route": "/api/weather-capabilities",
     "public_schema": "earthship-weathernext-capabilities/v1",
     "production_enabled": false
-  }
+  },
+  "uncertainty_variant_selection": "Exactly one of uncertainty-v1 and uncertainty-complete-v1; latter includes companion means in its own new original. Defaults remain core-only."
 }

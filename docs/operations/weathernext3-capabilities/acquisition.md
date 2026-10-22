@@ -70,3 +70,33 @@ pinned SDK profile separately binds all point queries to the real API signature
 with outbound sockets blocked. Cold/warm replay, staging retention and the
 actual JS public reader run under existing host admission; these are software
 and resource proofs, not live cloud-access or physical/statistical qualification.
+
+
+## Self-contained uncertainty original
+
+Task 10 adds `uncertainty-complete-v1` as an explicit alternative to the frozen
+`uncertainty-v1` quantile-only profile. The original profile identities and
+originals remain unchanged. Only one uncertainty variant may run per collection
+cycle. The new profile retains the six temperature statistics together and the
+mean/p10/p50/p90 solar and wind statistics on each variable's own native grid.
+This gives the existing temperature detail and marginal adapters the companion
+means they require without combining statistics from separately acquired
+originals or borrowing an older original's availability clock.
+
+The new profile requests fourteen bands instead of nine within the same two
+native queries per run. It retains the existing 32-request/8-MiB/75-second owner
+budget and maximum new objects per cycle. Extra response columns consume that
+shared transfer budget; they do not justify a larger limit. A warm cache must
+satisfy the exact new profile, not the legacy quantile-only original. Missing
+one native grid preserves the usable other grid and the independent core.
+The same two mutable uncertainty retry slots change with an explicitly selected
+variant; unrelated cooldowns and the global quota cooldown remain intact. No
+forecast original or pending scoring dependency is pruned.
+
+Solar marginal quantiles refer to the original hourly radiation energy/mean.
+Wind endpoint quantiles are retained statistics but do not become quantiles of
+an hourly averaged wind target. Rain hourly quantiles likewise do not become
+calendar-day or rolling-24-hour quantiles; the occurrence/amount challenger uses
+its separately defined target and measurement threshold. These mathematical
+limits explain intentionally unconsumed statistics in the capability matrix.
+No production profile is enabled by adding this source option.

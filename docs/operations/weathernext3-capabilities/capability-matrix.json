@@ -1,0 +1,2386 @@
+{
+  "schema": "earthship-weathernext-capability-dispositions/v1",
+  "status": "implemented_branch_inventory_production_replacement_pending",
+  "scope": "Current capability branch. Historical experiment and baseline records remain historical. Direct production replacement follows deployment-policy.json; no parallel shadow period required.",
+  "policies": {
+    "shared_acquisition_policy": {
+      "total_requests": 32,
+      "total_response_bytes": 8388608,
+      "total_seconds": 75,
+      "max_attempts": 2,
+      "max_archive_objects": 10000,
+      "max_archive_bytes": 17179869184,
+      "optional_priority": "uncertainty then atmosphere then full-run-only rain; defer rather than raise limits",
+      "account_eecu_remaining": null
+    },
+    "bounded_local_policy": {
+      "maximum_experiment_seconds": 120,
+      "serial_fits": 1,
+      "eecu_used": null,
+      "eecu_remaining": null,
+      "billing_change": false
+    }
+  },
+  "fields": [
+    {
+      "grid": "gridded",
+      "band": "experimental_tp_1hr_mean",
+      "native_unit": "m",
+      "normalized_unit": "mm",
+      "period_seconds": 3600,
+      "profiles": [
+        "core-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Retained core native originals and offline fixtures.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Separate head means summed only over complete exact intervals; matched comparison and occurrence/amount experiment.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_rain_queue.py",
+        "openhab/scripts/weather_learning/tests/test_capability_acquisition.py",
+        "tests/weather-rain-forecast.test.js",
+        "tests/e2e/weather-shadow-details.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Historical installed baseline.json record.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "rain-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "experimental_tp_1hr_p10",
+      "native_unit": "m",
+      "normalized_unit": "mm",
+      "period_seconds": 3600,
+      "profiles": [
+        "rain-uncertainty-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Retained hourly quantiles only; not summed into calendar/rolling quantiles or fabricated interval probabilities. Explicitly unconsumed for those targets.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_rain_queue.py",
+        "openhab/scripts/weather_learning/tests/test_capability_acquisition.py",
+        "tests/weather-rain-forecast.test.js",
+        "tests/e2e/weather-shadow-details.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "rain-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "experimental_tp_1hr_p25",
+      "native_unit": "m",
+      "normalized_unit": "mm",
+      "period_seconds": 3600,
+      "profiles": [
+        "rain-uncertainty-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Retained hourly quantiles only; not summed into calendar/rolling quantiles or fabricated interval probabilities. Explicitly unconsumed for those targets.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_rain_queue.py",
+        "openhab/scripts/weather_learning/tests/test_capability_acquisition.py",
+        "tests/weather-rain-forecast.test.js",
+        "tests/e2e/weather-shadow-details.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "rain-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "experimental_tp_1hr_p50",
+      "native_unit": "m",
+      "normalized_unit": "mm",
+      "period_seconds": 3600,
+      "profiles": [
+        "rain-uncertainty-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Retained hourly quantiles only; not summed into calendar/rolling quantiles or fabricated interval probabilities. Explicitly unconsumed for those targets.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_rain_queue.py",
+        "openhab/scripts/weather_learning/tests/test_capability_acquisition.py",
+        "tests/weather-rain-forecast.test.js",
+        "tests/e2e/weather-shadow-details.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "rain-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "experimental_tp_1hr_p75",
+      "native_unit": "m",
+      "normalized_unit": "mm",
+      "period_seconds": 3600,
+      "profiles": [
+        "rain-uncertainty-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Retained hourly quantiles only; not summed into calendar/rolling quantiles or fabricated interval probabilities. Explicitly unconsumed for those targets.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_rain_queue.py",
+        "openhab/scripts/weather_learning/tests/test_capability_acquisition.py",
+        "tests/weather-rain-forecast.test.js",
+        "tests/e2e/weather-shadow-details.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "rain-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "experimental_tp_1hr_p90",
+      "native_unit": "m",
+      "normalized_unit": "mm",
+      "period_seconds": 3600,
+      "profiles": [
+        "rain-uncertainty-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Retained hourly quantiles only; not summed into calendar/rolling quantiles or fabricated interval probabilities. Explicitly unconsumed for those targets.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_rain_queue.py",
+        "openhab/scripts/weather_learning/tests/test_capability_acquisition.py",
+        "tests/weather-rain-forecast.test.js",
+        "tests/e2e/weather-shadow-details.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "rain-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "high_cloud_cover_mean",
+      "native_unit": "(0 - 1)",
+      "normalized_unit": "percent",
+      "period_seconds": 0,
+      "profiles": [
+        "atmosphere-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Source-labeled raw atmospheric context and individual feature ablations; no automatic model-input or actuator authority. Layers overlap and are not summed.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_atmospheric_publish.py",
+        "tests/weather-atmosphere-forecast.test.js",
+        "tests/e2e/weather-capabilities.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "atmospheric-semantics.md",
+        "atmospheric-ablations.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "imerg_tp_1hr_mean",
+      "native_unit": "m",
+      "normalized_unit": "mm",
+      "period_seconds": 3600,
+      "profiles": [
+        "core-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Retained core native originals and offline fixtures.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Separate head means summed only over complete exact intervals; matched comparison and occurrence/amount experiment.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_rain_queue.py",
+        "openhab/scripts/weather_learning/tests/test_capability_acquisition.py",
+        "tests/weather-rain-forecast.test.js",
+        "tests/e2e/weather-shadow-details.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Historical installed baseline.json record.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "rain-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "imerg_tp_1hr_p10",
+      "native_unit": "m",
+      "normalized_unit": "mm",
+      "period_seconds": 3600,
+      "profiles": [
+        "rain-uncertainty-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Retained hourly quantiles only; not summed into calendar/rolling quantiles or fabricated interval probabilities. Explicitly unconsumed for those targets.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_rain_queue.py",
+        "openhab/scripts/weather_learning/tests/test_capability_acquisition.py",
+        "tests/weather-rain-forecast.test.js",
+        "tests/e2e/weather-shadow-details.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "rain-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "imerg_tp_1hr_p25",
+      "native_unit": "m",
+      "normalized_unit": "mm",
+      "period_seconds": 3600,
+      "profiles": [
+        "rain-uncertainty-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Retained hourly quantiles only; not summed into calendar/rolling quantiles or fabricated interval probabilities. Explicitly unconsumed for those targets.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_rain_queue.py",
+        "openhab/scripts/weather_learning/tests/test_capability_acquisition.py",
+        "tests/weather-rain-forecast.test.js",
+        "tests/e2e/weather-shadow-details.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "rain-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "imerg_tp_1hr_p50",
+      "native_unit": "m",
+      "normalized_unit": "mm",
+      "period_seconds": 3600,
+      "profiles": [
+        "rain-uncertainty-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Retained hourly quantiles only; not summed into calendar/rolling quantiles or fabricated interval probabilities. Explicitly unconsumed for those targets.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_rain_queue.py",
+        "openhab/scripts/weather_learning/tests/test_capability_acquisition.py",
+        "tests/weather-rain-forecast.test.js",
+        "tests/e2e/weather-shadow-details.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "rain-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "imerg_tp_1hr_p75",
+      "native_unit": "m",
+      "normalized_unit": "mm",
+      "period_seconds": 3600,
+      "profiles": [
+        "rain-uncertainty-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Retained hourly quantiles only; not summed into calendar/rolling quantiles or fabricated interval probabilities. Explicitly unconsumed for those targets.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_rain_queue.py",
+        "openhab/scripts/weather_learning/tests/test_capability_acquisition.py",
+        "tests/weather-rain-forecast.test.js",
+        "tests/e2e/weather-shadow-details.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "rain-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "imerg_tp_1hr_p90",
+      "native_unit": "m",
+      "normalized_unit": "mm",
+      "period_seconds": 3600,
+      "profiles": [
+        "rain-uncertainty-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Retained hourly quantiles only; not summed into calendar/rolling quantiles or fabricated interval probabilities. Explicitly unconsumed for those targets.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_rain_queue.py",
+        "openhab/scripts/weather_learning/tests/test_capability_acquisition.py",
+        "tests/weather-rain-forecast.test.js",
+        "tests/e2e/weather-shadow-details.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "rain-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "low_cloud_cover_mean",
+      "native_unit": "(0 - 1)",
+      "normalized_unit": "percent",
+      "period_seconds": 0,
+      "profiles": [
+        "atmosphere-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Source-labeled raw atmospheric context and individual feature ablations; no automatic model-input or actuator authority. Layers overlap and are not summed.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_atmospheric_publish.py",
+        "tests/weather-atmosphere-forecast.test.js",
+        "tests/e2e/weather-capabilities.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "atmospheric-semantics.md",
+        "atmospheric-ablations.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "mean_sea_level_pressure_mean",
+      "native_unit": "Pa",
+      "normalized_unit": "hPa",
+      "period_seconds": 0,
+      "profiles": [
+        "core-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Retained core native originals and offline fixtures.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Source-labeled raw atmospheric context and individual feature ablations; no automatic model-input or actuator authority. Mean-sea-level pressure is separate from station absolute pressure.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_atmospheric_publish.py",
+        "tests/weather-atmosphere-forecast.test.js",
+        "tests/e2e/weather-capabilities.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Historical installed baseline.json record.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "atmospheric-semantics.md",
+        "atmospheric-ablations.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "medium_cloud_cover_mean",
+      "native_unit": "(0 - 1)",
+      "normalized_unit": "percent",
+      "period_seconds": 0,
+      "profiles": [
+        "atmosphere-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Source-labeled raw atmospheric context and individual feature ablations; no automatic model-input or actuator authority. Layers overlap and are not summed.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_atmospheric_publish.py",
+        "tests/weather-atmosphere-forecast.test.js",
+        "tests/e2e/weather-capabilities.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "atmospheric-semantics.md",
+        "atmospheric-ablations.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "surface_solar_radiation_downwards_1hr_mean",
+      "native_unit": "J m**-2",
+      "normalized_unit": "W m-2",
+      "period_seconds": 3600,
+      "profiles": [
+        "core-v1",
+        "uncertainty-complete-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Retained core native originals and offline fixtures.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Versioned total/direct-horizontal decomposition and matched PV/thermal comparison.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_native_solar_forecast.py",
+        "openhab/scripts/weather_learning/tests/test_complete_uncertainty_profile.py",
+        "tests/weather-marginal-forecast.test.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Historical installed baseline.json record.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "solar-components.md",
+        "marginal-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "surface_solar_radiation_downwards_1hr_p10",
+      "native_unit": "J m**-2",
+      "normalized_unit": "W m-2",
+      "period_seconds": 3600,
+      "profiles": [
+        "uncertainty-v1",
+        "uncertainty-complete-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Hourly native radiation marginal statistics, separate from the observed lux-derived proxy target.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_native_solar_forecast.py",
+        "openhab/scripts/weather_learning/tests/test_complete_uncertainty_profile.py",
+        "tests/weather-marginal-forecast.test.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "solar-components.md",
+        "marginal-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "surface_solar_radiation_downwards_1hr_p50",
+      "native_unit": "J m**-2",
+      "normalized_unit": "W m-2",
+      "period_seconds": 3600,
+      "profiles": [
+        "uncertainty-v1",
+        "uncertainty-complete-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Hourly native radiation marginal statistics, separate from the observed lux-derived proxy target.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_native_solar_forecast.py",
+        "openhab/scripts/weather_learning/tests/test_complete_uncertainty_profile.py",
+        "tests/weather-marginal-forecast.test.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "solar-components.md",
+        "marginal-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "surface_solar_radiation_downwards_1hr_p90",
+      "native_unit": "J m**-2",
+      "normalized_unit": "W m-2",
+      "period_seconds": 3600,
+      "profiles": [
+        "uncertainty-v1",
+        "uncertainty-complete-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Hourly native radiation marginal statistics, separate from the observed lux-derived proxy target.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_native_solar_forecast.py",
+        "openhab/scripts/weather_learning/tests/test_complete_uncertainty_profile.py",
+        "tests/weather-marginal-forecast.test.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "solar-components.md",
+        "marginal-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "total_cloud_cover_mean",
+      "native_unit": "(0 - 1)",
+      "normalized_unit": "percent",
+      "period_seconds": 0,
+      "profiles": [
+        "core-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Retained core native originals and offline fixtures.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Source-labeled raw atmospheric context and individual feature ablations; no automatic model-input or actuator authority. Layers overlap and are not summed.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_atmospheric_publish.py",
+        "tests/weather-atmosphere-forecast.test.js",
+        "tests/e2e/weather-capabilities.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Historical installed baseline.json record.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "atmospheric-semantics.md",
+        "atmospheric-ablations.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "total_precipitation_1hr_mean",
+      "native_unit": "m",
+      "normalized_unit": "mm",
+      "period_seconds": 3600,
+      "profiles": [
+        "core-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Retained core native originals and offline fixtures.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Separate head means summed only over complete exact intervals; matched comparison and occurrence/amount experiment.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_rain_queue.py",
+        "openhab/scripts/weather_learning/tests/test_capability_acquisition.py",
+        "tests/weather-rain-forecast.test.js",
+        "tests/e2e/weather-shadow-details.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Historical installed baseline.json record.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "rain-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "total_precipitation_1hr_p10",
+      "native_unit": "m",
+      "normalized_unit": "mm",
+      "period_seconds": 3600,
+      "profiles": [
+        "rain-uncertainty-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Retained hourly quantiles only; not summed into calendar/rolling quantiles or fabricated interval probabilities. Explicitly unconsumed for those targets.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_rain_queue.py",
+        "openhab/scripts/weather_learning/tests/test_capability_acquisition.py",
+        "tests/weather-rain-forecast.test.js",
+        "tests/e2e/weather-shadow-details.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "rain-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "total_precipitation_1hr_p25",
+      "native_unit": "m",
+      "normalized_unit": "mm",
+      "period_seconds": 3600,
+      "profiles": [
+        "rain-uncertainty-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Retained hourly quantiles only; not summed into calendar/rolling quantiles or fabricated interval probabilities. Explicitly unconsumed for those targets.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_rain_queue.py",
+        "openhab/scripts/weather_learning/tests/test_capability_acquisition.py",
+        "tests/weather-rain-forecast.test.js",
+        "tests/e2e/weather-shadow-details.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "rain-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "total_precipitation_1hr_p50",
+      "native_unit": "m",
+      "normalized_unit": "mm",
+      "period_seconds": 3600,
+      "profiles": [
+        "rain-uncertainty-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Retained hourly quantiles only; not summed into calendar/rolling quantiles or fabricated interval probabilities. Explicitly unconsumed for those targets.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_rain_queue.py",
+        "openhab/scripts/weather_learning/tests/test_capability_acquisition.py",
+        "tests/weather-rain-forecast.test.js",
+        "tests/e2e/weather-shadow-details.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "rain-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "total_precipitation_1hr_p75",
+      "native_unit": "m",
+      "normalized_unit": "mm",
+      "period_seconds": 3600,
+      "profiles": [
+        "rain-uncertainty-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Retained hourly quantiles only; not summed into calendar/rolling quantiles or fabricated interval probabilities. Explicitly unconsumed for those targets.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_rain_queue.py",
+        "openhab/scripts/weather_learning/tests/test_capability_acquisition.py",
+        "tests/weather-rain-forecast.test.js",
+        "tests/e2e/weather-shadow-details.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "rain-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "total_precipitation_1hr_p90",
+      "native_unit": "m",
+      "normalized_unit": "mm",
+      "period_seconds": 3600,
+      "profiles": [
+        "rain-uncertainty-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Retained hourly quantiles only; not summed into calendar/rolling quantiles or fabricated interval probabilities. Explicitly unconsumed for those targets.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_rain_queue.py",
+        "openhab/scripts/weather_learning/tests/test_capability_acquisition.py",
+        "tests/weather-rain-forecast.test.js",
+        "tests/e2e/weather-shadow-details.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "rain-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "total_sky_direct_solar_radiation_at_surface_1hr_mean",
+      "native_unit": "J m**-2",
+      "normalized_unit": "W m-2",
+      "period_seconds": 3600,
+      "profiles": [
+        "core-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Retained core native originals and offline fixtures.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Versioned total/direct-horizontal decomposition and matched PV/thermal comparison.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_native_solar_forecast.py",
+        "openhab/scripts/weather_learning/tests/test_complete_uncertainty_profile.py",
+        "tests/weather-marginal-forecast.test.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Historical installed baseline.json record.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "solar-components.md",
+        "marginal-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "u_component_of_wind_10m_mean",
+      "native_unit": "m s**-1",
+      "normalized_unit": "m s-1",
+      "period_seconds": 0,
+      "profiles": [
+        "atmosphere-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Source-labeled raw atmospheric context and individual feature ablations; no automatic model-input or actuator authority. Mean-vector magnitude is separate from scalar mean speed/gust.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_atmospheric_publish.py",
+        "tests/weather-atmosphere-forecast.test.js",
+        "tests/e2e/weather-capabilities.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "atmospheric-semantics.md",
+        "atmospheric-ablations.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "v_component_of_wind_10m_mean",
+      "native_unit": "m s**-1",
+      "normalized_unit": "m s-1",
+      "period_seconds": 0,
+      "profiles": [
+        "atmosphere-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Source-labeled raw atmospheric context and individual feature ablations; no automatic model-input or actuator authority. Mean-vector magnitude is separate from scalar mean speed/gust.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_atmospheric_publish.py",
+        "tests/weather-atmosphere-forecast.test.js",
+        "tests/e2e/weather-capabilities.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "atmospheric-semantics.md",
+        "atmospheric-ablations.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "wind_speed_10m_mean",
+      "native_unit": "m s**-1",
+      "normalized_unit": "m s-1",
+      "period_seconds": 0,
+      "profiles": [
+        "core-v1",
+        "uncertainty-complete-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Retained core native originals and offline fixtures.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Scalar wind context; incumbent and bounded log-wind/marginal comparisons.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_atmospheric_context.py",
+        "openhab/scripts/weather_learning/tests/test_complete_uncertainty_profile.py",
+        "tests/weather-atmosphere-forecast.test.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Historical installed baseline.json record.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "atmospheric-ablations.md",
+        "marginal-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "wind_speed_10m_p10",
+      "native_unit": "m s**-1",
+      "normalized_unit": "m s-1",
+      "period_seconds": 0,
+      "profiles": [
+        "uncertainty-v1",
+        "uncertainty-complete-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Retained endpoint statistics only; not substituted for quantiles of hourly averaged wind. No downstream interval probability.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_atmospheric_context.py",
+        "openhab/scripts/weather_learning/tests/test_complete_uncertainty_profile.py",
+        "tests/weather-atmosphere-forecast.test.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "atmospheric-ablations.md",
+        "marginal-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "wind_speed_10m_p50",
+      "native_unit": "m s**-1",
+      "normalized_unit": "m s-1",
+      "period_seconds": 0,
+      "profiles": [
+        "uncertainty-v1",
+        "uncertainty-complete-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Retained endpoint statistics only; not substituted for quantiles of hourly averaged wind. No downstream interval probability.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_atmospheric_context.py",
+        "openhab/scripts/weather_learning/tests/test_complete_uncertainty_profile.py",
+        "tests/weather-atmosphere-forecast.test.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "atmospheric-ablations.md",
+        "marginal-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "gridded",
+      "band": "wind_speed_10m_p90",
+      "native_unit": "m s**-1",
+      "normalized_unit": "m s-1",
+      "period_seconds": 0,
+      "profiles": [
+        "uncertainty-v1",
+        "uncertainty-complete-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Retained endpoint statistics only; not substituted for quantiles of hourly averaged wind. No downstream interval probability.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_atmospheric_context.py",
+        "openhab/scripts/weather_learning/tests/test_complete_uncertainty_profile.py",
+        "tests/weather-atmosphere-forecast.test.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "atmospheric-ablations.md",
+        "marginal-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "station",
+      "band": "station_head_dewpoint_temperature_2m_mean",
+      "native_unit": "K",
+      "normalized_unit": "degC",
+      "period_seconds": 0,
+      "profiles": [
+        "core-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Retained core native originals and offline fixtures.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Source-labeled raw atmospheric context and individual feature ablations; no automatic model-input or actuator authority. RH derived from mean T/Td is diagnostic, not ensemble-mean RH or condensation safety.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_atmospheric_publish.py",
+        "tests/weather-atmosphere-forecast.test.js",
+        "tests/e2e/weather-capabilities.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Historical installed baseline.json record.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "atmospheric-semantics.md",
+        "atmospheric-ablations.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "station",
+      "band": "station_head_temperature_2m_mean",
+      "native_unit": "K",
+      "normalized_unit": "degC",
+      "period_seconds": 0,
+      "profiles": [
+        "core-v1",
+        "temperature-display-v1",
+        "uncertainty-complete-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Retained core native originals and offline fixtures.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Deterministic forecast; supplemental raw mean; adaptive/marginal point reference.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_complete_uncertainty_profile.py",
+        "openhab/scripts/weather_learning/tests/test_capability_publish.py",
+        "tests/weather-capability-forecast.test.js",
+        "tests/e2e/weather-capabilities.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Historical installed baseline.json record.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "temperature-range.md",
+        "marginal-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "station",
+      "band": "station_head_temperature_2m_p10",
+      "native_unit": "K",
+      "normalized_unit": "degC",
+      "period_seconds": 0,
+      "profiles": [
+        "core-v1",
+        "temperature-display-v1",
+        "uncertainty-complete-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Retained core native originals and offline fixtures.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Raw chart/cards and original-issued quantile scoring; marginal spread predictor when the same original has mean.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_complete_uncertainty_profile.py",
+        "openhab/scripts/weather_learning/tests/test_capability_publish.py",
+        "tests/weather-capability-forecast.test.js",
+        "tests/e2e/weather-capabilities.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Historical installed baseline.json record.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "temperature-range.md",
+        "marginal-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "station",
+      "band": "station_head_temperature_2m_p25",
+      "native_unit": "K",
+      "normalized_unit": "degC",
+      "period_seconds": 0,
+      "profiles": [
+        "uncertainty-v1",
+        "uncertainty-complete-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Preserved in supplemental raw contract and originals; not separate console traces or fitted features.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_complete_uncertainty_profile.py",
+        "openhab/scripts/weather_learning/tests/test_capability_publish.py",
+        "tests/weather-capability-forecast.test.js",
+        "tests/e2e/weather-capabilities.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "temperature-range.md",
+        "marginal-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "station",
+      "band": "station_head_temperature_2m_p50",
+      "native_unit": "K",
+      "normalized_unit": "degC",
+      "period_seconds": 0,
+      "profiles": [
+        "uncertainty-v1",
+        "uncertainty-complete-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Raw median from an actual same-original mean/median source; uncertainty-complete-v1 supplies that original. Never infer median from mean.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_complete_uncertainty_profile.py",
+        "openhab/scripts/weather_learning/tests/test_capability_publish.py",
+        "tests/weather-capability-forecast.test.js",
+        "tests/e2e/weather-capabilities.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "temperature-range.md",
+        "marginal-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "station",
+      "band": "station_head_temperature_2m_p75",
+      "native_unit": "K",
+      "normalized_unit": "degC",
+      "period_seconds": 0,
+      "profiles": [
+        "uncertainty-v1",
+        "uncertainty-complete-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Offline acquisition fixtures; no expanded production collection claimed.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Preserved in supplemental raw contract and originals; not separate console traces or fitted features.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_complete_uncertainty_profile.py",
+        "openhab/scripts/weather_learning/tests/test_capability_publish.py",
+        "tests/weather-capability-forecast.test.js",
+        "tests/e2e/weather-capabilities.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Not claimed.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "temperature-range.md",
+        "marginal-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    },
+    {
+      "grid": "station",
+      "band": "station_head_temperature_2m_p90",
+      "native_unit": "K",
+      "normalized_unit": "degC",
+      "period_seconds": 0,
+      "profiles": [
+        "core-v1",
+        "temperature-display-v1",
+        "uncertainty-complete-v1"
+      ],
+      "available_upstream": "Documented mapped native statistic; retained provider references in source-map.json.",
+      "acquired": {
+        "verified_scope": "Retained core native originals and offline fixtures.",
+        "evidence": "task3-verification.json"
+      },
+      "normalized": "Native grid, original unit, normalized unit and exact interval validated by pure adapters.",
+      "source_bound": "Immutable original hash/run/grid/cell, per-original actual availability and target interval; no later field retroactively fills an earlier issue.",
+      "consumed": "Raw chart/cards and original-issued quantile scoring; marginal spread predictor when the same original has mean.",
+      "tested": [
+        "openhab/scripts/weather_learning/tests/test_complete_uncertainty_profile.py",
+        "openhab/scripts/weather_learning/tests/test_capability_publish.py",
+        "tests/weather-capability-forecast.test.js",
+        "tests/e2e/weather-capabilities.spec.js"
+      ],
+      "deployed": {
+        "incumbent_collection": "Historical installed baseline.json record.",
+        "capability_expansion_installed": false,
+        "replacement_policy": "deployment-policy.json",
+        "current_readback_owner": "Task11"
+      },
+      "operationally_observed": {
+        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
+        "expansion_natural_cycle": false
+      },
+      "qualification": {
+        "local_probability_qualified": false,
+        "physical_calibration_qualified": false,
+        "deployment_does_not_imply_skill": true
+      },
+      "cost": "shared_acquisition_policy",
+      "evidence": [
+        "temperature-range.md",
+        "marginal-calibration.md"
+      ],
+      "limitations": [
+        "Native statistics do not establish local calibration or causal action benefit.",
+        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
+        "Step11 must record actual source/model/consumer installation separately."
+      ]
+    }
+  ],
+  "features": [
+    {
+      "feature": "raw_temperature_uncertainty",
+      "requirements": [
+        "WN-03"
+      ],
+      "available_upstream": "Native/local evidence sources specified in linked records.",
+      "acquired": "Actual retained population and absent inputs are separated in linked evidence.",
+      "normalized": "Versioned pure source/target adapter implemented.",
+      "source_bound": "Original input, producer, model/procedure and decision/availability clocks retained.",
+      "consumed": "Raw detail chart/cards and original-issued verification.",
+      "tested": "Task-specific verification plus task10-verification.json.",
+      "deployed": false,
+      "operationally_observed": "Local replay only; no expansion natural-cycle claim.",
+      "statistical_physical_qualification": "Preserve original evidence limitations; no qualification inferred from the user-authorized deployment.",
+      "cost": "bounded_local_policy",
+      "historical_experiment_disposition": "implemented_nominal_native_range",
+      "deployment_disposition": "Direct new production method in Step11 under deployment-policy.json; exact invalid/missing-input targets require named fallback/withholding, not a blanket shadow wait.",
+      "evidence": [
+        "task2-verification.json",
+        "temperature-range.md"
+      ],
+      "limitations": [
+        "Nominal p10/p90 is not locally demonstrated80% coverage."
+      ]
+    },
+    {
+      "feature": "optional_profiles",
+      "requirements": [
+        "WN-04"
+      ],
+      "available_upstream": "Native/local evidence sources specified in linked records.",
+      "acquired": "Actual retained population and absent inputs are separated in linked evidence.",
+      "normalized": "Versioned pure source/target adapter implemented.",
+      "source_bound": "Original input, producer, model/procedure and decision/availability clocks retained.",
+      "consumed": "Native-cell collection/normalization and same-original mean/quantile consumers.",
+      "tested": "Task-specific verification plus task10-verification.json.",
+      "deployed": false,
+      "operationally_observed": "Local replay only; no expansion natural-cycle claim.",
+      "statistical_physical_qualification": "Preserve original evidence limitations; no qualification inferred from the user-authorized deployment.",
+      "cost": "bounded_local_policy",
+      "historical_experiment_disposition": "implemented_bounded_explicit_opt_in",
+      "deployment_disposition": "Direct new production method in Step11 under deployment-policy.json; exact invalid/missing-input targets require named fallback/withholding, not a blanket shadow wait.",
+      "evidence": [
+        "task3-verification.json",
+        "profile-contract.json",
+        "acquisition.md"
+      ],
+      "limitations": [
+        "Legacy quantile-only identity remains frozen; companion means use a new profile. Additional cloud authorization remains unchanged."
+      ]
+    },
+    {
+      "feature": "native_direct_diffuse_solar",
+      "requirements": [
+        "WN-05"
+      ],
+      "available_upstream": "Native/local evidence sources specified in linked records.",
+      "acquired": "Actual retained population and absent inputs are separated in linked evidence.",
+      "normalized": "Versioned pure source/target adapter implemented.",
+      "source_bound": "Original input, producer, model/procedure and decision/availability clocks retained.",
+      "consumed": "Shared versioned solar/PV/thermal comparison and adapters.",
+      "tested": "Task-specific verification plus task10-verification.json.",
+      "deployed": false,
+      "operationally_observed": "Local replay only; no expansion natural-cycle claim.",
+      "statistical_physical_qualification": "Preserve original evidence limitations; no qualification inferred from the user-authorized deployment.",
+      "cost": "bounded_local_policy",
+      "historical_experiment_disposition": "historical_incumbent_retained",
+      "deployment_disposition": "Direct new production method in Step11 under deployment-policy.json; exact invalid/missing-input targets require named fallback/withholding, not a blanket shadow wait.",
+      "evidence": [
+        "task4-verification.json",
+        "pv-experiment.json",
+        "thermal-experiment.json"
+      ],
+      "limitations": [
+        "Direct horizontal is not DNI; changed electrical baseline requires fresh compatible calibration."
+      ]
+    },
+    {
+      "feature": "atmospheric_context_and_ablations",
+      "requirements": [
+        "WN-06"
+      ],
+      "available_upstream": "Native/local evidence sources specified in linked records.",
+      "acquired": "Actual retained population and absent inputs are separated in linked evidence.",
+      "normalized": "Versioned pure source/target adapter implemented.",
+      "source_bound": "Original input, producer, model/procedure and decision/availability clocks retained.",
+      "consumed": "Raw diagnostics and individual temperature/wind/thermal feature comparisons.",
+      "tested": "Task-specific verification plus task10-verification.json.",
+      "deployed": false,
+      "operationally_observed": "Local replay only; no expansion natural-cycle claim.",
+      "statistical_physical_qualification": "Preserve original evidence limitations; no qualification inferred from the user-authorized deployment.",
+      "cost": "bounded_local_policy",
+      "historical_experiment_disposition": "historical_incumbents_retained",
+      "deployment_disposition": "Direct new production method in Step11 under deployment-policy.json; exact invalid/missing-input targets require named fallback/withholding, not a blanket shadow wait.",
+      "evidence": [
+        "task5-verification.json",
+        "atmospheric-experiment.json"
+      ],
+      "limitations": [
+        "No added group passes every frozen scientific gate; direction/layers have sparse real support."
+      ]
+    },
+    {
+      "feature": "hourly_refresh_and_near24",
+      "requirements": [
+        "WN-07"
+      ],
+      "available_upstream": "Native/local evidence sources specified in linked records.",
+      "acquired": "Actual retained population and absent inputs are separated in linked evidence.",
+      "normalized": "Versioned pure source/target adapter implemented.",
+      "source_bound": "Original input, producer, model/procedure and decision/availability clocks retained.",
+      "consumed": "Source-bound original refresh decisions, near24 adapter and durable mature-target scoring.",
+      "tested": "Task-specific verification plus task10-verification.json.",
+      "deployed": false,
+      "operationally_observed": "Local replay only; no expansion natural-cycle claim.",
+      "statistical_physical_qualification": "Preserve original evidence limitations; no qualification inferred from the user-authorized deployment.",
+      "cost": "bounded_local_policy",
+      "historical_experiment_disposition": "historical_insufficient_evidence",
+      "deployment_disposition": "Direct new production method in Step11 under deployment-policy.json; exact invalid/missing-input targets require named fallback/withholding, not a blanket shadow wait.",
+      "evidence": [
+        "task6-verification.json",
+        "refresh-experiment.json",
+        "near24-compatibility.json"
+      ],
+      "limitations": [
+        "Two target dates below scientific3date gate; changed numerical closure refuses old correction artifacts."
+      ]
+    },
+    {
+      "feature": "adaptive_and_marginal",
+      "requirements": [
+        "WN-08"
+      ],
+      "available_upstream": "Native/local evidence sources specified in linked records.",
+      "acquired": "Actual retained population and absent inputs are separated in linked evidence.",
+      "normalized": "Versioned pure source/target adapter implemented.",
+      "source_bound": "Original input, producer, model/procedure and decision/availability clocks retained.",
+      "consumed": "Adaptive point correction, marginal models, fixed transport and bounded original-issued evaluator.",
+      "tested": "Task-specific verification plus task10-verification.json.",
+      "deployed": false,
+      "operationally_observed": "Local replay only; no expansion natural-cycle claim.",
+      "statistical_physical_qualification": "Preserve original evidence limitations; no qualification inferred from the user-authorized deployment.",
+      "cost": "bounded_local_policy",
+      "historical_experiment_disposition": "historical_unselected_unqualified",
+      "deployment_disposition": "Direct new production method in Step11 under deployment-policy.json; exact invalid/missing-input targets require named fallback/withholding, not a blanket shadow wait.",
+      "evidence": [
+        "task7-verification.json",
+        "marginal-native-experiment.json"
+      ],
+      "limitations": [
+        "Overlapping retrospective score gains are not independent prospective qualification; proxy and wind measurement limitations remain."
+      ]
+    },
+    {
+      "feature": "deterministic_stress",
+      "requirements": [
+        "WN-09"
+      ],
+      "available_upstream": "Native/local evidence sources specified in linked records.",
+      "acquired": "Actual retained population and absent inputs are separated in linked evidence.",
+      "normalized": "Versioned pure source/target adapter implemented.",
+      "source_bound": "Original input, producer, model/procedure and decision/availability clocks retained.",
+      "consumed": "Fixed central/reduced-solar/warm stress projections and household detail.",
+      "tested": "Task-specific verification plus task10-verification.json.",
+      "deployed": false,
+      "operationally_observed": "Local replay only; no expansion natural-cycle claim.",
+      "statistical_physical_qualification": "Preserve original evidence limitations; no qualification inferred from the user-authorized deployment.",
+      "cost": "bounded_local_policy",
+      "historical_experiment_disposition": "advisory_only",
+      "deployment_disposition": "Direct new production method in Step11 under deployment-policy.json; exact invalid/missing-input targets require named fallback/withholding, not a blanket shadow wait.",
+      "evidence": [
+        "scenario-final-verification.json",
+        "scenario-projection-experiment.json"
+      ],
+      "limitations": [
+        "Hypothetical trajectory has no occurrence probability; nominal storage is not measured usable capacity."
+      ]
+    },
+    {
+      "feature": "joint_household_scenarios",
+      "requirements": [
+        "WN-09"
+      ],
+      "available_upstream": "Native/local evidence sources specified in linked records.",
+      "acquired": "Actual retained population and absent inputs are separated in linked evidence.",
+      "normalized": "Versioned pure source/target adapter implemented.",
+      "source_bound": "Original input, producer, model/procedure and decision/availability clocks retained.",
+      "consumed": "Bounded dependence method and exact-original projection/outcome evaluation.",
+      "tested": "Task-specific verification plus task10-verification.json.",
+      "deployed": false,
+      "operationally_observed": "Local replay only; no expansion natural-cycle claim.",
+      "statistical_physical_qualification": "Preserve original evidence limitations; no qualification inferred from the user-authorized deployment.",
+      "cost": "bounded_local_policy",
+      "historical_experiment_disposition": "insufficient_joint_inputs",
+      "deployment_disposition": "Direct new production method in Step11 under deployment-policy.json; exact invalid/missing-input targets require named fallback/withholding, not a blanket shadow wait.",
+      "evidence": [
+        "scenario-final-verification.json",
+        "scenario-joint-evidence.json"
+      ],
+      "limitations": [
+        "Zero valid original joint-template dates versus8required; physical GHI and complete energy windows absent."
+      ]
+    },
+    {
+      "feature": "rain_three_head_two_part",
+      "requirements": [
+        "WN-10"
+      ],
+      "available_upstream": "Native/local evidence sources specified in linked records.",
+      "acquired": "Actual retained population and absent inputs are separated in linked evidence.",
+      "normalized": "Versioned pure source/target adapter implemented.",
+      "source_bound": "Original input, producer, model/procedure and decision/availability clocks retained.",
+      "consumed": "Matched three-head intervals, one occurrence/amount method and original-emission evaluator.",
+      "tested": "Task-specific verification plus task10-verification.json.",
+      "deployed": false,
+      "operationally_observed": "Local replay only; no expansion natural-cycle claim.",
+      "statistical_physical_qualification": "Preserve original evidence limitations; no qualification inferred from the user-authorized deployment.",
+      "cost": "bounded_local_policy",
+      "historical_experiment_disposition": "historical_insufficient_evidence",
+      "deployment_disposition": "Direct new production method in Step11 under deployment-policy.json; exact invalid/missing-input targets require named fallback/withholding, not a blanket shadow wait.",
+      "evidence": [
+        "task9-verification.json",
+        "rain-experiment.json"
+      ],
+      "limitations": [
+        "Independent local resolution and causal wet/dry/event support remain absent; do not fabricate a fitted occurrence model."
+      ]
+    },
+    {
+      "feature": "ten_day_default",
+      "requirements": [
+        "WN-13"
+      ],
+      "available_upstream": "Native/local evidence sources specified in linked records.",
+      "acquired": "Actual retained population and absent inputs are separated in linked evidence.",
+      "normalized": "Versioned pure source/target adapter implemented.",
+      "source_bound": "Original input, producer, model/procedure and decision/availability clocks retained.",
+      "consumed": "Bounded existing default forecast and optional detail.",
+      "tested": "Task-specific verification plus task10-verification.json.",
+      "deployed": false,
+      "operationally_observed": "Local replay only; no expansion natural-cycle claim.",
+      "statistical_physical_qualification": "Preserve original evidence limitations; no qualification inferred from the user-authorized deployment.",
+      "cost": "bounded_local_policy",
+      "historical_experiment_disposition": "retain_ten_day_display",
+      "deployment_disposition": "Direct new production method in Step11 under deployment-policy.json; exact invalid/missing-input targets require named fallback/withholding, not a blanket shadow wait.",
+      "evidence": [
+        "ui-and-operations.md"
+      ],
+      "limitations": [
+        "360hfrominitialization does not promise15remaining days after arrival."
+      ]
+    },
+    {
+      "feature": "private_operations",
+      "requirements": [
+        "WN-11",
+        "WN-12"
+      ],
+      "available_upstream": "Native/local evidence sources specified in linked records.",
+      "acquired": "Actual retained population and absent inputs are separated in linked evidence.",
+      "normalized": "Versioned pure source/target adapter implemented.",
+      "source_bound": "Original input, producer, model/procedure and decision/availability clocks retained.",
+      "consumed": "Actual ingest/score diagnostics; no public diagnostic route or additional observations.",
+      "tested": "Task-specific verification plus task10-verification.json.",
+      "deployed": false,
+      "operationally_observed": "Local replay only; no expansion natural-cycle claim.",
+      "statistical_physical_qualification": "Preserve original evidence limitations; no qualification inferred from the user-authorized deployment.",
+      "cost": "bounded_local_policy",
+      "historical_experiment_disposition": "implemented_private",
+      "deployment_disposition": "Direct new production method in Step11 under deployment-policy.json; exact invalid/missing-input targets require named fallback/withholding, not a blanket shadow wait.",
+      "evidence": [
+        "ui-and-operations.md"
+      ],
+      "limitations": [
+        "Unknown provider revision/EECU remain unknown; configured selection is not effective serving admission."
+      ]
+    },
+    {
+      "feature": "source_compatibility_and_optional_isolation",
+      "requirements": [
+        "WN-01",
+        "WN-02"
+      ],
+      "available_upstream": "Native/local evidence sources specified in linked records.",
+      "acquired": "Actual retained population and absent inputs are separated in linked evidence.",
+      "normalized": "Versioned pure source/target adapter implemented.",
+      "source_bound": "Original input, producer, model/procedure and decision/availability clocks retained.",
+      "consumed": "Versioned fixed readers, independent optional-domain failure, immutable source/model receipts and explicit production migration contracts.",
+      "tested": "Task-specific verification plus task10-verification.json.",
+      "deployed": false,
+      "operationally_observed": "Local replay only; no expansion natural-cycle claim.",
+      "statistical_physical_qualification": "Preserve original evidence limitations; no qualification inferred from the user-authorized deployment.",
+      "cost": "bounded_local_policy",
+      "historical_experiment_disposition": "implemented_historical_baseline_preserved",
+      "deployment_disposition": "Direct new production method in Step11 under deployment-policy.json; exact invalid/missing-input targets require named fallback/withholding, not a blanket shadow wait.",
+      "evidence": [
+        "baseline.json",
+        "profile-contract.json",
+        "deployment-policy.json"
+      ],
+      "limitations": [
+        "Task11 must verify the exact installed closures and new production admission; repository source alone is not installation evidence."
+      ]
+    }
+  ],
+  "intentionally_unused": [
+    {
+      "capability": "100m_turbine_wind",
+      "disposition": "deliberately_unused",
+      "reason": "No turbine forecast consumer.",
+      "revisit": "A real turbine, hub/site specification and measured validation target.",
+      "acquired": false,
+      "consumed": false,
+      "deployed": false
+    },
+    {
+      "capability": "upper_air_ocean",
+      "disposition": "deliberately_unused",
+      "reason": "No bounded household decision.",
+      "revisit": "A named household use case and past-only incremental-skill comparison within budget.",
+      "acquired": false,
+      "consumed": false,
+      "deployed": false
+    },
+    {
+      "capability": "custom_coordinate_inference",
+      "disposition": "deliberately_unused",
+      "reason": "Native-grid forecasts suffice; no household custom-inference claim.",
+      "revisit": "Measured representativeness limitation, actual source contract and explicit cost authorization.",
+      "acquired": false,
+      "consumed": false,
+      "deployed": false
+    },
+    {
+      "capability": "bulk_spatial",
+      "disposition": "deliberately_unused",
+      "reason": "Current household needs a bounded native cell.",
+      "revisit": "An actual spatial/multi-site decision plus retention/resource plan.",
+      "acquired": false,
+      "consumed": false,
+      "deployed": false
+    },
+    {
+      "capability": "full_ensemble",
+      "disposition": "deliberately_unused",
+      "reason": "No authorized full-member product or qualified joint consumer.",
+      "revisit": "Authorized bounded member access and coherent trajectory validation.",
+      "acquired": false,
+      "consumed": false,
+      "deployed": false
+    },
+    {
+      "capability": "paid_backend",
+      "disposition": "deliberately_unused",
+      "reason": "No billing migration authorized or measured need.",
+      "revisit": "Concrete measured benefit/cost and explicit paid-access authorization.",
+      "acquired": false,
+      "consumed": false,
+      "deployed": false
+    }
+  ],
+  "station_incident": {
+    "evidence": "station-openhab-compat-deployment.json",
+    "separate_from_forecast_expansion_installation": true
+  },
+  "deployment_policy": "deployment-policy.json",
+  "automatic_promotion": false,
+  "automatic_actuation": false
+}

@@ -220,5 +220,12 @@ def _monitor_once(archive,state,*,queue,now,site,sensor_epoch,code_revision,obse
         pending=pending,source_withheld=withheld,calibration_qualified=False,release_authorized=False,automatic_actuation=False)
     report['report_sha256']=identity(report)
     if len(canonical(report))>512*1024:raise ValueError('bounded weather performance report required')
-    if apply:state._write(state.root/'weather-performance.json',report)
+    if apply:
+        state._write(state.root/'weather-performance.json',report)
+        from .operations import persist_monitor
+        persist_monitor(archive,state,report,now=now,sensor_epoch=sensor_epoch,guard=guard,accounting=dict(
+            native_window_queries=source_attempts,temperature_queue_labels_considered=len(due),
+            capability_reserved_or_attempted=capability_attempts,refresh_reserved_or_attempted=refresh_attempts,
+            marginal_reserved_or_attempted=marginal_attempts,rain_reserved_or_attempted=rain_attempts,
+            sql_query_count=None,sql_query_count_status='not_observed_at_this_boundary'))
     return report

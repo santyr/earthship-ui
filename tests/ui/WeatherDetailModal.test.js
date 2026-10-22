@@ -220,7 +220,11 @@ describe('WeatherDetailModal', () => {
     await waitFor(() => expect(document.activeElement).toBe(close));
     await fireEvent.keyDown(dialog, { key: 'Tab' });
     expect(document.activeElement).toBe(close);
+    // The collapsed experimental disclosure is now the last keyboard target.
+    const disclosure = dialog.querySelector('summary');
     await fireEvent.keyDown(dialog, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(disclosure);
+    await fireEvent.keyDown(dialog, { key: 'Tab' });
     expect(document.activeElement).toBe(close);
     await fireEvent.keyDown(dialog, { key: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());

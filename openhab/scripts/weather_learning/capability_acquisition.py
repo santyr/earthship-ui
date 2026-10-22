@@ -51,6 +51,11 @@ class Backoff:
         return None,None
 
     def record(self,p,run,horizon,now,status,reason):
+        # These explicit alternative profiles share two mutable retry slots. Preserve
+        # unrelated cooldowns and global quota state; no forecast originals are pruned.
+        family={'uncertainty-v1','uncertainty-complete-v1'}
+        if p.name in family:
+            self.value['entries']={k:v for k,v in self.value['entries'].items() if v['profile'] not in family-{p.name}}
         old=self.previous(p,horizon)
         attempts=old['attempts'] if old and old['profile_sha256']==p.signature and instant(old['initialized_at'])==instant(run['start_time']) else 0
         if reason=='quota_restriction':

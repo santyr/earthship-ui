@@ -14,6 +14,7 @@ import { parseEnergyObservation, parseEnergyPerformance } from './energyObservat
 import { parseProfiledObservation, parseProfiledPerformance } from './profiledObservation.js';
 import {parseWeatherCapabilities,MAX_CAPABILITY_BYTES} from '../weather/capabilityForecast.js';
 import {parseWeatherMarginals,validateMarginalEmission,MAX_MARGINAL_BYTES,MAX_MARGINAL_EMISSION_BYTES} from '../weather/marginalForecast.js';
+import {parseRainShadow,validateRainEmission,MAX_RAIN_BYTES,MAX_RAIN_EMISSION_BYTES} from '../weather/rainForecast.js';
 
 // Preserve Vite's default sensitive-file exclusions and add private agent and
 // receipt staging. Filesystem permissions alone do not constrain the web server.
@@ -66,6 +67,7 @@ export function householdObservationPlugin({
   capturedPvCachePath = resolve(homedir(), '.local/state/household-intel/captured-pv-performance.json'),
   pvPerformanceCachePath = resolve(homedir(), '.local/state/household-intel/daily-pv-performance.json'),
   dailyPvCachePath = resolve(homedir(), '.local/state/household-intel/daily-pv-potential.json'),
+  weatherRainPath = resolve(homedir(), '.local/state/earthship-weather/shadow/google-local-v2/rain-candidates.json'),
   weatherMarginalsPath = resolve(homedir(), '.local/state/earthship-weather/shadow/google-local-v2/marginal-candidates.json'),
   weatherCapabilitiesPath = resolve(homedir(), '.local/state/earthship-weather/shadow/google-local-v2/weather-capabilities.json'),
   now = Date.now,
@@ -74,6 +76,7 @@ export function householdObservationPlugin({
     let url;
     try { url = new URL(req.url || '/', 'http://localhost'); } catch { return next(); }
     const route = {
+      '/api/weather-rain-shadow': [weatherRainPath, (raw,options)=>parseRainShadow(raw,options).state==='ready', MAX_RAIN_BYTES],
       '/api/weather-marginals': [weatherMarginalsPath, (raw,options)=>parseWeatherMarginals(raw,options).state==='ready', MAX_MARGINAL_BYTES],
       '/api/weather-capabilities': [weatherCapabilitiesPath, (raw,options)=>parseWeatherCapabilities(raw,options).state==='ready', MAX_CAPABILITY_BYTES],
       '/api/daily-pv-performance': [pvPerformanceCachePath, parsePvPerformance],
@@ -97,7 +100,12 @@ export function householdObservationPlugin({
     if (url.search) { res.writeHead(400).end('{"status":"unavailable"}'); return; }
     try {
       const at=now();let cacheBytesSha256=null;
-      const raw = await readObservation(route[0], at, route[1], route[2],url.pathname==='/api/weather-marginals'?bytes=>{cacheBytesSha256=createHash('sha256').update(bytes).digest('hex')}:null);
+      const raw = await readObservation(route[0], at, route[1], route[2],['/api/weather-marginals','/api/weather-rain-shadow'].includes(url.pathname)?bytes=>{cacheBytesSha256=createHash('sha256').update(bytes).digest('hex')}:null);
+      if(url.pathname==='/api/weather-rain-shadow'){
+        const view=parseRainShadow(raw,{nowMs:at});
+        const receipt=resolve(dirname(weatherRainPath),'rain-emissions','view-'+view.reportSha256+'.json');
+        await readObservation(receipt,at,(emission,options)=>validateRainEmission(emission,{view,cacheBytesSha256,...options}),MAX_RAIN_EMISSION_BYTES);
+      }
       if(url.pathname==='/api/weather-marginals'){
         const view=parseWeatherMarginals(raw,{nowMs:at});
         const receipt=resolve(dirname(weatherMarginalsPath),'marginal-emissions',view.issueSha256+'.json');

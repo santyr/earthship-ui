@@ -138,6 +138,11 @@ class RainQueue:
             at=utc(clock())
             if not max(instant(view['generated_at']),instant(view['generated_at']) if not_before is None else utc(not_before))<=at<instant(view['valid_until']):raise ValueError('actual rain cache publication outside lifetime')
             emission=dict(schema='earthship-confirmed-rain-emission/v1',wrapper_sha256=key,cache_bytes_sha256=sha256(canonical(view)).hexdigest(),cache_write_completed_at=at.isoformat(),contract_sha256=CONTRACT_SHA256,automatic_actuation=False);emission['emission_sha256']=identity(emission);self.state._write(self.emissions/(key+'.json'),emission,immutable=True)
+        # A fixed GET reader can locate the same original receipt from the
+        # public view identity without scanning private bundles or the index.
+        alias=self.emissions/('view-'+view['report_sha256']+'.json')
+        if not alias.exists():self.state._write(alias,emission,immutable=True)
+        elif original_bytes(alias,65536)!=canonical(emission):raise ValueError('original public rain receipt differs')
         self._register(wrapper,emission);return key
 
     def publish(self,issues,*,clock=lambda:datetime.now(timezone.utc),origin_context=None,generation=None):

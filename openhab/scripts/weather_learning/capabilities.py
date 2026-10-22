@@ -97,6 +97,10 @@ _PROFILES=(
         frequency='retained_sources_only',remote_allowed=False),
     CapabilityProfile('uncertainty-v1',tuple(('station','station_head_temperature_2m_'+s) for s in ('p25','p50','p75'))+
         tuple(('gridded',v+'_'+s) for v in ('surface_solar_radiation_downwards_1hr','wind_speed_10m') for s in ('p10','p50','p90')),'marginal_diagnostics',priority=1),
+    # Companion means stay in this new original; legacy quantile-only identities remain frozen.
+    CapabilityProfile('uncertainty-complete-v1',tuple(('station','station_head_temperature_2m_'+s) for s in STATISTICS)+
+        tuple(('gridded',v+'_'+s) for v in ('surface_solar_radiation_downwards_1hr','wind_speed_10m') for s in ('mean','p10','p50','p90')),
+        'marginal_and_temperature_detail',priority=1),
     CapabilityProfile('atmosphere-v1',tuple(('gridded',v+'_mean') for v in ('u_component_of_wind_10m','v_component_of_wind_10m',
         'high_cloud_cover','medium_cloud_cover','low_cloud_cover')),'atmospheric_context',priority=2),
     CapabilityProfile('rain-uncertainty-v1',tuple(('gridded',v+'_'+s) for v in ('total_precipitation_1hr','imerg_tp_1hr','experimental_tp_1hr')
@@ -110,6 +114,7 @@ def profile(name):
 def enabled_profiles(optional=()):
     if not isinstance(optional,tuple) or len(set(optional))!=len(optional):raise ValueError('explicit unique optional profile names required')
     values=[profile(name) for name in optional]
+    if {'uncertainty-v1','uncertainty-complete-v1'}<=set(optional):raise ValueError('one uncertainty acquisition profile per cycle required')
     if any(not p.optional or not p.remote_allowed for p in values):raise ValueError('only explicit acquisition groups can be enabled')
     return (profile('core-v1'),*sorted(values,key=lambda p:(p.priority,p.name)))
 

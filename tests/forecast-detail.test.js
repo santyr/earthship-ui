@@ -140,6 +140,10 @@ describe('ten-day forecast contract', () => {
       timezone: 'America/Denver',
       days: [validDay],
     })).status).toBe('unavailable');
+    const elevenDays = Array.from({ length: 11 }, (_, index) => (
+      day(`2026-07-${String(18 + index).padStart(2, '0')}`, `Day ${index + 1}`)
+    ));
+    expect(parseForecast10Day(payload(elevenDays)).status).toBe('unavailable');
     expect(parseForecast10Day(payload([validDay, validDay])).reason).toMatch(/duplicate/i);
     expect(parseForecast10Day(payload([
       day('2026-07-19', 'Tomorrow'),

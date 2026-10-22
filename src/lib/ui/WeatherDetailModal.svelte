@@ -18,6 +18,9 @@
   import { rainAmountText } from '../openhab/values.js';
   import OhIcon from './OhIcon.svelte';
   import AtmosphericContext from './AtmosphericContext.svelte';
+  import ForecastShadowDetails from './ForecastShadowDetails.svelte';
+  let shadowDetailsOpen=$state(false);
+  $effect(()=>{if(!$weatherDetailStore.open)shadowDetailsOpen=false;});
   import { observeElementSize } from './observeElementSize.js';
   import { colors } from './tokens.js';
   import { forecastCondition, forecastDisplayDay } from '../weather/presentation.js';
@@ -312,6 +315,10 @@
           </div>
         {/if}
         <AtmosphericContext product={capabilities} hours={selectedWindow.hours} nowMs={$weatherCapabilityClock} timezone={forecast.timezone} />
+        <details class="forecast-verification" ontoggle={event=>shadowDetailsOpen=event.currentTarget.open}>
+          <summary>Local forecast comparisons · experimental</summary>
+          {#if shadowDetailsOpen}<ForecastShadowDetails timezone={forecast.timezone} />{/if}
+        </details>
       </div>
 
       {#if !selectedDay}
@@ -395,6 +402,10 @@
     align-items: flex-start;
     gap: 0.75rem;
   }
+
+  .forecast-verification {text-align:left;border-top:1px solid #273244;margin:.2rem 0;color:#cbd5e1;font-size:.73rem;}
+  .forecast-verification summary {cursor:pointer;min-height:2.75rem;align-content:center;color:#93c5fd;}
+  .forecast-verification summary:focus-visible {outline:2px solid #a78bfa;outline-offset:1px;}
 
   .weather-detail-heading {
     min-width: 0;

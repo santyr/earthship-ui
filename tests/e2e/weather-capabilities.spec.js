@@ -107,6 +107,7 @@ for(const [width,height] of [[1340,800],[1280,720]]){
   await dialog.screenshot({path:testInfo.outputPath('atmosphere-expanded.png')});
   await page.keyboard.press('Tab');await expect(dialog.getByRole('combobox',{name:'Atmospheric forecast hour'})).toBeFocused();
   await page.keyboard.press('ArrowDown');await expect(dialog.getByText(/Indoor moisture comparison unavailable for this forecast hour/)).toBeVisible();
+  await page.keyboard.press('Tab');await expect(dialog.locator('.forecast-verification summary')).toBeFocused();
   await page.keyboard.press('Tab');await expect(dialog.getByRole('button',{name:'Close weather detail'})).toBeFocused();
   await page.setViewportSize({width:width-40,height});await bounded(dialog,width-40,height);
   await page.keyboard.press('Escape');await expect(dialog).toBeHidden();await expect(opener).toBeFocused();

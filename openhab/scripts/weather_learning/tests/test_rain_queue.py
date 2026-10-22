@@ -233,3 +233,15 @@ def test_publication_lock_rechecks_confirmed_generation_before_replacing_cache(t
  body=issue.to_dict();later=make_issue(__import__('weather_learning.rain_calibration',fromlist=['RainForecast']).RainForecast(canonical(body['forecast'])),model=None,observation_cohort_sha256=body['observation_cohort_sha256'],policy=POLICY,prepared_at=instant(body['prepared_at'])+timedelta(minutes=1),mode='prospective_shadow')
  second=q.publish([later],generation='a'*64,clock=lambda:start-timedelta(minutes=45))
  assert second==first and {p:p.read_bytes() for p in s.root.rglob('*') if p.is_file()}==before
+
+
+def test_public_view_has_an_exact_original_emission_receipt_for_fixed_readonly_transport(tmp_path):
+ m,s,q,issue,key,start,end=setup(tmp_path);view=q.original(key)['public_view'];receipt=q.emissions/('view-'+view['report_sha256']+'.json')
+ assert receipt.read_bytes()==(q.emissions/(key+'.json')).read_bytes()
+ assert json.loads(receipt.read_bytes())['cache_bytes_sha256']==__import__('hashlib').sha256((s.root/m.CACHE).read_bytes()).hexdigest()
+
+
+def test_recovery_repairs_missing_public_receipt_alias_without_renewing_original(tmp_path):
+ m,s,q,issue,key,start,end=setup(tmp_path);wrapper,emission=q.load_bundle(key);alias=q.emissions/('view-'+wrapper['public_view']['report_sha256']+'.json');expected=(q.emissions/(key+'.json')).read_bytes()
+ assert alias.exists();alias.unlink();before=(s.root/m.CACHE).read_bytes();q.recover(clock=lambda:start-timedelta(minutes=1))
+ assert alias.read_bytes()==expected and q.load_bundle(key)==(wrapper,emission) and (s.root/m.CACHE).read_bytes()==before
