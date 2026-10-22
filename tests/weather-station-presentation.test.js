@@ -79,3 +79,15 @@ describe('versioned station presentation',()=>{
     expect(v.rain.day).toBeNull();expect(v.rain.partialDay).toBeNull();expect(v.current.AmbientWeatherWS2902A_MaxDailyOutdoorTemp).toBeNull();
   });
 });
+
+it('preserves day, Sunday-week and month lower bounds while full totals remain unavailable',()=>{
+ const r=report(),day=r.rain.products.day;day.value=day.lower=day.upper=null;day.partial_lower_bound=.03;
+ r.rain.products.week={...day,start:'2026-10-18T06:00:00Z',periodValidUntil:'2026-10-25T06:00:00Z'};
+ r.rain.products.month={...day,start:'2026-10-01T06:00:00Z',periodValidUntil:'2026-11-01T06:00:00Z'};
+ const rain=stationPresentation(states(r),{nowMs:now}).rain;
+ expect(rain.day).toBeNull();expect(rain.week).toBeNull();expect(rain.month).toBeNull();
+ expect(rain.partialDay).toBe(.03);expect(rain.partialWeek).toBe(.03);expect(rain.partialMonth).toBe(.03);
+ r.fields.AmbientWeatherWS2902A_RainFallTotal.validUntil=new Date(now-1).toISOString();
+ const expired=stationPresentation(states(r),{nowMs:now}).rain;
+ expect(expired.partialDay).toBeNull();expect(expired.partialWeek).toBeNull();expect(expired.partialMonth).toBeNull();
+});
