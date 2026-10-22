@@ -123,7 +123,18 @@ def project_native_scenario(scenario,context,*,positions,guard=lambda:None):
         parity=max(abs(r[name]-saved[name]) for r,saved in zip(trajectory,output['trajectory']) for name in ('air_f','mass_f'))
         if parity>1e-9:raise ValueError('central native scenario no longer matches original model trajectory')
     _dependencies(context,guard)
-    return dict(status='unqualified_native_model_sensitivity',reason=None,indoor_air_f=trajectory[-1]['air_f'],north_wall_f=trajectory[-1]['mass_f'],trajectory=trajectory,initial=initial,origin_actions=actions,model_sha256=value['artifact_sha256'],model_rule=profile['rule'],model_runtime_sha256=capture['candidate']['runtime_sha256'],forcing_rule=_forcing_rule(),original_capture_sha256=value['capture_sha256'],native_geometry_sha256=geometry.sha256,central_parity_max_abs_f=parity,radiation_input_scope='same original native scalar forecast field; components do not replace a local proxy or fitted heat-gain basis',weather_conditioning='original admitted model capsules reapplied to constructed rows' if capture.get('weather_conditioning') is not None else 'original unconditioned native input contract',physical_calibration_qualified=False,probability_claim=False,automatic_actuation=False)
+    return dict(status='unqualified_native_model_sensitivity',reason=None,indoor_air_f=trajectory[-1]['air_f'],north_wall_f=trajectory[-1]['mass_f'],trajectory=trajectory,initial=initial,origin_actions=actions,model_sha256=value['artifact_sha256'],model_rule=profile['rule'],model_runtime_sha256=capture['candidate']['runtime_sha256'],forcing_rule=_forcing_rule(),conditioning_rule=None if capture.get('weather_conditioning') is None else _conditioning_rule(),original_capture_sha256=value['capture_sha256'],native_geometry_sha256=geometry.sha256,central_parity_max_abs_f=parity,radiation_input_scope='same original native scalar forecast field; components do not replace a local proxy or fitted heat-gain basis',weather_conditioning='original admitted model capsules reapplied to constructed rows' if capture.get('weather_conditioning') is not None else 'original unconditioned native input contract',physical_calibration_qualified=False,probability_claim=False,automatic_actuation=False)
+
+
+def _conditioning_rule():
+    rule=_forcing_rule()
+    if rule=='ending_hour_overlap_mean_point_temperature/v2':return rule
+    import household.thermal_weather_conditioning as original
+    raw=Path(original.__file__).read_bytes()
+    if (rule=='original_ending_hour_right_selector/v1' and len(raw)<=1024**2 and
+            sha256(raw).hexdigest()=='2e1cf576dcdf9a73f6dc80664e98cce4b26ee2cc7cb1622981c76ab7c770cab8'):
+        return 'original_corrected_right_selector/v1'
+    raise ValueError('unsupported original native conditioning source')
 
 
 def _condition(forcings,rows,capture,initial_outdoor_f):
@@ -132,11 +143,11 @@ def _condition(forcings,rows,capture,initial_outdoor_f):
     from dataclasses import replace
     from types import SimpleNamespace
     from household.thermal_weather_conditioning import validate_context
-    from .site_calibration import _calculate
-    from .historical_serving import temperature_features
-    from .irradiance_learning import irradiance_features
+    from weather_learning.site_calibration import _calculate
+    from weather_learning.historical_serving import temperature_features
+    from weather_learning.irradiance_learning import irradiance_features
     from household_solar_horizon import horizon_height
-    from thermal_model.installed_shade_origin import ending_hour_mean
+    from thermal_model import installed_shade_origin as original_forcing
     issue=instant(capture['issued_at']);available=instant(capture['inputs_available_at'])
     original=validate_context(capture['weather_conditioning'],issue=issue,available=available)
     if [r['at'] for r in rows]!=[r['at'] for r in original['rows']]:raise ValueError('constructed conditioning must retain exact original time grid')
@@ -155,11 +166,12 @@ def _condition(forcings,rows,capture,initial_outdoor_f):
                 features=irradiance_features(corrected,lead_hours=(at-issue).total_seconds()/3600,target=at,position=position)
                 corrected=max(0.,min(1600.,_calculate(models['irradiance_w_m2'],features,corrected)))
         radiation.append(corrected)
-    first_future=next(t for t in times if t>issue);out=[];start=issue
+    first_future=next(t for t in times if t>issue);out=[];start=issue;rule=_conditioning_rule()
     for row in forcings:
         i=bisect_left(times,row.at)
         if not 1<=i<len(times):raise ValueError('complete constructed conditioning brackets required')
         if row.at<=first_future:temperature=initial_outdoor_f+(row.at-issue)/(first_future-issue)*(temperatures[first_future]-initial_outdoor_f)
         else:temperature=temperatures[times[i-1]]+(row.at-times[i-1])/(times[i]-times[i-1])*(temperatures[times[i]]-temperatures[times[i-1]])
-        out.append(replace(row,outdoor_f=temperature,radiation_wm2=ending_hour_mean(times,radiation,start,row.at)));start=row.at
+        corrected=radiation[i] if rule=='original_corrected_right_selector/v1' else original_forcing.ending_hour_mean(times,radiation,start,row.at)
+        out.append(replace(row,outdoor_f=temperature,radiation_wm2=corrected));start=row.at
     return tuple(out)

@@ -150,3 +150,18 @@ def test_legacy_original_forcing_versions_preserve_boundary_semantics_without_ne
  forcing=module._forcings(rows,origin,1,actions)
  assert forcing[0].radiation_wm2==pytest.approx(expected_radiation)
  assert forcing[0].outdoor_f==pytest.approx(52.+2*.25/60)
+
+
+def test_legacy_conditioner_preserves_original_corrected_right_hour_at_fractional_boundary(monkeypatch):
+ from test_thermal_weather_conditioning import context as conditioning,ISSUE as issue
+ from thermal_model import installed_shade_origin
+ proof=conditioning();following=deepcopy(proof['rows'][-1]);following.update(at=(instant(following['at'])+timedelta(hours=1)).isoformat(),tempF=53.6,radiationWm2=700.);proof['rows'].append(following)
+ point=deepcopy(proof['midpoint_positions'][-1]);point['at']=(instant(point['at'])+timedelta(hours=1)).isoformat();proof['midpoint_positions'].append(point);proof['context_sha256']=identity({k:v for k,v in proof.items() if k!='context_sha256'})
+ module=api();monkeypatch.setattr(module,'_forcing_rule',lambda:'original_ending_hour_right_selector/v1');monkeypatch.setattr(module,'_conditioning_rule',lambda:'original_corrected_right_selector/v1',raising=False);monkeypatch.delattr(installed_shade_origin,'ending_hour_mean')
+ actions=dict(indoor_shade_closed=0.,outdoor_shade_present=1.,vent_open=0.);raw=module._forcings(proof['rows'],issue,1,actions)
+ capture=dict(issued_at=issue.isoformat(),inputs_available_at=(issue-timedelta(seconds=1)).isoformat(),weather_conditioning=proof)
+ result=module._condition(raw,proof['rows'],capture,53.6)
+ assert result[-2].at.minute==0 and result[-2].at.second==15
+ assert result[-2].radiation_wm2==pytest.approx(600.)
+ assert result[-1].radiation_wm2==pytest.approx(600.)
+ assert result[-2].outdoor_f==pytest.approx(55.4075)

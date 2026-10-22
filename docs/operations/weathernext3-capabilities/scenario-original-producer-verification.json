@@ -107,5 +107,29 @@
     "scope": "independent original-state adapter and two legacy forcing numerical contracts; existing worker/native/targets/report tree",
     "counts_overlap": true
   },
-  "verification_sha256": "d6b6daf051be34544f320a2b815e1d85bd62d7e8e53341888a9ae7d59374571b"
+  "legacy_conditioned_source_experiment": {
+    "report_sha256": "8d9ef21f5fc0e4824f60b767ae99c140f48bf8c130526b2ef2d5252f47da46ce",
+    "checked_at": "2026-10-22T07:55:35.579254+00:00",
+    "origins": 2,
+    "native_trajectories": 6,
+    "component_projections": 30,
+    "conditioning_rules": [
+      "original_corrected_right_selector/v1"
+    ],
+    "maximum_central_parity_f": 0.0,
+    "seconds": 27.517998372903094,
+    "adapter_source_package_sha256": "d06191754baf4a7c0450f94060ac3fc41a2078dee2e3c000e90dfc856d065ec0",
+    "original_source_package_sha256": "82078dbf6ad1f3941e3ba659e4dca464e0f59df7b18e6b76014e6f981cc01109",
+    "qualified_original_math_imports": true,
+    "source_guard_bypass": false,
+    "model_or_selector_changes": false,
+    "outcomes_assessed": false
+  },
+  "conditioner_regression": {
+    "red": 1,
+    "green_focused": 49,
+    "seconds": 41.11,
+    "counts_overlap": true
+  },
+  "verification_sha256": "fda6f36220edc83ceacbead1aa1528047cbef06d8810940660411d833e6900d0"
 }

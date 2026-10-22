@@ -210,3 +210,14 @@ target/report cases pass afterward. An actual older-source batch now passes:
 two origins, six full native trajectories, 30 component projections across all
 five horizons, and central parity within 1e-9 °F. Complete experiment execution
 and matching outcome assessment remain in progress.
+
+
+One retained earlier conditioned producer also uses the corrected ending-hour
+right value. That exact conditioner source is now recognized separately; its
+original calibration/feature functions are imported from the original producer,
+and the wrapper preserves its corrected right-hour value across fractional
+boundaries. The native overlap-mean conditioner remains separate. The new
+regression failed before repair, then 49 focused cases passed. Its real original
+source batch passed two origins/six 24-hour trajectories/30 component projections
+with central parity within 1e-9 °F. Existing source guards, weights, admissions
+and expiry clocks are preserved.
