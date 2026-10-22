@@ -82,11 +82,18 @@ def test_latched_fault_counts_survive_new_valid_packet_and_skip_foreign_sensor()
     observe('206', '9')
     observe('206', '9.1')
     observe('206', '9.09')
+    rejected = collector.snapshot()
+    assert rejected['record']['status'] == 'invalid'
+    assert rejected['record']['reason'] == 'counter_drop'
+    # A rejected decrease never becomes the next valid baseline. Returning
+    # naturally to the last valid counter preserves every latched fault.
+    observe('206', '10')
     state = collector.snapshot()
     assert state['record']['status'] == 'valid'
-    assert state['packetCount'] == 6
-    assert state['invalidPackets'] == 2
-    assert state['counterDrops'] == 2
+    assert state['record']['totalRainIn'] == 10
+    assert state['packetCount'] == 7
+    assert state['invalidPackets'] == 5
+    assert state['counterDrops'] == 3
     assert state['counterJumps'] == 1
 
 

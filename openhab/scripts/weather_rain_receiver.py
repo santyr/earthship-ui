@@ -12,6 +12,7 @@ import time
 from uuid import uuid4
 
 from weather_rain_evidence import RainPolicy, rain_counter_receipt
+from weather_station_counter import CounterTracker
 
 
 class RainCollector:
@@ -38,6 +39,8 @@ class RainCollector:
             self.counter_drops = 0
             self.counter_jumps = 0
             self.last_valid_counter = None
+            self.counter = CounterTracker(validity_seconds=self.policy.validity_seconds,
+                                          maximum_counter_in=self.policy.maximum_counter_in)
 
     def _now(self):
         if self.pid != self.process_id():
@@ -60,27 +63,34 @@ class RainCollector:
             record = rain_counter_receipt(packet, policy=self.policy,
                                           stream_epoch=self.epoch, received_at=at)
             if record is not None:
+                transition = None
+                if record['status'] == 'valid':
+                    transition = self.counter.observe(record['totalRainIn'], at=at, tick=tick)
+                    if transition.new_phase:
+                        # Recovery is a source discontinuity, never a claim that
+                        # an unobserved gap was dry. A fresh epoch prevents any
+                        # old interval from bridging the changed baseline.
+                        self.clear()
+                        self.last_at, self.last_tick = at, tick
+                        record = rain_counter_receipt(packet, policy=self.policy,
+                                                      stream_epoch=self.epoch, received_at=at)
+                        transition = self.counter.observe(record['totalRainIn'], at=at, tick=tick)
                 self.packet_count += 1
                 if record['status'] != 'valid':
                     self.invalid_packets += 1
+                    self.counter.break_sequence()
+                elif transition.status == 'withheld':
+                    if transition.reason == 'counter_drop':
+                        self.counter_drops += 1
+                    else:
+                        self.counter_jumps += 1
+                    self.invalid_packets += 1
+                    record = {**record, 'status': 'invalid',
+                              'reason': transition.reason,
+                              'receivedAt': None, 'validUntil': None,
+                              'totalRainIn': None}
                 else:
-                    value = record['totalRainIn']
-                    if self.last_valid_counter is not None:
-                        delta = value - self.last_valid_counter
-                        if delta < 0:
-                            self.counter_drops += 1
-                        elif delta > 0.5:
-                            self.counter_jumps += 1
-                            self.invalid_packets += 1
-                            # Match the existing weather app's physical jump
-                            # guard: a rejected spike cannot become the next
-                            # baseline or a qualified source observation.
-                            record = {**record, 'status': 'invalid',
-                                      'reason': 'counter_jump',
-                                      'receivedAt': None, 'validUntil': None,
-                                      'totalRainIn': None}
-                    if record['status'] == 'valid':
-                        self.last_valid_counter = value
+                    self.last_valid_counter = self.counter.baseline
                 self.record = record
                 self.received_tick = tick
 
