@@ -12,10 +12,12 @@ originals, fitted artifacts and historical Item meanings remain replayable.
    helper between the strict rain collector and corrected receiver. Never move a
    valid baseline on a single decrease or implausible jump. A fresh natural return
    to the valid baseline clears the suspect candidate without an increment.
-   After a gap longer than receipt validity, two consecutive consistent natural
-   readings within the original increment bound establish a new baseline, with
+   An implausible increase after a gap longer than receipt validity requires two
+   consecutive consistent natural readings to establish a new baseline, with
    a new source epoch and an unknown-gap barrier. A substantial counter reset
-   also needs two consistent readings and a new phase. No accumulation is
+   also needs two consistent readings and a new phase. A still-plausible reading
+   after a gap starts a fresh phase immediately, with no assigned gap increment.
+   No accumulation is
    assigned to the unobserved gap. Keep the short-interval 0.5-inch spike guard;
    increasing it alone does not repair recovery. Clock rollback and restart clear
    pending confirmations. Old v1 originals must still replay unchanged.
