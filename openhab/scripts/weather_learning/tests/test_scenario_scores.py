@@ -52,3 +52,34 @@ def test_constant_series_correlation_is_explicitly_undefined_not_zero_skill():
  assert r['observed_dependence']['cross_variable']['temperature_c:ghi_wm2']['correlation'] is None
  assert r['trajectory_range_coverage']['all_targets_and_variables_inside'] is True
  assert 'reserve_breach_probability' not in r
+
+
+def test_joint_extreme_thresholds_use_only_complete_training_templates_before_decision():
+ scenarios,obs=example();blocks=residual_blocks()
+ first=api().assess_joint(scenarios,observations=obs,assessed_at=ORIGIN+timedelta(hours=4),training_blocks=blocks)
+ changed=deepcopy(obs)
+ for row in changed:row.update(temperature_c=row['temperature_c']+5,wind_m_s=.2,ghi_wm2=100.)
+ second=api().assess_joint(scenarios,observations=changed,assessed_at=ORIGIN+timedelta(hours=4),training_blocks=blocks+residual_blocks(count=1,late=True))
+ a,b=first['joint_extremes'],second['joint_extremes']
+ assert a['status']=='descriptive_only' and a['thresholds']==b['thresholds']
+ assert a['support']['template_dates']==b['support']['template_dates']==10
+ assert b['withheld']['template_not_available_at_decision']==1
+ assert b['observed_joint_extreme_targets']==3 and a['observed_joint_extreme_targets']==0
+ assert b['event']=='hot_calm_low_solar_using_training_10th_and90th_percentiles'
+ assert b['probability_claim'] is False
+ assert not any('probability' in k for k in b if k!='probability_claim')
+
+
+def test_repeated_template_issues_cannot_increase_training_threshold_support():
+ scenarios,obs=example();blocks=residual_blocks()
+ once=api().assess_joint(scenarios,observations=obs,assessed_at=ORIGIN+timedelta(hours=4),training_blocks=blocks)['joint_extremes']
+ repeated=api().assess_joint(scenarios,observations=obs,assessed_at=ORIGIN+timedelta(hours=4),training_blocks=blocks*3)['joint_extremes']
+ assert once['thresholds']==repeated['thresholds'] and once['support']==repeated['support']
+
+
+def test_sparse_complete_training_dates_keep_extreme_thresholds_unavailable():
+ scenarios,obs=example()
+ r=api().assess_joint(scenarios,observations=obs,assessed_at=ORIGIN+timedelta(hours=4),training_blocks=residual_blocks(count=7))
+ assert r['joint_extremes']['status']=='unavailable'
+ assert r['joint_extremes']['reason']=='fewer_than_frozen_template_dates'
+ assert r['joint_extremes']['support']['template_dates']==7

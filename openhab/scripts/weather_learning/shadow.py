@@ -57,7 +57,7 @@ class ShadowStore:
         raw=canonical(value)
         if len(raw)>16*1024**2 or shutil.disk_usage(self.root).free<len(raw)+32*1024**2:raise ValueError('shadow disk headroom exhausted')
         count=used=0
-        for directory in ('issues','models','weather-outcomes','capability-issues','refresh-issues','marginal-models','marginal-issues','marginal-emissions'):
+        for directory in ('issues','models','weather-outcomes','capability-issues','refresh-issues','marginal-models','marginal-issues','marginal-emissions','scenario-reports'):
             for item in (self.root/directory).glob('*.json'):
                 count+=1;used+=item.stat().st_size
                 if count>=10000 or used+len(raw)>2*1024**3:raise ValueError('shadow state capacity exhausted')

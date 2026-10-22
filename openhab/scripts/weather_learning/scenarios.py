@@ -157,10 +157,8 @@ def _block_reason(forcing,block,cohort,policy):
     return None
 
 
-def joint_scenarios(*,forcing,blocks,cohort_sha256,policy,guard=lambda:None):
-    from random import Random
+def template_population(*,forcing,blocks,cohort_sha256,policy,guard=lambda:None):
     from collections import Counter
-    from zoneinfo import ZoneInfo
     from .solar_experiment import validate_component_input
     from .contracts import digest
     policy=_policy(policy);digest(cohort_sha256);forcing,evidence=validate_component_input(forcing)
@@ -173,8 +171,17 @@ def joint_scenarios(*,forcing,blocks,cohort_sha256,policy,guard=lambda:None):
         reason=_block_reason(forcing,block,cohort_sha256,policy)
         if reason:withheld[reason]+=1
         else:eligible[block['block_sha256']]=block
+    return eligible,dict(withheld)
+
+
+def joint_scenarios(*,forcing,blocks,cohort_sha256,policy,guard=lambda:None):
+    from random import Random
+    from collections import Counter
+    from zoneinfo import ZoneInfo
+    policy=_policy(policy)
+    eligible,withheld=template_population(forcing=forcing,blocks=blocks,cohort_sha256=cohort_sha256,policy=policy,guard=guard)
     zone=ZoneInfo(forcing['site']['timezone']);dates={instant(b['through']).astimezone(zone).date() for b in eligible.values()}
-    support=dict(blocks=len(eligible),local_dates=len(dates),template_rows=sum(len(b['residuals']) for b in eligible.values()),withheld=dict(withheld))
+    support=dict(blocks=len(eligible),local_dates=len(dates),template_rows=sum(len(b['residuals']) for b in eligible.values()),withheld=withheld)
     result=dict(status='insufficient_evidence',reason='fewer_than_frozen_template_dates',method=policy['joint_method'],seed=policy['seed'],support=support,scenarios=[],probability_claim=False,automatic_actuation=False)
     if len(dates)<policy['minimum_template_dates']:return result
     # One original trajectory per local target date; repeated issues do not buy extra sampling mass.

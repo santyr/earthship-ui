@@ -1,9 +1,10 @@
 # Household weather scenarios — implementation in progress
 
 Task 8 remains in progress. Its deterministic construction, one bounded joint
-method and initial weather-scoring kernels are implemented locally. Original-bound
-report publication/replay, joint-extreme and household outcome assessment, complete
-wall-model integration and actual eligible-data assessment remain required. Nothing
+method and initial weather-scoring kernels are implemented locally. Retained report publication/replay, training-only joint-extreme diagnostics and
+source-replayed household outcome scoring are also implemented. Complete wall-model
+integration, an explicit source-adapted producer and actual eligible-data assessment
+remain required. Nothing
 is installed, selected or physically/statistically qualified by these tests.
 
 The [frozen protocol](scenario-protocol.json) was committed before any real Task 8
@@ -69,13 +70,42 @@ retain point-mean and ramp errors, lag-one/cross-variable correlations and finit
 trajectory-range coverage. Constant-series correlations are undefined, not zero
 skill. Stress cases cannot be passed off as an empirical joint distribution.
 The score is a retrospective diagnostic, not proof of an as-issued probability
-product. Joint-extreme and household utility fields currently explain their missing
-assessment inputs; those software paths remain unfinished.
+product. Joint-extreme thresholds use the complete eligible training population,
+one representative block per template date and equal actual target-date/unique-
+target weighting. The p10/p90 thresholds never use assessment outcomes. Counts of
+hot/calm/low-solar targets are descriptive counts, never reserve-risk probabilities.
+Late templates remain withheld, and fewer than eight template dates leaves the
+thresholds unavailable.
 
-Verification so far: the affected pre-scorer tree passed 705 backend tests and
-165 subtests, with four named unchanged isolated SDK-profile skips. The current
-scenario and scoring suites pass 23 cases, including original replay, source/cohort
-and availability refusal, shared physics, modeled night zero, original-block
-selection, resealed corruption and closed-form empirical energy scoring. These
-counts overlap and are not added as unique coverage. Real Task 8 stress/household
-experiments and the task completion gate are still pending.
+Household targets replay literal original energy-hour, atomic BMS endpoint and
+native v2 temperature-source packets through their existing strict readers. They
+retain actual collection clocks, policy and hardware epochs, exact target windows
+and an independent nominal-bank binding. Potential-PV proxy energy and captured
+controller output stay separate. Energy scores require complete matching coverage;
+censoring or missingness never becomes a zero observation. The measured SoC
+minimum uses the same origin/elapsed-hour endpoint grid as this nominal simulation,
+not a continuous trough. Indoor and north-wall observations remain separate; an
+unavailable model prediction is withheld even when its measurement exists. A
+rolling 24-hour target is not relabeled a local-calendar day.
+
+Original reports retain input forecasts, all template originals, fixed household
+assumptions, literal production/companion source bytes and numerical environment,
+as well as all constructed projections. Replay rederives those outputs and refuses
+source/environment changes; historical originals require their original producer.
+Public projections omit private capsules/paths and identify actual native versus
+total-only solar support. Explicit retention keeps immutable private reports under
+the existing shared 2 GiB/10,000-object cap. Expired reports can be retained for
+replay but cannot refresh the advisory cache. Later assessment uses these original
+predictions and raw qualified sources without fitting or consulting a model
+selector. The source-adapted standalone producer and native wall integration are
+still pending; no existing service publishes these new reports.
+
+Verification so far: the affected household/report tree passed 837 backend tests
+and 165 subtests, with four named unchanged isolated SDK-profile skips. That run
+preceded the final later-assessment and public-fallback additions; all current
+scenario, weather score, household target and report tests pass 49 cases. Cases
+include original replay, strict source/cohort/availability refusal, shared physics,
+modeled night zero, original-block selection, training-only thresholds, source and
+error corruption, archive-cap refusal and closed-form empirical energy scoring.
+These counts overlap and are not added as unique coverage. Real Task 8
+stress/household experiments and the task completion gate are still pending.
