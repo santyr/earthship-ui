@@ -324,12 +324,12 @@ Each group has an explicit consumer, dataset signature, coverage policy, byte/ro
 
 **Consumes:** versioned products from prior tasks. **Produces:** coherent user-facing distinctions and an operational capability matrix.
 
-- [ ] Keep the default console readable at 1340×800 and 1280×720. Put detailed ranges, source age, profiles, method, support, limitations and candidate diagnostics in existing expandable detail views; avoid cluttering every tile.
-- [ ] Test loading, zero values, nulls, stale/withdrawn reports, malformed schemas, offline/reconnect, keyboard focus, touch targets, chart resize, accessible legends, and no unauthorized mutation/network requests.
-- [ ] Preserve terrain direct-sun versus astronomical daylight, native direct/diffuse versus proxy radiation, raw versus local forecasts, nominal storage versus measured history, and mean/median/range/probability distinctions.
-- [ ] Add operational measures for ingestion lag, provider revision, enabled groups, optional refusals, query/byte/runtime/usage accounting, archive runway, pending/expired scores, correction coverage, and selected model/procedure identity. Keep sensitive diagnostics private.
-- [ ] Record an explicit horizon decision: retain the ten-day default unless a bounded expandable long-range view provides useful actual remaining coverage and honest uncertainty. Do not promise a full 15 days after publication from a 360-hour-from-initialization product. Parser/test hard limits must agree with the chosen display.
-- [ ] Record intentionally unused capabilities: no 100 m turbine winds, upper-air/ocean fields, arbitrary-coordinate custom inference, bulk spatial downloads, full ensembles, or paid backend migration. Document reasons and the specific new use case/evidence that would justify revisiting them, rather than implementing unnecessary features.
+- [x] Keep the default console readable at 1340×800 and 1280×720. Put detailed ranges, source age, profiles, method, support, limitations and candidate diagnostics in existing expandable detail views; avoid cluttering every tile.
+- [x] Test loading, zero values, nulls, stale/withdrawn reports, malformed schemas, offline/reconnect, keyboard focus, touch targets, chart resize, accessible legends, and no unauthorized mutation/network requests.
+- [x] Preserve terrain direct-sun versus astronomical daylight, native direct/diffuse versus proxy radiation, raw versus local forecasts, nominal storage versus measured history, and mean/median/range/probability distinctions.
+- [x] Add operational measures for ingestion lag, provider revision, enabled groups, optional refusals, query/byte/runtime/usage accounting, archive runway, pending/expired scores, correction coverage, and selected model/procedure identity. Keep sensitive diagnostics private.
+- [x] Record an explicit horizon decision: retain the ten-day default unless a bounded expandable long-range view provides useful actual remaining coverage and honest uncertainty. Do not promise a full 15 days after publication from a 360-hour-from-initialization product. Parser/test hard limits must agree with the chosen display.
+- [x] Record intentionally unused capabilities: no 100 m turbine winds, upper-air/ocean fields, arbitrary-coordinate custom inference, bulk spatial downloads, full ensembles, or paid backend migration. Document reasons and the specific new use case/evidence that would justify revisiting them, rather than implementing unnecessary features.
 
 **Gate:** every recommendation has a disposition; no fabricated probability, freshness, physical calibration, or completeness claim reaches the UI.
 
