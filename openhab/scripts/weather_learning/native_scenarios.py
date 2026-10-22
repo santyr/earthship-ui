@@ -72,13 +72,34 @@ def _temperature(rows,times,at):
     return rows[index-1]['tempF']*(1-weight)+rows[index]['tempF']*weight
 
 
+LEGACY_FORCING_SOURCES={
+    '7ea7e8b435a171cd08b0e2e5f787c3da3008e1c682bafec5206540a45bd346a5':'original_ending_hour_right_selector/v1',
+    'e9c25fbfecb904a30067704a39d5ef96955524e15faa65b5c6677994c9d3dbb2':'original_point_radiation_linear/v1',
+}
+
+
+def _forcing_rule():
+    from thermal_model import installed_shade_origin as original
+    if getattr(original,'FORCING_RULE',None)=='ending_hour_overlap_mean_point_temperature/v2' and callable(getattr(original,'ending_hour_mean',None)):
+        return original.FORCING_RULE
+    raw=Path(original.__file__).read_bytes()
+    if len(raw)>1024**2 or sha256(raw).hexdigest() not in LEGACY_FORCING_SOURCES:raise ValueError('unsupported original native scalar forcing source')
+    return LEGACY_FORCING_SOURCES[sha256(raw).hexdigest()]
+
+
 def _forcings(rows,origin,hours,actions):
-    from thermal_model.installed_shade_origin import ending_hour_mean
+    from bisect import bisect_left
+    from thermal_model import installed_shade_origin as original
     from thermal_model.installed_shade_dynamics import InstalledShadeForcing,STEP
-    times=[instant(r['at']) for r in rows];radiation=[r['radiationWm2'] for r in rows];out=[]
+    times=[instant(r['at']) for r in rows];radiation=[r['radiationWm2'] for r in rows];out=[];rule=_forcing_rule()
     for i in range(1,hours*12+1):
-        at=origin+i*STEP;temperature=_temperature(rows,times,at)
-        out.append(InstalledShadeForcing(at,temperature,ending_hour_mean(times,radiation,at-STEP,at),actions['indoor_shade_closed'],actions['outdoor_shade_present'],actions['vent_open']))
+        at=origin+i*STEP;temperature=_temperature(rows,times,at);index=bisect_left(times,at)
+        if rule=='ending_hour_overlap_mean_point_temperature/v2':solar=original.ending_hour_mean(times,radiation,at-STEP,at)
+        elif rule=='original_ending_hour_right_selector/v1':solar=radiation[index]
+        elif rule=='original_point_radiation_linear/v1':
+            weight=(at-times[index-1]).total_seconds()/3600;solar=radiation[index-1]+weight*(radiation[index]-radiation[index-1])
+        else:raise ValueError('unsupported original scalar radiation interpolation')
+        out.append(InstalledShadeForcing(at,temperature,solar,actions['indoor_shade_closed'],actions['outdoor_shade_present'],actions['vent_open']))
     return tuple(out)
 
 
@@ -102,7 +123,7 @@ def project_native_scenario(scenario,context,*,positions,guard=lambda:None):
         parity=max(abs(r[name]-saved[name]) for r,saved in zip(trajectory,output['trajectory']) for name in ('air_f','mass_f'))
         if parity>1e-9:raise ValueError('central native scenario no longer matches original model trajectory')
     _dependencies(context,guard)
-    return dict(status='unqualified_native_model_sensitivity',reason=None,indoor_air_f=trajectory[-1]['air_f'],north_wall_f=trajectory[-1]['mass_f'],trajectory=trajectory,initial=initial,origin_actions=actions,model_sha256=value['artifact_sha256'],model_rule=profile['rule'],model_runtime_sha256=capture['candidate']['runtime_sha256'],original_capture_sha256=value['capture_sha256'],native_geometry_sha256=geometry.sha256,central_parity_max_abs_f=parity,radiation_input_scope='same original native scalar forecast field; components do not replace a local proxy or fitted heat-gain basis',weather_conditioning='original admitted model capsules reapplied to constructed rows' if capture.get('weather_conditioning') is not None else 'original unconditioned native input contract',physical_calibration_qualified=False,probability_claim=False,automatic_actuation=False)
+    return dict(status='unqualified_native_model_sensitivity',reason=None,indoor_air_f=trajectory[-1]['air_f'],north_wall_f=trajectory[-1]['mass_f'],trajectory=trajectory,initial=initial,origin_actions=actions,model_sha256=value['artifact_sha256'],model_rule=profile['rule'],model_runtime_sha256=capture['candidate']['runtime_sha256'],forcing_rule=_forcing_rule(),original_capture_sha256=value['capture_sha256'],native_geometry_sha256=geometry.sha256,central_parity_max_abs_f=parity,radiation_input_scope='same original native scalar forecast field; components do not replace a local proxy or fitted heat-gain basis',weather_conditioning='original admitted model capsules reapplied to constructed rows' if capture.get('weather_conditioning') is not None else 'original unconditioned native input contract',physical_calibration_qualified=False,probability_claim=False,automatic_actuation=False)
 
 
 def _condition(forcings,rows,capture,initial_outdoor_f):

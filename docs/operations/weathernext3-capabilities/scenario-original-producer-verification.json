@@ -81,5 +81,31 @@
     "actual matching household/weather outcome assessments and joint eligibility inventory",
     "source-adapted retained-producer integration and complete Task8 verification"
   ],
-  "verification_sha256": "f3ef38b82647de8304cc0376c3763afe22b158bc506e2cf7d0ec438bdde80174"
+  "legacy_source_experiment": {
+    "checked_at": "2026-10-22T07:27:58.897195+00:00",
+    "origins": 2,
+    "component_projections": 30,
+    "native_full_trajectories": 6,
+    "forcing_rule_counts": {
+      "original_ending_hour_right_selector/v1": 6
+    },
+    "maximum_central_parity_f": 0.0,
+    "duration_seconds": 47.666518203914165,
+    "report_sha256": "9d299263c67412a28c39195f662031bdc8e8da905b38a48fe0642354195ab307",
+    "adapter_source_package_sha256": "fa7e2efc2dfcfc937e27ca170e5386d1ad8db3a60184e9145dbef7c36049af53",
+    "original_source_package_sha256": "c521035273c3bb58f22c68b4d8073dcbcaf9d383346eda9a897a7db83676943e",
+    "numerical_environment_sha256": "f45cbfd414dc60730afca17bba82b269ab3107d376fa3522e72b2802856c4c01",
+    "original_runtime_guard_passed": true,
+    "source_guard_bypass": false,
+    "weights_or_selectors_changed": false,
+    "outcomes_assessed": false
+  },
+  "portable_regressions": {
+    "red": 3,
+    "green_focused": 48,
+    "seconds": 41.31,
+    "scope": "independent original-state adapter and two legacy forcing numerical contracts; existing worker/native/targets/report tree",
+    "counts_overlap": true
+  },
+  "verification_sha256": "d6b6daf051be34544f320a2b815e1d85bd62d7e8e53341888a9ae7d59374571b"
 }

@@ -108,3 +108,15 @@ def test_explicit_apply_retains_only_separate_unqualified_advisory(tmp_path,monk
  saved=list((state/'scenario-reports').glob('*.json'));assert len(saved)==1
  original=json.loads(saved[0].read_bytes());assert original['inputs']['owned_sources']==dict(energy=energy,plan=plan)
  assert not (state/'current-model.json').exists()
+
+
+def test_owned_state_adapter_does_not_require_later_calibrated_energy_package(tmp_path,monkeypatch,originals):
+ import builtins
+ energy,plan,capture,args=owned(tmp_path,monkeypatch,originals);module=api();original_import=builtins.__import__
+ def original_packages_only(name,*args,**kwargs):
+  if name=='household_calibrated_energy':raise ModuleNotFoundError('older original producer predates calibrated-energy sidecar')
+  return original_import(name,*args,**kwargs)
+ monkeypatch.setattr(builtins,'__import__',original_packages_only)
+ prepared=module.prepare_owned_inputs(energy=energy,plan=plan)
+ assert prepared['household_inputs']['load_ac_w']==1000
+ assert prepared['household_inputs']['initial_soc_pct']==energy['output']['nominal_storage']['initial_soc_pct']

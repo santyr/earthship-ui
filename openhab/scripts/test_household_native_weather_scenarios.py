@@ -137,3 +137,16 @@ def test_original_producer_scalar_forcing_does_not_import_new_component_PV_packa
  proof=conditioning();raw=(InstalledShadeForcing(issue+timedelta(minutes=5),50.3075,500.,**actions),)
  capture=dict(issued_at=issue.isoformat(),inputs_available_at=(issue-timedelta(seconds=1)).isoformat(),weather_conditioning=proof)
  assert module._condition(raw,proof['rows'],capture,53.6)==apply_conditioning(raw,proof,issue=issue,available=issue-timedelta(seconds=1),initial_outdoor_f=53.6)
+
+
+@pytest.mark.parametrize('rule,expected_radiation',[('original_ending_hour_right_selector/v1',1200.),('original_point_radiation_linear/v1',602.5)])
+def test_legacy_original_forcing_versions_preserve_boundary_semantics_without_new_mean_kernel(monkeypatch,rule,expected_radiation):
+ from thermal_model import installed_shade_origin
+ module=api();monkeypatch.setattr(module,'_forcing_rule',lambda:rule,raising=False)
+ monkeypatch.delattr(installed_shade_origin,'ending_hour_mean')
+ start=ISSUE.replace(minute=0,second=0,microsecond=0);origin=start+timedelta(minutes=55,seconds=15)
+ rows=[dict(at=(start+timedelta(hours=i)).isoformat(),tempF=50.+2*i,radiationWm2=600.*i,windMph=4.) for i in range(3)]
+ actions=dict(indoor_shade_closed=0.,outdoor_shade_present=1.,vent_open=0.)
+ forcing=module._forcings(rows,origin,1,actions)
+ assert forcing[0].radiation_wm2==pytest.approx(expected_radiation)
+ assert forcing[0].outdoor_f==pytest.approx(52.+2*.25/60)

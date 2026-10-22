@@ -192,3 +192,21 @@ model choices, all five horizons and earliest-per-hour sampling stay unchanged.
 A seven-origin first attempt hit its 90-second bound; two-origin partitions passed
 without increasing the limit or replacing any origin. All 819 current affected
 backend tests and 165 subtests passed, with four named isolated SDK-profile skips.
+
+
+The retained-source run identified two older native radiation contracts: one uses
+the original ending-hour right endpoint for each step, and one linearly
+interpolates the original scalar radiation field. Those versions are recognized
+by the exact retained source-file hashes; unknown legacy versions are refused.
+Their original fitted input bases are preserved, separately from the new conserved
+component PV model. The newer native model keeps its overlap-mean contract.
+Original air/wall central parity remains mandatory for every accepted origin.
+The constructed state adapter also directly implements the existing qualified
+BMS/bank/AC-load contract, so older producers do not need the later calibrated
+sidecar package. No original producer file or model weight was changed.
+
+Three portability regressions failed before repair; 48 focused worker/native/
+target/report cases pass afterward. An actual older-source batch now passes:
+two origins, six full native trajectories, 30 component projections across all
+five horizons, and central parity within 1e-9 °F. Complete experiment execution
+and matching outcome assessment remain in progress.
