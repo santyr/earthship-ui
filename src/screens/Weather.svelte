@@ -251,7 +251,7 @@
   <div class="cell daily-cell">
     <Tile label={forecastDetail.provider === 'weathernext3' ? '10-Day Forecast · WeatherNext 3' : '10-Day Forecast'} accent={colors.forecast}>
       <DailyForecast days={forecastDays} variant="weather" onselect={selectForecastDay} />
-      {#if hasItem('Forecast_Provider_Status_JSON') || hasItem('Forecast_Comparison_JSON') || hasItem('Forecast_Local_Shadow_JSON')}
+      {#if !forecastDetail.productionModel && (hasItem('Forecast_Provider_Status_JSON') || hasItem('Forecast_Comparison_JSON') || hasItem('Forecast_Local_Shadow_JSON'))}
         <ForecastComparison statusRaw={$items.Forecast_Provider_Status_JSON} comparisonRaw={$items.Forecast_Comparison_JSON} localRaw={$items.Forecast_Local_Shadow_JSON} nowMs={wallClock} connected={$connection === 'live'} />
       {/if}
     </Tile>

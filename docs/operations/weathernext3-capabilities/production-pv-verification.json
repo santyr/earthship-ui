@@ -1,0 +1,78 @@
+{
+  "schema": "earthship-component-pv-production-verification/v1",
+  "prepared_at": "2026-10-23T03:37:57.159807+00:00",
+  "status": "focused_checks_passed_not_installed",
+  "parallel_shadow_required": false,
+  "calibration_sha256": "1b294e90f5a3895f8f83c7061293a05e5aee2bb38a47791fbbba55c0f7178fce",
+  "original_fit_proof_sha256": "cb0d2d880b904f4a9bb749d8321d5a4db9747c92413126c707e27bc3379a8289",
+  "real_readonly_preview_proof_sha256": "4a8b7888489fe17ba0ef03ac5e6ebf63ee598290eea92efaa8924aa682b9ddcc",
+  "original_generation_preserved": true,
+  "production_installed": false,
+  "production_states_written": false,
+  "issued": false,
+  "physical_calibration_qualified": false,
+  "automatic_actuation": false,
+  "new_python_test_ci_ownership": {
+    "openhab/scripts/weather_learning/tests/test_production_pv.py": {
+      "ci_job": "OpenHAB tests",
+      "shard": 1,
+      "file_sha256": "5f297c85c5494505655e7a904f163003e0b94b5412addfde8da2b3d5551d3571"
+    },
+    "openhab/scripts/weather_learning/tests/test_production_pv_runtime.py": {
+      "ci_job": "OpenHAB tests",
+      "shard": 2,
+      "file_sha256": "fb59656728eec2f79aaf12bfe32dd7e0d0e06d1ad56192b8bbc3b44cfa77217c"
+    },
+    "openhab/scripts/weather_learning/tests/test_production_pv_worker.py": {
+      "ci_job": "OpenHAB tests",
+      "shard": 2,
+      "file_sha256": "ced543208a348b78522aaeb7d5a40e2bb7625c6f422cdf4b6a8388ec3141873b"
+    },
+    "openhab/scripts/weather_learning/tests/test_production_pv_scoring.py": {
+      "ci_job": "OpenHAB tests",
+      "shard": 0,
+      "file_sha256": "e97258dbb123414f8711cbc3136ad23aec199ba02e3fafb7fcb54c9e8e40865c"
+    },
+    "openhab/scripts/test_native_handoff_window.py": {
+      "ci_job": "OpenHAB tests",
+      "shard": 1,
+      "file_sha256": "5e0695c0d4bf384bd17e97ca667c3f4b78fe783aae18e9022eb42cd3d4987318"
+    }
+  },
+  "checks": [
+    {
+      "log": "task11-component-pv-capacity-contracts-green.log",
+      "passed": 75,
+      "seconds": 8.76
+    },
+    {
+      "log": "task11-component-daily-capacity-slot-reservation.log",
+      "passed": 6,
+      "seconds": 2.1,
+      "scope": "focused_repeat_after_two_object_slot_reservation"
+    },
+    {
+      "log": "task11-native-handoff-window-green.log",
+      "passed": 48,
+      "seconds": 0.56
+    },
+    {
+      "log": "task11-component-and-shadow-ui-green.log",
+      "passed": 46,
+      "files": 6,
+      "seconds": 5.03
+    }
+  ],
+  "check_counts_overlap": true,
+  "remaining": [
+    "household PV/storage consumer",
+    "selected temperature thermal forcing and response fit",
+    "normal complete CI gates",
+    "whole-capability independent review",
+    "permanent export",
+    "merge",
+    "reversible install and readback/UI",
+    "real production outcome comparison"
+  ],
+  "verification_sha256": "4ac5efab9e56b5ef90a1220152d781f2ad79e5a8540447d035af3cba29ad4256"
+}

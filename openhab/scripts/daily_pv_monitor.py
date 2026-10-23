@@ -29,18 +29,25 @@ def bin_accounting(bins):
 
 
 def score_hour(forecast,source,*,assessed_at):
-    if (forecast.get('schema')!='earthship-daily-pv-potential-receipt/v1' or forecast.get('receipt_sha256')!=identity({k:v for k,v in forecast.items() if k!='receipt_sha256'})):
-        raise ValueError('original forecast identity differs')
-    view=forecast['view'];start,end=map(instant,(source['start'],source['end']));origin=instant(view['generatedAt'])
-    if view.get('schema') not in ('earthship-daily-pv-potential/v2','earthship-daily-pv-potential/v3') or view.get('automatic_actuation') is not False:raise ValueError('original calibrated read-only forecast required')
-    if origin>start:raise ValueError('forecast must exist before the scored hour')
-    if not instant(forecast['calibration_source']['model']['trained_at'])<=origin:raise ValueError('model must exist before its forecast')
-    if instant(source['received_at'])>assessed_at:raise ValueError('original power not yet available')
-    policy=None
-    if view['schema']=='earthship-daily-pv-potential/v3':
-        policy=digest(view['calibration']['policySha256']);definition=forecast.get('calibration_policy')
-        if not isinstance(definition,dict) or identity(definition)!=policy or definition.get('automatic_actuation') is not False or definition.get('physical_calibration_qualified') is not False:raise ValueError('original calibration policy differs')
-    model=digest(view['calibration']['modelSha256']);steps=forecast['projection_steps']
+    metadata={}
+    if forecast.get('schema')=='earthship-confirmed-component-daily-forecast/v1':
+        from weather_learning.component_pv_scoring import inputs
+        view,steps,receipt_pin,metadata=inputs(forecast,source,assessed_at=assessed_at)
+        start,end=map(instant,(source['start'],source['end']));origin=instant(view['generatedAt'])
+        model=metadata['model_sha256'];policy=metadata['calibration_policy_sha256']
+    else:
+        if (forecast.get('schema')!='earthship-daily-pv-potential-receipt/v1' or forecast.get('receipt_sha256')!=identity({k:v for k,v in forecast.items() if k!='receipt_sha256'})):
+            raise ValueError('original forecast identity differs')
+        view=forecast['view'];start,end=map(instant,(source['start'],source['end']));origin=instant(view['generatedAt'])
+        if view.get('schema') not in ('earthship-daily-pv-potential/v2','earthship-daily-pv-potential/v3') or view.get('automatic_actuation') is not False:raise ValueError('original calibrated read-only forecast required')
+        if origin>start:raise ValueError('forecast must exist before the scored hour')
+        if not instant(forecast['calibration_source']['model']['trained_at'])<=origin:raise ValueError('model must exist before its forecast')
+        if instant(source['received_at'])>assessed_at:raise ValueError('original power not yet available')
+        policy=None
+        if view['schema']=='earthship-daily-pv-potential/v3':
+            policy=digest(view['calibration']['policySha256']);definition=forecast.get('calibration_policy')
+            if not isinstance(definition,dict) or identity(definition)!=policy or definition.get('automatic_actuation') is not False or definition.get('physical_calibration_qualified') is not False:raise ValueError('original calibration policy differs')
+        model=digest(view['calibration']['modelSha256']);steps=forecast['projection_steps'];receipt_pin=forecast['receipt_sha256']
     if not isinstance(steps,list) or not 1<=len(steps)<=3000:raise ValueError('bounded original forecast steps required')
     selected={}
     for step in steps:
@@ -60,7 +67,7 @@ def score_hour(forecast,source,*,assessed_at):
     weight=fsum(r['covered_seconds'] for r in pairs)
     def mae(key):return None if not pairs else fsum(abs(r[key]-r['observed_input_w'])*r['covered_seconds'] for r in pairs)/weight
     out=dict(schema='earthship-pv-prospective-hour-score/v1',status='scored' if pairs else 'awaiting_eligible_evidence',assessed_at=assessed_at.isoformat(),
-        window_start=start.isoformat(),window_end=end.isoformat(),forecast_issued_at=origin.isoformat(),forecast_receipt_sha256=forecast['receipt_sha256'],model_sha256=model,
+        window_start=start.isoformat(),window_end=end.isoformat(),forecast_issued_at=origin.isoformat(),forecast_receipt_sha256=receipt_pin,model_sha256=model,
         power_source_sha256=source['source_sha256'],eligible_bins=len(pairs),adjusted_bins=sum(r['calibration_applied'] for r in pairs),missing_forecast_bins=missing,
         covered_seconds=weight,baseline_mae_w=mae('baseline_w'),candidate_mae_w=mae('candidate_w'),pairs=pairs,
         outcome_scope='qualified_low_soc_charging_controller_input_proxy',metric_basis='covered_duration_weighted_absolute_power_error',
@@ -68,16 +75,30 @@ def score_hour(forecast,source,*,assessed_at):
     if policy is not None:out.update(calibration_policy_sha256=policy)
     accounting=bin_accounting(bins);accounting.update(eligible_bins=len(pairs),missing_forecast_bins=missing)
     out.update(schema='earthship-pv-prospective-hour-score/v3',bin_accounting=accounting)
-    out['score_sha256']=identity(out);return out
+    out.update(metadata);out['score_sha256']=identity(out);return out
 
 
 def choose_forecast(root,start):
+    from weather_learning.component_pv_scoring import confirmed
+    emissions={}
+    for path in sorted(Path(root).glob('*.emission.json'),key=lambda p:p.stat().st_mtime_ns,reverse=True)[:64]:
+        value=json.loads(_read(path,8192))
+        if value.get('schema')!='earthship-confirmed-component-daily-emission/v1':continue
+        if value.get('emission_sha256')!=path.name.removesuffix('.emission.json') or value.get('emission_sha256')!=identity({k:v for k,v in value.items() if k!='emission_sha256'}):
+            raise ValueError('retained component emission identity differs')
+        if instant(value['published_at'])<=start:
+            emissions.setdefault(value['receipt_sha256'],value)
     paths=sorted(Path(root).glob('*.receipt.json'),key=lambda p:p.stat().st_mtime_ns,reverse=True)[:64];best=None
     for path in paths:
         raw=_read(path,8*1024**2);value=json.loads(raw)
         if value.get('receipt_sha256')!=path.name.removesuffix('.receipt.json') or value.get('receipt_sha256')!=identity({k:v for k,v in value.items() if k!='receipt_sha256'}):raise ValueError('retained PV forecast identity differs')
         view=value.get('view',{})
-        if view.get('schema') in ('earthship-daily-pv-potential/v2','earthship-daily-pv-potential/v3') and instant(view['generatedAt'])<=start<instant(view['calibration']['applyThroughAt']):
+        if view.get('schema')=='earthship-daily-pv-potential/v4':
+            emission=emissions.get(value['receipt_sha256'])
+            if emission is not None and instant(view['generatedAt'])<=start<max(instant(d['throughAt']) for d in view['days']):
+                original=confirmed(value,emission,before=start);row=(instant(view['generatedAt']),value['receipt_sha256'],original)
+                if best is None or row[:2]>best[:2]:best=row
+        elif view.get('schema') in ('earthship-daily-pv-potential/v2','earthship-daily-pv-potential/v3') and instant(view['generatedAt'])<=start<instant(view['calibration']['applyThroughAt']):
             row=(instant(view['generatedAt']),value['receipt_sha256'],value)
             if best is None or row[:2]>best[:2]:best=row
     return None if best is None else best[2]
@@ -104,7 +125,7 @@ def run(*,forecast_root,state_root,performance_output=None,clock=lambda:datetime
                 bank_start=datetime.combine(date.fromisoformat(bank['start_local_date']),time.min,ZoneInfo(epochs['timezone'])).astimezone(timezone.utc).isoformat()
                 import earthship_energy.power_evidence as companion
                 scripts=Path(__file__).resolve().parent
-                runtime={name:scripts/name for name in ('daily_pv_monitor.py','daily_pv_performance.py','weather_learning/energy_history.py','weather_learning/contracts.py','weather_source_files.py','household_pv_window.py','household/codec.py','household/control_contracts.py','household/evidence.py')}
+                runtime={name:scripts/name for name in ('daily_pv_monitor.py','daily_pv_performance.py','weather_learning/component_pv_scoring.py','weather_learning/energy_history.py','weather_learning/contracts.py','weather_source_files.py','household_pv_window.py','household/codec.py','household/control_contracts.py','household/evidence.py')}
                 runtime.update({'companion/'+name:Path(companion.__file__).parent/name for name in ('power_evidence.py','power_intervals.py','bms_evidence.py','ac_evidence.py')})
                 originals={name:p.read_bytes() for name,p in runtime.items()}
                 source,path=capture_hour(directory(state/'originals'),start,connect=_connection('/home/sat/.config/hex/energy-power-reader.jdbc','energy_power_reader'),policy_raw=policy,bank_start=bank_start,clock=clock)

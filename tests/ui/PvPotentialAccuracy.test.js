@@ -18,3 +18,12 @@ it('withholds invalid reports and labels valid stale reports',async()=>{
  vi.spyOn(Date,'now').mockReturnValue(PV_REPORT_NOW+3*3600000);vi.stubGlobal('fetch',async()=>new Response(JSON.stringify(pvPerformance())));
  const {container}=render(PvPotentialAccuracy);await waitFor(()=>expect(container.textContent).toContain('PV accuracy report is stale'));
 });
+it('shows component power accuracy with its method and honest daily-total scope',async()=>{
+ const {componentPvPerformance}=await import('../fixtures/daily-pv-performance.js');
+ vi.spyOn(Date,'now').mockReturnValue(PV_REPORT_NOW);vi.stubGlobal('fetch',async()=>new Response(JSON.stringify(componentPvPerformance())));
+ const {container}=render(PvPotentialAccuracy);
+ await waitFor(()=>expect(container.querySelector('table')).not.toBeNull());
+ expect(container.textContent).toContain('Constituent power intervals of published daily totals');
+ expect(container.textContent).toContain('Native components');
+ expect(container.textContent).not.toContain('independent');
+});

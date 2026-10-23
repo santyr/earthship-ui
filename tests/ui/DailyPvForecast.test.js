@@ -33,3 +33,11 @@ it('labels the supported long-horizon policy without a misleading 24-hour limit'
  dailyPvRaw.set(JSON.stringify(v));dailyPvClock.set(now);const {container}=render(DailyForecast,{days});const pv=container.querySelector('[data-testid="daily-pv-potential"]');
  expect(pv?.title).toContain('empirically adjusted in supported solar positions');expect(pv?.title).not.toContain('next 24 hours');
 });
+
+it('labels active native-component correction and preserves raw fallback identity',async()=>{
+ const {componentFixture}=await import('../fixtures/daily-pv-potential.js');const v=componentFixture();
+ dailyPvRaw.set(JSON.stringify(v));dailyPvClock.set(now);
+ const {container}=render(DailyForecast,{days});let pv=container.querySelector('[data-testid="daily-pv-potential"]');
+ expect(pv.title).toContain('Experimental native solar components');
+ expect(pv.title).toContain('native segments only');expect(pv.title).not.toContain('next 24 hours');
+});

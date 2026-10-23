@@ -440,6 +440,28 @@ class NativeTraining:
         return read(run / 'activation-result.json')
 
 
+def wait_for_handoff_window(*,guard,read_pids,clock=lambda:datetime.now(timezone.utc),
+                            monotonic=time.monotonic,sleep=time.sleep,seconds=240):
+    """Wait before private preparation; never retry a begun handoff.
+
+    The preparer reserves the last120s before the next original issue. Allow
+    150s for its75s budget, the protected35s boundary and transaction overhead.
+    Keep checking worker idleness and resource pressure through the wait.
+    """
+    from thermal_model.native_operational_io import _next_issue
+    if type(seconds) not in (int,float) or not 0<seconds<=240:
+        raise ValueError('bounded native handoff wait required')
+    deadline=monotonic()+seconds
+    while True:
+        guard()
+        if monotonic()>=deadline:raise TimeoutError('owned serving preparation window did not become idle')
+        pids=read_pids();now=clock();issue=_next_issue(now)
+        if not isinstance(pids,list) or len(pids)!=3 or any(not isinstance(p,str) or not p.isdecimal() for p in pids):
+            raise ValueError('three original serving worker identities required')
+        if pids==['0','0','0'] and issue-now>=timedelta(seconds=150):return issue
+        sleep(1)
+
+
 def activate(run):
     """Use the existing five-file handoff, restoring the owned timer states."""
     import household_native_handoff as handoff
@@ -452,18 +474,11 @@ def activate(run):
     if Path(handoff.__file__).resolve() != stage / 'sources/openhab/scripts/household_native_handoff.py':
         raise ValueError('exact selected transaction source required')
     guard = RamGuard(seconds=540)
-    started = time.monotonic()
     units = ('thermal-provisional-forecast.service', 'thermal-provisional-score.service',
              'thermal-native-geometry-prepare.service')
-    while True:
-        guard()
-        pids = [subprocess.check_output(['systemctl', '--user', 'show', u, '-p', 'MainPID', '--value'],
-                                       text=True, timeout=10).strip() for u in units]
-        if pids == ['0', '0', '0']:
-            break
-        if time.monotonic() - started > 240:
-            raise TimeoutError('owned serving workers did not become idle')
-        time.sleep(1)
+    wait_for_handoff_window(guard=guard,read_pids=lambda:[
+        subprocess.check_output(['systemctl','--user','show',u,'-p','MainPID','--value'],
+                                text=True,timeout=10).strip() for u in units])
     expected = {k: previous[k] for k in ('stage', 'deployment_sha256')}
     settings = read(run / 'final-config.json', 8192)
     from household_cycle_deploy import verify_stage

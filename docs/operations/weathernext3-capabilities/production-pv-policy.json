@@ -1,0 +1,16 @@
+{
+  "schema": "earthship-component-pv-production-policy/v1",
+  "method": "target_weighted_effective_gain_bounded_0.5_1.5/v1",
+  "baseline_rule": "native_fdir_ssrd_isotropic_faiman_proxy_pvwatts_dc_v2",
+  "minimum_targets": 24,
+  "minimum_local_target_dates": 3,
+  "maximum_pairs": 10000,
+  "model_validity_days": 14,
+  "maximum_lead_hours": 336,
+  "transfer_rule": "same_native_solar_grid_measured_power_cohort_array_and_terrain_with_recorded_source/v1",
+  "parallel_shadow_required": false,
+  "advance_superiority_required": false,
+  "physical_calibration_qualified": false,
+  "automatic_actuation": false,
+  "applies_to_native_component_segments_only": true
+}

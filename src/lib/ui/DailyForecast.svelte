@@ -13,7 +13,14 @@
     typeof raw === 'number' && Number.isFinite(raw) ? `${Math.round(raw)}${suffix}` : '—'
   );
 
-  const pvTitle = (pv) => `${pv.calibrationScope && pv.calibrationScope !== 'none' ? dailyPv?.schema === 'earthship-daily-pv-potential/v3' ? 'Provisional, empirically adjusted in supported solar positions; ' : 'Provisional, empirically adjusted over the next 24 hours; ' : 'Provisional ' }array DC potential before battery acceptance and demand limits; ${pv.fromAt} through ${pv.throughAt}.`;
+  function pvTitle(pv) {
+    if (dailyPv?.schema === 'earthship-daily-pv-potential/v4') {
+      const adjusted = ['native_components_only', 'mixed_native_and_raw_fallback'].includes(pv.calibrationScope);
+      return 'Experimental native solar components; ' + (adjusted ? 'electrical adjustment on native segments only; raw fallback segments unchanged. ' : 'raw component or total-only fallback. ')
+        + 'Provisional array DC potential before battery acceptance and demand limits; ' + pv.fromAt + ' through ' + pv.throughAt + '.';
+    }
+    return `${pv.calibrationScope && pv.calibrationScope !== 'none' ? dailyPv?.schema === 'earthship-daily-pv-potential/v3' ? 'Provisional, empirically adjusted in supported solar positions; ' : 'Provisional, empirically adjusted over the next 24 hours; ' : 'Provisional ' }array DC potential before battery acceptance and demand limits; ${pv.fromAt} through ${pv.throughAt}.`;
+  }
 
   const accessibleName = (day) => [
     day.label,

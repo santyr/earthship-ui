@@ -33,3 +33,27 @@ it('accepts the extended policy with its own identity and rejects an altered sco
  expect(parseDailyPvPotential(JSON.stringify(v),{nowMs:now})?.calibration.policySha256).toBe('f'.repeat(64));
  v.calibration.applyThroughAt=new Date(now+337*3600000).toISOString();expect(parseDailyPvPotential(JSON.stringify(v),{nowMs:now})).toBeNull();
 });
+
+it('accepts the explicit native-component production fit without importing old skill claims',async()=>{
+ const {componentFixture}=await import('./fixtures/daily-pv-potential.js');const value=componentFixture();
+ const parsed=parseDailyPvPotential(JSON.stringify(value),{nowMs:now});
+ expect(parsed?.calibration.mode).toBe('experimental_production');expect(parsed?.days[0].calibrationScope).toBe('native_components_only');
+ expect(parsed?.calibration.localTargetDates).toBe(29);expect(parsed?.calibration.baselineMaeW).toBeUndefined();
+ value.calibration.physicalCalibrationQualified=true;expect(parseDailyPvPotential(JSON.stringify(value),{nowMs:now})).toBeNull();
+});
+
+it('keeps declared raw component fallbacks separate from the trained native coefficient',async()=>{
+ const {componentFixture}=await import('./fixtures/daily-pv-potential.js');const value=componentFixture();value.calibration.mode='raw_component_fallback';
+ Object.assign(value.days[0],{calibrationScope:'raw_total_only_fallback',potentialKwh:1.5,
+  sourceSupport:{native_hours:0,fallback_hours:9,fallback_reasons:{native_direct_unavailable:9}}});
+ expect(parseDailyPvPotential(JSON.stringify(value),{nowMs:now})?.days[0].potentialKwh).toBe(1.5);
+ value.days[0].potentialKwh=1.2;expect(parseDailyPvPotential(JSON.stringify(value),{nowMs:now})).toBeNull();
+});
+
+it('refuses malformed component provenance and stale raw/source windows',async()=>{
+ const {componentFixture}=await import('./fixtures/daily-pv-potential.js');
+ for(const change of [v=>v.calibration.targets=23,v=>v.calibration.modelSha256='wrong',v=>v.days[0].sourceSupport.private_path='/private',
+  v=>v.validUntil=v.generatedAt,v=>v.days[0].calibrationScope='native_and_fallback_all_calibrated']){
+  const value=componentFixture();change(value);expect(parseDailyPvPotential(JSON.stringify(value),{nowMs:now})).toBeNull();
+ }
+});

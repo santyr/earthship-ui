@@ -397,9 +397,20 @@
       "replacement": {
         "method": "Native total/direct-horizontal solar components with fresh compatible electrical calibration and new baseline/model identities.",
         "target": "PV electrical energy and same-issue nominal storage projections.",
-        "artifact_sha256": null,
+        "artifact_sha256": "1b294e90f5a3895f8f83c7061293a05e5aee2bb38a47791fbbba55c0f7178fce",
         "production_admission_sha256": null,
-        "installed": false
+        "installed": false,
+        "model_sha256": "3e5531fb9b7cfc4ba91042d50fdda9430a557f3ade751e2da37183fee6c33258",
+        "procedure_sha256": "dcce27aa2edc538551a20dda12fe33d45256971452a88e59dc40cca15e3990a8",
+        "actual_completed_at": "2026-10-23T02:27:06.832328+00:00",
+        "expires_at": "2026-11-06T02:27:06.832328+00:00",
+        "evidence": "production-pv.md",
+        "training_support": {
+          "pairs": 737,
+          "targets": 737,
+          "local_target_dates": 29
+        },
+        "prepared": true
       },
       "consumers": [
         "daily PV potential",
@@ -407,9 +418,9 @@
         "Energy outlook"
       ],
       "remaining": [
-        "Rebuild matched native-component baseline pairs from retained observations.",
-        "Refit the electrical correction against that baseline; preserve old original models.",
-        "Migrate both PV/storage consumers to the same new procedure, verify exact rollback."
+        "Connect the household calibrated/storage consumer to the same component factory and original artifact.",
+        "Stage permanent owner/model/runtime paths, complete all CI/review, install and verify exact rollback.",
+        "Observe actual issued outputs and compare their eligible constituent powers with real measured input; track archive growth."
       ],
       "limitations": [
         "Do not apply old coefficients to a changed solar baseline. Nominal capacity remains separate from measured usable battery capacity."
