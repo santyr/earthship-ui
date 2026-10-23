@@ -12,7 +12,7 @@ def main(argv=None):
     args=parser.parse_args(argv)
     try:
         result=run_worker(args.config,publish=args.publish,near_term_config_path=args.near_term_profile)
-        print(json.dumps(result,allow_nan=False));return 0 if result['status'] in ('PREFLIGHT_PASSED','PUBLISHED','WITHDRAWN') else 1
+        print(json.dumps(result,allow_nan=False));return 0 if result['status'] in ('PREFLIGHT_PASSED','PUBLISHED','WITHDRAWN') and result.get('production_retention_status')!='FAILED_AFTER_PUBLICATION' else 1
     except Exception as error:
         # Exception text can include private paths, configuration or tokens.
         print(json.dumps(dict(status='REFUSED',failure_kind=type(error).__name__,

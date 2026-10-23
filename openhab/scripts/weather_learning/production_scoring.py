@@ -1,5 +1,6 @@
 """Score original confirmed production predictions, without inference or refits."""
 from datetime import timedelta
+import math,statistics,sys
 from hashlib import sha256
 from pathlib import Path
 from .contracts import canonical,digest,identity,instant
@@ -9,6 +10,31 @@ from .marginal_outcomes import MarginalObservation,load_observation
 from .probabilistic import ForecastInput,MarginalPrediction,score_marginal,LEVELS
 from .probabilistic_retained import prepare_marginal_source
 from .probabilistic_evaluation import _raw_score
+
+
+def scoring_runtime():
+    paths=[Path(sys.executable).resolve(),Path(statistics.__file__)]
+    if getattr(math,'__file__',None) is not None:paths.append(Path(math.__file__))
+    return dict(python=sys.version,scalar_metrics='stored_predictions_stdlib_only_no_fitting',
+        math_module='separate_extension' if getattr(math,'__file__',None) else 'built_into_verified_python',
+        binary_or_source_sha256s={p.name:sha256(p.read_bytes()).hexdigest() for p in paths})
+
+
+def _procedure(issue,frame,prediction):
+    from .probabilistic import _lead
+    from .probabilistic_artifacts import _in_partition
+    bundle=None
+    if prediction is not None:bundle=issue['model_originals'][prediction['bundle_sha256']]
+    else:
+        matches=[b for b in issue['model_originals'].values() if b['kind']==frame.kind and b['grid_sha256']==frame.grid_sha256 and b['timezone']==frame.timezone and
+            b['lead_scope_hours']==_lead(frame.origin,frame.target_end) and frame.cohort_sha256 in (b['cohort_sha256'],b['serving_parent_cohort_sha256']) and _in_partition(b.get('training_partition'),frame)]
+        if len(matches)>1:raise ValueError('ambiguous original production procedure')
+        if matches:bundle=matches[0]
+    if bundle is None:return dict(method_family=None,procedure_sha256=None,training_policy_sha256=None)
+    family=next(iter(bundle['models']))
+    procedure=dict(schema='earthship-registered-production-training-procedure/v1',kind=bundle['kind'],family=family,lead_scope_hours=bundle['lead_scope_hours'],
+        training_policy_sha256=bundle['policy_sha256'],numerical_manifest=bundle['numerical_manifest'],numerical_environment=bundle['numerical_environment'],transfer_rule=bundle['transfer_rule'])
+    return dict(method_family=family,procedure_sha256=identity(procedure),training_policy_sha256=bundle['policy_sha256'])
 
 
 def _local_score(prediction,outcome):
@@ -49,6 +75,7 @@ def score_emitted(state,*,emission_sha256,row_sha256,observation,assessed_at):
         if compatible:local=_local_score(prediction,body['value'])
     files=('production_scoring.py','production_emissions.py','probabilistic.py','probabilistic_evaluation.py','marginal_outcomes.py','probabilistic_retained.py','contracts.py')
     manifest={name:sha256(Path(__file__).with_name(name).read_bytes()).hexdigest() for name in files}
+    runtime=scoring_runtime();procedure=_procedure(issue,frame,prediction)
     result=dict(schema='earthship-confirmed-production-weather-score/v1',status='scored' if compatible else 'observation_cohort_mismatch',
         emission_sha256=emission_sha256,issue_sha256=issue['issue_sha256'],row_sha256=row_sha256,
         production_prediction_sha256=None if prediction is None else prediction['prediction_sha256'],
@@ -56,5 +83,5 @@ def score_emitted(state,*,emission_sha256,row_sha256,observation,assessed_at):
         forecast=row['forecast'],observation={k:v for k,v in body.items() if k!='original'},
         raw=_raw_score(frame,body['value']) if compatible else None,local=local,measurement_cohort_compatible=compatible,
         fallback_reason=row['reason'],published_at=emission['published_at'],scoring_manifest=manifest,
-        issued_prediction_used=True,model_retrained=False,local_coverage_qualified=False,probability_claim=False,automatic_actuation=False)
+        **procedure,scoring_runtime=runtime,scoring_runtime_sha256=identity(runtime),issued_prediction_used=True,model_retrained=False,local_coverage_qualified=False,probability_claim=False,automatic_actuation=False)
     result['score_sha256']=identity(result);return result

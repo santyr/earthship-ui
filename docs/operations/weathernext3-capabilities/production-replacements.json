@@ -123,14 +123,19 @@
         "Home and Weather details"
       ],
       "remaining": [
-        "Implement the production publisher/reader contract with explicit point/marginal provenance and original decision clocks.",
-        "Activate the reviewed per-cohort admissions and score actual issued predictions after maturity."
+        "Stage permanent shared monitor namespace and exact reviewed v2 profile/release configuration.",
+        "Activate original per-cohort admissions and verify actual emitted outputs plus original-outcome scoring."
       ],
       "limitations": [
         "No unqualified80%coverage claim. Unsupported extended cohorts require a named raw fallback, not an invented fitted model."
       ],
       "rollback": "Restore the captured original selector/config/source bytes under the existing writer lock; preserve new originals and scores.",
-      "production_replaced": false
+      "production_replaced": false,
+      "serving_implementation": {
+        "status": "implemented_tested_not_installed",
+        "evidence": "production-owner-verification.json",
+        "public_route": "/api/weather-production"
+      }
     },
     {
       "id": "thermal_weather_temperature",
@@ -368,14 +373,19 @@
         "original-issued wind evaluator"
       ],
       "remaining": [
-        "Integrate the new production hourly-target product and consumer.",
-        "Register/read back source-bound admission and natural emitted prediction."
+        "Stage permanent shared monitor namespace and exact reviewed v2 profile/release configuration.",
+        "Activate original per-cohort admissions and verify actual emitted outputs plus original-outcome scoring."
       ],
       "limitations": [
         "Numeric history does not acquire sensor-health/metrology qualification. No silent substitution into PV module-cooling physics."
       ],
       "rollback": "Restore the captured original selector/config/source bytes under the existing writer lock; preserve new originals and scores.",
-      "production_replaced": false
+      "production_replaced": false,
+      "serving_implementation": {
+        "status": "implemented_tested_not_installed",
+        "evidence": "production-owner-verification.json",
+        "public_route": "/api/weather-production"
+      }
     },
     {
       "id": "pv_electrical_storage",

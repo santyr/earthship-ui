@@ -52,3 +52,12 @@ def test_scoring_cannot_read_an_observation_before_its_actual_acquisition(servin
  state,emission,target,observation=original(serving,tmp_path)
  with pytest.raises(ValueError,match='available|mature'):
   score_emitted(state,emission_sha256=emission['emission_sha256'],row_sha256=target['row_sha256'],observation=observation,assessed_at=instant(target['at'])+timedelta(minutes=2))
+
+
+def test_score_records_name_the_training_procedure_and_actual_scoring_runtime(serving,tmp_path):
+ from weather_learning.production_scoring import score_emitted
+ state,emission,target,observation=original(serving,tmp_path)
+ value=score_emitted(state,emission_sha256=emission['emission_sha256'],row_sha256=target['row_sha256'],observation=observation,assessed_at=instant(observation.to_dict()['available_at']))
+ assert value['method_family']=='temperature_normal' and len(value['procedure_sha256'])==64
+ assert value['training_policy_sha256']==__import__('test_probabilistic').POLICY['policy_sha256']
+ assert len(value['scoring_runtime_sha256'])==64 and value['scoring_runtime']['python']

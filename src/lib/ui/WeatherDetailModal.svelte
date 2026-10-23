@@ -18,6 +18,7 @@
   import { rainAmountText } from '../openhab/values.js';
   import OhIcon from './OhIcon.svelte';
   import AtmosphericContext from './AtmosphericContext.svelte';
+  import ProductionForecastDetails from './ProductionForecastDetails.svelte';
   import ForecastShadowDetails from './ForecastShadowDetails.svelte';
   let shadowDetailsOpen=$state(false);
   $effect(()=>{if(!$weatherDetailStore.open)shadowDetailsOpen=false;});
@@ -323,8 +324,11 @@
         {/if}
         <AtmosphericContext product={capabilities} hours={selectedWindow.hours} nowMs={$weatherCapabilityClock} timezone={forecast.timezone} />
         <details class="forecast-verification" ontoggle={event=>shadowDetailsOpen=event.currentTarget.open}>
-          <summary>Local forecast comparisons · experimental</summary>
-          {#if shadowDetailsOpen}<ForecastShadowDetails timezone={forecast.timezone} />{/if}
+          <summary>{forecast.productionModel?'Production forecast ranges · experimental':'Local forecast comparisons · experimental'}</summary>
+          {#if shadowDetailsOpen}
+            {#if forecast.productionModel}<ProductionForecastDetails issueSha256={forecast.productionModel.issueSha256} timezone={forecast.timezone} hours={selectedWindow.hours} />
+            {:else}<ForecastShadowDetails timezone={forecast.timezone} />{/if}
+          {/if}
         </details>
       </div>
 

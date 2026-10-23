@@ -76,3 +76,12 @@ def test_compressed_original_cannot_expand_beyond_the_existing_object_bound(serv
  capsule['gzip_base64']=base64.b64encode(gzip.compress(b'x'*(16*1024**2+1),mtime=0)).decode()
  capsule['capsule_sha256']=identity({k:v for k,v in capsule.items() if k!='capsule_sha256'});path.write_bytes(canonical(capsule))
  with pytest.raises(ValueError,match='bounded'):read_issue(state,pin)
+
+
+def test_original_emission_reader_does_not_regenerate_forecasts_with_a_later_publisher(serving,tmp_path,monkeypatch):
+ import weather_learning.production_emissions as emissions
+ product,attempt,result=published(serving);state=ShadowStore(tmp_path/'later-reader')
+ emissions.retain_prepared(state,product,provider=serving['provider'],now=NOW)
+ emission=emissions.confirm_publication(state,product,provider=serving['provider'],attempt=attempt,result=result)
+ monkeypatch.setattr(emissions,'production_states',lambda *args,**kwargs:pytest.fail('original reader reran a later publisher'))
+ assert emissions.read_emission(state,emission['emission_sha256'])==emission

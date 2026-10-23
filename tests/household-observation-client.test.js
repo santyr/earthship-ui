@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { loadHouseholdObservation, loadWeatherCapabilities } from '../src/lib/household/observationClient.js';
+import { loadHouseholdObservation, loadWeatherCapabilities, loadProductionWeather } from '../src/lib/household/observationClient.js';
 import { observation } from './fixtures/household-observation.js';
 import { capabilityFixture, CAPABILITY_NOW } from './fixtures/weather-capabilities.js';
 afterEach(() => { vi.unstubAllGlobals(); });
@@ -37,4 +37,14 @@ it('cancels a chunked capability response when it exceeds its own 256-KiB ceilin
   vi.stubGlobal('fetch',async()=>new Response(stream));
   await expect(loadWeatherCapabilities(new AbortController().signal)).rejects.toThrow('Observation unavailable');
   expect(cancel).toHaveBeenCalled();expect(chunks).toBeLessThanOrEqual(7);
+});
+
+it('loads only the fixed production view and cancels bytes beyond its own cap',async()=>{
+ const fetcher=vi.fn(async()=>new Response('{"status":"test"}'));vi.stubGlobal('fetch',fetcher);
+ const signal=new AbortController().signal;
+ expect(await loadProductionWeather(signal)).toBe('{"status":"test"}');
+ expect(fetcher.mock.calls[0]).toEqual(['/api/weather-production',{signal,cache:'no-store',redirect:'error'}]);
+ const cancel=vi.fn();const stream=new ReadableStream({pull(c){c.enqueue(new Uint8Array(100000))},cancel});
+ vi.stubGlobal('fetch',async()=>new Response(stream));
+ await expect(loadProductionWeather(signal)).rejects.toThrow('Observation unavailable');expect(cancel).toHaveBeenCalled();
 });

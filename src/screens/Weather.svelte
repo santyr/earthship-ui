@@ -186,7 +186,7 @@
   function openRainChart() {
     openChart({
       title: 'Rain',
-      series: [{ name: station.mode === 'legacy' ? 'AmbientWeatherWS2902A_RainFallDay' : 'WeatherStation_RainDayV2', color: colors.rain, label: 'Rain/day' }],
+      series: [{ name: 'AmbientWeatherWS2902A_RainFallDay', color: colors.rain, label: 'Recorded rain/day' }],
       hours: 24,
     });
   }
@@ -275,6 +275,7 @@
 
   <div
     class="cell rain-cell clickable"
+    title="Recorded rainfall: accepted continuous counter increments; unknown gaps are excluded. Complete interval coverage remains separately qualified."
     role="button"
     tabindex="0"
     onclick={openRainChart}

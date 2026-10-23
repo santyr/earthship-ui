@@ -5,11 +5,11 @@ original state bytes and successful per-Item readbacks; later process failure
 cannot erase those originals or turn an unsuccessful write into a forecast.
 """
 from datetime import timedelta
-import base64,gzip,io,json
+import base64,gzip,io,json,math
 from hashlib import sha256
-from .contracts import canonical,identity,digest,instant
-from .production_forecast import ProductionForecast,SCHEMA,_original
-from .production_publish import production_states,DETAIL
+from .contracts import canonical,identity,digest,instant,finite
+from .production_forecast import ProductionForecast,SCHEMA,_original,MPH
+from .production_publish import production_states,DETAIL,NUMERIC_ITEMS
 from .provider import ProviderSnapshot
 from .shadow import _directory,_read
 
@@ -62,8 +62,12 @@ def read_issue(state,pin):
     product=object.__new__(ProductionForecast);object.__setattr__(product,'_raw',canonical(body));return product
 
 
-def _confirmation(product,provider,attempt,result):
-    body=product.to_dict();decision=instant(body['decision_at']);states=production_states(provider,now=decision,production=product)
+def _confirmation(product,provider,attempt,result,*,recorded=False):
+    body=product.to_dict();decision=instant(body['decision_at']);_original(product,provider,decision)
+    states=attempt.get('states') if recorded else production_states(provider,now=decision,production=product)
+    if (not isinstance(states,dict) or set(states)!={DETAIL,'Forecast_Hourly_JSON','Forecast_Daily_JSON',*NUMERIC_ITEMS} or
+            any(not isinstance(raw,str) or len(raw.encode())>=65536 for raw in states.values())):
+        raise ValueError('bounded original production state bytes required')
     _checked(attempt,'attempt_sha256');_checked(result,'result_sha256');publication=result.get('publication')
     if (attempt.get('provider')!=provider.to_dict() or attempt.get('started_at')!=body['decision_at'] or attempt.get('states')!=states or
             attempt.get('states_sha256')!=identity(states) or result.get('attempt_sha256')!=attempt['attempt_sha256'] or
@@ -74,13 +78,27 @@ def _confirmation(product,provider,attempt,result):
         raise ValueError('original confirmed complete production publication required')
     _checked(publication,'result_sha256');emitted=instant(result['completed_at'])
     if not decision<=emitted<=decision+timedelta(seconds=85):raise ValueError('original production publication lifetime exceeded')
-    detail=json.loads(states[DETAIL]);indexed={(r['profile'],r['kind'],instant(r['at'])):r for r in body['rows']};published=[];scored=[]
+    detail=json.loads(states[DETAIL])
+    if (detail.get('version')!=3 or detail.get('providerSnapshotSha256')!=body['provider_snapshot_sha256'] or
+            detail.get('productionModel',{}).get('issueSha256')!=body['issue_sha256'] or
+            instant(detail['generatedAt'])!=decision or detail.get('timezone')!=provider.to_dict()['timezone']):
+        raise ValueError('original selected production detail identity differs')
+    indexed={(r['profile'],r['kind'],instant(r['at'])):r for r in body['rows']};published=[];scored=[]
     first=decision.replace(minute=0,second=0,microsecond=0)+timedelta(hours=1)
     for day in detail['days']:
         for hour in day['hours']:
             at=instant(hour['at']);profile=hour.get('forecastProfile','extended')
             for kind in ('temperature','wind'):
-                row=indexed[(profile,kind,at)];frame=row['forecast']
+                row=indexed[(profile,kind,at)];frame=row['forecast'];prediction=row['prediction']
+                expected=row['raw_presentation_value']
+                actual=hour['tempF'] if kind=='temperature' else hour['windMph']
+                if kind=='temperature' and prediction is not None:expected=prediction['point_estimate']*9/5+32
+                if not (expected is None and actual is None or finite(expected) and finite(actual) and math.isclose(expected,actual,rel_tol=1e-10,abs_tol=1e-8)):
+                    raise ValueError('original published point differs from retained prediction')
+                if kind=='temperature' and actual is None:continue
+                if kind=='wind' and hour.get('windMeanMph') is not None:
+                    if prediction is None or not finite(hour['windMeanMph']) or not math.isclose(hour['windMeanMph'],prediction['point_estimate']*MPH,rel_tol=1e-10,abs_tol=1e-8):
+                        raise ValueError('original published local wind differs')
                 # Only rows present in the actual emitted hourly JSON are issued
                 # here. Native instantaneous wind is a different target.
                 if kind=='wind' and hour.get('windMeanMph') is None:continue
@@ -111,6 +129,6 @@ def read_emission(state,pin):
     if value.get('emission_sha256')!=pin or value.get('schema')!=EMISSION_SCHEMA:raise ValueError('original confirmed production emission required')
     product=read_issue(state,value['issue_sha256']);provider=object.__new__(ProviderSnapshot)
     object.__setattr__(provider,'_raw',canonical(value['attempt_original']['provider']))
-    rebuilt=_confirmation(product,provider,value['attempt_original'],value['publication_original']);rebuilt['emission_sha256']=identity(rebuilt)
+    rebuilt=_confirmation(product,provider,value['attempt_original'],value['publication_original'],recorded=True);rebuilt['emission_sha256']=identity(rebuilt)
     if value!=rebuilt:raise ValueError('original published prediction membership differs')
     return value

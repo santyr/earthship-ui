@@ -32,6 +32,23 @@ def marginal_monitor_callback(state,*,observation_policy_sha256,sensor_epoch,rea
         return monitor_marginals(state,now=now,policy=policy,observation_policy_sha256=observation_policy_sha256,read_observation=observation,limit=limit,apply=apply,guard=guard,clock=clock)
     return monitor
 
+def production_monitor_callback(state,*,observation_policy_sha256,sensor_epoch,read_temperature,read_wind,clock):
+    from .production_queue import DATABASE,monitor_production
+    if not (state.root/DATABASE).exists() and not (state.root/'production-emissions').is_dir():return None
+    from .marginal_outcomes import temperature_observation,wind_observation
+    def monitor(*,now,limit,apply,guard):
+        def observation(work,assessed):
+            start,end=map(instant,(work['start'],work['end']))
+            if work['kind']=='temperature':
+                value=read_temperature([end],assessed).get(end)
+                return None if value is None else temperature_observation(value,target=end,acquired_at=clock(),sensor_epoch=sensor_epoch,observation_policy_sha256=observation_policy_sha256)
+            if work['kind']!='wind':raise ValueError('registered production measured target required')
+            value=read_wind(work,assessed)
+            return None if value is None else wind_observation(value,acquired_at=clock(),observation_policy_sha256=observation_policy_sha256)
+        return monitor_production(state,now=now,observation_policy_sha256=observation_policy_sha256,read_observation=observation,limit=limit,apply=apply,clock=clock,guard=guard)
+    return monitor
+
+
 def rain_monitor_callback(state,*,observation_policy_sha256,native_policy,cutover,connect,clock,resolution_source=None):
     """Consume the existing owner's remaining budget using raw readonly history."""
     from .rain_queue import DATABASE,monitor_rain
@@ -161,6 +178,8 @@ def main(argv=None):
                     clock=lambda:datetime.now(timezone.utc))
         marginal_reader=marginal_monitor_callback(state,observation_policy_sha256=policy_sha256,sensor_epoch=epoch,
             read_temperature=temperatures,read_wind=wind,read_solar=solar,clock=lambda:datetime.now(timezone.utc))
+        production_reader=production_monitor_callback(state,observation_policy_sha256=policy_sha256,sensor_epoch=epoch,
+            read_temperature=temperatures,read_wind=wind,clock=lambda:datetime.now(timezone.utc))
         rain_interval_reader=None
         from .rain_queue import DATABASE as RAIN_DATABASE
         if (state.root/RAIN_DATABASE).exists():
@@ -172,7 +191,7 @@ def main(argv=None):
                 def rain_interval_reader(**_kwargs):raise ValueError('optional rain resolution source unavailable')
         with collector_lock(state.root/'monitor.lock'):
             report=monitor_once(archive,state,now=datetime.now(timezone.utc),site=site,sensor_epoch=epoch,code_revision=args.code_revision,
-                observation_policy_sha256=policy_sha256,read_temperature=temperatures,read_solar=solar,read_rain=rainfall,apply=args.apply,guard=guard,read_corrections=corrections,read_capabilities=capability_reader,read_refresh=refresh_reader,read_marginals=marginal_reader,read_rain_intervals=rain_interval_reader)
+                observation_policy_sha256=policy_sha256,read_temperature=temperatures,read_solar=solar,read_rain=rainfall,apply=args.apply,guard=guard,read_corrections=corrections,read_capabilities=capability_reader,read_refresh=refresh_reader,read_marginals=marginal_reader,read_rain_intervals=rain_interval_reader,read_production=production_reader)
         print(json.dumps(dict(status='weather_performance_refreshed' if args.apply else 'weather_performance_prepared',
             temperature_pairs=0 if report['temperature']['raw'] is None else report['temperature']['raw']['pairs'],
             solar_pairs=len(report['solar']['pairs']),rain_days=len(report['rain']['pairs']),pending=report['pending'],

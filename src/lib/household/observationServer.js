@@ -14,6 +14,7 @@ import { parseEnergyObservation, parseEnergyPerformance } from './energyObservat
 import { parseProfiledObservation, parseProfiledPerformance } from './profiledObservation.js';
 import {parseWeatherCapabilities,MAX_CAPABILITY_BYTES} from '../weather/capabilityForecast.js';
 import {parseWeatherMarginals,validateMarginalEmission,MAX_MARGINAL_BYTES,MAX_MARGINAL_EMISSION_BYTES} from '../weather/marginalForecast.js';
+import {parseProductionWeather,validateProductionViewReceipt,MAX_PRODUCTION_BYTES,MAX_PRODUCTION_RECEIPT_BYTES} from '../weather/productionForecast.js';
 import {parseRainShadow,validateRainEmission,MAX_RAIN_BYTES,MAX_RAIN_EMISSION_BYTES} from '../weather/rainForecast.js';
 
 // Preserve Vite's default sensitive-file exclusions and add private agent and
@@ -67,6 +68,7 @@ export function householdObservationPlugin({
   capturedPvCachePath = resolve(homedir(), '.local/state/household-intel/captured-pv-performance.json'),
   pvPerformanceCachePath = resolve(homedir(), '.local/state/household-intel/daily-pv-performance.json'),
   dailyPvCachePath = resolve(homedir(), '.local/state/household-intel/daily-pv-potential.json'),
+  weatherProductionPath = resolve(homedir(), '.local/state/earthship-weather/shadow/google-local-v2/production-forecast.json'),
   weatherRainPath = resolve(homedir(), '.local/state/earthship-weather/shadow/google-local-v2/rain-candidates.json'),
   weatherMarginalsPath = resolve(homedir(), '.local/state/earthship-weather/shadow/google-local-v2/marginal-candidates.json'),
   weatherCapabilitiesPath = resolve(homedir(), '.local/state/earthship-weather/shadow/google-local-v2/weather-capabilities.json'),
@@ -76,6 +78,7 @@ export function householdObservationPlugin({
     let url;
     try { url = new URL(req.url || '/', 'http://localhost'); } catch { return next(); }
     const route = {
+      '/api/weather-production': [weatherProductionPath, (raw,options)=>parseProductionWeather(raw,options).state==='ready', MAX_PRODUCTION_BYTES],
       '/api/weather-rain-shadow': [weatherRainPath, (raw,options)=>parseRainShadow(raw,options).state==='ready', MAX_RAIN_BYTES],
       '/api/weather-marginals': [weatherMarginalsPath, (raw,options)=>parseWeatherMarginals(raw,options).state==='ready', MAX_MARGINAL_BYTES],
       '/api/weather-capabilities': [weatherCapabilitiesPath, (raw,options)=>parseWeatherCapabilities(raw,options).state==='ready', MAX_CAPABILITY_BYTES],
@@ -100,7 +103,7 @@ export function householdObservationPlugin({
     if (url.search) { res.writeHead(400).end('{"status":"unavailable"}'); return; }
     try {
       const at=now();let cacheBytesSha256=null;
-      const raw = await readObservation(route[0], at, route[1], route[2],['/api/weather-marginals','/api/weather-rain-shadow'].includes(url.pathname)?bytes=>{cacheBytesSha256=createHash('sha256').update(bytes).digest('hex')}:null);
+      const raw = await readObservation(route[0], at, route[1], route[2],['/api/weather-marginals','/api/weather-rain-shadow','/api/weather-production'].includes(url.pathname)?bytes=>{cacheBytesSha256=createHash('sha256').update(bytes).digest('hex')}:null);
       if(url.pathname==='/api/weather-rain-shadow'){
         const view=parseRainShadow(raw,{nowMs:at});
         const receipt=resolve(dirname(weatherRainPath),'rain-emissions','view-'+view.reportSha256+'.json');
@@ -110,6 +113,11 @@ export function householdObservationPlugin({
         const view=parseWeatherMarginals(raw,{nowMs:at});
         const receipt=resolve(dirname(weatherMarginalsPath),'marginal-emissions',view.issueSha256+'.json');
         await readObservation(receipt,at,(emission,options)=>validateMarginalEmission(emission,{view,cacheBytesSha256,...options}),MAX_MARGINAL_EMISSION_BYTES);
+      }
+      if(url.pathname==='/api/weather-production'){
+        const view=parseProductionWeather(raw,{nowMs:at});
+        const receipt=resolve(dirname(weatherProductionPath),'production-views','view-'+view.reportSha256+'.json');
+        await readObservation(receipt,at,(receipt,options)=>validateProductionViewReceipt(receipt,{view,cacheBytesSha256,...options}),MAX_PRODUCTION_RECEIPT_BYTES);
       }
       res.writeHead(200).end(raw);
     }

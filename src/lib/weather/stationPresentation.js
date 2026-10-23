@@ -108,10 +108,12 @@ export function stationPresentation(states, { nowMs = Date.now() } = {}) {
   return result;
 }
 
-/** Complete totals and observed lower bounds retain distinct visible meanings. */
+/** Recorded display totals never confer complete scientific interval coverage. */
 export function rainPeriodText(rain, period) {
   const value=rain?.[period];
   if (finite(value) && value>=0) return `${value.toFixed(2)}″`;
+  const recorded=rain?.['recorded'+period[0].toUpperCase()+period.slice(1)];
+  if (finite(recorded) && recorded>=0) return recorded.toFixed(2)+'″';
   const partial=rain?.['partial'+period[0].toUpperCase()+period.slice(1)];
   return finite(partial) && partial>=0 ? `≥${partial.toFixed(2)}″ · partial` : '—';
 }

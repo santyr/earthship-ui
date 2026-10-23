@@ -312,3 +312,30 @@ class MonitoringTests(unittest.TestCase):
         for error in (TimeoutError('deadline'),MemoryError('allocation')):
             with self.subTest(error=type(error).__name__),self.assertRaises(type(error)):
                 self.run_monitor(read_rain_intervals=Mock(side_effect=error))
+
+
+    def test_production_scores_and_every_legacy_reader_share_the_existing64_attempt_ceiling(self):
+        production=Mock(side_effect=lambda **kw:dict(status='fixture',observations_attempted=kw['limit']))
+        capabilities=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit']))
+        refresh=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit']))
+        marginal=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit']))
+        rain_intervals=Mock(side_effect=lambda **kw:dict(status='fixture',observations_attempted=kw['limit']))
+        corrections=Mock(return_value=dict(status='fixture'))
+        report=self.run_monitor(now=T+timedelta(days=2),read_production=production,read_capabilities=capabilities,read_refresh=refresh,read_marginals=marginal,read_rain_intervals=rain_intervals,read_corrections=corrections)
+        total=self.solar.call_count+self.rain.call_count+sum(len(call.args[0]) for call in self.temperature.call_args_list)
+        total+=sum(x.call_args.kwargs['limit'] for x in (production,capabilities,refresh,marginal,rain_intervals,corrections))
+        self.assertLessEqual(total,64);self.assertEqual(production.call_args.kwargs['limit'],48)
+        self.assertEqual(report['production_models']['status'],'fixture')
+
+    def test_production_optional_failure_reserves_its_full_budget_and_preserves_core_truth(self):
+        corrections=Mock(return_value=dict(status='fixture'))
+        report=self.run_monitor(read_production=Mock(side_effect=ConnectionError('private production detail')),read_corrections=corrections)
+        self.assertEqual(report['temperature']['raw']['pairs'],2)
+        self.assertEqual(report['production_models']['status'],'unavailable')
+        self.assertNotIn('private production detail',str(report))
+        self.assertLessEqual(corrections.call_args.kwargs['limit'],14)
+
+    def test_production_monitor_resource_stop_is_global(self):
+        for error in (TimeoutError('deadline'),MemoryError('memory')):
+            with self.subTest(error=type(error).__name__),self.assertRaises(type(error)):
+                self.run_monitor(read_production=Mock(side_effect=error))

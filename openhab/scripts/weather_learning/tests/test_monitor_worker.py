@@ -1,6 +1,7 @@
 """Observation policy identity includes temperature validity and sensor policy."""
 from dataclasses import replace
 import unittest
+import pytest
 from learning_fixtures import T,EPOCH
 from weather_temperature_evidence import TemperaturePolicy
 from weather_learning import monitor_worker
@@ -78,3 +79,29 @@ def test_rain_worker_uses_original_readonly_native_acquisitions_without_fitting(
         result=callback(now=now,limit=1,apply=True,guard=lambda:None)
     assert result['scored']==1 and result['observations_attempted']==1 and len(connections)==1
     assert connections[0].session==dict(readonly=True,autocommit=False,isolation_level='REPEATABLE READ')
+
+
+
+def test_production_callback_stays_disabled_without_confirmed_outputs(tmp_path):
+ from types import SimpleNamespace
+ from weather_learning import monitor_worker
+ callback=monitor_worker.production_monitor_callback(SimpleNamespace(root=tmp_path),observation_policy_sha256='c'*64,sensor_epoch=EPOCH,
+  read_temperature=lambda *a:pytest.fail('disabled queried temperature'),read_wind=lambda *a:pytest.fail('disabled queried wind'),clock=lambda:T)
+ assert callback is None and not list(tmp_path.iterdir())
+
+
+from test_production_forecast import serving,NOW
+
+
+def test_production_callback_uses_native_temperature_reader_and_original_acquisition_clock(serving,tmp_path):
+ from datetime import timedelta
+ from test_production_queue import setup
+ from learning_fixtures import receipt
+ state,_,emission=setup(serving,tmp_path);now=NOW.replace(minute=0)+timedelta(hours=1,minutes=3);calls=[]
+ def read(targets,assessed):
+  calls.append((targets,assessed));return {at:receipt(at) for at in targets}
+ callback=monitor_worker.production_monitor_callback(state,observation_policy_sha256='c'*64,sensor_epoch=EPOCH,
+  read_temperature=read,read_wind=lambda *a:pytest.fail('unready wind queried'),clock=lambda:now)
+ value=callback(now=now,limit=1,apply=True,guard=lambda:None)
+ assert value['scored']==value['observations_attempted']==1
+ assert calls==[([NOW.replace(minute=0)+timedelta(hours=1)],now)]
