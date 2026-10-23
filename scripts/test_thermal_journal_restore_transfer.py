@@ -113,12 +113,13 @@ def test_owned_start_label_is_applied_to_the_actual_docker_run(monkeypatch):
     class Connection(Cursor):
         def cursor(self):return Cursor()
         def close(self):pass
+    monkeypatch.setattr(live,'_disposable_port',lambda:54321)
     monkeypatch.setattr(live.subprocess,'run',run)
     monkeypatch.setattr(live.psycopg2,'connect',lambda **kwargs:Connection())
     live.disposable_database('fixture-owned-container','disposable fixture','fixture_reader',ownership_token='a'*32)
     argv=commands[0]
     assert argv[argv.index('--label')+1]=='earthship.thermal.restore-token='+'a'*32
-    assert argv[argv.index('--publish')+1]=='127.0.0.1::5432'
+    assert argv[argv.index('--publish')+1]=='127.0.0.1:54321:5432'
     assert argv[argv.index('--memory')+1]=='512m'
 
 
