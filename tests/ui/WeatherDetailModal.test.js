@@ -119,7 +119,7 @@ describe('WeatherDetailModal', () => {
     document.body.style.overflow = '';
   });
 
-  it('shows active production points with hourly wind scope and experimental qualification', async () => {
+  it('shows active production points and wind scope without explanatory labels', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-07-18T12:00:00-06:00'));
     const raw = JSON.parse(payload({ firstTempF: 65 }));
@@ -131,7 +131,8 @@ describe('WeatherDetailModal', () => {
     raw.days[0].hours[0].windMeanMph = 2;
     items.set({ Forecast_10Day_JSON: JSON.stringify(raw) });
     addOpener();render(WeatherDetailModal);await openTomorrow();
-    expect(screen.getByText('Production temperature model · experimental')).toBeTruthy();
+    expect(screen.queryByText('Production temperature model · experimental')).toBeNull();
+    expect(screen.queryByText('Shaded band and dashed raw mean use original WeatherNext statistics. The orange displayed forecast is separate.')).toBeNull();
     expect(screen.getByText('65°')).toBeTruthy();
     expect(screen.getByText('2 mph').title).toContain('Local station hourly mean');
     expect(screen.getByText('6 mph').title).toContain('Native instantaneous wind');
@@ -172,7 +173,7 @@ describe('WeatherDetailModal', () => {
     render(WeatherDetailModal);
     openWeatherDetail({ date: '2026-10-21', label: 'Today' });
     await screen.findByRole('dialog', { name: /Today forecast/i });
-    expect(screen.getByText('WeatherNext p10–p90; local coverage not yet verified')).toBeTruthy();
+    expect(screen.queryByText('WeatherNext p10–p90; local coverage not yet verified')).toBeNull();
     expect(screen.getAllByText('32°–50°').length).toBeGreaterThan(0);
     expect(screen.queryByText(/Raw median/)).toBeNull();
     expect(screen.getByText(/initialized 6h ago/)).toBeTruthy();
@@ -181,7 +182,7 @@ describe('WeatherDetailModal', () => {
     expect(option.series.find(s => s.name === 'Temperature').data.some(v => v > 50)).toBe(true);
     expect(option.series.find(s => s.name === 'WeatherNext raw mean').data.filter(v => v !== null).every(v => v === 68)).toBe(true);
     weatherCapabilityClock.set(CAPABILITY_NOW + 3600000);
-    await waitFor(() => expect(screen.queryByText('WeatherNext p10–p90; local coverage not yet verified')).toBeNull());
+    await waitFor(() => expect(screen.queryAllByText('32°–50°')).toHaveLength(0));
     await waitFor(() => expect(mocks.chart.setOption.mock.calls.at(-1)[0].series.some(s => s.name === 'WeatherNext p10–p90')).toBe(false));
     expect(screen.getAllByTestId('weather-detail-hour').length).toBeGreaterThan(0);
   });

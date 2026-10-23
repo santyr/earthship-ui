@@ -306,15 +306,12 @@
           {#if index > 0}<span aria-hidden="true"> · </span>{/if}
           <span>{warning}</span>
         {/each}
-        {#if forecast.productionModel}
-          <div class="native-legend">
-            <span>{forecast.productionModel.status === 'RAW_FALLBACK' ? 'Production forecast · raw fallback' : 'Production temperature model · experimental'}</span>
-          </div>
+        {#if forecast.productionModel?.status === 'RAW_FALLBACK'}
+          <div class="native-legend"><span>Production forecast · raw fallback</span></div>
         {/if}
         {#if nativeSources.length}
           <div class="native-legend">
-            <span>{hasNativeRange ? capabilities.label : 'WeatherNext raw mean; percentile range unavailable'}</span>
-            <span>{hasNativeRange ? 'Shaded band and dashed raw mean use original WeatherNext statistics.' : 'Dashed line uses the original WeatherNext mean.'} The orange displayed forecast is separate.</span>
+            {#if !hasNativeRange}<span>WeatherNext raw mean; percentile range unavailable</span>{/if}
             {#each nativeSources as source (source.snapshot_sha256)}
               <span title={`Run ${source.run_id}; available ${source.available_at}`}>{sourceAge(source)}</span>
             {/each}
