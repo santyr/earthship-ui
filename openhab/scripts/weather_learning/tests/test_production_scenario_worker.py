@@ -57,7 +57,8 @@ def setup_cycle(tmp_path,monkeypatch):
  # This test isolates publication and retry semantics. Real retained-model
  # computation is independently exercised by production-context tests/probes.
  calls=[]
- def prepare(**kw):calls.append(kw);return report
+ def prepare(**kw):
+  calls.append(kw);fresh=args();fresh['prepared_at']=kw['prepared_at'];return prepare_report(**fresh)
  monkeypatch.setattr(module,'prepare_report',prepare)
  return module,report,current,calls,ORIGIN
 
@@ -80,3 +81,19 @@ def test_changed_selector_after_preparation_does_not_publish(tmp_path,monkeypatc
  monkeypatch.setattr(module,'prepare_report',changed)
  with pytest.raises(ValueError,match='changed'):module.run(state=tmp_path/'state',observation_path=tmp_path/'observation',enabled=True,publish=True,clock=lambda:origin+timedelta(seconds=2))
  assert not (tmp_path/'state'/'scenario-advisory.json').exists()
+
+
+def test_interruption_between_original_archive_and_issue_index_preserves_first_preparation_clock(tmp_path,monkeypatch):
+ module,report,current,calls,origin=setup_cycle(tmp_path,monkeypatch);state=tmp_path/'state';original_write=module._write;failed=[]
+ def interrupt_index(store,path,value,guard):
+  if path.name.startswith('issue-') and not failed:
+   failed.append(True);raise TimeoutError('interrupted before issue index')
+  return original_write(store,path,value,guard)
+ monkeypatch.setattr(module,'_write',interrupt_index)
+ first=module.run(state=state,observation_path=tmp_path/'observation',enabled=True,publish=True,clock=lambda:origin+timedelta(seconds=2))
+ assert first['status']=='publication_uncertain'
+ second=module.run(state=state,observation_path=tmp_path/'observation',enabled=True,publish=True,clock=lambda:origin+timedelta(seconds=5))
+ assert second['status']=='confirmed'
+ assert second['report_sha256']==first['report_sha256']
+ assert len(list((state/'scenario-reports').glob('original-*.json')))==1
+ assert calls[0]['prepared_at']==calls[1]['prepared_at']==origin+timedelta(seconds=2)

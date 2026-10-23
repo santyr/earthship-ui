@@ -57,13 +57,29 @@ def run(*,state,observation_path,enabled=False,publish=False,clock=lambda:dateti
         def unchanged():
             check();unchanged_current(current)
             if effective_selection()!=selected or runtime_sha256()!=runtime:raise ValueError('production scenario inputs or producer changed')
+        prepared_at=clock()
+        if publish:
+            store=ShadowStore(state);_directory(directory)
+            preparation_path=directory/('preparation-'+pin+'.json')
+            try:preparation=_read(preparation_path,32768)
+            except FileNotFoundError:preparation=None
+            if preparation is None:
+                preparation=dict(schema='earthship-production-scenario-preparation/v1',binding=binding,prepared_at=prepared_at.isoformat())
+                # The first durable preparation clock precedes report/source
+                # archival. An interruption before the issue index therefore
+                # cannot relabel this same opportunity on retry.
+                _write(store,preparation_path,preparation,check)
+            if (set(preparation)!={'schema','binding','prepared_at'} or preparation['schema']!='earthship-production-scenario-preparation/v1' or
+                preparation['binding']!=binding or not origin<=instant(preparation['prepared_at'])<=clock()):raise ValueError('original scenario preparation clock differs')
+            prepared_at=instant(preparation['prepared_at'])
         if index is not None:
             if set(index)!={'schema','binding','original_report_sha256'} or index['schema']!='earthship-production-scenario-issue/v1' or index['binding']!=binding:raise ValueError('original scenario opportunity differs')
             report=restore_compact(state,index['original_report_sha256'],guard=check)
         else:
             prepared=prepare_owned_inputs(energy=energy,plan=current['plan'],retained_producer=producer,guard=check)
-            report=prepare_report(**prepared,owned_sources=dict(energy=energy,plan=current['plan'],retained_producer=producer),policy=policy,blocks=[],cohort_sha256=UNAVAILABLE_JOINT_COHORT,prepared_at=clock(),guard=check)
+            report=prepare_report(**prepared,owned_sources=dict(energy=energy,plan=current['plan'],retained_producer=producer),policy=policy,blocks=[],cohort_sha256=UNAVAILABLE_JOINT_COHORT,prepared_at=prepared_at,guard=check)
         unchanged();value=report.to_dict()
+        if publish and instant(value['inputs']['prepared_at'])!=prepared_at:raise ValueError('original scenario report preparation clock differs')
         result=dict(status='prepared',report_sha256=value['report_sha256'],origin=origin.isoformat(),stress_cases=len(value['output']['stress']),joint_status=value['output']['joint']['status'],cached=False,probability_claim=False,automatic_actuation=False)
         if not publish:return dict(result,seconds=time.monotonic()-started)
         parents=dict(energy=current['energy_path'],plan=current['originals'][2])
