@@ -118,7 +118,7 @@ def _capacity(root,check):
 def run_publication(*,archive,site,evidence_directory,shared_lock,code_revision,transport,
         authorize=None,guard,clock=lambda:datetime.now(timezone.utc),
         required_horizon=timedelta(hours=336),astro_source=None,admission_sha256=None,
-        near_term_preparer=None,refresh_retainer=None):
+        near_term_preparer=None,refresh_retainer=None,production_preparer=None,production_retainer=None,production_guard=None):
     """Publish only after held-lock, release, source and Item-owner admission.
 
     The result records state readbacks, not a JDBC delivery receipt or scientific
@@ -134,7 +134,10 @@ def run_publication(*,archive,site,evidence_directory,shared_lock,code_revision,
     optional=near_term_preparer is not None or refresh_retainer is not None
     if optional and (not callable(near_term_preparer) or not callable(refresh_retainer)):
         raise ValueError('paired optional near24 preparation/retention required')
-    root=_directory(pathlib.Path(evidence_directory));decision=utc(clock())
+    selected=any(value is not None for value in (production_preparer,production_retainer,production_guard))
+    if selected and (not all(callable(value) for value in (production_preparer,production_retainer,production_guard)) or optional):
+        raise ValueError('paired selected production preparation/retention/current owner required without parallel shadow')
+    root=_directory(pathlib.Path(evidence_directory));decision=utc(clock());production=None
     with SharedScoreLock(shared_lock) as held:
         guard();held.verify()
         if required_horizon==timedelta(hours=336):
@@ -145,7 +148,15 @@ def run_publication(*,archive,site,evidence_directory,shared_lock,code_revision,
             guard();held.verify();now=utc(clock());transport.budget.remaining()
             if not decision<=now<=decision+timedelta(seconds=85):raise ValueError('publication lifetime elapsed')
             if authorize(provider) is not True:raise ValueError('qualified writer admission refused')
-        check();states=production_states(provider,now=decision);_capacity(root,check)
+            if production is not None and production_guard(production) is not True:
+                raise ValueError('current selected production owner admission refused')
+        check()
+        if selected:
+            production=production_preparer(decision,provider)
+            from .production_forecast import ProductionForecast,_original
+            if not isinstance(production,ProductionForecast):raise ValueError('original prepared production forecast required')
+            _original(production,provider,decision);check()
+        states=production_states(provider,now=decision,production=production);_capacity(root,check)
         near=None;near_status='NOT_REQUESTED'
         if optional:
             try:
@@ -158,6 +169,10 @@ def run_publication(*,archive,site,evidence_directory,shared_lock,code_revision,
         attempt_path,attempt=_persist(root,dict(schema='earthship-weather-publication-attempt/v1',
             started_at=decision.isoformat(),code_revision=code_revision,admission_sha256=admission_sha256,provider=provider.to_dict(),
             states=states,states_sha256=identity(states),release_authorized=False,automatic_actuation=False),'attempt')
+        if selected:
+            retained=production_retainer(production,provider,attempt,None)
+            if retained!=production.to_dict()['issue_sha256']:raise ValueError('exact prepublication production retention required')
+            check()
         ownership=None;publication=None;failure=None;failed_item=None;status='REFUSED'
         def put(item,raw):
             withdrawal=(raw in ('UNDEF','[]') or (item==DETAIL and json.loads(raw).get('providerStatus')=='UNAVAILABLE'))
@@ -175,7 +190,7 @@ def run_publication(*,archive,site,evidence_directory,shared_lock,code_revision,
             ownership=transport.preflight(before_request=check)
             publication=publish_cycle(provider,now=decision,put_state=put,
                 read_state=lambda item:transport.read_state(item,before_request=check),
-                authorize=lambda original:check() is None)
+                authorize=lambda original:check() is None,production=production)
             status=publication['status']
         except Exception as error:
             # Arbitrary guard/transport errors can contain private inputs.
@@ -185,6 +200,16 @@ def run_publication(*,archive,site,evidence_directory,shared_lock,code_revision,
             attempt_sha256=attempt['attempt_sha256'],status=status,completed_at=utc(clock()).isoformat(),
             ownership_sha256=ownership,publication=publication,failure_kind=failure,failed_item=failed_item,
             release_authorized=False,automatic_actuation=False),'result')
+        production_retention='NOT_PUBLISHED';production_emission=None
+        if selected and status=='PUBLISHED':
+            try:
+                emitted=production_retainer(production,provider,attempt,result)
+                if (not isinstance(emitted,dict) or emitted.get('issue_sha256')!=production.to_dict()['issue_sha256'] or
+                        emitted.get('result_sha256')!=result['result_sha256'] or emitted.get('issued') is not True or
+                        emitted.get('emission_sha256')!=identity({k:v for k,v in emitted.items() if k!='emission_sha256'})):
+                    raise ValueError('original durable confirmed production emission required')
+                production_retention='CONFIRMED';production_emission=emitted['emission_sha256']
+            except Exception:production_retention='FAILED_AFTER_PUBLICATION'
         refresh_status='NOT_PUBLISHED'
         if optional and status=='PUBLISHED':
             try:
@@ -195,5 +220,7 @@ def run_publication(*,archive,site,evidence_directory,shared_lock,code_revision,
     outcome=dict(status=status,attempt_path=str(attempt_path),result_path=str(result_path),
         attempt_sha256=attempt['attempt_sha256'],result_sha256=result['result_sha256'],
         release_authorized=False,automatic_actuation=False)
+    if selected:outcome.update(production_issue_sha256=production.to_dict()['issue_sha256'],
+        production_retention_status=production_retention,production_emission_sha256=production_emission)
     if optional:outcome.update(refresh_status=refresh_status,near_term_preparation_status=near_status)
     return outcome

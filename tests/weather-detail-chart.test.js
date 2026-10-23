@@ -60,3 +60,22 @@ it('plots forecast depth in inches when no precipitation probability exists',()=
  expect(option.series.find(s=>s.name==='Precipitation').data).toEqual(Array(10).fill(0.02));
  expect(option.tooltip.formatter([{axisValue:'8 AM',seriesName:'Precipitation',value:0.02}])).toContain('0.02 in');
 });
+
+it('keeps the native instantaneous wind fallback separate from the local hourly-mean curve',()=>{
+ const option=buildWeatherDetailOption({hours:[
+  {...hours[0],windMph:3,windStatistic:'native_instantaneous'},
+  {...hours[1],windMph:1,windStatistic:'local_hour_mean'},
+  {...hours[2],windMph:1.2,windStatistic:'local_hour_mean'},
+ ]});
+ expect(option.series.find(s=>s.name==='Wind').data).toEqual([null,1,1.2]);
+ expect(option.series.find(s=>s.name==='Native wind')).toMatchObject({data:[3,null,null],lineStyle:{width:0}});
+ expect(option.tooltip.formatter([{dataIndex:0,axisValue:'8 AM',seriesName:'Native wind',value:3}])).toContain('Native instantaneous wind: 3 mph');
+ expect(option.tooltip.formatter([{dataIndex:1,axisValue:'9 AM',seriesName:'Wind',value:1}])).toContain('Local hourly mean wind: 1 mph');
+});
+
+it('bounds real decimal rain-axis tick labels without changing the plotted depth',()=>{
+ const depth=.06301885866743373;
+ const option=buildWeatherDetailOption({hours:[{...hours[0],precipPct:null,precipIn:depth}]});
+ expect(option.series.find(s=>s.name==='Precipitation').data).toEqual([depth]);
+ expect(option.yAxis[1].axisLabel.formatter(depth)).toBe('0.063');
+});

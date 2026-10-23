@@ -119,6 +119,25 @@ describe('WeatherDetailModal', () => {
     document.body.style.overflow = '';
   });
 
+  it('shows active production points with hourly wind scope and experimental qualification', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-07-18T12:00:00-06:00'));
+    const raw = JSON.parse(payload({ firstTempF: 65 }));
+    Object.assign(raw, { version: 3, provider: 'weathernext3', providerStatus: 'AVAILABLE',
+      productionModel: { issueSha256: 'a'.repeat(64), status: 'MIXED_WITH_RAW_FALLBACK', localCoverageQualified: false,
+        probabilityClaim: false, temperatureStatistic: 'model_point_with_declared_raw_fallback',
+        windStatistic: 'native_instantaneous_with_separate_local_hour_mean' } });
+    Object.assign(raw.days[0].summary, { temperatureScope: 'full_day', temperatureStatistic: 'extrema_of_hourly_point_forecasts' });
+    raw.days[0].hours[0].windMeanMph = 2;
+    items.set({ Forecast_10Day_JSON: JSON.stringify(raw) });
+    addOpener();render(WeatherDetailModal);await openTomorrow();
+    expect(screen.getByText('Production temperature model · experimental')).toBeTruthy();
+    expect(screen.getByText('65°')).toBeTruthy();
+    expect(screen.getByText('2 mph').title).toContain('Local station hourly mean');
+    expect(screen.getByText('6 mph').title).toContain('Native instantaneous wind');
+    expect(screen.getByText(/Daily highs and lows are extrema of hourly point forecasts/)).toBeTruthy();
+  });
+
   it('renders a complete twelve-hour icon/value strip and SVG chart', async () => {
     // The fixture's 2026-07-19 hours are "Tomorrow" relative to a pinned
     // 07-18 clock; unpinned, these tests fail whenever the wall-clock date

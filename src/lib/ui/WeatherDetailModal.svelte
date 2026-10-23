@@ -305,6 +305,13 @@
           {#if index > 0}<span aria-hidden="true"> · </span>{/if}
           <span>{warning}</span>
         {/each}
+        {#if forecast.productionModel}
+          <div class="native-legend">
+            <span>{forecast.productionModel.status === 'RAW_FALLBACK' ? 'Production forecast · raw fallback' : 'Production temperature model · experimental'}</span>
+            <span>Available local models supply forecast points; unavailable targets use raw values. Local interval coverage is unverified.</span>
+            <span>Daily highs and lows are extrema of hourly point forecasts. Today covers remaining hours where indicated.</span>
+          </div>
+        {/if}
         {#if nativeSources.length}
           <div class="native-legend">
             <span>{hasNativeRange ? capabilities.label : 'WeatherNext raw mean; percentile range unavailable'}</span>
@@ -353,7 +360,7 @@
                   <span class="hour-rain" data-testid="modal-hour-rain-amount" style="color: {colors.rain}">{rainAmountText(hour.precipIn)}</span>
                 {/if}
                 <span class="hour-radiation">{metric(hour.radiationWm2, ' W/m²')}</span>
-                <span class="hour-wind">{metric(hour.windMph, ' mph')}</span>
+                <span class="hour-wind" title={hour.windStatistic === 'local_hour_mean' ? `Local station hourly mean; native instantaneous wind ${metric(hour.nativeWindMph, ' mph')}` : hour.windStatistic === 'native_instantaneous' ? 'Native instantaneous wind; local hourly mean unavailable' : undefined}>{metric(hour.windMph, ' mph')}</span>
               </div>
             {/each}
           </div>

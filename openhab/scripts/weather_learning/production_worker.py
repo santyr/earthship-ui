@@ -37,6 +37,13 @@ SOURCE_FILES=tuple('openhab/scripts/weather_learning/'+name+'.py' for name in (
     'household_job_start','household_job_pool','household_job_budget','thermal_model/__init__',
     'thermal_model/capture_guard'))+('scripts/run-household-job.py',
     'deploy/weathernext-publish.service','deploy/weathernext-publish.timer')
+from .probabilistic_artifacts import NUMERICAL_FILES
+SOURCE_FILES=tuple(sorted(set(SOURCE_FILES)|set(NUMERICAL_FILES)|{
+    'openhab/scripts/weather_learning/'+name+'.py' for name in (
+        'production_forecast','production_emissions','production_scoring','production_training','production_model_admission',
+        'probabilistic_evaluation','marginal_outcomes','probabilistic_issue','wind_history','correction_monitor','solar_shadow')}|{
+    'openhab/scripts/production_model_train.py','docs/operations/weathernext3-capabilities/deployment-policy.json',
+    'docs/operations/weathernext3-capabilities/marginal-calibration-protocol.json'}))
 ROOT=Path(__file__).resolve().parents[3]
 
 

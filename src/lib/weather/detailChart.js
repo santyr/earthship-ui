@@ -17,18 +17,22 @@ function display(value, suffix) {
     : `—${suffix}`;
 }
 
-function tooltipFormatter(params, precipitation, nativeHours) {
+function tooltipFormatter(params, precipitation, nativeHours, hours) {
   const values = Object.fromEntries(
     (Array.isArray(params) ? params : []).map(({ seriesName, value }) => [seriesName, value]),
   );
   const label = params?.[0]?.axisValue ?? 'Forecast';
-  const native=nativeHours?.[(Array.isArray(params)?params:[])[0]?.dataIndex];
+  const index=(Array.isArray(params)?params:[])[0]?.dataIndex;
+  const native=nativeHours?.[index],hour=hours?.[index];
   return [
     `<strong>${label}</strong>`,
     `Temperature: ${display(values.Temperature, '°F')}`,
     `Precipitation: ${precipitation.format(values.Precipitation)}`,
     `Radiation: ${display(values.Radiation, ' W/m²')}`,
-    `Wind: ${display(values.Wind, ' mph')}`,
+    hour?.windStatistic === 'native_instantaneous'
+      ? `Native instantaneous wind: ${display(values['Native wind'], ' mph')}`
+      : hour?.windStatistic === 'local_hour_mean' ? `Local hourly mean wind: ${display(values.Wind, ' mph')}`
+        : `Wind: ${display(values.Wind, ' mph')}`,
     ...(native ? [`WeatherNext raw mean: ${display(native.meanF,'°F')}`,
       native.rangeStatus==='available' ? `WeatherNext p10–p90: ${display(native.p10F,'°F')}–${display(native.p90F,'°F')} (local coverage unverified)` : 'WeatherNext range unavailable',
       ...(native.p50F===null?[]:[`WeatherNext median: ${display(native.p50F,'°F')}`])] : []),
@@ -37,6 +41,7 @@ function tooltipFormatter(params, precipitation, nativeHours) {
 
 export function buildWeatherDetailOption({ hours = [], widthPx = 900, capabilities = null } = {}) {
   const wide = Number(widthPx) >= 760;
+  const scopedWind = hours.some(hour => hour.windStatistic != null);
   const precipitation = precipitationMetric(hours);
   const nativeHours=hours.map(hour=>temperatureCapabilityAt(capabilities,hour.at));
   const nativeSeries=nativeHours.some(Boolean)?[
@@ -66,7 +71,7 @@ export function buildWeatherDetailOption({ hours = [], widthPx = 900, capabiliti
     tooltip: {
       trigger: 'axis',
       confine: true,
-      formatter: params => tooltipFormatter(params, precipitation, nativeHours),
+      formatter: params => tooltipFormatter(params, precipitation, nativeHours, hours),
     },
     xAxis: {
       type: 'category',
@@ -97,7 +102,7 @@ export function buildWeatherDetailOption({ hours = [], widthPx = 900, capabiliti
         position: 'right',
         min: 0,
         max: precipitation.max,
-        axisLabel: { color: '#38bdf8', fontSize: 10 },
+        axisLabel: { color: '#38bdf8', fontSize: 10, formatter: value => precipitation.probability ? `${Math.round(value)}` : `${Number(value.toPrecision(2))}` },
         nameTextStyle: { color: '#38bdf8' },
         splitLine: { show: false },
       },
@@ -149,13 +154,17 @@ export function buildWeatherDetailOption({ hours = [], widthPx = 900, capabiliti
         name: 'Wind',
         type: 'line',
         yAxisIndex: 3,
-        data: hours.map(({ windMph }) => windMph),
+        data: hours.map(hour => !scopedWind || hour.windStatistic === 'local_hour_mean' ? hour.windMph : null),
+        connectNulls: false,
         smooth: false,
         showSymbol: true,
         symbolSize: 5,
         lineStyle: { width: 2, color: '#22d3ee' },
         itemStyle: { color: '#22d3ee' },
       },
+      ...(scopedWind ? [{ name: 'Native wind', type: 'line', yAxisIndex: 3, smooth: false, connectNulls: false, lineStyle: { width: 0 },
+        data: hours.map(hour => hour.windStatistic === 'native_instantaneous' ? hour.windMph : null),
+        symbol: 'diamond', symbolSize: 7, itemStyle: { color: '#67e8f9' } }] : []),
     ],
   };
 }

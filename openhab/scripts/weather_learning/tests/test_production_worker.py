@@ -131,6 +131,17 @@ class ProductionWorkerTests(unittest.TestCase):
             with self.assertRaises(ValueError):self.run_worker(publish=True)
         self.assertEqual(self.server.requests,[])
 
+    def test_selected_production_source_tamper_refuses_before_any_http(self):
+        runtime=self.root/'selected-runtime';runtime.mkdir(mode=0o700)
+        selected='openhab/scripts/weather_learning/production_forecast.py'
+        for name in set(self.api.SOURCE_FILES)|{selected}:
+            target=runtime/name;target.parent.mkdir(parents=True,exist_ok=True)
+            shutil.copyfile(self.api.ROOT/name,target);target.chmod(0o644)
+        with patch.object(self.api,'ROOT',runtime):
+            path=runtime/selected;path.write_bytes(path.read_bytes()+b'\n')
+            with self.assertRaises(ValueError):self.run_worker(publish=True)
+        self.assertEqual(self.server.requests,[])
+
     def test_revocation_during_native_astro_read_refuses_before_put(self):
         from astro_serving_fixtures import astro_source
         source=astro_source(self.now)
