@@ -56,7 +56,7 @@ for(const [width,height] of [[1340,800],[1280,720]]){
   const {dialog,opener,errors}=await open(page,width,height);
   await expect(dialog.getByText('WeatherNext p10–p90; local coverage not yet verified',{exact:true})).toBeVisible();
   await expect(dialog.getByText(/initialized 6h ago/)).toBeVisible();
-  await expect(dialog.getByText('Raw p10–p90: 32°–50°',{exact:true})).toHaveCount(10);
+  await expect(dialog.getByText('32°–50°',{exact:true})).toHaveCount(10);
   await expect(dialog.locator('.weather-detail-chart svg [fill="#a78bfa"]').first()).toBeVisible();
   await expect(dialog.locator('.hour-temp').first()).toHaveText('70°');
   await expect(dialog.getByText(/Raw median/)).toHaveCount(0);
@@ -75,7 +75,7 @@ for(const [width,height] of [[1340,800],[1280,720]]){
   test(`${mode} uncertainty preserves the forecast at ${width}x${height}`,async({page})=>{
    const {dialog,errors}=await open(page,width,height,mode);
    await expect(dialog.locator('.hour-temp').first()).toHaveText('70°');
-   if(mode==='zero')await expect(dialog.getByText('Raw p10–p90: 32°–32°',{exact:true})).toHaveCount(10);
+   if(mode==='zero')await expect(dialog.getByText('32°–32°',{exact:true})).toHaveCount(10);
    else await expect(dialog.locator('.weather-detail-chart svg [fill="#a78bfa"]')).toHaveCount(0);
    if(mode==='mean-only'){
     await expect(dialog.getByText('Raw range unavailable',{exact:true})).toHaveCount(10);
@@ -100,7 +100,7 @@ for(const [width,height] of [[1340,800],[1280,720]]){
   await expect(dialog.getByText('Mean vector: 3.2 mph from 135°',{exact:true})).toBeVisible();
   await expect(dialog.getByText(/Cloud total 40% · high 40% · mid 40% · low 40%/)).toBeVisible();
   await expect(dialog.locator('.hour-temp').first()).toHaveText('70°');
-  await expect(dialog.getByText('Raw p10–p90: 46°–54°',{exact:true})).toHaveCount(10);
+  await expect(dialog.getByText('46°–54°',{exact:true})).toHaveCount(10);
   await bounded(dialog,width,height);
   const chart=await dialog.locator('.weather-detail-chart svg').boundingBox();expect(chart.height).toBeGreaterThan(100);
   await expect.poll(()=>dialog.locator('.weather-detail-chart').evaluate(el=>{const svg=el.querySelector('svg').getBoundingClientRect(),box=el.getBoundingClientRect();return svg.height<=box.height+1&&svg.bottom<=box.bottom+1;})).toBe(true);
