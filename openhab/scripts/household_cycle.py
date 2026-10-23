@@ -527,6 +527,18 @@ def _run_cycle(config_path,*,code_revision,forecast_config=None,stage=None,deplo
                 selected=load_serving_selection(stage,expected_deployment_sha256=deployment_sha256,
                     assessed_at=datetime.now(timezone.utc),guard=forecast_guard)
                 serving_model=read_serving_model(selected,assessed_at=datetime.now(timezone.utc),guard=forecast_guard)
+                from native_thermal_live import geometry_path,_next_issue,_clock,_serving_settings
+                expected_geometry=geometry_path(settings,_next_issue(_clock()))
+                try:
+                    expected_geometry.lstat()
+                except FileNotFoundError:
+                    # A skipped local preparation slot does not invalidate the
+                    # previous issued forecast. Recheck admission/configuration;
+                    # defer without transport or renewing any original clock.
+                    _serving_settings(serving_model,settings,assessed_at=_clock(),guard=forecast_guard)
+                    forecast_guard()
+                    return dict(status='deferred',reason='native_geometry_not_prepared',
+                        delivery_verified=False,automatic_actuation=False)
                 published=publish_cycle(settings,guard=forecast_guard,backend=backend,serving_model=serving_model)
             else:
                 published=publish_cycle(settings,guard=forecast_guard,backend=backend)
