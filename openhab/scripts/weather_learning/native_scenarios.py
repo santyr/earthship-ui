@@ -123,10 +123,20 @@ def project_native_scenario(scenario,context,*,positions,guard=lambda:None):
         parity=max(abs(r[name]-saved[name]) for r,saved in zip(trajectory,output['trajectory']) for name in ('air_f','mass_f'))
         if parity>1e-9:raise ValueError('central native scenario no longer matches original model trajectory')
     _dependencies(context,guard)
-    return dict(status='unqualified_native_model_sensitivity',reason=None,indoor_air_f=trajectory[-1]['air_f'],north_wall_f=trajectory[-1]['mass_f'],trajectory=trajectory,initial=initial,origin_actions=actions,model_sha256=value['artifact_sha256'],model_rule=profile['rule'],model_runtime_sha256=capture['candidate']['runtime_sha256'],forcing_rule=_forcing_rule(),conditioning_rule=None if capture.get('weather_conditioning') is None else _conditioning_rule(),original_capture_sha256=value['capture_sha256'],native_geometry_sha256=geometry.sha256,central_parity_max_abs_f=parity,radiation_input_scope='same original native scalar forecast field; components do not replace a local proxy or fitted heat-gain basis',weather_conditioning='original admitted model capsules reapplied to constructed rows' if capture.get('weather_conditioning') is not None else 'original unconditioned native input contract',physical_calibration_qualified=False,probability_claim=False,automatic_actuation=False)
+    conditioning=capture.get('weather_conditioning');conditioning_rule=None
+    description='original unconditioned native input contract'
+    if conditioning is not None:
+        conditioning_rule=_conditioning_rule(conditioning)
+        if conditioning.get('schema')=='earthship-thermal-weather-context/v2':
+            description=('original confirmed production points with declared hypothetical deltas'
+                if conditioning['mode']=='confirmed_production_temperature' else 'original declared native raw fallback')
+        else:description='original admitted model capsules reapplied to constructed rows'
+    return dict(status='unqualified_native_model_sensitivity',reason=None,indoor_air_f=trajectory[-1]['air_f'],north_wall_f=trajectory[-1]['mass_f'],trajectory=trajectory,initial=initial,origin_actions=actions,model_sha256=value['artifact_sha256'],model_rule=profile['rule'],model_runtime_sha256=capture['candidate']['runtime_sha256'],forcing_rule=_forcing_rule(),conditioning_rule=conditioning_rule,original_capture_sha256=value['capture_sha256'],native_geometry_sha256=geometry.sha256,central_parity_max_abs_f=parity,radiation_input_scope='same original native scalar forecast field; components do not replace a local proxy or fitted heat-gain basis',weather_conditioning=description,physical_calibration_qualified=False,probability_claim=False,automatic_actuation=False)
 
 
-def _conditioning_rule():
+def _conditioning_rule(context=None):
+    if isinstance(context,dict) and context.get('schema')=='earthship-thermal-weather-context/v2':
+        return 'confirmed_production_points_with_constructed_deltas/v1' if context['mode']=='confirmed_production_temperature' else 'declared_native_raw_fallback/v1'
     rule=_forcing_rule()
     if rule=='ending_hour_overlap_mean_point_temperature/v2':return rule
     import household.thermal_weather_conditioning as original
@@ -151,6 +161,30 @@ def _condition(forcings,rows,capture,initial_outdoor_f):
     issue=instant(capture['issued_at']);available=instant(capture['inputs_available_at'])
     original=validate_context(capture['weather_conditioning'],issue=issue,available=available)
     if [r['at'] for r in rows]!=[r['at'] for r in original['rows']]:raise ValueError('constructed conditioning must retain exact original time grid')
+    if original.get('schema')=='earthship-thermal-weather-context/v2':
+        if original['mode']=='native_raw_fallback':return tuple(forcings)
+        from household.production_weather_conditioning import apply_conditioning
+        from thermal_model.installed_shade_dynamics import STEP
+        raw_rows=original['rows'];raw_times=[instant(r['at']) for r in raw_rows]
+        raw_radiation=[r['radiationWm2'] for r in raw_rows]
+        baseline=tuple(replace(r,outdoor_f=_temperature(raw_rows,raw_times,r.at),
+            radiation_wm2=original_forcing.ending_hour_mean(raw_times,raw_radiation,r.at-STEP,r.at)) for r in forcings)
+        baseline=apply_conditioning(baseline,original,issue=issue,available=available,initial_outdoor_f=initial_outdoor_f)
+        # Retain the originally emitted local means. A constructed change is
+        # a conditional perturbation of those fixed points, not model refitting.
+        targets=[instant(p['at']) for p in original['points']]
+        changes={instant(new['at']):new['tempF']-old['tempF'] for new,old in zip(rows,raw_rows)}
+        out=[]
+        for supplied,base in zip(forcings,baseline):
+            i=bisect_left(targets,base.at)
+            if i==0:delta=(base.at-issue)/(targets[0]-issue)*changes[targets[0]]
+            else:
+                fraction=(base.at-targets[i-1])/(targets[i]-targets[i-1])
+                delta=changes[targets[i-1]]+fraction*(changes[targets[i]]-changes[targets[i-1]])
+            temperature=base.outdoor_f+delta
+            if not -40<=temperature<=140:raise ValueError('constructed production temperature outside physical domain')
+            out.append(replace(supplied,outdoor_f=temperature))
+        return tuple(out)
     models=original['admission']['models'];times=[instant(r['at']) for r in rows]
     raw_origin=rows[0]['tempF'] if times[0]==issue else _temperature(rows,times,issue)
     bias=(initial_outdoor_f-raw_origin)*5/9;temperatures={};radiation=[]

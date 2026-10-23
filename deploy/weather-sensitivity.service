@@ -1,0 +1,10 @@
+[Unit]
+Description=Earthship deterministic weather sensitivity from retained household originals
+
+[Service]
+Type=oneshot
+EnvironmentFile=%h/.config/earthship-weather/scenarios.env
+Environment=PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
+ExecStart=/usr/bin/python3 ${EARTHSHIP_SCENARIO_ROOT}/scripts/run-household-job.py --production --minimum-mib 256 --preferred-mib 512 --tasks 24 --seconds 100 -- ${EARTHSHIP_SCENARIO_PYTHON} -m weather_learning.production_scenario_worker --state ${EARTHSHIP_SCENARIO_STATE} --observation ${EARTHSHIP_SCENARIO_OBSERVATION} --enabled --publish
+TimeoutStartSec=115
+UMask=0077

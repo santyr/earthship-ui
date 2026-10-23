@@ -1,3 +1,4 @@
+import {MAX_SENSITIVITY_BYTES} from '../weather/sensitivity.js';
 import {MAX_PRODUCTION_BYTES} from '../weather/productionForecast.js';
 import {MAX_RAIN_BYTES} from '../weather/rainForecast.js';
 import {MAX_MARGINAL_BYTES} from '../weather/marginalForecast.js';
@@ -49,3 +50,5 @@ export const loadWeatherMarginals = signal => load('/api/weather-marginals',sign
 export const loadWeatherRainShadow = signal => load('/api/weather-rain-shadow',signal,MAX_RAIN_BYTES);
 
 export const loadProductionWeather = signal => load('/api/weather-production',signal,MAX_PRODUCTION_BYTES);
+
+export const loadWeatherSensitivity = signal => load('/api/weather-sensitivity',signal,MAX_SENSITIVITY_BYTES);
