@@ -433,7 +433,14 @@
         "Do not apply old coefficients to a changed solar baseline. Nominal capacity remains separate from measured usable battery capacity."
       ],
       "rollback": "Restore the captured original selector/config/source bytes under the existing writer lock; preserve new originals and scores.",
-      "production_replaced": false
+      "production_replaced": false,
+      "serving_implementation": {
+        "status": "daily_path_and_household_projection_implemented_not_installed",
+        "evidence": "production-household-components.md",
+        "original_input_bridge": "retained_original_source_and_environment_verified",
+        "shared_component_kernel": true,
+        "nominal_storage_integrators": "existing_constant_and_original_learned_load"
+      }
     },
     {
       "id": "thermal_response",
@@ -447,9 +454,16 @@
       "replacement": {
         "method": "Fresh compatible thermal fit where the weather/solar numerical baseline changes, using the supported retained native observations and unchanged control authority.",
         "target": "Measured air/wall response and read-only thermal trajectories.",
-        "artifact_sha256": null,
+        "artifact_sha256": "5219dffe4d4784a58a05b11c7bd935305561703f5c03a5027fde14b8db2673a3",
         "production_admission_sha256": null,
-        "installed": false
+        "installed": false,
+        "runtime_sha256": "46a3a8b9df43333c13855cb7273bdecbb8590168e6e844ddc11cea0d68f3d1ca",
+        "actual_completed_at": "2026-10-23T04:05:31.042232+00:00",
+        "training_start": "2026-10-15T06:00:00+00:00",
+        "training_end": "2026-10-23T00:00:00+00:00",
+        "endpoint_count": 33,
+        "prepared": true,
+        "evidence": "production-thermal-fit.json"
       },
       "consumers": [
         "household cycle",
@@ -457,9 +471,9 @@
         "deterministic stress"
       ],
       "remaining": [
-        "Audit current training-input and weather-forcing identities.",
-        "Retrain and register under the new forcing identity when supported.",
-        "Verify consumer/admission/rollback and actual observed output."
+        "Admit/package the genuinely fresh fit with its permanent literal originals and supported serving environment.",
+        "Complete staged capture and shared household integration, all CI/review and exact rollback.",
+        "Deploy and verify actual native air/wall predictions and prospective outcomes."
       ],
       "limitations": [
         "No physical facade or causal action-benefit qualification inferred from operational replacement."

@@ -1,0 +1,68 @@
+{
+  "schema": "earthship-current-production-thermal-fit-proof/v1",
+  "code_revision": "111f76441d8698cf47bbdcdf019c10043eb3405c",
+  "prior_artifact_sha256": "a73d356ef2b85f31f7d20cb9bde1791c5aa4051f212a1557b0ee871ab3716f80",
+  "artifact_sha256": "5219dffe4d4784a58a05b11c7bd935305561703f5c03a5027fde14b8db2673a3",
+  "runtime_sha256": "46a3a8b9df43333c13855cb7273bdecbb8590168e6e844ddc11cea0d68f3d1ca",
+  "actual_fit_started_at": "2026-10-23T04:05:29.332102+00:00",
+  "actual_fit_completed_at": "2026-10-23T04:05:31.042232+00:00",
+  "fit_seconds": 1.7101279799826443,
+  "dataset_sha256": "7e60bc65ecec6d020e61f2289e6e62f9d22a9897403410f0322372822e5128b1",
+  "exact_original_dataset_replay": true,
+  "original_dataset_and_source_clocks_preserved": true,
+  "training_start": "2026-10-15T06:00:00+00:00",
+  "training_end": "2026-10-23T00:00:00+00:00",
+  "endpoint_count": 33,
+  "model_rule": "earthship-native-irradiance-shade-dynamics/v4",
+  "numerical_environment": {
+    "binary_sha256s": {
+      "_lbfgsb.cpython-312-x86_64-linux-gnu.so": "23d19ac49896c4ab452fc0bc807312bba273482ea01530ad6c0bc020ac8ccddb",
+      "_multiarray_umath.cpython-312-x86_64-linux-gnu.so": "b185dfe64b07180bedc7c15fb2735b0d0f4f4e09eb9c15bd8e67f74568aebcbf",
+      "_ufuncs.cpython-312-x86_64-linux-gnu.so": "4136c006138bbf3439006e3ac72297b3e06e2e4d384cc0674f1b07264290f264",
+      "_umath_linalg.cpython-312-x86_64-linux-gnu.so": "2e075f582c3a25a21fe97a55931a0fdb22ceb84f4fce8203a5040d405ccf65ce",
+      "python3.12": "e50d468e8b0adfb05733f5b87b3cff34829c4a8c1aea50c865aa8bdfe4bb150f"
+    },
+    "numpy": "2.5.4",
+    "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+    "scipy": "1.18.1"
+  },
+  "changed_prior_native_sources": [
+    "openhab/scripts/native_thermal_artifact.py"
+  ],
+  "added_native_sources": [
+    "openhab/scripts/household/production_weather_conditioning.py",
+    "openhab/scripts/household/thermal_weather_conditioning.py",
+    "openhab/scripts/production_thermal_source.py",
+    "openhab/scripts/thermal_weather_source.py"
+  ],
+  "changed_prior_base_sources": [
+    "weather_learning/archive.py",
+    "weather_learning/native_forecast.py",
+    "weather_learning/normalize.py",
+    "weather_learning/transport.py",
+    "weather_learning/weathernext_ee.py"
+  ],
+  "actual_models_fitted": 1,
+  "whole_seconds": 9.81015223194845,
+  "peak_rss_kib": 185404,
+  "original_serving_unit_files_unchanged": true,
+  "production_installed": false,
+  "production_states_written": false,
+  "cloud_requests": 0,
+  "sql_requests": 0,
+  "issued": false,
+  "physical_calibration_qualified": false,
+  "automatic_actuation": false,
+  "original_proof_sha256": "e8ba5305aab3a68f560394c7c9843e334d804052fe4ae720ceeed2967eb263f7",
+  "status": "fresh_fit_validated_not_admitted_or_installed",
+  "input_original_file_sha256s": {
+    "dataset": "441d3fc62f3ca80c81714c657c9e7175a4639b273d4b0824aca475415cc7d6ea",
+    "geometry": "c8c4aa11cc961180f35338bc87ae9e7ee61a3ccb1f2443a399231e17715e10f1",
+    "snapshot": "03ae81c32ff2ec3f48e3ee065c09403558eddabcf5abb77b6dc53cce8c46af79"
+  },
+  "new_test_ci_ownership": {
+    "path": "openhab/scripts/weather_learning/tests/test_production_thermal_temperature.py",
+    "shard": 1
+  },
+  "verification_sha256": "eecd5e0cbbe9ad3ca68fd1376d2a977286a99ad89413d44a3a295c94b3cd94d8"
+}

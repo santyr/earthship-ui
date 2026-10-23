@@ -41,8 +41,24 @@ together: 140 tests in 42.52 seconds. These are focused checks, not deployment
 or physical qualification. The staged handoff separately waits for a safe
 preparation window under the existing resource/deadline guards.
 
-Still required: replay retained measured training inputs, genuinely refit
-and admit the current physical response, exercise the complete staged
+The fresh response fit has now replayed the complete retained measured
+dataset exactly under the new source. Training covers October 15 at 06:00 UTC
+through October 23 at 00:00 UTC, with 33 supported horizon endpoint instances.
+Original dataset and source clocks are preserved. The actual new fit ran
+from 2026-10-23 04:05:29.332102 to 04:05:31.042232 UTC under NumPy 2.5.4 and
+SciPy 1.18.1: 1.710 seconds fitting, 9.810 seconds total, 185,404 KiB peak RSS.
+It used no cloud or SQL requests and changed no serving unit files.
+
+The new artifact is
+5219dffe4d4784a58a05b11c7bd935305561703f5c03a5027fde14b8db2673a3,
+with original proof
+e8ba5305aab3a68f560394c7c9843e334d804052fe4ae720ceeed2967eb263f7.
+Its source package, byte-identical retained inputs, old superseded candidate
+and new original fit evidence are stored in a permanent private artifact
+directory outside the plan workspace. [Fit metadata](production-thermal-fit.json)
+records the exact source/environment changes; the old artifact was not retagged.
+
+Still required: admit and package the fresh response, exercise the complete staged
 rollout with confirmed production weather, connect household component
 PV/storage, finish all normal CI and whole-capability review, export every
 original/source generation, then perform the authorized reversible

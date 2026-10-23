@@ -10,6 +10,10 @@ from .source_bundle import capture_sources
 
 ROOT=Path(__file__).resolve().parents[3]
 PRODUCER_SCHEMA='earthship-retained-native-scenario-producer/v1'
+PRODUCER_V2='earthship-retained-native-scenario-producer/v2'
+REQUEST_V2='earthship-retained-native-scenario-request/v2'
+REPLY_V2='earthship-retained-native-scenario-reply/v2'
+COMPONENT_SCHEMA='earthship-retained-component-household-inputs/v1'
 SCHEMA='earthship-retained-native-scenario-context/v1'
 REQUEST_SCHEMA='earthship-retained-native-scenario-request/v1'
 REPLY_SCHEMA='earthship-retained-native-scenario-reply/v1'
@@ -19,9 +23,20 @@ _SEAL=object()
 
 
 def producer_reference(value):
-    if (not isinstance(value,dict) or set(value)!={'schema','stage','deployment_sha256'} or value['schema']!=PRODUCER_SCHEMA or
-            not isinstance(value['stage'],str) or not Path(value['stage']).is_absolute()):raise ValueError('closed explicit original producer required')
-    digest(value['deployment_sha256']);return value
+    fields={'schema','stage','deployment_sha256'}
+    new=isinstance(value,dict) and value.get('schema')==PRODUCER_V2
+    if (not isinstance(value,dict) or set(value)!=(fields|{'python_path','python_sha256'} if new else fields) or
+        value.get('schema') not in (PRODUCER_SCHEMA,PRODUCER_V2) or not isinstance(value['stage'],str) or not Path(value['stage']).is_absolute()):
+        raise ValueError('closed explicit original producer required')
+    digest(value['deployment_sha256'])
+    if new:
+        path=value['python_path'];digest(value['python_sha256'])
+        if not isinstance(path,str) or len(path)>1024 or not Path(path).is_absolute() or Path(path).parent.resolve()!=Path(path).parent:
+            raise ValueError('explicit original producer interpreter required')
+        binary=Path(path).resolve()
+        if binary.stat().st_size>128*1024**2 or sha256(binary.read_bytes()).hexdigest()!=value['python_sha256']:
+            raise ValueError('original producer interpreter bytes differ')
+    return value
 
 
 @contextmanager
@@ -63,20 +78,22 @@ def _adapter_sha():return identity({n:sha256(raw).hexdigest() for n,raw in captu
 
 
 def _launch(request,*,guard):
-    producer=request['producer'];stage=Path(producer['stage'])
+    producer=producer_reference(request['producer']);stage=Path(producer['stage'])
     import earthship_energy.power_evidence as companion
     env=dict(os.environ,PYTHONDONTWRITEBYTECODE='1',PYTHONPATH=str(stage/'sources/openhab/scripts')+':'+str(Path(companion.__file__).resolve().parents[1]),OPENBLAS_NUM_THREADS='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',NUMEXPR_NUM_THREADS='1')
     # run_path avoids placing the new script directory before original imports.
     bootstrap="import sys,runpy;sys.path.insert(0,sys.argv[1]);runpy.run_path(sys.argv[2],run_name='__main__')"
-    guard();run=subprocess.run(['/usr/bin/python3','-c',bootstrap,str(stage/'sources/openhab/scripts'),str(ROOT/'openhab/scripts/weather_learning/retained_scenario_child.py')],cwd=stage,env=env,input=canonical(request),capture_output=True,timeout=80)
+    guard();run=subprocess.run([producer.get('python_path','/usr/bin/python3'),'-c',bootstrap,str(stage/'sources/openhab/scripts'),str(ROOT/'openhab/scripts/weather_learning/retained_scenario_child.py')],cwd=stage,env=env,input=canonical(request),capture_output=True,timeout=80)
     guard()
     if run.returncode:raise ValueError('original native scenario process refused: '+run.stderr.decode(errors='replace')[-512:])
     return run.stdout
 
 
-def _request(*,producer,energy,plan,action,scenario=None,positions=None,guard=lambda:None):
+def _request(*,producer,energy,plan,action,scenario=None,positions=None,profiled=None,guard=lambda:None):
     producer=producer_reference(producer);sources=_stage_sources(producer);guard()
     request=dict(schema=REQUEST_SCHEMA,producer=producer,energy=energy,plan=plan,action=action,scenario=scenario,positions=positions,adapter_source_sha256=_adapter_sha())
+    if action=='household':request.update(schema=REQUEST_V2,profiled=profiled)
+    elif profiled is not None:raise ValueError('profiled source is only valid for the component household request')
     if len(canonical(request))>16*1024**2:raise ValueError('bounded original native request required')
     key=identity(request);cache=_CACHE.get()
     if cache is not None and key in cache:reply=json.loads(cache[key])
@@ -85,7 +102,7 @@ def _request(*,producer,energy,plan,action,scenario=None,positions=None,guard=la
         if not isinstance(raw,bytes) or len(raw)>16*1024**2:raise ValueError('bounded original native reply required')
         reply=json.loads(raw)
     if (not isinstance(reply,dict) or set(reply)!={'schema','request_sha256','deployment_sha256','environment','binary_files','result','reply_sha256'} or
-            reply['schema']!=REPLY_SCHEMA or reply['request_sha256']!=key or reply['deployment_sha256']!=producer['deployment_sha256'] or
+            reply['schema']!=(REPLY_V2 if action=='household' else REPLY_SCHEMA) or reply['request_sha256']!=key or reply['deployment_sha256']!=producer['deployment_sha256'] or
             reply['reply_sha256']!=identity({k:v for k,v in reply.items() if k!='reply_sha256'})):raise ValueError('original native reply binding differs')
     _check_binaries(reply['environment'],reply['binary_files']);guard()
     if _stage_sources(producer)!=sources or _adapter_sha()!=request['adapter_source_sha256']:raise ValueError('original producer or adapter changed during projection')
@@ -142,3 +159,38 @@ def project_retained_scenario(scenario,context,*,positions,guard=lambda:None):
     if (not isinstance(result,dict) or set(result)!={'native_context_sha256','projection'} or result['native_context_sha256']!=value['native_context_sha256'] or
             reply['environment']!=value['native_environment'] or reply['binary_files']!=value['native_binary_files'] or result['projection'].get('model_sha256')!=value['artifact_sha256']):raise ValueError('native projection must retain original model and numerical environment')
     _context_sources(value);guard();return result['projection']
+
+
+class RetainedComponentInputs(RetainedNativeContext):
+    """Opaque original-source inputs, distinct from a thermal scenario."""
+    __slots__=()
+
+
+def prepare_component_inputs(*,energy,plan,profiled,producer,guard=lambda:None):
+    from .component_household_inputs import SCHEMA as INPUT_SCHEMA
+    reply,sources,adapter=_request(producer=producer,energy=energy,plan=plan,profiled=profiled,action='household',guard=guard)
+    prepared=reply['result']
+    if (not isinstance(prepared,dict) or prepared.get('schema')!=INPUT_SCHEMA or
+        prepared.get('inputs_sha256')!=identity({k:v for k,v in prepared.items() if k!='inputs_sha256'}) or
+        prepared.get('automatic_actuation') is not False or prepared.get('physical_calibration_qualified') is not False or
+        prepared.get('original_document_sha256s')!=dict(energy=identity(energy),plan=identity(plan),profiled=None if profiled is None else identity(profiled))):
+        raise ValueError('unchanged original component household source inputs required')
+    value=dict(schema=COMPONENT_SCHEMA,producer=producer,owned_sources=dict(energy=energy,plan=plan,profiled=profiled),prepared=prepared,
+        original_source_manifest={n:sha256(b).hexdigest() for n,b in sources.items()},
+        original_source_package={n:base64.b64encode(gzip.compress(b,mtime=0)).decode() for n,b in sources.items()},
+        adapter_source_sha256=adapter,native_environment=reply['environment'],native_binary_files=reply['binary_files'])
+    value['context_sha256']=identity(value)
+    if len(canonical(value))>16*1024**2:raise ValueError('bounded retained component household inputs required')
+    context=object.__new__(RetainedComponentInputs);object.__setattr__(context,'_content',canonical(value));object.__setattr__(context,'_seal',_SEAL)
+    return context
+
+
+def restore_component_inputs(value,*,guard=lambda:None):
+    fields=FIELDS-{'native_context_sha256','artifact_sha256'}
+    if (not isinstance(value,dict) or set(value)!=fields or value['schema']!=COMPONENT_SCHEMA or len(canonical(value))>16*1024**2 or
+        value['context_sha256']!=identity({k:v for k,v in value.items() if k!='context_sha256'})):
+        raise ValueError('closed original retained component household context required')
+    _context_sources(value)
+    expected=prepare_component_inputs(**value['owned_sources'],producer=value['producer'],guard=guard)
+    if expected.to_dict()!=value:raise ValueError('original retained component household inputs differ')
+    return expected

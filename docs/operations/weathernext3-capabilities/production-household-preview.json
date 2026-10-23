@@ -1,0 +1,50 @@
+{
+  "actual_projection_seconds": 3.8374430669937283,
+  "adapter_source_sha256": "851d8de7256d8c2d50cd213c57803a8e080db0200add2835b0a93e6d5d1f61b5",
+  "automatic_actuation": false,
+  "cache_written": false,
+  "calibrated_potential_kwh": 11.73315932387581,
+  "calibration_mode": "experimental_production",
+  "calibration_scope": "mixed_native_and_raw_fallback",
+  "calibration_sha256": "1b294e90f5a3895f8f83c7061293a05e5aee2bb38a47791fbbba55c0f7178fce",
+  "checked_at": "2026-10-23T05:15:43.991733+00:00",
+  "cloud_requests": 0,
+  "component_forecast_sha256": "a27bec6d980bf03715005ed056e84e00b96b5dd5529f0b9b9115fef59ea9e596",
+  "constant_storage_reason": null,
+  "constant_storage_status": "conditional_nominal_simulation",
+  "issued": false,
+  "learned_storage_reason": null,
+  "learned_storage_status": "conditional_nominal_simulation",
+  "model_sha256": "3e5531fb9b7cfc4ba91042d50fdda9430a557f3ade751e2da37183fee6c33258",
+  "models_fitted": 0,
+  "original_issued_at": "2026-10-23T05:15:15+00:00",
+  "output_sha256": "53840fb750bc1199b337b3e16dfc14cd907c985ed7ba0affe18af7ba9b84e18d",
+  "peak_rss_kib": 131372,
+  "physical_calibration_qualified": false,
+  "procedure_sha256": "dcce27aa2edc538551a20dda12fe33d45256971452a88e59dc40cca15e3990a8",
+  "production_states_written": false,
+  "raw_potential_kwh": 18.08649240345802,
+  "schema": "earthship-real-component-household-projection-preview/v1",
+  "selection_rule": "fresh_completed_plan_linked_to_current_observation_regardless_of_storage_availability",
+  "selector_and_originals_unchanged": true,
+  "source_context_sha256": "b3c0a8bfd8ee60062e05b2fe98f12978a96f784d0a36be1e1c5d3aea9b82db96",
+  "source_support": {
+    "fallback_hours": 13,
+    "fallback_reasons": {
+      "direct_exceeds_total": 4,
+      "incomplete_hour_geometry": 1,
+      "no_daylight_support": 8
+    },
+    "native_hours": 12
+  },
+  "sql_requests": 0,
+  "whole_seconds": 34.83557837805711,
+  "status": "actual_natural_cycle_private_projection_passed_not_installed",
+  "new_test_ci_ownership": {
+    "openhab/scripts/test_component_household_inputs.py": 2,
+    "openhab/scripts/test_component_household_files.py": 1,
+    "openhab/scripts/weather_learning/tests/test_component_household_projection.py": 0
+  },
+  "actual_proof_sha256": "27631d9be815f2967971e3904d4443f8a88fa4d2876b06de60caa5e3b3a216ea",
+  "verification_sha256": "e08317baad4ba342cb32499714cd0b6a66e12bc79f40deef9caf54f93a29365c"
+}
