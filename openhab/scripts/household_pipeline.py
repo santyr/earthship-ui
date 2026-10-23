@@ -14,7 +14,8 @@ def thermal_execution_runtime(root,value):
     if value is None:return None
     prepared=PreparedProjection(canonical(value));record=prepared.to_dict()
     if record['schema'] in ('earthship-household-prepared-thermal/v2','earthship-household-prepared-thermal/v3'):
-        return _native_execution_runtime(root,record['executing_runtime']['thermal_runtime'],lambda:None,conditioned=record['schema']=='earthship-household-prepared-thermal/v3')
+        return _native_execution_runtime(root,record['executing_runtime']['thermal_runtime'],lambda:None,conditioned=record['schema']=='earthship-household-prepared-thermal/v3',
+            production=record.get('weather_conditioning',{}).get('schema')=='earthship-thermal-weather-context/v2')
     return _execution_runtime(root)
 
 

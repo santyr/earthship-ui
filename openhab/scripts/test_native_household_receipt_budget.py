@@ -16,7 +16,8 @@ def pretty_original(raw,maximum=4000):
     return json.dumps(value,indent=low)
 
 
-def test_valid_native_receipt_replays_above_one_mebibyte_with_bounded_public_view(tmp_path,originals,monkeypatch):
+@pytest.mark.parametrize('production_conditioning',[False,True])
+def test_valid_native_receipt_replays_above_one_mebibyte_with_bounded_public_view(tmp_path,originals,monkeypatch,production_conditioning):
     from astro_geometry import build_source,build_cache
     from astro_geometry_series import build_series
     from household.codec import canonical
@@ -40,7 +41,20 @@ def test_valid_native_receipt_replays_above_one_mebibyte_with_bounded_public_vie
         caches.append(build_cache(request,source,native_output=''.join(rows).encode(),computed_at=issue-timedelta(seconds=4)))
     geometry=build_series(packet['request'],caches,expected_native_runtime=packet['native_runtime'])
     kwargs.update(geometry=geometry,expected_geometry_sha256=geometry.sha256)
-    capture=forecasts.build_serving_capture(model,inputs,**kwargs)
+    extra={}
+    if production_conditioning:
+        from test_installed_shade_inputs import EPOCHS as ORIGIN_EPOCHS
+        from production_thermal_source import collect
+        from thermal_weather_source import production_conditioning_runtime
+        from household.codec import identity
+        selected=dict(schema='earthship-thermal-weather-selection/v2',state_directory=str(tmp_path/'absent-production'),
+            source_sensor_epoch=ORIGIN_EPOCHS['outdoor'],available_at=(issue-timedelta(seconds=5)).isoformat(),
+            runtime_sha256=identity(production_conditioning_runtime()),automatic_actuation=False)
+        selected['selection_sha256']=identity(selected)
+        path=tmp_path/'production-selection.json';path.write_bytes(canonical(selected));path.chmod(0o600)
+        extra['weather_conditioning']=collect(selection=path,selected=selected,forecast=inputs['forecast'],geometry=geometry,
+            issue=issue,sensor_epoch=ORIGIN_EPOCHS['outdoor'],guard=lambda:None,clock=lambda:issue-timedelta(seconds=1))
+    capture=forecasts.build_serving_capture(model,inputs,**extra,**kwargs)
     thermal,weather=prepare_serving_native_cycle_contexts(capture,model,code_revision='a'*40,expected_capture_sha256=capture['capture_sha256'],check_budget=lambda:None)
     original_source=source_at(issue);power_inputs=deepcopy(original_source['inputs']['bundle'])
     # Pretty-printed source JSON remains a valid original. Each source stays

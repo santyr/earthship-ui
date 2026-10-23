@@ -309,8 +309,6 @@
         {#if forecast.productionModel}
           <div class="native-legend">
             <span>{forecast.productionModel.status === 'RAW_FALLBACK' ? 'Production forecast · raw fallback' : 'Production temperature model · experimental'}</span>
-            <span>Available local models supply forecast points; unavailable targets use raw values. Local interval coverage is unverified.</span>
-            <span>Daily highs and lows are extrema of hourly point forecasts. Today covers remaining hours where indicated.</span>
           </div>
         {/if}
         {#if nativeSources.length}
@@ -354,7 +352,7 @@
                 <span class="hour-temp">{metric(hour.tempF, '°')}</span>
                 {#if native}
                   {#if native.rangeStatus === 'available'}
-                    <span class="hour-range" title={sourceAge(native.source)}>Raw p10–p90: {metric(native.p10F, '°')}–{metric(native.p90F, '°')}</span>
+                    <span class="hour-range" title={sourceAge(native.source)}>{metric(native.p10F, '°')}–{metric(native.p90F, '°')}</span>
                   {:else}<span class="hour-range">Raw range unavailable</span>{/if}
                   {#if native.p50F !== null}<span class="hour-range">Raw median: {metric(native.p50F, '°')}</span>{/if}
                 {/if}

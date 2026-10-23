@@ -135,7 +135,8 @@ describe('WeatherDetailModal', () => {
     expect(screen.getByText('65°')).toBeTruthy();
     expect(screen.getByText('2 mph').title).toContain('Local station hourly mean');
     expect(screen.getByText('6 mph').title).toContain('Native instantaneous wind');
-    expect(screen.getByText(/Daily highs and lows are extrema of hourly point forecasts/)).toBeTruthy();
+    expect(screen.queryByText(/Daily highs and lows are extrema of hourly point forecasts/)).toBeNull();
+    expect(screen.queryByText(/Available local models supply forecast points/)).toBeNull();
   });
 
   it('renders a complete twelve-hour icon/value strip and SVG chart', async () => {
@@ -172,7 +173,7 @@ describe('WeatherDetailModal', () => {
     openWeatherDetail({ date: '2026-10-21', label: 'Today' });
     await screen.findByRole('dialog', { name: /Today forecast/i });
     expect(screen.getByText('WeatherNext p10–p90; local coverage not yet verified')).toBeTruthy();
-    expect(screen.getAllByText('Raw p10–p90: 32°–50°').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('32°–50°').length).toBeGreaterThan(0);
     expect(screen.queryByText(/Raw median/)).toBeNull();
     expect(screen.getByText(/initialized 6h ago/)).toBeTruthy();
     await waitFor(() => expect(mocks.chart.setOption.mock.calls.at(-1)?.[0].series.some(s => s.name === 'WeatherNext p10–p90')).toBe(true));
