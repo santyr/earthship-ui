@@ -1446,6 +1446,12 @@ test('upstream freshness reaches the tablet header without value changes', async
   await expect(page.locator('[data-header-alert-winner]')).toContainText('Battery SoC freshness unavailable');
   await expect(page.locator('.battery-arc .arc-value')).toHaveText('—');
   await runtime.emitState('BMS_SOC_Evidence_JSON', socReceipt(await page.evaluate(() => Date.now())));
+  const updatedAt = await page.evaluate(() => Date.now());
+  for (const [name, state] of [[OUTDOOR, '73.4'], [INDOOR, '70.2']]) {
+    await page.route('**/fixture-openhab/rest/items/' + name, route => route.fulfill({
+      json: { name, state, lastStateUpdate: updatedAt },
+    }));
+  }
   await page.evaluate(() => {
     const source = window.__fixtureEventSources.at(-1);
     for (const [name, value] of [['AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', '73.4'], ['AmbientWeatherWS2902A_IndoorSensor_Temperature', '70.2']]) {
@@ -1501,6 +1507,10 @@ for (const target of TARGETS) {
     await page.route('**/fixture-openhab/rest/things*', route => route.fulfill({ json: [] }));
     const runtime = await openHomeFixture(page, target);
     await expect(page.locator('.outdoor-main .big-temp')).toHaveText('73°');
+    let restTemperature = '70';
+    await page.route('**/fixture-openhab/rest/items/' + OUTDOOR, route => route.fulfill({
+      json: { name: OUTDOOR, state: restTemperature, lastStateUpdate: Date.now() },
+    }));
     await page.evaluate(() => {
       window.__acceptedTemperatureAt = Date.now() - 1000;
       window.__fixtureEventSources.at(-1).onmessage({ data: JSON.stringify({
@@ -1520,6 +1530,7 @@ for (const target of TARGETS) {
     await expect(page.locator('.outdoor-main .big-temp')).toHaveText('70°');
     await runtime.emitState(OUTDOOR, '71');
     await expect(page.locator('[data-header-alert-winner]')).toContainText('Outdoor temperature freshness unavailable');
+    restTemperature = '71';
     await page.evaluate(() => window.__fixtureEventSources.at(-1).onmessage({ data: JSON.stringify({
       topic: 'openhab/items/AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature/stateupdated',
       payload: JSON.stringify({ value: '71', lastStateUpdate: Date.now() }),

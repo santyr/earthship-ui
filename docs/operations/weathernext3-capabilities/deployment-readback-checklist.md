@@ -34,3 +34,22 @@ household originals from the corrected producer's natural cycles. Do not count
 a successful physical forecast exit as proof that its optional observation,
 energy, storage and scoring sidecars succeeded. Each has its own original
 receipt and publication status.
+
+The October 23 live stream check also found temperature stateupdated events
+carrying the previous update clock alongside a new value. The unchanged source
+clock guard correctly refused that contradiction. Temperature notifications now
+trigger a targeted REST state/clock read; their event timestamps do not authorize
+freshness. At most one read and one coalesced follow-up per temperature item are
+pending. Reads share the existing timeout and session cancellation, reject
+overtaken responses, and preserve the original clock on failure. Astro event
+evidence and equal-clock contradiction checks retain their existing behavior.
+Verify an actual temperature update after initial connection, rather than only
+the boot snapshot, before declaring the freshness display correct.
+
+A targeted response must also belong to the same reconciliation epoch and
+completed inventory generation as its request. Successful authoritative snapshots
+clear earlier queued notifications. A notification alone does not count as a
+new Item value when preserving stream deltas across reconciliation; this prevents
+a delayed read from restoring a removed Item. The deferred-read regression covers
+requests before reconciliation, during reconciliation, and coalesced notifications
+before inventory removal.

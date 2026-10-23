@@ -192,6 +192,7 @@ it('keeps a temperature update pair received during a delayed snapshot', async (
   const client = makeClient(); client.getAllItems.mockResolvedValue([{ name, state: '70', lastStateUpdate: at }]);
   await boot(client);
   const snapshot = deferred(); client.getAllItems.mockReturnValueOnce(snapshot.promise);
+  client.getItem = vi.fn().mockResolvedValue({ name, state: '71', lastStateUpdate: at + 1 });
   hooks.onReconnect(); hooks.onUpdateEvidence(name, at + 1, '71');
   snapshot.resolve([{ name, state: '40', lastStateUpdate: at - 1000 }]);
   await vi.advanceTimersByTimeAsync(0);

@@ -28,8 +28,8 @@ export function getClientOnce() {
 }
 
 // Upstream lastStateUpdate provenance for the two curated temperature items.
-// REST snapshots and targeted SSE stateupdated events populate this evidence;
-// ordinary statechanged receipt times never do.
+// Atomic REST state/clock pairs populate this evidence. Temperature SSE events
+// trigger targeted reads; ordinary statechanged receipt times never do.
 export const itemUpdateEvidence = writable({});
 
 export function applyUpdateEvidence(name, rawTimestamp, state, { updateState = true } = {}) {
@@ -154,7 +154,7 @@ export async function initOpenhab(config, {
   _client = client;
   const lifetime = new AbortController();
   let active = true, sse = null, retryTimer = null, attempt = null;
-  let epoch = 0, delay = retryBaseMs, transport = 'connecting', reconciled = false;
+  let epoch = 0, inventoryGeneration = 0, delay = retryBaseMs, transport = 'connecting', reconciled = false;
   let sequence = 0;
   const itemDeltas = new Map(), thingDeltas = new Map(), evidenceDeltas = new Map();
   const after = (deltas, start) => new Set([...deltas].filter(([, seq]) => seq > start).map(([name]) => name));
@@ -186,7 +186,10 @@ export async function initOpenhab(config, {
     if (!active || version !== epoch) return null;
     let itemOk = itemResult.status === 'fulfilled' && Array.isArray(itemResult.value);
     const thingOk = thingResult.status === 'fulfilled' && Array.isArray(thingResult.value);
-    if (itemOk) itemOk = applySnapshot(itemResult.value, { preserve: after(itemDeltas, start), preserveEvidence: after(evidenceDeltas, start) });
+    if (itemOk) {
+      itemOk = applySnapshot(itemResult.value, { preserve: after(itemDeltas, start), preserveEvidence: after(evidenceDeltas, start) });
+      if (itemOk) { ++inventoryGeneration; pendingTemperatureReads.clear(); }
+    }
     // A failed optional Thing read is not an authoritative empty inventory.
     // Retain the last observation but gate controls until reconciliation succeeds.
     if (thingOk) applyThingSnapshot(thingResult.value, { preserve: after(thingDeltas, start) });
@@ -209,6 +212,36 @@ export async function initOpenhab(config, {
     void fetchSnapshots().then(result => { if (result && !result.complete) scheduleRetry(); });
   }
 
+  const pendingTemperatureReads = new Set(), activeTemperatureReads = new Set(), temperatureNotifications = new Map();
+  function refreshTemperatureEvidence(name) {
+    pendingTemperatureReads.add(name);
+    if (activeTemperatureReads.has(name)) return;
+    activeTemperatureReads.add(name);
+    void (async () => {
+      try {
+        while (active && pendingTemperatureReads.delete(name)) {
+          const start = sequence, sourceEpoch = epoch, inventory = inventoryGeneration;
+          try {
+            const row = await withReadTimeout(signal => client.getItem(name, { signal }),
+              { signal: lifetime.signal, timeoutMs: requestTimeoutMs });
+            if (!active) return;
+            // Reconciliation supersedes older reads, including withdrawn Items.
+            if (sourceEpoch !== epoch || inventory !== inventoryGeneration) continue;
+            // A newer stream delta may have overtaken this REST snapshot.
+            if (Math.max(itemDeltas.get(name) ?? 0, temperatureNotifications.get(name) ?? 0) > start) { pendingTemperatureReads.add(name); continue; }
+            if (row?.name !== name || typeof row.state !== 'string') continue;
+            if (applyUpdateEvidence(name, row.lastStateUpdate, row.state)) {
+              evidenceDeltas.set(name, ++sequence); itemDeltas.set(name, sequence);
+            }
+          } catch {
+            // Keep the last verified source clock. A later notification may
+            // retry; failed or timed-out reads never renew freshness.
+          }
+        }
+      } finally { activeTemperatureReads.delete(name); }
+    })();
+  }
+
   // Items establish the initial display. Optional provider reads are bounded;
   // failed providers leave reconciliation pending while the stream can start.
   while (active) {
@@ -221,9 +254,18 @@ export async function initOpenhab(config, {
         onState: (name, value) => { if (active) { itemDeltas.set(name, ++sequence); applyState(name, value); } },
         onUpdateEvidence: (name, timestamp, state) => {
           if (!active) return;
-          evidenceDeltas.set(name, ++sequence);
-          itemDeltas.set(name, sequence);
-          applyUpdateEvidence(name, timestamp, state);
+          ++sequence;
+          if (TEMPERATURE_ITEMS.some(item => item.name === name)) {
+            temperatureNotifications.set(name, sequence);
+            // The live OpenHAB stateupdated event can pair a new temperature
+            // value with its previous update time. Use it only as a trigger
+            // for an atomic REST state/clock read, never as source evidence.
+            refreshTemperatureEvidence(name);
+          } else {
+            itemDeltas.set(name, sequence);
+            evidenceDeltas.set(name, sequence);
+            applyUpdateEvidence(name, timestamp, state);
+          }
         },
         onThingStatus: (uid, status) => { if (active) { thingDeltas.set(uid, ++sequence); applyThingStatus(uid, status); } },
         onStatus: status => { if (active) { transport = status; publishStatus(); } },
