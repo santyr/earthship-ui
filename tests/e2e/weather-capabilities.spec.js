@@ -56,7 +56,7 @@ for(const [width,height] of [[1340,800],[1280,720]]){
   const {dialog,opener,errors}=await open(page,width,height);
   await expect(dialog.getByText('WeatherNext p10–p90; local coverage not yet verified',{exact:true})).toHaveCount(0);
   await expect(dialog.getByText('Shaded band and dashed raw mean use original WeatherNext statistics. The orange displayed forecast is separate.',{exact:true})).toHaveCount(0);
-  await expect(dialog.getByText(/initialized 6h ago/)).toBeVisible();
+  await expect(dialog.getByText(/Source initialized 6h ago/)).toHaveCount(0);
   await expect(dialog.getByText('32°–50°',{exact:true})).toHaveCount(10);
   await expect(dialog.locator('.weather-detail-chart svg [fill="#a78bfa"]').first()).toBeVisible();
   await expect(dialog.locator('.hour-temp').first()).toHaveText('70°');

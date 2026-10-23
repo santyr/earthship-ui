@@ -76,13 +76,6 @@
   })).values()]);
   const hasNativeRange = $derived(selectedWindow.hours.some(hour => temperatureCapabilityAt(capabilities, hour.at)?.rangeStatus === 'available'));
 
-  function sourceAge(source) {
-    const age = at => {
-      const minutes = Math.max(0, Math.floor(($weatherCapabilityClock - Date.parse(at)) / 60000));
-      return minutes < 60 ? `${minutes}m` : `${Math.floor(minutes / 60)}h`;
-    };
-    return `Source initialized ${age(source.initialized_at)} ago; available ${age(source.available_at)} ago`;
-  }
   const warnings = $derived([
     forecast.status === 'stale' ? 'Forecast data may be stale' : '',
     selectedDay && selectedWindow.missingHours > 0
@@ -309,13 +302,8 @@
         {#if forecast.productionModel?.status === 'RAW_FALLBACK'}
           <div class="native-legend"><span>Production forecast · raw fallback</span></div>
         {/if}
-        {#if nativeSources.length}
-          <div class="native-legend">
-            {#if !hasNativeRange}<span>WeatherNext raw mean; percentile range unavailable</span>{/if}
-            {#each nativeSources as source (source.snapshot_sha256)}
-              <span title={`Run ${source.run_id}; available ${source.available_at}`}>{sourceAge(source)}</span>
-            {/each}
-          </div>
+        {#if nativeSources.length && !hasNativeRange}
+          <div class="native-legend"><span>WeatherNext raw mean; percentile range unavailable</span></div>
         {/if}
         <AtmosphericContext product={capabilities} hours={selectedWindow.hours} nowMs={$weatherCapabilityClock} timezone={forecast.timezone} />
         <details class="forecast-verification" ontoggle={event=>shadowDetailsOpen=event.currentTarget.open}>
@@ -349,7 +337,7 @@
                 <span class="hour-temp">{metric(hour.tempF, '°')}</span>
                 {#if native}
                   {#if native.rangeStatus === 'available'}
-                    <span class="hour-range" title={sourceAge(native.source)}>{metric(native.p10F, '°')}–{metric(native.p90F, '°')}</span>
+                    <span class="hour-range">{metric(native.p10F, '°')}–{metric(native.p90F, '°')}</span>
                   {:else}<span class="hour-range">Raw range unavailable</span>{/if}
                   {#if native.p50F !== null}<span class="hour-range">Raw median: {metric(native.p50F, '°')}</span>{/if}
                 {/if}
