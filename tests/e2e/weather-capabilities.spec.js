@@ -54,7 +54,8 @@ async function bounded(dialog,width,height){
 for(const [width,height] of [[1340,800],[1280,720]]){
  test(`raw uncertainty remains distinct, accessible and expiring at ${width}x${height}`,async({page},testInfo)=>{
   const {dialog,opener,errors}=await open(page,width,height);
-  await expect(dialog.getByText('WeatherNext p10–p90; local coverage not yet verified',{exact:true})).toBeVisible();
+  await expect(dialog.getByText('WeatherNext p10–p90; local coverage not yet verified',{exact:true})).toHaveCount(0);
+  await expect(dialog.getByText('Shaded band and dashed raw mean use original WeatherNext statistics. The orange displayed forecast is separate.',{exact:true})).toHaveCount(0);
   await expect(dialog.getByText(/initialized 6h ago/)).toBeVisible();
   await expect(dialog.getByText('32°–50°',{exact:true})).toHaveCount(10);
   await expect(dialog.locator('.weather-detail-chart svg [fill="#a78bfa"]').first()).toBeVisible();
@@ -66,7 +67,7 @@ for(const [width,height] of [[1340,800],[1280,720]]){
   await page.keyboard.press('Escape');await expect(dialog).toBeHidden();await expect(opener).toBeFocused();
   await page.keyboard.press('Enter');await expect(dialog).toBeVisible();
   await page.clock.fastForward(3600001);
-  await expect(dialog.getByText('WeatherNext p10–p90; local coverage not yet verified',{exact:true})).toHaveCount(0);
+  await expect(dialog.getByText('32°–50°',{exact:true})).toHaveCount(0);
   await expect(dialog.locator('.weather-detail-chart svg [fill="#a78bfa"]')).toHaveCount(0);
   await expect(dialog.locator('.hour-temp').first()).toHaveText('70°');
   expect(errors).toEqual([]);
