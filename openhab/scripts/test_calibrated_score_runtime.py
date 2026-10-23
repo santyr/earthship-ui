@@ -33,7 +33,9 @@ def test_different_policy_in_the_same_hour_is_sampled_separately():
 def test_component_producer_source_selection_requires_new_receipt_kernel(tmp_path):
  from calibrated_score_runtime import select_source_root
  root=tmp_path/'new';path=root/'openhab/scripts/component_household_receipt.py';path.parent.mkdir(parents=True);root.chmod(0o700);path.write_bytes(b'component');path.chmod(0o400)
- forecast=dict(schema='earthship-household-calibrated-energy-receipt/v2',runtime_manifest={'openhab/scripts/component_household_receipt.py':sha256(b'component').hexdigest()})
+ from household.codec import identity
+ forecast=dict(schema='earthship-household-calibrated-energy-receipt/v2',runtime_manifest={'openhab/scripts/component_household_receipt.py':sha256(b'component').hexdigest()},
+  inputs={'context':{'adapter_source_sha256':identity({'openhab/scripts/component_household_receipt.py':sha256(b'component').hexdigest()})}})
  assert select_source_root(forecast,[root])==root
  path.chmod(0o600);path.write_bytes(b'changed')
  with pytest.raises(ValueError):select_source_root(forecast,[root])
@@ -48,3 +50,28 @@ def test_producer_registry_can_pin_different_interpreters_without_changing_old_d
  assert producer_interpreter(old,roots=[str(old),ref])=='/usr/bin/python3'
  changed=dict(ref,python_sha256='f'*64)
  with pytest.raises(ValueError,match='interpreter'):producer_interpreter(root,roots=[changed])
+
+def test_component_selector_uses_complete_adapter_source_identity(tmp_path):
+ from calibrated_score_runtime import select_source_root
+ from weather_learning.source_bundle import capture_sources
+ from household.codec import identity
+ old,new=tmp_path/'old',tmp_path/'new'
+ for root,extra in [(old,b'old household reader'),(new,b'new household reader')]:
+  root.mkdir(mode=0o700)
+  for name,raw in [('component_household_receipt.py',b'same component kernel'),('household/thermal_model.py',extra)]:
+   path=root/'openhab/scripts'/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(raw);path.chmod(0o400)
+ def adapter(root):return identity({n:sha256(b).hexdigest() for n,b in capture_sources(root).items()})
+ forecast=dict(schema='earthship-household-calibrated-energy-receipt/v2',
+  runtime_manifest={'openhab/scripts/component_household_receipt.py':sha256(b'same component kernel').hexdigest()},
+  inputs={'context':{'adapter_source_sha256':adapter(old)}})
+ assert select_source_root(forecast,[new,old])==old
+ forecast['inputs']['context']['adapter_source_sha256']=adapter(new)
+ assert select_source_root(forecast,[old,new])==new
+ path=new/'openhab/scripts/household/thermal_model.py';path.chmod(0o600);path.write_bytes(b'changed household reader')
+ with pytest.raises(ValueError,match='producer'):select_source_root(forecast,[old,new])
+
+def test_component_selector_refuses_missing_adapter_identity(tmp_path):
+ from calibrated_score_runtime import select_source_root
+ forecast=dict(schema='earthship-household-calibrated-energy-receipt/v2',
+  runtime_manifest={'openhab/scripts/component_household_receipt.py':'a'*64})
+ with pytest.raises(ValueError,match='adapter identity'):select_source_root(forecast,[tmp_path])

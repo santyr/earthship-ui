@@ -9,8 +9,15 @@ import argparse,json,os,stat,subprocess,sys,time
 
 def select_source_root(forecast,roots):
     manifest=forecast['runtime_manifest'];required={k:v for k,v in manifest.items() if k.startswith(('openhab/','scripts/'))}
-    entry='component_household_receipt.py' if forecast.get('schema')=='earthship-household-calibrated-energy-receipt/v2' else 'household_calibrated_energy.py'
+    component=forecast.get('schema')=='earthship-household-calibrated-energy-receipt/v2'
+    entry='component_household_receipt.py' if component else 'household_calibrated_energy.py'
     if 'openhab/scripts/'+entry not in required:raise ValueError('original calibrated producer manifest required')
+    adapter=None
+    if component:
+        try:adapter=forecast['inputs']['context']['adapter_source_sha256']
+        except (KeyError,TypeError):raise ValueError('original component producer adapter identity required') from None
+        if not isinstance(adapter,str) or len(adapter)!=64 or any(c not in '0123456789abcdef' for c in adapter):
+            raise ValueError('original component producer adapter identity required')
     for selected in roots:
         root=Path(selected['root'] if isinstance(selected,dict) else selected)
         try:
@@ -22,6 +29,14 @@ def select_source_root(forecast,roots):
                 path=root/name;info=path.lstat()
                 if not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or info.st_mode&0o022 or info.st_size>2*1024**2 or path.resolve()!=path or sha256(path.read_bytes()).hexdigest()!=digest:
                     matched=False;break
+            if matched and component:
+                # A small numerical manifest can match multiple releases while
+                # the frozen context binds a different complete adapter package.
+                from weather_learning.source_bundle import capture_sources
+                from household.codec import identity
+                try:actual=identity({name:sha256(raw).hexdigest() for name,raw in capture_sources(root).items()})
+                except (OSError,ValueError):continue
+                if actual!=adapter:continue
             if matched:return root
         except FileNotFoundError:continue
     raise ValueError('matching retained numerical producer unavailable')
