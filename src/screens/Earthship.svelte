@@ -257,7 +257,6 @@
 
   <div class="cell greywater-cell">
     <Tile label="Greywater Circulation" accent={colors.water}>
-      <RecommendationPreview group="greywater" />
       <div class="greywater-body">
         <div class="gw-pumps">
         <div class="gw-top">

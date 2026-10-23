@@ -110,6 +110,7 @@ def observe_pipeline(receipt,*,runtime_manifest,thermal_runtime,observed_at,incl
             qualification=projection.get('input_qualification','not_graduated')))
     decisions={row['intent_id']:row for row in plan['candidate_decisions']};selected=set(plan['selected_intent_ids']);proposals=[]
     for item in output['candidate_intents']:
+        if item['type'] in ('RUN_GREYWATER_CYCLE','RUN_FEEDER_CYCLE','SET_NIGHT_LOAD_OVERRIDE'):continue
         result=decisions[item['intentId']]
         checks=[dict(rule=row['rule'],status=row['status'],reason=_reason(row.get('reason'))) for row in result['hard_checks']]
         if len(checks)>32:raise ValueError('bounded public hard checks required')

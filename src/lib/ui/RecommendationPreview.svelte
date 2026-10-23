@@ -15,7 +15,7 @@
   const summary=$derived(model.rows.length?model.rows.map(r=>`${r.status} · ${r.action}`).join('; '):emptyText);
   const date=value=>value?new Intl.DateTimeFormat('en-US',{timeZone:'America/Denver',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',second:'2-digit'}).format(Date.parse(value)):'Not provided';
 </script>
-{#if group!=='feeding'}
+{#if group!=='feeding' && group!=='greywater'}
 <section class="recommendation" class:tiny aria-label={`${name} recommendations`} data-recommendation-group={group}>
   <div class="preview-line">
     <span class="label">{tiny?'Preview':`${name} · preview only`}</span>

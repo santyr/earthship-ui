@@ -1,8 +1,8 @@
 /** Human-readable previews of validated original output; never a request builder. */
 import {parseThermalModelResult} from '../thermal/modelResult.js';
-const TYPES={'night-policy':['SET_NIGHT_LOAD_OVERRIDE'],devices:['SET_NIGHT_LOAD_DEVICE'],greywater:['RUN_GREYWATER_CYCLE'],feeding:[],loads:['SET_NIGHT_LOAD_OVERRIDE','SET_NIGHT_LOAD_DEVICE']};
+const TYPES={'night-policy':['SET_NIGHT_LOAD_OVERRIDE'],devices:['SET_NIGHT_LOAD_DEVICE'],greywater:[],feeding:[],loads:['SET_NIGHT_LOAD_OVERRIDE','SET_NIGHT_LOAD_DEVICE']};
 // Feeder triggering belongs exclusively to manual and Lightning-payment flows.
-export const isAutomatedIntent=type=>['RUN_GREYWATER_CYCLE','SET_NIGHT_LOAD_OVERRIDE','SET_NIGHT_LOAD_DEVICE'].includes(type);
+export const isAutomatedIntent=type=>['SET_NIGHT_LOAD_DEVICE'].includes(type);
 const DEVICES={dishwasher:'Dishwasher',shureflo:'Shureflo pump','goat-cam':'Goat camera'};
 const REASONS={low_soc:'Low forecast battery SoC',unqualified_effect:'Action effects are unqualified',source_unavailable:'Source evidence is unavailable',
  source_stale:'Source evidence is stale',after_dark:'Outside daylight hours',cooldown:'Cooldown has not elapsed',no_optional_action:'No optional action preferred'};

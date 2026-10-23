@@ -24,7 +24,7 @@ CAPABILITIES={'RUN_GREYWATER_CYCLE':'greywater-request-v1','RUN_FEEDER_CYCLE':'f
               'SET_NIGHT_LOAD_OVERRIDE':'night-load-owner-v1','SET_NIGHT_LOAD_DEVICE':'night-load-owner-v1'}
 # New shadow plans must obey the operator's manual/payment-only feeder scope.
 AUTOMATED_CAPABILITIES={kind:CAPABILITIES[kind] for kind in
-    ('RUN_GREYWATER_CYCLE','SET_NIGHT_LOAD_OVERRIDE','SET_NIGHT_LOAD_DEVICE')}
+    ('SET_NIGHT_LOAD_DEVICE',)}
 GATES={'owner_available':'capability_unavailable','owner_idle':'busy','cooldown_ready':'cooldown','curfew_allowed':'after_dark',
        'operator_unlocked':'hard_constraint','manual_override_clear':'hard_constraint'}
 FACT_FIELDS={'schema','kind','owner','value','snapshotId','receivedAt','validUntil','scope','horizonHours'}
@@ -218,7 +218,7 @@ def seal_plan(*,runtime_manifest,model_refs,forecast_ref,**arguments):
         inputs['validation_snapshots']={item.snapshot.snapshot_id:item.snapshot.to_dict() for item in arguments['candidates'] if item.snapshot.snapshot_id!=arguments['snapshot'].snapshot_id}
         inputs['candidates']=[dict(intent=item.to_dict(),validation_snapshot_id=item.snapshot.snapshot_id,validated_at=item.validated_at.isoformat()) for item in sorted(arguments['candidates'],key=lambda item:item.intent_id)]
     if contexts:inputs['source_contexts']=contexts
-    receipt=loads(canonical(dict(schema='earthship-household-shadow-plan-receipt/v'+str(version),inputs=inputs,runtime_manifest=runtime,
+    receipt=loads(canonical(dict(schema='earthship-household-shadow-plan-receipt/v6',inputs=inputs,runtime_manifest=runtime,
         model_refs=model_refs,forecast_ref=forecast_ref,plan=output)))
     receipt['receipt_sha256']=identity(receipt)
     if len(canonical(receipt))>MAX_RECEIPT_BYTES:raise ValueError('bounded sealed plan receipt required')
@@ -226,13 +226,16 @@ def seal_plan(*,runtime_manifest,model_refs,forecast_ref,**arguments):
 
 
 def replay_plan(receipt,*,runtime_manifest):
-    if not isinstance(receipt,dict) or set(receipt)!=RECEIPT_FIELDS or receipt['schema'] not in ('earthship-household-shadow-plan-receipt/v1','earthship-household-shadow-plan-receipt/v2','earthship-household-shadow-plan-receipt/v3','earthship-household-shadow-plan-receipt/v4','earthship-household-shadow-plan-receipt/v5') or len(canonical(receipt))>MAX_RECEIPT_BYTES:
+    if isinstance(receipt,dict) and receipt.get('schema')!='earthship-household-shadow-plan-receipt/v6':
+        from .legacy_planning import replay_plan as replay_original
+        return replay_original(receipt,runtime_manifest=runtime_manifest)
+    if not isinstance(receipt,dict) or set(receipt)!=RECEIPT_FIELDS or receipt['schema']!='earthship-household-shadow-plan-receipt/v6' or len(canonical(receipt))>MAX_RECEIPT_BYTES:
         raise ValueError('closed bounded original plan receipt required')
     if identity({key:value for key,value in receipt.items() if key!='receipt_sha256'})!=receipt['receipt_sha256']:raise ValueError('sealed original plan differs')
     runtime=_runtime_manifest(runtime_manifest)
     if canonical(runtime)!=canonical(receipt['runtime_manifest']):raise ValueError('executing planner runtime differs')
     value=receipt['inputs']
-    expanded=receipt['schema'].endswith(('/v2','/v3','/v4','/v5'));weather_bound=receipt['schema'].endswith(('/v3','/v4','/v5'))
+    expanded='source_contexts' in value;weather_bound='validation_snapshots' in value
     fields=INPUT_FIELDS|({'source_contexts'} if expanded else set())|({'validation_snapshots'} if weather_bound else set())
     if not isinstance(value,dict) or set(value)!=fields:raise ValueError('closed original plan inputs required')
     from .model_snapshot import restore_snapshot
