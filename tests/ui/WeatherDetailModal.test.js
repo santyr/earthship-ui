@@ -176,7 +176,7 @@ describe('WeatherDetailModal', () => {
     expect(screen.queryByText('WeatherNext p10–p90; local coverage not yet verified')).toBeNull();
     expect(screen.getAllByText('32°–50°').length).toBeGreaterThan(0);
     expect(screen.queryByText(/Raw median/)).toBeNull();
-    expect(screen.getByText(/initialized 6h ago/)).toBeTruthy();
+    expect(screen.queryByText(/Source initialized 6h ago/)).toBeNull();
     await waitFor(() => expect(mocks.chart.setOption.mock.calls.at(-1)?.[0].series.some(s => s.name === 'WeatherNext p10–p90')).toBe(true));
     const option = mocks.chart.setOption.mock.calls.at(-1)[0];
     expect(option.series.find(s => s.name === 'Temperature').data.some(v => v > 50)).toBe(true);
