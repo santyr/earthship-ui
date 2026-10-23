@@ -1,15 +1,15 @@
 """Draft one coherent private native service family without installing it."""
 from pathlib import Path
 from hashlib import sha256
-import json
+import json,os,stat
 
 
-def prepare(stage,libraries,output,*,guard,deployment_sha256=None):
+def prepare(stage,libraries,output,*,guard,deployment_sha256=None,interpreter=None):
     import household_cycle_deploy as deploy
     from household_native_geometry_prepare import _library_paths
     from astro_geometry_worker import runtime_identity
     stage,libraries,output=map(deploy._path,(stage,libraries,output))
-    guard();record=_stage_record(stage,deployment_sha256)
+    guard();interpreter=_interpreter_reference(interpreter);record=_stage_record(stage,deployment_sha256)
     if record['schema'] not in ('earthship-household-cycle-deployment/v2','earthship-household-cycle-deployment/v3'):
         raise ValueError('explicit native deployment stage required')
     original=deploy._bytes(libraries,private=True);paths=_library_paths(original)
@@ -22,19 +22,20 @@ def prepare(stage,libraries,output,*,guard,deployment_sha256=None):
     actual=runtime_identity(paths,binding_version=expected['binding_version'],guard=guard)
     if actual!=expected:raise ValueError('native family libraries differ from fitted geometry')
     serving=record['schema']=='earthship-household-cycle-deployment/v3'
+    _model_interpreter(settings,interpreter,serving=serving)
     if serving:
         from household_forecast_score import read_score_dispatch
         read_score_dispatch(stage,deployment_sha256=deployment_sha256,guard=guard)
-    files=_render(stage,config,libraries,deployment_sha256=deployment_sha256 if serving else None)
+    files=_render(stage,config,libraries,deployment_sha256=deployment_sha256 if serving else None,interpreter=interpreter)
     guard()
     if deploy._bytes(libraries,private=True)!=original or _stage_record(stage,deployment_sha256)!=record:
         raise ValueError('native family original configuration changed')
     if output.exists() or output.is_symlink():raise ValueError('distinct private native family output required')
     deploy._directory(output.parent);output.mkdir(mode=0o700)
     for name,raw in files.items():deploy._write(output/name,raw)
-    family=_metadata(stage,libraries,original,actual,record,files)
+    family=_metadata(stage,libraries,original,actual,record,files,interpreter=interpreter)
     deploy._write(output/'family.json',deploy._encode(family));guard()
-    if (deploy._bytes(libraries,private=True)!=original or _stage_record(stage,deployment_sha256)!=record or
+    if (_interpreter_reference(interpreter)!=interpreter or deploy._bytes(libraries,private=True)!=original or _stage_record(stage,deployment_sha256)!=record or
         any(deploy._bytes(output/name,private=True)!=raw for name,raw in files.items())):
         raise ValueError('native family draft readback differs')
     return dict(status='native_family_staged',artifact_sha256=family['artifact_sha256'],runtime_sha256=family['runtime_sha256'],
@@ -107,8 +108,31 @@ def _shared_command(raw, scripts, seconds):
     return ('\n'.join(rows)+'\n').encode()
 
 
-def _render(stage,config,libraries,*,deployment_sha256=None):
+
+def _interpreter_reference(value):
     import household_cycle_deploy as deploy
+    if value is None:return None
+    if not isinstance(value,dict) or set(value)!={'path','sha256'}:raise ValueError('closed original native interpreter required')
+    from thermal_model.graduation_policy import _sha
+    path=deploy._path(value['path']);_sha(value['sha256']);info=path.lstat()
+    if (not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or info.st_nlink!=1 or info.st_mode&0o222 or
+            not info.st_mode&stat.S_IXUSR or info.st_size>64000000 or sha256(deploy._bytes(path,maximum=64000000)).hexdigest()!=value['sha256']):
+        raise ValueError('unchanged owned retained native interpreter required')
+    return dict(path=str(path),sha256=value['sha256'])
+
+
+def _model_interpreter(settings,interpreter,*,serving):
+    if interpreter is None:return
+    import household_cycle_deploy as deploy
+    if not serving:raise ValueError('explicit receipt-serving model required for retained interpreter')
+    candidate=json.loads(deploy._bytes(settings['candidate_path'],private=True))
+    if candidate['runtime']['base_runtime']['interpreter_sha256']!=interpreter['sha256']:
+        raise ValueError('retained interpreter differs from admitted model')
+
+
+def _render(stage,config,libraries,*,deployment_sha256=None,interpreter=None):
+    import household_cycle_deploy as deploy
+    interpreter=_interpreter_reference(interpreter)
     scripts=stage/'sources/openhab/scripts'
     pin='' if deployment_sha256 is None else ' --deployment-sha256 '+deployment_sha256
     environment='Environment="PYTHONPATH='+str(scripts)+':/home/sat/Solar_PV/analytics/src"\n'
@@ -146,6 +170,14 @@ def _render(stage,config,libraries,*,deployment_sha256=None):
     files={'forecast.conf':forecast,
         'score.conf':score.encode(),'score-timer.conf':score_timer.encode(),
         'thermal-native-geometry-prepare.service':service.encode(),'thermal-native-geometry-prepare.timer':timer.encode()}
+    if interpreter is not None:
+        for name in ('forecast.conf','score.conf','thermal-native-geometry-prepare.service'):
+            rows=files[name].decode().splitlines()
+            commands=[i for i,line in enumerate(rows) if line.startswith('ExecStart=') and line!='ExecStart=']
+            if len(commands)!=1 or not rows[commands[0]].startswith('ExecStart=/usr/bin/python3 '):
+                raise ValueError('one original inner numerical worker required')
+            rows[commands[0]]='ExecStart='+interpreter['path']+' '+rows[commands[0]][len('ExecStart=/usr/bin/python3 '):]
+            files[name]=('\n'.join(rows)+'\n').encode()
     if deployment_sha256 is not None and _shared_job_pool(stage):
         for name,seconds in (('forecast.conf',90),('score.conf',120 if _extended_score_window(stage) else 60),
                 ('thermal-native-geometry-prepare.service',90)):
@@ -153,7 +185,7 @@ def _render(stage,config,libraries,*,deployment_sha256=None):
     return files
 
 
-def _metadata(stage,libraries,original,actual,record,files):
+def _metadata(stage,libraries,original,actual,record,files,*,interpreter=None):
     import household_cycle_deploy as deploy
     result=dict(schema='earthship-native-thermal-service-family/v1',stage=str(stage),
         deployment_sha256=sha256(deploy._bytes(stage/'deployment.json',private=True)).hexdigest(),
@@ -182,6 +214,9 @@ def _metadata(stage,libraries,original,actual,record,files):
                 result['score_slot_roles']['battery']=[8,18]
                 result['schedule'].update(battery_score_offsets_seconds=[500],battery_score_period_seconds=600,
                     battery_work_timeout_seconds=20,battery_total_timeout_seconds=45)
+    if interpreter is not None:
+        if record['schema']!='earthship-household-cycle-deployment/v3':raise ValueError('receipt-serving retained interpreter family required')
+        result.update(schema='earthship-native-thermal-service-family/v3',interpreter=_interpreter_reference(interpreter))
     return result
 
 
@@ -211,11 +246,13 @@ def _verify(output,*,guard,baseline_deployment_sha256=None):
     from astro_geometry_worker import runtime_identity
     output=deploy._directory(output);guard()
     raw=deploy._bytes(output/'family.json',private=True);family=json.loads(raw)
+    interpreter=_interpreter_reference(family.get('interpreter'))
+    if (family.get('schema')=='earthship-native-thermal-service-family/v3')!=(interpreter is not None):raise ValueError('explicit retained interpreter family schema required')
     stage=deploy._path(family['stage']);libraries=deploy._path(family['libraries_path'])
-    pin=family.get('deployment_sha256') if family.get('schema')=='earthship-native-thermal-service-family/v2' else None
+    pin=family.get('deployment_sha256') if family.get('schema') in ('earthship-native-thermal-service-family/v2','earthship-native-thermal-service-family/v3') else None
     def selected_record():
         if baseline_deployment_sha256 is not None:
-            if family.get('schema')!='earthship-native-thermal-service-family/v2' or pin!=baseline_deployment_sha256:
+            if family.get('schema') not in ('earthship-native-thermal-service-family/v2','earthship-native-thermal-service-family/v3') or pin!=baseline_deployment_sha256:
                 raise ValueError('external retired-family deployment pin differs')
             return deploy.verify_handoff_baseline(stage,expected_deployment_sha256=baseline_deployment_sha256)
         return _stage_record(stage,pin)
@@ -241,14 +278,15 @@ def _verify(output,*,guard,baseline_deployment_sha256=None):
     if record['schema']=='earthship-household-cycle-deployment/v3' and baseline_deployment_sha256 is None:
         from household_forecast_score import read_score_dispatch
         read_score_dispatch(stage,deployment_sha256=pin,guard=guard)
-    files=_render(stage,config,libraries,deployment_sha256=pin)
-    expected=_metadata(stage,libraries,original,library_runtime,record,files)
+    _model_interpreter(settings,interpreter,serving=record['schema']=='earthship-household-cycle-deployment/v3')
+    files=_render(stage,config,libraries,deployment_sha256=pin,interpreter=interpreter)
+    expected=_metadata(stage,libraries,original,library_runtime,record,files,interpreter=interpreter)
     if family!=expected or {path.name for path in output.iterdir()}!=set(files)|{'family.json'}:
         raise ValueError('native family metadata or membership differs')
     if any(deploy._bytes(output/name,private=True)!=content for name,content in files.items()):
         raise ValueError('native family service contract differs')
     guard()
-    if (deploy._bytes(output/'family.json',private=True)!=raw or
+    if (_interpreter_reference(interpreter)!=interpreter or deploy._bytes(output/'family.json',private=True)!=raw or
         deploy._bytes(libraries,private=True)!=original or selected_record()!=record or
         any(deploy._bytes(output/name,private=True)!=content for name,content in files.items())):
         raise ValueError('native family originals changed during verification')

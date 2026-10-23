@@ -58,7 +58,14 @@ and new original fit evidence are stored in a permanent private artifact
 directory outside the plan workspace. [Fit metadata](production-thermal-fit.json)
 records the exact source/environment changes; the old artifact was not retagged.
 
-Still required: admit and package the fresh response, exercise the complete staged
+The genuine candidate has now passed full admission replay in the permanently
+retained supported environment. The numerical runtime is identical and the
+candidate bytes are unchanged. Admission completed at 06:08:49 UTC in 8.205
+seconds at 161,388 KiB RSS, with no acquisition or production state changes.
+[Admission metadata](production-thermal-admission.json) and
+[environment verification](production-environment.md) preserve the evidence.
+
+Still required: package the admitted response, exercise the complete staged
 rollout with confirmed production weather, connect household component
 PV/storage, finish all normal CI and whole-capability review, export every
 original/source generation, then perform the authorized reversible

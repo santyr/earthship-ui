@@ -457,7 +457,7 @@
         "method": "Fresh compatible thermal fit where the weather/solar numerical baseline changes, using the supported retained native observations and unchanged control authority.",
         "target": "Measured air/wall response and read-only thermal trajectories.",
         "artifact_sha256": "5219dffe4d4784a58a05b11c7bd935305561703f5c03a5027fde14b8db2673a3",
-        "production_admission_sha256": null,
+        "production_admission_sha256": "4e82fb995ba9368e3c85fc619151a9dcf78d6f3b3c1ba3294696774716051b50",
         "installed": false,
         "runtime_sha256": "46a3a8b9df43333c13855cb7273bdecbb8590168e6e844ddc11cea0d68f3d1ca",
         "actual_completed_at": "2026-10-23T04:05:31.042232+00:00",
@@ -465,7 +465,10 @@
         "training_end": "2026-10-23T00:00:00+00:00",
         "endpoint_count": 33,
         "prepared": true,
-        "evidence": "production-thermal-fit.json"
+        "evidence": "production-thermal-fit.json",
+        "admission_verified_at": "2026-10-23T06:08:49.517029+00:00",
+        "admission_evidence": "production-thermal-admission.json",
+        "supported_environment_manifest_sha256": "437c3c7cd7f26d9ee1ec962885eb9fade01f762e1c41ab0150c8c19bd16d9085"
       },
       "consumers": [
         "household cycle",
@@ -473,7 +476,7 @@
         "deterministic stress"
       ],
       "remaining": [
-        "Admit/package the genuinely fresh fit with its permanent literal originals and supported serving environment.",
+        "Package the admitted genuine fit into a complete exact source family using its retained supported environment and original inputs.",
         "Complete staged capture and shared household integration, all CI/review and exact rollback.",
         "Deploy and verify actual native air/wall predictions and prospective outcomes."
       ],

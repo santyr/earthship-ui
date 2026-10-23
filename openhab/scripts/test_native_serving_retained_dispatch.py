@@ -18,7 +18,8 @@ def test_native_opportunities_preserve_current_and_rotate_explicit_retained_stag
     with pytest.raises(ValueError):choose(dispatch,datetime(2026,10,13,18,2,10,tzinfo=timezone.utc))
 
 
-def test_retained_native_exec_uses_its_own_external_pin_and_source_closure(tmp_path,monkeypatch):
+@pytest.mark.parametrize('retained_environment',[False,True])
+def test_retained_native_exec_uses_its_own_external_pin_and_source_closure(tmp_path,monkeypatch,retained_environment):
     import household_forecast_score as coordinator,household_cycle_deploy as deploy
     execute=getattr(coordinator,'execute_retained_native_score',None)
     assert callable(execute),'retained native source execution is missing'
@@ -34,8 +35,16 @@ def test_retained_native_exec_uses_its_own_external_pin_and_source_closure(tmp_p
         return {'schema':'earthship-household-cycle-deployment/v3','source_manifest':{'openhab/scripts/household_forecast_score.py':sha256(script.read_bytes()).hexdigest()}}
     monkeypatch.setattr(deploy,'verify_stage',verify);seen=[]
     monkeypatch.setattr(os,'execve',lambda executable,args,environment:seen.append((executable,args,environment)))
+    expected_python='/usr/bin/python3'
+    import calibrated_score_runtime as environments
+    refs=[]
+    if retained_environment:
+        binary=tmp_path/'python3.12';binary.write_bytes(b'explicit retained interpreter bytes');binary.chmod(0o500)
+        expected_python=str(binary);refs=[dict(root=str(stage/'sources'),python_path=str(binary),python_sha256=sha256(binary.read_bytes()).hexdigest())]
+    monkeypatch.setattr(environments,'producer_roots',lambda:refs)
     execute(selection,deadline=321.)
     executable,args,environment=seen[0]
+    assert executable==expected_python
     assert args==[executable,'-P',str(Path(coordinator.__file__).resolve()),'--worker-script',str(script),'--worker-deployment-sha256',selection['deployment_sha256'],'--config',str(config),'--stage',str(stage),'--retained-native','--worker-deadline-monotonic','321.0']
     assert environment['PYTHONPATH'].startswith(str(stage/'sources/openhab/scripts')+':')
     manifest.write_bytes(b'{ }')
