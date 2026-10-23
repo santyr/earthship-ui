@@ -120,3 +120,19 @@ def test_large_optional_model_context_does_not_take_down_independent_advice(tmp_
 def test_unrelated_energy_policy_refresh_does_not_resurrect_shade_advice():
     p=policy();first=run(policy=p);p['energy']['reserve_soc_pct']=30.;second=run(policy=p)
     assert first['recommendations'][0]['episode_id']==second['recommendations'][0]['episode_id']
+
+
+def test_native_device_and_source_identifiers_are_retained_without_aliasing():
+    from household.advice.shade_state import normalize_event
+    m=mapping();m['device_id']='dooya:rf:AA:10/03';m['source']='mqtt:topic:mosquitto/shade-9/state'
+    p=packet(device_id=m['device_id'],source=m['source'])
+    value=normalize_event(m,p)
+    assert value['device_id']==m['device_id'] and value['source']==m['source']
+
+
+def test_report_precision_does_not_turn_a_nearby_stop_into_target_completion():
+    from household.advice.shade_state import normalize_event,target_observed
+    m=mapping();m['resolution']=1.
+    row=normalize_event(m,packet(position=1.))
+    assert row['position_open_pct']==99.
+    assert not target_observed([row],{'shade-9':100.},now=NOW)

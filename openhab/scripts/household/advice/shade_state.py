@@ -1,7 +1,7 @@
 """Read-only shade acquisition, bounded immutable history and movement episodes."""
 from datetime import timedelta
 from pathlib import Path
-import os,sqlite3,stat
+import os,sqlite3,stat,re
 from ..codec import canonical,loads,identity
 from ..control_contracts import instant
 from ..evidence import utc
@@ -17,7 +17,9 @@ def normalize_event(mapping,packet):
     closed(mapping,MAP_FIELDS);closed(packet,PACKET_FIELDS)
     if packet['device_id']!=mapping['device_id'] or packet['source']!=mapping['source']:raise ValueError('captured acquisition device or source differs from mapping')
     if mapping['schema']!='earthship-shade-mapping/v1':raise ValueError('versioned mapping required')
-    for key in ('shade_id','zone','device_id','epoch','source'):name(mapping[key])
+    for key in ('shade_id','zone','epoch'):name(mapping[key])
+    for key in ('device_id','source'):
+        if not isinstance(mapping[key],str) or re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.:/@+-]{0,191}',mapping[key]) is None:raise ValueError('bounded native device or source identity required')
     if mapping['convention'] not in ('closed_100','open_100') or mapping['feedback_basis'] not in ('independent_position','travel_time_estimate','controller_estimate'):raise ValueError('explicit native mapping and feedback basis required')
     scale=number(mapping['native_max'],.01,100000);number(mapping['resolution'],.000001,scale);number(mapping['freshness_seconds'],1,86400)
     name(packet['event_id'])
@@ -58,7 +60,7 @@ def target_observed(events,targets,*,now):
     for shade,target in targets.items():
         number(target,0,100);e=rows.get(shade)
         if not e or e['quality']!='qualified' or e['feedback_basis']!='independent_position' or e['movement']!='stopped' or not instant(e['available_at'])<=now<instant(e['valid_until']):return False
-        if abs(e['position_open_pct']-target)>e['mapping']['resolution']*100/e['mapping']['native_max']:return False
+        if abs(e['position_open_pct']-target)>1e-9:return False
     return True
 
 
