@@ -1,5 +1,6 @@
 <script>
-  import RecommendationPreview from '../lib/ui/RecommendationPreview.svelte';
+ import ShadeObservations from "../lib/ui/ShadeObservations.svelte";
+  import DecisionRecommendations from '../lib/ui/DecisionRecommendations.svelte';
   import { officeHallwayTemperature } from '../lib/thermal/officeHallwayTemperature.js';
   import { onMount } from 'svelte';
   import { items, connection } from '../lib/openhab/index.js';
@@ -169,9 +170,9 @@
   <header class="page-heading">
     <div>
       <h1>Window shades</h1>
-      <RecommendationPreview group="shades" tiny />
       <p>{SHADE_COUNT} planned · {mapped} mapped · {reporting} reporting</p>
     </div>
+    <div class="shade-guidance"><DecisionRecommendations scope="shades" tiny compact /><ShadeObservations /></div>
     <div class="release-state" role="status">{previewMode ? sharedPreviewConnected ? 'Shared preview only · no shade commands' : 'Local preview only · no shade commands' : 'Hardware not commissioned · movement disabled'}</div>
   </header>
 
@@ -316,6 +317,7 @@
   .adjustment-dialog button:not(:disabled):active { background: #6b9baa; border-color: #d1f2f7; }
   .adjustment-dialog :focus-visible { outline: 2px solid #b6e9f0; outline-offset: 2px; }
   .shades-page { display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: .4rem; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; }
+  .shade-guidance { flex:1; min-width:0; max-width:30rem; }
   .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 54px; }
   h1 { margin: 0; font-size: 1.26rem; font-weight: 650; letter-spacing: .01em; }
   .page-heading p { margin: .18rem 0 0; color: #9aa7b8; font-size: .76rem; }

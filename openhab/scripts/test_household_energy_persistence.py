@@ -174,7 +174,7 @@ def test_real_cycle_version_binds_preissue_metric_original(tmp_path,monkeypatch)
     args,capture=derived_fixture(tmp_path,monkeypatch);issue=instant(capture['issued_at']);source=metric(issue-timedelta(seconds=2))
     args['originals'].update(schema='earthship-household-cycle-sources/v5',daily_energy_source=None,owner_source=None,policy_source=None,energy_persistence_source=source)
     record=derive_cycle(**args)
-    assert record['schema']=='earthship-household-model-plan-receipt/v6'
+    assert record['schema']=='earthship-household-model-plan-receipt/v7'
     assert record['inputs']['energy_persistence_source']==source
     assert record['output']['projections']['thermal']['output']==capture['output']
     args['originals']['energy_persistence_source']['available_at']=issue.isoformat()

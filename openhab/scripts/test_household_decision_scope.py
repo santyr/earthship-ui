@@ -34,3 +34,31 @@ def test_old_original_replays_using_its_original_producer():
         thermal_runtime=None,coordination=context(snap),config=config(),now=NOW,runtime_manifest={'household/pipeline.py':'a'*64})
     assert any(row['type']=='RUN_GREYWATER_CYCLE' for row in old['output']['candidate_intents'])
     assert current.replay_pipeline(old,runtime_manifest=old['runtime_manifest'],thermal_runtime=None)==old
+
+
+def test_current_expanded_pipeline_and_nested_plan_cli_bind_source_shapes(tmp_path):
+    from test_household_model_snapshot import source_at
+    from household.model_snapshot import bind_model_snapshot
+    from household.power_snapshot import compile_power_inputs
+    from household_pipeline import pipeline_runtime_manifest
+    from test_household_model_pipeline import run
+    import test_household_model_pipeline as original_fixture
+    import subprocess,sys,json,os
+    from pathlib import Path
+    from household.codec import canonical
+    runtime=pipeline_runtime_manifest(expanded=True);original=source_at(NOW)['inputs']
+    source=compile_power_inputs(original['bundle'],managed=original['managed'],ownership=original['ownership'],code_revision=original['code_revision'],runtime_manifest=runtime)
+    snap=bind_model_snapshot(source_receipt=source,source_runtime_manifest=runtime,thermal_inputs=None,code_revision='e'*40)
+    old=original_fixture.seal_pipeline
+    try:
+        original_fixture.seal_pipeline=current.seal_pipeline
+        report=run(snap,runtime_manifest=runtime)
+    finally:original_fixture.seal_pipeline=old
+    assert report['schema']=='earthship-household-model-plan-receipt/v7'
+    assert report['output']['plan_receipt']['schema']=='earthship-household-shadow-plan-receipt/v6'
+    env={**os.environ,'PYTHONPATH':os.pathsep.join(p for p in sys.path if p)}
+    for module,receipt in [('household_pipeline.py',report),('household_plan.py',report['output']['plan_receipt'])]:
+        path=tmp_path/(module+'.json');path.write_bytes(canonical(receipt));path.chmod(0o600)
+        result=subprocess.run([sys.executable,str(Path(__file__).with_name(module)),'--receipt',str(path)],capture_output=True,text=True,env=env,timeout=15)
+        assert result.returncode==0,result.stderr
+        assert json.loads(result.stdout)==receipt

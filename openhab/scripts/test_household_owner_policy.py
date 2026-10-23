@@ -41,7 +41,7 @@ def test_explicit_current_policy_blockers_become_negative_facts(reason,gate):
     assert all(loads(v['raw'])['value'] is False for k,v in ctx['facts']['hex_southoutlet_cycle'].items() if k!='owner_available')
 
 def test_current_after_dark_reason_survives_missing_other_permissions_and_replay():
-    from household.planning import plan,seal_plan,replay_plan
+    from household.legacy_planning import plan,seal_plan,replay_plan
     snap,registry=setup();item=candidate(snap);ctx=context();runtime={'household/owner_policy.py':'a'*64}
     receipt=seal_plan(snapshot=snap,registry=registry,candidates=[item],coordination=ctx,utilities={item.intent_id:1e6},
         now=NOW,reserve_soc=10.,horizon_hours=24,runtime_manifest=runtime,model_refs=[],forecast_ref=None)
@@ -93,7 +93,7 @@ def test_unknown_stable_policy_source_is_retained_without_deriving_facts():
     assert set(ctx['facts']['hex_southoutlet_cycle'])=={'owner_available'}
 
 def test_decision_after_evaluation_expiry_does_not_use_blocker_as_current():
-    from household.planning import plan
+    from household.legacy_planning import plan
     snap,registry=setup();item=candidate(snap);ctx=context(original(evaluated=NOW-timedelta(seconds=119)))
     result=plan(snapshot=snap,registry=registry,candidates=[item],coordination=ctx,utilities={item.intent_id:1.},now=NOW+timedelta(seconds=1),reserve_soc=10.,horizon_hours=24)
     checks={v['rule']:v for v in result['candidate_decisions'][0]['hard_checks']}

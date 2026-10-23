@@ -344,7 +344,7 @@ def complete_cycle(*,publication,collection,parameter_record,runtime_manifest,co
     unchanged=archived['verify_unchanged']
     unchanged()
     _retain_original(evidence_directory,collection['originals'],'.household-sources-v1.json',MAX_SOURCE_BYTES)
-    suffix='.household-model-plan-v6.json' if record.get('schema')=='earthship-household-model-plan-receipt/v6' else '.household-model-plan-v5.json'
+    suffix='.household-model-plan-v6.json' if record.get('schema') in ('earthship-household-model-plan-receipt/v6','earthship-household-model-plan-receipt/v7') else '.household-model-plan-v5.json'
     receipt=_retain_original(evidence_directory,record,suffix,PIPELINE_BYTES)
     if collection['originals'].get('schema') in ('earthship-household-cycle-sources/v6','earthship-household-cycle-sources/v7','earthship-household-cycle-sources/v8'):
         from household_power_flows import seal_flow_receipt,flow_runtime_manifest,MAX_BYTES as FLOW_BYTES
@@ -415,6 +415,13 @@ def complete_cycle(*,publication,collection,parameter_record,runtime_manifest,co
         except (OSError,ValueError):
             pass
         unchanged()
+    try:
+        from household_advice import publish_cycle_advice
+        from pathlib import Path
+        result['advice_status']=publish_cycle_advice(record=record,energy=locals().get('energy'),profiled=locals().get('profiled') if profiled_status=='retained' else None,
+            directory=Path(observation_cache).parent,now=clock(),guard=unchanged)['status']
+    except Exception:
+        result['advice_status']='unavailable'
     return result
 
 

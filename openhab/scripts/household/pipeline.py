@@ -198,3 +198,14 @@ def replay_pipeline(receipt,*,runtime_manifest,thermal_runtime):
         **({'energy_persistence_source':value['energy_persistence_source']} if persistence else {}))
     if canonical(replayed)!=canonical(receipt):raise ValueError('rederived original models or plan differ')
     return replayed
+
+
+def source_receipt_version(record):
+    """Original source-shape version beneath the current decision-scope producer."""
+    version=record.get('schema')
+    if version=='earthship-household-shadow-plan-receipt/v6':
+        inputs=record['inputs'];schema=inputs['snapshot']['schema']
+        return 'earthship-household-shadow-plan-receipt/v'+str({'earthship-household-snapshot/v6':5,'earthship-household-snapshot/v5':4,'earthship-household-snapshot/v4':3,'earthship-household-snapshot/v3':2}.get(schema,1))
+    if version!='earthship-household-model-plan-receipt/v7':return version
+    inputs=record['inputs'];schema=inputs['snapshot']['schema']
+    return 'earthship-household-model-plan-receipt/v'+str(6 if 'energy_persistence_source' in inputs else {'earthship-household-snapshot/v6':5,'earthship-household-snapshot/v5':4,'earthship-household-snapshot/v4':3,'earthship-household-snapshot/v3':2}.get(schema,1))

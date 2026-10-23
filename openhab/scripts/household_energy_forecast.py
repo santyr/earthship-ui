@@ -60,7 +60,7 @@ def _storage(snapshot,pv,flows,topology_source,now):
 
 def seal_energy_forecast(*,plan_receipt,system_source,topology_source,now,runtime_manifest,horizon_source=None):
     plan=loads(canonical(plan_receipt));runtime=_runtime_manifest(runtime_manifest);now=utc(now)
-    if (plan.get('schema') not in ('earthship-household-model-plan-receipt/v4','earthship-household-model-plan-receipt/v5','earthship-household-model-plan-receipt/v6') or
+    if (plan.get('schema') not in ('earthship-household-model-plan-receipt/v4','earthship-household-model-plan-receipt/v5','earthship-household-model-plan-receipt/v6','earthship-household-model-plan-receipt/v7') or
         identity({k:v for k,v in plan.items() if k!='receipt_sha256'})!=plan.get('receipt_sha256') or not REQUIRED<=set(runtime)):
         raise ValueError('original configured plan and complete energy forecast source required')
     original_plan_runtime(plan,actual=runtime)

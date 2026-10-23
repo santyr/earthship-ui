@@ -8,7 +8,7 @@ from hashlib import sha256
 import pytest
 from test_household_planning import setup, candidate, NOW
 from household.codec import canonical,identity
-from household.planning import plan,seal_plan,replay_plan
+from household.legacy_planning import plan,seal_plan,replay_plan
 
 
 def api():

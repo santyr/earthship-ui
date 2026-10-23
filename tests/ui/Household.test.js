@@ -29,9 +29,9 @@ describe('Earthship household observation panels', () => {
     unmount(); expect(signal.aborted).toBe(true);
   });
   it('shows proposed effects as unknown and exposes the blocking hard constraint', async () => {
-    const row = observation();const item=proposal();item.type='RUN_GREYWATER_CYCLE';row.proposals=[item];serve(row);
+    const row = observation();const item=proposal();item.type='SET_NIGHT_LOAD_DEVICE';row.proposals=[item];serve(row);
     const { container, getByText } = render(HouseholdObservation);
-    await waitFor(() => expect(getByText('RUN_GREYWATER_CYCLE')).toBeTruthy());
+    await waitFor(() => expect(getByText('SET_NIGHT_LOAD_DEVICE')).toBeTruthy());
     expect(container.textContent).toContain('battery reserve: unknown');
     expect(container.textContent).toContain('unqualified effect');
     expect(container.textContent).toContain('batteryKwh: unknown');
@@ -143,9 +143,9 @@ it.each(['v1','v2'])('shows twelve gates per automated family and excludes feede
  const {container,getByText}=render(HouseholdObservation);
  await waitFor(()=>expect(getByText('Intent qualification')).toBeTruthy());
  const region=container.querySelector('section[aria-label="Intent qualification"]');
- expect(region.querySelectorAll('details')).toHaveLength(3);
+ expect(region.querySelectorAll('details')).toHaveLength(1);
  expect(region.textContent).not.toContain('Feeder cycle');
- expect(region.querySelectorAll('tbody tr')).toHaveLength(36);
+ expect(region.querySelectorAll('tbody tr')).toHaveLength(12);
  expect(region.textContent).toContain('Automated intent families remain unqualified');
  expect(region.textContent).toContain('Original-plan evidence');
  expect(region.querySelector('button,form,input,select')).toBeNull();

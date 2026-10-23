@@ -1,4 +1,5 @@
 <script>
+  import DecisionRecommendations from "../lib/ui/DecisionRecommendations.svelte";
   import { energyForecastRaw, energyForecastClock } from '../lib/energy/forecastState.js';
   import { energyForecastPresentation } from '../lib/energy/forecastPresentation.js';
   const liveEnergyForecast = $derived(energyForecastPresentation($energyForecastRaw, { nowMs: $energyForecastClock }));
@@ -522,6 +523,8 @@
   }
 </script>
 
+<div class="home-decision-shell">
+  <div class="home-advice"><DecisionRecommendations tiny /></div>
 <div class="home-grid">
   <div class="cell powerflow-cell">
       <Tile label="Power Flow" accent={colors.solar} hideLabel fill clip centerBody padding="0.55rem 0.65rem">
@@ -824,7 +827,11 @@
   </div>
 </div>
 
+</div>
 <style>
+  .home-decision-shell { height:100%; min-height:0; display:flex; flex-direction:column; gap:.35rem; }
+  .home-advice { flex:0 0 auto; max-height:9rem; overflow:auto; }
+  .home-decision-shell .home-grid { flex:1 1 0; min-height:0; height:auto; }
   .home-grid {
     width: 100%;
     height: 100%;
@@ -833,7 +840,7 @@
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
     grid-template-rows:
-      minmax(0, 0.38fr)
+      minmax(3.2rem, 0.38fr)
       repeat(6, minmax(0, 0.425fr))
       minmax(0, 0.72fr);
     grid-template-areas:

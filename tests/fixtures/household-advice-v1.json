@@ -1,0 +1,147 @@
+{
+  "automatic_actuation": false,
+  "domains": {
+    "energy": {
+      "comparison": [],
+      "missing": [],
+      "reason": "no_approved_useful_flexible_task",
+      "status": "no_change_recommended",
+      "valid_until": "2026-09-29T23:35:23+00:00"
+    },
+    "shades": {
+      "comparison": [
+        {
+          "alternative": "Leave unchanged",
+          "horizon_end": "2026-09-30T00:03:23+00:00",
+          "metric": "directional_thermal_effect",
+          "outcome": "Hold the known shade state while independent schedules continue.",
+          "unit": "qualitative",
+          "value": null
+        },
+        {
+          "alternative": "Open the named shades",
+          "horizon_end": "2026-09-30T00:03:23+00:00",
+          "metric": "directional_thermal_effect",
+          "outcome": "Admit available solar heat below the comfort band.",
+          "unit": "qualitative",
+          "value": null
+        },
+        {
+          "alternative": "Wait until later",
+          "horizon_end": "2026-09-30T00:03:23+00:00",
+          "metric": "directional_thermal_effect",
+          "outcome": "No action-conditioned timing benefit has been qualified; reassess at the review time.",
+          "unit": "qualitative",
+          "value": null
+        }
+      ],
+      "missing": [],
+      "reason": "directional_solar_rule",
+      "status": "recommendation_available",
+      "valid_until": "2026-09-29T23:35:03+00:00"
+    },
+    "ventilation": {
+      "comparison": [
+        {
+          "alternative": "Leave unchanged",
+          "horizon_end": "2026-09-29T23:48:23+00:00",
+          "metric": "directional_thermal_effect",
+          "outcome": "Hold the declared closed opening state.",
+          "unit": "qualitative",
+          "value": null
+        }
+      ],
+      "missing": [],
+      "reason": "no_supported_cooling_advantage",
+      "status": "no_change_recommended",
+      "valid_until": "2026-09-29T23:35:03+00:00"
+    }
+  },
+  "evaluated_at": "2026-09-29T23:33:23+00:00",
+  "evaluation_version": "directional-advice-1",
+  "human_action_only": true,
+  "policy_sha256": "d650d431099a643e18a77506e63b6d64f08f186670da9ed25ffdfbce00bcb977",
+  "recommendations": [
+    {
+      "action": "Open living shades to 100% open",
+      "action_spec": {
+        "position_open_pct": 100,
+        "shade_ids": [
+          "shade-9"
+        ]
+      },
+      "automatic_actuation": false,
+      "baseline": {
+        "basis": "operator_declaration",
+        "revision": "1",
+        "state": 0.0
+      },
+      "comparison": [
+        {
+          "alternative": "Leave unchanged",
+          "horizon_end": "2026-09-30T00:03:23+00:00",
+          "metric": "directional_thermal_effect",
+          "outcome": "Hold the known shade state while independent schedules continue.",
+          "unit": "qualitative",
+          "value": null
+        },
+        {
+          "alternative": "Open the named shades",
+          "horizon_end": "2026-09-30T00:03:23+00:00",
+          "metric": "directional_thermal_effect",
+          "outcome": "Admit available solar heat below the comfort band.",
+          "unit": "qualitative",
+          "value": null
+        },
+        {
+          "alternative": "Wait until later",
+          "horizon_end": "2026-09-30T00:03:23+00:00",
+          "metric": "directional_thermal_effect",
+          "outcome": "No action-conditioned timing benefit has been qualified; reassess at the review time.",
+          "unit": "qualitative",
+          "value": null
+        }
+      ],
+      "conditions": [],
+      "decision_at": "2026-09-29T23:33:23+00:00",
+      "effects": {
+        "energy_kwh": null,
+        "soc_pct": null,
+        "thermal_f": null
+      },
+      "end_at": "2026-09-29T23:35:03+00:00",
+      "episode_id": "d9b2aa91ace71deeb3d2b571e848a993e10a3ea593605a3813aecfe104a460a9",
+      "evidence_basis": "rule_based",
+      "human_action_only": true,
+      "invalidation_triggers": [
+        "New physical or declared state",
+        "Source expiry",
+        "Changed preferences or environmental conditions"
+      ],
+      "kind": "SHADE_POSITION",
+      "limitations": [
+        "Directional comparison; thermal benefit is unqualified. No numeric temperature benefit is established."
+      ],
+      "model_refs": [],
+      "policy_sha256": "d650d431099a643e18a77506e63b6d64f08f186670da9ed25ffdfbce00bcb977",
+      "reason": "Admit available solar heat below the comfort band.",
+      "recommendation_id": "840f9d9db02d5ab59c31ac24676ff1251ef919c9ab94ba0059c77df70a1f66b2",
+      "review_at": "2026-09-29T23:34:23+00:00",
+      "snapshot_id": "1cb23f7b7c3f0f9c8200b77928e6b6bd7f7852747ea80814b551e492a72ad8b9",
+      "source_refs": [
+        "01dcd49f76a2fc1d205282436202c96b46c50e9dbfe6719bc80b2dd635e0a5bf",
+        "7a5d6d0cc09e632d70445267ed13f2ca3a6cae37e3846ab7d13b7486f8a6469b",
+        "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      ],
+      "source_valid_until": "2026-09-29T23:35:03+00:00",
+      "start_at": "2026-09-29T23:33:23+00:00",
+      "target": "living",
+      "valid_until": "2026-09-29T23:35:03+00:00"
+    }
+  ],
+  "report_id": "e4e26fd8bf61d7b51b66e40f2fa61a73851c7be32addf913fd5f1c48eba06fe3",
+  "schema": "earthship-household-advice/v1",
+  "snapshot_id": "1cb23f7b7c3f0f9c8200b77928e6b6bd7f7852747ea80814b551e492a72ad8b9",
+  "timezone": "America/Denver",
+  "valid_until": "2026-09-29T23:35:23+00:00"
+}

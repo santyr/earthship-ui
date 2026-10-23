@@ -76,7 +76,7 @@ def test_native_complete_cycle_dispatches_native_preparation_before_pure_derivat
     result=cycle.complete_cycle(publication=p,collection={'status':'collected','issue':c['issued_at'],'originals':{}},
         parameter_record=None,runtime_manifest=None,code_revision=CODE,evidence_directory=None,observation_cache=None,
         guard=lambda:None,clock=lambda:datetime.fromisoformat(c['published_at']),**k)
-    assert result=={'status':'fixture_materialized'} and calls==['prepare','derive']
+    assert result=={'status':'fixture_materialized','advice_status':'unavailable'} and calls==['prepare','derive']
 
 
 @pytest.mark.parametrize("policy",[False,True])
