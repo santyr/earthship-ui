@@ -28,7 +28,8 @@ function healthy(at = Date.now()) {
 }
 async function boot(rows = healthy()) {
   snapshot = rows;
-  const client = { getAllItems: vi.fn(async () => snapshot), getAllThings: async () => [] };
+  const client = { getAllItems: vi.fn(async () => snapshot), getAllThings: async () => [],
+    getItem: vi.fn(async name => snapshot.find(row => row.name === name)) };
   await initOpenhab({ openhabUrl: '', staleBannerSeconds: 90 }, {
     clientFactory: () => client,
     sseFactory: (options) => { stream = createSSE(options); return stream; },
@@ -61,7 +62,9 @@ it('keeps hours of constant SoC healthy using fresh atomic receipts', async () =
   await boot();
   for (let i = 0; i < 120; i++) {
     vi.advanceTimersByTime(60000); emit('BMS_SOC_Evidence_JSON', 'statechanged', { value: socReceipt() });
-    for (const name of [OUT, IN]) emit(name, 'stateupdated', { value: '70', lastStateUpdate: Date.now() });
+    snapshot = healthy();
+    for (const name of [OUT, IN]) emit(name, 'stateupdated', { value: '70', lastStateUpdate: Date.now() - 30000 });
+    await vi.advanceTimersByTimeAsync(0);
     expect(warnings()).toEqual([]);
   }
   expect(get(items).BMS_SOC).toBe('100');
@@ -81,15 +84,24 @@ it('subscribes to curated update topics without duplicating temperature values',
 it('statechanged cannot cure stale temperatures but equal-value updates can', async () => {
   await boot(healthy(NOW - 16 * 60000)); expect(warnings().map(a => a.id)).toContain(`telemetry-stale:${OUT}`);
   emit(OUT, 'statechanged', { value: '70' }); expect(warnings().map(a => a.id)).toContain(`telemetry-stale:${OUT}`);
+  snapshot = healthy(NOW - 877);
   emit(OUT, 'stateupdated', { value: '70', lastStateUpdate: '2026-09-05T11:59:59.123456789-06:00[America/Denver]' });
+  await vi.advanceTimersByTimeAsync(0);
   expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW - 877, available: true, state: '70' }); expect(warnings().map(a => a.id)).not.toContain(`telemetry-stale:${OUT}`);
 });
-it('retains diagnostic time on invalid evidence and ignores older valid evidence', async () => {
-  await boot(); emit(OUT, 'stateupdated', { lastStateUpdate: 'bad' }); expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW, available: false, state: '70' });
-  emit(OUT, 'stateupdated', { lastStateUpdate: NOW - 1 }); expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW, available: false, state: '70' });
-  emit(OUT, 'stateupdated', { value: '70', lastStateUpdate: NOW }); expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW, available: true, state: '70' });
-  emit(OUT, 'stateupdated', {}); expect(get(itemUpdateEvidence)[OUT].available).toBe(false);
-  emit(OUT, 'stateupdated', { lastStateUpdate: NOW + 1 }); expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW, available: false, state: '70' });
+it('retains diagnostic time on invalid REST evidence and ignores older valid REST evidence', async () => {
+  await boot();
+  async function update(lastStateUpdate) {
+    snapshot = healthy().map(row => row.name === OUT ? { ...row, lastStateUpdate } : row);
+    // Event clocks are not paired evidence; only this confirming REST row is.
+    emit(OUT, 'stateupdated', { value: '70', lastStateUpdate: NOW });
+    await vi.advanceTimersByTimeAsync(0);
+  }
+  await update('bad'); expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW, available: false, state: '70' });
+  await update(NOW - 1); expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW, available: false, state: '70' });
+  await update(NOW); expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW, available: true, state: '70' });
+  await update(undefined); expect(get(itemUpdateEvidence)[OUT].available).toBe(false);
+  await update(NOW + 1); expect(get(itemUpdateEvidence)[OUT]).toEqual({ lastKnown: NOW, available: false, state: '70' });
 });
 it('reconnect requests another snapshot without rejuvenating stale evidence', async () => {
   const client = await boot(healthy(NOW - 16 * 60000)); snapshot = healthy(NOW - 30 * 60000); FakeES.all[0].onerror(); await vi.advanceTimersByTimeAsync(1000); FakeES.all.at(-1).onopen(); await vi.advanceTimersByTimeAsync(0);
