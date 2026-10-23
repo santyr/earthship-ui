@@ -576,7 +576,9 @@ def execute_retained_native_score(selection,*,deadline=None):
         deploy._bytes(stage/'cycle.json',private=True,maximum=8192)!=cycle_raw):
         raise ValueError('retained native executing source changed')
     from calibrated_score_runtime import producer_interpreter
-    interpreter=producer_interpreter(stage/'sources')
+    from household_native_family import selected_interpreter
+    family_interpreter=selected_interpreter(stage,deployment_sha256=pin,guard=lambda:None,retained=True)
+    interpreter=producer_interpreter(stage/'sources') if family_interpreter is None else family_interpreter['path']
     command=[interpreter,'-P',str(Path(__file__).resolve()),'--worker-script',str(script),
         '--worker-deployment-sha256',pin,'--config',str(config),'--stage',str(stage),'--retained-native']
     if deadline is not None:command.extend(['--worker-deadline-monotonic',repr(deadline)])

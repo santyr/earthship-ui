@@ -86,3 +86,18 @@ def test_retained_interpreter_matches_the_declared_admitted_model_and_serving_mo
     family._model_interpreter(settings,ref,serving=True)
     with pytest.raises(ValueError,match='receipt-serving'):family._model_interpreter(settings,ref,serving=False)
     with pytest.raises(ValueError,match='admitted model'):family._model_interpreter(settings,dict(ref,sha256='b'*64),serving=True)
+
+
+@pytest.mark.parametrize('retained',[False,True])
+def test_daily_activation_uses_the_verified_family_interpreter(tmp_path,monkeypatch,retained):
+    import household_native_training as training
+    stage=tmp_path/'run/final';stage.mkdir(parents=True,mode=0o700)
+    ref=dict(path=str(tmp_path/'python3.12'),sha256='a'*64) if retained else None
+    monkeypatch.setattr(training,'selected_family_interpreter',lambda *a,**k:ref,raising=False)
+    calls=[]
+    def run(command,**kwargs):
+        calls.append(command);training.save(stage.parent/'activation-result.json',{'status':'activated'})
+    monkeypatch.setattr(training.subprocess,'run',run)
+    runner=object.__new__(training.NativeTraining);runner.guard=lambda:None
+    assert runner.activate(dict(stage=str(stage),deployment_sha256='a'*64),{})=={'status':'activated'}
+    assert calls[0][0]==(ref['path'] if retained else '/usr/bin/python3')

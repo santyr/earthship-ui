@@ -19,6 +19,10 @@ def output():
 @pytest.fixture
 def cycle(tmp_path,monkeypatch):
  import component_household_worker as worker
+ import household_cycle_pressure
+ # Publication behavior is independent of a runner's cgroup. Resource-policy
+ # refusals have their own lower-level tests and the real managed preview.
+ monkeypatch.setattr(household_cycle_pressure,'PublicationHeadroom',lambda:SimpleNamespace(check=lambda:None))
  state=directory(tmp_path/'state');view=tmp_path/'view.json';profile=tmp_path/'profile.json';profile.write_bytes(b'{}');profile.chmod(0o600)
  energy=dict(receipt_sha256='e'*64,output={'array_pv':{'origin':ISSUE.isoformat()}})
  current=dict(energy=energy,plan={},profiled=None,energy_path=tmp_path/'energy',profiled_path=None,originals=(None,None,tmp_path/'plan',None))
@@ -127,7 +131,10 @@ def test_cli_monitoring_failure_after_confirmed_publication_returns_nonzero_with
  monkeypatch.setattr(worker,'run',lambda **k:published)
  def fail(*a,**k):raise OSError('test monitor failure')
  monkeypatch.setattr(worker,'save',fail)
- result=worker.main(['--state',str(tmp_path/'state'),'--profile',str(tmp_path/'profile'),'--profile-sha256','a'*64])
+ import os
+ previous_mask=os.umask(0o077)
+ try:result=worker.main(['--state',str(tmp_path/'state'),'--profile',str(tmp_path/'profile'),'--profile-sha256','a'*64])
+ finally:os.umask(previous_mask)
  assert result==1
  value=__import__('json').loads(capsys.readouterr().out)
  assert value['production_states_written'] is True and value['production_retention_status']=='CONFIRMED'

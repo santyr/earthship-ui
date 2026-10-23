@@ -109,3 +109,32 @@ def test_family_verifier_refuses_resealed_unsafe_or_unbound_drafts(tmp_path,monk
     else:libraries.write_text('{}')
     write(out/'family.json',encode(meta))
     with pytest.raises((ValueError,OSError)):m.verify(out,guard=lambda:None)
+
+
+def test_retained_serving_family_uses_frozen_geometry_and_exact_external_selection(tmp_path,monkeypatch):
+    """Metadata-only serving fixture; physical admission is tested separately."""
+    from hashlib import sha256
+    m,args,settings,record,libraries,out=fixture(tmp_path,monkeypatch)
+    stage=args['stage'];pin=sha256((stage/'deployment.json').read_bytes()).hexdigest()
+    binary=tmp_path/'python3.12';write(binary,b'explicit unit interpreter bytes',0o500)
+    interpreter=dict(path=str(binary),sha256=sha256(binary.read_bytes()).hexdigest())
+    path=Path(settings['candidate_path']);candidate=json.loads(path.read_bytes())
+    candidate['runtime']['base_runtime']['interpreter_sha256']=interpreter['sha256'];write(path,encode(candidate))
+    record=dict(record,schema='earthship-household-cycle-deployment/v3',model_verification={'unit':'metadata'},score_dispatch={'unit':'metadata'})
+    def selected(actual,expected_deployment_sha256=None):
+        if actual!=stage or expected_deployment_sha256!=pin:raise ValueError('external stage pin differs')
+        return record
+    monkeypatch.setattr(m,'_stage_record',selected)
+    monkeypatch.setattr(deployment(),'verify_stage',selected)
+    import household_forecast_score as scoring
+    monkeypatch.setattr(scoring,'read_score_dispatch',lambda *a,**k:{})
+    write(stage/'sources/openhab/scripts/household_forecast_score.py',b'# original unit metadata\n',0o644)
+    template=(stage/'service.conf').read_text();write(stage/'service.conf',template.replace('--code-revision','--stage '+str(stage)+' --code-revision').encode())
+    m.prepare(stage,libraries,out,guard=lambda:None,deployment_sha256=pin,interpreter=interpreter)
+    assert m.verify(out,guard=lambda:None)['interpreter']==interpreter
+    import astro_geometry_worker
+    def unavailable(*a,**k):raise ValueError('current geometry unavailable')
+    monkeypatch.setattr(astro_geometry_worker,'runtime_identity',unavailable)
+    assert m.verify_retained_serving_family(out,expected_deployment_sha256=pin,guard=lambda:None)['interpreter']==interpreter
+    with pytest.raises(ValueError,match='current geometry'):m.verify(out,guard=lambda:None)
+    with pytest.raises(ValueError):m.verify_retained_serving_family(out,expected_deployment_sha256='f'*64,guard=lambda:None)

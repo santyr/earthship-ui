@@ -239,7 +239,25 @@ def verify_handoff_baseline(output,*,expected_deployment_sha256,guard):
     return _verify(output,guard=guard,baseline_deployment_sha256=_sha(expected_deployment_sha256))
 
 
-def _verify(output,*,guard,baseline_deployment_sha256=None):
+def verify_retained_serving_family(output,*,expected_deployment_sha256,guard):
+    """Verify original ownership without replacing frozen geometry with today."""
+    from thermal_model.graduation_policy import _sha
+    return _verify(output,guard=guard,baseline_deployment_sha256=_sha(expected_deployment_sha256),retained_serving=True)
+
+
+def selected_interpreter(stage,*,deployment_sha256,guard,retained=False):
+    import household_cycle_deploy as deploy
+    stage=deploy._path(stage);root=stage.parent/'family';path=root/'family.json'
+    try:path.lstat()
+    except FileNotFoundError:return None
+    value=json.loads(deploy._bytes(path,private=True))
+    if value.get('schema')!='earthship-native-thermal-service-family/v3':return None
+    family=verify_retained_serving_family(root,expected_deployment_sha256=deployment_sha256,guard=guard) if retained else verify(root,guard=guard)
+    if family['stage']!=str(stage) or family['deployment_sha256']!=deployment_sha256:raise ValueError('selected family interpreter stage differs')
+    return family['interpreter']
+
+
+def _verify(output,*,guard,baseline_deployment_sha256=None,retained_serving=False):
     """Reconstruct the draft from pinned originals, rather than trusting its hashes."""
     import household_cycle_deploy as deploy
     from household_native_geometry_prepare import _library_paths
@@ -254,6 +272,7 @@ def _verify(output,*,guard,baseline_deployment_sha256=None):
         if baseline_deployment_sha256 is not None:
             if family.get('schema') not in ('earthship-native-thermal-service-family/v2','earthship-native-thermal-service-family/v3') or pin!=baseline_deployment_sha256:
                 raise ValueError('external retired-family deployment pin differs')
+            if retained_serving:return deploy.verify_stage(stage,expected_deployment_sha256=baseline_deployment_sha256)
             return deploy.verify_handoff_baseline(stage,expected_deployment_sha256=baseline_deployment_sha256)
         return _stage_record(stage,pin)
     record=selected_record()
@@ -262,7 +281,7 @@ def _verify(output,*,guard,baseline_deployment_sha256=None):
     original=deploy._bytes(libraries,private=True);paths=_library_paths(original)
     cycle=json.loads(deploy._bytes(stage/'cycle.json',private=True));config=deploy._path(cycle['forecast_config'])
     settings=json.loads(deploy._bytes(config,private=True))
-    if baseline_deployment_sha256 is not None:
+    if baseline_deployment_sha256 is not None and not retained_serving:
         if (settings.get('schema') in deploy.GOOGLE_SCHEMAS or
                 set(settings)!=deploy._baseline_configuration_fields(settings.get('schema'))):
             raise ValueError('closed retired receipt-family configuration required')

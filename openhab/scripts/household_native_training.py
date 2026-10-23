@@ -131,6 +131,11 @@ def retained_model_admission(candidate, *, selections, guard):
         source_stage=owned['stage'],source_deployment_sha256=owned['deployment_sha256'])
 
 
+def selected_family_interpreter(selection,*,guard):
+    from household_native_family import selected_interpreter
+    return selected_interpreter(Path(selection['stage']),deployment_sha256=selection['deployment_sha256'],guard=guard)
+
+
 class NativeTraining:
     def __init__(self, config):
         if config.get('training_cadence','daily') not in ('daily','six_hourly'):raise ValueError('supported native training cadence required')
@@ -423,7 +428,8 @@ class NativeTraining:
             model_receipt_path=receipt, model_receipt_sha256=receipt_pin,
             score_dispatch_path=Path(dispatch['path']), score_dispatch_sha256=dispatch['sha256'])
         pin = sha256((stage / 'deployment.json').read_bytes()).hexdigest()
-        prepare(stage, run / 'geometry-libraries.json', run / 'family', guard=self.guard, deployment_sha256=pin)
+        interpreter=selected_family_interpreter(previous,guard=self.guard)
+        prepare(stage, run / 'geometry-libraries.json', run / 'family', guard=self.guard, deployment_sha256=pin,interpreter=interpreter)
         selection = dict(stage=str(stage), deployment_sha256=pin, artifact_sha256=candidate['artifact_sha256'],
                          trained_through=candidate['fit']['training_end'])
         save(run / 'final-selection.json', selection)
@@ -435,7 +441,8 @@ class NativeTraining:
         run = Path(selection['stage']).parent
         environment = dict(os.environ, PYTHONPATH=str(Path(selection['stage']) / 'sources/openhab/scripts')
                            + ':/home/sat/Solar_PV/analytics/src')
-        subprocess.run(['/usr/bin/python3', '-m', 'household_native_daily', '--activate', str(run)],
+        interpreter=selected_family_interpreter(selection,guard=self.guard)
+        subprocess.run(['/usr/bin/python3' if interpreter is None else interpreter['path'], '-m', 'household_native_daily', '--activate', str(run)],
                        env=environment, check=True, timeout=600)
         return read(run / 'activation-result.json')
 

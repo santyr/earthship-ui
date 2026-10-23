@@ -17,9 +17,12 @@ Native family v3 explicitly binds an owned executable path and SHA to the
 admitted model. Forecast, geometry and score commands select that executable
 inside the shared resource launcher. Family verification reconstructs the
 commands and checks the executable again. Old family generations keep their
-original rendering. The native retained-score dispatcher uses the existing
-per-producer interpreter registry so historical numerical environments remain
-separate. No shared collector/SDK environment is redirected.
+original rendering. The native retained-score dispatcher verifies each retained family's external
+stage pin, frozen source/geometry and executable binding. A historical family
+does not acquire today's geometry dependencies. Older stages retain their
+original interpreter/registry behavior. Daily refresh inherits the verified
+selected family's interpreter, and activation uses the newly prepared family's
+binding. No shared collector/SDK environment is redirected.
 
 The current committed package contains 450 source files totaling 4,766,074
 bytes. The old 400-file staging/verification cap rejected it. Both checks now
@@ -28,10 +31,18 @@ then rejects changed bytes. A 481-file package is rejected before staging.
 The archive byte limits and shared CPU/RAM/task/job budgets retain their
 existing values.
 
-The integrated package/family/installation/retained-dispatch checks passed
-123 cases in 39.08 seconds in the retained environment. These include legacy
-contracts and explicit-interpreter selection. Exact private stage preparation,
-final CI/review and authorized installation with real service/readback/UI
+The integrated package/family/installation/daily-refresh/retained-dispatch checks passed
+155 cases in 35.92 seconds in the retained environment. These include legacy
+contracts and explicit-interpreter selection. A complete real 450-file stage and v3 family were prepared and independently
+verified at 06:23:38 UTC. That immutable source generation is retained; subsequent
+refresh-wiring changes require a new final package. The same real family's
+current, daily and historical interpreter selections agree, and wrong external
+pins are refused. Frozen historical verification succeeds with current geometry
+selection deliberately denied, while current verification still requires it.
+These checks changed no installed service or forecast.
+
+[Retained-family proof](production-native-retained-environment-verification.json)
+records that distinction. Final exact-source packaging, CI/review and authorized installation with real service/readback/UI
 evidence remain required.
 
 [Environment metadata](production-environment-verification.json) and
