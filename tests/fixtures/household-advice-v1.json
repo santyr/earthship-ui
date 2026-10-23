@@ -110,7 +110,7 @@
         "thermal_f": null
       },
       "end_at": "2026-09-29T23:35:03+00:00",
-      "episode_id": "d9b2aa91ace71deeb3d2b571e848a993e10a3ea593605a3813aecfe104a460a9",
+      "episode_id": "c23434e9d126bc374213cc15684025185baeb6a6b1e150a07bb88c2ad9b5d3f9",
       "evidence_basis": "rule_based",
       "human_action_only": true,
       "invalidation_triggers": [
@@ -125,7 +125,7 @@
       "model_refs": [],
       "policy_sha256": "d650d431099a643e18a77506e63b6d64f08f186670da9ed25ffdfbce00bcb977",
       "reason": "Admit available solar heat below the comfort band.",
-      "recommendation_id": "840f9d9db02d5ab59c31ac24676ff1251ef919c9ab94ba0059c77df70a1f66b2",
+      "recommendation_id": "9bafae000df5169e95a184a5cc0c9f0af8624dc242cee8d40f129a33e97ce49c",
       "review_at": "2026-09-29T23:34:23+00:00",
       "snapshot_id": "1cb23f7b7c3f0f9c8200b77928e6b6bd7f7852747ea80814b551e492a72ad8b9",
       "source_refs": [
@@ -139,7 +139,7 @@
       "valid_until": "2026-09-29T23:35:03+00:00"
     }
   ],
-  "report_id": "e4e26fd8bf61d7b51b66e40f2fa61a73851c7be32addf913fd5f1c48eba06fe3",
+  "report_id": "c26c48bfc47d26667df6354fbaea3c00adc3583f4ccadf58537cfd8af525e9cf",
   "schema": "earthship-household-advice/v1",
   "snapshot_id": "1cb23f7b7c3f0f9c8200b77928e6b6bd7f7852747ea80814b551e492a72ad8b9",
   "timezone": "America/Denver",

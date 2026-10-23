@@ -10,6 +10,8 @@
 
 **Spec:** The product specification and acceptance contract are Sections 1–5 of this document. The executing agent should retain this document under `docs/superpowers/plans/2026-10-22-decision-support.md`, or link it from the repository's existing canonical plan location rather than create a competing tracker.
 
+**Operator clarification (2026-10-23):** Nightly override and its device-policy scheduling are also excluded from ML planning/recommendations; existing OpenHAB rules already cover them. Preserve those rules and manual controls. Standalone discretionary-task advice requires explicit approval and remains separate.
+
 **Prepared:** October 22, 2026.  
 **New hardware commitment:** The user expects motorized shades within approximately one month and expects to observe when and how far each shade is manually opened. Build observation, history, and recommendation integration now; verify each actual device at commissioning. This is a known near-term integration requirement, not a reason to defer the shade work or to enable automatic movement.  
 **Repository:** `santyr/earthship-ui`.  

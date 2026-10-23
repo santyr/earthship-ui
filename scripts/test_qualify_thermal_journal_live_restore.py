@@ -126,3 +126,15 @@ def test_real_archive_restore_requires_exact_selected_schema(database, tmp_path,
     finally:
         subprocess.run(['docker', 'rm', '--force', '--volumes', name],
                        check=False, capture_output=True, timeout=30)
+
+
+def test_disposable_port_selection_obeys_existing_restore_boundary(monkeypatch):
+    ports=iter([1024,5432,54321])
+    class Socket:
+        def __enter__(self):return self
+        def __exit__(self,*args):pass
+        def bind(self,address):assert address==('127.0.0.1',0)
+        def getsockname(self):return ('127.0.0.1',next(ports))
+    import socket
+    monkeypatch.setattr(socket,'socket',lambda *args:Socket())
+    assert restore._disposable_port()==54321

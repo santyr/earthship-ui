@@ -16,6 +16,7 @@ def energy_advice(report,snap,projections,policy,state,now):
     if load['power_w'] is None or load['duration_minutes'] is None:return _domain('insufficient_evidence','flexible_load_profile_missing',['power_w','duration_minutes'])
     soc=_reading(snap,'energy','battery_soc',now)
     if soc is None:return _domain('insufficient_evidence','battery_evidence_unavailable',['battery_soc'])
+    if projections.get('energy_context_error'):return _domain('insufficient_evidence','original_energy_attribution_unavailable',['current_attributed_energy_baseline'])
     inputs=projections.get('flexible_energy')
     if inputs is None:return _domain('insufficient_evidence','bound_energy_scenario_unavailable',['pv_storage_and_baseline_load_profile'])
     closed(inputs,{'snapshot_id','source_ref','available_at','valid_until','steps','initial_soc_pct','nominal_bank_kwh','baseline_load_forecast','task_baseline_included'})

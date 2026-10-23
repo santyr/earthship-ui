@@ -10,7 +10,7 @@ for(const size of [{width:1340,height:800},{width:1280,height:720}])test(`decisi
  await page.route('**/api/household-advice',r=>r.fulfill({json:fixture}));const feedback=[];await page.route('**/api/household-advice-feedback',r=>{if(r.request().method()==='POST'){feedback.push(r.request().postDataJSON());return r.fulfill({json:{status:'retained'}});}return r.fulfill({json:{events:[]}});});
  await page.route('**/api/household-advice-context',r=>r.fulfill({json:{targets:[]}}));await page.route('**/api/household-advice-state',r=>r.fulfill({json:{declarations:[],checks:{}}}));
  await page.goto(baseURL,{waitUntil:'domcontentloaded'});const region=page.getByRole('region',{name:'Household decision support'});
- await expect(region.getByText('Open living shades to 100% open')).toBeVisible();await expect(region.getByText('Manual advice')).toBeVisible();
+ await expect(region.locator('.action').filter({hasText:'Open living shades to 100% open'})).toBeVisible();await expect(region.getByText('Manual advice')).toBeVisible();
  const box=await region.boundingBox();expect(box.width).toBeGreaterThan(500);expect(box.x+box.width).toBeLessThanOrEqual(size.width);
  await region.getByText('Baseline, alternatives and uncertainty').click();
  await region.getByRole('button',{name:'Seen'}).click();expect(feedback.map(e=>e.kind)).toEqual(['acknowledge']);

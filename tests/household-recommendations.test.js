@@ -1,6 +1,6 @@
 import {expect,it} from 'vitest';
 import {parseHouseholdObservation} from '../src/lib/household/observation.js';
-import {recommendationPreview,climatePreview} from '../src/lib/household/recommendations.js';
+import {historicalRecommendationPreview as recommendationPreview,recommendationPreview as currentPreview,climatePreview} from '../src/lib/household/recommendations.js';
 import {currentDeviceObservation,recommendationObservation} from './fixtures/household-recommendations.js';
 import {AT,observation,proposal} from './fixtures/household-observation.js';
 const parse=(v,nowMs=AT)=>parseHouseholdObservation(JSON.stringify(v),{nowMs});
@@ -65,5 +65,5 @@ it('excludes feeder intents even when an incoming original marks one selected',(
 });
 
 it('excludes all cached pump, feeder and uninspected broad-macro advice',()=>{
- const v=parse(recommendationObservation());for(const scope of ['loads','greywater','feeding','night-policy'])expect(recommendationPreview(v,scope,AT).rows).toEqual([]);
+ const v=parse(recommendationObservation());for(const scope of ['loads','greywater','feeding','night-policy','devices'])expect(currentPreview(v,scope,AT).rows).toEqual([]);
 });

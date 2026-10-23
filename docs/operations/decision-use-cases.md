@@ -1,6 +1,6 @@
 # Current decision coverage
 
-Authoritative implementation contract: [2026-10-22 decision support](../superpowers/plans/2026-10-22-decision-support.md). Decisions and recommendations are the product objective; forecasts support them. Previous audit repairs remain preserved. Greywater and feeder are outside advice/optimization; independent operation and measured demand remain unchanged.
+Authoritative implementation contract: [2026-10-22 decision support](../superpowers/plans/2026-10-22-decision-support.md). Decisions and recommendations are the product objective; forecasts support them. Previous audit repairs remain preserved. Greywater, feeder and nightly override/device-policy actions are outside advice/ML optimization; independent operation and measured demand remain unchanged.
 
 | Decision served | User outcome | Required evidence | Source readiness / exact gap | Acceptance |
 |---|---|---|---|---|
@@ -26,3 +26,8 @@ Forecast priority: shade position/solar geometry → shade timing; indoor/outdoo
 Current source: isolated branch`feature/decision-support-20261023`, repaired baseline`09363f1`. Existing root overlays and pinned installed releases remain untouched. See [commissioning/installation runbook](decision-support-commissioning.md) for reader-before-writer staging, original replay, exact private input contracts, telemetry acceptance, retention bounds and rollback. Software verification is still in progress; this table does not claim the integrated candidate passes until final evidence is recorded.
 
 Active tasks are now ordered by **decision served; user-visible outcome; acceptance test; evidence limitation**. First close the current advice/telemetry software gates, then provide operator inputs, then authorize/verify installation, then commission actual motor feedback when hardware exists. Further forecasting work must repair a named decision blocker or improve later matched decision evidence. Optional predictor expansion remains behind those tasks.
+
+
+Operator clarification on 2026-10-23: shades still require connection; use the existing Dooya installation handoff. Nightly override scheduling is already adequately covered by OpenHAB and requires no ML. Current command-oriented planner capabilities are empty; descriptive/manual catalogs and historical numerical producers remain retained. Standalone flexible-task advice is separate, explicitly opt-in, and never inferred from night-control membership. Its modeled baseline still includes independently operated pump/essential demand.
+
+Independent review found implementable source defects in effective evidence expiry, feedback deduplication/correction, packet identity, auxiliary failure isolation, current device scope, episode stability and thermal evaluation wiring. These have focused RED/GREEN regressions. Thermal orchestration now invokes the existing model, retains original model/source pins, binds pre-action context durably, and scores later qualified known-action windows; it is experimental and initially supports complete uniform house endpoint states. Mixed/partial positions remain native observations without a proportional heat-gain assumption. All final integrated gates remain pending until the verification record is updated.

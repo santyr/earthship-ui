@@ -419,7 +419,7 @@ def complete_cycle(*,publication,collection,parameter_record,runtime_manifest,co
         from household_advice import publish_cycle_advice
         from pathlib import Path
         result['advice_status']=publish_cycle_advice(record=record,energy=locals().get('energy'),profiled=locals().get('profiled') if profiled_status=='retained' else None,
-            directory=Path(observation_cache).parent,now=clock(),guard=unchanged)['status']
+            directory=Path(observation_cache).parent,now=clock(),guard=unchanged,thermal_capture=capture)['status']
     except Exception:
         result['advice_status']='unavailable'
     return result

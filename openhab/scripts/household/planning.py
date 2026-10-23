@@ -23,8 +23,8 @@ MIN_RESERVE_SOC=10.  # Existing full-bank emergency reserve; input may tighten i
 CAPABILITIES={'RUN_GREYWATER_CYCLE':'greywater-request-v1','RUN_FEEDER_CYCLE':'feeder-request-v1',
               'SET_NIGHT_LOAD_OVERRIDE':'night-load-owner-v1','SET_NIGHT_LOAD_DEVICE':'night-load-owner-v1'}
 # New shadow plans must obey the operator's manual/payment-only feeder scope.
-AUTOMATED_CAPABILITIES={kind:CAPABILITIES[kind] for kind in
-    ('SET_NIGHT_LOAD_DEVICE',)}
+AUTOMATED_CAPABILITIES={}  # Human advice is separate; existing owners retain all scheduling.
+
 GATES={'owner_available':'capability_unavailable','owner_idle':'busy','cooldown_ready':'cooldown','curfew_allowed':'after_dark',
        'operator_unlocked':'hard_constraint','manual_override_clear':'hard_constraint'}
 FACT_FIELDS={'schema','kind','owner','value','snapshotId','receivedAt','validUntil','scope','horizonHours'}
@@ -76,6 +76,8 @@ def _candidate_checks(item,*,snapshot,registry,coordination,now,reserve_soc,base
     except ContractRefused as error:
         return None,[dict(rule='intent_identity_and_freshness',status='rejected',reason=error.reason_code)]
     if document['type']!='NO_ACTION' and document['type'] not in AUTOMATED_CAPABILITIES:
+        return None,[dict(rule='automated_intent_scope',status='rejected',reason='planner_authority_disabled')]
+    if document['type']=='SET_NIGHT_LOAD_DEVICE' and document['parameters'].get('device')!='dishwasher':
         return None,[dict(rule='automated_intent_scope',status='rejected',reason='planner_authority_disabled')]
     checks.append(dict(rule='intent_identity_and_freshness',status='pass',reason=None))
     checks.extend(_source_checks(document,snapshot.to_dict(),now))

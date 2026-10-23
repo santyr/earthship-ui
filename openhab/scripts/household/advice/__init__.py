@@ -24,9 +24,9 @@ def _reading(snapshot,domain,role,now):
     if not ref or ref.get('quality')!='qualified' or not age:return None
     if not instant(ref['available_at'])<=asof<=now<instant(ref['valid_until']):return None
     observed=instant(ref.get('observed_at') or ref['received_at'])
-    if observed>asof or (now-observed).total_seconds()>age:return None
+    if observed>asof or now>=observed+timedelta(seconds=age):return None
     number(row['value'],-200,200)
-    return dict(value=row['value'],ref=ref['digest'],until=instant(ref['valid_until']))
+    return dict(value=row['value'],ref=ref['digest'],until=min(instant(ref['valid_until']),observed+timedelta(seconds=age)))
 
 
 def _declaration(state,target,kind,now):
@@ -72,10 +72,14 @@ def _recommend(report,policy,kind,target,action,baseline,reason,comparison,sourc
     if deadline<=now:return None
     # Stable for equivalent refreshes; material action/state/policy changes create
     # a new episode. A dismissed suggestion is not revived by a new source hash.
-    episode=dict(version=VERSION,kind=kind,target=target,action=action,baseline={k:baseline[k] for k in ('state','basis','revision')},
-        policy_sha256=report['policy_sha256'],day=now.astimezone(ZoneInfo(policy['timezone'])).date().isoformat())
+    baseline_public={k:baseline[k] for k in ('state','basis','revision')}
+    material_baseline={k:baseline[k] for k in ('state','basis')}
+    if baseline['basis']=='independent_position':material_baseline['epoch_state_revision']=baseline['revision']
+    relevant=('comfort_min_f','comfort_max_f','minimum_temperature_delta_f','manual_hold_seconds','shades') if kind=='SHADE_POSITION' else ('comfort_min_f','comfort_max_f','minimum_temperature_delta_f','ventilation') if kind=='VENTILATION_WINDOW' else ('energy',)
+    material_policy={k:policy[k] for k in relevant}
+    episode=dict(version=VERSION,kind=kind,target=target,action_spec=action_spec,baseline=material_baseline,policy_preferences=material_policy)
     r=dict(episode_id=identity(episode),snapshot_id=report['snapshot_id'],policy_sha256=report['policy_sha256'],kind=kind,target=target,
-        action=action,action_spec=action_spec,baseline=episode['baseline'],comparison=comparison,effects=effects or dict(thermal_f=None,soc_pct=None,energy_kwh=None),
+        action=action,action_spec=action_spec,baseline=baseline_public,comparison=comparison,effects=effects or dict(thermal_f=None,soc_pct=None,energy_kwh=None),
         evidence_basis='rule_based',limitations=['Directional comparison; thermal benefit is unqualified. No numeric temperature benefit is established.'] if kind!='FLEXIBLE_LOAD_TIMING' else ['Conditional nominal storage scenario; usable capacity, losses, PV acceptance and forecast errors are unqualified.'],
         conditions=list(conditions),invalidation_triggers=['New physical or declared state','Source expiry','Changed preferences or environmental conditions'],
         decision_at=now.isoformat(),start_at=start.isoformat(),end_at=end.isoformat(),review_at=min(deadline,now+timedelta(seconds=policy['review_seconds'])).isoformat(),
@@ -90,6 +94,12 @@ def _shade(report,snap,projections,policy,state,now):
     if p is None:return _domain('unavailable','shade_policy_missing',['shades'])
     baseline=_declaration(state,p['target'],'shade',now)
     reports={r['shade_id']:r for r in state['shade_reports']}
+    physical={}
+    for row in state['shade_reports']:
+        if row['quality']=='qualified' and instant(row['available_at'])<=now<instant(row['valid_until']):
+            key=(row['source'],row['device_id'])
+            if key in physical and (row['shade_id'] in p['shade_ids'] or physical[key] in p['shade_ids']):return _domain('insufficient_evidence','shade_mapping_collision',['unique_per_shade_device_mapping'])
+            physical[key]=row['shade_id']
     if any(shade in reports for shade in p['shade_ids']):
         # All required members, stopped and independently reported. Never use a
         # group mean, estimated travel time, target command or preview position.
@@ -198,6 +208,13 @@ def evaluate_advice(*,snapshot,projections,policy,action_state,now):
             if domain_policy and domain in ('shades','ventilation'):
                 declaration=_declaration(state,domain_policy['target'],'shade' if domain=='shades' else 'opening',now)
                 if declaration is not None:limits.append(declaration['until'])
+            if domain=='shades' and p['shades']:
+                for member in state['shade_reports']:
+                    if member['shade_id'] in p['shades']['shade_ids'] and member['quality']=='qualified' and instant(member['available_at'])<=now<instant(member['valid_until']):limits.append(instant(member['valid_until']))
+            if domain=='ventilation' and p['ventilation']:
+                for key in p['ventilation']['required_checks']:
+                    check=state['checks'].get(key)
+                    if check and instant(check['observed_at'])<=now<instant(check['valid_until']):limits.append(instant(check['valid_until']))
             for rec in r['recommendations']:
                 if rec['kind']=={'shades':'SHADE_POSITION','ventilation':'VENTILATION_WINDOW','energy':'FLEXIBLE_LOAD_TIMING'}[domain]:limits.append(instant(rec['valid_until']))
         result['valid_until']=min(limits).isoformat()

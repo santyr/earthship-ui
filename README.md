@@ -2,7 +2,7 @@
 
 Earthship UI exists to help the household make timely, informed decisions about solar heat gain, ventilation, and electricity use. It combines current measurements, weather forecasts, and models of the house and energy system to compare practical alternatives—including leaving things unchanged—and recommend what to do, when, and why. Recommendations explain the expected benefit, trade-offs, uncertainty, and relevant constraints. Forecasting is a supporting capability, not the final product. Automatic execution is separate and is not required for useful decision support.
 
-Current decision scope and evidence: [decision coverage](docs/operations/decision-use-cases.md). Greywater remains independently operated by its existing OpenHAB automation; greywater and feeder actions are excluded from current recommendations and optimization.
+Current decision scope and evidence: [decision coverage](docs/operations/decision-use-cases.md). Greywater remains independently operated by its existing OpenHAB automation; greywater, feeder, and nightly override/device-policy actions are excluded from current recommendations and ML optimization. Night scheduling remains with its existing OpenHAB owners.
 
 A custom household dashboard for our off-grid Earthship's openHAB system —
 weather, battery/solar, passive-thermal loop, and greywater on one pane of

@@ -22,3 +22,12 @@ it('removes actionable cards when clock expires on a quiet stream',async()=>{
  expect(r.container.textContent).toContain('Open living shades');vi.spyOn(Date,'now').mockReturnValue(Date.parse(fixture.evaluated_at)+121000);await vi.advanceTimersByTimeAsync(1000);
  expect(r.queryByRole('button',{name:'Seen'})).toBeNull();expect(r.container.textContent).toContain('expired');
 });
+it('does not duplicate optimistic feedback when the next poll returns its retained event',async()=>{
+ vi.spyOn(Date,'now').mockReturnValue(Date.parse(fixture.evaluated_at));vi.useFakeTimers();const journal=[];
+ vi.stubGlobal('fetch',vi.fn(async(url,options)=>{
+  if(options?.method==='POST'){const v=JSON.parse(options.body);journal.push({...v,episode_id:fixture.recommendations[0].episode_id,at:fixture.evaluated_at,origin:'operator'});return new Response('{"status":"retained"}');}
+  return new Response(JSON.stringify(url==='/api/household-advice'?fixture:url.endsWith('feedback')?{events:journal}:url.endsWith('context')?{targets:[]}:{declarations:[]}));
+ }));
+ const r=render(DecisionRecommendations);await vi.advanceTimersByTimeAsync(10);await fireEvent.click(r.getByRole('button',{name:'Seen'}));await vi.advanceTimersByTimeAsync(30010);
+ expect(r.getAllByRole('button',{name:'Undo feedback'})).toHaveLength(1);
+});

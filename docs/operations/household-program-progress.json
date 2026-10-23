@@ -10310,6 +10310,9 @@
     "automatic_actuation": false,
     "greywater_recommendations": false,
     "feeder_recommendations": false,
-    "prior_repairs_preserved": true
+    "prior_repairs_preserved": true,
+    "nightly_override_ml": false,
+    "current_command_planner_capabilities": [],
+    "operator_clarification": "Nightly override scheduling stays with existing OpenHAB rules; shades still need connection; standalone flexible tasks require explicit approval."
   }
 }

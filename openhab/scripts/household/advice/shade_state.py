@@ -8,13 +8,14 @@ from ..evidence import utc
 from .contracts import closed,number,name
 
 MAP_FIELDS={'schema','shade_id','zone','device_id','epoch','source','convention','native_max','resolution','feedback_basis','valid_from','freshness_seconds'}
-PACKET_FIELDS={'event_id','sequence','native_position','native_target','movement','origin','observed_at','received_at','available_at','online','time_basis'}
-EVENT_FIELDS={'schema','shade_id','zone','epoch','mapping','mapping_sha256','event_id','sequence','native_position','native_target','position_open_pct','target_open_pct','movement','origin','feedback_basis','observed_at','received_at','available_at','valid_until','quality','online','time_basis','event_sha256'}
+PACKET_FIELDS={'event_id','sequence','native_position','native_target','movement','origin','observed_at','received_at','available_at','online','time_basis','device_id','source'}
+EVENT_FIELDS={'schema','shade_id','zone','epoch','mapping','mapping_sha256','event_id','sequence','native_position','native_target','position_open_pct','target_open_pct','movement','origin','feedback_basis','observed_at','received_at','available_at','valid_until','quality','online','time_basis','device_id','source','event_sha256'}
 MAX_EVENTS=8192
 
 
 def normalize_event(mapping,packet):
     closed(mapping,MAP_FIELDS);closed(packet,PACKET_FIELDS)
+    if packet['device_id']!=mapping['device_id'] or packet['source']!=mapping['source']:raise ValueError('captured acquisition device or source differs from mapping')
     if mapping['schema']!='earthship-shade-mapping/v1':raise ValueError('versioned mapping required')
     for key in ('shade_id','zone','device_id','epoch','source'):name(mapping[key])
     if mapping['convention'] not in ('closed_100','open_100') or mapping['feedback_basis'] not in ('independent_position','travel_time_estimate','controller_estimate'):raise ValueError('explicit native mapping and feedback basis required')
@@ -48,11 +49,12 @@ def validate_event(value):
 def target_observed(events,targets,*,now):
     now=utc(now)
     if not isinstance(targets,dict) or not 1<=len(targets)<=26:return False
-    rows={}
+    rows={};physical=set()
     for e in events:
         validate_event(e)
-        if e['shade_id'] in rows:return False
-        rows[e['shade_id']]=e
+        device=(e['source'],e['device_id'])
+        if e['shade_id'] in rows or device in physical:return False
+        physical.add(device);rows[e['shade_id']]=e
     for shade,target in targets.items():
         number(target,0,100);e=rows.get(shade)
         if not e or e['quality']!='qualified' or e['feedback_basis']!='independent_position' or e['movement']!='stopped' or not instant(e['available_at'])<=now<instant(e['valid_until']):return False

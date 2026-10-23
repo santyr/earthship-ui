@@ -40,5 +40,6 @@ def compare_load_windows(*,inputs,load,now,reserve):
     baseline=next(r for r in evaluated if r['start']==start.isoformat())
     feasible=[r for r in evaluated if r['reserve_ok']]
     best=max(feasible,key=lambda r:(r['minimum_soc'],r['start']==baseline['start'],-instant(r['start']).timestamp())) if feasible else baseline
-    comparison=[_compare('Leave unchanged' if r is baseline else 'Run at '+r['start'],'Completes the useful task; nominal reserve '+('met' if r['reserve_ok'] else 'shortfall'),horizon,r['minimum_soc'],'minimum_nominal_soc','percent') for r in evaluated[:8]]
+    shown=[baseline]+([best] if best is not baseline else [])+[r for r in evaluated if r is not baseline and r is not best]
+    comparison=[_compare('Leave unchanged' if r is baseline else 'Run at '+r['start'],'Completes the useful task; nominal reserve '+('met' if r['reserve_ok'] else 'shortfall'),horizon,r['minimum_soc'],'minimum_nominal_soc','percent') for r in shown[:8]]
     return dict(reason=None if feasible else 'no_feasible_reserve_window',comparison=comparison,baseline=baseline,best=best)

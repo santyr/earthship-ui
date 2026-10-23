@@ -13,7 +13,7 @@ def inputs(tmp_path, monkeypatch, originals):
     return api, args, plan, snapshot
 
 
-def test_google_trajectory_drives_current_energy_candidates_without_daily_state(tmp_path, monkeypatch, originals):
+def test_google_trajectory_preserves_numerics_without_night_or_pump_candidates(tmp_path, monkeypatch, originals):
     from household.trajectory_energy import prepare_inputs, project
     from household.pipeline import seal_pipeline, replay_pipeline
     from household.capabilities import CapabilityRegistry
@@ -34,8 +34,9 @@ def test_google_trajectory_drives_current_energy_candidates_without_daily_state(
     plan = seal_pipeline(snapshot=snapshot,registry=registry,energy_inputs=prepared,thermal_inputs=thermal,
         thermal_runtime=old['inputs']['thermal_inputs']['executing_runtime'],coordination=old['inputs']['coordination'],config=old['inputs']['config'],
         now=args['now'],runtime_manifest=runtime,energy_persistence_source=old['inputs']['energy_persistence_source'])
-    assert plan['output']['candidate_generation']['status'] == 'generated_shadow_only'
-    assert plan['output']['candidate_generation']['objective_units']['surplus_weight'].endswith('DC_kWh')
+    assert plan['output']['candidate_generation']['status'] == 'human_advice_separate'
+    assert plan['output']['candidate_intents'] == []
+    assert plan['output']['projections']['energy']['output'] == projection['output']
     assert plan['output']['automatic_actuation'] is False
     assert replay_pipeline(plan,runtime_manifest=runtime,thermal_runtime=thermal.to_dict()['executing_runtime']) == plan
 

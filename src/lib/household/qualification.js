@@ -23,7 +23,7 @@ export function parseQualification(report,view){
   ||!['earthship-household-intent-qualification/v1','earthship-household-intent-qualification/v2','earthship-household-intent-qualification/v3'].includes(report.schema)||report.scope!=='original_plan_evidence'||report.status!=='not_qualified'
   ||report.release_authorized!==false||report.automatic_actuation!==false||report.receipt_sha256!==view.receipt_sha256
   ||report.snapshot_id!==view.snapshot_id||report.decision_at!==view.decision_at||!Array.isArray(report.families))return null;
- const families=report.schema==='earthship-household-intent-qualification/v3'?QUALIFICATION_FAMILIES.filter(([kind])=>kind==='SET_NIGHT_LOAD_DEVICE'):report.schema==='earthship-household-intent-qualification/v1'?QUALIFICATION_FAMILIES:AUTOMATED_QUALIFICATION_FAMILIES;
+ const families=report.schema==='earthship-household-intent-qualification/v3'?[]:report.schema==='earthship-household-intent-qualification/v1'?QUALIFICATION_FAMILIES:AUTOMATED_QUALIFICATION_FAMILIES;
  if(report.families.length!==families.length)return null;
  for(let i=0;i<families.length;i++){
   const f=report.families[i],[type,capability]=families[i];

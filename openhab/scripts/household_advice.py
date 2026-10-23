@@ -37,21 +37,26 @@ def publish_advice(*,snapshot,projections,directory,now,guard):
     state=dict(schema='earthship-household-action-state/v1',snapshot_id=snapshot.snapshot_id,declarations=operator['declarations'],shade_reports=events,shade_movements=[] if not history.exists() else ShadeHistory(history).movements()[-26:],checks=operator['checks'])
     # Transient declarations and device state are retained beside, not injected
     # into, the immutable numerical source snapshot.
-    report=evaluate_advice(snapshot=snapshot,projections=projections,policy=policy,action_state=state,now=now)
+    advisory={key:value for key,value in projections.items() if key in ('solar','flexible_energy','energy_context_error')}
+    report=evaluate_advice(snapshot=snapshot,projections=advisory,policy=policy,action_state=state,now=now)
     store=AdviceHistory(directory/'advice.sqlite')
     inputs=dict(snapshot=snapshot.to_dict(),projections=projections,policy=policy,action_state=state,now=now.isoformat())
     store.retain(report,inputs=inputs,runtime=runtime)
     observed=store.observe_targets(events,now=now)
-    _publish_observation_and_evaluation(directory,store,events,now,guard)
     guard()
     if runtime_manifest()!=runtime:raise ValueError('advice evaluation runtime changed')
     # Recheck mutable private policy/state bytes before publishing the frozen result.
     if canonical(_optional(directory/'advice-policy.json',None))!=canonical(policy) or canonical(_optional(directory/'advice-operator-state.json',dict(schema='earthship-household-operator-state/v1',declarations=[],checks={})))!=canonical(operator):raise ValueError('advice policy/state changed during evaluation')
     target=directory/'advice.json'
     old=None if not target.exists() else _private_file(target,32768)[0]
-    if old==canonical(report):return dict(status='unchanged',report_id=report['report_id'],target_observed_count=len(observed),automatic_actuation=False)
-    publish_owned_advice(target,report,guard=guard)
-    return dict(status='written',report_id=report['report_id'],target_observed_count=len(observed),automatic_actuation=False)
+    status='unchanged' if old==canonical(report) else 'written'
+    if status=='written':publish_owned_advice(target,report,guard=guard)
+    try:
+        _publish_observation_and_evaluation(directory,store,events,now,guard,inputs)
+        auxiliary='written'
+    except Exception:
+        auxiliary='unavailable'
+    return dict(status=status,report_id=report['report_id'],target_observed_count=len(observed),auxiliary_status=auxiliary,automatic_actuation=False)
 
 
 def replay_retained(path,report_id):
@@ -64,12 +69,13 @@ def replay_retained(path,report_id):
     from household.snapshot import HouseholdSnapshot
     body=inputs['snapshot'];snapshot=HouseholdSnapshot(canonical({k:v for k,v in body.items() if k!='snapshot_id'}))
     if snapshot.snapshot_id!=body['snapshot_id']:raise ValueError('original snapshot changed')
-    result=evaluate_advice(snapshot=snapshot,projections=inputs['projections'],policy=inputs['policy'],action_state=inputs['action_state'],now=instant(inputs['now']))
+    advisory={key:value for key,value in inputs['projections'].items() if key in ('solar','flexible_energy','energy_context_error')}
+    result=evaluate_advice(snapshot=snapshot,projections=advisory,policy=inputs['policy'],action_state=inputs['action_state'],now=instant(inputs['now']))
     if result!=original:raise ValueError('rederived original advice differs')
     return result
 
 
-def publish_cycle_advice(*,record,energy,profiled,directory,now,guard):
+def publish_cycle_advice(*,record,energy,profiled,directory,now,guard,thermal_capture=None):
     now=utc(now);snapshot=restore_snapshot(record['inputs']['snapshot'],record['inputs'].get('source_contexts'));projections={}
     if energy is not None:
         pv=energy['output']['array_pv'];windows=pv.get('direct_sun_windows',[]);steps=pv.get('steps',[])
@@ -79,12 +85,34 @@ def publish_cycle_advice(*,record,energy,profiled,directory,now,guard):
             if first is not None:
                 projections['solar']=dict(snapshot_id=snapshot.snapshot_id,source_ref=energy['receipt_sha256'],available_at=energy['inputs']['assessed_at'],
                     valid_until=(instant(record['inputs']['now'])+timedelta(seconds=120)).isoformat(),direct_gain_available=direct and first['potential_pv_kwh']>0)
+    prepared=record['inputs'].get('thermal_inputs')
+    if prepared is not None:
+        capture={} if thermal_capture is None else thermal_capture
+        fit=capture.get('candidate',{}).get('fit',{});actions=capture.get('inputs',{}).get('action_snapshot',{}).get('actions')
+        changes=None
+        if isinstance(actions,dict):
+            changes=[]
+            for kind,event in actions.items():
+                if kind=='indoor_shade' or event is None:continue
+                if not isinstance(event,dict) or not event.get('received_at') or not event.get('effective_at'):changes=None;break
+                if instant(event['received_at'])<=instant(prepared['issue']) and instant(event['effective_at'])<=instant(prepared['issue']):
+                    changes.append(dict(action=kind,state=event.get('state'),source=event.get('source'),effective_at=event['effective_at'],received_at=event['received_at'],event_ref=identity(event)))
+        endpoints=[]
+        roles=capture.get('inputs',{}).get('origin_temperatures',{}).get('roles',{})
+        for grid_at,receipt in roles.get('air',{}).get('grid',[])[-288:]:
+            if receipt is None:continue
+            if all(key in receipt for key in ('temperatureF','receivedAt','storedAt','validUntil','snapshotSha256')):
+                endpoints.append(dict(target_at=grid_at,actual_f=receipt['temperatureF'],source_received_at=receipt['receivedAt'],source_stored_at=receipt['storedAt'],valid_until=receipt['validUntil'],source_ref=receipt['snapshotSha256'],known_at=capture['published_at'],basis='original_qualified_native_temperature_grid'))
+        projections['thermal_evaluation_context']=dict(prepared=prepared,training_end=fit.get('training_end'),concurrent_changes=changes,temperature_outcomes=endpoints,source_ref=prepared['original_capture_sha256'])
     # Existing household profiles do not identify an individual task's embedded
     # contribution. Require an original explicit attribution before shifting it.
-    baseline=_optional(Path(directory)/'advice-energy-baseline.json',None,262144)
-    if baseline is not None:
-        if energy is None or profiled is None or baseline.get('source_ref')!=profiled['receipt_sha256'] or canonical(baseline.get('steps'))!=canonical(energy['output']['array_pv'].get('steps')) or canonical(baseline.get('baseline_load_forecast'))!=canonical(profiled['output'].get('load_forecast')):raise ValueError('explicit energy task baseline must match current original forecasts')
-        projections['flexible_energy']=baseline
+    try:
+        baseline=_optional(Path(directory)/'advice-energy-baseline.json',None,262144)
+        if baseline is not None:
+            if energy is None or profiled is None or baseline.get('source_ref')!=profiled['receipt_sha256'] or canonical(baseline.get('steps'))!=canonical(energy['output']['array_pv'].get('steps')) or canonical(baseline.get('baseline_load_forecast'))!=canonical(profiled['output'].get('load_forecast')):raise ValueError('original energy attribution mismatch')
+            projections['flexible_energy']=baseline
+    except (OSError,ValueError,TypeError,KeyError):
+        projections['energy_context_error']='original_energy_attribution_unavailable'
     return publish_advice(snapshot=snapshot,projections=projections,directory=directory,now=now,guard=guard)
 
 
@@ -113,7 +141,7 @@ def publish_owned_advice(path,report,*,guard,validator=validate_report):
         except FileNotFoundError:pass
 
 
-def _publish_observation_and_evaluation(directory,store,events,now,guard):
+def _publish_observation_and_evaluation(directory,store,events,now,guard,original):
     from household.advice.lifecycle import evaluate_usefulness
     def valid_public(value):
         if len(canonical(value))>32768 or value['automatic_actuation'] is not False:raise ValueError('bounded observational report required')
@@ -124,35 +152,18 @@ def _publish_observation_and_evaluation(directory,store,events,now,guard):
     view=dict(schema='earthship-shade-observations/v1',generated_at=now.isoformat(),observations=observations,automatic_actuation=False)
     publish_owned_advice(directory/'shade-observations.json',view,guard=guard,validator=valid_public)
     with store._connect() as db:physical=[loads(r[0]) for r in db.execute('SELECT raw FROM physical_feedback ORDER BY rowid DESC LIMIT 32')]
-    physical_view=dict(schema='earthship-household-observed-targets/v1',generated_at=now.isoformat(),events=physical,automatic_actuation=False)
+    with store._connect() as db:physical_total=db.execute('SELECT count(*) FROM physical_feedback').fetchone()[0]
+    physical_view=dict(schema='earthship-household-observed-targets/v1',generated_at=now.isoformat(),events=physical,omitted_count=max(0,physical_total-len(physical)),automatic_actuation=False)
+    while len(canonical(physical_view))>32768 and physical_view['events']:
+        physical_view['events'].pop();physical_view['omitted_count']+=1
     publish_owned_advice(directory/'advice-observed-targets.json',physical_view,guard=guard,validator=valid_public)
     feedback=_optional(directory/'advice-feedback.json',dict(schema='earthship-household-advice-feedback/v1',events=[]),262144)
     report=evaluate_usefulness(store.recent_reports(128),feedback['events']+physical,[]);report.update(generated_at=now.isoformat(),automatic_actuation=False)
     publish_owned_advice(directory/'advice-evaluation.json',report,guard=guard,validator=valid_public)
-    from household.advice.evaluation import action_outcome_episodes
-    moves=[] if not (directory/'shade-observations.sqlite').exists() else ShadeHistory(directory/'shade-observations.sqlite').movements()
-    def original_contexts():
-        with store._connect() as db:
-            for row in db.execute('SELECT inputs FROM reports ORDER BY at DESC LIMIT 128'):yield loads(row[0])
-    contexts=[];outcomes=[]
-    for original in original_contexts():
-        snapshot=original['snapshot'];at=instant(original['now']);context=dict(available_at=original['now'],snapshot_id=snapshot['snapshot_id'])
-        from household.advice import _reading,_declaration
-        for domain,role,field in (('thermal','air_temperature','initial_air_f'),('thermal','mass_temperature','initial_mass_f'),('weather','outdoor_temperature','outdoor_f')):
-            value=_reading(snapshot,domain,role,at)
-            if value is not None:context[field]=value['value']
-        solar=original['projections'].get('solar')
-        if solar is not None:context['solar_geometry_ref']=solar['source_ref'];context['weather_ref']=solar['source_ref']
-        state=original['action_state'];policy=original['policy']
-        if policy and policy['ventilation']:
-            opening=_declaration(state,policy['ventilation']['target'],'opening',at)
-            if opening:context['ventilation_state']=opening['state']
-        context['sensor_epochs']={role:row['evidence']['source_epoch'] for rows in snapshot['domains'].values() for role,row in rows.items() if row.get('evidence')}
-        contexts.append(context)
-        air=snapshot['domains'].get('thermal',{}).get('air_temperature')
-        if air and air.get('reason') is None and air.get('value') is not None and air.get('evidence') and air['evidence']['quality']=='qualified':
-            outcomes.append(dict(observed_at=air['evidence']['observed_at'] or air['evidence']['received_at'],available_at=air['evidence']['available_at'],temperature_f=air['value'],source_ref=air['evidence']['digest']))
-    episodes=action_outcome_episodes(moves[-512:],contexts,outcomes,as_of=now)
-    # Full confounder/outcome originals stay private, separate from public advice.
-    value=dict(schema='earthship-shade-action-episodes/v1',generated_at=now.isoformat(),episodes=episodes,automatic_actuation=False)
-    if len(canonical(value))<=32768:publish_owned_advice(directory/'shade-action-episodes.json',value,guard=guard,validator=valid_public)
+    from household.advice.thermal_evaluation import orchestrate
+    history=None if not (directory/'shade-observations.sqlite').exists() else ShadeHistory(directory/'shade-observations.sqlite')
+    thermal,episodes=orchestrate(store,history,original=original,now=now,guard=guard)
+    publish_owned_advice(directory/'shade-thermal-evaluation.json',thermal,guard=guard,validator=valid_public)
+    while len(canonical(episodes))>32768 and episodes['episodes']:
+        episodes['episodes'].pop();episodes['omitted_count']+=1
+    publish_owned_advice(directory/'shade-action-episodes.json',episodes,guard=guard,validator=valid_public)

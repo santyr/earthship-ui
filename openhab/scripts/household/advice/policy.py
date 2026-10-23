@@ -5,7 +5,7 @@ from ..codec import canonical,loads
 from ..control_contracts import instant
 
 FIELDS={'schema','version','timezone','valid_until','comfort_min_f','comfort_max_f','validity_seconds','review_seconds','minimum_temperature_delta_f','manual_hold_seconds','shades','ventilation','energy'}
-EXCLUDED={'greywater','feeder','shureflo','goat-cam','SouthOutlet','EastOutlet','SET_NIGHT_LOAD_OVERRIDE','SouthOutlet_Outlet2_Switch','EastOutlet_Outlet2_Switch','EastOutlet_Outlet1_Switch','SouthOutlet_Outlet1_Switch','ShurefloPump_Power','Feeder_ManualRequest','GoatCam_Power'}
+EXCLUDED={'greywater','feeder','shureflo','goat-cam','SouthOutlet','EastOutlet','SET_NIGHT_LOAD_OVERRIDE','SouthOutlet_Outlet2_Switch','EastOutlet_Outlet2_Switch','EastOutlet_Outlet1_Switch','SouthOutlet_Outlet1_Switch','ShurefloPump_Power','Feeder_ManualRequest','GoatCam_Power','Goat_Plugs_Outlet1_Switch','Goat_Plugs_Outlet2_Switch','OverrideSwitch','FeederOverride','NightLoadOverride_Request','NightLoadOverride_Result','GoatFeeder_ManualRequest','GoatFeeder_ManualResult','SouthOutlet_ManualRequest','EastOutlet_ManualRequest'}
 
 
 def validate_policy(value):

@@ -100,12 +100,23 @@ def export_archive(target, params, snapshot):
     backup._check_journal_archive(target)
 
 
+def _disposable_port():
+    """Choose an ephemeral loopback port admitted by the unchanged restore guard."""
+    import socket
+    for _ in range(8):
+        with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as listener:
+            listener.bind(('127.0.0.1',0));port=listener.getsockname()[1]
+        if 1024<port<65536 and port!=5432:return port
+    raise ValueError('disposable restore port unavailable')
+
+
 def disposable_database(container, password, role, *, ownership_token=None):
     if ownership_token is not None and re.fullmatch("[0-9a-f]{32}", ownership_token) is None:
         raise ValueError("exact disposable ownership token required")
+    selected_port=_disposable_port()
     subprocess.run(['docker', 'run', '--detach', '--rm', '--name', container,
                     '--memory', '512m', '--memory-swap', '512m', '--cpus', '1',
-                    '--publish', '127.0.0.1::5432', '--env',
+                    '--publish', f'127.0.0.1:{selected_port}:5432', '--env',
                     'POSTGRES_PASSWORD=' + password,
                     *(['--label', 'earthship.thermal.restore-token='+ownership_token] if ownership_token is not None else []),
                     'postgres:16'],
@@ -114,6 +125,7 @@ def disposable_database(container, password, role, *, ownership_token=None):
     mapped = subprocess.run(['docker', 'port', container, '5432/tcp'],
                             capture_output=True, check=True, timeout=10).stdout.decode().strip()
     port = int(mapped.rsplit(':', 1)[1])
+    if mapped!=f'127.0.0.1:{selected_port}' or port!=selected_port:raise ValueError('disposable restore mapping differs')
     params = {'host': '127.0.0.1', 'port': port, 'dbname': 'postgres',
               'user': 'postgres', 'password': password}
     deadline = time.monotonic() + 30

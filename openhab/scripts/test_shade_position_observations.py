@@ -16,7 +16,7 @@ def mapping(**changes):
 
 
 def packet(seq=1,position=100.,**changes):
-    value=dict(event_id=f'acquisition-{seq}',sequence=seq,native_position=position,native_target=None,movement='stopped',origin='unknown',
+    value=dict(device_id='fixture-motor-9',source='fixture-position-channel',event_id=f'acquisition-{seq}',sequence=seq,native_position=position,native_target=None,movement='stopped',origin='unknown',
         observed_at=NOW.isoformat(),received_at=NOW.isoformat(),available_at=NOW.isoformat(),online=True,time_basis='source_observed')
     value.update(changes);return value
 

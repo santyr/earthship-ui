@@ -17,7 +17,11 @@ async function writeOwned(dir,file,value){
  try{handle=await open(temp,'wx',0o600);await handle.writeFile(JSON.stringify(value));await handle.sync();await handle.close();handle=null;await directoryGuard(dir);await rename(temp,target);const parent=await open(dir,'r');try{await parent.sync();}finally{await parent.close();}}
  finally{await handle?.close();await unlink(temp).catch(()=>{});}
 }
-const stateValid=raw=>{const v=parse(raw);return shape(v,['schema','declarations','checks'])&&v.schema==='earthship-household-operator-state/v1'&&Array.isArray(v.declarations)&&v.declarations.length<=64&&v.declarations.every(r=>shape(r,['target','kind','value','reported_at','valid_until','source','revision'])&&token(r.target)&&['shade','opening'].includes(r.kind)&&r.source==='operator'&&token(r.revision)&&Number.isFinite(Date.parse(r.reported_at))&&Number.isFinite(Date.parse(r.valid_until))&&(r.kind==='shade'?typeof r.value==='number'&&r.value>=0&&r.value<=100:['open','closed'].includes(r.value)))&&shape(v.checks,[]);};
+const iso=v=>typeof v==='string'&&/(?:Z|[+-]\d\d:\d\d)$/.test(v)&&Number.isFinite(Date.parse(v));
+const checksValid=checks=>checks&&typeof checks==='object'&&!Array.isArray(checks)&&Object.keys(checks).length<=8&&Object.entries(checks).every(([key,r])=>
+ ['rain','wind','security','smoke','occupancy'].includes(key)&&shape(r,['clear','observed_at','valid_until','source_ref'])&&typeof r.clear==='boolean'&&hash(r.source_ref)&&iso(r.observed_at)&&iso(r.valid_until)&&Date.parse(r.observed_at)<Date.parse(r.valid_until));
+const stateValid=raw=>{const v=parse(raw);return shape(v,['schema','declarations','checks'])&&v.schema==='earthship-household-operator-state/v1'&&Array.isArray(v.declarations)&&v.declarations.length<=64&&v.declarations.every(r=>shape(r,['target','kind','value','reported_at','valid_until','source','revision'])&&token(r.target)&&['shade','opening'].includes(r.kind)&&r.source==='operator'&&token(r.revision)&&iso(r.reported_at)&&iso(r.valid_until)&&Date.parse(r.reported_at)<Date.parse(r.valid_until)&&Date.parse(r.valid_until)-Date.parse(r.reported_at)<=86400000&&(r.kind==='shade'?typeof r.value==='number'&&Number.isFinite(r.value)&&r.value>=0&&r.value<=100:['open','closed'].includes(r.value)))&&checksValid(v.checks);};
+
 async function context(dir,at){
  const p=await readOptional(join(dir,'advice-policy.json'),raw=>{const v=parse(raw);return v.schema==='earthship-household-advice-policy/v1';},null,at);
  const targets=[];if(p?.shades&&token(p.shades.target))targets.push({target:p.shades.target,kind:'shade'});if(p?.ventilation&&token(p.ventilation.target))targets.push({target:p.ventilation.target,kind:'opening'});
@@ -39,7 +43,7 @@ export function householdAdvicePlugin({directory=resolve(homedir(),'.local/state
     if(url.pathname==='/api/household-advice-context')return send(200,await context(directory,now()));
     const feedback=url.pathname.endsWith('feedback');
     const journal=await readOptional(join(directory,feedback?'advice-feedback.json':'advice-operator-state.json'),feedback?feedbackValid:stateValid,feedback?{schema:'earthship-household-advice-feedback/v1',events:[]}:{schema:'earthship-household-operator-state/v1',declarations:[],checks:{}},now());
-    if(feedback){const physical=await readOptional(join(directory,'advice-observed-targets.json'),raw=>{const v=parse(raw);return shape(v,['schema','generated_at','events','automatic_actuation'])&&v.schema==='earthship-household-observed-targets/v1'&&v.automatic_actuation===false&&Array.isArray(v.events)&&v.events.length<=32&&v.events.every(e=>shape(e,['event_id','episode_id','kind','at','snooze_until','corrects','evidence_refs','target','position_open_pct','shade_ids','origin','user_motivation_known','thermal_benefit_verified'])&&hash(e.event_id)&&hash(e.episode_id)&&e.kind==='target_observed'&&e.origin==='device_observation'&&token(e.target)&&e.user_motivation_known===false&&e.thermal_benefit_verified===false&&Array.isArray(e.evidence_refs)&&e.evidence_refs.every(hash)&&Array.isArray(e.shade_ids)&&e.shade_ids.every(token)&&Number.isFinite(e.position_open_pct));},{events:[]},now());journal.events=[...journal.events,...physical.events];}
+    if(feedback){const physical=await readOptional(join(directory,'advice-observed-targets.json'),raw=>{const v=parse(raw);return shape(v,['schema','generated_at','events','omitted_count','automatic_actuation'])&&Number.isInteger(v.omitted_count)&&v.omitted_count>=0&&v.schema==='earthship-household-observed-targets/v1'&&v.automatic_actuation===false&&Array.isArray(v.events)&&v.events.length<=32&&v.events.every(e=>shape(e,['event_id','episode_id','kind','at','snooze_until','corrects','evidence_refs','target','position_open_pct','shade_ids','origin','user_motivation_known','thermal_benefit_verified'])&&hash(e.event_id)&&hash(e.episode_id)&&e.kind==='target_observed'&&e.origin==='device_observation'&&token(e.target)&&e.user_motivation_known===false&&e.thermal_benefit_verified===false&&Array.isArray(e.evidence_refs)&&e.evidence_refs.every(hash)&&Array.isArray(e.shade_ids)&&e.shade_ids.every(token)&&Number.isFinite(e.position_open_pct));},{events:[]},now());journal.events=[...journal.events,...physical.events];}
     return send(200,journal);
    }
    let origin;try{origin=new URL(req.headers.origin);}catch{return send(403,{status:'unavailable'});}
@@ -54,6 +58,11 @@ export function householdAdvicePlugin({directory=resolve(homedir(),'.local/state
      const old=journal.events.find(e=>e.event_id===v.event_id);
      if(old)return send(Object.keys(v).every(k=>old[k]===v[k])?200:409,{status:'retained'});
      if(journal.events.length>=MAX)return send(507,{status:'capacity_exhausted'});
+     if(v.kind==='undo'){
+      const corrected=journal.events.find(e=>e.event_id===v.corrects&&e.kind!=='undo'&&e.origin==='operator');
+      if(!corrected||corrected.report_id!==v.report_id||corrected.recommendation_id!==v.recommendation_id||v.snooze_until!==null)return send(400,{status:'unavailable'});
+      journal.events.push({...v,episode_id:corrected.episode_id,at:new Date(at).toISOString(),origin:'operator'});await writeOwned(directory,'advice-feedback.json',journal);return send(200,{status:'retained'});
+     }
      const view=parseAdvice(await readObservation(join(directory,'advice.json'),at,parseAdvice),{nowMs:at});
      const rec=view.current.find(r=>r.recommendation_id===v.recommendation_id);
      if(!rec||view.report.report_id!==v.report_id)return send(409,{status:'advice_changed'});

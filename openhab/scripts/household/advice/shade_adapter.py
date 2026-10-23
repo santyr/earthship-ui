@@ -20,16 +20,16 @@ def _retain_intervals(store,*,mapping,intervals,start,end):
         if last_end is not None and interval.start>last_end:
             gap_id=identity(['coverage_gap',mapping['epoch'],last_end.isoformat()])
             if gap_id not in known:
-                store.ingest(normalize_event(mapping,dict(event_id=gap_id,sequence=int(last_end.timestamp()*1000000),native_position=None,native_target=None,
+                store.ingest(normalize_event(mapping,dict(device_id=mapping['device_id'],source=mapping['source'],event_id=gap_id,sequence=int(last_end.timestamp()*1000000),native_position=None,native_target=None,
                     movement='unknown',origin='unknown',observed_at=last_end.isoformat(),received_at=last_end.isoformat(),available_at=last_end.isoformat(),online=None,time_basis='adapter_report_reception')))
         if event_id not in known:
-            store.ingest(normalize_event(mapping,dict(event_id=event_id,sequence=int(acquired.timestamp()*1000000),native_position=interval.percent_closed,native_target=None,
+            store.ingest(normalize_event(mapping,dict(device_id=mapping['device_id'],source=mapping['source'],event_id=event_id,sequence=int(acquired.timestamp()*1000000),native_position=interval.percent_closed,native_target=None,
                 movement='unknown',origin='unknown',observed_at=acquired.isoformat(),received_at=available.isoformat(),available_at=available.isoformat(),online=True,time_basis='adapter_report_reception')))
             known.add(event_id)
         last_end=interval.end
     if intervals and last_end<end:
         gap_id=identity(['coverage_gap',mapping['epoch'],last_end.isoformat()])
-        if gap_id not in known:store.ingest(normalize_event(mapping,dict(event_id=gap_id,sequence=int(last_end.timestamp()*1000000),native_position=None,native_target=None,
+        if gap_id not in known:store.ingest(normalize_event(mapping,dict(device_id=mapping['device_id'],source=mapping['source'],event_id=gap_id,sequence=int(last_end.timestamp()*1000000),native_position=None,native_target=None,
             movement='unknown',origin='unknown',observed_at=last_end.isoformat(),received_at=last_end.isoformat(),available_at=last_end.isoformat(),online=None,time_basis='adapter_report_reception')))
 
 

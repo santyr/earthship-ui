@@ -1,24 +1,24 @@
 <script>
   import {items} from '../openhab/store.js';
   import {parseHouseholdObservation} from '../household/observation.js';
-  import {recommendationPreview,climatePreview} from '../household/recommendations.js';
+  import {recommendationPreview,historicalRecommendationPreview,climatePreview} from '../household/recommendations.js';
   import {householdObservationRaw,recommendationClock} from '../household/recommendationState.js';
-  let {group, tiny=false}=$props();
+  let {group, tiny=false,historical=false}=$props();
   const id=$props.id();
   const names={'night-policy':'Night-load override',devices:'Load devices',greywater:'Greywater',loads:'Household loads',ventilation:'Ventilation',shades:'Shades'};
   const name=$derived(names[group]??'Model');
   const climate=$derived(group==='ventilation'||group==='shades');
   const model=$derived(climate?climatePreview($items.Thermal_Model_JSON,group,$recommendationClock)
-    :recommendationPreview(parseHouseholdObservation($householdObservationRaw,{nowMs:$recommendationClock}),group,$recommendationClock));
+    :(historical?historicalRecommendationPreview:recommendationPreview)(parseHouseholdObservation($householdObservationRaw,{nowMs:$recommendationClock}),group,$recommendationClock));
   const emptyText=$derived(group==='shades'?'Model shade advice unavailable':group==='ventilation'?'Model ventilation advice unavailable'
     :model.state==='none'?'Not proposed in this issue':model.state==='expired'?'Last issue expired · no current suggestion':'Recommendation unavailable');
   const summary=$derived(model.rows.length?model.rows.map(r=>`${r.status} · ${r.action}`).join('; '):emptyText);
   const date=value=>value?new Intl.DateTimeFormat('en-US',{timeZone:'America/Denver',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',second:'2-digit'}).format(Date.parse(value)):'Not provided';
 </script>
-{#if group!=='feeding' && group!=='greywater'}
+{#if climate || historical && group!=='feeding' && group!=='greywater'}
 <section class="recommendation" class:tiny aria-label={`${name} recommendations`} data-recommendation-group={group}>
   <div class="preview-line">
-    <span class="label">{tiny?'Preview':`${name} · preview only`}</span>
+    <span class="label">{historical?'Historical diagnostic · outside current advice':tiny?'Preview':`${name} · preview only`}</span>
     <span class="summary" title={summary}>{summary}</span>
     <button type="button" popovertarget={id} aria-label={`${name} recommendation details (preview only)`}>Details</button>
   </div>

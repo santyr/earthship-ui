@@ -7,7 +7,7 @@
  let pending=$state(false),notice=$state(''),localEvents=$state([]),localDeclarations=$state([]);
  let target=$state(''),declaredValue=$state('');
  const model=$derived(parseAdvice($adviceState.raw,{nowMs:$recommendationClock}));
- const events=$derived([...$adviceState.events,...localEvents]);
+ const events=$derived([...new Map([...localEvents,...$adviceState.events].map(event=>[event.event_id,event])).values()]);
  const declarations=$derived([...$adviceState.declarations,...localDeclarations]);
  const family={shades:'SHADE_POSITION',ventilation:'VENTILATION_WINDOW',energy:'FLEXIBLE_LOAD_TIMING'};
  const current=$derived((model?.current??[]).filter(r=>(!scope||r.kind===family[scope])&&!declarations.some(d=>d.target===r.target&&Date.parse(d.reported_at)>Date.parse(r.decision_at))));
@@ -15,13 +15,19 @@
  const domains=$derived(Object.entries(model?.domains??{}).filter(([name])=>!scope||name===scope));
  const time=value=>new Intl.DateTimeFormat('en-US',{timeZone:model?.report.timezone??'America/Denver',hour:'numeric',minute:'2-digit'}).format(Date.parse(value));
  const words=value=>value.replaceAll('_',' ');
- async function feedback(rec,kind,corrects=null){
+ async function saveFeedback(payload,episodeId){
   if(pending)return;pending=true;notice='';
-  const payload={event_id:crypto.randomUUID(),report_id:model.report.report_id,recommendation_id:rec.recommendation_id,kind,snooze_until:kind==='snooze'?new Date(Date.now()+1800000).toISOString():null,corrects};
   try{
    const response=await fetch('/api/household-advice-feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(!response.ok)throw Error();
-   localEvents=[...localEvents,{...payload,episode_id:rec.episode_id,at:new Date(Date.now()).toISOString()}];notice=kind==='report_action_taken'?'Action recorded as self-reported. Position and benefit remain separate evidence.':'Feedback saved.';
+   localEvents=[...localEvents,{...payload,episode_id:episodeId,at:new Date(Date.now()).toISOString(),origin:'operator'}];notice=payload.kind==='report_action_taken'?'Action recorded as self-reported. Position and benefit remain separate evidence.':'Feedback saved.';
   }catch{notice='Feedback could not be saved; refresh advice and retry.';}finally{pending=false;}
+ }
+ async function feedback(rec,kind){
+  return saveFeedback({event_id:crypto.randomUUID(),report_id:model.report.report_id,recommendation_id:rec.recommendation_id,kind,snooze_until:kind==='snooze'?new Date(Date.now()+1800000).toISOString():null,corrects:null},rec.episode_id);
+ }
+ async function undoFeedback(event){
+  if(event.kind==='target_observed'||event.kind==='undo')return;
+  return saveFeedback({event_id:crypto.randomUUID(),report_id:event.report_id,recommendation_id:event.recommendation_id,kind:'undo',snooze_until:null,corrects:event.event_id},event.episode_id);
  }
  async function declare(){
   const selected=$adviceState.targets.find(t=>t.target===target);if(!selected||pending||declaredValue==='')return;
@@ -66,12 +72,14 @@
   {#if !visible.length}<p class="status">{current.length?'Advice dismissed or snoozed.':'No current actionable suggestion.'}</p>{/if}
   <details class="readiness"><summary>Decision evidence and human records</summary>
    {#each domains as [domain,result]}<p><strong>{words(domain)}:</strong> {words(result.status)} · {words(result.reason)}{result.missing.length?` · needed: ${result.missing.map(words).join(', ')}`:''}</p>{/each}
-   {#each events.filter(e=>e.kind==='target_observed') as event (event.event_id)}<p>Target observed: {event.target} · {time(event.at)}. User motivation and thermal benefit remain unverified.</p>{/each}
-   {#each current as rec}
-    {#each events.filter(e=>e.episode_id===rec.episode_id&&e.kind!=='undo'&&!events.some(u=>u.corrects===e.event_id)) as event (event.event_id)}<p>{words(event.kind)} · {time(event.at)} <button disabled={pending} onclick={()=>feedback(rec,'undo',event.event_id)}>Undo feedback</button></p>{/each}
-   {/each}
   </details>
  {/if}
+ {#if events.length}<details class="history"><summary>Human feedback and observed targets</summary>
+  {#each events.filter(e=>e.kind!=='undo'&&!events.some(u=>u.kind==='undo'&&u.corrects===e.event_id)) as event (event.event_id)}
+   {#if event.kind==='target_observed'}<p>Target observed: {event.target} · {time(event.at)}. Motivation and thermal benefit remain unverified.</p>
+   {:else}<p>{words(event.kind)} · {time(event.at)} <button disabled={pending} onclick={()=>undoFeedback(event)}>Undo feedback</button></p>{/if}
+  {/each}
+ </details>{/if}
  {#if $adviceState.targets.length}<details><summary>Record an observed shade or window state</summary>
   <p>Operator declaration, valid for 30 minutes. Preview sliders and desired targets are separate.</p>
   <label>Target <select bind:value={target} onchange={()=>declaredValue=''}><option value="">Select a target</option>{#each $adviceState.targets as t}<option value={t.target}>{t.target}</option>{/each}</select></label>
