@@ -56,9 +56,10 @@ def _sources(archive,decision,site,guard):
     for (name,) in rows:
         guard();source=archive.read(name)
         if source['site']!=site:continue
-        # Declared native hours define eligibility before any mean/head values
-        # are inspected. A newer short profile cannot hide an older long run.
-        hours=[instant(p['valid_at']) for p in source['points'] if p['variable'] in PRODUCTS]
+        # Declared mean bands define eligibility before their values or head
+        # completeness. A quantile-only supplement cannot replace means;
+        # a newer eligible mean source with missing values still wins.
+        hours=[instant(p['valid_at']) for p in source['points'] if p['variable'] in PRODUCTS and p['statistic']=='mean']
         if not hours:continue
         initialized=instant(source['initialized_at'])
         result.append(dict(name=name,initialized=initialized,completed=instant(source['ingestion_completed_at']),start=min(hours)-timedelta(hours=1),end=min(max(hours),initialized+timedelta(hours=360))))

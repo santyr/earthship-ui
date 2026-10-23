@@ -19,6 +19,7 @@ def runtime_manifest():
         'openhab/scripts/weather_learning/production_pv_runtime.py','openhab/scripts/daily_pv_worker.py',
         'openhab/scripts/household_component_energy.py','openhab/scripts/component_household_files.py',
         'openhab/scripts/component_household_receipt.py','openhab/scripts/component_household_worker.py',
+        'openhab/scripts/household_native_family.py',
         'openhab/scripts/household_calibrated_outcomes.py','openhab/scripts/household_profiled_storage.py',
         'openhab/scripts/household_ac_load_model.py','openhab/scripts/weather_learning/component_household_inputs.py',
         'openhab/scripts/weather_learning/retained_scenario_child.py','openhab/scripts/weather_learning/retained_scenarios.py')}

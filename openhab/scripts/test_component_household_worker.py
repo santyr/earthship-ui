@@ -156,3 +156,35 @@ def test_disk_reserve_is_checked_before_any_public_cache(cycle,monkeypatch):
  monkeypatch.setattr(worker.shutil,'disk_usage',lambda *a:SimpleNamespace(free=32*1024**2))
  with pytest.raises(ValueError,match='disk reserve'):worker.run(**args,publish=True)
  assert not args['view'].exists()
+
+
+def test_current_family_interpreter_follows_initial_and_daily_replacement_stage(cycle,tmp_path,monkeypatch):
+ worker,args,_=cycle
+ from weather_learning.retained_scenarios import PRODUCER_V2
+ binary=tmp_path/'retained-python3.12';binary.write_bytes(b'explicit retained test interpreter');binary.chmod(0o500)
+ ref=dict(path=str(binary),sha256=sha256(binary.read_bytes()).hexdigest())
+ active=[dict(stage=str(tmp_path/'initial-stage'),deployment_sha256='a'*64)]
+ contexts=[];family_checks=[];prepare=worker.prepare_component_inputs
+ monkeypatch.setattr(worker,'effective_selection',lambda:dict(active[0]))
+ def family(stage,*,deployment_sha256,guard):
+  assert str(stage)==active[0]['stage'] and deployment_sha256==active[0]['deployment_sha256']
+  family_checks.append((str(stage),deployment_sha256));guard();return ref
+ monkeypatch.setattr(worker,'selected_interpreter',family,raising=False)
+ def inputs(**kwargs):
+  producer=kwargs['producer'];contexts.append(dict(producer))
+  assert producer==dict(schema=PRODUCER_V2,**active[0],python_path=ref['path'],python_sha256=ref['sha256'])
+  return prepare(**kwargs)
+ monkeypatch.setattr(worker,'prepare_component_inputs',inputs)
+ assert worker.run(**args)['status']=='component_household_prepared'
+ active[0]=dict(stage=str(tmp_path/'daily-replacement-stage'),deployment_sha256='b'*64)
+ assert worker.run(**args)['status']=='component_household_prepared'
+ assert len(contexts)==len(family_checks)==2 and contexts[0]['stage']!=contexts[1]['stage']
+ assert not args['view'].exists()
+
+
+def test_explicit_original_producer_is_not_silently_retargeted_to_a_new_selection(cycle,tmp_path):
+ worker,args,_=cycle
+ from weather_learning.retained_scenarios import PRODUCER_SCHEMA
+ original=dict(schema=PRODUCER_SCHEMA,stage=str(tmp_path/'original-stage'),deployment_sha256='c'*64)
+ with pytest.raises(ValueError,match='current original household producer'):worker.run(**args,producer=original)
+ assert not args['view'].exists()

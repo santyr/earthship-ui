@@ -65,7 +65,7 @@ def validate_context(value,*,issue,available,forecast=None,sensor_epoch=None):
     if not isinstance(points,list) or [instant(p['at']) for p in points]!=[at for at in times if at>issue]:
         raise ValueError('exact original future thermal temperature points required')
     for point in points:
-        if set(point)!=POINT_FIELDS or not finite(point['temp_f']) or not -40<=point['temp_f']<=140 or point['profile'] not in ('near24','interim48','extended'):
+        if set(point)!=POINT_FIELDS or not finite(point['temp_f']) or not -40<=point['temp_f']<=140 or point['profile'] not in ('nearTerm','near24','interim48','extended'):
             raise ValueError('bounded original emitted thermal temperature point required')
         digest(point['source_sha256'])
         if point['mode']=='local_model_mean':

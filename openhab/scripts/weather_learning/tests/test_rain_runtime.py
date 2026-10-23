@@ -144,3 +144,23 @@ def test_already_issued_generation_reports_an_expired_cache_without_refreshing_i
  later=at+timedelta(hours=7);r=m.run(p,apply=True,clock=lambda:later,origin_reader=reader(later))
  assert r['status']=='already_issued' and r['cache_current'] is False
  assert r['bundle_sha256']==first['bundle_sha256'] and files(s.root)==before
+
+
+def test_later_quantile_only_profile_cannot_displace_complete_mean_original(tmp_path):
+ from weather_learning.capabilities import profile as declared_profile
+ from weather_learning.config import Site,COLLECTIONS
+ from weather_learning.weathernext_ee import parse_collection_response,make_snapshot
+ from capability_fixtures import raw_response
+ m,s,p,v,at=context(tmp_path);archive=Archive(v['archive'])
+ base=m._sources(Archive.open_readonly(v['archive']),at,v['site'],lambda:None)[0];source=archive.read(base['name']);init=instant(source['initialized_at'])
+ site=Site(**v['site']);bands=[band for grid,band in declared_profile('rain-uncertainty-v1').bands]
+ assert all(not band.endswith('_mean') for band in bands)
+ raw=raw_response('gridded',bands,init,360)
+ for row in raw['region'][1:]:row[1:3]=[site.longitude,site.latitude]
+ parsed=parse_collection_response(raw,collection=COLLECTIONS['gridded'],bands=bands,site=site,initialized_at=init,horizon=360)
+ supplement=make_snapshot([parsed],site=site,initialized_at=init,first_seen_at=init+timedelta(minutes=30),completed_at=init+timedelta(minutes=31))
+ optional=archive.store_snapshot(supplement)
+ assert instant(supplement['ingestion_completed_at'])>instant(source['ingestion_completed_at'])
+ result=m.run(p,clock=lambda:at,origin_reader=reader(at))
+ assert result['rows']==29 and result['complete_comparison_rows']==29
+ assert result['source_snapshot_sha256s']==[base['name']] and optional not in result['source_snapshot_sha256s']

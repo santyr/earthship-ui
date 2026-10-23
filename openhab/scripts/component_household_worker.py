@@ -8,11 +8,12 @@ from household.codec import canonical,loads,identity
 from household.control_contracts import instant
 from household_native_training import effective_selection,directory,save
 from household_cycle_deploy import verify_stage
+from household_native_family import selected_interpreter
 from household_observation import _private_file
 from household_ac_load_store import _immutable
 from component_household_files import read_current_originals,unchanged_current
 from component_household_receipt import seal,SUFFIX,MAX_BYTES
-from weather_learning.retained_scenarios import prepare_component_inputs,producer_reference,PRODUCER_SCHEMA
+from weather_learning.retained_scenarios import prepare_component_inputs,producer_reference,PRODUCER_SCHEMA,PRODUCER_V2
 from weather_learning.production_pv_runtime import ComponentOwner
 from weather_learning.worker import collector_lock
 
@@ -100,7 +101,12 @@ def run(*,state,view,profile_path,profile_sha256,observation_path,producer=None,
    previous=_already_published(store,origin=origin,profile_sha256=profile_sha256,guard=check)
    if previous is not None:return dict(status='component_household_already_published',emission_sha256=previous['emission_sha256'],production_states_written=False,automatic_actuation=False)
   owner=ComponentOwner(profile_path,expected_sha256=profile_sha256,clock=clock,guard=check)
-  producer=producer_reference(producer or dict(schema=PRODUCER_SCHEMA,stage=str(stage),deployment_sha256=selected['deployment_sha256']))
+  if producer is None:
+   producer=dict(schema=PRODUCER_SCHEMA,stage=str(stage),deployment_sha256=selected['deployment_sha256'])
+   interpreter=selected_interpreter(stage,deployment_sha256=selected['deployment_sha256'],guard=check)
+   if interpreter is not None:
+    producer.update(schema=PRODUCER_V2,python_path=interpreter['path'],python_sha256=interpreter['sha256'])
+  producer=producer_reference(producer)
   if producer['stage']!=str(stage) or producer['deployment_sha256']!=selected['deployment_sha256']:raise ValueError('current original household producer required')
   context=prepare_component_inputs(energy=energy,plan=current['plan'],profiled=current['profiled'],producer=producer,guard=check)
   # The source package is retained once per generation, not once per issue.

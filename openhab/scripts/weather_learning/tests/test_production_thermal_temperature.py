@@ -9,8 +9,7 @@ from test_production_forecast import serving,NOW
 from test_production_public import confirmed
 from weather_learning.contracts import canonical,identity,instant
 
-@pytest.fixture
-def context_case(serving,tmp_path):
+def make_context_case(serving,tmp_path):
  from weather_learning.production_public import retain_public_view
  import thermal_weather_source as source
  state,product,emission=confirmed(serving,tmp_path);view=retain_public_view(state,emission['emission_sha256'])
@@ -24,6 +23,10 @@ def context_case(serving,tmp_path):
  selection['selection_sha256']=identity(selection);path=tmp_path/'selection.json';path.write_bytes(canonical(selection));path.chmod(0o600)
  args=dict(selection=path,forecast=forecast,geometry=geometry,issue=issue,sensor_epoch=epoch,guard=lambda:None,clock=lambda:issue-timedelta(seconds=2))
  return source,args,state,body,emission,view
+
+@pytest.fixture
+def context_case(serving,tmp_path):
+ return make_context_case(serving,tmp_path)
 
 def test_actual_confirmed_points_replace_thermal_temperature_without_new_model_inference(context_case):
  source,args,state,body,emission,view=context_case
@@ -99,3 +102,28 @@ def test_new_context_requires_original_confirmation_points_and_closed_owner(cont
   if damage!='point':
    bad['context_sha256']=identity({k:v for k,v in bad.items() if k!='context_sha256'})
   with pytest.raises(ValueError):validate_context(bad,issue=args['issue'],available=args['clock'](),forecast=args['forecast'],sensor_epoch=args['sensor_epoch'])
+
+
+@pytest.mark.parametrize('newer_interim',[False,True])
+def test_actual_composite_publication_near_term_vocabulary_reaches_thermal(serving,tmp_path,newer_interim):
+ from learning_fixtures import T,SITE,full_snapshot
+ from test_production_forecast import original
+ from weather_learning.archive import Archive
+ from weather_learning.provider import load_publication_forecast
+ archive=Archive(tmp_path/'composite-originals')
+ extended=archive.store_snapshot(original(hours=360));near=extended
+ if newer_interim:
+  near=archive.store_snapshot(full_snapshot(init=T+timedelta(days=15,hours=6),hours=48,temperature_k=276.15))
+ provider=load_publication_forecast(archive,decision_at=NOW,site=SITE)
+ selected=dict(serving,provider=provider,read_source=archive.read)
+ source,args,state,body,emission,view=make_context_case(selected,tmp_path/'composite-confirmed')
+ shown=json.loads(emission['attempt_original']['states']['Forecast_10Day_JSON'])
+ assert shown['days'][0]['hours'][0]['forecastProfile']=='nearTerm'
+ assert next(r for r in body['rows'] if r['profile']=='nearTerm')['source_sha256']==near
+ assert (near!=extended)==newer_interim
+ value=source.collect_context(**args)
+ assert value['mode']=='confirmed_production_temperature'
+ assert all(p['profile']=='nearTerm' for p in value['points'])
+ actual={instant(p['at']):p['tempF'] for d in shown['days'] for p in d['hours']}
+ assert all(p['temp_f']==actual[instant(p['at'])] for p in value['points'])
+ source.verify_bindings(value,guard=lambda:None)
