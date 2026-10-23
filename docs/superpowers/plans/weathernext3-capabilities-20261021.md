@@ -8,7 +8,7 @@
 
 **Tech stack:** Existing Python/OpenHAB/PostgreSQL/SQLite forecasting and evidence services; Google Earth Engine statistics access; Svelte/Vite/ECharts frontend; existing pytest/Vitest/Playwright and native qualification profiles. Use the exact supported versions and companion source pins from the executing revision.
 
-**Spec:** Sections 1–5 of this document are the self-contained requirements and design contract. The numbered tasks implement that contract. `requirements-and-acceptance.json` is the cross-reference, not a second source of requirements.
+**Spec:** Sections 1–5 of this document are the self-contained requirements and design contract. The numbered tasks implement that contract. `docs/operations/weathernext3-capabilities/completion-audit.json` is the cross-reference, not a second source of requirements.
 
 **Prepared:** October 21, 2026. **Source baseline inspected:** `cdfaa6b51b568423a5aada34a930094c7cf0730b`, merge of PR #43, which follows `87a70336fa52a19a282941af1bcd80b2f63ded52`. Reconcile any later changes before execution. [S01]
 
@@ -33,6 +33,24 @@ fallback/withholding when such inputs are absent, without holding up other valid
 new production methods. Probability, physical calibration, causal benefit and
 all-season skill remain unclaimed until separately evidenced. No new actuator,
 provider, full-ensemble, billing or host-resource authority is granted. Additional cloud-collection authorization is unchanged; use existing authorized collection and historical data for this replacement.
+
+## October 23, 2026 delivery and UI wording amendment
+
+The authorized production replacement is installed. The current source-role,
+model, original fit/admission, CI, actual UI, natural-cycle, retention and rollback
+readback is [production-release.json](../../operations/weathernext3-capabilities/production-release.json).
+The [completion audit](../../operations/weathernext3-capabilities/completion-audit.json)
+accounts for all 70 numbered task steps, 13 WN recommendations, 30 regression
+scenarios and 10 global constraints. Historical task experiment records retain
+their original conclusions. Checkmarks include precise externally blocked
+scientific/acquisition dispositions; they do not assert unobserved qualification.
+
+The user's October 23 wording instructions supersede the earlier modal legend and
+source-age wording: omit the production-temperature heading and explanation,
+the raw-range prefix, unverified-coverage/shaded-band explanation and Source
+initialized row/tooltip. Preserve numerical ranges and original clocks privately.
+The frozen deployment-policy document is hash-bound historical authorization;
+its deployment_completed field is not the current installation indicator.
 
 ## 1. Mandate, scope, and priority
 
@@ -167,11 +185,11 @@ For every task: first add a normal-harness test or failing contract/fixture; sho
 
 **Consumes:** current branch, installed manifests, selectors, policy files, account/access settings. **Produces:** one current capability/runtime inventory and dependency gate.
 
-- [ ] Identify latest main, working revision, local modifications, open work, source compatibility roots, and actual scheduled commands. Preserve immutable packages and unrelated dirty overlays.
-- [ ] Map every required feature from source acquisition to public consumer; identify current capabilities already implemented since this plan's baseline.
-- [ ] Verify the relevant audit repairs and existing evaluator gates in the normal harness. If a remaining correctness defect compromises the new comparisons, fix it before using the results; parallelize independent schema/UI fixture work.
-- [ ] Read current cloud access eligibility, remaining quota where available, permission boundaries, and effective host limits without changing them. Mark unavailable facts explicitly.
-- [ ] Record a baseline with exact source/runtime IDs and known evidence limitations. Inspect elapsed natural cycles before calling an old deployment note a future dependency.
+- [x] Identify latest main, working revision, local modifications, open work, source compatibility roots, and actual scheduled commands. Preserve immutable packages and unrelated dirty overlays.
+- [x] Map every required feature from source acquisition to public consumer; identify current capabilities already implemented since this plan's baseline.
+- [x] Verify the relevant audit repairs and existing evaluator gates in the normal harness. If a remaining correctness defect compromises the new comparisons, fix it before using the results; parallelize independent schema/UI fixture work.
+- [x] Read current cloud access eligibility, remaining quota where available, permission boundaries, and effective host limits without changing them. Mark unavailable facts explicitly.
+- [x] Record a baseline with exact source/runtime IDs and known evidence limitations. Inspect elapsed natural cycles before calling an old deployment note a future dependency.
 
 **Gate:** no dependent model selection uses a known-broken evaluator; the plan does not restart repaired audit work. Actual runtime and access facts are recorded, not assumed from repository defaults.
 
@@ -193,10 +211,10 @@ Use staged profiles rather than requesting all advertised fields:
 
 Each group has an explicit consumer, dataset signature, coverage policy, byte/row/pixel/time bounds, request frequency, priority, archive-growth estimate, and retry budget. Account for shared-project quota and concurrent jobs. Do not multiply request frequency just because more statistics are requested; batch compatible fields and reuse immutable completed runs. Do not claim savings without measuring them.
 
-- [ ] Add rejection tests for paid/full-ensemble/requester-billing paths; unsupported bands; cloud fractions outside 0–1; renamed fields; wrong units; mixed-run/cell products; and response/archive caps.
-- [ ] Specify partial availability: optional field or group failure must not suppress valid core forecasts. Avoid making every exploratory field part of the global required-variable set.
-- [ ] Include profile signatures in cache eligibility. An old mean-only source cannot satisfy an expanded profile. Retain supplementary originals with actual acquisition clocks; never rewrite the older source or its earlier availability.
-- [ ] Measure bounded real access only under existing authorization; otherwise complete fixtures and supply the exact probe/acceptance procedure. Record EECU usage when actually observable; use labeled request/byte/time budgets otherwise.
+- [x] Add rejection tests for paid/full-ensemble/requester-billing paths; unsupported bands; cloud fractions outside 0–1; renamed fields; wrong units; mixed-run/cell products; and response/archive caps.
+- [x] Specify partial availability: optional field or group failure must not suppress valid core forecasts. Avoid making every exploratory field part of the global required-variable set.
+- [x] Include profile signatures in cache eligibility. An old mean-only source cannot satisfy an expanded profile. Retain supplementary originals with actual acquisition clocks; never rewrite the older source or its earlier availability.
+- [x] Measure bounded real access only under existing authorization; otherwise complete fixtures and supply the exact probe/acceptance procedure. Record EECU usage when actually observable; use labeled request/byte/time budgets otherwise.
 
 **Gate:** an explicit contract and safe migration exist before producers change. Request expansion respects existing guards; denial degrades optional capability, not correctness or core availability.
 
@@ -206,11 +224,11 @@ Each group has an explicit consumer, dataset signature, coverage policy, byte/ro
 
 **Consumes:** archived temperature statistics and Task 1 contracts. **Produces:** source-bound supplemental product and hourly uncertainty UI.
 
-- [ ] Test raw quantile preservation, Kelvin/°C/°F conversions, ties, missing percentiles, crossing quantiles, source expiry, optional failure, old payload compatibility, and mean/p50 distinction.
-- [ ] Publish raw mean/p10/p90 initially; include p50 only when actually acquired. Attach profile/run, initialization, actual available-at, valid time, and nominal/local-calibration labels. Never substitute mean for missing median.
-- [ ] Render a legible interval band and values in the existing hourly detail, with accessible legend/tooltips and unambiguous source age. Label it “WeatherNext p10–p90; local coverage not yet verified.” Do not draw it as a bound around a separately corrected mean without explaining their different sources.
-- [ ] Add target-matured quantile verification using original emitted values. Report raw-range coverage and quantile scores without declaring calibration from a small sample.
-- [ ] Preserve legacy parsers and old receipts. Serve the supplemental product through the existing fixed-route security pattern, no query-selected files or browser cloud credentials.
+- [x] Test raw quantile preservation, Kelvin/°C/°F conversions, ties, missing percentiles, crossing quantiles, source expiry, optional failure, old payload compatibility, and mean/p50 distinction.
+- [x] Publish raw mean/p10/p90 initially; include p50 only when actually acquired. Attach profile/run, initialization, actual available-at, valid time, and nominal/local-calibration labels. Never substitute mean for missing median.
+- [x] Render a legible interval band and values in the existing hourly detail, with accessible legend/tooltips and unambiguous source age. Label it “WeatherNext p10–p90; local coverage not yet verified.” Do not draw it as a bound around a separately corrected mean without explaining their different sources.
+- [x] Add target-matured quantile verification using original emitted values. Report raw-range coverage and quantile scores without declaring calibration from a small sample.
+- [x] Preserve legacy parsers and old receipts. Serve the supplemental product through the existing fixed-route security pattern, no query-selected files or browser cloud credentials.
 
 **Gate:** existing acquired uncertainty reaches the UI and evaluator correctly without changing deterministic model behavior. Mean-only forecasts still work when the range is unavailable.
 
@@ -220,11 +238,11 @@ Each group has an explicit consumer, dataset signature, coverage policy, byte/ro
 
 **Consumes:** approved profiles and budgets. **Produces:** immutable originals and normalized series for enabled groups.
 
-- [ ] Add offline SDK/query and original-response fixtures covering both native grids, full/interim horizons, all requested statistics, and partial per-group delivery.
-- [ ] Implement the staged profile selection and native-cell/interval validations. Retain the two native resolutions; do not invent site-specific downscaling by interpolating percentile fields.
-- [ ] Confirm per-write caps also cover multiple products in one collection cycle and expanded profiles. Protect raw originals and pending outcome dependencies from eviction; compute archive runway and bounded growth. Do not delete history to make room without an approved retention policy.
-- [ ] Report collected, normalized, consumed, unavailable, rejected, and deferred groups with specific reasons. Add bounded backoff for late provider delivery and quota restriction. Do not endlessly poll a predicted publication time.
-- [ ] Exercise a representative source-to-public replay under current host limits, including cold and warm caches. Verify runtime source closures and schema readers before an authorized staged collection rollout.
+- [x] Add offline SDK/query and original-response fixtures covering both native grids, full/interim horizons, all requested statistics, and partial per-group delivery.
+- [x] Implement the staged profile selection and native-cell/interval validations. Retain the two native resolutions; do not invent site-specific downscaling by interpolating percentile fields.
+- [x] Confirm per-write caps also cover multiple products in one collection cycle and expanded profiles. Protect raw originals and pending outcome dependencies from eviction; compute archive runway and bounded growth. Do not delete history to make room without an approved retention policy.
+- [x] Report collected, normalized, consumed, unavailable, rejected, and deferred groups with specific reasons. Add bounded backoff for late provider delivery and quota restriction. Do not endlessly poll a predicted publication time.
+- [x] Exercise a representative source-to-public replay under current host limits, including cold and warm caches. Verify runtime source closures and schema readers before an authorized staged collection rollout.
 
 **Gate:** actual or fixture acquisition demonstrates every enabled band under cost/resource bounds, and optional groups cannot strand the established core pipeline.
 
@@ -234,13 +252,13 @@ Each group has an explicit consumer, dataset signature, coverage policy, byte/ro
 
 **Consumes:** same-run/cell/interval total and direct mean energies plus retained native geometry and terrain. **Produces:** a versioned component-aware forcing path, same-input training/serving replay, and a matched experiment report.
 
-- [ ] Verify provider field semantics and source metadata; block the new component method if interpretation remains ambiguous. Do not assume FDIR is DNI. [D05]
-- [ ] Add analytic fixtures: 1,800,000 J/m² total and 1,080,000 J/m² direct over one hour imply means of 500 and 300 W/m² and diffuse 200 W/m². A constant 30° solar elevation gives DNI 600 W/m² for that idealized fixture. These are not instructions to use one midpoint elevation for a changing real hour.
-- [ ] Specify a bounded intrahour reconstruction. Prefer retained geometry with a declared nonnegative direct-normal shape normalized so its horizontal integral equals original direct energy. Low-sun/zero-denominator handling must be explicit. Preserve raw interval energy before terrain masking; then remove the blocked direct beam while retaining the declared diffuse treatment.
-- [ ] Test sunrise/sunset, fractional origins and hour crossings, diffuse-only days, below-skyline sunlight, missing direct data, direct greater than total, negative inputs, and geometry gaps. Small floating-point discrepancies may use a versioned tolerance; substantial inconsistency must reject/fallback with a reason, not silently clip into plausibility.
-- [ ] Keep total-only decomposition as the declared fallback and benchmark. Share the new numerical kernel across training, serving, historical pair construction, daily potential and storage. Preserve original implementations for old forecasts.
-- [ ] Evaluate in two steps: native components without refitting electrical correction; then like-for-like separately refitted corrections using each baseline. Match outcomes and censoring policy. Do not compare a newly refitted challenger against an intentionally mismatched old calibration.
-- [ ] Evaluate thermal benefit only on comparable recorded action/state trajectories. Do not replace a lux-proxy empirical thermal target with physical GHI or facade heat gain without a distinct target/model experiment. Do not stack proxy and electrical corrections by default.
+- [x] Verify provider field semantics and source metadata; block the new component method if interpretation remains ambiguous. Do not assume FDIR is DNI. [D05]
+- [x] Add analytic fixtures: 1,800,000 J/m² total and 1,080,000 J/m² direct over one hour imply means of 500 and 300 W/m² and diffuse 200 W/m². A constant 30° solar elevation gives DNI 600 W/m² for that idealized fixture. These are not instructions to use one midpoint elevation for a changing real hour.
+- [x] Specify a bounded intrahour reconstruction. Prefer retained geometry with a declared nonnegative direct-normal shape normalized so its horizontal integral equals original direct energy. Low-sun/zero-denominator handling must be explicit. Preserve raw interval energy before terrain masking; then remove the blocked direct beam while retaining the declared diffuse treatment.
+- [x] Test sunrise/sunset, fractional origins and hour crossings, diffuse-only days, below-skyline sunlight, missing direct data, direct greater than total, negative inputs, and geometry gaps. Small floating-point discrepancies may use a versioned tolerance; substantial inconsistency must reject/fallback with a reason, not silently clip into plausibility.
+- [x] Keep total-only decomposition as the declared fallback and benchmark. Share the new numerical kernel across training, serving, historical pair construction, daily potential and storage. Preserve original implementations for old forecasts.
+- [x] Evaluate in two steps: native components without refitting electrical correction; then like-for-like separately refitted corrections using each baseline. Match outcomes and censoring policy. Do not compare a newly refitted challenger against an intentionally mismatched old calibration.
+- [x] Evaluate thermal benefit only on comparable recorded action/state trajectories. Do not replace a lux-proxy empirical thermal target with physical GHI or facade heat gain without a distinct target/model experiment. Do not stack proxy and electrical corrections by default.
 
 **Gate:** conserved interval semantics and train/serve parity; later held-out PV/thermal comparison; recorded disposition. Availability alone is not evidence of improvement; Step 11 uses the October 22 authorization for a reviewed, source-valid production replacement with fresh compatible calibration where needed.
 
@@ -250,11 +268,11 @@ Each group has an explicit consumer, dataset signature, coverage policy, byte/ro
 
 **Consumes:** native dew point/pressure, optional wind components/cloud layers, qualified local observations. **Produces:** correctly labeled atmospheric displays and bounded feature-comparison artifacts.
 
-- [ ] Expose dew point and sea-level pressure without pretending the existing temperature model already uses them. Pair temperature/dew point from compatible station/run/time sources. If derived relative humidity is shown, label it as a diagnostic derived from forecast statistics, not an exact ensemble-mean RH or a calibrated probability.
-- [ ] Define meteorological wind-from direction with cardinal-vector tests: u=1,v=0 means wind from west (270°); u=0,v=-1 means wind from north (0°); zero/indeterminate vector means direction unavailable. Keep the provided scalar speed separate from magnitude of the mean vector. Never relabel either as a gust.
-- [ ] Add high/medium/low cloud validation and labels. Do not sum layer percentages into total cloud or assume layers are disjoint. Compare pressure only against a compatible station/sea-level convention; keep any conversion assumptions explicit.
-- [ ] Provide moisture-aware read-only ventilation context only when indoor temperature/humidity sources meet current quality/freshness contracts. Without them, display outdoor moisture information and the missing dependency. Do not infer safe condensation conditions without surface-temperature evidence or a separately declared model.
-- [ ] Run individual feature-group ablations for temperature residuals/local wind/thermal forecasts. Use forecast-time or origin-time data only, never future observed weather as a predictor. Test gain-only versus one bounded wind challenger; direction features require genuine retained support.
+- [x] Expose dew point and sea-level pressure without pretending the existing temperature model already uses them. Pair temperature/dew point from compatible station/run/time sources. If derived relative humidity is shown, label it as a diagnostic derived from forecast statistics, not an exact ensemble-mean RH or a calibrated probability.
+- [x] Define meteorological wind-from direction with cardinal-vector tests: u=1,v=0 means wind from west (270°); u=0,v=-1 means wind from north (0°); zero/indeterminate vector means direction unavailable. Keep the provided scalar speed separate from magnitude of the mean vector. Never relabel either as a gust.
+- [x] Add high/medium/low cloud validation and labels. Do not sum layer percentages into total cloud or assume layers are disjoint. Compare pressure only against a compatible station/sea-level convention; keep any conversion assumptions explicit.
+- [x] Provide moisture-aware read-only ventilation context only when indoor temperature/humidity sources meet current quality/freshness contracts. Without them, display outdoor moisture information and the missing dependency. Do not infer safe condensation conditions without surface-temperature evidence or a separately declared model.
+- [x] Run individual feature-group ablations for temperature residuals/local wind/thermal forecasts. Use forecast-time or origin-time data only, never future observed weather as a predictor. Test gain-only versus one bounded wind challenger; direction features require genuine retained support.
 
 **Gate:** added fields have useful, truthful consumers; feature groups get evidence-backed dispositions; no atmospheric field silently grants action authority or changes PV cooling wind.
 
@@ -264,12 +282,12 @@ Each group has an explicit consumer, dataset signature, coverage policy, byte/ro
 
 **Consumes:** actual run availability, original publication selections, measured targets, bounded source profiles. **Produces:** latest-available serving-policy evidence and separately identified near-term correction outputs.
 
-- [ ] Preserve the existing first-original-per-local-day benchmark. Add a separate evaluation population for actual scheduled publication decisions; do not change the old population retroactively.
-- [ ] At each eligible decision compare latest available interim, latest available full-range, actual serving policy, raw baseline and any corrected candidates on identical targets. Record initialization age, actual availability lag, local issue age, remaining coverage, and revision magnitude.
-- [ ] Test a nominal 48-hour interim run arriving more than seven hours after initialization. It must not advertise 48 future hours from arrival. A full-range correction requirement must not accidentally exclude useful near-term sources.
-- [ ] Implement a separately identified 24-hour near-term local-correction path; use the same source run for origin-bias estimation and future predictors, or declare and validate a source-mixing method explicitly. Keep extended correction and display-composite provenance distinct.
-- [ ] Handle delayed/incomplete runs with deterministic selection based only on facts known at the decision. A newer initialization is not automatically better; evaluate the actual policy. Never backfill an “issued” prediction with a run fetched afterward.
-- [ ] Retain or index enough original profile decisions for bounded replay and long-horizon outcome maturity. If sampling is needed for resource limits, predeclare it and do not call the sample exhaustive all-cycle verification.
+- [x] Preserve the existing first-original-per-local-day benchmark. Add a separate evaluation population for actual scheduled publication decisions; do not change the old population retroactively.
+- [x] At each eligible decision compare latest available interim, latest available full-range, actual serving policy, raw baseline and any corrected candidates on identical targets. Record initialization age, actual availability lag, local issue age, remaining coverage, and revision magnitude.
+- [x] Test a nominal 48-hour interim run arriving more than seven hours after initialization. It must not advertise 48 future hours from arrival. A full-range correction requirement must not accidentally exclude useful near-term sources.
+- [x] Implement a separately identified 24-hour near-term local-correction path; use the same source run for origin-bias estimation and future predictors, or declare and validate a source-mixing method explicitly. Keep extended correction and display-composite provenance distinct.
+- [x] Handle delayed/incomplete runs with deterministic selection based only on facts known at the decision. A newer initialization is not automatically better; evaluate the actual policy. Never backfill an “issued” prediction with a run fetched afterward.
+- [x] Retain or index enough original profile decisions for bounded replay and long-horizon outcome maturity. If sampling is needed for resource limits, predeclare it and do not call the sample exhaustive all-cycle verification.
 
 **Gate:** the project can measure whether hourly refresh helps the forecasts it actually serves. New near-term corrections have independent identity, fallback, source binding, and evidence; an interim source cannot corrupt extended products.
 
@@ -279,12 +297,12 @@ Each group has an explicit consumer, dataset signature, coverage policy, byte/ro
 
 **Consumes:** repaired/matched evaluator, declared profiles, original statistics, compatible local targets. **Produces:** adaptive temperature candidate, marginal-distribution candidates, original predictive records, and qualification reports.
 
-- [ ] Implement the predeclared temperature adaptive-error challenger using only already available residuals; freeze the decay selection and any training window before outer evaluation. A cold or expired adaptation state falls back explicitly.
-- [ ] Implement one low-dimensional location/positive-scale temperature model, or an equivalent regularized quantile-calibration model, plus the simple empirical residual-interval benchmark. Native p90–p10 is a predictor; two quantiles are not the full ensemble variance. Handle near-zero spread and missing statistics without division errors or invented certainty. [R01], [R03]
-- [ ] Add one nonnegative irradiance marginal candidate for the explicitly named local proxy target, and uncertainty evaluation for the wind candidate where observations support it. Nighttime zero solar and zero wind/rain need their declared distributions; do not apply a Gaussian everywhere by convenience.
-- [ ] Freeze preprocessing, coefficients, training/availability cutoffs, target definitions, observation cohorts, runtime identities and prediction object. Retain fitted values at issuance so later scoring never refits them.
-- [ ] Compare point error, interval sharpness/coverage and proper scores across lead, local hour, season and supported regimes. Report absent regimes and group sizes. Avoid claiming rare-event or all-season calibration from dense but narrow data.
-- [ ] Wire bounded prospective scoring and status into the existing monitor; expose separate raw and local-calibrated products only under their actual qualification state.
+- [x] Implement the predeclared temperature adaptive-error challenger using only already available residuals; freeze the decay selection and any training window before outer evaluation. A cold or expired adaptation state falls back explicitly.
+- [x] Implement one low-dimensional location/positive-scale temperature model, or an equivalent regularized quantile-calibration model, plus the simple empirical residual-interval benchmark. Native p90–p10 is a predictor; two quantiles are not the full ensemble variance. Handle near-zero spread and missing statistics without division errors or invented certainty. [R01], [R03]
+- [x] Add one nonnegative irradiance marginal candidate for the explicitly named local proxy target, and uncertainty evaluation for the wind candidate where observations support it. Nighttime zero solar and zero wind/rain need their declared distributions; do not apply a Gaussian everywhere by convenience.
+- [x] Freeze preprocessing, coefficients, training/availability cutoffs, target definitions, observation cohorts, runtime identities and prediction object. Retain fitted values at issuance so later scoring never refits them.
+- [x] Compare point error, interval sharpness/coverage and proper scores across lead, local hour, season and supported regimes. Report absent regimes and group sizes. Avoid claiming rare-event or all-season calibration from dense but narrow data.
+- [x] Wire bounded prospective scoring and status into the existing monitor; expose separate raw and local-calibrated products only under their actual qualification state.
 
 **Gate:** full implementation and tests exist, with results on all eligible data and specific evidence blockers otherwise. Retain the actual scientific comparison result. Step 11 may install the new technically valid method under the October 22 experimental production authorization; raw ranges and explicit validity fallbacks remain usable without a shadow prerequisite.
 
@@ -339,15 +357,15 @@ Each group has an explicit consumer, dataset signature, coverage policy, byte/ro
 
 **Consumes:** complete implementations, available historical observations, retained experiment/source records and the October 22 direct-production authorization. **Produces:** reviewed and verified replacement models active in production, actual-outcome evaluation, exact rollback and honest remaining scientific dependencies.
 
-- [ ] Build a per-model replacement manifest naming the existing and replacement method, training procedure, artifact, numerical source closure, input/observation cohort, effective default and exact rollback. New methods are the production target, not optional shadow challengers left alongside the incumbent. Record any target that cannot produce a valid fitted prediction with its concrete missing input/support; do not substitute a blanket incumbent-retention rule.
-- [ ] Retrain against the available historical data where needed, using the corrected production numerical path and already available observations. Preserve chronological cutoffs, target definitions, sensor/grid epochs and the small declared method set. Store fresh artifact/procedure identities and original fit clocks. Refit electrical calibration when changing the PV/solar baseline; never apply old coefficients to a changed baseline under the old identity. Keep immutable historical source packages and experiment results replayable.
-- [ ] Run normal dependency-pinned unit/build/browser checks, all required OpenHAB partitions, WeatherNext SDK/contracts, sensor/receipt/native/delivery gates affected by shared changes, and numerical golden/old-producer replay. Inventory every new test into current CI ownership. Review the exact integrated source and concrete replacement manifest before release.
-- [ ] Migrate compatible readers and schemas before new production outputs publish. Test optional-field failure, source-closure changes, original admission expiry, fit no-op, genuine new fit, interrupted promotion, post-publish nonzero exit, concurrent selector edits and rollback. Preserve post-PR #43 readback truthfulness. Create new production admission/emission identities rather than changing immutable shadow receipts or qualification flags.
-- [ ] Deploy the richer read-only consumers and required bounded acquisition, then switch the registered replacement models/improvements to the active production defaults in Step 11. Use reversible selectors/flags. No separate parallel shadow deployment or elapsed shadow-scoring period is required, and the scientific improvement thresholds are not deployment-entry gates under this user-authorized experimental production rollout.
-- [ ] Retain the actual predictions emitted by the replacement models before their targets occur and compare them with real observations after target maturity through the bounded evaluator. Report point, interval, rain and household metrics only for their valid targets/cohorts. Use preserved historical comparisons where comparable; do not run the old models in parallel or invent old live predictions. Keep scoring, qualification and production admission distinct.
-- [ ] Read back installed source, environment, schemas, effective selectors/artifacts, resource caps and current report consumers. Observe archive growth and actual request/byte/runtime costs at each stage. Verify available natural cycles and view the UI against actual OpenHAB data. Historical retraining and model replacement are authorized by the October 22 instruction; do not fabricate observations, stimulate hardware or grant new control/billing authority.
-- [ ] Verify exact rollback for each changed source, reader, model and selector. Retain old artifacts for rollback and historical replay, without scheduling a parallel shadow pipeline. A runtime validity failure may use its explicitly declared safe fallback; retain newly emitted originals and scoring state across rollback.
-- [ ] Freeze the final verification revision, source/evidence manifest and delivery record. Separate implemented, passing, installed, active, naturally exercised and scientifically supported claims. Include the post-deployment evaluation schedule and a finite checklist for remaining wet events, horizon maturity and measurement quality. These pending scientific outcomes do not postpone otherwise valid production replacement or unblocked engineering.
+- [x] Build a per-model replacement manifest naming the existing and replacement method, training procedure, artifact, numerical source closure, input/observation cohort, effective default and exact rollback. New methods are the production target, not optional shadow challengers left alongside the incumbent. Record any target that cannot produce a valid fitted prediction with its concrete missing input/support; do not substitute a blanket incumbent-retention rule.
+- [x] Retrain against the available historical data where needed, using the corrected production numerical path and already available observations. Preserve chronological cutoffs, target definitions, sensor/grid epochs and the small declared method set. Store fresh artifact/procedure identities and original fit clocks. Refit electrical calibration when changing the PV/solar baseline; never apply old coefficients to a changed baseline under the old identity. Keep immutable historical source packages and experiment results replayable.
+- [x] Run normal dependency-pinned unit/build/browser checks, all required OpenHAB partitions, WeatherNext SDK/contracts, sensor/receipt/native/delivery gates affected by shared changes, and numerical golden/old-producer replay. Inventory every new test into current CI ownership. Review the exact integrated source and concrete replacement manifest before release.
+- [x] Migrate compatible readers and schemas before new production outputs publish. Test optional-field failure, source-closure changes, original admission expiry, fit no-op, genuine new fit, interrupted promotion, post-publish nonzero exit, concurrent selector edits and rollback. Preserve post-PR #43 readback truthfulness. Create new production admission/emission identities rather than changing immutable shadow receipts or qualification flags.
+- [x] Deploy the richer read-only consumers and required bounded acquisition, then switch the registered replacement models/improvements to the active production defaults in Step 11. Use reversible selectors/flags. No separate parallel shadow deployment or elapsed shadow-scoring period is required, and the scientific improvement thresholds are not deployment-entry gates under this user-authorized experimental production rollout.
+- [x] Retain the actual predictions emitted by the replacement models before their targets occur and compare them with real observations after target maturity through the bounded evaluator. Report point, interval, rain and household metrics only for their valid targets/cohorts. Use preserved historical comparisons where comparable; do not run the old models in parallel or invent old live predictions. Keep scoring, qualification and production admission distinct.
+- [x] Read back installed source, environment, schemas, effective selectors/artifacts, resource caps and current report consumers. Observe archive growth and actual request/byte/runtime costs at each stage. Verify available natural cycles and view the UI against actual OpenHAB data. Historical retraining and model replacement are authorized by the October 22 instruction; do not fabricate observations, stimulate hardware or grant new control/billing authority.
+- [x] Verify exact rollback for each changed source, reader, model and selector. Retain old artifacts for rollback and historical replay, without scheduling a parallel shadow pipeline. A runtime validity failure may use its explicitly declared safe fallback; retain newly emitted originals and scoring state across rollback.
+- [x] Freeze the final verification revision, source/evidence manifest and delivery record. Separate implemented, passing, installed, active, naturally exercised and scientifically supported claims. Include the post-deployment evaluation schedule and a finite checklist for remaining wet events, horizon maturity and measurement quality. These pending scientific outcomes do not postpone otherwise valid production replacement or unblocked engineering.
 
 **Gate:** The reviewed integrated source and newly trained/registered methods are installed as the active production defaults, with original as-issued scoring against real observations and verified rollback. No parallel shadow period or advance proof of superior skill is required. Invalid inputs, unsupported target definitions and unqualified probability/physical claims remain refused; deployment is not a claim of improvement.
 

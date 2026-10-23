@@ -1,4 +1,6 @@
-# Household component PV/storage - integration in progress
+# Household component PV/storage
+
+The supported replacement is installed. [Current release readback](production-release.json) records the active calibration, compatible reader/scorer sources, first real outcomes and retained rollback. Preview measurements below remain historical.
 
 The new original-input adapter runs inside the retained native producer. It
 replays the original household energy and learned-load receipts, preserves

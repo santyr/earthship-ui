@@ -1,6 +1,6 @@
 {
   "schema": "earthship-weathernext-capability-dispositions/v1",
-  "status": "implemented_branch_inventory_production_replacement_pending",
+  "status": "installed_current_dispositions_verified",
   "scope": "Current capability branch. Historical experiment and baseline records remain historical. Direct production replacement follows deployment-policy.json; no parallel shadow period required.",
   "policies": {
     "shared_acquisition_policy": {
@@ -49,11 +49,14 @@
         "incumbent_collection": "Historical installed baseline.json record.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": true
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": true
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -66,8 +69,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -97,11 +99,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -114,8 +119,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -145,11 +149,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -162,8 +169,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -193,11 +199,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -210,8 +219,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -241,11 +249,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -258,8 +269,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -289,11 +299,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -306,8 +319,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -336,11 +348,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -354,8 +369,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -385,11 +399,14 @@
         "incumbent_collection": "Historical installed baseline.json record.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": true
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": true
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -402,8 +419,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -433,11 +449,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -450,8 +469,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -481,11 +499,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -498,8 +519,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -529,11 +549,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -546,8 +569,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -577,11 +599,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -594,8 +619,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -625,11 +649,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -642,8 +669,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -672,11 +698,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -690,8 +719,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -720,11 +748,14 @@
         "incumbent_collection": "Historical installed baseline.json record.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": true
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": true
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -738,8 +769,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -768,11 +798,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -786,8 +819,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -817,11 +849,14 @@
         "incumbent_collection": "Historical installed baseline.json record.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": true
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": true
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -835,8 +870,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -866,11 +900,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -884,8 +921,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -915,11 +951,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -933,8 +972,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -964,11 +1002,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -982,8 +1023,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -1012,11 +1052,14 @@
         "incumbent_collection": "Historical installed baseline.json record.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": true
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": true
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -1030,8 +1073,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -1061,11 +1103,14 @@
         "incumbent_collection": "Historical installed baseline.json record.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": true
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": true
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -1078,8 +1123,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -1109,11 +1153,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -1126,8 +1173,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -1157,11 +1203,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -1174,8 +1223,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -1205,11 +1253,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -1222,8 +1273,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -1253,11 +1303,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -1270,8 +1323,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -1301,11 +1353,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -1318,8 +1373,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -1348,11 +1402,14 @@
         "incumbent_collection": "Historical installed baseline.json record.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": true
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": true
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -1366,8 +1423,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -1396,11 +1452,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -1414,8 +1473,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -1444,11 +1502,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -1462,8 +1523,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -1493,11 +1553,14 @@
         "incumbent_collection": "Historical installed baseline.json record.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": true
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": true
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -1511,8 +1574,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -1542,11 +1604,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -1560,8 +1625,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -1591,11 +1655,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -1609,8 +1676,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -1640,11 +1706,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -1658,8 +1727,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -1688,11 +1756,14 @@
         "incumbent_collection": "Historical installed baseline.json record.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": true
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": true
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -1706,8 +1777,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -1739,11 +1809,14 @@
         "incumbent_collection": "Historical installed baseline.json record.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": true
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": true
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -1757,8 +1830,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -1790,11 +1862,14 @@
         "incumbent_collection": "Historical installed baseline.json record.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": true
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": true
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -1808,8 +1883,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -1840,11 +1914,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -1858,8 +1935,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -1890,11 +1966,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -1908,8 +1987,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -1940,11 +2018,14 @@
         "incumbent_collection": "Not claimed.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": false
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": false
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -1958,8 +2039,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     },
     {
@@ -1991,11 +2071,14 @@
         "incumbent_collection": "Historical installed baseline.json record.",
         "capability_expansion_installed": false,
         "replacement_policy": "deployment-policy.json",
-        "current_readback_owner": "Task11"
+        "current_readback_owner": "production-release.json",
+        "capability_consumer_software_installed": true,
+        "enabled_collection": true
       },
       "operationally_observed": {
-        "evidence_scope": "Retained-data local replay for core; native SDK/query fixtures for additional statistics.",
-        "expansion_natural_cycle": false
+        "evidence_scope": "Natural original twelve-band core collector cycle; additional profile acquisition remains disabled and fixture-only.",
+        "expansion_natural_cycle": false,
+        "core_natural_cycle": true
       },
       "qualification": {
         "local_probability_qualified": false,
@@ -2009,8 +2092,7 @@
       ],
       "limitations": [
         "Native statistics do not establish local calibration or causal action benefit.",
-        "Retained statistics may be intentionally unconsumed where their target semantics differ.",
-        "Step11 must record actual source/model/consumer installation separately."
+        "Retained statistics may be intentionally unconsumed where their target semantics differ."
       ]
     }
   ],
@@ -2026,19 +2108,20 @@
       "source_bound": "Original input, producer, model/procedure and decision/availability clocks retained.",
       "consumed": "Raw detail chart/cards and original-issued verification.",
       "tested": "Task-specific verification plus task10-verification.json.",
-      "deployed": false,
-      "operationally_observed": "Local replay only; no expansion natural-cycle claim.",
+      "deployed": true,
+      "operationally_observed": "Installed current source and actual production/read-only UI evidence; particular unacquired fields and unqualified claims remain limited as recorded.",
       "statistical_physical_qualification": "Preserve original evidence limitations; no qualification inferred from the user-authorized deployment.",
       "cost": "bounded_local_policy",
       "historical_experiment_disposition": "implemented_nominal_native_range",
-      "deployment_disposition": "Direct new production method in Step11 under deployment-policy.json; exact invalid/missing-input targets require named fallback/withholding, not a blanket shadow wait.",
+      "deployment_disposition": "Installed software with supported production method active; exact missing-input/scientific limits preserved.",
       "evidence": [
         "task2-verification.json",
         "temperature-range.md"
       ],
       "limitations": [
         "Nominal p10/p90 is not locally demonstrated80% coverage."
-      ]
+      ],
+      "current_evidence": "production-release.json"
     },
     {
       "feature": "optional_profiles",
@@ -2051,12 +2134,12 @@
       "source_bound": "Original input, producer, model/procedure and decision/availability clocks retained.",
       "consumed": "Native-cell collection/normalization and same-original mean/quantile consumers.",
       "tested": "Task-specific verification plus task10-verification.json.",
-      "deployed": false,
-      "operationally_observed": "Local replay only; no expansion natural-cycle claim.",
+      "deployed": true,
+      "operationally_observed": "Existing core collector source naturally exercised; additional profiles disabled, SDK fixtures/offline replay only.",
       "statistical_physical_qualification": "Preserve original evidence limitations; no qualification inferred from the user-authorized deployment.",
       "cost": "bounded_local_policy",
       "historical_experiment_disposition": "implemented_bounded_explicit_opt_in",
-      "deployment_disposition": "Direct new production method in Step11 under deployment-policy.json; exact invalid/missing-input targets require named fallback/withholding, not a blanket shadow wait.",
+      "deployment_disposition": "Profile-capable software installed; no authorization for extra cloud collection.",
       "evidence": [
         "task3-verification.json",
         "profile-contract.json",
@@ -2064,7 +2147,9 @@
       ],
       "limitations": [
         "Legacy quantile-only identity remains frozen; companion means use a new profile. Additional cloud authorization remains unchanged."
-      ]
+      ],
+      "current_evidence": "production-release.json",
+      "enabled": false
     },
     {
       "feature": "native_direct_diffuse_solar",
@@ -2077,12 +2162,12 @@
       "source_bound": "Original input, producer, model/procedure and decision/availability clocks retained.",
       "consumed": "Shared versioned solar/PV/thermal comparison and adapters.",
       "tested": "Task-specific verification plus task10-verification.json.",
-      "deployed": false,
-      "operationally_observed": "Local replay only; no expansion natural-cycle claim.",
+      "deployed": true,
+      "operationally_observed": "Installed current source and actual production/read-only UI evidence; particular unacquired fields and unqualified claims remain limited as recorded.",
       "statistical_physical_qualification": "Preserve original evidence limitations; no qualification inferred from the user-authorized deployment.",
       "cost": "bounded_local_policy",
       "historical_experiment_disposition": "historical_incumbent_retained",
-      "deployment_disposition": "Direct new production method in Step11 under deployment-policy.json; exact invalid/missing-input targets require named fallback/withholding, not a blanket shadow wait.",
+      "deployment_disposition": "Installed software with supported production method active; exact missing-input/scientific limits preserved.",
       "evidence": [
         "task4-verification.json",
         "pv-experiment.json",
@@ -2090,7 +2175,8 @@
       ],
       "limitations": [
         "Direct horizontal is not DNI; changed electrical baseline requires fresh compatible calibration."
-      ]
+      ],
+      "current_evidence": "production-release.json"
     },
     {
       "feature": "atmospheric_context_and_ablations",
@@ -2103,19 +2189,20 @@
       "source_bound": "Original input, producer, model/procedure and decision/availability clocks retained.",
       "consumed": "Raw diagnostics and individual temperature/wind/thermal feature comparisons.",
       "tested": "Task-specific verification plus task10-verification.json.",
-      "deployed": false,
-      "operationally_observed": "Local replay only; no expansion natural-cycle claim.",
+      "deployed": true,
+      "operationally_observed": "Installed current source and actual production/read-only UI evidence; particular unacquired fields and unqualified claims remain limited as recorded.",
       "statistical_physical_qualification": "Preserve original evidence limitations; no qualification inferred from the user-authorized deployment.",
       "cost": "bounded_local_policy",
       "historical_experiment_disposition": "historical_incumbents_retained",
-      "deployment_disposition": "Direct new production method in Step11 under deployment-policy.json; exact invalid/missing-input targets require named fallback/withholding, not a blanket shadow wait.",
+      "deployment_disposition": "Installed software with supported production method active; exact missing-input/scientific limits preserved.",
       "evidence": [
         "task5-verification.json",
         "atmospheric-experiment.json"
       ],
       "limitations": [
         "No added group passes every frozen scientific gate; direction/layers have sparse real support."
-      ]
+      ],
+      "current_evidence": "production-release.json"
     },
     {
       "feature": "hourly_refresh_and_near24",
@@ -2128,12 +2215,12 @@
       "source_bound": "Original input, producer, model/procedure and decision/availability clocks retained.",
       "consumed": "Source-bound original refresh decisions, near24 adapter and durable mature-target scoring.",
       "tested": "Task-specific verification plus task10-verification.json.",
-      "deployed": false,
-      "operationally_observed": "Local replay only; no expansion natural-cycle claim.",
+      "deployed": true,
+      "operationally_observed": "Installed current source and actual production/read-only UI evidence; particular unacquired fields and unqualified claims remain limited as recorded.",
       "statistical_physical_qualification": "Preserve original evidence limitations; no qualification inferred from the user-authorized deployment.",
       "cost": "bounded_local_policy",
       "historical_experiment_disposition": "historical_insufficient_evidence",
-      "deployment_disposition": "Direct new production method in Step11 under deployment-policy.json; exact invalid/missing-input targets require named fallback/withholding, not a blanket shadow wait.",
+      "deployment_disposition": "Installed software with supported production method active; exact missing-input/scientific limits preserved.",
       "evidence": [
         "task6-verification.json",
         "refresh-experiment.json",
@@ -2141,7 +2228,8 @@
       ],
       "limitations": [
         "Two target dates below scientific3date gate; changed numerical closure refuses old correction artifacts."
-      ]
+      ],
+      "current_evidence": "production-release.json"
     },
     {
       "feature": "adaptive_and_marginal",
@@ -2154,19 +2242,20 @@
       "source_bound": "Original input, producer, model/procedure and decision/availability clocks retained.",
       "consumed": "Adaptive point correction, marginal models, fixed transport and bounded original-issued evaluator.",
       "tested": "Task-specific verification plus task10-verification.json.",
-      "deployed": false,
-      "operationally_observed": "Local replay only; no expansion natural-cycle claim.",
+      "deployed": true,
+      "operationally_observed": "Installed current source and actual production/read-only UI evidence; particular unacquired fields and unqualified claims remain limited as recorded.",
       "statistical_physical_qualification": "Preserve original evidence limitations; no qualification inferred from the user-authorized deployment.",
       "cost": "bounded_local_policy",
       "historical_experiment_disposition": "historical_unselected_unqualified",
-      "deployment_disposition": "Direct new production method in Step11 under deployment-policy.json; exact invalid/missing-input targets require named fallback/withholding, not a blanket shadow wait.",
+      "deployment_disposition": "Installed software with supported production method active; exact missing-input/scientific limits preserved.",
       "evidence": [
         "task7-verification.json",
         "marginal-native-experiment.json"
       ],
       "limitations": [
         "Overlapping retrospective score gains are not independent prospective qualification; proxy and wind measurement limitations remain."
-      ]
+      ],
+      "current_evidence": "production-release.json"
     },
     {
       "feature": "deterministic_stress",
@@ -2179,19 +2268,20 @@
       "source_bound": "Original input, producer, model/procedure and decision/availability clocks retained.",
       "consumed": "Fixed central/reduced-solar/warm stress projections and household detail.",
       "tested": "Task-specific verification plus task10-verification.json.",
-      "deployed": false,
-      "operationally_observed": "Local replay only; no expansion natural-cycle claim.",
+      "deployed": true,
+      "operationally_observed": "Installed current source and actual production/read-only UI evidence; particular unacquired fields and unqualified claims remain limited as recorded.",
       "statistical_physical_qualification": "Preserve original evidence limitations; no qualification inferred from the user-authorized deployment.",
       "cost": "bounded_local_policy",
       "historical_experiment_disposition": "advisory_only",
-      "deployment_disposition": "Direct new production method in Step11 under deployment-policy.json; exact invalid/missing-input targets require named fallback/withholding, not a blanket shadow wait.",
+      "deployment_disposition": "Installed software with supported production method active; exact missing-input/scientific limits preserved.",
       "evidence": [
         "scenario-final-verification.json",
         "scenario-projection-experiment.json"
       ],
       "limitations": [
         "Hypothetical trajectory has no occurrence probability; nominal storage is not measured usable capacity."
-      ]
+      ],
+      "current_evidence": "production-release.json"
     },
     {
       "feature": "joint_household_scenarios",
@@ -2204,19 +2294,21 @@
       "source_bound": "Original input, producer, model/procedure and decision/availability clocks retained.",
       "consumed": "Bounded dependence method and exact-original projection/outcome evaluation.",
       "tested": "Task-specific verification plus task10-verification.json.",
-      "deployed": false,
-      "operationally_observed": "Local replay only; no expansion natural-cycle claim.",
+      "deployed": true,
+      "operationally_observed": "Deterministic sensitivity independently installed and naturally exercised; joint probability product unavailable.",
       "statistical_physical_qualification": "Preserve original evidence limitations; no qualification inferred from the user-authorized deployment.",
       "cost": "bounded_local_policy",
       "historical_experiment_disposition": "insufficient_joint_inputs",
-      "deployment_disposition": "Direct new production method in Step11 under deployment-policy.json; exact invalid/missing-input targets require named fallback/withholding, not a blanket shadow wait.",
+      "deployment_disposition": "Joint software and matched experiments complete; zero eligible dates, eight required, qualified physical-GHI and complete household targets missing.",
       "evidence": [
         "scenario-final-verification.json",
         "scenario-joint-evidence.json"
       ],
       "limitations": [
         "Zero valid original joint-template dates versus8required; physical GHI and complete energy windows absent."
-      ]
+      ],
+      "current_evidence": "production-release.json",
+      "enabled": false
     },
     {
       "feature": "rain_three_head_two_part",
@@ -2229,19 +2321,21 @@
       "source_bound": "Original input, producer, model/procedure and decision/availability clocks retained.",
       "consumed": "Matched three-head intervals, one occurrence/amount method and original-emission evaluator.",
       "tested": "Task-specific verification plus task10-verification.json.",
-      "deployed": false,
-      "operationally_observed": "Local replay only; no expansion natural-cycle claim.",
+      "deployed": true,
+      "operationally_observed": "Recorded station totals and native interval-mean fallback active.",
       "statistical_physical_qualification": "Preserve original evidence limitations; no qualification inferred from the user-authorized deployment.",
       "cost": "bounded_local_policy",
       "historical_experiment_disposition": "historical_insufficient_evidence",
-      "deployment_disposition": "Direct new production method in Step11 under deployment-policy.json; exact invalid/missing-input targets require named fallback/withholding, not a blanket shadow wait.",
+      "deployment_disposition": "Three-head/two-part comparison complete; thirteen explicitly scoped local fits withheld, including two outside selected336h domain. See production-rain-dispositions.json.",
       "evidence": [
         "task9-verification.json",
         "rain-experiment.json"
       ],
       "limitations": [
         "Independent local resolution and causal wet/dry/event support remain absent; do not fabricate a fitted occurrence model."
-      ]
+      ],
+      "current_evidence": "production-release.json",
+      "enabled": false
     },
     {
       "feature": "ten_day_default",
@@ -2254,18 +2348,19 @@
       "source_bound": "Original input, producer, model/procedure and decision/availability clocks retained.",
       "consumed": "Bounded existing default forecast and optional detail.",
       "tested": "Task-specific verification plus task10-verification.json.",
-      "deployed": false,
-      "operationally_observed": "Local replay only; no expansion natural-cycle claim.",
+      "deployed": true,
+      "operationally_observed": "Installed current source and actual production/read-only UI evidence; particular unacquired fields and unqualified claims remain limited as recorded.",
       "statistical_physical_qualification": "Preserve original evidence limitations; no qualification inferred from the user-authorized deployment.",
       "cost": "bounded_local_policy",
       "historical_experiment_disposition": "retain_ten_day_display",
-      "deployment_disposition": "Direct new production method in Step11 under deployment-policy.json; exact invalid/missing-input targets require named fallback/withholding, not a blanket shadow wait.",
+      "deployment_disposition": "Installed software with supported production method active; exact missing-input/scientific limits preserved.",
       "evidence": [
         "ui-and-operations.md"
       ],
       "limitations": [
         "360hfrominitialization does not promise15remaining days after arrival."
-      ]
+      ],
+      "current_evidence": "production-release.json"
     },
     {
       "feature": "private_operations",
@@ -2279,18 +2374,19 @@
       "source_bound": "Original input, producer, model/procedure and decision/availability clocks retained.",
       "consumed": "Actual ingest/score diagnostics; no public diagnostic route or additional observations.",
       "tested": "Task-specific verification plus task10-verification.json.",
-      "deployed": false,
-      "operationally_observed": "Local replay only; no expansion natural-cycle claim.",
+      "deployed": true,
+      "operationally_observed": "Installed current source and actual production/read-only UI evidence; particular unacquired fields and unqualified claims remain limited as recorded.",
       "statistical_physical_qualification": "Preserve original evidence limitations; no qualification inferred from the user-authorized deployment.",
       "cost": "bounded_local_policy",
       "historical_experiment_disposition": "implemented_private",
-      "deployment_disposition": "Direct new production method in Step11 under deployment-policy.json; exact invalid/missing-input targets require named fallback/withholding, not a blanket shadow wait.",
+      "deployment_disposition": "Installed software with supported production method active; exact missing-input/scientific limits preserved.",
       "evidence": [
         "ui-and-operations.md"
       ],
       "limitations": [
         "Unknown provider revision/EECU remain unknown; configured selection is not effective serving admission."
-      ]
+      ],
+      "current_evidence": "production-release.json"
     },
     {
       "feature": "source_compatibility_and_optional_isolation",
@@ -2304,12 +2400,12 @@
       "source_bound": "Original input, producer, model/procedure and decision/availability clocks retained.",
       "consumed": "Versioned fixed readers, independent optional-domain failure, immutable source/model receipts and explicit production migration contracts.",
       "tested": "Task-specific verification plus task10-verification.json.",
-      "deployed": false,
-      "operationally_observed": "Local replay only; no expansion natural-cycle claim.",
+      "deployed": true,
+      "operationally_observed": "Installed current source and actual production/read-only UI evidence; particular unacquired fields and unqualified claims remain limited as recorded.",
       "statistical_physical_qualification": "Preserve original evidence limitations; no qualification inferred from the user-authorized deployment.",
       "cost": "bounded_local_policy",
       "historical_experiment_disposition": "implemented_historical_baseline_preserved",
-      "deployment_disposition": "Direct new production method in Step11 under deployment-policy.json; exact invalid/missing-input targets require named fallback/withholding, not a blanket shadow wait.",
+      "deployment_disposition": "Installed software with supported production method active; exact missing-input/scientific limits preserved.",
       "evidence": [
         "baseline.json",
         "profile-contract.json",
@@ -2317,7 +2413,8 @@
       ],
       "limitations": [
         "Task11 must verify the exact installed closures and new production admission; repository source alone is not installation evidence."
-      ]
+      ],
+      "current_evidence": "production-release.json"
     }
   ],
   "intentionally_unused": [
@@ -2382,5 +2479,6 @@
   },
   "deployment_policy": "deployment-policy.json",
   "automatic_promotion": false,
-  "automatic_actuation": false
+  "automatic_actuation": false,
+  "current_release": "production-release.json"
 }
