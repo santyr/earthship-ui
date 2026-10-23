@@ -23,3 +23,8 @@ it('keeps absence and expired reports unavailable without invented zero readings
 it('cancels pending reads on teardown and uses only the fixed read-only loader',()=>{
  let signal;loadWeatherSensitivity.mockImplementation(s=>{signal=s;return new Promise(()=>{});});const {unmount}=render(WeatherSensitivity);expect(signal.aborted).toBe(false);unmount();expect(signal.aborted).toBe(true);expect(loadWeatherSensitivity).toHaveBeenCalledTimes(1);
 });
+it('shows the frozen scenario interval without backdating case issuance to the household origin',async()=>{
+ const {container,getByText}=render(WeatherSensitivity);await waitFor(()=>expect(getByText('10.00 kWh')).toBeTruthy());
+ expect(container.textContent).not.toMatch(/issued/i);
+ expect(container.textContent).toMatch(/through Oct 24/);
+});

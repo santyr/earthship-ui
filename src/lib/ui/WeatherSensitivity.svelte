@@ -24,7 +24,7 @@
   <details>
     <summary>Weather sensitivity</summary>
     {#if view.state==='ready'}
-      <p>Next {(Date.parse(view.through)-Date.parse(view.origin))/3600000} hours · issued {date(view.origin)}.</p>
+      <p>Scenario from {date(view.origin)} through {date(view.through)}.</p>
       <p>Weather cases have no assigned probabilities. Load, initial state, model parameters and actions stay fixed. Storage uses nominal capacity.</p>
       <p class="state">Initial SoC {reading(view.initialSocPct,'%')} · {reading(view.nominalBankKwh,' kWh')} nominal bank · {reading(view.fixedLoadAcW,' W',0)} fixed AC load</p>
       <div class="table-wrap">
