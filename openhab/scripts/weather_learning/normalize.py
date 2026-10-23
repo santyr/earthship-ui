@@ -18,6 +18,9 @@ VARIABLES={
  'experimental_tp_1hr':('m','mm',1000.,0.,3600),
  'mean_sea_level_pressure':('Pa','hPa',.01,0.,0),
  'total_cloud_cover':('(0 - 1)','percent',100.,0.,0),
+ 'high_cloud_cover':('(0 - 1)','percent',100.,0.,0),
+ 'medium_cloud_cover':('(0 - 1)','percent',100.,0.,0),
+ 'low_cloud_cover':('(0 - 1)','percent',100.,0.,0),
  'wind_speed_10m':('m s**-1','m s-1',1.,0.,0),
  'u_component_of_wind_10m':('m s**-1','m s-1',1.,0.,0),
  'v_component_of_wind_10m':('m s**-1','m s-1',1.,0.,0),
@@ -31,7 +34,7 @@ def normalize_point(variable,raw_value,raw_unit,*,valid_at,source_ref,source_dig
     if raw_value is not None:
         if not finite(raw_value):raise ValueError('finite source value required')
         if period and raw_value<0:raise ValueError('negative native accumulation refused')
-        if variable=='total_cloud_cover' and not 0<=raw_value<=1:raise ValueError('cloud fraction outside native domain')
+        if variable in ('total_cloud_cover','high_cloud_cover','medium_cloud_cover','low_cloud_cover') and not 0<=raw_value<=1:raise ValueError('cloud fraction outside native domain')
     digest(source_digest);valid=instant(valid_at);Site(latitude,longitude,'UTC')
     if not isinstance(source_ref,str) or not source_ref.startswith('projects/gcp-public-data-weathernext/assets/') or len(source_ref)>512:
         raise ValueError('WeatherNext source asset required')

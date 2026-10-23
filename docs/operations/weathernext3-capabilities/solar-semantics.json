@@ -1,0 +1,47 @@
+{
+  "schema": "earthship-native-solar-semantics/v1",
+  "checked_at": "2026-10-21",
+  "total_variable": "surface_solar_radiation_downwards_1hr",
+  "direct_variable": "total_sky_direct_solar_radiation_at_surface_1hr",
+  "statistic": "mean",
+  "native_grid": "gridded_0p1deg",
+  "native_unit": "J m**-2",
+  "interval_seconds": 3600,
+  "interpretation": "SSRD is total horizontal energy; FDIR is direct horizontal energy, not direct normal irradiance",
+  "basis": [
+    {
+      "url": "https://developers.google.com/weathernext/guides/models",
+      "evidence": "The supported-variable table identifies the one-hour total field as SSRD/GHI and the direct field as FDIR, both in J/m2 on the gridded collection."
+    },
+    {
+      "url": "https://codes.ecmwf.int/grib/param-db/228021",
+      "evidence": "The FDIR parameter definition uses a horizontal receiving plane; accumulated energy is converted to mean flux using its actual duration."
+    },
+    {
+      "url": "https://www.ecmwf.int/sites/default/files/elibrary/112024/81626-ifs-documentation-cy49r1-part-iv-physical-processes.pdf",
+      "evidence": "Chapter2 Table2.6 distinguishes horizontal FDIR from the separate direct-normal diagnostic DSRP. WeatherNext's explicit one-hour interval controls accumulation handling."
+    }
+  ],
+  "source_admission": [
+    "same immutable snapshot/run, native cell and ending interval",
+    "original mean statistics, J/m2 and one-hour periods",
+    "rederive native points from original capsules",
+    "preserve source availability and native geometry/runtime identities"
+  ],
+  "reconstruction_rule": "constant_daylight_DNI_normalized_by_retained_five_minute_horizontal_projection_v1",
+  "diffuse_shape": "constant_over_unobstructed_daylight_bins_normalized_to_original_diffuse_energy",
+  "geometry": "complete source-hour coverage using retained at-most-five-minute bins; split exactly at hour and requested-window boundaries",
+  "terrain": "apply existing skyline to direct beam after raw horizontal energy conservation; diffuse sky-view remains explicitly unmodeled",
+  "relative_energy_tolerance": 1e-9,
+  "absolute_energy_tolerance_j_m2": 1e-6,
+  "maximum_reconstructed_dni_w_m2": 2000,
+  "maximum_reconstructed_diffuse_and_total_w_m2": 2000,
+  "missing_or_inconsistent_components": "named total-only fallback, never silent physical repair",
+  "source_or_geometry_invalid": "reject unsupported projection rather than fabricate inputs",
+  "legacy_v1": "unchanged numerical functions and original-producer replay retained",
+  "electrical_refit": "fixed correction comparison first, then matched separately refitted baselines under the frozen protocol",
+  "thermal_target": "physical components and facade forcing remain separate from the empirical local radiation proxy unless a distinct comparable-trajectory experiment supports a new model",
+  "automatic_promotion": false,
+  "physical_calibration_qualified": false,
+  "automatic_actuation": false
+}

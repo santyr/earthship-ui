@@ -16,12 +16,22 @@ NUMERIC_ITEMS=('Forecast_Temp','Forecast_Cloudiness','Forecast_Radiation','Forec
     'Forecast_Daily_Low','Forecast_Daily_PrecipSum','Forecast_Tomorrow_High','Forecast_Tomorrow_Low')
 
 
-def production_states(provider,*,now):
-    states=publication_states(provider,now=now);value,_=_presentation(provider.to_dict())
+def production_states(provider,*,now,production=None):
+    if production is None:states=publication_states(provider,now=now)
+    else:
+        from .production_forecast import production_payloads
+        payloads=production_payloads(production,provider=provider,now=now)
+        states={item:canonical(payload).decode() for item,payload in zip(('Forecast_Hourly_JSON','Forecast_Daily_JSON',DETAIL),payloads)}
+        if any(len(raw.encode())>=65536 for raw in states.values()):raise ValueError('forecast Item byte limit exceeded')
+    value,_=_presentation(provider.to_dict())
     states.update({item:'UNDEF' for item in NUMERIC_ITEMS})
     if value['status']!='AVAILABLE':return states
     def number(item,value,unit=''):
         if value is not None:states[item]=str(value)+((' '+unit) if unit else '')
+    if production is not None:
+        detail=json.loads(states[DETAIL]);hours=[h for d in detail['days'] for h in d['hours']]
+        value=dict(value,hours=[dict(temp_f=h['tempF'],cloud_pct=h['cloudPct'],radiation_wm2=h['radiationWm2']) for h in hours],
+            days=[dict(date=d['date'],high_f=d['summary']['highF'],low_f=d['summary']['lowF'],precip_sum_in=d['summary']['precipSumIn']) for d in detail['days']])
     first=value['hours'][0]
     number('Forecast_Temp',first['temp_f'],'°F');number('Forecast_Cloudiness',first['cloud_pct'],'%')
     number('Forecast_Radiation',first['radiation_wm2'],'W/m²')
@@ -61,19 +71,20 @@ def _same_state(item,expected,actual):
     except (ValueError,IndexError,OverflowError):return False
 
 
-def publish_cycle(provider,*,now,put_state,read_state,authorize=None):
+def publish_cycle(provider,*,now,put_state,read_state,authorize=None,production=None):
     """Commit detail last; every failure attempts all owned withdrawals.
 
     Authorization is an injected deployment decision, not a passing scientific
     assessment produced here. Unit/integration simulations use local stores.
     No live caller, permissive default or production activation is installed.
     """
-    states=production_states(provider,now=now)
+    states=production_states(provider,now=now,production=production)
     if not callable(authorize) or authorize(provider) is not True:raise ValueError('qualified cutover writer authorization required')
     if not callable(put_state) or not callable(read_state):raise ValueError('bounded state writer and readback required')
     value=provider.to_dict();result=dict(schema='earthship-weathernext-publication-result/v1',status='FAILED',
         provider_snapshot_sha256=value['provider_snapshot_sha256'],states_sha256=identity(states),verified_items=[],
         failed_item=None,withdrawal_attempts=[],unconfirmed_withdrawals=[],release_authorized=False,automatic_actuation=False)
+    if production is not None:result['production_issue_sha256']=production.to_dict()['issue_sha256']
     active=DETAIL
     def write(item,raw):
         if put_state(item,raw) is False:raise ValueError('state write refused')

@@ -121,14 +121,7 @@ def parse_rain_snapshot(raw, persisted_at, policy):
 
 def qualify_rain_day(local_date, *, as_of, observations, policy,
                      site_timezone='America/Denver'):
-    """Return a bounded source-qualified counter difference or refuse it.
-
-    The returned midpoint differs from the source-reported daily cumulative
-    counter difference by at most half of ``uncertainty_in`` if that counter
-    was monotone. It cannot prove gauge calibration or physical rainfall.
-    Any observed gap, invalid packet, drop, jump, restart or broad midnight
-    bracket refuses the day. No numeric Item fallback is permitted.
-    """
+    """Preserve the original complete local-day counter contract and output."""
     if not isinstance(local_date, date) or isinstance(local_date, datetime):
         raise RainDayRefused('local date required')
     if not isinstance(policy, RainPolicy):
@@ -136,6 +129,29 @@ def qualify_rain_day(local_date, *, as_of, observations, policy,
     zone = ZoneInfo(site_timezone)
     start = datetime.combine(local_date, time.min, zone).astimezone(timezone.utc)
     end = datetime.combine(local_date + timedelta(days=1), time.min, zone).astimezone(timezone.utc)
+    result = _qualify_counter_interval(start=start, end=end, as_of=as_of,
+                                      observations=observations, policy=policy)
+    return {'basis': result['basis'], 'local_date': local_date.isoformat(),
+            'rain_in': result['rain_in'], 'uncertainty_in': result['uncertainty_in'],
+            'receipt_count': result['receipt_count'], 'stream_epoch': result['stream_epoch']}
+
+
+def qualify_rain_interval(*, start, end, as_of, observations, policy):
+    """Qualify one explicit rolling/partial interval using native counter rules.
+
+    Coverage, faults, epochs and both endpoint brackets remain mandatory. The
+    counter difference is source evidence, without physical gauge calibration.
+    """
+    start, end = _utc(start), _utc(end)
+    if not timedelta(0) < end-start <= timedelta(hours=25):
+        raise RainDayRefused('bounded positive rain interval required')
+    return _qualify_counter_interval(start=start, end=end, as_of=as_of,
+                                    observations=observations, policy=policy)
+
+
+def _qualify_counter_interval(*, start, end, as_of, observations, policy):
+    if not isinstance(policy, RainPolicy):
+        raise RainDayRefused('explicit rain policy required')
     assessed_at = _utc(as_of)
     if assessed_at < end:
         raise RainDayRefused('rain day incomplete')
@@ -196,7 +212,8 @@ def qualify_rain_day(local_date, *, as_of, observations, policy,
         raise RainDayRefused('rain boundary uncertainty too large')
     return {
         'basis': 'source_bound_counter_bracket_v1',
-        'local_date': local_date.isoformat(),
+        'start': start.isoformat(),
+        'end': end.isoformat(),
         'rain_in': round((lower + upper) / 2, 4),
         'uncertainty_in': round(uncertainty, 4),
         'receipt_count': len(samples),

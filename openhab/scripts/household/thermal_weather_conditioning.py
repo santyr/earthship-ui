@@ -51,6 +51,9 @@ def validate_admission(value,*,issue):
 
 
 def validate_context(value,*,issue,available,forecast=None,sensor_epoch=None):
+    if isinstance(value,dict) and value.get('schema')=='earthship-thermal-weather-context/v2':
+        from .production_weather_conditioning import validate_context as validate_production
+        return validate_production(value,issue=issue,available=available,forecast=forecast,sensor_epoch=sensor_epoch)
     if (not isinstance(value,dict) or set(value)!=CONTEXT_FIELDS or value['schema']!='earthship-thermal-weather-context/v1' or
             value['context_sha256']!=identity({k:v for k,v in value.items() if k!='context_sha256'}) or value['automatic_actuation'] is not False or
             instant(value['issue'])!=issue or not instant(value['prepared_at'])<=available<=issue or len(canonical(value))>32768):
@@ -79,6 +82,9 @@ def validate_context(value,*,issue,available,forecast=None,sensor_epoch=None):
 
 
 def apply_conditioning(forcings,context,*,issue,available,initial_outdoor_f):
+    if isinstance(context,dict) and context.get('schema')=='earthship-thermal-weather-context/v2':
+        from .production_weather_conditioning import apply_conditioning as apply_production
+        return apply_production(forcings,context,issue=issue,available=available,initial_outdoor_f=initial_outdoor_f)
     """Return new thermal forcings; preserve raw weather and all action values."""
     value=validate_context(context,issue=issue,available=available);admission=value['admission'];rows=value['rows'];times=[instant(r['at']) for r in rows]
     positions={p['at']:p for p in value['midpoint_positions']};models=admission['models'];outside=models['outdoor_temperature_c'];solar=models['irradiance_w_m2']

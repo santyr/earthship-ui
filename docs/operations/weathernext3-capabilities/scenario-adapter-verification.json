@@ -1,0 +1,73 @@
+{
+  "schema": "earthship-weather-scenario-adapter-progress/v1",
+  "status": "task8_in_progress_not_deployed",
+  "checked_at": "2026-10-22T06:30:08.366222+00:00",
+  "policy_sha256": "4d1f3bfb5e8b82d460e8d2848fa78c01aed7cad06d4b21f02670fb70320990f5",
+  "source_runtime_sha256": "6c1c6cfa08fd10ea7bc67ca5c0910ec0d1ec3ca7073e649a1663c35c2bfb79aa",
+  "verification": {
+    "focused": {
+      "passed": 68,
+      "seconds": 42.87
+    },
+    "affected": {
+      "passed": 816,
+      "subtests_passed": 165,
+      "skipped": 4,
+      "seconds": 279.69,
+      "named_skip_profile": "isolated pinned Earth Engine environment"
+    },
+    "counts_overlap": true,
+    "red_cases": {
+      "worker_missing_module": 6,
+      "owned_sources_missing_argument": 1
+    },
+    "original_native_fixture_central_tolerance_f": 1e-09,
+    "fixture_runtime_injection_not_actual_compatibility_proof": true
+  },
+  "actual_original_probe": {
+    "checked_at": "2026-10-22T06:28:40.345485+00:00",
+    "original_capture_sha256": "60f3aad1913e6b8f50b89eb11f0b7f5c8f76566a7eee481f36b410a9cb891455",
+    "original_model_sha256": "8e1007865b839b01a58c35b337d16be574e8e0553c54a47ca6b7d20c1354238a",
+    "status": "withheld",
+    "reason": "original native model producer differs from current numerical runtime",
+    "differing_runtime_fields": [
+      "/base_runtime/code_revision",
+      "/base_runtime/dependencies/numpy",
+      "/base_runtime/dependencies/psycopg2",
+      "/base_runtime/dependencies/scipy",
+      "/base_runtime/source_manifest/weather_learning/archive.py",
+      "/base_runtime/source_manifest/weather_learning/native_forecast.py",
+      "/base_runtime/source_manifest/weather_learning/normalize.py",
+      "/base_runtime/source_manifest/weather_learning/transport.py",
+      "/base_runtime/source_manifest/weather_learning/weathernext_ee.py"
+    ],
+    "native_geometry_request_instants": 288,
+    "native_geometry_cache_positions": [
+      128,
+      128,
+      32
+    ],
+    "disabled_exit": 0,
+    "enabled_preview_exit": 1,
+    "preview_state_created": false,
+    "proof_sha256": "b63aeca1dd7de04d225defb89547820cc69aa69c9363e400386e33d21a69e847"
+  },
+  "publication": {
+    "default_off": true,
+    "preview_readonly": true,
+    "explicit_apply_only": true,
+    "private_original_energy_plan_and_models_retained": true,
+    "post_write_failure_retention": "unknown_partial",
+    "source_guard_bypass": false,
+    "selector_or_model_changes": false,
+    "cloud_requests": 0,
+    "automatic_actuation": false,
+    "probability_claim": false
+  },
+  "remaining": [
+    "all eligible actual-source inventory and matching household/weather experiments",
+    "compatible retained native producer assessment without weakening source guards",
+    "integrated Task8 completion gate"
+  ],
+  "verification_sha256": "a887fee3254cc8c61cadd5cafe3611ad5ebfad70ea926126134a9ff9f1508b9a"
+}

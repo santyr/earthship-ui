@@ -9,7 +9,7 @@ from weather_source_files import _read
 
 SCHEMA='earthship-pv-potential-performance/v1'
 COUNTS=('eligible_bins','missing_forecast_bins','censored_bins','unqualified_bins','low_generation_bins','unknown_coverage_bins')
-SCORES=('earthship-pv-prospective-hour-score/v1','earthship-pv-prospective-hour-score/v2','earthship-pv-prospective-hour-score/v3')
+SCORES=('earthship-pv-prospective-hour-score/v1','earthship-pv-prospective-hour-score/v2','earthship-pv-prospective-hour-score/v3','earthship-pv-prospective-hour-score/v4')
 
 
 def _score(score,now):
@@ -42,12 +42,20 @@ def _score(score,now):
     if not finite(score['covered_seconds']) or not isclose(weight,score['covered_seconds'],abs_tol=1e-8) or score['adjusted_bins']!=sum(p['calibration_applied'] for p in pairs):raise ValueError('original PV score duration or adjustment count differs')
     if type(score['missing_forecast_bins']) is not int or not 0<=score['missing_forecast_bins']<=12-len(pairs):raise ValueError('bounded original missing PV forecast count required')
     counts=score.get('bin_accounting')
-    if score['schema']==SCORES[2]:
+    if score['schema'] in SCORES[2:]:
         if (not isinstance(counts,dict) or set(counts)!=set(COUNTS) or any(type(counts[k]) is not int or not 0<=counts[k]<=12 for k in COUNTS) or sum(counts.values())!=12 or
                 counts['eligible_bins']!=len(pairs) or counts['missing_forecast_bins']!=score['missing_forecast_bins']):raise ValueError('closed original PV bin accounting required')
     else:
         counts=dict.fromkeys(COUNTS,0);counts.update(eligible_bins=len(pairs),missing_forecast_bins=score['missing_forecast_bins'],unknown_coverage_bins=12-len(pairs)-score['missing_forecast_bins'])
     cohort=dict(model_sha256=score['model_sha256'],calibration_policy_sha256=policy,scoring_runtime_sha256=identity(runtime))
+    if score['schema']==SCORES[3]:
+        for name in ('calibration_sha256','procedure_sha256','measurement_cohort_sha256','solar_grid_sha256','forecast_emission_sha256'):digest(score[name])
+        if (not origin<=instant(score['forecast_published_at'])<=start or
+            score['metric_population']!='constituent_five_minute_power_of_published_daily_totals' or
+            score['baseline_rule']!='native_fdir_ssrd_isotropic_faiman_proxy_pvwatts_dc_v2'):
+            raise ValueError('original component score population or publication differs')
+        ZoneInfo(score['target_timezone'])
+        cohort.update({k:score[k] for k in ('procedure_sha256','measurement_cohort_sha256','solar_grid_sha256','baseline_rule','metric_population','target_timezone')})
     return cohort,counts,errors,weight
 
 
@@ -61,18 +69,24 @@ def build_view(scores,*,generated_at):
         if key in seen:raise ValueError('unique original hour per PV cohort required')
         seen.add(key);g=groups.setdefault(pin,dict(cohort_id=pin,**cohort,counts=[],weights=[],baseline_errors=[],candidate_errors=[],scores=[]))
         g['counts'].append(counts);g['weights'].append(weight);g['baseline_errors'].append(errors['baseline_w']);g['candidate_errors'].append(errors['candidate_w']);g['scores'].append(score)
-    rows=[]
+    rows=[];component=any(s['schema']==SCORES[3] for s in scores)
     for group in groups.values():
         sources=group.pop('scores');counts=group.pop('counts');weight=fsum(group.pop('weights'));baseline=fsum(group.pop('baseline_errors'));candidate=fsum(group.pop('candidate_errors'))
         group.update({k:sum(c[k] for c in counts) for k in COUNTS})
         group.update(hour_count=len(sources),adjusted_bins=sum(s['adjusted_bins'] for s in sources),covered_seconds=weight,
             first_issue=min(s['forecast_issued_at'] for s in sources),last_issue=max(s['forecast_issued_at'] for s in sources),first_window_start=min(s['window_start'] for s in sources),last_window_end=max(s['window_end'] for s in sources),
             independent_target_days=len({instant(s['window_start']).astimezone(ZoneInfo('America/Denver')).date() for s in sources if s['eligible_bins']}),baseline_mae_w=None if not weight else baseline/weight,candidate_mae_w=None if not weight else candidate/weight)
+        if component:
+            group['local_target_dates']=len({instant(s['window_start']).astimezone(ZoneInfo(group.get('target_timezone','America/Denver'))).date() for s in sources if s['eligible_bins']})
+            group.pop('independent_target_days')
+            for key in ('procedure_sha256','measurement_cohort_sha256','solar_grid_sha256','baseline_rule'):group.setdefault(key,None)
+            group.setdefault('metric_population','legacy_original_five_minute_power');group.setdefault('target_timezone','America/Denver')
         rows.append(group)
     rows.sort(key=lambda r:(r['last_window_end'],r['cohort_id']),reverse=True);omitted=max(0,len(rows)-16);rows=rows[:16]
     value=dict(schema=SCHEMA,generated_at=generated_at.isoformat(),valid_until=(generated_at+timedelta(hours=2)).isoformat(),window_start=start.isoformat(),window_end=end.isoformat(),
         status='scored' if any(r['eligible_bins'] for r in rows) else 'collecting',cohorts=rows,omitted_cohort_count=omitted,scored_hours=len({at for _,at in seen}),unscored_hours=168-len({at for _,at in seen}),
         outcome_scope='qualified_low_soc_charging_controller_input_proxy',metric_basis='covered_duration_weighted_absolute_power_error',prospective_score=True,physical_calibration_qualified=False,automatic_actuation=False)
+    if component:value['schema']='earthship-pv-potential-performance/v2'
     value['view_sha256']=identity(value)
     if len(canonical(value))>32768:raise ValueError('bounded public PV performance required')
     return value

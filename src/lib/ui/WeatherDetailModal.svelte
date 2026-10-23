@@ -4,6 +4,8 @@
   import { getEcharts } from '../charts/loadEcharts.js';
   import { items } from '../openhab/store.js';
   import { buildWeatherDetailOption } from '../weather/detailChart.js';
+  import { parseWeatherCapabilities, temperatureCapabilityAt } from '../weather/capabilityForecast.js';
+  import { weatherCapabilityRaw, weatherCapabilityClock } from '../weather/capabilityState.js';
   import {
     FORECAST_DETAIL_HOURS,
     parseForecast10Day,
@@ -15,6 +17,11 @@
   } from '../weather/detailStore.js';
   import { rainAmountText } from '../openhab/values.js';
   import OhIcon from './OhIcon.svelte';
+  import AtmosphericContext from './AtmosphericContext.svelte';
+  import ProductionForecastDetails from './ProductionForecastDetails.svelte';
+  import ForecastShadowDetails from './ForecastShadowDetails.svelte';
+  let shadowDetailsOpen=$state(false);
+  $effect(()=>{if(!$weatherDetailStore.open)shadowDetailsOpen=false;});
   import { observeElementSize } from './observeElementSize.js';
   import { colors } from './tokens.js';
   import { forecastCondition, forecastDisplayDay } from '../weather/presentation.js';
@@ -45,6 +52,7 @@
       return day ? forecastDisplayDay(day, { nowMs: $weatherDetailStore.openedAtMs || Date.now(), timezone: forecast.timezone }) : null; })(),
   );
   const selectedCondition = $derived(forecastCondition({ ...selectedDay?.summary, isDay: true, hours: selectedDay?.hours ?? [] }));
+  const capabilities = $derived(parseWeatherCapabilities($weatherCapabilityRaw, { nowMs: $weatherCapabilityClock }));
   const selectedWindow = $derived(
     selectedDay
       ? selectForecastWindow(forecast, selectedDay.date, {
@@ -60,8 +68,21 @@
       hour.radiationWm2,
       hour.windMph,
       hour.weatherCode, hour.cloudPct, hour.precipIn, hour.isDay,
-    ].join(':')).join('|'),
+    ].join(':')).join('|') + `|${capabilities.state}:${capabilities.reportSha256}`,
   );
+  const nativeSources = $derived([...new Map(selectedWindow.hours.flatMap(hour => {
+    const native = temperatureCapabilityAt(capabilities, hour.at);
+    return native ? [[native.source.snapshot_sha256, native.source]] : [];
+  })).values()]);
+  const hasNativeRange = $derived(selectedWindow.hours.some(hour => temperatureCapabilityAt(capabilities, hour.at)?.rangeStatus === 'available'));
+
+  function sourceAge(source) {
+    const age = at => {
+      const minutes = Math.max(0, Math.floor(($weatherCapabilityClock - Date.parse(at)) / 60000));
+      return minutes < 60 ? `${minutes}m` : `${Math.floor(minutes / 60)}h`;
+    };
+    return `Source initialized ${age(source.initialized_at)} ago; available ${age(source.available_at)} ago`;
+  }
   const warnings = $derived([
     forecast.status === 'stale' ? 'Forecast data may be stale' : '',
     selectedDay && selectedWindow.missingHours > 0
@@ -126,6 +147,7 @@
     chart.setOption(buildWeatherDetailOption({
       hours: selectedWindow.hours,
       widthPx,
+      capabilities,
     }), true);
     chart.resize();
   }
@@ -202,8 +224,8 @@
     }
     if (event.key !== 'Tab') return;
     const focusable = [...panelEl.querySelectorAll(
-      'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
-    )];
+      'button:not([disabled]), summary, select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+    )].filter(element => !element.closest('details:not([open])') || element.matches('summary'));
     if (!focusable.length) return;
     const first = focusable[0];
     const last = focusable.at(-1);
@@ -284,6 +306,30 @@
           {#if index > 0}<span aria-hidden="true"> · </span>{/if}
           <span>{warning}</span>
         {/each}
+        {#if forecast.productionModel}
+          <div class="native-legend">
+            <span>{forecast.productionModel.status === 'RAW_FALLBACK' ? 'Production forecast · raw fallback' : 'Production temperature model · experimental'}</span>
+            <span>Available local models supply forecast points; unavailable targets use raw values. Local interval coverage is unverified.</span>
+            <span>Daily highs and lows are extrema of hourly point forecasts. Today covers remaining hours where indicated.</span>
+          </div>
+        {/if}
+        {#if nativeSources.length}
+          <div class="native-legend">
+            <span>{hasNativeRange ? capabilities.label : 'WeatherNext raw mean; percentile range unavailable'}</span>
+            <span>{hasNativeRange ? 'Shaded band and dashed raw mean use original WeatherNext statistics.' : 'Dashed line uses the original WeatherNext mean.'} The orange displayed forecast is separate.</span>
+            {#each nativeSources as source (source.snapshot_sha256)}
+              <span title={`Run ${source.run_id}; available ${source.available_at}`}>{sourceAge(source)}</span>
+            {/each}
+          </div>
+        {/if}
+        <AtmosphericContext product={capabilities} hours={selectedWindow.hours} nowMs={$weatherCapabilityClock} timezone={forecast.timezone} />
+        <details class="forecast-verification" ontoggle={event=>shadowDetailsOpen=event.currentTarget.open}>
+          <summary>{forecast.productionModel?'Production forecast ranges · experimental':'Local forecast comparisons · experimental'}</summary>
+          {#if shadowDetailsOpen}
+            {#if forecast.productionModel}<ProductionForecastDetails issueSha256={forecast.productionModel.issueSha256} timezone={forecast.timezone} hours={selectedWindow.hours} />
+            {:else}<ForecastShadowDetails timezone={forecast.timezone} />{/if}
+          {/if}
+        </details>
       </div>
 
       {#if !selectedDay}
@@ -293,6 +339,7 @@
           <div class="weather-detail-hours">
             {#each selectedWindow.hours as hour (hour.at)}
               {@const condition = forecastCondition(hour)}
+              {@const native = temperatureCapabilityAt(capabilities, hour.at)}
               <div
                 class="weather-detail-hour"
                 data-testid="weather-detail-hour"
@@ -305,13 +352,19 @@
                   color={condition.color ?? 'currentColor'}
                 />
                 <span class="hour-temp">{metric(hour.tempF, '°')}</span>
+                {#if native}
+                  {#if native.rangeStatus === 'available'}
+                    <span class="hour-range" title={sourceAge(native.source)}>Raw p10–p90: {metric(native.p10F, '°')}–{metric(native.p90F, '°')}</span>
+                  {:else}<span class="hour-range">Raw range unavailable</span>{/if}
+                  {#if native.p50F !== null}<span class="hour-range">Raw median: {metric(native.p50F, '°')}</span>{/if}
+                {/if}
                 {#if hour.precipPct !== null}<span class="hour-precip">{metric(hour.precipPct, '%')}</span>{/if}
                 {#if hour.cloudPct !== null}<span class="hour-cloud">{metric(hour.cloudPct, '% cloud')}</span>{/if}
                 {#if rainAmountText(hour.precipIn)}
                   <span class="hour-rain" data-testid="modal-hour-rain-amount" style="color: {colors.rain}">{rainAmountText(hour.precipIn)}</span>
                 {/if}
                 <span class="hour-radiation">{metric(hour.radiationWm2, ' W/m²')}</span>
-                <span class="hour-wind">{metric(hour.windMph, ' mph')}</span>
+                <span class="hour-wind" title={hour.windStatistic === 'local_hour_mean' ? `Local station hourly mean; native instantaneous wind ${metric(hour.nativeWindMph, ' mph')}` : hour.windStatistic === 'native_instantaneous' ? 'Native instantaneous wind; local hourly mean unavailable' : undefined}>{metric(hour.windMph, ' mph')}</span>
               </div>
             {/each}
           </div>
@@ -360,6 +413,10 @@
     align-items: flex-start;
     gap: 0.75rem;
   }
+
+  .forecast-verification {text-align:left;border-top:1px solid #273244;margin:.2rem 0;color:#cbd5e1;font-size:.73rem;}
+  .forecast-verification summary {cursor:pointer;min-height:2.75rem;align-content:center;color:#93c5fd;}
+  .forecast-verification summary:focus-visible {outline:2px solid #a78bfa;outline-offset:1px;}
 
   .weather-detail-heading {
     min-width: 0;
@@ -452,6 +509,9 @@
   }
 
   .hour-temp { color: #f59e0b; }
+  .hour-range { color: #c4b5fd; text-align: center; overflow-wrap: anywhere; }
+  .native-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.15rem 0.7rem; color: #c4b5fd; }
+  .native-legend > span:first-child { flex-basis: 100%; font-weight: 600; }
   .hour-precip { color: #38bdf8; }
   .hour-rain { font-size: 0.6rem; }
   .hour-radiation { color: #fbbf24; }

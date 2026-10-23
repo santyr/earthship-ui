@@ -251,3 +251,28 @@ def test_native_worker_stage_retains_its_exact_java_source_or_refuses(helper, tm
     assert record['source_manifest']['scripts/java/NativeSolarGeometry.java'] == sha256(original).hexdigest()
     retained.write_bytes(b'changed native calculation\n')
     with pytest.raises(ValueError): api().verify_stage(args['stage'])
+
+
+def pad_committed_sources(args,count):
+    m=api();repo=args['repo_root']
+    names=subprocess.check_output(['git','-C',str(repo),'ls-tree','-r','--name-only','HEAD'],text=True).splitlines()
+    existing=[name for name in names if name in (*m.REGISTRY,m.JAVA_SOURCE,m.LOAD_TOPOLOGY_SOURCE,m.SHADE_CONTEXT_SOURCE,*m.PV_SOURCES)
+              or name.startswith('openhab/scripts/') and name.endswith('.py') and not Path(name).name.startswith('test_')]
+    for i in range(count-len(existing)):write(repo/f'openhab/scripts/bounded_module_{i}.py',b'RETAINED=True\n',0o644)
+    subprocess.run(['git','-C',str(repo),'add','.'],check=True,capture_output=True)
+    subprocess.run(['git','-C',str(repo),'-c','user.name=Test','-c','user.email=test@example.invalid','commit','-qm','literal bounded sources'],check=True,capture_output=True)
+    args['code_revision']=subprocess.check_output(['git','-C',str(repo),'rev-parse','HEAD'],text=True).strip()
+
+
+def test_current_450_source_package_retains_all_original_checks_and_fits_a_modest_bound(tmp_path):
+    args,_=active_fixture(tmp_path);pad_committed_sources(args,450)
+    api().stage_deployment(**args);record=api().verify_stage(args['stage'])
+    assert len(record['source_manifest'])==450
+    path=next((args['stage']/'sources/openhab/scripts').glob('bounded_module_*.py'));path.write_bytes(b'CHANGED=True\n')
+    with pytest.raises(ValueError):api().verify_stage(args['stage'])
+
+
+def test_more_than_480_sources_refuses_before_staging(tmp_path):
+    args,_=active_fixture(tmp_path);pad_committed_sources(args,481)
+    with pytest.raises(ValueError,match='bounded complete committed source'):api().stage_deployment(**args)
+    assert not args['stage'].exists()

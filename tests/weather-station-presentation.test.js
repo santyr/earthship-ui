@@ -101,3 +101,13 @@ it('preserves durable recorded totals separately from complete scientific interv
  r.rain.recordedMethod='sum_accepted_continuous_receipt_increments/v1';
  expect(stationPresentation(states(r),{nowMs:now+121000}).rain.recordedDay).toBeNull();
 });
+
+it('uses durable recorded period totals on the Weather display while keeping qualification separate',async()=>{
+ const {rainPeriodText}=await import('../src/lib/weather/stationPresentation.js');
+ const rain={day:null,week:null,month:null,partialDay:.01,partialWeek:.01,partialMonth:.01,recordedDay:.16,recordedWeek:.3,recordedMonth:1.1};
+ expect(rainPeriodText(rain,'day')).toBe('0.16″');expect(rainPeriodText(rain,'week')).toBe('0.30″');expect(rainPeriodText(rain,'month')).toBe('1.10″');
+ expect(rain.day).toBeNull();expect(rain.partialDay).toBe(.01);
+ rain.recordedDay=0;expect(rainPeriodText(rain,'day')).toBe('0.00″');
+ rain.recordedDay=null;expect(rainPeriodText(rain,'day')).toBe('≥0.01″ · partial');
+ rain.day=.2;rain.recordedDay=.16;expect(rainPeriodText(rain,'day')).toBe('0.20″');
+});

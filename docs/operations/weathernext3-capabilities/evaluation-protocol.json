@@ -1,0 +1,134 @@
+{
+  "schema": "earthship-weather-capability-evaluation-protocol/v1",
+  "status": "frozen_before_new_outcome_assessment",
+  "baseline": "263a27862424906fbb853bb12663e0be10d22001",
+  "method_set": {
+    "temperature_point": [
+      "raw",
+      "incumbent",
+      "adaptive_past_error"
+    ],
+    "temperature_marginal": [
+      "raw_quantiles",
+      "empirical_residual_interval",
+      "regularized_location_positive_scale"
+    ],
+    "solar": [
+      "total_only_decomposition",
+      "native_direct_total_fixed_electrical_gain",
+      "matched_refitted_total_only",
+      "matched_refitted_native_components"
+    ],
+    "irradiance": [
+      "raw_ghi_range_diagnostic",
+      "nonnegative_proxy_marginal"
+    ],
+    "wind": [
+      "raw_scalar",
+      "incumbent_gain",
+      "bounded_affine_log_scale"
+    ],
+    "features": [
+      "dewpoint",
+      "pressure",
+      "wind_direction",
+      "cloud_layers"
+    ],
+    "joint": [
+      "central",
+      "reduced_solar_stress",
+      "warm_high_gain_stress",
+      "past_residual_block_analog"
+    ],
+    "rain": [
+      "three_raw_heads",
+      "incumbent",
+      "gain_baseline",
+      "two_part_occurrence_positive_amount"
+    ]
+  },
+  "temporal": {
+    "split": "rolling chronological origins; last third of eligible independent local target dates is outer assessment",
+    "inner_selection": "earlier training dates only; final third never used to tune",
+    "maximum_training_days": 28,
+    "minimum_training_targets": 48,
+    "minimum_training_local_dates": 3,
+    "minimum_outer_targets": 24,
+    "minimum_outer_local_dates": 3,
+    "window_limits": "Support minima are per declared target; outcomes unavailable before decision are excluded, even if later discovered",
+    "adaptive_decay_candidates_hours": [
+      6,
+      24,
+      72
+    ],
+    "adaptive_cold_or_expired_fallback": "incumbent_else_raw",
+    "fitting": "one candidate family per named target; fixed regularization grids selected on inner dates only"
+  },
+  "weights": "equal independent local target dates, then equal measured targets, then equal original issued forecasts; unique target identity includes observation policy and source cohort",
+  "metrics": {
+    "point": [
+      "mae",
+      "rmse",
+      "signed_bias",
+      "absolute_error_p95"
+    ],
+    "marginal": [
+      "pinball",
+      "interval_score_80",
+      "coverage_80",
+      "mean_width"
+    ],
+    "rain": [
+      "brier_vs_training_only_climatology",
+      "reliability",
+      "wet_event_amount_error",
+      "false_alarm",
+      "missed_event"
+    ],
+    "joint": [
+      "energy_score_on_declared_normalized_targets",
+      "lagged_correlation",
+      "cross_variable_correlation",
+      "ramp_error",
+      "application_error"
+    ]
+  },
+  "selection": {
+    "point_or_proper_score_relative_improvement": 0.03,
+    "maximum_supported_subgroup_relative_regression": 0.05,
+    "minimum_subgroup_targets": 12,
+    "uncertainty": "paired resampling by independent local-day blocks; forecast rows for the same observation stay together",
+    "probability_claim_minimum_independent_blocks": 8,
+    "rain_support": "Wet threshold and ambiguity band bind the actual gauge policy; at least six identifiable wet and six dry training targets across at least three wet events before fitting; all-dry data cannot select the two-part model",
+    "dispositions": [
+      "adopt_candidate",
+      "retain_incumbent",
+      "reject_candidate",
+      "insufficient_evidence"
+    ],
+    "automatic_promotion": false,
+    "rain_wet_threshold_rule": {
+      "minimum_threshold_mm": 0.2,
+      "gauge_resolution_multiplier": 2,
+      "boundary_ambiguity_resolution_multiples": 1,
+      "missing_measured_resolution": "insufficient_evidence_for_occurrence_model; retain supported continuous raw comparisons"
+    }
+  },
+  "limits": {
+    "maximum_rows_per_experiment": 10000,
+    "maximum_scenarios": 16,
+    "scenario_seed": 20261021,
+    "maximum_template_blocks": 128,
+    "maximum_experiment_seconds": 120,
+    "parallel_fits": 1,
+    "production_limits": "unchanged; jobs run through existing shared admission",
+    "archive_pruning": false
+  },
+  "source_rules": [
+    "Preserve original issue/model/profile/producer/observation-policy identities",
+    "Historical collection acquired later cannot count as operational as-issued evidence",
+    "Matched challenger support and fallback-inclusive policy are both reported",
+    "Probability claims remain false without separate joint/downstream evidence",
+    "Station grid output is not site-specific inference; physical proxy scopes stay distinct"
+  ]
+}

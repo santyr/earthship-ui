@@ -1,0 +1,49 @@
+{
+  "schema": "earthship-task6-scoring-verification/v1",
+  "status": "scoring_substep_verified_task6_incomplete",
+  "checked_at": "2026-10-21T23:39:04.120615+00:00",
+  "backend": {
+    "passed": 530,
+    "subtests_passed": 163,
+    "skipped": 4,
+    "skip_reason": "four named isolated Earth Engine SDK profile cases; SDK code unchanged"
+  },
+  "targeted_scorer_near_experiment": 21,
+  "original_publications_replayed": 49,
+  "qualified_scores_replayed": 375,
+  "immutable_input_files": 165,
+  "production_source_files": 385,
+  "experiment_sha256": "1c287a55b05fe70476a6874917ae555202b2edd7e96911de55134348d3878453",
+  "dataset_sha256": "e8da31b624f3aafe008d689827f221fa1babab9bf276e8a8eb4b360439c52e75",
+  "current_source_and_test_sha256": {
+    "openhab/scripts/weather_learning/refresh_scoring.py": "e7869a5d3c15a3f13e4d36eda23ae0eeb78eaff69a6d45a1a9393c34d4cd004f",
+    "openhab/scripts/weather_learning/refresh_evaluation.py": "57d6760a1ce9c79714bc664d1451102b2c6f0409d8c6325eddd113e3fc761a65",
+    "openhab/scripts/weather_learning/near_term_correction.py": "7a4e21bab578811d9c88d0349387c50b4e5ff6d39bee11e74ad3945f53f45e25",
+    "openhab/scripts/refresh_retained_experiment.py": "1e7744786ca778807f5bf3a665c8ea44a3526565990a2849b1e51459197262a0",
+    "openhab/scripts/weather_learning/tests/test_refresh_scoring.py": "4273868d66a28fc0ef4d75dee96e1cc46d3bb394b89e7ba8f068515aceded3e3",
+    "openhab/scripts/weather_learning/tests/test_refresh_retained_experiment.py": "f363d943100617269af652f82e36fec15e95d32f0dd2dd9445f10c1404d5fdef",
+    "openhab/scripts/weather_learning/tests/test_refresh_evaluation.py": "4b04abf07abd02c7c50ce96202f1055ff646c68492d7bb1a81c39018c6400af2",
+    "openhab/scripts/weather_learning/tests/test_near_term_correction.py": "2af4770dc6dda06a5dc7eb998a7852409ca8e7c3bdaebcd5995a05d94c5b35af"
+  },
+  "evidence_sha256": {
+    "task6-scoring-red.log": "b624057465b91371fb3ce2b91b1cdcffd778810c1cd295db1adc1d73ddf7e372",
+    "task6-scoring-boundaries-red.log": "53f70b27cd36c50d4e8f79a5c29cc7e210f045b2936f792b85ae4f35b4584bb6",
+    "task6-easy-target-red.log": "70ddc45cb224828f70596c0716830b7dbad0431766a7ec8c26f34627cc2b5738",
+    "task6-easy-target-green.log": "deb078f3a5c227374ff48247e142ee38caaddc9423986896cfa2112396511c8b",
+    "task6-experiment-red.log": "01b3336d7641203f8313607bf2bee79a967db8f40c79a527099666d1570ce518",
+    "task6-experiment-green.log": "24b1729532d7fbe630d6ce5009fc6b3e47e90e0ae21e8d54c16b67477e68a109",
+    "task6-actual-experiment-final.log": "1bf3a067ac67d2dd55d0eceeed494b2b2ed7c0d2f182d9d9819d70fa4d566bc1",
+    "task6-scoring-backend.log": "188fb38e64738151f8a606626b2c18ae3a7328cb7cea9bc523f8df41523088fe",
+    "task6-scoring-replay.log": "27292fd984ca6c10644e9d4a387b6c1bdfeb3074374b7712286d7c49c32c89ad"
+  },
+  "scientific_disposition": "insufficient_evidence:26unique targets on2local dates; no policy or fitted model promotion",
+  "old_daily_benchmark_unchanged": true,
+  "production_changed": false,
+  "near24_historical_corrected_scores": 0,
+  "remaining": [
+    "durable bounded profile decision and score queue",
+    "prospective correction integration",
+    "long-horizon maturity and restart verification"
+  ],
+  "automatic_actuation": false
+}

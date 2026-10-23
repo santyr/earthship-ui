@@ -99,6 +99,35 @@ class Archive:
                 return value
         return None
 
+    def completed_profile(self,initialized_at,*,capability,horizon,as_of,site,guard=lambda:None):
+        """Exact requested statistics, native originals and original availability.
+
+        A mean-only or smaller profile never becomes an expanded cache hit.
+        Malformed optional candidates cannot hide another valid original.
+        """
+        from .capabilities import CapabilityProfile,profile_coverage
+        from .config import Site
+        if not isinstance(capability,CapabilityProfile) or horizon not in capability.horizons or not isinstance(site,Site):
+            raise ValueError('declared capability cache request required')
+        initialized=instant(initialized_at);as_of=as_of.astimezone(timezone.utc)
+        if getattr(self,'missing',False):return None
+        required={tuple(band.rsplit('_',1)) for _,band in capability.bands}
+        with self._connect() as db:
+            rows=db.execute('SELECT digest FROM snapshots WHERE historical=0 AND initialized=? AND completed<=? ORDER BY completed,digest LIMIT 256',
+                (initialized.isoformat(),as_of.isoformat())).fetchall()
+        for (name,) in rows:
+            guard()
+            try:
+                value=self.read(name)
+                if instant(value['initialized_at'])!=initialized or value['site']!=dict(latitude=site.latitude,longitude=site.longitude,timezone=site.timezone):continue
+                found={(p['variable'],p['statistic']) for p in value['points']}
+                if not required<=found:continue
+                complete=profile_coverage(value,capability,decision=as_of,horizon=horizon)['status']=='complete'
+            except (OSError,ValueError,KeyError,TypeError):continue
+            guard()
+            if complete:return value
+        return None
+
     def eligible_snapshot(self,decision_at,target_end,*,required_variables=None,max_age=timedelta(hours=24)):
         if any(not isinstance(x,datetime) or x.utcoffset() is None for x in (decision_at,target_end)):
             raise ValueError('aware serving clocks required')

@@ -23,7 +23,10 @@ def collector_lock(path):
     finally:os.close(fd)
 
 
-def collect_once(reader,archive,*,probe=True,horizon=360,free_bytes=None,max_archive_bytes=16*1024**3,include_interim=False,clock=lambda:datetime.now(timezone.utc)):
+def collect_once(reader,archive,*,probe=True,horizon=360,free_bytes=None,max_archive_bytes=16*1024**3,include_interim=False,clock=lambda:datetime.now(timezone.utc),optional_profiles=()):
+    from .capabilities import enabled_profiles
+    profiles=enabled_profiles(optional_profiles)[1:]
+    if profiles and (probe or horizon not in (48,360)):raise ValueError('optional profiles require explicit declared collection coverage')
     if type(probe) is not bool or type(horizon) is not int or not 1<=horizon<=360:
         raise ValueError('bounded explicit shadow acquisition required')
     if type(include_interim) is not bool or include_interim and (probe or horizon!=360):
@@ -44,12 +47,16 @@ def collect_once(reader,archive,*,probe=True,horizon=360,free_bytes=None,max_arc
         bands={'station':('station_head_temperature_2m_mean',)} if probe else DEFAULT_BANDS
         required={tuple(band.rsplit('_',1)) for values in bands.values() for band in values}
         downloaded=0
-        def retain(run,hours):
+        def retain(run,hours,*,selected_bands=None,required_fields=None,use_cache=True,validate_fetched=None,allow_partial=False):
             nonlocal downloaded,used
-            cached=None if probe else archive.completed_run(run['start_time'],horizon=hours,required=required,as_of=clock())
+            selected_bands=bands if selected_bands is None else selected_bands
+            required_fields=required if required_fields is None else required_fields
+            cached=None if probe or not use_cache else archive.completed_run(run['start_time'],horizon=hours,required=required_fields,as_of=clock())
             if cached is not None:return cached,cached['snapshot_sha256']
-            value=validate_snapshot(reader.fetch_points(run=run,bands_by_grid=bands,horizon=hours))
+            partial=dict(allow_partial=True) if allow_partial else {}
+            value=validate_snapshot(reader.fetch_points(run=run,bands_by_grid=selected_bands,horizon=hours,**partial))
             if instant(value['initialized_at'])!=instant(run['start_time']):raise ValueError('fetched native run differs from discovery')
+            if validate_fetched is not None:validate_fetched(value)
             name=identity(value)
             if not probe:
                 filename=name+'.json'
@@ -65,15 +72,32 @@ def collect_once(reader,archive,*,probe=True,horizon=360,free_bytes=None,max_arc
             downloaded+=1;return value,name
         run=reader.discover_run(horizon=targets)
         snapshot,name=retain(run,targets)
-        near=None
+        near=None;runs=[(run,targets)]
         if include_interim:
             latest=reader.discover_run(horizon=48)
             if instant(latest['start_time'])>instant(run['start_time']):
                 short,short_name=retain(latest,48)
                 near=dict(run_id=short['run_id'],snapshot_sha256=short_name,ingestion_completed_at=short['ingestion_completed_at'],points=len(short['points']))
+                runs.append((latest,48))
         result=dict(schema='earthship-weathernext-ingest-result/v1',status='PROBE_PASSED' if probe else 'ARCHIVED',
             provider='weathernext3',run_id=snapshot['run_id'],snapshot_sha256=name,
             ingestion_completed_at=snapshot['ingestion_completed_at'],points=len(snapshot['points']),
             elapsed_seconds=round(time.monotonic()-started,3),production_writes=False,automatic_actuation=False)
         if include_interim:result.update(downloaded_snapshots=downloaded,near_term=near)
+        def capacity():
+            remaining=max_archive_bytes-used
+            free=shutil.disk_usage(archive.root).free if free_bytes is None else free_bytes
+            maximum=len(runs)+sum(h in p.horizons for p in profiles for _,h in runs)
+            return dict(objects=len(objects),object_limit=10000,bytes=used,byte_limit=max_archive_bytes,
+                remaining_bytes=remaining,upper_bytes_per_new_original=8*1024**2,
+                upper_bound_originals_remaining=max(0,min(10000-len(objects),remaining//(8*1024**2))),
+                maximum_new_objects_per_cycle=maximum,maximum_archive_growth_bytes_per_cycle=maximum*8*1024**2,
+                conservative_complete_cycles_remaining=max(0,min((10000-len(objects))//maximum,remaining//(maximum*8*1024**2))),
+                free_bytes=free,eecu_remaining=None)
+        if profiles:
+            from .capability_acquisition import collect_profiles
+            groups,budget=collect_profiles(reader,archive,runs=runs,profiles=profiles,clock=clock,retain=retain,capacity=capacity)
+            result.update(schema='earthship-weathernext-ingest-result/v2',capabilities=groups,acquisition_budget=budget,
+                archive_capacity=capacity(),downloaded_snapshots=downloaded,elapsed_seconds=round(time.monotonic()-started,3))
+        if not probe:result['archive_capacity']=capacity()
         return result

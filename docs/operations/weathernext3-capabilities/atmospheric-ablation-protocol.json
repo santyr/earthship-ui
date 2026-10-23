@@ -1,0 +1,100 @@
+{
+  "schema": "earthship-atmospheric-ablation-protocol/v1",
+  "status": "frozen_before_new_feature_outcome_assessment",
+  "general_protocol": "earthship-weather-capability-evaluation-protocol/v1",
+  "targets": {
+    "temperature": "Retained original outdoor temperature pairs at leads 1\u201324 hours; raw native station mean plus separately refitted existing seven residual predictors",
+    "wind": "Retained complete measured scalar wind-hour means; baseline is the retained adjacent-native-instant mean, never gust or mean-vector magnitude",
+    "thermal": "Task4 retained comparable passive-action measured indoor-air-change pairs at 1/6/12/24 hours; same total-only six-feature empirical response baseline"
+  },
+  "populations": {
+    "historical": "Retrospective assumed source readiness at initialization+9h and counterfactual target/measurement readiness; actual acquisition and receipt clocks retained; not operational issuance",
+    "recorded": "Actual ingestion completion, no later source at an earlier origin; original label availability determines operational eligibility; analyzed separately",
+    "cohorts": "Keep source class, target definition, sensor/quality/policy, grid, lead horizon and thermal action eligibility distinct; no health qualification from persisted numeric history",
+    "maximum_rows_across_targets": 10000,
+    "sampling": "All eligible retained near-term temperature and scalar wind pairs and Task4 comparable thermal pairs; fail on capacity rather than outcome-based sampling"
+  },
+  "feature_groups": {
+    "dewpoint": [
+      "forecast_native_station_mean_dewpoint_C"
+    ],
+    "pressure": [
+      "forecast_mean_sea_level_pressure_hPa"
+    ],
+    "wind_direction": [
+      "normalized_mean_u",
+      "normalized_mean_v"
+    ],
+    "cloud_layers": [
+      "high_cover_fraction",
+      "medium_cover_fraction",
+      "low_cover_fraction"
+    ]
+  },
+  "feature_times": {
+    "temperature": "At original future valid target time from the same immutable forecast snapshot",
+    "wind": "Average the original native values at the measured hour boundaries; direction is normalized from averaged compatible u/v, not average bearings",
+    "thermal": "Time-average each raw instant forecast quantity over the original origin-to-target window using piecewise linear native-hour values and exact fractional endpoints; never observed future weather",
+    "missing": "Complete compatible original source/native asset/grid/time support required per group; absent/calm direction and missing layers are unavailable, never zero-filled or borrowed from later acquisition"
+  },
+  "candidates": {
+    "group_ablations": "Each individual group versus an independently refitted same-base candidate on exactly the same eligible target/origin rows; no combined-group search",
+    "temperature_thermal": "Training-only standardized bounded ridge residual response; fixed ridge grid 0.01,0.1,1; additive correction bounded to \u00b115C equivalent",
+    "wind_gain": "Separate gain-only benchmark using frozen equal-date/target/forecast training weights, prior24target shrinkage, gain clipped to0.25\u20134; new identity preserves old gain/v2 semantics",
+    "wind_challenger": "One bounded affine log1p scalar-wind family: training-only standardized ridge response in log1p space, fixed ridge grid0.01,0.1,1; prediction expm1 clipped0\u2013200m/s; individual groups ablate against this same base family",
+    "production_models": "Unchanged; no source/model promotion, PV cooling wind changes, new action authority or statistical qualification",
+    "wind_gain_prior_targets": 24,
+    "wind_gain_bounds": [
+      0.25,
+      4.0
+    ],
+    "wind_prediction_bounds_m_s": [
+      0,
+      200
+    ],
+    "temperature_correction_limit_c": 15.0,
+    "thermal_correction_limit_f": 27.0
+  },
+  "fitting": {
+    "outer_split": "Last third of eligible local measured-target dates, using all base population dates before group availability filtering",
+    "training": "Rolling earlier completed target dates, maximum28days; target completion before origin, and actual label availability before origin for recorded operational evidence",
+    "inner_selection": "Last third of earlier training dates only; fixed ridges evaluated chronologically with earlier inner training and unchanged minimum support",
+    "minimum_training_targets": 48,
+    "minimum_training_local_dates": 3,
+    "minimum_outer_targets": 24,
+    "minimum_outer_local_dates": 3,
+    "weighting": "Equal local target dates, then equal unique measured targets, then equal original forecasts; outcome identities and source/quality cohorts retained",
+    "parallel_fits": 1,
+    "maximum_seconds": 120,
+    "actual_completion_times": "Retain real completed-at timestamps for fitted artifacts; hypothetical historical readiness remains a separate explicit experiment clock",
+    "ridge_candidates": [
+      0.01,
+      0.1,
+      1.0
+    ],
+    "cold_inner_selection_ridge": 1.0,
+    "model_cutoff_cadence_hours": 24,
+    "assumed_fit_latency_minutes": 10
+  },
+  "reporting": {
+    "metrics": [
+      "MAE",
+      "RMSE",
+      "signed_bias",
+      "weighted_absolute_error_p95"
+    ],
+    "subgroups": [
+      "lead",
+      "local_hour",
+      "season",
+      "supported_native_regime"
+    ],
+    "selection": "Frozen general3percent improvement/5percent subgroup regression policy; retain incumbent unless separately reviewed",
+    "uncertainty": "Paired target-date blocks, original forecasts stay together; descriptive support and missing regimes explicit, no temporal-independence or probability qualification inferred",
+    "missing_support": "Named per-group reason and complete candidate software/fixtures; no invented direction/layer evidence",
+    "automatic_promotion": false,
+    "automatic_actuation": false,
+    "release_authorized": false
+  },
+  "general_protocol_sha256": "a11639200d188070c9a73ece3d334a0456d1680f4389e5e52f65d8507c50ccf3"
+}

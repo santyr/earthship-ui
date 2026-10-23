@@ -1,0 +1,535 @@
+{
+  "schema": "earthship-step11-production-replacements/v1",
+  "prepared_at": "2026-10-22T22:59:40.161771+00:00",
+  "status": "in_progress_not_installed",
+  "deployment_policy": "deployment-policy.json",
+  "parallel_shadow_required": false,
+  "production_replacements": [
+    {
+      "id": "home_temperature",
+      "current": {
+        "publication_version": 1,
+        "model": {
+          "parent_artifacts": [],
+          "sha256": null,
+          "status": "UNTRAINED"
+        },
+        "original_capture_sha256": "3bec62c66e7092f8d8f9bfdc0f78df1450352ffda25a6e7c844326dc2c3e11c1"
+      },
+      "replacement": {
+        "method": "Selected temperature_normal mean and marginal range, newly fitted on available original historical data under the current numerical closure. One selected family in the production path.",
+        "target": "Outdoor local temperature at exact native target times, scoped by source/grid/epoch/lead cohort.",
+        "artifact_sha256": null,
+        "production_admission_sha256": null,
+        "installed": false,
+        "prepared_models_by_lead": [
+          {
+            "actual_completed_at": "2026-10-22T23:24:43.099916+00:00",
+            "admission_sha256": "756c0c9b6f1d36a79fed1d7282ced33cf9e66cec10bd19060730829aa9b52428",
+            "artifact": {
+              "artifact_sha256": "887e9488e3fec5ca0dee662af1739b7afcdda8e5736b6ffc63432bb805ede96b",
+              "bundle_sha256": "e19159ddc4e18fba2d9daae0b5e25833912a85277f57e94400cfa44221c82354"
+            },
+            "bundle_sha256": "e19159ddc4e18fba2d9daae0b5e25833912a85277f57e94400cfa44221c82354",
+            "family": "temperature_normal",
+            "kind": "temperature",
+            "lead_scope_hours": [
+              0,
+              24
+            ],
+            "model_sha256": "d534cf1f73e67d74fa10ecbf9f1fee62b3ac1eac31ada91ca0c3dbede84813c9",
+            "training_availability_basis": "recorded_ingestion_availability",
+            "training_support": {
+              "local_dates": 3,
+              "pairs": 1052,
+              "targets": 53
+            }
+          },
+          {
+            "actual_completed_at": "2026-10-22T23:24:43.608445+00:00",
+            "admission_sha256": "d08f2fda6b17582877587b5aca3e6bcd26eda4f6e9e7471fa9f26fdf865e7faf",
+            "artifact": {
+              "artifact_sha256": "23dc473be4c44beeae1d99aa2a66cf0cc2a4406fdba77d54af0e893bd90a3004",
+              "bundle_sha256": "e9818fff81a28fdcd06f05b1aa11910220c2e63e6ea80eeb4c563580e284e2b7"
+            },
+            "bundle_sha256": "e9818fff81a28fdcd06f05b1aa11910220c2e63e6ea80eeb4c563580e284e2b7",
+            "family": "temperature_normal",
+            "kind": "temperature",
+            "lead_scope_hours": [
+              24,
+              72
+            ],
+            "model_sha256": "3176cf23f76b791761f098de028a964f344e8060e89b25569245c4d1db4bbf80",
+            "training_availability_basis": "historical_assumed_availability",
+            "training_support": {
+              "local_dates": 12,
+              "pairs": 2173,
+              "targets": 275
+            }
+          },
+          {
+            "actual_completed_at": "2026-10-22T23:24:44.532780+00:00",
+            "admission_sha256": "82eda1aec0bf2d49573452d5df108f896716453add577e88df1e21bce57b85e0",
+            "artifact": {
+              "artifact_sha256": "6f69174c3aa25c255862280ceb1d5d726c98dded04f702e970182d516859e2d1",
+              "bundle_sha256": "a781a7b0f651c302351b4fb530cd23f8e0a999fa1582e8f22eb2ff5aabcacc31"
+            },
+            "bundle_sha256": "a781a7b0f651c302351b4fb530cd23f8e0a999fa1582e8f22eb2ff5aabcacc31",
+            "family": "temperature_normal",
+            "kind": "temperature",
+            "lead_scope_hours": [
+              72,
+              168
+            ],
+            "model_sha256": "470980898b70f90c8f788eea01a96233935230e9dc4de8c4f5e46019b5f72dc9",
+            "training_availability_basis": "historical_assumed_availability",
+            "training_support": {
+              "local_dates": 12,
+              "pairs": 4400,
+              "targets": 275
+            }
+          },
+          {
+            "actual_completed_at": "2026-10-22T23:24:46.229371+00:00",
+            "admission_sha256": "6b6532f34be9f16dd5d0ee26fe1a5871c6af39e53697bb2e9b4def8ae08dae91",
+            "artifact": {
+              "artifact_sha256": "933ed9c0a0141b55ccd9a62c30e874452aefb28d682d6c973981cee9b2e372ab",
+              "bundle_sha256": "5674e940790e592f701660e083bce9413cda2a458976020ca39f987d61c2488b"
+            },
+            "bundle_sha256": "5674e940790e592f701660e083bce9413cda2a458976020ca39f987d61c2488b",
+            "family": "temperature_normal",
+            "kind": "temperature",
+            "lead_scope_hours": [
+              168,
+              336
+            ],
+            "model_sha256": "83e334e750dc2f78a38b85f7611e718b117bea55c21085a685d260a5adac0eb1",
+            "training_availability_basis": "historical_assumed_availability",
+            "training_support": {
+              "local_dates": 12,
+              "pairs": 7700,
+              "targets": 275
+            }
+          }
+        ],
+        "artifact_set_sha256": "a0853aeb21aebdc5143d4b5cc9c62bca1627bda4c20720c8bb67a1f9ef6af2a7",
+        "prepared": true
+      },
+      "consumers": [
+        "Forecast_10Day_JSON",
+        "Forecast_Hourly_JSON",
+        "Forecast_Temp",
+        "daily high/low summaries",
+        "Home and Weather details"
+      ],
+      "remaining": [
+        "Stage permanent shared monitor namespace and exact reviewed v2 profile/release configuration.",
+        "Activate original per-cohort admissions and verify actual emitted outputs plus original-outcome scoring."
+      ],
+      "limitations": [
+        "No unqualified80%coverage claim. Unsupported extended cohorts require a named raw fallback, not an invented fitted model."
+      ],
+      "rollback": "Restore the captured original selector/config/source bytes under the existing writer lock; preserve new originals and scores.",
+      "production_replaced": false,
+      "serving_implementation": {
+        "status": "implemented_tested_not_installed",
+        "evidence": "production-owner-verification.json",
+        "public_route": "/api/weather-production"
+      }
+    },
+    {
+      "id": "thermal_weather_temperature",
+      "current": {
+        "selection_sha256": "8fb011cf13160b361fba97669e31f926f2d539d4e8b5526a907aab6d40978e63",
+        "model_sha256": "8bafe77273fdf3edf040a9ef435bfeaa7f2d7e5bfafb8cbf9ba65d456346b12c",
+        "model_rule": "standardized_ridge_residual_v1",
+        "model_schema": "earthship-site-calibration/v1",
+        "trained_at": "2026-10-22T12:36:42.379693+00:00",
+        "available_at": "2026-10-22T12:37:11.967483+00:00"
+      },
+      "replacement": {
+        "method": "Consume the new production temperature procedure through an explicit source-bound thermal forcing adapter. Refit dependent response coefficients where the numerical baseline changes.",
+        "target": "Temperature forcing for read-only thermal predictions, separate from measurement truth.",
+        "artifact_sha256": null,
+        "production_admission_sha256": null,
+        "installed": false,
+        "prepared_models_by_lead": [
+          {
+            "actual_completed_at": "2026-10-22T23:24:43.099916+00:00",
+            "admission_sha256": "756c0c9b6f1d36a79fed1d7282ced33cf9e66cec10bd19060730829aa9b52428",
+            "artifact": {
+              "artifact_sha256": "887e9488e3fec5ca0dee662af1739b7afcdda8e5736b6ffc63432bb805ede96b",
+              "bundle_sha256": "e19159ddc4e18fba2d9daae0b5e25833912a85277f57e94400cfa44221c82354"
+            },
+            "bundle_sha256": "e19159ddc4e18fba2d9daae0b5e25833912a85277f57e94400cfa44221c82354",
+            "family": "temperature_normal",
+            "kind": "temperature",
+            "lead_scope_hours": [
+              0,
+              24
+            ],
+            "model_sha256": "d534cf1f73e67d74fa10ecbf9f1fee62b3ac1eac31ada91ca0c3dbede84813c9",
+            "training_availability_basis": "recorded_ingestion_availability",
+            "training_support": {
+              "local_dates": 3,
+              "pairs": 1052,
+              "targets": 53
+            }
+          },
+          {
+            "actual_completed_at": "2026-10-22T23:24:43.608445+00:00",
+            "admission_sha256": "d08f2fda6b17582877587b5aca3e6bcd26eda4f6e9e7471fa9f26fdf865e7faf",
+            "artifact": {
+              "artifact_sha256": "23dc473be4c44beeae1d99aa2a66cf0cc2a4406fdba77d54af0e893bd90a3004",
+              "bundle_sha256": "e9818fff81a28fdcd06f05b1aa11910220c2e63e6ea80eeb4c563580e284e2b7"
+            },
+            "bundle_sha256": "e9818fff81a28fdcd06f05b1aa11910220c2e63e6ea80eeb4c563580e284e2b7",
+            "family": "temperature_normal",
+            "kind": "temperature",
+            "lead_scope_hours": [
+              24,
+              72
+            ],
+            "model_sha256": "3176cf23f76b791761f098de028a964f344e8060e89b25569245c4d1db4bbf80",
+            "training_availability_basis": "historical_assumed_availability",
+            "training_support": {
+              "local_dates": 12,
+              "pairs": 2173,
+              "targets": 275
+            }
+          },
+          {
+            "actual_completed_at": "2026-10-22T23:24:44.532780+00:00",
+            "admission_sha256": "82eda1aec0bf2d49573452d5df108f896716453add577e88df1e21bce57b85e0",
+            "artifact": {
+              "artifact_sha256": "6f69174c3aa25c255862280ceb1d5d726c98dded04f702e970182d516859e2d1",
+              "bundle_sha256": "a781a7b0f651c302351b4fb530cd23f8e0a999fa1582e8f22eb2ff5aabcacc31"
+            },
+            "bundle_sha256": "a781a7b0f651c302351b4fb530cd23f8e0a999fa1582e8f22eb2ff5aabcacc31",
+            "family": "temperature_normal",
+            "kind": "temperature",
+            "lead_scope_hours": [
+              72,
+              168
+            ],
+            "model_sha256": "470980898b70f90c8f788eea01a96233935230e9dc4de8c4f5e46019b5f72dc9",
+            "training_availability_basis": "historical_assumed_availability",
+            "training_support": {
+              "local_dates": 12,
+              "pairs": 4400,
+              "targets": 275
+            }
+          },
+          {
+            "actual_completed_at": "2026-10-22T23:24:46.229371+00:00",
+            "admission_sha256": "6b6532f34be9f16dd5d0ee26fe1a5871c6af39e53697bb2e9b4def8ae08dae91",
+            "artifact": {
+              "artifact_sha256": "933ed9c0a0141b55ccd9a62c30e874452aefb28d682d6c973981cee9b2e372ab",
+              "bundle_sha256": "5674e940790e592f701660e083bce9413cda2a458976020ca39f987d61c2488b"
+            },
+            "bundle_sha256": "5674e940790e592f701660e083bce9413cda2a458976020ca39f987d61c2488b",
+            "family": "temperature_normal",
+            "kind": "temperature",
+            "lead_scope_hours": [
+              168,
+              336
+            ],
+            "model_sha256": "83e334e750dc2f78a38b85f7611e718b117bea55c21085a685d260a5adac0eb1",
+            "training_availability_basis": "historical_assumed_availability",
+            "training_support": {
+              "local_dates": 12,
+              "pairs": 7700,
+              "targets": 275
+            }
+          }
+        ],
+        "artifact_set_sha256": "a0853aeb21aebdc5143d4b5cc9c62bca1627bda4c20720c8bb67a1f9ef6af2a7",
+        "prepared": true
+      },
+      "consumers": [
+        "household cycle",
+        "thermal forecast and stress projections"
+      ],
+      "remaining": [
+        "Genuinely refit/admit current native response under the new bound conditioning source closure.",
+        "Exercise full staged capture with actual confirmed production weather originals.",
+        "Stage exact v2 thermal selection, complete all CI/review, verify actual installed output and rollback."
+      ],
+      "limitations": [],
+      "rollback": "Restore the captured original selector/config/source bytes under the existing writer lock; preserve new originals and scores.",
+      "production_replaced": false,
+      "serving_implementation": {
+        "status": "implemented_focused_tests_passed_not_installed",
+        "evidence": "production-thermal.md",
+        "context_schema": "earthship-thermal-weather-context/v2",
+        "inference": "consume_original_confirmed_hourly_points_without_running_weather_models",
+        "physical_rollouts": 1
+      }
+    },
+    {
+      "id": "local_hourly_wind",
+      "current": {
+        "selection_sha256": "569032fd52ca4eaad48823737a9473a0aa4f5728e116afda8bf88282e8a005ae",
+        "model_sha256": "245abb6041a6f0d4e73138330de0e6d04728b7750f52f0994a89144bc07c455f",
+        "model_rule": "bounded_gain_with_unchanged_physics_prior_v1",
+        "model_schema": "earthship-site-weather-gain/v1",
+        "trained_at": "2026-10-22T12:37:10.981894+00:00",
+        "available_at": "2026-10-22T12:37:11.985640+00:00"
+      },
+      "replacement": {
+        "method": "Selected nonnegative local-hourly wind model mean, newly fitted and explicitly admitted; retain native wind separately for physical forcing.",
+        "target": "Local station hourly mean wind, not a native instantaneous wind or turbine/gust target.",
+        "artifact_sha256": null,
+        "production_admission_sha256": null,
+        "installed": false,
+        "prepared_models_by_lead": [
+          {
+            "actual_completed_at": "2026-10-22T23:24:48.210138+00:00",
+            "admission_sha256": "a9b71e280594e2eeb2cbb1cc20f20a2f7b05dcc518c26a89a1cae65d49c57dac",
+            "artifact": {
+              "artifact_sha256": "3c12a79c16ca13995aed95bbefb90e1ce4c13e11fcf4bf3909fe607f218498bd",
+              "bundle_sha256": "f3069a915db4da11af558fb98450d9dd27d12a1cc2a144fb124e66dd0e1d73c9"
+            },
+            "bundle_sha256": "f3069a915db4da11af558fb98450d9dd27d12a1cc2a144fb124e66dd0e1d73c9",
+            "family": "nonnegative",
+            "kind": "wind",
+            "lead_scope_hours": [
+              0,
+              24
+            ],
+            "model_sha256": "faf12d1e9f7535d04f6fd595f9d121df17494317365bf65461a53795ae09477c",
+            "training_availability_basis": "historical_assumed_availability",
+            "training_support": {
+              "local_dates": 25,
+              "pairs": 1208,
+              "targets": 307
+            }
+          },
+          {
+            "actual_completed_at": "2026-10-22T23:24:48.788036+00:00",
+            "admission_sha256": "6508ad02d37ea49451c0e0da64c163df119f88eced11283d6d997ef00cf71d8a",
+            "artifact": {
+              "artifact_sha256": "b4529959502e43f06c1ce722ad8c32b8c1f0c5c37c9c31ed5191dc3d96868a60",
+              "bundle_sha256": "973931d6c77bde44fc9a4d0c5582615e5b5745961b3a64ae3f1e9231a1cc6611"
+            },
+            "bundle_sha256": "973931d6c77bde44fc9a4d0c5582615e5b5745961b3a64ae3f1e9231a1cc6611",
+            "family": "nonnegative",
+            "kind": "wind",
+            "lead_scope_hours": [
+              24,
+              72
+            ],
+            "model_sha256": "f1399face7156b8b4bfff9925548dc64b371e84b69d8eed9afee839d1e780731",
+            "training_availability_basis": "historical_assumed_availability",
+            "training_support": {
+              "local_dates": 26,
+              "pairs": 2535,
+              "targets": 320
+            }
+          },
+          {
+            "actual_completed_at": "2026-10-22T23:24:49.836835+00:00",
+            "admission_sha256": "dfa3655cb2bafd922e3a22cfb6620ac5a3eb5b638ad301bb96690ab05eaef9ab",
+            "artifact": {
+              "artifact_sha256": "a9f75b9a9fd1c90425885a82451f2643378daccba7e45132290fbf370a604461",
+              "bundle_sha256": "1a08780d38983896f7edba6b340dd394aa9e251214b147461e857f863aa119cd"
+            },
+            "bundle_sha256": "1a08780d38983896f7edba6b340dd394aa9e251214b147461e857f863aa119cd",
+            "family": "nonnegative",
+            "kind": "wind",
+            "lead_scope_hours": [
+              72,
+              168
+            ],
+            "model_sha256": "9917e37390e8a1f4d0f51036849e773f814553271650f7d6536cab0212b37ffe",
+            "training_availability_basis": "historical_assumed_availability",
+            "training_support": {
+              "local_dates": 26,
+              "pairs": 5024,
+              "targets": 320
+            }
+          },
+          {
+            "actual_completed_at": "2026-10-22T23:24:51.635127+00:00",
+            "admission_sha256": "bc3b9f2b1c670c3525c82845fabfad417308d348d01f818cbbe29cf1bbbf45d1",
+            "artifact": {
+              "artifact_sha256": "bf5704dddd2574c621dd012abcf0c08fc4d778844cba63d5da96dc6d7dae35f0",
+              "bundle_sha256": "6ba1c6dd2067a8446462ae101c2d876aa36ed95b24f063102eb9e73b734380fe"
+            },
+            "bundle_sha256": "6ba1c6dd2067a8446462ae101c2d876aa36ed95b24f063102eb9e73b734380fe",
+            "family": "nonnegative",
+            "kind": "wind",
+            "lead_scope_hours": [
+              168,
+              336
+            ],
+            "model_sha256": "826ac575586f9d68cc5f2d8b94e88657abf8dad0ea7c9f1df87727664f62c672",
+            "training_availability_basis": "historical_assumed_availability",
+            "training_support": {
+              "local_dates": 26,
+              "pairs": 7724,
+              "targets": 320
+            }
+          }
+        ],
+        "artifact_set_sha256": "090e56af52a6a1e9be164b273376faf5eb93061e8f8b9688a699de456bcf92f3",
+        "prepared": true
+      },
+      "consumers": [
+        "local wind display/product",
+        "original-issued wind evaluator"
+      ],
+      "remaining": [
+        "Stage permanent shared monitor namespace and exact reviewed v2 profile/release configuration.",
+        "Activate original per-cohort admissions and verify actual emitted outputs plus original-outcome scoring."
+      ],
+      "limitations": [
+        "Numeric history does not acquire sensor-health/metrology qualification. No silent substitution into PV module-cooling physics."
+      ],
+      "rollback": "Restore the captured original selector/config/source bytes under the existing writer lock; preserve new originals and scores.",
+      "production_replaced": false,
+      "serving_implementation": {
+        "status": "implemented_tested_not_installed",
+        "evidence": "production-owner-verification.json",
+        "public_route": "/api/weather-production"
+      }
+    },
+    {
+      "id": "pv_electrical_storage",
+      "current": {
+        "selection_receipt_sha256": "cb35190177692c70fac55d6a9ead6607a9100f991ab360acbe63560d1cc8dbe5",
+        "training_model_sha256": "a7cbf87c26508943d40c08f94f4fcd2a0492d7c8470f73e083da23c00c6bfbd2",
+        "selection_file_sha256": "6192f8fc407d57d99e916c7fb7ff9d23aaaad8071820155e77536b32d4a5f2ee"
+      },
+      "replacement": {
+        "method": "Native total/direct-horizontal solar components with fresh compatible electrical calibration and new baseline/model identities.",
+        "target": "PV electrical energy and same-issue nominal storage projections.",
+        "artifact_sha256": "1b294e90f5a3895f8f83c7061293a05e5aee2bb38a47791fbbba55c0f7178fce",
+        "production_admission_sha256": null,
+        "installed": false,
+        "model_sha256": "3e5531fb9b7cfc4ba91042d50fdda9430a557f3ade751e2da37183fee6c33258",
+        "procedure_sha256": "dcce27aa2edc538551a20dda12fe33d45256971452a88e59dc40cca15e3990a8",
+        "actual_completed_at": "2026-10-23T02:27:06.832328+00:00",
+        "expires_at": "2026-11-06T02:27:06.832328+00:00",
+        "evidence": "production-pv.md",
+        "training_support": {
+          "pairs": 737,
+          "targets": 737,
+          "local_target_dates": 29
+        },
+        "prepared": true
+      },
+      "consumers": [
+        "daily PV potential",
+        "household calibrated energy",
+        "Energy outlook"
+      ],
+      "remaining": [
+        "Stage permanent exact source/environment/owner profiles and replace the existing calibrated worker command; preserve old producer replay.",
+        "Stage permanent owner/model/runtime paths, complete all CI/review, install and verify exact rollback.",
+        "Observe actual issued outputs and compare their eligible constituent powers with real measured input; track archive growth."
+      ],
+      "limitations": [
+        "Do not apply old coefficients to a changed solar baseline. Nominal capacity remains separate from measured usable battery capacity."
+      ],
+      "rollback": "Restore the captured original selector/config/source bytes under the existing writer lock; preserve new originals and scores.",
+      "production_replaced": false,
+      "serving_implementation": {
+        "status": "daily_household_publication_outcome_ui_implemented_tested_not_installed",
+        "evidence": "production-household-components.md",
+        "original_input_bridge": "retained_original_source_and_environment_verified",
+        "shared_component_kernel": true,
+        "nominal_storage_integrators": "existing_constant_and_original_learned_load",
+        "publication_evidence": "production-household-publication-verification.json",
+        "confirmed_publications_only_for_new_outcomes": true
+      }
+    },
+    {
+      "id": "thermal_response",
+      "current": {
+        "artifact_sha256": "8e1007865b839b01a58c35b337d16be574e8e0553c54a47ca6b7d20c1354238a",
+        "model_receipt_sha256": "8c7cf72a70b81559b7465a212eed7c201b9b9ab9421995184f624aca7881d9ec",
+        "runtime_sha256": "b6736cd9f631736515b027676c7052c86fa6bd62b4e3ab7272b325bd3036d23f",
+        "candidate_schema": "earthship-provisional-thermal-candidate/v4",
+        "receipt_schema": "earthship-native-model-verification-receipt/v1"
+      },
+      "replacement": {
+        "method": "Fresh compatible thermal fit where the weather/solar numerical baseline changes, using the supported retained native observations and unchanged control authority.",
+        "target": "Measured air/wall response and read-only thermal trajectories.",
+        "artifact_sha256": "5219dffe4d4784a58a05b11c7bd935305561703f5c03a5027fde14b8db2673a3",
+        "production_admission_sha256": "4e82fb995ba9368e3c85fc619151a9dcf78d6f3b3c1ba3294696774716051b50",
+        "installed": false,
+        "runtime_sha256": "46a3a8b9df43333c13855cb7273bdecbb8590168e6e844ddc11cea0d68f3d1ca",
+        "actual_completed_at": "2026-10-23T04:05:31.042232+00:00",
+        "training_start": "2026-10-15T06:00:00+00:00",
+        "training_end": "2026-10-23T00:00:00+00:00",
+        "endpoint_count": 33,
+        "prepared": true,
+        "evidence": "production-thermal-fit.json",
+        "admission_verified_at": "2026-10-23T06:08:49.517029+00:00",
+        "admission_evidence": "production-thermal-admission.json",
+        "supported_environment_manifest_sha256": "437c3c7cd7f26d9ee1ec962885eb9fade01f762e1c41ab0150c8c19bd16d9085"
+      },
+      "consumers": [
+        "household cycle",
+        "thermal forecast",
+        "deterministic stress"
+      ],
+      "remaining": [
+        "Finalize rollback/configuration and install the verified source/model family only after final CI and whole-capability review.",
+        "Complete staged capture and shared household integration, all CI/review and exact rollback.",
+        "Deploy and verify actual native air/wall predictions and prospective outcomes."
+      ],
+      "limitations": [
+        "No physical facade or causal action-benefit qualification inferred from operational replacement."
+      ],
+      "rollback": "Restore the captured original selector/config/source bytes under the existing writer lock; preserve new originals and scores.",
+      "production_replaced": false,
+      "serving_implementation": {
+        "status": "real_exact_source_v3_family_verified_not_installed",
+        "evidence": "production-native-stage-verification.json",
+        "code_revision": "fb5294be35c5a77af632a24bbc4a1cff08331f02",
+        "stage_deployment_sha256": "55c353c3a5b71928b1c45b11f09d0775d4c4a934515a1766cb2ea3876c747266",
+        "family_sha256": "126546364c492d24f8d7fa0369acbbd630071e6f30f97740b4a16bb77c11d594",
+        "original_historical_selections": 12,
+        "supported_retained_interpreter": true
+      }
+    },
+    {
+      "id": "rain_interval_amount",
+      "current": {
+        "method": "Raw native precipitation interval means in the current core forecast; observed station totals are a separate already-deployed source."
+      },
+      "replacement": {
+        "method": "Source-bound native total_precipitation_1hr interval means. The frozen two-part local occurrence/amount method is withheld for each individually recorded unsupported cohort.",
+        "target": "Calendar-day, rolling24h and remaining-day rainfall, with explicit interval identities.",
+        "artifact_sha256": null,
+        "production_admission_sha256": null,
+        "installed": false,
+        "target_disposition_evidence": "production-rain-dispositions.json",
+        "unsupported_local_scopes": 13,
+        "unsupported_reason": "independent_local_gauge_resolution_and_coherent_class_event_support_required"
+      },
+      "consumers": [
+        "forecast rainfall",
+        "rain comparison/evaluator",
+        "harvesting estimate inputs"
+      ],
+      "remaining": [
+        "Install the declared native interval-depth fallback with the replacement weather publisher and verify actual Item/UI values.",
+        "Fit a local two-part model only after independent local tip-resolution evidence and the stated wet/below-threshold/event support exist in that exact interval/lead/epoch cohort; other valid replacements proceed."
+      ],
+      "limitations": [
+        "Independent local gauge resolution, wet/dry classes and distinct wet-event support remain concrete fitting dependencies. No invented occurrence probability or cistern inventory."
+      ],
+      "rollback": "Restore the captured original selector/config/source bytes under the existing writer lock; preserve new originals and scores.",
+      "production_replaced": false
+    }
+  ],
+  "before_capture_files": 13,
+  "before_capture_manifest_sha256": "72e90c3085dfabefadf7d81f81000c0165e56498b1f94a3707411c88bb9b97f0",
+  "automatic_actuation": false,
+  "additional_cloud_collection_authorized": false,
+  "historical_retraining_requirement": "Implemented actual-time production training with unchanged original availability classes. Eight selected temperature/wind cohort fits and literal source/training capsules are retained; activation and remaining dependent PV/thermal refits are pending.",
+  "prepared_temperature_wind_fit_evidence": "production-retraining-results.json"
+}

@@ -1,0 +1,37 @@
+{
+  "automatic_actuation": false,
+  "downloads": 0,
+  "files": 6485,
+  "focused_integration_tests": {
+    "passed": 123,
+    "seconds": 39.08
+  },
+  "live_units_changed": false,
+  "manifest_sha256": "437c3c7cd7f26d9ee1ec962885eb9fade01f762e1c41ab0150c8c19bd16d9085",
+  "new_native_family_schema": "earthship-native-thermal-service-family/v3",
+  "numerical_environment": {
+    "binary_sha256s": {
+      "_lbfgsb.cpython-312-x86_64-linux-gnu.so": "23d19ac49896c4ab452fc0bc807312bba273482ea01530ad6c0bc020ac8ccddb",
+      "_multiarray_umath.cpython-312-x86_64-linux-gnu.so": "b185dfe64b07180bedc7c15fb2735b0d0f4f4e09eb9c15bd8e67f74568aebcbf",
+      "_ufuncs.cpython-312-x86_64-linux-gnu.so": "4136c006138bbf3439006e3ac72297b3e06e2e4d384cc0674f1b07264290f264",
+      "_umath_linalg.cpython-312-x86_64-linux-gnu.so": "2e075f582c3a25a21fe97a55931a0fdb22ceb84f4fce8203a5040d405ccf65ce",
+      "python3.12": "e50d468e8b0adfb05733f5b87b3cff34829c4a8c1aea50c865aa8bdfe4bb150f"
+    },
+    "numpy": "2.5.4",
+    "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+    "scipy": "1.18.1"
+  },
+  "original_regular_bytes": 256065291,
+  "packages_changed": false,
+  "python_sha256": "e50d468e8b0adfb05733f5b87b3cff34829c4a8c1aea50c865aa8bdfe4bb150f",
+  "schema": "earthship-production-supported-environment-verification/v1",
+  "source_package_bound": {
+    "current": 480,
+    "measured_bytes": 4766074,
+    "measured_committed_sources": 450,
+    "previous": 400
+  },
+  "status": "retained_verified_not_installed",
+  "thermal_admission_proof_sha256": "0dcf2e5749a80420460f4fab0777c5e1118c74fd5015737fd96e5658e7c11483",
+  "thermal_runtime_identical": true
+}

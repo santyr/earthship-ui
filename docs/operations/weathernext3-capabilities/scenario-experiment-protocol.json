@@ -1,0 +1,40 @@
+{
+  "schema": "earthship-weather-household-scenario-experiment-policy/v2",
+  "frozen_at": "2026-10-22T07:13:01.795288+00:00",
+  "construction_policy_sha256": "4d1f3bfb5e8b82d460e8d2848fa78c01aed7cad06d4b21f02670fb70320990f5",
+  "source_inventory_sha256": "0050dffc4c1f17a722c8df1fab4dc9755211fd1fbc20d89f18cb27f95ca287c2",
+  "selection_sha256": "33151941c197d01f5cc422900ab5de8c64f895b8931cc480d6df99c02c89f97a",
+  "population_forecast_receipts": 648,
+  "selected_origins": 62,
+  "origin_selection": "all verified retained stages under registered native-state root plus explicitly registered historical stages; origin<=frozen original cutoff; one original per UTC issue-hour, earliest origin then file SHA; selected before source replay/outcomes, no replacement after refusal",
+  "horizons_hours": [
+    1,
+    3,
+    6,
+    12,
+    24
+  ],
+  "stress_cases": [
+    "central",
+    "reduced_solar",
+    "warm_high_gain"
+  ],
+  "maximum_origins_per_batch": 8,
+  "maximum_batch_seconds": 90,
+  "maximum_batch_rows": 10000,
+  "initial_conditions": "literal original same-issue household BMS/bank/AC load, native air/wall state and fixed actions; missing input means named withholding, never default load/capacity/state",
+  "models": "same component PV/nominal storage method for all cases; original native thermal producer/interpreter and strict source guard with separately named constructed-input adapter",
+  "energy_window": "exact rolling elapsed horizon at original issue seconds, not calendar-day energy; clipped native qualified power intervals, no prorating or shifted origin",
+  "censoring_policy": "existing complete five-minute low-SOC charging proxy rule retained; physical array potential, controller captured output, BMS SoC and air/wall targets remain distinct",
+  "observation_availability": "actual original received/collection clock; later observations never backdated; retained labels or bounded existing local qualified readers, no cloud",
+  "score_scope": "retrospective conditional modeled weather sensitivities vs actual behavior; original trajectory unchanged, no fit, selection or claimed as-issued hypothetical prediction",
+  "weighting": "report per horizon/source-cohort; forecast origins and actual target dates explicitly counted; no winner or local probability qualification from repeated issues",
+  "joint_method": "original whole_multivariate_residual_block_additive/v1 only; original grid/cohort, issue-available 28-day blocks, >=8 target dates, frozen seed0/max6; missing qualified physical GHI or wind cannot become a proxy substitution",
+  "probability_claim": false,
+  "automatic_actuation": false,
+  "model_or_service_changes": false,
+  "parent_experiment_policy_sha256": "4e731c3c53e2f04649b5eb88bfc7cefa90e58a735ead698059d6ec61cd2927da",
+  "amendment": "Include discovered registered historical stages before any actual matching outcome values are inspected; no construction/model/horizon/threshold or sampling-rule change",
+  "origin_cutoff": "2026-10-22T06:41:50.673771+00:00",
+  "experiment_policy_sha256": "6165cfc7d93db3e57c68e154051943efbc6e45dcca8f9ed375c06b5e6137c2bf"
+}

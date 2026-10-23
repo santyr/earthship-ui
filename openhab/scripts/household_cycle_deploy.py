@@ -194,7 +194,7 @@ def stage_deployment(*,repo_root,stage,forecast_config,parameters,parameters_sha
             if not wanted:continue
             if member.name in sources or not member.isfile() or member.size>MAX_BYTES:raise ValueError('unique committed regular source required')
             sources[member.name]=archive.extractfile(member).read(MAX_BYTES+1)
-    if not set(REGISTRY)<=set(sources) or not 4<=len(sources)<=400:raise ValueError('bounded complete committed source set required')
+    if not set(REGISTRY)<=set(sources) or not 4<=len(sources)<=480:raise ValueError('bounded complete committed source set required')
     if NATIVE_WORKER in sources and JAVA_SOURCE not in sources:
         raise ValueError('native geometry worker requires its original Java source')
     from thermal_model.origin_capture import MAX_RUNTIME_SOURCES
@@ -277,7 +277,7 @@ def _verify_stage(stage,*,expected_deployment_sha256=None,baseline_metadata=Fals
     if set(record)!=fields or record['schema'] not in accepted or record['stage']!=str(stage) or record['automatic_actuation'] is not False:
         raise ValueError('closed original deployment record required')
     sources=record['source_manifest'];root=_directory(stage/'sources')
-    if not isinstance(sources,dict) or not 4<=len(sources)<=400:raise ValueError('bounded complete staged source set required')
+    if not isinstance(sources,dict) or not 4<=len(sources)<=480:raise ValueError('bounded complete staged source set required')
     if NATIVE_WORKER in sources and JAVA_SOURCE not in sources:
         raise ValueError('native geometry worker source closure is incomplete')
     actual={str(path.relative_to(root)) for path in root.rglob('*') if not path.is_dir()}

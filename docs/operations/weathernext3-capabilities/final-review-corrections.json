@@ -1,0 +1,47 @@
+{
+  "schema": "earthship-whole-capability-review-corrections/v1",
+  "recorded_at": "2026-10-23T13:31:58.141929+00:00",
+  "reviewed_base": "3124361f86c76052aeea7bb6f0821b54af727bf3",
+  "reviewed_head": "759e8f1740929d5b963d3b0a7f11de5628f37a03",
+  "important_findings": 3,
+  "critical_findings": 0,
+  "all_important_findings_accepted": true,
+  "one_correction_pass": true,
+  "reproductions": [
+    {
+      "finding": "composite_near_term_reader",
+      "log_sha256": "d14b405210661c8609e7473ac5799db3ebc17abba78026956241f4d940c57ef4"
+    },
+    {
+      "finding": "rain_mean_source_eligibility",
+      "log_sha256": "804b874ea2c764eaad447959e9e1c2d5d60b1ee878bd13d6062a1d75620e9f1b"
+    },
+    {
+      "finding": "component_current_family_interpreter",
+      "log_sha256": "964c795b66d3f5a16a9d1a9e1c4fb3b090666657cfa03c755c2e8c892b2d7a6b"
+    }
+  ],
+  "verification": [
+    {
+      "tests": 57,
+      "seconds": 234.74,
+      "log_sha256": "be69406366756613b6b5f310a91d382afe0e45b33766eff6f6adef5a88b52ac8"
+    },
+    {
+      "tests": 25,
+      "seconds": 9.52,
+      "log_sha256": "fc373f3f396f79fe471728c9eed665df8adc0ce988afbb4e5640dd62448acc4c"
+    }
+  ],
+  "thermal_refit_required": true,
+  "scalar_fits_changed": false,
+  "electrical_pv_fit_changed": false,
+  "installed": false,
+  "scientific_superiority_claimed": false,
+  "pending": [
+    "fresh thermal fit and admission",
+    "exact final hosted CI",
+    "permanent release and rollback preparation",
+    "production cutover and actual OpenHAB/UI/natural cycle readback"
+  ]
+}

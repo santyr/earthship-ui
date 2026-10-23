@@ -15,6 +15,7 @@ vi.mock('echarts', () => ({
   })),
 }));
 
+import shadowFixture from '../fixtures/weathernext-shadow-v2.json';
 import Weather from '../../src/screens/Weather.svelte';
 import { items } from '../../src/lib/openhab/store.js';
 
@@ -141,4 +142,19 @@ describe('Weather observations and forecasts', () => {
     expect(container.querySelectorAll('[data-forecast-day]')).toHaveLength(0);
     expect(screen.getByText('Forecast unavailable')).toBeTruthy();
   });
+  it.each([false,true])('shows the historical shadow comparison only before production replacement (production=%s)', production => {
+    vi.useFakeTimers();vi.setSystemTime(new Date('2026-07-18T13:00:00-06:00'));
+    const detail=JSON.parse(forecastDetail());
+    if(production){
+      detail.version=3;detail.provider='weathernext3';delete detail.temperatureAdjustment;
+      detail.productionModel={issueSha256:'a'.repeat(64),status:'ACTIVE',localCoverageQualified:false,probabilityClaim:false,
+        temperatureStatistic:'model_point_with_declared_raw_fallback',windStatistic:'native_instantaneous_with_separate_local_hour_mean'};
+      for(const day of detail.days)Object.assign(day.summary,{temperatureScope:'full_day',temperatureStatistic:'extrema_of_hourly_point_forecasts'});
+    }
+    const raw=JSON.stringify(shadowFixture);
+    items.set({...BASE_ITEMS,Forecast_10Day_JSON:JSON.stringify(detail),Forecast_Provider_Status_JSON:raw,Forecast_Comparison_JSON:raw,Forecast_Local_Shadow_JSON:raw});
+    render(Weather);
+    expect(Boolean(screen.queryByRole('button',{name:/Local correction/}))).toBe(!production);
+  });
+
 });

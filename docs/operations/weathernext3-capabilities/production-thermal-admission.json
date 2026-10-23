@@ -1,0 +1,36 @@
+{
+  "actual_seconds": 8.20520848291926,
+  "admission_file_sha256": "965c4da4a088b64f92059e60ddbb12364069ad2c0b33a07aa7302c2096076ad5",
+  "admission_receipt_sha256": "4e82fb995ba9368e3c85fc619151a9dcf78d6f3b3c1ba3294696774716051b50",
+  "admission_verified_at": "2026-10-23T06:08:49.517029+00:00",
+  "admitted": true,
+  "artifact_sha256": "5219dffe4d4784a58a05b11c7bd935305561703f5c03a5027fde14b8db2673a3",
+  "automatic_actuation": false,
+  "candidate_file_sha256": "18b8b01f0c18be7755afab13c17a181d3d8e2191aaaa76fb2a6c0fa31dab37c5",
+  "checked_at": "2026-10-23T06:08:49.558155+00:00",
+  "cloud_requests": 0,
+  "installed": false,
+  "live_units_changed": false,
+  "numerical_environment": {
+    "binary_sha256s": {
+      "_lbfgsb.cpython-312-x86_64-linux-gnu.so": "23d19ac49896c4ab452fc0bc807312bba273482ea01530ad6c0bc020ac8ccddb",
+      "_multiarray_umath.cpython-312-x86_64-linux-gnu.so": "b185dfe64b07180bedc7c15fb2735b0d0f4f4e09eb9c15bd8e67f74568aebcbf",
+      "_ufuncs.cpython-312-x86_64-linux-gnu.so": "4136c006138bbf3439006e3ac72297b3e06e2e4d384cc0674f1b07264290f264",
+      "_umath_linalg.cpython-312-x86_64-linux-gnu.so": "2e075f582c3a25a21fe97a55931a0fdb22ceb84f4fce8203a5040d405ccf65ce",
+      "python3.12": "e50d468e8b0adfb05733f5b87b3cff34829c4a8c1aea50c865aa8bdfe4bb150f"
+    },
+    "numpy": "2.5.4",
+    "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+    "scipy": "1.18.1"
+  },
+  "original_candidate_bytes_unchanged": true,
+  "original_fit_created_at": "2026-10-23T04:05:31.094002+00:00",
+  "peak_rss_kib": 161388,
+  "proof_sha256": "0dcf2e5749a80420460f4fab0777c5e1118c74fd5015737fd96e5658e7c11483",
+  "public_cache_written": false,
+  "release_authorized": false,
+  "relocated_runtime_identical": true,
+  "runtime_sha256": "46a3a8b9df43333c13855cb7273bdecbb8590168e6e844ddc11cea0d68f3d1ca",
+  "schema": "earthship-private-production-thermal-admission/v1",
+  "sql_requests": 0
+}

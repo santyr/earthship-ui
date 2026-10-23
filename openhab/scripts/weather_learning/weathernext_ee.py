@@ -1,6 +1,7 @@
 """Bounded native-cell WeatherNext statistics through approved Earth Engine."""
 from datetime import datetime,timedelta,timezone
 import json,math,os,pathlib,stat
+from household_job_budget import AdmissionDeferred
 from .config import AccessPolicy,COLLECTIONS,READER,PROJECT,Site
 from .contracts import canonical,identity,instant,finite,validate_snapshot
 from .normalize import VARIABLES,normalize_point
@@ -144,19 +145,33 @@ class EarthEngineReader:
             raise AccessRefused('eligible source run unavailable')
         return result
 
-    def fetch_points(self,*,run,bands_by_grid,horizon):
+    def fetch_points(self,*,run,bands_by_grid,horizon,allow_partial=False):
         if not self.ready or type(horizon) is not int or not 1<=horizon<=self.policy.max_targets:
             raise AccessRefused('initialized bounded reader required')
         if not isinstance(bands_by_grid,dict) or not 1<=len(bands_by_grid)<=2 or not set(bands_by_grid)<=set(COLLECTIONS):
             raise AccessRefused('approved fixed grid selections required')
-        ee=self.ee;first_seen=self.clock();initialized=instant(run['start_time']);results=[]
+        if type(allow_partial) is not bool:raise ValueError('explicit optional partial-delivery policy required')
+        for grid,bands in bands_by_grid.items():_bands(bands,COLLECTIONS[grid])
+        ee=self.ee;first_seen=self.clock();initialized=instant(run['start_time']);results=[];last_error=None
         for grid,bands in bands_by_grid.items():
-            collection=COLLECTIONS[grid];_bands(bands,collection)
-            images=(ee.ImageCollection(collection).filter(ee.Filter.eq('start_time',run['start_time']))
-                .filter(ee.Filter.gte('forecast_hour',1)).filter(ee.Filter.lte('forecast_hour',horizon)).sort('forecast_hour').limit(horizon+1))
-            projection=ee.Image(images.first()).select([bands[0]]).projection()
-            region=images.select(list(bands)).getRegion(ee.Geometry.Point([self.site.longitude,self.site.latitude]),crs=projection)
-            metadata=images.toList(horizon+1).map(lambda image:ee.Image(image).toDictionary(['system:index','system:time_start','start_time','end_time','forecast_hour','ingestion_time_utc']))
-            raw=ee.Dictionary(dict(metadata=metadata,region=region)).getInfo()
-            results.append(parse_collection_response(raw,collection=collection,bands=bands,site=self.site,initialized_at=initialized,horizon=horizon))
+            try:
+                collection=COLLECTIONS[grid]
+                images=(ee.ImageCollection(collection).filter(ee.Filter.eq('start_time',run['start_time']))
+                    .filter(ee.Filter.gte('forecast_hour',1)).filter(ee.Filter.lte('forecast_hour',horizon)).sort('forecast_hour').limit(horizon+1))
+                projection=ee.Image(images.first()).select([bands[0]]).projection()
+                region=images.select(list(bands)).getRegion(ee.Geometry.Point([self.site.longitude,self.site.latitude]),crs=projection)
+                metadata=images.toList(horizon+1).map(lambda image:ee.Image(image).toDictionary(['system:index','system:time_start','start_time','end_time','forecast_hour','ingestion_time_utc']))
+                raw=ee.Dictionary(dict(metadata=metadata,region=region)).getInfo()
+                results.append(parse_collection_response(raw,collection=collection,bands=bands,site=self.site,initialized_at=initialized,horizon=horizon))
+            except (TimeoutError,AdmissionDeferred,MemoryError):raise
+            except Exception as error:
+                if not allow_partial:raise
+                last_error=error
+                trace=self.transport.trace[-1:]
+                quota=bool(trace and (trace[0]['status']==429 or trace[0].get('error_status')=='RESOURCE_EXHAUSTED'))
+                if (quota or self.transport.requests>=32 or self.transport.bytes_received>=self.policy.max_bytes or
+                        self.transport.clock()-self.transport.started>=self.policy.max_seconds):break
+        if not results:
+            if last_error is not None:raise last_error
+            raise ValueError('no valid optional native grid delivered')
         return make_snapshot(results,site=self.site,initialized_at=initialized,first_seen_at=first_seen,completed_at=self.clock())

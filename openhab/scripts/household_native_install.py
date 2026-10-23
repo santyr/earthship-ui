@@ -61,7 +61,7 @@ def _install_files(output,*,guard,_undo_log=None):
     family=deploy._directory(record['family']);selected=family_api.verify(family,guard=guard)
     stage=deploy._directory(selected['stage'])
     stages=[stage,deploy._directory(record['previous_forecast_stage']),deploy._directory(record['previous_score_stage'])]
-    serving=selected['schema']=='earthship-native-thermal-service-family/v2'
+    serving=selected['schema'] in ('earthship-native-thermal-service-family/v2','earthship-native-thermal-service-family/v3')
     def stage_record(path):
         if record['schema']=='earthship-native-thermal-handoff/v3' and path==stages[1]:
             pin=record['previous_deployment_sha256']['forecast']
@@ -186,7 +186,7 @@ def _verify_effective_family(family,*,guard):
     """Read-only postconditions after the caller's coordinated manager reload."""
     family=deploy._directory(family);selected=family_api.verify(family,guard=guard)
     stage=deploy._directory(selected['stage'])
-    serving=selected['schema']=='earthship-native-thermal-service-family/v2'
+    serving=selected['schema'] in ('earthship-native-thermal-service-family/v2','earthship-native-thermal-service-family/v3')
     record=deploy.verify_stage(stage,expected_deployment_sha256=selected['deployment_sha256']) if serving else deploy.verify_stage(stage)
     root=deploy._path(record['service_file']).parent
     if serving and family_api._shared_job_pool(stage):_verify_shared_pool()

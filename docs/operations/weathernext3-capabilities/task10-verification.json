@@ -1,0 +1,88 @@
+{
+  "schema": "earthship-task10-ui-operations-verification/v1",
+  "checked_at": "2026-10-22T22:49:08.691419+00:00",
+  "source_revision": "4f07230ab01d4f3af5b6b47fdec7267244ae105c",
+  "verification_source_manifest_sha256": "7ab6f8be993d3ddbe6f65a76ed844375b58a398127b4a1814ba9d48149cfee1b",
+  "source_files": 1872,
+  "node_dependencies_match_lock": true,
+  "gates": {
+    "backend": {
+      "exit_code": 0,
+      "seconds": 86.13,
+      "log_sha256": "58c92c8c12b4fe5c781482b89f9da747323ce1fb517c7e2d26c0ded19bdb0692",
+      "passed": 197,
+      "subtests": 18,
+      "command_profile": "Existing bounded managed job; normal backend gate. Private exact command retained with original evidence."
+    },
+    "frontend": {
+      "exit_code": 0,
+      "seconds": 53.107,
+      "log_sha256": "652e30c08fa455bb435425b82f8d65324898f93f9b8166afc9e62efdb5ee8341",
+      "passed": 2936,
+      "files": 191,
+      "command_profile": "Existing bounded managed job; normal frontend gate. Private exact command retained with original evidence."
+    },
+    "browser": {
+      "exit_code": 0,
+      "seconds": 99.127,
+      "log_sha256": "4f7b583087308d55f79da78a2c93b3cc572b895d065e7d9325c92cc103b584ea",
+      "passed": 68,
+      "command_profile": "Existing bounded managed job; normal browser gate. Private exact command retained with original evidence."
+    },
+    "build": {
+      "exit_code": 0,
+      "seconds": 3.122,
+      "log_sha256": "d2b1b90d23fde38d1c229b466a581b2d20bfe373d1c0efeab510a781432ac522",
+      "command_profile": "Existing bounded managed job; normal build gate. Private exact command retained with original evidence."
+    },
+    "sdk": {
+      "exit_code": 0,
+      "seconds": 4.126,
+      "log_sha256": "1602252a4e7c968eb4b8c2892d443e8900a8c1753f24d61102c5019a79115b2a",
+      "command_profile": "Existing bounded managed job; normal sdk gate. Private exact command retained with original evidence."
+    }
+  },
+  "requirements": {
+    "console_sizes": [
+      "1340x800",
+      "1280x720"
+    ],
+    "optional_state_cases": [
+      "loading",
+      "zero",
+      "null",
+      "stale",
+      "withdrawn",
+      "malformed",
+      "offline",
+      "reconnect"
+    ],
+    "keyboard_touch_resize_and_no_network_mutations": true,
+    "raw_local_mean_median_and_proxy_scopes_preserved": true,
+    "private_original_clock_operations": true,
+    "ten_day_default_and_eleven_refused": true,
+    "unused_dispositions": 6,
+    "declared_fields": 41,
+    "wn_recommendations": 13,
+    "legacy_profiles_and_shared_limits_unchanged": true,
+    "new_self_contained_uncertainty_profile": "uncertainty-complete-v1"
+  },
+  "deployment_mode": "direct_production_replacement_in_Task11",
+  "parallel_shadow_required": false,
+  "production_expansion_installed": false,
+  "scientific_qualification_changed": false,
+  "automatic_actuation": false,
+  "task10_complete_locally": true,
+  "visual_inspection": {
+    "console_sizes": [
+      "1340x800",
+      "1280x720"
+    ],
+    "experimental_detail_images_viewed": true,
+    "image_sha256": [
+      "19ccea4231ff81c350b4746ad3ed40f86d27a7cf40c54f84563555c40cdd6d55",
+      "dcc01f694cbc259d9459aee01d4fcc50b3d519257c21a83c2043bea01d6fa958"
+    ]
+  },
+  "verification_sha256": "3eb5958f27ffb1a08486b7e30c8f680abad8f026e32ce35df5a9f5f73a89b2b3"
+}

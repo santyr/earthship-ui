@@ -1,0 +1,654 @@
+{
+  "schema": "earthship-weathernext-capability-baseline/v1",
+  "checked_at": "2026-10-21T18:27:12.197685+00:00",
+  "source_revision": "263a27862424906fbb853bb12663e0be10d22001",
+  "main_revision": "263a27862424906fbb853bb12663e0be10d22001",
+  "surfaces": [
+    {
+      "surface": "earthship-ui",
+      "source_pins": [
+        {
+          "root_identity": "bc7a22cd4ca9b647b6f9e9ae0652ad7220c1426129aea4143554c2685937ba3a",
+          "revision": "02e3fcbc405d6018ad01977bbd7a3fa3af5f2ea5",
+          "tracked_dirty": true
+        },
+        {
+          "root_identity": "8ec9210efa96b0655c895439af8262f2c15268bf4d5c94dff73c0ce389ac04ef",
+          "manifest_sha256": "94a5b77113ff23bc806004dfb0ebcc68bb937c0c0bf245b5262ae19bb034a72c",
+          "source_files": 2159,
+          "manifest_valid": true,
+          "baseline_revision": "12a009927b1ad2a49f17faf8358c1c6faa5eb66c",
+          "reviewed_repairs_revision": "cdfaa6b51b568423a5aada34a930094c7cf0730b"
+        }
+      ],
+      "effective_command_sha256": "72113c4d6fb5af8d4ed535862d6229aaca98e7f574d3f2be6bfbaf9f071a9ded",
+      "environment_files": [
+        {
+          "sha256": "b281838d66dbe648487bec4101fc26286643b1254c0f89acd53c9e5edc956936",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 11:31:28 MDT",
+        "ExecMainExitTimestamp": "",
+        "ExecMainStatus": "0",
+        "ActiveState": "active"
+      },
+      "resource_flags": {}
+    },
+    {
+      "surface": "weathernext-ingest",
+      "source_pins": [
+        {
+          "root_identity": "ccfb5752679332dca4856e99ba9d01766b653c248358b3afb89555ab80830504",
+          "manifest_sha256": "2b74648d9e4ecc047036d01927f3b4b3917b78a87eb51909a104d66a52eaa838",
+          "source_files": 1946,
+          "manifest_valid": true,
+          "baseline_revision": "b940f154b1ffc1d7d8de8684e0c9e6a9ef511f08",
+          "reviewed_repairs_revision": "cdfaa6b51b568423a5aada34a930094c7cf0730b"
+        }
+      ],
+      "effective_command_sha256": "c0f32f59c8415008ebcff207a5f96da7f60cd3b711ba609592f27faf37b39044",
+      "environment_files": [
+        {
+          "sha256": "8a3de7ec60a1280fa0ce2b13332f9bae136e73c20a4c2813eed696266ac4ed81",
+          "mode": "0o600"
+        },
+        {
+          "sha256": "3c793ec6ae8515c680b16b79aef5cfad24761c7f58d3f341388143dc1c067e54",
+          "mode": "0o600"
+        },
+        {
+          "sha256": "fd53203387fcfb76953e3c7d8d329f8d8db79209e6a4e432679e4782c6364b76",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 11:41:12 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 11:41:18 MDT",
+        "ExecMainStatus": "0",
+        "ActiveState": "inactive"
+      },
+      "resource_flags": {
+        "minimum-mib": "256",
+        "preferred-mib": "256",
+        "tasks": "24",
+        "seconds": "90"
+      }
+    },
+    {
+      "surface": "weathernext-evaluate",
+      "source_pins": [
+        {
+          "root_identity": "5d20237ab98efe92e9b3a303350c7795497a6d2d6f871f3bbe0a1b2f6d951664",
+          "manifest_sha256": "682af573d4efde262a447f58b325ace16252c88c575157dd194a2e8e05495e28",
+          "source_files": 2139,
+          "manifest_valid": true,
+          "baseline_revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+          "reviewed_repairs_revision": "cdfaa6b51b568423a5aada34a930094c7cf0730b",
+          "followup_revision": "bb12f61aa3c0811758361266e8388b5cec8480a2"
+        }
+      ],
+      "effective_command_sha256": "bffab8de07fc5141f292ccfd3418ad118eb72dcd2949e7f109c602ab7262374b",
+      "environment_files": [
+        {
+          "sha256": "8a3de7ec60a1280fa0ce2b13332f9bae136e73c20a4c2813eed696266ac4ed81",
+          "mode": "0o600"
+        },
+        {
+          "sha256": "056d43820dee23147dd2cc2d7049c83163ac6ddfcba52e1280a91ca9f1b96a99",
+          "mode": "0o600"
+        },
+        {
+          "sha256": "730cd9f0e93f9f36a494f29e586dc2299473ac4ecfba7bfddb88060ea6359c91",
+          "mode": "0o600"
+        },
+        {
+          "sha256": "3c7928f8c84ec58995df7829193a212ffa72318cc443816dc8cd5a406e74ddab",
+          "mode": "0o600"
+        },
+        {
+          "sha256": "4d491f4ee6e4c9ade55d31c377558ebdc1c8b7dd599f34ccca5cf0babcfd3b58",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 11:57:38 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 11:58:13 MDT",
+        "ExecMainStatus": "0",
+        "ActiveState": "inactive"
+      },
+      "resource_flags": {
+        "minimum-mib": "256",
+        "preferred-mib": "512",
+        "tasks": "24",
+        "seconds": "120"
+      }
+    },
+    {
+      "surface": "weathernext-publish",
+      "source_pins": [
+        {
+          "root_identity": "205fac3e37424e58e4d9aa7f9775f4381f50252a0cffb5a49ec877c702f95936"
+        }
+      ],
+      "effective_command_sha256": "6a5dd0b5b932b8482649a3ca7b682f61cb3afdc06723ef23865f4a0ecf534364",
+      "environment_files": [
+        {
+          "sha256": "8a3de7ec60a1280fa0ce2b13332f9bae136e73c20a4c2813eed696266ac4ed81",
+          "mode": "0o600"
+        },
+        {
+          "sha256": "23973c63f2edde6885f78dea4bc39c8e3175f5abada4c3c212e6beb2153fae9d",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 11:48:02 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 11:48:40 MDT",
+        "ExecMainStatus": "0",
+        "ActiveState": "inactive"
+      },
+      "resource_flags": {
+        "minimum-mib": "256",
+        "preferred-mib": "512",
+        "tasks": "24",
+        "seconds": "90"
+      }
+    },
+    {
+      "surface": "local-forecast-shadow",
+      "source_pins": [
+        {
+          "root_identity": "f450ac7a4b7a109af63637157aa170d4f56c8528d84026498192579ecdee6f31",
+          "revision": "5c0e16df32756b45f2489434d819d431cb7ee3ac",
+          "tracked_dirty": false
+        }
+      ],
+      "effective_command_sha256": "b04c90a552c57ef11c0f7626d607483c676565fe8fafc57292e1855bf6c08161",
+      "environment_files": [
+        {
+          "sha256": "8a3de7ec60a1280fa0ce2b13332f9bae136e73c20a4c2813eed696266ac4ed81",
+          "mode": "0o600"
+        },
+        {
+          "sha256": "730cd9f0e93f9f36a494f29e586dc2299473ac4ecfba7bfddb88060ea6359c91",
+          "mode": "0o600"
+        },
+        {
+          "sha256": "12324be55304f2591ef5ba3b139c87cf666a505942e44ca8383084cc0ba4be34",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 11:44:25 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 11:44:28 MDT",
+        "ExecMainStatus": "0",
+        "ActiveState": "inactive"
+      },
+      "resource_flags": {
+        "minimum-mib": "256",
+        "preferred-mib": "512",
+        "tasks": "24",
+        "seconds": "120"
+      }
+    },
+    {
+      "surface": "local-forecast-train",
+      "source_pins": [
+        {
+          "root_identity": "77fbcbb844a0d2b379af2021ac13942c77cc7ee1dcbece4587064140a7b3adc7",
+          "revision": "520bdd81ba94a14908655bda2e83138131bb1986",
+          "tracked_dirty": false
+        }
+      ],
+      "effective_command_sha256": "2b71701670d3882f1454a64a39f6c1a9884e908691449007a8c8321ee50346af",
+      "environment_files": [
+        {
+          "sha256": "8a3de7ec60a1280fa0ce2b13332f9bae136e73c20a4c2813eed696266ac4ed81",
+          "mode": "0o600"
+        },
+        {
+          "sha256": "65244331147d823b1e3ed6a0536935999c5179f0291bfe9142a6ec598279d3d6",
+          "mode": "0o600"
+        },
+        {
+          "sha256": "730cd9f0e93f9f36a494f29e586dc2299473ac4ecfba7bfddb88060ea6359c91",
+          "mode": "0o600"
+        },
+        {
+          "sha256": "488d42dcd709db03bae45e7a89f11a90b6ee8f083762059fd5afeb65a15ec2ba",
+          "mode": "0o600"
+        },
+        {
+          "sha256": "20c337139ef7e6292e56ccddf58d4f4d051a270b0411e2583d92008c29a248df",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 06:35:32 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 06:38:23 MDT",
+        "ExecMainStatus": "0",
+        "ActiveState": "inactive"
+      },
+      "resource_flags": {
+        "minimum-mib": "512",
+        "preferred-mib": "2048",
+        "tasks": "48",
+        "seconds": "900"
+      }
+    },
+    {
+      "surface": "daily-pv-potential",
+      "source_pins": [
+        {
+          "root_identity": "a71a358c36860cf3720787dbf77ca481a791153a7353f58bcf1463d6e3be8ce3",
+          "revision": "a85da5e376bcb5285fcaeeb0496052dbef7a204f",
+          "tracked_dirty": false
+        }
+      ],
+      "effective_command_sha256": "48b670490f6e3ea7c874bceec0f2997ba4c7b2b8394023f161c453026218c733",
+      "environment_files": [
+        {
+          "sha256": "83049704614392b680496cf60be7ae668608d17e5c0bd2a8b5d458ff343cfcda",
+          "mode": "0o600"
+        },
+        {
+          "sha256": "53f30930e7866b194f6156064d00acd20342024d5bad561a14fd5abbdd067812",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 11:46:07 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 11:46:09 MDT",
+        "ExecMainStatus": "0",
+        "ActiveState": "inactive"
+      },
+      "resource_flags": {
+        "minimum-mib": "512",
+        "preferred-mib": "1024",
+        "tasks": "48",
+        "seconds": "600"
+      }
+    },
+    {
+      "surface": "daily-pv-score",
+      "source_pins": [
+        {
+          "root_identity": "7f145f9f84d415147e12d8ada7f41fe24dc0a3c85723d25687146c9d9887e262",
+          "revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+          "tracked_dirty": false
+        }
+      ],
+      "effective_command_sha256": "7c839a834f5e0a4b6f5bf776923347c3b4025922187cbc4e15fec2926dd661d6",
+      "environment_files": [
+        {
+          "sha256": "83049704614392b680496cf60be7ae668608d17e5c0bd2a8b5d458ff343cfcda",
+          "mode": "0o600"
+        },
+        {
+          "sha256": "e4d099aaa45dd51144665fec5282b0fb3a81e4009c0d751410fc6beaa8d28df2",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 11:55:09 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 11:55:10 MDT",
+        "ExecMainStatus": "0",
+        "ActiveState": "inactive"
+      },
+      "resource_flags": {
+        "minimum-mib": "256",
+        "preferred-mib": "512",
+        "tasks": "24",
+        "seconds": "90"
+      }
+    },
+    {
+      "surface": "pv-calibration-train",
+      "source_pins": [
+        {
+          "root_identity": "22d8797dd4feb2061277fbcf2186893a20c2e39f313cdc76c6c1e4d9819ad71e",
+          "revision": "0b3f6fc0a5ec0e86cd4af65604241d9532b2f1ad",
+          "tracked_dirty": false
+        }
+      ],
+      "effective_command_sha256": "5e7a2101c07378e87428b32a9c972d759397b93ba6cfbde3f2f020a8a573e68c",
+      "environment_files": [
+        {
+          "sha256": "f9f3c201b957beea399b1efda93a056aafe235ffc32ef58b19385f855ff399c2",
+          "mode": "0o600"
+        },
+        {
+          "sha256": "74b46df24d04631e39e190424eb47900ec6cd3999d01c7e60120d19e9fa55110",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 07:16:11 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 07:18:24 MDT",
+        "ExecMainStatus": "0",
+        "ActiveState": "inactive"
+      },
+      "resource_flags": {
+        "minimum-mib": "512",
+        "preferred-mib": "2048",
+        "tasks": "48",
+        "seconds": "900"
+      }
+    },
+    {
+      "surface": "household-calibrated-energy",
+      "source_pins": [
+        {
+          "root_identity": "a71a358c36860cf3720787dbf77ca481a791153a7353f58bcf1463d6e3be8ce3",
+          "revision": "a85da5e376bcb5285fcaeeb0496052dbef7a204f",
+          "tracked_dirty": false
+        }
+      ],
+      "effective_command_sha256": "cdd3e35d78582fa059aa2e78f5d30bac4d3efe1adfc08b365192b91fd39bfc05",
+      "environment_files": [
+        {
+          "sha256": "88086f6e764c22c6484de25cbe72d039e3cf017f9d1634326a32c7bcaae1064a",
+          "mode": "0o600"
+        },
+        {
+          "sha256": "c3e3325783add9f3d1bfebdb3de9899f5b27275f66602f156888d3d12fa04e06",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 12:25:38 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 12:25:41 MDT",
+        "ExecMainStatus": "0",
+        "ActiveState": "inactive"
+      },
+      "resource_flags": {
+        "minimum-mib": "256",
+        "preferred-mib": "768",
+        "tasks": "24",
+        "seconds": "90"
+      }
+    },
+    {
+      "surface": "household-calibrated-score",
+      "source_pins": [
+        {
+          "root_identity": "7f145f9f84d415147e12d8ada7f41fe24dc0a3c85723d25687146c9d9887e262",
+          "revision": "8f3747aef3d8a80bef8b638e712af099981a5d4f",
+          "tracked_dirty": false
+        }
+      ],
+      "effective_command_sha256": "88992dac9ee98f04408ab5cc358f191606f8caf335f585086d1d52ae63fe4042",
+      "environment_files": [
+        {
+          "sha256": "9950d0d1c2a2cae7f445e221484159671bb269cea8ff0089b2c2972d627ffb43",
+          "mode": "0o600"
+        },
+        {
+          "sha256": "11b28e409cf7a88e1919d8e26b643896fe00b559ffa342ac3bd13c1dfec22a68",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 12:25:55 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 12:26:01 MDT",
+        "ExecMainStatus": "0",
+        "ActiveState": "inactive"
+      },
+      "resource_flags": {
+        "minimum-mib": "256",
+        "preferred-mib": "768",
+        "tasks": "24",
+        "seconds": "90"
+      }
+    },
+    {
+      "surface": "thermal-native-daily",
+      "source_pins": [
+        {
+          "root_identity": "53578adf7a4cee2dac665703f8abacbd5f8659f01c8980b1d355bd22908ecd66",
+          "revision": "bef677e1f9a8fe353f9b0c504ba19c48a1cc0c7a",
+          "tracked_dirty": false
+        }
+      ],
+      "effective_command_sha256": "a7097b6b539a6173028181c55719d90dbd2bd69cadce2d6f74858b579e0a0794",
+      "environment_files": [],
+      "execution": {
+        "Result": "success",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 06:50:25 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 06:52:31 MDT",
+        "ExecMainStatus": "0",
+        "ActiveState": "inactive"
+      },
+      "resource_flags": {
+        "minimum-mib": "512",
+        "preferred-mib": "2048",
+        "tasks": "48",
+        "seconds": "1800"
+      }
+    },
+    {
+      "surface": "thermal-native-geometry-prepare",
+      "source_pins": [
+        {
+          "root_identity": "2fbacaea79f77fcdc5c6dfa94311ab0ad4e2153016d71a9472ad235b30afac0a"
+        }
+      ],
+      "effective_command_sha256": "ecfffcba0329135a3d5482c55265aae71105106df193cf90bd6b63fc63c2e1b8",
+      "environment_files": [],
+      "execution": {
+        "Result": "success",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 12:23:05 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 12:23:09 MDT",
+        "ExecMainStatus": "0",
+        "ActiveState": "inactive"
+      },
+      "resource_flags": {
+        "minimum-mib": "256",
+        "preferred-mib": "512",
+        "tasks": "24",
+        "seconds": "90"
+      }
+    },
+    {
+      "surface": "thermal-provisional-forecast",
+      "source_pins": [
+        {
+          "root_identity": "2fbacaea79f77fcdc5c6dfa94311ab0ad4e2153016d71a9472ad235b30afac0a"
+        }
+      ],
+      "effective_command_sha256": "e7bea1e5c99260887977c7f3f363dddab4607008a1d01836e55db52dedebb9e8",
+      "environment_files": [],
+      "execution": {
+        "Result": "success",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 12:24:45 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 12:25:46 MDT",
+        "ExecMainStatus": "0",
+        "ActiveState": "inactive"
+      },
+      "resource_flags": {
+        "minimum-mib": "256",
+        "preferred-mib": "512",
+        "tasks": "24",
+        "seconds": "90"
+      }
+    },
+    {
+      "surface": "thermal-provisional-score",
+      "source_pins": [
+        {
+          "root_identity": "2fbacaea79f77fcdc5c6dfa94311ab0ad4e2153016d71a9472ad235b30afac0a"
+        }
+      ],
+      "effective_command_sha256": "8ba8d6fb3ae422b2922058b0c711da73b5b63fb11ddfc54f8e54bc5ff5cd8503",
+      "environment_files": [],
+      "execution": {
+        "Result": "success",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 12:26:00 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 12:26:52 MDT",
+        "ExecMainStatus": "0",
+        "ActiveState": "inactive"
+      },
+      "resource_flags": {
+        "minimum-mib": "256",
+        "preferred-mib": "512",
+        "tasks": "24",
+        "seconds": "120"
+      }
+    },
+    {
+      "surface": "thermal-primal",
+      "source_pins": [],
+      "effective_command_sha256": "ef6f7b9d6f90beb335465372d9b98c7084061b8964e3972a430d61f783155497",
+      "environment_files": [
+        {
+          "sha256": "8b28140c708216b09859589f10ef128c2a53d75bce4a9bdf8afe9f1500e9efc4",
+          "mode": "0o600"
+        }
+      ],
+      "execution": {
+        "Result": "success",
+        "ExecMainStartTimestamp": "Wed 2026-10-21 12:22:53 MDT",
+        "ExecMainExitTimestamp": "Wed 2026-10-21 12:22:56 MDT",
+        "ExecMainStatus": "0",
+        "ActiveState": "inactive"
+      },
+      "resource_flags": {}
+    }
+  ],
+  "resource_limits": {
+    "earthship-work.slice": {
+      "CPUQuotaPerSecUSec": "8s",
+      "MemoryHigh": "5368709120",
+      "MemoryMax": "6442450944",
+      "MemorySwapMax": "0",
+      "TasksMax": "256"
+    },
+    "earthship-inputs.slice": {
+      "CPUQuotaPerSecUSec": "200ms",
+      "MemoryHigh": "infinity",
+      "MemoryMax": "268435456",
+      "MemorySwapMax": "0",
+      "TasksMax": "24"
+    }
+  },
+  "cloud_access": {
+    "credential_type": "service_account",
+    "credential_mode": "0o600",
+    "credential_identity_configured": true,
+    "paid_access_allowed": false,
+    "full_ensemble_allowed": false,
+    "requester_billing_project": null,
+    "remaining_eecu_quota": null,
+    "actual_account_tier": null,
+    "quota_visibility": "not exposed in local runtime/account files; no new cloud request made",
+    "authorization": "source fixtures and staged probes only; production acquisition/settings unchanged",
+    "existing_archive": {
+      "objects": 72,
+      "bytes": 92390070,
+      "object_cap": 10000,
+      "byte_cap": 17179869184
+    },
+    "most_recent_existing_collector_receipt": null,
+    "registration_evidence": "last ordinary collector registration preflight only; account tier/remaining quota unknown"
+  },
+  "reports": {
+    "weather-performance.json": {
+      "sha256": "f5e1ea0d9b631bf8c78a0fb65ecb35bba1c1d36b7af83fc2eb95f534b5a589f0",
+      "bytes": 73795,
+      "schema": "earthship-weathernext-weather-performance/v2",
+      "generated_at": "2026-10-21T17:57:38.555543+00:00",
+      "code_revision": "263a27862424906fbb853bb12663e0be10d22001",
+      "report_sha256": "712698a77f1aa8c7194878b3264816be78c8586da463ce3190f8b8e41d0768ce",
+      "correction_schema": "earthship-correction-performance/v2",
+      "source_withheld": [],
+      "temperature_work": {
+        "backlog": {
+          "arrival_deadline_basis": "target_plus_seven_days_limits_observation_availability_not_discovery",
+          "assessed_at": "2026-10-21T17:57:38.555543+00:00",
+          "due": 0,
+          "main_database_allocated_bytes": 442368,
+          "main_database_max_bytes": 536870912,
+          "oldest_due_target_at": null,
+          "oldest_due_wait_seconds": null,
+          "pending_past_arrival_deadline": 0,
+          "population": "known_enqueued_work_only",
+          "retention": "original_scores_retained_no_automatic_pruning",
+          "state_counts": {
+            "completed": 61,
+            "pending": 56
+          }
+        },
+        "batch_limit": 32,
+        "bootstrap": {
+          "dependencies": 0,
+          "indexed": 0,
+          "resolved": 0
+        },
+        "dependencies": {
+          "arrival_allowance_days": 7,
+          "current_population": "earliest_retained_original_per_local_issue_date",
+          "selection_change_count": 0,
+          "selection_changes": [],
+          "source": "retained_issue_append_index",
+          "superseded_scores": "retained_excluded_from_current_population",
+          "unindexed_issue_files": "not_reconciled"
+        },
+        "observation_arrival_allowance_days": 7,
+        "report_target_window_days": 7,
+        "states": {
+          "completed": 61,
+          "invalid_original": 0,
+          "issues": 3,
+          "missing_original": 0,
+          "pending": 56,
+          "work_dependency_reasons": {}
+        }
+      }
+    },
+    "current-model.json": {
+      "sha256": "9a61cf5b4218b362ef11ca8581201f1ab99c87836a34526b66577efc19f485e0",
+      "bytes": 85
+    },
+    "historical-outdoor.json": {
+      "sha256": "0d9cc88699248b62617efac6b7e457b81f7c42d857ee26dd99f54e2af8e032d0",
+      "bytes": 1017,
+      "schema": "earthship-historical-weather-selection/v1",
+      "selection_sha256": "8e5cb3dc3a743ef50adcfbb131eaf668cad30b25268d7dc8dc48ddee453e2ba0"
+    },
+    "historical-wind.json": {
+      "sha256": "0822edee39021478054222f17c9bb63744a3338e81ba99c49550c81f8b0408f6",
+      "bytes": 899,
+      "schema": "earthship-historical-weather-selection/v1",
+      "selection_sha256": "b67875038153dbd8e2f14b37de924f6210cab713d608585707cc67923b8f607d"
+    }
+  },
+  "authority": {
+    "planner_actuation": false,
+    "new_selection": false,
+    "production_installation": false
+  },
+  "scientific_evidence": "Not inferred from successful services; experiment protocol must be frozen before inspecting outcomes",
+  "authoritative_site": {
+    "source": "OpenHAB I18N configuration",
+    "timezone": "America/Denver",
+    "configuration_sha256": "d82484e48dd1c15d38bf1a1d728ddf4a5f6ed6d3682b66edf7a6f8318359fa58",
+    "exact_coordinates_published": false
+  },
+  "post_step": {
+    "command_sha256": "4eb53af47dfc6c07a33937f63e65d6ea08f5d923e9681325e0730250251ff387",
+    "status": "reviewed worker pin installed; natural next owner cycle not yet elapsed at baseline; recheck at release"
+  }
+}

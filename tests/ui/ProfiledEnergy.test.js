@@ -50,3 +50,15 @@ it.each([true,false])('shows accuracy only for the same numerical model and poli
  if(matching)expect(container.querySelector('table')).not.toBeNull();
  else expect(container.textContent).toContain('Calibrated scenario accuracy is collecting');
 });
+
+it.each([true,false])('shows the component model and matches its procedure (matching=%s)',async matching=>{
+ const {componentEnergy,componentPerformance,CALIBRATED_NOW}=await import('../fixtures/calibrated-energy.js');
+ const v=componentEnergy(),r=componentPerformance();if(!matching)r.procedure_sha256='c'.repeat(64);
+ vi.spyOn(Date,'now').mockReturnValue(CALIBRATED_NOW);
+ vi.stubGlobal('fetch',async url=>new Response(JSON.stringify(url==='/api/household-calibrated-energy-observation'?v:url==='/api/household-calibrated-energy-performance'?r:url==='/api/household-profiled-energy-observation'?profiledObservation():profiledPerformance())));
+ const {container}=render(ProfiledEnergy);await waitFor(()=>expect(container.textContent).toContain('14.00 kWh'));
+ expect(container.textContent).toContain('native solar components');expect(container.textContent).toContain('13 raw fallback source intervals');
+ expect(container.textContent).toContain('Conditional nominal storage');
+ if(matching)expect(container.querySelector('table')).not.toBeNull();
+ else expect(container.textContent).toContain('Calibrated scenario accuracy is collecting');
+});

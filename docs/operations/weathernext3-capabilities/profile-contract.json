@@ -1,0 +1,841 @@
+{
+  "schema": "earthship-weather-capability-profiles/v1",
+  "profile_defaults": "only core-v1; retained temperature ranges reuse existing objects without a cloud request",
+  "profiles": [
+    {
+      "name": "core-v1",
+      "bands": [
+        [
+          "station",
+          "station_head_temperature_2m_mean"
+        ],
+        [
+          "station",
+          "station_head_temperature_2m_p10"
+        ],
+        [
+          "station",
+          "station_head_temperature_2m_p90"
+        ],
+        [
+          "station",
+          "station_head_dewpoint_temperature_2m_mean"
+        ],
+        [
+          "gridded",
+          "surface_solar_radiation_downwards_1hr_mean"
+        ],
+        [
+          "gridded",
+          "total_sky_direct_solar_radiation_at_surface_1hr_mean"
+        ],
+        [
+          "gridded",
+          "total_precipitation_1hr_mean"
+        ],
+        [
+          "gridded",
+          "imerg_tp_1hr_mean"
+        ],
+        [
+          "gridded",
+          "experimental_tp_1hr_mean"
+        ],
+        [
+          "gridded",
+          "wind_speed_10m_mean"
+        ],
+        [
+          "gridded",
+          "total_cloud_cover_mean"
+        ],
+        [
+          "gridded",
+          "mean_sea_level_pressure_mean"
+        ]
+      ],
+      "consumer": "legacy_core",
+      "optional": false,
+      "priority": 0,
+      "horizons": [
+        48,
+        360
+      ],
+      "frequency": "existing_collection_cycle",
+      "remote_allowed": true,
+      "max_bytes": 8388608,
+      "max_seconds": 75,
+      "max_requests": 32,
+      "max_pixels": 16,
+      "attempts": 2,
+      "version": 1,
+      "grid_policy": "one_existing_native_cell_per_collection_no_percentile_interpolation",
+      "units": [
+        {
+          "grid": "station",
+          "band": "station_head_temperature_2m_mean",
+          "native": "K",
+          "unit": "degC",
+          "period_seconds": 0
+        },
+        {
+          "grid": "station",
+          "band": "station_head_temperature_2m_p10",
+          "native": "K",
+          "unit": "degC",
+          "period_seconds": 0
+        },
+        {
+          "grid": "station",
+          "band": "station_head_temperature_2m_p90",
+          "native": "K",
+          "unit": "degC",
+          "period_seconds": 0
+        },
+        {
+          "grid": "station",
+          "band": "station_head_dewpoint_temperature_2m_mean",
+          "native": "K",
+          "unit": "degC",
+          "period_seconds": 0
+        },
+        {
+          "grid": "gridded",
+          "band": "surface_solar_radiation_downwards_1hr_mean",
+          "native": "J m**-2",
+          "unit": "W m-2",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "total_sky_direct_solar_radiation_at_surface_1hr_mean",
+          "native": "J m**-2",
+          "unit": "W m-2",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "total_precipitation_1hr_mean",
+          "native": "m",
+          "unit": "mm",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "imerg_tp_1hr_mean",
+          "native": "m",
+          "unit": "mm",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "experimental_tp_1hr_mean",
+          "native": "m",
+          "unit": "mm",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "wind_speed_10m_mean",
+          "native": "m s**-1",
+          "unit": "m s-1",
+          "period_seconds": 0
+        },
+        {
+          "grid": "gridded",
+          "band": "total_cloud_cover_mean",
+          "native": "(0 - 1)",
+          "unit": "percent",
+          "period_seconds": 0
+        },
+        {
+          "grid": "gridded",
+          "band": "mean_sea_level_pressure_mean",
+          "native": "Pa",
+          "unit": "hPa",
+          "period_seconds": 0
+        }
+      ],
+      "coverage": "complete_requested_targets_from_initialization_not_from_arrival",
+      "max_rows_per_grid": 360,
+      "max_normalized_points": 4320,
+      "archive_growth_upper_bytes_per_original": 8388608,
+      "eecu_cost": null,
+      "cost_basis": "request_transfer_and_wall_time_bounds_not_eecu",
+      "profile_sha256": "c43029788c3439090374574b1f1c6794445f76d34cba682e8956c5f053a7870c"
+    },
+    {
+      "name": "temperature-display-v1",
+      "bands": [
+        [
+          "station",
+          "station_head_temperature_2m_mean"
+        ],
+        [
+          "station",
+          "station_head_temperature_2m_p10"
+        ],
+        [
+          "station",
+          "station_head_temperature_2m_p90"
+        ]
+      ],
+      "consumer": "hourly_uncertainty_detail",
+      "optional": true,
+      "priority": 0,
+      "horizons": [
+        48,
+        360
+      ],
+      "frequency": "retained_sources_only",
+      "remote_allowed": false,
+      "max_bytes": 8388608,
+      "max_seconds": 75,
+      "max_requests": 32,
+      "max_pixels": 16,
+      "attempts": 2,
+      "version": 1,
+      "grid_policy": "one_existing_native_cell_per_collection_no_percentile_interpolation",
+      "units": [
+        {
+          "grid": "station",
+          "band": "station_head_temperature_2m_mean",
+          "native": "K",
+          "unit": "degC",
+          "period_seconds": 0
+        },
+        {
+          "grid": "station",
+          "band": "station_head_temperature_2m_p10",
+          "native": "K",
+          "unit": "degC",
+          "period_seconds": 0
+        },
+        {
+          "grid": "station",
+          "band": "station_head_temperature_2m_p90",
+          "native": "K",
+          "unit": "degC",
+          "period_seconds": 0
+        }
+      ],
+      "coverage": "complete_requested_targets_from_initialization_not_from_arrival",
+      "max_rows_per_grid": 360,
+      "max_normalized_points": 1080,
+      "archive_growth_upper_bytes_per_original": 8388608,
+      "eecu_cost": null,
+      "cost_basis": "request_transfer_and_wall_time_bounds_not_eecu",
+      "profile_sha256": "fabca08bc573220248f46906be13b048620d47e632fe949a0d6ad5f098acb87b"
+    },
+    {
+      "name": "uncertainty-v1",
+      "bands": [
+        [
+          "station",
+          "station_head_temperature_2m_p25"
+        ],
+        [
+          "station",
+          "station_head_temperature_2m_p50"
+        ],
+        [
+          "station",
+          "station_head_temperature_2m_p75"
+        ],
+        [
+          "gridded",
+          "surface_solar_radiation_downwards_1hr_p10"
+        ],
+        [
+          "gridded",
+          "surface_solar_radiation_downwards_1hr_p50"
+        ],
+        [
+          "gridded",
+          "surface_solar_radiation_downwards_1hr_p90"
+        ],
+        [
+          "gridded",
+          "wind_speed_10m_p10"
+        ],
+        [
+          "gridded",
+          "wind_speed_10m_p50"
+        ],
+        [
+          "gridded",
+          "wind_speed_10m_p90"
+        ]
+      ],
+      "consumer": "marginal_diagnostics",
+      "optional": true,
+      "priority": 1,
+      "horizons": [
+        48,
+        360
+      ],
+      "frequency": "existing_collection_cycle",
+      "remote_allowed": true,
+      "max_bytes": 8388608,
+      "max_seconds": 75,
+      "max_requests": 32,
+      "max_pixels": 16,
+      "attempts": 2,
+      "version": 1,
+      "grid_policy": "one_existing_native_cell_per_collection_no_percentile_interpolation",
+      "units": [
+        {
+          "grid": "station",
+          "band": "station_head_temperature_2m_p25",
+          "native": "K",
+          "unit": "degC",
+          "period_seconds": 0
+        },
+        {
+          "grid": "station",
+          "band": "station_head_temperature_2m_p50",
+          "native": "K",
+          "unit": "degC",
+          "period_seconds": 0
+        },
+        {
+          "grid": "station",
+          "band": "station_head_temperature_2m_p75",
+          "native": "K",
+          "unit": "degC",
+          "period_seconds": 0
+        },
+        {
+          "grid": "gridded",
+          "band": "surface_solar_radiation_downwards_1hr_p10",
+          "native": "J m**-2",
+          "unit": "W m-2",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "surface_solar_radiation_downwards_1hr_p50",
+          "native": "J m**-2",
+          "unit": "W m-2",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "surface_solar_radiation_downwards_1hr_p90",
+          "native": "J m**-2",
+          "unit": "W m-2",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "wind_speed_10m_p10",
+          "native": "m s**-1",
+          "unit": "m s-1",
+          "period_seconds": 0
+        },
+        {
+          "grid": "gridded",
+          "band": "wind_speed_10m_p50",
+          "native": "m s**-1",
+          "unit": "m s-1",
+          "period_seconds": 0
+        },
+        {
+          "grid": "gridded",
+          "band": "wind_speed_10m_p90",
+          "native": "m s**-1",
+          "unit": "m s-1",
+          "period_seconds": 0
+        }
+      ],
+      "coverage": "complete_requested_targets_from_initialization_not_from_arrival",
+      "max_rows_per_grid": 360,
+      "max_normalized_points": 3240,
+      "archive_growth_upper_bytes_per_original": 8388608,
+      "eecu_cost": null,
+      "cost_basis": "request_transfer_and_wall_time_bounds_not_eecu",
+      "profile_sha256": "702ab5630cbed5e745544e839dac617a86cebfdd34e75d48bb229fff38ed044a"
+    },
+    {
+      "name": "atmosphere-v1",
+      "bands": [
+        [
+          "gridded",
+          "u_component_of_wind_10m_mean"
+        ],
+        [
+          "gridded",
+          "v_component_of_wind_10m_mean"
+        ],
+        [
+          "gridded",
+          "high_cloud_cover_mean"
+        ],
+        [
+          "gridded",
+          "medium_cloud_cover_mean"
+        ],
+        [
+          "gridded",
+          "low_cloud_cover_mean"
+        ]
+      ],
+      "consumer": "atmospheric_context",
+      "optional": true,
+      "priority": 2,
+      "horizons": [
+        48,
+        360
+      ],
+      "frequency": "existing_collection_cycle",
+      "remote_allowed": true,
+      "max_bytes": 8388608,
+      "max_seconds": 75,
+      "max_requests": 32,
+      "max_pixels": 16,
+      "attempts": 2,
+      "version": 1,
+      "grid_policy": "one_existing_native_cell_per_collection_no_percentile_interpolation",
+      "units": [
+        {
+          "grid": "gridded",
+          "band": "u_component_of_wind_10m_mean",
+          "native": "m s**-1",
+          "unit": "m s-1",
+          "period_seconds": 0
+        },
+        {
+          "grid": "gridded",
+          "band": "v_component_of_wind_10m_mean",
+          "native": "m s**-1",
+          "unit": "m s-1",
+          "period_seconds": 0
+        },
+        {
+          "grid": "gridded",
+          "band": "high_cloud_cover_mean",
+          "native": "(0 - 1)",
+          "unit": "percent",
+          "period_seconds": 0
+        },
+        {
+          "grid": "gridded",
+          "band": "medium_cloud_cover_mean",
+          "native": "(0 - 1)",
+          "unit": "percent",
+          "period_seconds": 0
+        },
+        {
+          "grid": "gridded",
+          "band": "low_cloud_cover_mean",
+          "native": "(0 - 1)",
+          "unit": "percent",
+          "period_seconds": 0
+        }
+      ],
+      "coverage": "complete_requested_targets_from_initialization_not_from_arrival",
+      "max_rows_per_grid": 360,
+      "max_normalized_points": 1800,
+      "archive_growth_upper_bytes_per_original": 8388608,
+      "eecu_cost": null,
+      "cost_basis": "request_transfer_and_wall_time_bounds_not_eecu",
+      "profile_sha256": "94627a21842f5c834b8ab5ca1ff011850d4212b08bd492aaffd37ab676e7e95d"
+    },
+    {
+      "name": "rain-uncertainty-v1",
+      "bands": [
+        [
+          "gridded",
+          "total_precipitation_1hr_p10"
+        ],
+        [
+          "gridded",
+          "total_precipitation_1hr_p25"
+        ],
+        [
+          "gridded",
+          "total_precipitation_1hr_p50"
+        ],
+        [
+          "gridded",
+          "total_precipitation_1hr_p75"
+        ],
+        [
+          "gridded",
+          "total_precipitation_1hr_p90"
+        ],
+        [
+          "gridded",
+          "imerg_tp_1hr_p10"
+        ],
+        [
+          "gridded",
+          "imerg_tp_1hr_p25"
+        ],
+        [
+          "gridded",
+          "imerg_tp_1hr_p50"
+        ],
+        [
+          "gridded",
+          "imerg_tp_1hr_p75"
+        ],
+        [
+          "gridded",
+          "imerg_tp_1hr_p90"
+        ],
+        [
+          "gridded",
+          "experimental_tp_1hr_p10"
+        ],
+        [
+          "gridded",
+          "experimental_tp_1hr_p25"
+        ],
+        [
+          "gridded",
+          "experimental_tp_1hr_p50"
+        ],
+        [
+          "gridded",
+          "experimental_tp_1hr_p75"
+        ],
+        [
+          "gridded",
+          "experimental_tp_1hr_p90"
+        ]
+      ],
+      "consumer": "rain_diagnostics",
+      "optional": true,
+      "priority": 3,
+      "horizons": [
+        360
+      ],
+      "frequency": "full_runs_only",
+      "remote_allowed": true,
+      "max_bytes": 8388608,
+      "max_seconds": 75,
+      "max_requests": 32,
+      "max_pixels": 16,
+      "attempts": 2,
+      "version": 1,
+      "grid_policy": "one_existing_native_cell_per_collection_no_percentile_interpolation",
+      "units": [
+        {
+          "grid": "gridded",
+          "band": "total_precipitation_1hr_p10",
+          "native": "m",
+          "unit": "mm",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "total_precipitation_1hr_p25",
+          "native": "m",
+          "unit": "mm",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "total_precipitation_1hr_p50",
+          "native": "m",
+          "unit": "mm",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "total_precipitation_1hr_p75",
+          "native": "m",
+          "unit": "mm",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "total_precipitation_1hr_p90",
+          "native": "m",
+          "unit": "mm",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "imerg_tp_1hr_p10",
+          "native": "m",
+          "unit": "mm",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "imerg_tp_1hr_p25",
+          "native": "m",
+          "unit": "mm",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "imerg_tp_1hr_p50",
+          "native": "m",
+          "unit": "mm",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "imerg_tp_1hr_p75",
+          "native": "m",
+          "unit": "mm",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "imerg_tp_1hr_p90",
+          "native": "m",
+          "unit": "mm",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "experimental_tp_1hr_p10",
+          "native": "m",
+          "unit": "mm",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "experimental_tp_1hr_p25",
+          "native": "m",
+          "unit": "mm",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "experimental_tp_1hr_p50",
+          "native": "m",
+          "unit": "mm",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "experimental_tp_1hr_p75",
+          "native": "m",
+          "unit": "mm",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "experimental_tp_1hr_p90",
+          "native": "m",
+          "unit": "mm",
+          "period_seconds": 3600
+        }
+      ],
+      "coverage": "complete_requested_targets_from_initialization_not_from_arrival",
+      "max_rows_per_grid": 360,
+      "max_normalized_points": 5400,
+      "archive_growth_upper_bytes_per_original": 8388608,
+      "eecu_cost": null,
+      "cost_basis": "request_transfer_and_wall_time_bounds_not_eecu",
+      "profile_sha256": "858ae94c53216a2b82e37d696e88d3b7df0d3e60633a8e37388fc8ec432160c1"
+    },
+    {
+      "name": "uncertainty-complete-v1",
+      "bands": [
+        [
+          "station",
+          "station_head_temperature_2m_mean"
+        ],
+        [
+          "station",
+          "station_head_temperature_2m_p10"
+        ],
+        [
+          "station",
+          "station_head_temperature_2m_p25"
+        ],
+        [
+          "station",
+          "station_head_temperature_2m_p50"
+        ],
+        [
+          "station",
+          "station_head_temperature_2m_p75"
+        ],
+        [
+          "station",
+          "station_head_temperature_2m_p90"
+        ],
+        [
+          "gridded",
+          "surface_solar_radiation_downwards_1hr_mean"
+        ],
+        [
+          "gridded",
+          "surface_solar_radiation_downwards_1hr_p10"
+        ],
+        [
+          "gridded",
+          "surface_solar_radiation_downwards_1hr_p50"
+        ],
+        [
+          "gridded",
+          "surface_solar_radiation_downwards_1hr_p90"
+        ],
+        [
+          "gridded",
+          "wind_speed_10m_mean"
+        ],
+        [
+          "gridded",
+          "wind_speed_10m_p10"
+        ],
+        [
+          "gridded",
+          "wind_speed_10m_p50"
+        ],
+        [
+          "gridded",
+          "wind_speed_10m_p90"
+        ]
+      ],
+      "consumer": "marginal_and_temperature_detail",
+      "optional": true,
+      "priority": 1,
+      "horizons": [
+        48,
+        360
+      ],
+      "frequency": "existing_collection_cycle",
+      "remote_allowed": true,
+      "max_bytes": 8388608,
+      "max_seconds": 75,
+      "max_requests": 32,
+      "max_pixels": 16,
+      "attempts": 2,
+      "version": 1,
+      "grid_policy": "one_existing_native_cell_per_collection_no_percentile_interpolation",
+      "units": [
+        {
+          "grid": "station",
+          "band": "station_head_temperature_2m_mean",
+          "native": "K",
+          "unit": "degC",
+          "period_seconds": 0
+        },
+        {
+          "grid": "station",
+          "band": "station_head_temperature_2m_p10",
+          "native": "K",
+          "unit": "degC",
+          "period_seconds": 0
+        },
+        {
+          "grid": "station",
+          "band": "station_head_temperature_2m_p25",
+          "native": "K",
+          "unit": "degC",
+          "period_seconds": 0
+        },
+        {
+          "grid": "station",
+          "band": "station_head_temperature_2m_p50",
+          "native": "K",
+          "unit": "degC",
+          "period_seconds": 0
+        },
+        {
+          "grid": "station",
+          "band": "station_head_temperature_2m_p75",
+          "native": "K",
+          "unit": "degC",
+          "period_seconds": 0
+        },
+        {
+          "grid": "station",
+          "band": "station_head_temperature_2m_p90",
+          "native": "K",
+          "unit": "degC",
+          "period_seconds": 0
+        },
+        {
+          "grid": "gridded",
+          "band": "surface_solar_radiation_downwards_1hr_mean",
+          "native": "J m**-2",
+          "unit": "W m-2",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "surface_solar_radiation_downwards_1hr_p10",
+          "native": "J m**-2",
+          "unit": "W m-2",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "surface_solar_radiation_downwards_1hr_p50",
+          "native": "J m**-2",
+          "unit": "W m-2",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "surface_solar_radiation_downwards_1hr_p90",
+          "native": "J m**-2",
+          "unit": "W m-2",
+          "period_seconds": 3600
+        },
+        {
+          "grid": "gridded",
+          "band": "wind_speed_10m_mean",
+          "native": "m s**-1",
+          "unit": "m s-1",
+          "period_seconds": 0
+        },
+        {
+          "grid": "gridded",
+          "band": "wind_speed_10m_p10",
+          "native": "m s**-1",
+          "unit": "m s-1",
+          "period_seconds": 0
+        },
+        {
+          "grid": "gridded",
+          "band": "wind_speed_10m_p50",
+          "native": "m s**-1",
+          "unit": "m s-1",
+          "period_seconds": 0
+        },
+        {
+          "grid": "gridded",
+          "band": "wind_speed_10m_p90",
+          "native": "m s**-1",
+          "unit": "m s-1",
+          "period_seconds": 0
+        }
+      ],
+      "coverage": "complete_requested_targets_from_initialization_not_from_arrival",
+      "max_rows_per_grid": 360,
+      "max_normalized_points": 5040,
+      "archive_growth_upper_bytes_per_original": 8388608,
+      "eecu_cost": null,
+      "cost_basis": "request_transfer_and_wall_time_bounds_not_eecu",
+      "profile_sha256": "f9b503a98fe3df937562bd21e37b6ec012fbf455ffc195e8a2bafadacff62a19"
+    }
+  ],
+  "shared_limits": {
+    "total_requests": 32,
+    "total_response_bytes": 8388608,
+    "total_seconds": 75,
+    "max_attempts": 2,
+    "max_archive_objects": 10000,
+    "max_archive_bytes": 17179869184,
+    "optional_priority": "uncertainty then atmosphere then full-run-only rain; defer rather than raise limits",
+    "account_eecu_remaining": null
+  },
+  "migration": {
+    "readers": "new supplemental reader before optional producers",
+    "legacy": "old schemas and v1 numerical source dispatch retained; optional profiles never expand core required variables",
+    "public_route": "/api/weather-capabilities",
+    "public_schema": "earthship-weathernext-capabilities/v1",
+    "production_enabled": false
+  },
+  "uncertainty_variant_selection": "Exactly one of uncertainty-v1 and uncertainty-complete-v1; latter includes companion means in its own new original. Defaults remain core-only."
+}

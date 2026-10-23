@@ -22,6 +22,10 @@ const mocks = vi.hoisted(() => {
 vi.mock('../../src/lib/charts/loadEcharts.js', () => ({
   getEcharts: async () => ({ init: mocks.init }),
 }));
+vi.mock('../../src/lib/weather/capabilityState.js', async () => {
+  const { writable } = await import('svelte/store');
+  return { weatherCapabilityRaw: writable(null), weatherCapabilityClock: writable(Date.now()) };
+});
 
 import WeatherDetailModal from '../../src/lib/ui/WeatherDetailModal.svelte';
 import { items } from '../../src/lib/openhab/store.js';
@@ -30,6 +34,9 @@ import {
   openWeatherDetail,
 } from '../../src/lib/weather/detailStore.js';
 import { currentRoute } from '../../src/routes.js';
+import { weatherCapabilityRaw, weatherCapabilityClock } from '../../src/lib/weather/capabilityState.js';
+import atmosphericOriginals from '../fixtures/weather-atmosphere.json';
+import { capabilityFixture, CAPABILITY_NOW } from '../fixtures/weather-capabilities.js';
 
 function payload({ count = 12, stale = false, precipSumIn, hourPrecipIn, version = 1, firstTempF = 60 } = {}) {
   return JSON.stringify({
@@ -92,6 +99,8 @@ describe('WeatherDetailModal', () => {
       disconnect() {}
     };
     currentRoute.set('home');
+    weatherCapabilityRaw.set(null);
+    weatherCapabilityClock.set(CAPABILITY_NOW);
     items.set({ Forecast_10Day_JSON: payload() });
     mocks.init.mockClear();
     mocks.chart.setOption.mockClear();
@@ -108,6 +117,25 @@ describe('WeatherDetailModal', () => {
     cleanup();
     document.body.innerHTML = '';
     document.body.style.overflow = '';
+  });
+
+  it('shows active production points with hourly wind scope and experimental qualification', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-07-18T12:00:00-06:00'));
+    const raw = JSON.parse(payload({ firstTempF: 65 }));
+    Object.assign(raw, { version: 3, provider: 'weathernext3', providerStatus: 'AVAILABLE',
+      productionModel: { issueSha256: 'a'.repeat(64), status: 'MIXED_WITH_RAW_FALLBACK', localCoverageQualified: false,
+        probabilityClaim: false, temperatureStatistic: 'model_point_with_declared_raw_fallback',
+        windStatistic: 'native_instantaneous_with_separate_local_hour_mean' } });
+    Object.assign(raw.days[0].summary, { temperatureScope: 'full_day', temperatureStatistic: 'extrema_of_hourly_point_forecasts' });
+    raw.days[0].hours[0].windMeanMph = 2;
+    items.set({ Forecast_10Day_JSON: JSON.stringify(raw) });
+    addOpener();render(WeatherDetailModal);await openTomorrow();
+    expect(screen.getByText('Production temperature model · experimental')).toBeTruthy();
+    expect(screen.getByText('65°')).toBeTruthy();
+    expect(screen.getByText('2 mph').title).toContain('Local station hourly mean');
+    expect(screen.getByText('6 mph').title).toContain('Native instantaneous wind');
+    expect(screen.getByText(/Daily highs and lows are extrema of hourly point forecasts/)).toBeTruthy();
   });
 
   it('renders a complete twelve-hour icon/value strip and SVG chart', async () => {
@@ -132,6 +160,29 @@ describe('WeatherDetailModal', () => {
       { renderer: 'svg' },
     ));
     expect(mocks.chart.setOption).toHaveBeenCalled();
+  });
+
+  it('shows original raw ranges separately from displayed temperature and withdraws expired ranges', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(CAPABILITY_NOW);
+    items.set({ Forecast_10Day_JSON: payload().replaceAll('2026-07-19', '2026-10-21') });
+    weatherCapabilityRaw.set(JSON.stringify(capabilityFixture()));
+    addOpener();
+    render(WeatherDetailModal);
+    openWeatherDetail({ date: '2026-10-21', label: 'Today' });
+    await screen.findByRole('dialog', { name: /Today forecast/i });
+    expect(screen.getByText('WeatherNext p10–p90; local coverage not yet verified')).toBeTruthy();
+    expect(screen.getAllByText('Raw p10–p90: 32°–50°').length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Raw median/)).toBeNull();
+    expect(screen.getByText(/initialized 6h ago/)).toBeTruthy();
+    await waitFor(() => expect(mocks.chart.setOption.mock.calls.at(-1)?.[0].series.some(s => s.name === 'WeatherNext p10–p90')).toBe(true));
+    const option = mocks.chart.setOption.mock.calls.at(-1)[0];
+    expect(option.series.find(s => s.name === 'Temperature').data.some(v => v > 50)).toBe(true);
+    expect(option.series.find(s => s.name === 'WeatherNext raw mean').data.filter(v => v !== null).every(v => v === 68)).toBe(true);
+    weatherCapabilityClock.set(CAPABILITY_NOW + 3600000);
+    await waitFor(() => expect(screen.queryByText('WeatherNext p10–p90; local coverage not yet verified')).toBeNull());
+    await waitFor(() => expect(mocks.chart.setOption.mock.calls.at(-1)[0].series.some(s => s.name === 'WeatherNext p10–p90')).toBe(false));
+    expect(screen.getAllByTestId('weather-detail-hour').length).toBeGreaterThan(0);
   });
 
   it('renders producer-corrected v2 temperatures without applying correction items again', async () => {
@@ -188,7 +239,11 @@ describe('WeatherDetailModal', () => {
     await waitFor(() => expect(document.activeElement).toBe(close));
     await fireEvent.keyDown(dialog, { key: 'Tab' });
     expect(document.activeElement).toBe(close);
+    // The collapsed experimental disclosure is now the last keyboard target.
+    const disclosure = dialog.querySelector('summary');
     await fireEvent.keyDown(dialog, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(disclosure);
+    await fireEvent.keyDown(dialog, { key: 'Tab' });
     expect(document.activeElement).toBe(close);
     await fireEvent.keyDown(dialog, { key: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
@@ -279,4 +334,39 @@ describe('WeatherDetailModal', () => {
       vi.useRealTimers();
     }
   });
+
+
+it('shows source-labeled atmospheric diagnostics without claiming model use or condensation safety', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] });vi.setSystemTime(CAPABILITY_NOW);
+  items.set({ Forecast_10Day_JSON: payload().replaceAll('2026-07-19','2026-10-21') });
+  weatherCapabilityRaw.set(JSON.stringify(atmosphericOriginals.outdoor));weatherCapabilityClock.set(CAPABILITY_NOW);
+  render(WeatherDetailModal);openWeatherDetail({date:'2026-10-21',label:'Today'});
+  await screen.findByRole('dialog');
+  expect(screen.getByText('Forecast atmosphere · raw diagnostic')).toBeTruthy();
+  expect(screen.getByText('Dew point: 41.0°F')).toBeTruthy();
+  expect(screen.getByText('Sea-level pressure: 900.0 hPa')).toBeTruthy();
+  expect(screen.getByText('Scalar mean wind: 4.5 mph')).toBeTruthy();
+  expect(screen.getByText('Mean vector: 3.2 mph from 135°')).toBeTruthy();
+  expect(screen.getByText(/Cloud total 40% · high 40% · mid 40% · low 40%/)).toBeTruthy();
+  expect(screen.getByText(/Diagnostic RH from forecast mean temperature and dew point/)).toBeTruthy();
+  expect(screen.getByText(/Current temperature model does not use these added fields/)).toBeTruthy();
+  expect(screen.getByText(/Surface condensation not assessed/)).toBeTruthy();
+  expect(screen.getByText(/Qualified indoor temperature and humidity required/)).toBeTruthy();
+  expect(screen.getAllByText(/initialized 1h ago; available 0m ago/).length).toBeGreaterThan(0);
+  weatherCapabilityRaw.set(null);flushSync();expect(screen.queryByText('Forecast atmosphere · raw diagnostic')).toBeNull();
+  expect(screen.getAllByTestId('weather-detail-hour').length).toBeGreaterThan(0);
+});
+
+it('withdraws only the indoor comparison when its original evidence expires', async () => {
+  vi.useFakeTimers({toFake:['Date']});vi.setSystemTime(CAPABILITY_NOW);
+  items.set({Forecast_10Day_JSON:payload().replaceAll('2026-07-19','2026-10-21')});
+  weatherCapabilityRaw.set(JSON.stringify(atmosphericOriginals.qualified));weatherCapabilityClock.set(CAPABILITY_NOW);
+  render(WeatherDetailModal);openWeatherDetail({date:'2026-10-21',label:'Today'});await screen.findByRole('dialog');
+  expect(screen.getByText(/Forecast outdoor air is drier than current qualified indoor air/)).toBeTruthy();
+  const deadline=Date.parse(atmosphericOriginals.qualified.groups.atmosphere.moisture.valid_until);
+  weatherCapabilityClock.set(deadline);flushSync();
+  expect(screen.queryByText(/Forecast outdoor air is drier than current qualified indoor air/)).toBeNull();
+  expect(screen.getByText(/Indoor evidence expired/)).toBeTruthy();expect(screen.getByText('Dew point: 41.0°F')).toBeTruthy();
+});
+
 });

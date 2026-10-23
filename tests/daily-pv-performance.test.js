@@ -21,3 +21,16 @@ it.each(['private','authority','zeroEvidence','counts','duration','postOrigin','
   if(damage==='cohortDuplicate')v.cohorts.push({...v.cohorts[0]});
   expect(parsePvPerformance(v,{nowMs:PV_REPORT_NOW})).toBeNull();
 });
+
+it('preserves component fitting procedure, measured cohort and local dates without independence claims',async()=>{
+  const {componentPvPerformance}=await import('./fixtures/daily-pv-performance.js');
+  const v=componentPvPerformance();
+  expect(parsePvPerformance(v,{nowMs:PV_REPORT_NOW})?.cohorts).toEqual(v.cohorts);
+  for(const damage of ['population','missingProcedure','mixedVersion']){
+    const bad=componentPvPerformance();
+    if(damage==='population')bad.cohorts[0].metric_population='observed_daily_kwh';
+    if(damage==='missingProcedure')bad.cohorts[0].procedure_sha256=null;
+    if(damage==='mixedVersion')bad.cohorts[0].independent_target_days=1;
+    expect(parsePvPerformance(bad,{nowMs:PV_REPORT_NOW})).toBeNull();
+  }
+});

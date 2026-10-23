@@ -1,0 +1,58 @@
+{
+  "schema": "earthship-weather-capability-task5-verification/v1",
+  "checked_at": "2026-10-21T22:54:15.150139+00:00",
+  "status": "complete_locally_incumbents_retained_not_deployed",
+  "source_package_sha256": "988d61631554cba2d7f7e9650e8bc6ebd70d26d3878055907b7b12b8ad560aca",
+  "experiment_sha256": "8b877965ee54e6fdbc899a5aad50013bf813c0184825819af819efbaca9a283c",
+  "dataset_sha256": "22fbef6d4a046f44899b577fa61889e9ab4d7312cd73a10522af0e467db51871",
+  "public_results_sha256": "f23617021acec30b5604abd45d1f4ef344a54224ad07a6fbeeeb273737088cd9",
+  "duration_seconds": 91.87771754898131,
+  "original_input_files_verified": 1021,
+  "forecast_originals": 274,
+  "eligible_forecast_pairs": 9159,
+  "fitted_artifacts": 317,
+  "direct_fitted_predictions_replayed": 14592,
+  "source_files_verified": 381,
+  "gate_logs": {
+    "backend": {
+      "log_sha256": "cc6fc711ec1881c5f6ffccbfb701805cd0a97c557219bce9b8daac2da321f764",
+      "result": "570 passed, 4 skipped, 163 subtests passed"
+    },
+    "sdk": {
+      "log_sha256": "fe14cbaf18cdae8fee39e5b41f0bdd295d7bd696264c0e878454cf52594c3f6f",
+      "result": "Pinned SDK:4 offline compatibility tests executed"
+    }
+  },
+  "frontend_consumer_source_manifest_sha256": "c233e65a9d94af43f5bf6aa88da38a91f6b0ac3a857a867fb978ef207198f8ae",
+  "frontend": {
+    "source_unchanged": true,
+    "evidence": "task5-consumer-verification.json",
+    "tests": 2869,
+    "files": 186,
+    "browser_cases": 16,
+    "build": "passed"
+  },
+  "test_execution": {
+    "backend_passed": 570,
+    "backend_subtests": 163,
+    "normal_sdk_profile_skips": 4,
+    "isolated_sdk_executed": 4,
+    "isolated_sdk_skips": 0
+  },
+  "cases": {
+    "atmospheric_ui_and_freshness": "implemented_source_verified",
+    "original_indoor_replay_before_publication": "implemented_and_tested",
+    "individual_feature_ablations": "actual_retained_comparisons_complete",
+    "wind_gain_vs_single_bounded_challenger": "actual_retained_comparison_complete",
+    "direction_and_layers": "software_complete_insufficient_retained_native_inputs",
+    "thermal24h": "software_complete_no_comparable_recorded_trajectory"
+  },
+  "statistical_independence_qualified": false,
+  "probability_claim": false,
+  "physical_calibration_qualified": false,
+  "actual_cloud_access": false,
+  "automatic_promotion": false,
+  "release_authorized": false,
+  "automatic_actuation": false,
+  "production_changed": false
+}

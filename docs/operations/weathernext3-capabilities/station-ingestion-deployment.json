@@ -1,0 +1,104 @@
+{
+  "schema": "earthship-station-ingestion-deployment/v1",
+  "recordedAt": "2026-10-22T18:57:26.280380+00:00",
+  "pullRequest": "https://github.com/santyr/earthship-ui/pull/46",
+  "releaseRevision": "41636b173d6f33a2e16b9c922442018098a17f0e",
+  "mergeRevision": "aba39486fec030078e7771f36c5e9e89cb065d4c",
+  "mergedAt": "2026-10-22T18:32:51Z",
+  "activationAt": "2026-10-22T18:52:48.066508+00:00",
+  "manifestSha256": "87e456708181b22f2352cd06f9da189671e06450533af9898aa92e52b127ccdc",
+  "installedHashes": {
+    "weather_station_rain.py": "a74c4fa2e890045e30b17d17c55e4d8e5e3550341e40263bb0cfa41d2822fcf6",
+    "weather_station_ingestion.py": "85c1e68e01c7c4d3c663c49908d9f65dec23b1265f02e7afc7abf344de9bb726",
+    "rtl_weather.py": "21abcba2e6bcf050c009f521d6e293ed7dcabcb34638bd0d1bb9007eae654d7b",
+    "weather_evidence_wsgi.py": "f5318f33511c1cdd55aef3fcee6da52fcfab83f7ed84a48e63a10557b59ac2bd",
+    "src/lib/weather/stationPresentation.js": "cf4b067f32099c8b5a26c9a6f3104e97671e1c63e0160f8eb460f5cf502d171f",
+    "src/lib/charts/seriesPolicy.js": "4a42cce0d2e95cb84cbe7e7649f6850df1c2ee939a42c6448f8afc4a8c6b0151",
+    "src/screens/Home.svelte": "4ccfe30936a4d9d3fa7cdda32205c903ae9756f3ed7bcdda4809f21e31270a16",
+    "src/screens/Weather.svelte": "8af18a86e999b41135aaca2d3efe53576b8ffada49a19ce1ada52b301d8dee60"
+  },
+  "privatePackage": ".superpowers/artifacts/ws2902-station-v2-release-20261022",
+  "checks": {
+    "ciPassed": 14,
+    "backendTestsPassed": 222,
+    "frontendTestsPassed": 194,
+    "browserFixtureTestsPassed": 6,
+    "productionBuildPassed": true,
+    "wholeReleaseReview": "four Important findings corrected in one regression-first pass",
+    "exactFileRollbackRehearsed": true,
+    "restMigrationRollbackRehearsed": true,
+    "existingFileModesPreserved": true
+  },
+  "migration": {
+    "newReadOnlyThing": "http:url:weatherStationV2",
+    "newItems": 11,
+    "newLinks": 11,
+    "legacyExpiryItems": 32,
+    "legacyResponseBufferBytes": 4096,
+    "stationReportBufferBytes": 16384,
+    "observedReportBytes": 9261,
+    "commandsSent": 0,
+    "syntheticWeatherPackets": 0
+  },
+  "live": {
+    "receiverActive": true,
+    "relayActive": true,
+    "relayMainPID": 2987344,
+    "stationThingStatus": "ONLINE",
+    "stationStreamEpoch": "ab2a13b6-d1fe-4fef-88ea-cabc7d90a2d2",
+    "rainStreamEpoch": "b64918a0-de92-489d-b86c-1b24313604c4",
+    "naturalPacketCounts": [
+      6,
+      10
+    ],
+    "naturalReadbacksAt": [
+      "2026-10-22T18:53:30.171029+00:00",
+      "2026-10-22T18:54:47.262601+00:00"
+    ],
+    "freshFields": 20,
+    "sensorRoles": {
+      "bedroom": "fresh",
+      "indoor": "fresh",
+      "north_wall": "fresh",
+      "outdoor": "fresh"
+    },
+    "pressureAbsoluteInHg": 23.84,
+    "pressureTrend": null,
+    "pressureSupportSeconds": 60.29762,
+    "pressureIdentity": "station_absolute",
+    "pressureFixDeployed": true
+  },
+  "ui": {
+    "routes": [
+      "weather",
+      "home"
+    ],
+    "pressureTexts": [
+      "STATION PRESSURE\n23.84 inHg\n3h trend unavailable",
+      "23.84 inHg\n3h Trend Unavailable"
+    ],
+    "screenshotsViewed": true,
+    "pageErrors": [],
+    "blockedMutationOrExternalRequests": [],
+    "proofSha256": "c10d79d7c756819a3fa307365edd40bdc60dbc84256eb72312283a86c5bab23e",
+    "screenshots": {
+      "weather": "c9128397984be877ddb954232a8a10931e98cfaa7e31a9eab88dc899302b0b1b",
+      "home": "02a94d2e153897e6fd63d867c862f85456d2822127e08c84980d6f4ac289f1d6"
+    }
+  },
+  "limitations": {
+    "pressureTrendRequiresThreeHoursOfContinuousSupport": true,
+    "incompleteRainPeriodsRemainUnavailable": true,
+    "consoleCalibration": "unknown",
+    "physicalGaugeCalibrationQualified": false,
+    "physicalIrradianceCalibrationQualified": false,
+    "weatherNextCapabilityTasks9Through11Complete": false
+  },
+  "deploymentNotes": [
+    "The initial group-writable repository-file guard stopped before mutations; exact owned repository targets now preserve their existing modes.",
+    "An incorrect single-segment link URI returned405 after disabled schema creation; only those eleven empty Items and the unlinked new Thing were removed, and the corrected two-segment link URI succeeded.",
+    "Passwordless system restart was unavailable; signalling the verified owned RTL main process allowed its existing Restart=always and KillMode=control-group service to reap and restart the collector.",
+    "The first UI probe expected a visible Home label although that label is hidden; the corrected probe checks its actual accessible station-pressure chart identity and both visible values/trend states."
+  ],
+  "automaticActuation": false
+}

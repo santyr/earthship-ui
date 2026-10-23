@@ -1,0 +1,127 @@
+{
+  "schema": "earthship-marginal-task-verification/v1",
+  "task7_complete": true,
+  "policy_sha256": "8b81c06fb15c8f9f1e25c1ee14f08bef2d154532f9f8f1ada44ee7c1ccaa4298",
+  "science": {
+    "population_rows": 104264,
+    "cohorts": 29,
+    "models": 877,
+    "outer_predictions": 40681,
+    "overlapping_score_gate_comparisons": 12,
+    "independent_replay_proof_sha256": "92d45eeb39dde5bbf2ec4714a66212e076699068d02d43cd8d65c256e4fb7e9b",
+    "historical_availability": "historical_assumed_and_recorded_available_separate",
+    "selected": false
+  },
+  "producer": {
+    "proof_sha256": "c4b81732d1949b25dc4901218129c064bf6e4df1c93b4d299e97540908d7f509",
+    "checked_at": "2026-10-22T04:48:24.343560+00:00",
+    "source_files": 399,
+    "source_package_sha256": "29273a728aeb331ad088dac2916f2a73b47cb67e11508230303a9e5edcf3e7ca",
+    "profile_file_sha256": "f23ae0a752cdd29b92dfbdf178a8a2f375932947ce60ffcd7031ca9e3a5ddc32",
+    "preview_state_bytes_unchanged": true,
+    "publication": {
+      "automatic_actuation": false,
+      "issue_sha256": "20c2cb1a12036887d219c3032503db2ae5455f058b244f17a5d40ffad061dd4f",
+      "issued": true,
+      "local_candidate_rows": 24,
+      "local_coverage_qualified": false,
+      "origin_contexts": [
+        "temperature",
+        "wind"
+      ],
+      "probability_claim": false,
+      "raw_fallback_rows": 64,
+      "retained": true,
+      "rows": 88,
+      "selected_pointer_installed": false,
+      "status": "read_only_shadow_candidates"
+    },
+    "emission_sha256": "b3279371cf5352549f6235f12d87ee7ee7a4380e3ff806abac630b5e0bc34e87",
+    "cache_bytes_sha256": "0246a8618936edcdbeb80bf2c8326a486796e9d50474c4b7d0af49e2ee0b6606",
+    "cache_write_completed_at": "2026-10-22T04:48:22.586569+00:00",
+    "queue": {
+      "confirmed": 3,
+      "database_allocated_bytes": 106496,
+      "database_maximum_bytes": 67108864,
+      "issues": 3,
+      "late_emission_targets": 0,
+      "retention": "originals and scores are not automatically pruned",
+      "targets": 93
+    },
+    "scoring": {
+      "comparison_summary_sha256": "f197f210c5cf440f81a04f9dd692c2367b95603967ff2a1ef311e41eca0ed53a",
+      "completed_scores": 1,
+      "model_sets": 1,
+      "observations_attempted": 1,
+      "report_sha256": "e43dd4095c7dd279ae1d07bc338b728b80742f4bffa8ab7427af789155218d0d",
+      "scored": 1,
+      "withheld": {}
+    },
+    "observation_policy_sha256": "d76dab4ff2383b5918f46c1bfdddfd0dadc9f48b73f83bec0d7a509d5457a7af",
+    "selected_pointer_installed": false,
+    "installed_household_cache_changed": false,
+    "production_changed": false,
+    "local_coverage_qualified": false,
+    "probability_claim": false,
+    "automatic_actuation": false,
+    "seconds": 8.734728822950274
+  },
+  "transport": {
+    "proof_sha256": "cc5fa455531d6a5c79380b442dddbc8dd3d4dd3c4e262a391aa5d1abe21fd484",
+    "digest_encoding": "javascript_sorted_top_level_JSON_before_digest_fields",
+    "checked_at": "2026-10-22T04:53:34.523Z",
+    "http_status": 200,
+    "query_status": 400,
+    "post_status": 405,
+    "rows": 88,
+    "local_candidate_rows": 24,
+    "issue_sha256": "20c2cb1a12036887d219c3032503db2ae5455f058b244f17a5d40ffad061dd4f",
+    "cache_bytes_sha256": "0246a8618936edcdbeb80bf2c8326a486796e9d50474c4b7d0af49e2ee0b6606",
+    "public_source_hashes": {
+      "src/lib/household/observationServer.js": "ae0695be9bfd316192e48f1a6e8abd364a96dd59aeddea49f06ce76445f6998d",
+      "src/lib/weather/marginalForecast.js": "6a04a54600764249c2db431590bec3ea017b29e42e79dc4f183d7522fd9f03db",
+      "src/lib/household/observation.js": "fee69213f57fdf79ad8a68dca52c42929c4a9cfee9c5d6f0a097708474fd5009"
+    },
+    "private_originals_exposed": false
+  },
+  "prospective_support": {
+    "completed_targets": 1,
+    "local_dates": 1,
+    "original_target_at": "2026-10-22T04:00:00+00:00",
+    "first_actual_capture_reused": true,
+    "scope": "one_original_issue_current_exact_model_set_and_scoring_producer",
+    "qualification": false
+  },
+  "tests": {
+    "backend_passed": 676,
+    "normal_sdk_skips": 4,
+    "backend_subtests": 165,
+    "frontend_passed": 2890,
+    "frontend_files": 188,
+    "browser_passed": 36,
+    "build_exit": 0,
+    "report_regressions": 5
+  },
+  "limits": {
+    "summary_window_days": 28,
+    "summary_maximum_rows": 10000,
+    "maximum_label_attempts_per_monitor_call": 8,
+    "global_monitor_label_budget": 64,
+    "index_maximum_bytes": 67108864,
+    "shared_original_bytes": 2147483648,
+    "shared_original_objects": 10000,
+    "automatic_pruning": false
+  },
+  "evidence_blockers": [
+    "temperature retrospective outer cohorts cover only 3\u20137 local dates; coverage varies and is not qualified",
+    "numeric wind station lacks metrology/health qualification despite retrospective interval gains",
+    "solar proxy has only 43 distinct qualified target hours, fewer than 48 training targets",
+    "prospective one-target support establishes pipeline behavior only",
+    "no all-season, rare-event, joint-distribution or household-outcome probability qualification"
+  ],
+  "production_changed": false,
+  "selected": false,
+  "probability_claim": false,
+  "automatic_actuation": false,
+  "summary_sha256": "882ed4d415bfd175a4a519ac08a05ff7b4666e2a25363f6426de6fcfab623f58"
+}

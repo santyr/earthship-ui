@@ -1,0 +1,135 @@
+{
+  "schema": "earthship-native-original-scenario-progress/v1",
+  "status": "task8_in_progress_original_producer_stress_verified",
+  "checked_at": "2026-10-22T06:56:05.696550+00:00",
+  "original_runtime_sha256": "b6736cd9f631736515b027676c7052c86fa6bd62b4e3ab7272b325bd3036d23f",
+  "original_model_sha256": "8e1007865b839b01a58c35b337d16be574e8e0553c54a47ca6b7d20c1354238a",
+  "original_source_package_sha256": "cd584bd3f5d19d9e163575530d015f19212cea931839236c68762626e77d44e4",
+  "adapter_source_package_sha256": "b5c97077a3cb78c954eb717f30d91330b7a9a0be872ef18554569d2df330eb50",
+  "input_sha256": "51c4c44ea1a590423a3336fac86ff9ee426e0b6fc60792831f9b2cf6f87df23c",
+  "child_result_sha256": "1bc4f61a8e983f5564cd162d0df198747ab6378a4f3c7b7ac273c74fda076abb",
+  "actual_experiment": {
+    "duration_seconds": 8.29609779198654,
+    "horizon_hours": 24,
+    "cases": [
+      "central",
+      "reduced_solar",
+      "warm_high_gain"
+    ],
+    "trajectory_points_per_case": [
+      24,
+      24,
+      24
+    ],
+    "central_max_abs_parity_f": 0.0,
+    "required_tolerance_f": 1e-09,
+    "original_native_source_imports_verified": true,
+    "original_interpreter": "/usr/bin/python3",
+    "original_runtime_guard_passed": true,
+    "original_conditioning_math_source_unchanged": true,
+    "source_packages_and_input_receipts_retained": true,
+    "source_guard_bypass": false,
+    "weights_or_selector_changes": false,
+    "probability_claim": false,
+    "automatic_actuation": false
+  },
+  "inventory": {
+    "first_origin": "2026-10-20T18:55:15+00:00",
+    "forecast_receipts": 383,
+    "last_origin": "2026-10-22T06:40:15+00:00",
+    "local_dates": [
+      "2026-10-20",
+      "2026-10-21",
+      "2026-10-22"
+    ],
+    "missing_plans": 0,
+    "pv_statuses": {
+      "projected_provisional_array_potential:None": 383
+    },
+    "refused_stages": 0,
+    "stages": 8,
+    "storage_statuses": {
+      "conditional_nominal_simulation:None": 339,
+      "unavailable:household_AC_load_unavailable": 25,
+      "unavailable:source_skew": 19
+    },
+    "unique_origins": 383
+  },
+  "selection": {
+    "origins": 37,
+    "rule": "earliest original per UTC issue-hour; missingness retained; chosen before actual outcomes",
+    "selection_sha256": "25cc57583f6c7d4b07365731d3f3913f0f1c1d3cfebfbdc6664f0e310b5ae296",
+    "protocol_sha256": "4e731c3c53e2f04649b5eb88bfc7cefa90e58a735ead698059d6ec61cd2927da"
+  },
+  "regressions": {
+    "original_producer_missing_component_module": {
+      "red": 1,
+      "green_native_tests": 12
+    },
+    "fractional_native_issue": {
+      "red": 2,
+      "green_affected_tests": 49
+    },
+    "combined_current_tests": {
+      "passed": 61,
+      "seconds": 56.62
+    },
+    "counts_overlap": true
+  },
+  "remaining": [
+    "bounded experiment across all selected origins/horizons",
+    "actual matching household/weather outcome assessments and joint eligibility inventory",
+    "source-adapted retained-producer integration and complete Task8 verification"
+  ],
+  "legacy_source_experiment": {
+    "checked_at": "2026-10-22T07:27:58.897195+00:00",
+    "origins": 2,
+    "component_projections": 30,
+    "native_full_trajectories": 6,
+    "forcing_rule_counts": {
+      "original_ending_hour_right_selector/v1": 6
+    },
+    "maximum_central_parity_f": 0.0,
+    "duration_seconds": 47.666518203914165,
+    "report_sha256": "9d299263c67412a28c39195f662031bdc8e8da905b38a48fe0642354195ab307",
+    "adapter_source_package_sha256": "fa7e2efc2dfcfc937e27ca170e5386d1ad8db3a60184e9145dbef7c36049af53",
+    "original_source_package_sha256": "c521035273c3bb58f22c68b4d8073dcbcaf9d383346eda9a897a7db83676943e",
+    "numerical_environment_sha256": "f45cbfd414dc60730afca17bba82b269ab3107d376fa3522e72b2802856c4c01",
+    "original_runtime_guard_passed": true,
+    "source_guard_bypass": false,
+    "weights_or_selectors_changed": false,
+    "outcomes_assessed": false
+  },
+  "portable_regressions": {
+    "red": 3,
+    "green_focused": 48,
+    "seconds": 41.31,
+    "scope": "independent original-state adapter and two legacy forcing numerical contracts; existing worker/native/targets/report tree",
+    "counts_overlap": true
+  },
+  "legacy_conditioned_source_experiment": {
+    "report_sha256": "8d9ef21f5fc0e4824f60b767ae99c140f48bf8c130526b2ef2d5252f47da46ce",
+    "checked_at": "2026-10-22T07:55:35.579254+00:00",
+    "origins": 2,
+    "native_trajectories": 6,
+    "component_projections": 30,
+    "conditioning_rules": [
+      "original_corrected_right_selector/v1"
+    ],
+    "maximum_central_parity_f": 0.0,
+    "seconds": 27.517998372903094,
+    "adapter_source_package_sha256": "d06191754baf4a7c0450f94060ac3fc41a2078dee2e3c000e90dfc856d065ec0",
+    "original_source_package_sha256": "82078dbf6ad1f3941e3ba659e4dca464e0f59df7b18e6b76014e6f981cc01109",
+    "qualified_original_math_imports": true,
+    "source_guard_bypass": false,
+    "model_or_selector_changes": false,
+    "outcomes_assessed": false
+  },
+  "conditioner_regression": {
+    "red": 1,
+    "green_focused": 49,
+    "seconds": 41.11,
+    "counts_overlap": true
+  },
+  "verification_sha256": "fda6f36220edc83ceacbead1aa1528047cbef06d8810940660411d833e6900d0"
+}

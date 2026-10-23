@@ -200,3 +200,28 @@ The first frontend run exhausted its own 32-task test scope before assertions;
 a single-worker, two-CPU run within a 64-task scope passed. Shared household
 limits remain unchanged. Production installation and live verification remain
 required; these results describe source tests only.
+
+
+### Deployed release (2026-10-22)
+
+PR46 merged as `aba39486fec030078e7771f36c5e9e89cb065d4c`; all fourteen CI
+checks passed before activation. The source release is
+`41636b173d6f33a2e16b9c922442018098a17f0e`. The receiver, relay, schema and both
+UI readers are installed, with exact original files and REST configuration
+retained outside the plan workspace. See `station-ingestion-deployment.json`
+for hashes, readbacks, tested rollback and the migration/recovery record.
+
+Natural readbacks show all four sensor roles fresh and twenty fresh fields.
+The corrected Thing is ONLINE; natural raw rain packets advanced from 6 to 10.
+Both actual Home and Weather screenshots were inspected: 23.84 inHg absolute
+station pressure and a three-hour trend unavailable during warm-up, with no
+page errors or mutation requests. No synthetic weather receipts were used.
+Pressure trend now requires three hours of continuous observations instead of
+the old twelve-reading cap and missing-history steady default. Incomplete rain
+periods also remain unavailable. The installed report measured 9261 bytes,
+within its 16384-byte response buffer. The legacy response buffer is 4096 bytes.
+
+This closes the deployed software repairs identified in the station audit.
+Console calibration and independent physical gauge/irradiance calibration remain
+unknown; this release supplies no such qualification. WeatherNext capability
+Tasks9–11 still require their separate experiment, integration and final gates.

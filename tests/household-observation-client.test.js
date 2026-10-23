@@ -1,6 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { loadHouseholdObservation } from '../src/lib/household/observationClient.js';
+import { loadHouseholdObservation, loadWeatherCapabilities, loadProductionWeather } from '../src/lib/household/observationClient.js';
 import { observation } from './fixtures/household-observation.js';
+import { capabilityFixture, CAPABILITY_NOW } from './fixtures/weather-capabilities.js';
 afterEach(() => { vi.unstubAllGlobals(); });
 it('requests only the fixed endpoint and preserves original bytes', async () => {
   const raw = JSON.stringify(observation());
@@ -19,4 +20,31 @@ it('cancels an oversized response stream before exposing its body', async () => 
 it('refuses an unavailable endpoint', async () => {
   vi.stubGlobal('fetch', async () => new Response('{"status":"unavailable"}', { status: 503 }));
   await expect(loadHouseholdObservation(new AbortController().signal)).rejects.toThrow('Observation unavailable');
+});
+it('transports a complete long-range capability report without expanding legacy route limits', async () => {
+  const report=capabilityFixture();const first=report.groups.temperature.hours[0];
+  report.groups.temperature.hours=Array.from({length:337},(_,i)=>({...first,valid_at:new Date(CAPABILITY_NOW+(i+1)*3600000).toISOString()}));
+  const raw=JSON.stringify(report);expect(raw.length).toBeGreaterThan(32768);
+  const fetcher=vi.fn(async()=>new Response(raw));vi.stubGlobal('fetch',fetcher);
+  const signal=new AbortController().signal;
+  expect(await loadWeatherCapabilities(signal)).toBe(raw);
+  expect(fetcher.mock.calls[0]).toEqual(['/api/weather-capabilities',{signal,cache:'no-store',redirect:'error'}]);
+  await expect(loadHouseholdObservation(signal)).rejects.toThrow('Observation unavailable');
+});
+it('cancels a chunked capability response when it exceeds its own 256-KiB ceiling',async()=>{
+  const cancel=vi.fn();let chunks=0;
+  const stream=new ReadableStream({pull(controller){chunks++;controller.enqueue(new Uint8Array(50000));},cancel});
+  vi.stubGlobal('fetch',async()=>new Response(stream));
+  await expect(loadWeatherCapabilities(new AbortController().signal)).rejects.toThrow('Observation unavailable');
+  expect(cancel).toHaveBeenCalled();expect(chunks).toBeLessThanOrEqual(7);
+});
+
+it('loads only the fixed production view and cancels bytes beyond its own cap',async()=>{
+ const fetcher=vi.fn(async()=>new Response('{"status":"test"}'));vi.stubGlobal('fetch',fetcher);
+ const signal=new AbortController().signal;
+ expect(await loadProductionWeather(signal)).toBe('{"status":"test"}');
+ expect(fetcher.mock.calls[0]).toEqual(['/api/weather-production',{signal,cache:'no-store',redirect:'error'}]);
+ const cancel=vi.fn();const stream=new ReadableStream({pull(c){c.enqueue(new Uint8Array(100000))},cancel});
+ vi.stubGlobal('fetch',async()=>new Response(stream));
+ await expect(loadProductionWeather(signal)).rejects.toThrow('Observation unavailable');expect(cancel).toHaveBeenCalled();
 });

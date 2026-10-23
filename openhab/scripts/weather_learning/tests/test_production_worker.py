@@ -131,6 +131,17 @@ class ProductionWorkerTests(unittest.TestCase):
             with self.assertRaises(ValueError):self.run_worker(publish=True)
         self.assertEqual(self.server.requests,[])
 
+    def test_selected_production_source_tamper_refuses_before_any_http(self):
+        runtime=self.root/'selected-runtime';runtime.mkdir(mode=0o700)
+        selected='openhab/scripts/weather_learning/production_forecast.py'
+        for name in set(self.api.SOURCE_FILES)|{selected}:
+            target=runtime/name;target.parent.mkdir(parents=True,exist_ok=True)
+            shutil.copyfile(self.api.ROOT/name,target);target.chmod(0o644)
+        with patch.object(self.api,'ROOT',runtime):
+            path=runtime/selected;path.write_bytes(path.read_bytes()+b'\n')
+            with self.assertRaises(ValueError):self.run_worker(publish=True)
+        self.assertEqual(self.server.requests,[])
+
     def test_revocation_during_native_astro_read_refuses_before_put(self):
         from astro_serving_fixtures import astro_source
         source=astro_source(self.now)
@@ -247,6 +258,32 @@ class ProductionWorkerTests(unittest.TestCase):
         self.release['site']['latitude']+=1;self.write_release()
         with self.assertRaises(ValueError):self.run_worker(publish=True)
         self.assertEqual(self.puts(),[])
+
+    def test_unavailable_optional_near24_profile_keeps_core_publication(self):
+        result=self.run_worker(publish=True,near_term_config_path=self.root/'missing-near.json')
+        self.assertEqual(result['status'],'PUBLISHED')
+        self.assertEqual(result['near_term_profile_status'],'UNAVAILABLE')
+        self.assertEqual(json.loads(self.server.states['Forecast_10Day_JSON'])['providerStatus'],'AVAILABLE')
+
+    def test_optional_near24_config_is_not_opened_during_readonly_preflight(self):
+        result=self.run_worker(near_term_config_path=self.root/'missing-near.json')
+        self.assertEqual(result['status'],'PREFLIGHT_PASSED')
+        self.assertEqual(self.puts(),[])
+
+
+    def test_explicit_pinned_optional_near24_profile_retains_raw_candidate_on_origin_dependency_failure(self):
+        from daily_temperature_runtime import SOURCE_POLICY
+        policy=self.private('outdoor.json',canonical(dict(version=2,streams=dict(outdoor=dict(SOURCE_POLICY,sensor_epoch='00000000-0000-4000-8000-000000000001')))))
+        cfg=self.private('near.json',canonical(dict(schema='earthship-near24-production-profile/v1',state=str(self.root/'near-state'),
+            temperature_policy=str(policy),temperature_db_config=str(self.root/'missing-db.json'),runtime_manifest=self.api.runtime_manifest())))
+        result=self.run_worker(publish=True,near_term_config_path=cfg)
+        self.assertEqual(result['status'],'PUBLISHED');self.assertEqual(result['near_term_profile_status'],'CONFIGURED')
+        self.assertEqual(result['refresh_status'],'retained_candidate')
+        candidate=json.loads((self.root/'near-state/near-term-correction.json').read_bytes())
+        self.assertEqual(candidate['status'],'RAW_FALLBACK');self.assertEqual(candidate['reason'],'MODEL_UNAVAILABLE')
+        self.assertFalse(candidate['issued']);self.assertFalse(candidate['local_coverage_qualified'])
+        self.assertIn('openhab/scripts/weather_learning/refresh_runtime.py',self.config['runtime_manifest'])
+
 
 if __name__=='__main__':unittest.main()
 

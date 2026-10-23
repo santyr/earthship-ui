@@ -1,0 +1,239 @@
+{
+  "schema": "earthship-marginal-calibration-protocol/v1",
+  "status": "frozen_before_new_candidate_outcome_comparisons",
+  "general_protocol_file_sha256": "a11639200d188070c9a73ece3d334a0456d1680f4389e5e52f65d8507c50ccf3",
+  "targets": {
+    "temperature": "native valid-instant outdoor Celsius; same original source/grid/statistics and qualified local target",
+    "solar_proxy": "existing qualified Weather_Radiation_Evidence_JSON one-hour mean reported solar proxy W/m2; not POA, PV electricity, true calibrated irradiance or cooling authority",
+    "wind": "existing complete site-reported one-hour mean scalar wind m/s; raw input is adjacent native instantaneous scalar means averaged; no gust/direction/PV-cooling reinterpretation"
+  },
+  "source_rule": "All eligible original data evaluated by predeclared independent source/quality/grid/lead cohorts; historical assumed readiness and actual acquisition retained separately; never pooled with recorded as-issued evidence",
+  "lead_scopes_hours": [
+    [
+      0,
+      24
+    ],
+    [
+      24,
+      72
+    ],
+    [
+      72,
+      168
+    ],
+    [
+      168,
+      336
+    ]
+  ],
+  "temporal": {
+    "maximum_training_days": 28,
+    "minimum_training_targets": 48,
+    "minimum_training_local_dates": 3,
+    "minimum_outer_targets": 24,
+    "minimum_outer_local_dates": 3,
+    "outer_dates": "last ceil(third) of eligible local target dates; no outer tuning",
+    "inner_dates": "last ceil(third) of earlier training dates, with earlier fitting on remaining dates",
+    "fit_frequency_hours": 24,
+    "assumed_fit_latency_minutes": 10,
+    "actual_model_lifetime_days": 14,
+    "historical_assumptions": "original forecast init+9h and label target-end+2min readiness are explicit counterfactuals; original real acquisition/completion clocks remain retained; not operational as-issued evidence",
+    "recorded_readiness": "original forecast and label actual acquisition before cutoff/decision; late query cannot backdate availability",
+    "minimum_inner_targets": 24,
+    "minimum_inner_local_dates": 3
+  },
+  "adaptive": {
+    "family": "past_error_exponentially_weighted_bias_v1",
+    "half_life_candidates_hours": [
+      6,
+      24,
+      72
+    ],
+    "decay_selection": "earlier inner-date point MAE only; prefer larger half-life on ties",
+    "origin_decay": "exponential age by original target time; only residuals already available at origin",
+    "future_lead_decay_hours": 24,
+    "maximum_correction_c": 6,
+    "maximum_latest_target_age_hours": 72,
+    "fallback": "original compatible incumbent value if retained else raw native mean"
+  },
+  "temperature": {
+    "family": "regularized_normal_location_width_scale_v1",
+    "parameters": [
+      "additive_location_c",
+      "variance_intercept_c2",
+      "native_width_squared_coefficient"
+    ],
+    "location": "raw mean + bounded additive location",
+    "scale": "sqrt(0.25^2 + nonnegative variance intercept + nonnegative coefficient * (native p90-p10)^2), bounded to20C",
+    "spread_semantics": "p90-p10 is a learned predictor, never asserted to be full ensemble variance",
+    "bounds": {
+      "location_c": [
+        -6,
+        6
+      ],
+      "variance_intercept_c2": [
+        0,
+        400
+      ],
+      "width_coefficient": [
+        0,
+        4
+      ]
+    },
+    "loss": "weighted closed-form normal CRPS plus ridge * [(location/6)^2 + (variance_intercept/25)^2 + width_coefficient^2]",
+    "missing_statistics": "explicit family refusal; adaptive/empirical/raw remain independently usable"
+  },
+  "nonnegative": {
+    "family": "regularized_censored_log1p_normal_v1",
+    "parameters": [
+      "log_location_intercept",
+      "log1p_raw_slope",
+      "log_scale"
+    ],
+    "distribution": "zero atom plus positive truncated log1p-normal; zero probability clipped to[0.005,0.995] and positive density renormalized consistently",
+    "bounds": {
+      "intercept": [
+        -2,
+        2
+      ],
+      "slope": [
+        0,
+        3
+      ],
+      "sigma_log": [
+        0.05,
+        2.5
+      ]
+    },
+    "loss": "weighted exact zero-atom/positive-density negative log likelihood plus ridge * [intercept^2+(slope-1)^2]",
+    "minimum_positive_training_targets": 12,
+    "minimum_positive_training_local_dates": 2,
+    "all_zero": "unsupported positive component; candidate refused, no certainty manufactured",
+    "night_and_calm": "explicit zero atom, never an unconstrained Gaussian on physical solar/wind",
+    "out_of_domain": "candidate refused when reported p10/p90 or point estimate exceeds declared target domain"
+  },
+  "empirical": {
+    "family": "weighted_empirical_residual_quantiles_v1",
+    "quantile_levels": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      0.9
+    ],
+    "baseline": "original raw mean; each native-hour window and source target matches its own measured outcome",
+    "minimum_interval_half_width": {
+      "temperature": 0.25,
+      "solar_proxy": 1.0,
+      "wind": 0.1
+    },
+    "floor_semantics": "model regularization in declared units, not an inferred sensor resolution",
+    "nonnegative": "censor local model quantiles at0; never alter native originals"
+  },
+  "optimization": {
+    "ridge_candidates": [
+      0.01,
+      0.1,
+      1.0
+    ],
+    "selection": "earlier inner dates only; larger ridge tie break",
+    "solver": "single deterministic L-BFGS-B initialization; no random restart or unbounded search",
+    "maximum_iterations": 100,
+    "maximum_function_evaluations": 400,
+    "ftol": 1e-09,
+    "cold_inner_selection": "largest declared ridge and adaptive half-life when earlier-only inner support or usable predictions are insufficient; frozen before outer dates",
+    "inner_objective": "matched interval_score80 for marginal models versus same input; matched MAE for adaptive point; no outer outcomes select hyperparameters"
+  },
+  "quantiles": {
+    "levels": [
+      0.1,
+      0.25,
+      0.5,
+      0.75,
+      0.9
+    ],
+    "native_median": "absent stays absent; model median is separately labeled locally generated",
+    "native_crossing": "rejected without sorting or silent repair",
+    "native_zero_spread": "preserved; local scale floors stop division errors or infinite confidence"
+  },
+  "domains": {
+    "temperature": [
+      -100,
+      70
+    ],
+    "solar_proxy": [
+      0,
+      2500
+    ],
+    "wind": [
+      0,
+      200
+    ]
+  },
+  "scores": {
+    "primary_common_proper_score": "interval_score80 when both raw/calibrated bounds exist, otherwise matched empirical benchmark",
+    "marginal": [
+      "p10_pinball",
+      "p90_pinball",
+      "interval_score80",
+      "coverage80",
+      "width",
+      "WIS_only_when_actual_declared_median_available"
+    ],
+    "point": [
+      "MAE",
+      "RMSE",
+      "signed_bias",
+      "absolute_error_p95"
+    ],
+    "CRPS": "reported only when a full declared distribution exists; never inferred for two native quantiles",
+    "groups": [
+      "lead",
+      "local_hour",
+      "season",
+      "native_zero_input_or_positive_input",
+      "actual_zero_or_positive_outcome"
+    ],
+    "availability": "corrected-only matched support plus full fallback policy, absent regimes named",
+    "weights": "equal local target dates, then equal measured targets, then original forecast origins; same observation not independent",
+    "paired_date_bootstrap": {
+      "replications": 128,
+      "seed": 0,
+      "qualification": "descriptive date blocks; not a probability guarantee"
+    }
+  },
+  "qualification": {
+    "minimum_relative_improvement": 0.03,
+    "maximum_supported_subgroup_regression": 0.05,
+    "minimum_subgroup_targets": 12,
+    "minimum_local_date_blocks_for_probability_review": 8,
+    "coverage80_absolute_tolerance_for_review": 0.1,
+    "automatic_promotion": false,
+    "all_candidates_initially_unqualified": true,
+    "retrospective_diagnostics_not_operational_probability_qualification": true
+  },
+  "limits": {
+    "maximum_rows_per_coherent_experiment": 10000,
+    "maximum_experiment_seconds": 120,
+    "parallel_fits": 1,
+    "partitioning": "deterministic target/source-quality/native-grid/lead cohorts if total data exceed10000; every eligible cohort gets a result, not arbitrary truncation",
+    "original_package_raw_bytes": 2147483648,
+    "original_package_compressed_bytes": 536870912,
+    "original_package_objects": 10000,
+    "original_package_encoding": "lossless gzip with original uncompressed SHA256; byte readback before acknowledgement"
+  },
+  "method_sources": {
+    "R01": "https://journals.ametsoc.org/view/journals/mwre/133/5/mwr2904.1.xml",
+    "R01_author_pdf": "https://sites.stat.washington.edu/raftery/Research/PDF/gneiting2005.pdf",
+    "R03": "https://arxiv.org/html/1903.06739v1",
+    "scope": "motivates location/dispersion separation and past-error challengers; these small local variants are not claimed as paper reproductions"
+  },
+  "authority": {
+    "new_cloud_collection": false,
+    "new_model_selection": false,
+    "production_installation": false,
+    "probability_claim": false,
+    "automatic_actuation": false
+  },
+  "policy_sha256": "8b81c06fb15c8f9f1e25c1ee14f08bef2d154532f9f8f1ada44ee7c1ccaa4298"
+}

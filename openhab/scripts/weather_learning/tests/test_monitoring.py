@@ -96,6 +96,33 @@ class MonitoringTests(unittest.TestCase):
         self.assertEqual(report['corrections']['status'],'unavailable')
         self.assertFalse(report['automatic_actuation'])
 
+    def test_capability_and_correction_observations_share_existing_64_attempt_budget(self):
+        for day in (1,2,3):
+            origin=T+timedelta(days=day)
+            self.archive.store_snapshot(full_snapshot(init=origin,hours=360))
+            shadow_once(self.archive,self.state,now=origin+timedelta(minutes=30),site=SITE,
+                sensor_epoch=EPOCH,code_revision=REVISION,horizon=336,clock=lambda:origin+timedelta(minutes=31))
+        capabilities=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit']))
+        corrections=Mock(return_value={})
+        self.run_monitor(now=T+timedelta(days=5),read_capabilities=capabilities,read_corrections=corrections)
+        legacy=self.solar.call_count+self.rain.call_count
+        temperature=len(self.temperature.call_args.args[0])
+        self.assertEqual(capabilities.call_args.kwargs['limit'],8)
+        self.assertLessEqual(legacy+temperature+8+corrections.call_args.kwargs['limit'],64)
+
+    def test_optional_capability_failure_cannot_hide_legacy_scores_or_lend_used_budget(self):
+        capabilities=Mock(side_effect=ConnectionError('private optional details'))
+        corrections=Mock(return_value={})
+        report=self.run_monitor(read_capabilities=capabilities,read_corrections=corrections)
+        self.assertEqual(report['temperature']['raw']['pairs'],2)
+        self.assertTrue(any(w['kind']=='capabilities' for w in report['source_withheld']))
+        self.assertNotIn('private optional details',str(report))
+        self.assertLessEqual(corrections.call_args.kwargs['limit'],64-2-8)
+
+    def test_capability_monitor_shared_deadline_remains_a_global_stop(self):
+        with self.assertRaises(TimeoutError):
+            self.run_monitor(read_capabilities=Mock(side_effect=TimeoutError('owner deadline')))
+
     def test_legacy_window_reads_also_consume_the_job_observation_budget(self):
         for day in (1,2,3):
             origin=T+timedelta(days=day)
@@ -212,3 +239,103 @@ class MonitoringTests(unittest.TestCase):
         self.assertTrue({r['score_sha256'] for r in first['temperature']['pair_manifest']}<=
                         {r['score_sha256'] for r in recovered['temperature']['pair_manifest']})
         self.temperature.assert_not_called()
+
+    def test_refresh_capability_and_correction_labels_share_global64_budget(self):
+        refresh=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit']))
+        capabilities=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit']))
+        corrections=Mock(return_value=dict(status='test'))
+        self.run_monitor(now=T+timedelta(days=2),read_refresh=refresh,read_capabilities=capabilities,read_corrections=corrections)
+        legacy=self.solar.call_count+self.rain.call_count
+        temperatures=sum(len(call.args[0]) for call in self.temperature.call_args_list)
+        total=legacy+temperatures+refresh.call_args.kwargs['limit']+capabilities.call_args.kwargs['limit']+corrections.call_args.kwargs['limit']
+        self.assertLessEqual(total,64);self.assertLessEqual(refresh.call_args.kwargs['limit'],8)
+
+    def test_optional_refresh_failure_preserves_core_scores_and_reservation(self):
+        refresh=Mock(side_effect=ConnectionError('private optional details'))
+        corrections=Mock(return_value=dict(status='test'))
+        report=self.run_monitor(read_refresh=refresh,read_corrections=corrections)
+        self.assertEqual(report['temperature']['raw']['pairs'],2)
+        self.assertTrue(any(w['kind']=='refresh' for w in report['source_withheld']))
+        self.assertNotIn('private optional details',str(report))
+        self.assertLessEqual(corrections.call_args.kwargs['limit'],64-2-8)
+
+    def test_refresh_resource_deadline_is_a_global_stop(self):
+        with self.assertRaises(TimeoutError):
+            self.run_monitor(read_refresh=Mock(side_effect=TimeoutError('deadline')))
+
+    def test_marginal_refresh_capability_and_legacy_labels_share_global64_budget(self):
+        marginal=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit']))
+        refresh=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit']))
+        capabilities=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit']))
+        corrections=Mock(return_value=dict(status='test'))
+        self.run_monitor(now=T+timedelta(days=2),read_marginals=marginal,read_refresh=refresh,read_capabilities=capabilities,read_corrections=corrections)
+        legacy=self.solar.call_count+self.rain.call_count
+        temperatures=sum(len(call.args[0]) for call in self.temperature.call_args_list)
+        total=legacy+temperatures+marginal.call_args.kwargs['limit']+refresh.call_args.kwargs['limit']+capabilities.call_args.kwargs['limit']+corrections.call_args.kwargs['limit']
+        self.assertLessEqual(total,64);self.assertLessEqual(marginal.call_args.kwargs['limit'],8)
+
+    def test_optional_marginal_partial_failure_consumes_full_reservation(self):
+        marginal=Mock(side_effect=ConnectionError('private marginal details'))
+        corrections=Mock(return_value=dict(status='test'))
+        report=self.run_monitor(read_marginals=marginal,read_corrections=corrections)
+        self.assertEqual(report['temperature']['raw']['pairs'],2)
+        self.assertTrue(any(w['kind']=='marginals' for w in report['source_withheld']))
+        self.assertNotIn('private marginal details',str(report))
+        self.assertLessEqual(corrections.call_args.kwargs['limit'],64-2-8)
+
+    def test_marginal_resource_failure_stops_the_global_monitor(self):
+        for error in (TimeoutError('deadline'),MemoryError('allocation')):
+            with self.subTest(error=type(error).__name__),self.assertRaises(type(error)):
+                self.run_monitor(read_marginals=Mock(side_effect=error))
+
+    def test_rain_intervals_share_the_existing_global64_observation_budget(self):
+        rain_intervals=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit'],status='fixture',completed_scores=0,pending=1,expired=0,withheld={}))
+        marginal=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit']))
+        refresh=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit']))
+        capabilities=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit']))
+        corrections=Mock(return_value=dict(status='test'))
+        report=self.run_monitor(now=T+timedelta(days=2),read_rain_intervals=rain_intervals,read_marginals=marginal,read_refresh=refresh,read_capabilities=capabilities,read_corrections=corrections)
+        legacy=self.solar.call_count+self.rain.call_count
+        temperatures=sum(len(call.args[0]) for call in self.temperature.call_args_list)
+        total=legacy+temperatures+sum(x.call_args.kwargs['limit'] for x in (rain_intervals,marginal,refresh,capabilities,corrections))
+        self.assertLessEqual(total,64);self.assertLessEqual(rain_intervals.call_args.kwargs['limit'],8)
+        self.assertEqual(report['rain_intervals']['status'],'fixture')
+
+    def test_rain_interval_partial_failure_preserves_core_scores_and_reservation(self):
+        rain_intervals=Mock(side_effect=ConnectionError('private rain details'));corrections=Mock(return_value=dict(status='test'))
+        report=self.run_monitor(read_rain_intervals=rain_intervals,read_corrections=corrections)
+        self.assertEqual(report['temperature']['raw']['pairs'],2)
+        self.assertTrue(any(w['kind']=='rain_intervals' for w in report['source_withheld']))
+        self.assertNotIn('private rain details',str(report));self.assertLessEqual(corrections.call_args.kwargs['limit'],64-2-8)
+
+    def test_rain_interval_owner_failure_stops_the_entire_monitor(self):
+        for error in (TimeoutError('deadline'),MemoryError('allocation')):
+            with self.subTest(error=type(error).__name__),self.assertRaises(type(error)):
+                self.run_monitor(read_rain_intervals=Mock(side_effect=error))
+
+
+    def test_production_scores_and_every_legacy_reader_share_the_existing64_attempt_ceiling(self):
+        production=Mock(side_effect=lambda **kw:dict(status='fixture',observations_attempted=kw['limit']))
+        capabilities=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit']))
+        refresh=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit']))
+        marginal=Mock(side_effect=lambda **kw:dict(observations_attempted=kw['limit']))
+        rain_intervals=Mock(side_effect=lambda **kw:dict(status='fixture',observations_attempted=kw['limit']))
+        corrections=Mock(return_value=dict(status='fixture'))
+        report=self.run_monitor(now=T+timedelta(days=2),read_production=production,read_capabilities=capabilities,read_refresh=refresh,read_marginals=marginal,read_rain_intervals=rain_intervals,read_corrections=corrections)
+        total=self.solar.call_count+self.rain.call_count+sum(len(call.args[0]) for call in self.temperature.call_args_list)
+        total+=sum(x.call_args.kwargs['limit'] for x in (production,capabilities,refresh,marginal,rain_intervals,corrections))
+        self.assertLessEqual(total,64);self.assertEqual(production.call_args.kwargs['limit'],48)
+        self.assertEqual(report['production_models']['status'],'fixture')
+
+    def test_production_optional_failure_reserves_its_full_budget_and_preserves_core_truth(self):
+        corrections=Mock(return_value=dict(status='fixture'))
+        report=self.run_monitor(read_production=Mock(side_effect=ConnectionError('private production detail')),read_corrections=corrections)
+        self.assertEqual(report['temperature']['raw']['pairs'],2)
+        self.assertEqual(report['production_models']['status'],'unavailable')
+        self.assertNotIn('private production detail',str(report))
+        self.assertLessEqual(corrections.call_args.kwargs['limit'],14)
+
+    def test_production_monitor_resource_stop_is_global(self):
+        for error in (TimeoutError('deadline'),MemoryError('memory')):
+            with self.subTest(error=type(error).__name__),self.assertRaises(type(error)):
+                self.run_monitor(read_production=Mock(side_effect=error))

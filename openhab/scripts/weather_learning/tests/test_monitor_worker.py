@@ -1,6 +1,7 @@
 """Observation policy identity includes temperature validity and sensor policy."""
 from dataclasses import replace
 import unittest
+import pytest
 from learning_fixtures import T,EPOCH
 from weather_temperature_evidence import TemperaturePolicy
 from weather_learning import monitor_worker
@@ -30,3 +31,77 @@ class MonitorPolicyTests(unittest.TestCase):
         clock.return_value=189.5
         with self.assertRaises(TimeoutError):connect()
         factory.assert_called_once()
+
+
+def test_marginal_monitor_is_disabled_without_its_separate_index(tmp_path):
+    from weather_learning.shadow import ShadowStore
+    assert hasattr(monitor_worker,'marginal_monitor_callback'), 'Task7 optional marginal worker adapter missing'
+    state=ShadowStore(tmp_path/'state');before=set(state.root.rglob('*'))
+    callback=monitor_worker.marginal_monitor_callback(state,observation_policy_sha256='a'*64,sensor_epoch=EPOCH,
+        read_temperature=lambda *a:None,read_wind=lambda *a:None,read_solar=lambda *a:None,clock=lambda:T)
+    assert callback is None and set(state.root.rglob('*'))==before
+
+
+def test_marginal_worker_scores_through_existing_native_temperature_reader(tmp_path):
+    from test_marginal_queue import setup
+    from learning_fixtures import receipt
+    from datetime import timedelta
+    assert hasattr(monitor_worker,'marginal_monitor_callback'), 'Task7 optional marginal worker adapter missing'
+    state,_,_,_,at,_=setup(tmp_path);now=at+timedelta(hours=1,minutes=2);calls=[]
+    def temperature(targets,assessed):calls.append((targets,assessed));return {t:receipt(t) for t in targets}
+    def unexpected(*a):raise AssertionError('temperature target must not query another domain')
+    callback=monitor_worker.marginal_monitor_callback(state,observation_policy_sha256='a'*64,sensor_epoch=EPOCH,
+        read_temperature=temperature,read_wind=unexpected,read_solar=unexpected,clock=lambda:now)
+    result=callback(now=now,limit=1,apply=True,guard=lambda:None)
+    assert result['scored']==1 and len(calls)==1 and calls[0][0]==[at+timedelta(hours=1)]
+
+
+def test_rain_worker_is_disabled_without_its_separate_optional_index(tmp_path):
+    from types import SimpleNamespace
+    from test_weather_rain_day import POLICY as native,bounds
+    assert hasattr(monitor_worker,'rain_monitor_callback'),'optional rain worker callback missing'
+    callback=monitor_worker.rain_monitor_callback(SimpleNamespace(root=tmp_path),observation_policy_sha256='a'*64,native_policy=native,cutover=bounds()[0],connect=lambda:None,clock=lambda:T)
+    assert callback is None
+
+
+def test_rain_worker_uses_original_readonly_native_acquisitions_without_fitting(tmp_path):
+    from test_rain_queue import setup
+    from test_weather_rain_day import POLICY as native
+    from test_weather_rain_history import Connection
+    from datetime import timedelta
+    from unittest.mock import patch
+    module,state,queue,issue,key,start,end=setup(tmp_path);now=end+timedelta(minutes=2);connections=[]
+    def connect():
+        c=Connection();connections.append(c);return c
+    assert hasattr(monitor_worker,'rain_monitor_callback'),'optional rain worker callback missing'
+    callback=monitor_worker.rain_monitor_callback(state,observation_policy_sha256='a'*64,native_policy=native,cutover=start,connect=connect,clock=lambda:now)
+    with patch('weather_learning.rain_two_part.fit_two_part',side_effect=AssertionError('no scoring fit')):
+        result=callback(now=now,limit=1,apply=True,guard=lambda:None)
+    assert result['scored']==1 and result['observations_attempted']==1 and len(connections)==1
+    assert connections[0].session==dict(readonly=True,autocommit=False,isolation_level='REPEATABLE READ')
+
+
+
+def test_production_callback_stays_disabled_without_confirmed_outputs(tmp_path):
+ from types import SimpleNamespace
+ from weather_learning import monitor_worker
+ callback=monitor_worker.production_monitor_callback(SimpleNamespace(root=tmp_path),observation_policy_sha256='c'*64,sensor_epoch=EPOCH,
+  read_temperature=lambda *a:pytest.fail('disabled queried temperature'),read_wind=lambda *a:pytest.fail('disabled queried wind'),clock=lambda:T)
+ assert callback is None and not list(tmp_path.iterdir())
+
+
+from test_production_forecast import serving,NOW
+
+
+def test_production_callback_uses_native_temperature_reader_and_original_acquisition_clock(serving,tmp_path):
+ from datetime import timedelta
+ from test_production_queue import setup
+ from learning_fixtures import receipt
+ state,_,emission=setup(serving,tmp_path);now=NOW.replace(minute=0)+timedelta(hours=1,minutes=3);calls=[]
+ def read(targets,assessed):
+  calls.append((targets,assessed));return {at:receipt(at) for at in targets}
+ callback=monitor_worker.production_monitor_callback(state,observation_policy_sha256='c'*64,sensor_epoch=EPOCH,
+  read_temperature=read,read_wind=lambda *a:pytest.fail('unready wind queried'),clock=lambda:now)
+ value=callback(now=now,limit=1,apply=True,guard=lambda:None)
+ assert value['scored']==value['observations_attempted']==1
+ assert calls==[([NOW.replace(minute=0)+timedelta(hours=1)],now)]

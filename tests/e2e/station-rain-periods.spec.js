@@ -30,8 +30,8 @@ async function readableText(tile){
  for(const b of bounds){expect(b.left).toBeGreaterThanOrEqual(b.outer.left+3);expect(b.right).toBeLessThanOrEqual(b.outer.right-3);expect(b.top).toBeGreaterThanOrEqual(b.outer.top);expect(b.bottom).toBeLessThanOrEqual(b.outer.bottom);}
 }
 for(const [width,height] of [[1340,800],[1280,720]])for(const route of ['home','weather']){
- test(`partial day and week rainfall stay visible at ${route} ${width}x${height}`,async({page},info)=>{
-  const tile=await open(page,route,width,height,.03);if(route==='home'){await expect(tile).toContainText('0.03″ / 52 gal');await expect(tile).toContainText('Week 0.03″ / 52 gal');await expect(tile).not.toContainText('partial');await expect(tile).not.toContainText('≥');}else{await expect(tile).toContainText('≥0.03″');await expect(tile).toContainText(/partial/i);await expect(tile).toContainText(/wk ≥0.03″/);await expect(tile).not.toContainText('gal');}await expect(tile).not.toContainText('99.99');
+ test(`recorded day and week rainfall stay visible at ${route} ${width}x${height}`,async({page},info)=>{
+  const tile=await open(page,route,width,height,.03);if(route==='home'){await expect(tile).toContainText('0.03″ / 52 gal');await expect(tile).toContainText('Week 0.03″ / 52 gal');await expect(tile).not.toContainText('partial');await expect(tile).not.toContainText('≥');}else{await expect(tile).toContainText('0.03″');await expect(tile).not.toContainText(/partial/i);await expect(tile).toContainText(/wk 0.03″/);await expect(tile).not.toContainText('gal');}await expect(tile).not.toContainText('99.99');
   const size=await tile.evaluate(e=>({sw:e.scrollWidth,cw:e.clientWidth}));expect(size.sw).toBeLessThanOrEqual(size.cw);await readableText(tile);
   await tile.screenshot({path:info.outputPath('rain-partial.png')});
   await page.clock.fastForward(91000);await expect(tile).not.toContainText('0.03');await expect(tile).toContainText('—');
@@ -48,5 +48,13 @@ for(const [width,height] of [[1340,800],[1280,720]])test(`saved actual OpenHAB r
  const {report}=JSON.parse(readFileSync('tests/fixtures/ws2902-station-openhab-20261022.json','utf8'));
  const tile=await open(page,'home',width,height,0,false,report);
  await expect(tile).toContainText('0.08″ / 140 gal');await expect(tile).toContainText('Week 0.22″ / 384 gal');
+ await expect(tile).not.toContainText('partial');await expect(tile).not.toContainText('≥');await readableText(tile);
+});
+
+
+test('saved actual OpenHAB rain receipts also drive recorded Weather totals',async({page})=>{
+ const {report}=JSON.parse(readFileSync('tests/fixtures/ws2902-station-openhab-20261022.json','utf8'));
+ const tile=await open(page,'weather',1280,720,0,false,report);
+ await expect(tile).toContainText('0.08″');await expect(tile).toContainText('wk 0.22″');
  await expect(tile).not.toContainText('partial');await expect(tile).not.toContainText('≥');await readableText(tile);
 });

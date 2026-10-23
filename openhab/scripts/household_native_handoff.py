@@ -38,7 +38,7 @@ def _rows(raw,key):
 def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard,previous_family=None,previous_deployment_sha256=None):
     family,forecast,score=map(deploy._directory,(family,previous_forecast_stage,previous_score_stage))
     guard();selected=family_api.verify(family,guard=guard);stage=deploy._directory(selected['stage'])
-    serving=selected['schema']=='earthship-native-thermal-service-family/v2'
+    serving=selected['schema'] in ('earthship-native-thermal-service-family/v2','earthship-native-thermal-service-family/v3')
     upgrade=previous_family is not None
     if upgrade!=(previous_deployment_sha256 is not None):raise ValueError('paired previous family and external pin required')
     old_family=None;old_selected=None;reset=False
@@ -54,7 +54,7 @@ def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard,previo
         previous_settings=json.loads(deploy._bytes(previous_cycle['forecast_config'],private=True,maximum=8192))
         reset=previous_settings.get('schema') not in deploy.GOOGLE_SCHEMAS
         old_family=deploy._directory(previous_family);old_selected=previous_family_record()
-        if (not serving or old_selected['schema']!='earthship-native-thermal-service-family/v2' or
+        if (not serving or old_selected['schema'] not in ('earthship-native-thermal-service-family/v2','earthship-native-thermal-service-family/v3') or
                 old_selected['deployment_sha256']!=previous_deployment_sha256 or
                 forecast!=score or str(forecast)!=old_selected['stage'] or forecast==stage):
             raise ValueError('explicit previous owned receipt family pin required')

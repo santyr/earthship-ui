@@ -148,3 +148,27 @@ def test_nonfinite_oversized_and_wrong_sensor_are_refused():
     wrong['record']['sensorId'] = 999
     with pytest.raises(RainDayRefused, match='unavailable'):
         parse_rain_snapshot(json.dumps(wrong), at, POLICY)
+
+
+@pytest.mark.parametrize('hours',[6,24])
+def test_generic_counter_interval_uses_exact_rolling_window_without_day_relabeling(hours):
+    import weather_rain_day as native
+    start,_=bounds();left=start+timedelta(hours=6);right=left+timedelta(hours=hours)
+    rows=[];at=left-timedelta(seconds=30)
+    while at<=right+timedelta(seconds=60):
+        rows.append(snapshot(at,len(rows)+1,10.1 if at>=left+(right-left)/2 else 10.))
+        at+=timedelta(seconds=90)
+    result=native.qualify_rain_interval(start=left,end=right,as_of=right+timedelta(seconds=120),observations=rows,policy=POLICY)
+    assert result['start']==left.isoformat() and result['end']==right.isoformat()
+    assert result['rain_in']==.1 and result['uncertainty_in']==0
+    assert 'local_date' not in result
+    damaged=change(rows,100,invalidPackets=1)
+    with pytest.raises(RainDayRefused):native.qualify_rain_interval(start=left,end=right,as_of=right+timedelta(seconds=120),observations=damaged,policy=POLICY)
+
+
+def test_generic_counter_interval_preserves_invalid_barriers_and_midpoint_uncertainty():
+    import weather_rain_day as native
+    left,right=bounds();rows=change(day_rows(),-1,record__totalRainIn=10.11)
+    value=native.qualify_rain_interval(start=left,end=right,as_of=right+timedelta(seconds=120),observations=rows,policy=POLICY)
+    assert value['rain_in']==.105 and value['uncertainty_in']==.01
+    with pytest.raises(RainDayRefused):native.qualify_rain_interval(start=left,end=right,as_of=right+timedelta(seconds=120),observations=rows[:100]+[(rows[100][0],None)]+rows[101:],policy=POLICY)

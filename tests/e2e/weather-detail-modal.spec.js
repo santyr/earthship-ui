@@ -113,7 +113,7 @@ async function openFixture(page, route, target, detail = null) {
     // The common fixture deliberately returns 503 for these optional reports.
     // Keep unexpected asset failures and JavaScript console errors observable.
     const pathname = new URL(message.location().url || '/', baseURL).pathname;
-    const unavailableReport = ['/api/daily-pv-potential', '/api/household-energy-observation', '/api/terrain-daylight'].includes(pathname);
+    const unavailableReport = ['/api/daily-pv-potential', '/api/household-energy-observation', '/api/terrain-daylight', '/api/weather-capabilities'].includes(pathname);
     if (unavailableReport && message.text() === 'Failed to load resource: the server responded with a status of 503 (Service Unavailable)') return;
     consoleErrors.push({ message: message.text(), url: message.location().url });
   });

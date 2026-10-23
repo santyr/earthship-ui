@@ -1,0 +1,90 @@
+{
+  "schema": "earthship-task9-rain-final-verification/v1",
+  "checked_at": "2026-10-22T20:26:00.075448+00:00",
+  "source_revision": "1f3f12df3a00b7bd2d178cb63dcf432256dc19c8",
+  "current_source_manifest_sha256": "034a0f2500739970da76c5a4c8374aa8d4caa0394f260beb5633a45ae73c8021",
+  "current_producer_files": 418,
+  "science_producer_package_sha256": "476b2f83b2e5a73dfdfe346fd58923026d47c90328645ad71a56110c07adb6c0",
+  "science_index_sha256": "83de28ab836bc0af66f9d7ce314361d30bd38590686fea7bad7b5c53e7afff0d",
+  "original_files_rechecked": 548,
+  "science": {
+    "scopes": 13,
+    "measurement_cohorts": 20,
+    "matched_target_scope_pairs": 80,
+    "original_predictions": 80,
+    "causal_fit_refusals": 37,
+    "old_gain_models_reproduced": 6,
+    "old_producer_packages": 3,
+    "timing_targets": 97,
+    "available_timing_targets": 80,
+    "locatable_depth_centroids": 29,
+    "score_time_coefficient_fits": 0
+  },
+  "prospective": {
+    "proofs": {
+      "preview": "12c0232042562d71d48cf334d6d10bc6b5c83bf085890b0530c73dbdc47dcf82",
+      "apply": "acd5726cf74bcae9eaca5673923049cd78fa787dbbf8f10a051737766ec49b18",
+      "repeat": "4f91ce3859118eaf771187fb43a3491110b5c9dd4aa39ce3745b720ea56d563c",
+      "restart": "1a91c63ca4ee91fd4a2bee5e7954bba2bc0ce9d8bea75770313fc6261841844e"
+    },
+    "intervals": 28,
+    "native_originals": 2,
+    "interval_kinds": [
+      "local_calendar_day",
+      "remaining_day",
+      "rolling_24_hours"
+    ],
+    "same_generation_no_clock_renewal": true,
+    "index_rebuild_recovers_exact_emission": true,
+    "pending": 28,
+    "expired": 0,
+    "first_start": "2026-10-22T21:00:00+00:00",
+    "last_end": "2026-11-05T21:00:00+00:00",
+    "local_probability_rows": 0
+  },
+  "backend": {
+    "passed": 931,
+    "normal_sdk_profile_skips": 4,
+    "normal_flask_cors_profile_skips": 3,
+    "skipped": 7,
+    "subtests": 167,
+    "log_sha256": "f6ee1d415937c4bc9698f7fc239d705b2cada72b3f8b12b27d33541a41e3aaf5"
+  },
+  "host_receiver_profile": {
+    "passed": 50,
+    "skipped": 0,
+    "log_sha256": "ebaa2c69d099c9b607800e0daa5203cdc4a02adafc7de35d65dbcdc1b294035b"
+  },
+  "offline_sdk": {
+    "passed": 4,
+    "skipped": 0,
+    "outbound_sockets_forbidden": true,
+    "log_sha256": "db521fc967637a6d46593a3a8e6b39e09328eaa608ae2b283cb615bdc5f3fe65"
+  },
+  "runtime_regressions": {
+    "passed": 79,
+    "subtests": 18,
+    "result_file_sha256": "9a5013420f7b447ba923e546f16acd656d17d429456a45cb7e32b616a586e7f2"
+  },
+  "requirements": {
+    "matched_three_heads_and_interval_semantics": true,
+    "threshold_and_boundary_uncertainty_frozen": true,
+    "one_supported_only_two_part_model_and_training_climatology": true,
+    "local_probability_and_target_identity_explicit": true,
+    "sparse_unseen_regimes_withhold_probability": true,
+    "raw_production_rain_retained_no_cistern_authority": true
+  },
+  "pending_evidence": [
+    "Source-bound independent resolution document with at least three independently counted local tip trials and actual availability.",
+    "Per interval/lead/grid/measurement cohort: twelve causal training targets in28days, six wet, six below threshold and three independent wet events.",
+    "Fixed final-third outer cohort: eight date blocks, six wet/six below threshold/three wet events and predeclared matched improvement/uncertainty/subgroup gates.",
+    "The 28 confirmed future intervals must mature naturally; first/last targets and original emission are retained without renewed clocks."
+  ],
+  "task9_complete_locally": true,
+  "selected_product": null,
+  "probability_calibration_qualified": false,
+  "physical_calibration_qualified": false,
+  "optional_rain_runtime_production_installed": false,
+  "automatic_actuation": false,
+  "verification_sha256": "f93a1b584dfe06aacb94ec02e513383e926e5a553b5dad931f79416827e499f4"
+}

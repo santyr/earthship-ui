@@ -1,0 +1,141 @@
+{
+  "schema": "earthship-rain-occurrence-amount-protocol/v1",
+  "status": "frozen_before_task9_final_outcome_assessment",
+  "parent_evaluation_protocol_sha256": "5249b253e084ecd6105f0c19eb711a8e99b4b962e1034afcc2c89b1723afea7a",
+  "products": [
+    "total_precipitation_1hr",
+    "imerg_tp_1hr",
+    "experimental_tp_1hr"
+  ],
+  "intervals": {
+    "local_calendar_day": "local midnight through next local midnight; actual 23/24/25 elapsed hours",
+    "rolling_24_hours": "24 complete native hourly accumulation intervals with named UTC endpoints",
+    "remaining_day": "complete future native hours after ceil(issue) through local midnight; excludes the ongoing partial hour"
+  },
+  "source_semantics": {
+    "depth_unit": "mm",
+    "means": "sum complete disjoint native mean depths for one head/run/cell only",
+    "quantiles": "retain individual hourly statistics; reject sums of marginal quantiles",
+    "availability": "retain actual acquisition/publication clocks; historical-assumed experiment remains separate from issued skill"
+  },
+  "decision_selection": "latest original decision completing before the target interval starts; choose before checking three-head missingness or outcomes; no replacement with an earlier successful issue",
+  "observation": {
+    "source": "original Weather_Rain_Evidence_JSON counter receipts with native continuity/barrier/epoch/policy/cutover checks",
+    "uncertainty": "retain native counter boundary lower/upper range, expand classification ambiguity by one independently evidenced resolution step",
+    "physical_gauge_calibration_qualified": false,
+    "resolution": "requires source-bound independently evidenced measurement resolution and actual availability; decoder/reference specifications alone do not grant local resolution evidence"
+  },
+  "wet_threshold_rule": {
+    "minimum_threshold_mm": 0.2,
+    "gauge_resolution_multiplier": 2,
+    "boundary_ambiguity_resolution_multiples": 1,
+    "missing_measured_resolution": "insufficient_evidence_for_occurrence_model; retain supported continuous raw comparisons"
+  },
+  "classification": {
+    "wet": "lower uncertainty bound at or above the declared wet-event threshold",
+    "below_threshold": "upper uncertainty bound strictly below threshold; trace is not asserted to be physically dry",
+    "ambiguous": "uncertainty interval crosses threshold; exclude from occurrence class fitting/scoring, retain continuous-depth diagnostics"
+  },
+  "baselines": {
+    "raw": "all three heads on exactly the same complete targets",
+    "incumbent": "current provider total_precipitation_1hr; preserve any original serving selection/model identity if present",
+    "gain": "existing target-weighted fit_gain rain_24h_mm procedure, training only",
+    "probability": "training-only smoothed wet-event frequency, Beta(0.5,0.5)"
+  },
+  "candidate": {
+    "method": "two_part_logistic_occurrence_shifted_lognormal_positive_amount/v1",
+    "features": [
+      "intercept",
+      "log1p(total_mean_mm)",
+      "log1p(imerg_mean_mm)",
+      "log1p(experimental_mean_mm)",
+      "lead_hours/24"
+    ],
+    "feature_scaling": "training-only centering/scaling of nonintercept features",
+    "occurrence": "weighted ridge logistic IRLS; fixed L2=1, intercept unpenalized, maximum25iterations, tolerance1e-8",
+    "positive_amount": "ridge regression of log(observed_mm-wet_threshold_mm), fixed L2=1, intercept unpenalized; training-only smearing yields conditional mean above threshold",
+    "subthreshold_amount": "training-only weighted mean for unambiguously below-threshold targets; do not silently turn measurable trace into zero",
+    "total_mean": "p_wet*conditional_wet_mean+(1-p_wet)*training_subthreshold_mean",
+    "method_set_size": 1,
+    "source_label": "local learned experimental interval forecast; not native Google probabilities",
+    "cumulative_probability": "only for the exactly trained interval target; never sum hourly probabilities or quantiles"
+  },
+  "support": {
+    "maximum_training_days": 28,
+    "minimum_training_targets": 12,
+    "minimum_wet_targets": 6,
+    "minimum_below_threshold_targets": 6,
+    "minimum_independent_wet_events": 3,
+    "wet_event_definition": "consecutive wet daily target intervals form one event; a qualified below-threshold interval separates events; gaps do not establish independence",
+    "independence": "one original per target; equal local target dates; no overlapping-window sample inflation",
+    "cohort": "interval kind, lead scope, original native grid, gauge policy/resolution/source epoch and evidence-availability class",
+    "unseen_regime": "unsupported cohort/interval/lead/season context is insufficient_evidence",
+    "season_distance_days": 45,
+    "minimum_outer_local_date_blocks": 8,
+    "minimum_outer_wet_targets": 6,
+    "minimum_outer_below_threshold_targets": 6
+  },
+  "split": "rolling chronological; final third of eligible independent target dates is outer holdout; all fitted inputs actually available before each decision; no outer tuning",
+  "metrics": {
+    "point": [
+      "mae_mm",
+      "rmse_mm",
+      "signed_bias_mm",
+      "absolute_error_p95_mm",
+      "boundary_uncertainty_error_bounds"
+    ],
+    "occurrence": [
+      "brier_vs_training_only_climatology",
+      "fixed_10_bin_reliability",
+      "false_alarm",
+      "missed_event"
+    ],
+    "wet": [
+      "matched_wet_event_amount_mae_mm",
+      "independent_event_support"
+    ],
+    "timing": "hourly native three-head timing versus qualified hourly counter brackets where supported; no fabricated intrainterval local-model timing",
+    "subgroups": [
+      "wet/below_threshold/ambiguous",
+      "lead_scope",
+      "interval_kind",
+      "season",
+      "source/grid/measurement cohort"
+    ]
+  },
+  "selection": {
+    "relative_improvement": 0.03,
+    "maximum_supported_subgroup_regression": 0.05,
+    "minimum_subgroup_targets": 12,
+    "bootstrap": "500 fixed-seed independent local-day-block resamples; paired origins stay together",
+    "seed": 0,
+    "gate": "candidate must improve both Brier versus training-only climatology and matched amount error versus incumbent/gain with wet-event support; dry-only aggregate gains cannot select",
+    "raw_head_selection": "inner-date ranking only, outer verification on same complete targets; no automatic production changes",
+    "dispositions": [
+      "adopt_candidate",
+      "retain_incumbent",
+      "reject_candidate",
+      "insufficient_evidence"
+    ],
+    "automatic_promotion": false
+  },
+  "limits": {
+    "maximum_rows_per_experiment": 10000,
+    "maximum_original_bytes": 50331648,
+    "maximum_single_source_bytes": 16777216,
+    "maximum_experiment_seconds": 120,
+    "parallel_fits": 1,
+    "shared_resource_pool": "unchanged managed admission",
+    "read_only_local_collection": true,
+    "archive_pruning": false
+  },
+  "authority": {
+    "raw_production_rain_retained": true,
+    "optional_producer_default_off": true,
+    "probability_calibration_qualified": false,
+    "physical_calibration_qualified": false,
+    "automatic_actuation": false,
+    "cistern_availability": false
+  },
+  "policy_sha256": "e064f05044d5cf6f518578a673c66726289df58290100045ff4ca53e0db52d7c"
+}

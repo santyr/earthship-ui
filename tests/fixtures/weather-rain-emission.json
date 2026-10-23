@@ -1,0 +1,9 @@
+{
+  "schema": "earthship-confirmed-rain-emission/v1",
+  "wrapper_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "cache_bytes_sha256": "69a23e278571b7eb3bc89697027b4c2518dfd47b0e5e9d68cd3871eda07ed64e",
+  "cache_write_completed_at": "2026-10-22T20:14:57.389123+00:00",
+  "contract_sha256": "ff214305b9e05c40b59e6954d4883ce30b05deec66d774ed6af17b66a3ee0aac",
+  "automatic_actuation": false,
+  "emission_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+}

@@ -72,7 +72,7 @@ function normalizeTemperatureAdjustment(raw) {
   });
 }
 
-function normalizeHour(raw, date) {
+function normalizeHour(raw, date, production = false) {
   if (!raw || typeof raw !== 'object' || !OFFSET_TIMESTAMP.test(raw.at ?? '')) {
     throw new TypeError('hour timestamp must include an offset');
   }
@@ -86,22 +86,30 @@ function normalizeHour(raw, date) {
     ...(raw.forecastProfile ? { forecastProfile: raw.forecastProfile } : {}),
     isDay: typeof raw.isDay === 'boolean' ? raw.isDay : null,
     tempF: nullableNumber(raw.tempF, 'tempF'),
-    precipPct: nullableNumber(raw.precipPct, 'precipPct'),
+    precipPct: nullableNumber(production ? raw.precipPct ?? null : raw.precipPct, 'precipPct'),
     precipIn: nullableNumber(raw.precipIn ?? null, 'precipIn'),
     radiationWm2: nullableNumber(raw.radiationWm2, 'radiationWm2'),
-    windMph: nullableNumber(raw.windMph, 'windMph'),
-    weatherCode: nullableNumber(raw.weatherCode, 'weatherCode'),
+    windMph: nullableNumber(production ? raw.windMeanMph ?? raw.windMph : raw.windMph, 'windMph'),
+    ...(production ? {
+      nativeWindMph: nullableNumber(raw.windMph, 'nativeWindMph'),
+      windStatistic: raw.windMeanMph == null ? 'native_instantaneous' : 'local_hour_mean',
+    } : {}),
+    weatherCode: nullableNumber(production ? raw.weatherCode ?? null : raw.weatherCode, 'weatherCode'),
     cloudPct: nullableNumber(raw.cloudPct ?? null, 'cloudPct'),
   });
 }
 
-function normalizeDay(raw) {
+function normalizeDay(raw, production = false) {
   if (!raw || typeof raw !== 'object' || !DATE.test(raw.date ?? '')) {
     throw new TypeError('day date must be ISO');
   }
   if (!Array.isArray(raw.hours)) throw new TypeError('day hours are required');
   const summary = raw.summary ?? {};
-  const hours = raw.hours.map((value) => normalizeHour(value, raw.date));
+  if (production && (!['remaining', 'full_day'].includes(summary.temperatureScope)
+      || summary.temperatureStatistic !== 'extrema_of_hourly_point_forecasts')) {
+    throw new TypeError('production temperature summary scope is invalid');
+  }
+  const hours = raw.hours.map((value) => normalizeHour(value, raw.date, production));
   for (let index = 1; index < hours.length; index += 1) {
     if (hours[index - 1].atMs >= hours[index].atMs) {
       throw new TypeError('hours must be strictly ascending');
@@ -118,6 +126,7 @@ function normalizeDay(raw) {
       weatherCode: nullableNumber(summary.weatherCode, 'summary.weatherCode'),
       pvKwh: nullableNumber(summary.pvKwh, 'pvKwh'),
       cloudPct: nullableNumber(summary.cloudPct ?? null, 'summary.cloudPct'),
+      ...(production ? { temperatureScope: summary.temperatureScope, temperatureStatistic: summary.temperatureStatistic } : {}),
       ...(summary.forecastProfile ? { forecastProfile: summary.forecastProfile } : {}),
       ...(summary.precipitationScope === 'remaining' ? {
         precipitationScope: 'remaining',
@@ -141,12 +150,24 @@ export function parseForecast10Day(raw, { nowMs = Date.now() } = {}) {
   try {
     const parsed = JSON.parse(raw);
     legacyFallbackAllowed = parsed?.provider !== 'weathernext3';
-    if (![1, 2].includes(parsed?.version)) {
+    if (![1, 2, 3].includes(parsed?.version)) {
       throw new TypeError('unsupported forecast detail version');
     }
     const temperatureAdjustment = parsed.version === 2
       ? normalizeTemperatureAdjustment(parsed.temperatureAdjustment)
       : null;
+    let productionModel = null;
+    if (parsed.version === 3) {
+      const model = parsed.productionModel;
+      if (parsed.provider !== 'weathernext3' || !/^[a-f0-9]{64}$/.test(model?.issueSha256 ?? '')
+          || !['ACTIVE', 'MIXED_WITH_RAW_FALLBACK', 'RAW_FALLBACK'].includes(model?.status)
+          || model.localCoverageQualified !== false || model.probabilityClaim !== false
+          || model.temperatureStatistic !== 'model_point_with_declared_raw_fallback'
+          || model.windStatistic !== 'native_instantaneous_with_separate_local_hour_mean') {
+        throw new TypeError('production model identity or target semantics are invalid');
+      }
+      productionModel = Object.freeze({ ...model });
+    }
     if (parsed.timezone !== HOUSEHOLD_TIMEZONE) throw new TypeError('unexpected forecast timezone');
     if (!OFFSET_TIMESTAMP.test(parsed.generatedAt ?? '')) {
       throw new TypeError('generatedAt must include an offset');
@@ -164,7 +185,7 @@ export function parseForecast10Day(raw, { nowMs = Date.now() } = {}) {
       return unavailable('WeatherNext forecast unavailable', false);
     }
     if (!parsed.days.length) return unavailable('forecast days missing', legacyFallbackAllowed);
-    const days = parsed.days.map(normalizeDay);
+    const days = parsed.days.map(day => normalizeDay(day, parsed.version === 3));
     const seen = new Set();
     for (let index = 0; index < days.length; index += 1) {
       if (seen.has(days[index].date)) throw new TypeError('duplicate forecast day');
@@ -181,6 +202,7 @@ export function parseForecast10Day(raw, { nowMs = Date.now() } = {}) {
       timezone: parsed.timezone,
       provider: parsed.provider === 'weathernext3' ? 'weathernext3' : null,
       temperatureAdjustment,
+      ...(productionModel ? { productionModel } : {}),
       ...(parsed.profiles ? { profiles: Object.freeze(parsed.profiles) } : {}),
       days: Object.freeze(days),
     });

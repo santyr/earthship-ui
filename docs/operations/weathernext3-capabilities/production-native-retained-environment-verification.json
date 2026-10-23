@@ -1,0 +1,22 @@
+{
+  "actual_seconds": 2.7347863039467484,
+  "automatic_actuation": false,
+  "checked_at": "2026-10-23T06:31:09.057496+00:00",
+  "cloud_requests": 0,
+  "current_and_daily_selection_identical": true,
+  "current_still_requires_geometry": true,
+  "family_sha256": "d024deebf6fccea2593ebff6976c740768ddbcbd68c7cf0b24d4f2dbf07f5243",
+  "historical_replay_requires_no_current_geometry": true,
+  "installed": false,
+  "interpreter_sha256": "e50d468e8b0adfb05733f5b87b3cff34829c4a8c1aea50c865aa8bdfe4bb150f",
+  "live_units_changed": false,
+  "models_fitted": 0,
+  "original_family_bytes_unchanged": true,
+  "original_stage_sha256": "cb8c7376f579612418bc67e53c58322a3ee2f75ae401550d2fbf888d88900671",
+  "proof_sha256": "ec78fed2df588205fb0521c9e2ab3068af4a5e03d0cdbf79e0ada64ea6f47df0",
+  "public_cache_written": false,
+  "retained_selection_identical": true,
+  "schema": "earthship-real-retained-native-family-environment-verification/v1",
+  "sql_requests": 0,
+  "wrong_external_pin_refused": true
+}

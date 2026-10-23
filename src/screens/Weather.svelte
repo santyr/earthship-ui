@@ -186,7 +186,7 @@
   function openRainChart() {
     openChart({
       title: 'Rain',
-      series: [{ name: station.mode === 'legacy' ? 'AmbientWeatherWS2902A_RainFallDay' : 'WeatherStation_RainDayV2', color: colors.rain, label: 'Rain/day' }],
+      series: [{ name: 'AmbientWeatherWS2902A_RainFallDay', color: colors.rain, label: 'Recorded rain/day' }],
       hours: 24,
     });
   }
@@ -251,7 +251,7 @@
   <div class="cell daily-cell">
     <Tile label={forecastDetail.provider === 'weathernext3' ? '10-Day Forecast · WeatherNext 3' : '10-Day Forecast'} accent={colors.forecast}>
       <DailyForecast days={forecastDays} variant="weather" onselect={selectForecastDay} />
-      {#if hasItem('Forecast_Provider_Status_JSON') || hasItem('Forecast_Comparison_JSON') || hasItem('Forecast_Local_Shadow_JSON')}
+      {#if !forecastDetail.productionModel && (hasItem('Forecast_Provider_Status_JSON') || hasItem('Forecast_Comparison_JSON') || hasItem('Forecast_Local_Shadow_JSON'))}
         <ForecastComparison statusRaw={$items.Forecast_Provider_Status_JSON} comparisonRaw={$items.Forecast_Comparison_JSON} localRaw={$items.Forecast_Local_Shadow_JSON} nowMs={wallClock} connected={$connection === 'live'} />
       {/if}
     </Tile>
@@ -275,6 +275,7 @@
 
   <div
     class="cell rain-cell clickable"
+    title="Recorded rainfall: accepted continuous counter increments; unknown gaps are excluded. Complete interval coverage remains separately qualified."
     role="button"
     tabindex="0"
     onclick={openRainChart}
