@@ -1,0 +1,12 @@
+[Unit]
+Description=Hourly Earthship weather sensitivity from a completed native cycle
+
+[Timer]
+OnCalendar=*-*-* *:18:00
+AccuracySec=1
+RandomizedDelaySec=0
+Persistent=false
+Unit=weather-sensitivity.service
+
+[Install]
+WantedBy=timers.target

@@ -12,6 +12,7 @@
   import ThermalModelCard from '../lib/ui/ThermalModelCard.svelte';
   import HouseholdObservation from '../lib/ui/HouseholdObservation.svelte';
   import EnergyForecast from '../lib/ui/EnergyForecast.svelte';
+  import WeatherSensitivity from '../lib/ui/WeatherSensitivity.svelte';
   import ProfiledEnergy from '../lib/ui/ProfiledEnergy.svelte';
   import { colors } from '../lib/ui/tokens.js';
   import { greywaterState, relativeAgeText } from '../lib/ui/homeCardState.js';
@@ -305,6 +306,7 @@
   <HouseholdObservation />
   <EnergyForecast />
   <ProfiledEnergy />
+  <WeatherSensitivity />
 </section>
 </div>
 
