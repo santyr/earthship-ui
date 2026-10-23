@@ -618,6 +618,15 @@
     "support_seconds": 10800.332087
   },
   "status": "production_installed_verified",
+  "test_discovery_inventory": {
+    "baseline_revision": "263a27862424906fbb853bb12663e0be10d22001",
+    "code_revision": "97164f533f88f12c4cdd057ff3aba1c3431820a2",
+    "discovery_verified": true,
+    "existing_late_regression_files": 1,
+    "inventory": "completion-audit.json:new_test_ownership",
+    "new_files": 110,
+    "private_proof_sha256": "de18e8f8d338b5e9157de891e35d485404e4b10fe2f76837357aff031e1737fd"
+  },
   "thermal": {
     "admission_sha256": "e1dd8addc99424cd37b5a9a46efb878c58cf656f269d760bce79f4d7631a9d26",
     "admitted_at": "2026-10-23T13:32:52.852477+00:00",

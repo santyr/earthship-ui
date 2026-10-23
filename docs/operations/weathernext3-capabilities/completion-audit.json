@@ -73,56 +73,680 @@
   "historical_evidence_semantics": "Hashes bind original pre-finalization documents at the named revision or retained exact private snapshot; current installation is recorded separately.",
   "new_test_ownership": [
     {
-      "file": "openhab/scripts/test_retained_scenario_child_protocol.py",
-      "normal_ci_owner": "CI OpenHAB partition 2/3",
-      "sha256": "c2a8f7eb310049a049c6decd10194c447e07e836dce87746de7bcb98443cf0bc"
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/test_component_household_files.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "82cc627f7823a465b4a80b2d9962c3b58abdfade0f00c97a6cf96fbb7999393c"
     },
     {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/test_component_household_inputs.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "def26fd3024c4e1f6b408a3d68964bd9f96edbe40d3475779d8678501a868437"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/test_component_household_outcomes.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "e756418d8c15578b4b50260503b0dc221c7bff915dc523a75036a86a3c04156e"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/test_component_household_receipt.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "8ff70ec1b28fa28ee675b6d2633b86a6fb625cae2ad6c147765d8fc8b47d9fab"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/test_component_household_worker.py",
+      "normal_ci_owner": "CI OpenHAB tests (0/3)",
+      "sha256": "67cd6cb3bb2af305f23a806e066c07e8d4f5e6f06a280814b0471ed699671f37"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/test_component_pv_model.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "cc14d553e32b9da11ea980fa8d5b20b24da83c13c345751ba7dd79005ebce2fa"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/test_household_native_weather_scenarios.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "be67d02e973a0bb048cf29ba7cc7f28cd2ec60c1796ffd9e50a35027bfa67e17"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/test_household_scenario_outcomes.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "a1f58e2a357f8c5358a4c93f6d0885395fd78724a0bed37a54297486b91534cc"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/test_household_scenario_worker.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "611d24c6b7ac97aaebb34bbe8f2f1ccd9274bb81577eae04b02ae303c54acda1"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/test_household_weather_scenarios.py",
+      "normal_ci_owner": "CI OpenHAB tests (0/3)",
+      "sha256": "0441e2aeee66ecfd1eaa70e77eec27921df63ac9cef503dd5a5abb0d1da3b6bf"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/test_native_handoff_window.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "5e0695c0d4bf384bd17e97ca667c3f4b78fe783aae18e9022eb42cd3d4987318"
+    },
+    {
+      "change_from_source_baseline": "existing_late_integration_regression",
       "file": "openhab/scripts/test_native_serving_driver.py",
-      "normal_ci_owner": "CI OpenHAB partition 0/3",
+      "normal_ci_owner": "CI OpenHAB tests (0/3)",
       "sha256": "92a5dfe6e7385d6f999c9507de8db349fa54b5bc9f56fbd86771e56f11c71c23"
     },
     {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/test_native_solar_components.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "228edcd660697a5159375496aa16e777745894ba31967195e63f39d7f1534fb4"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/test_retained_scenario_child_protocol.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "c2a8f7eb310049a049c6decd10194c447e07e836dce87746de7bcb98443cf0bc"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/test_retained_weather_scenarios.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "201b2decc87061d21aeed56eca13e3920b57ec789161abdbecf8cfb87de0bcf0"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/test_weather_relay_fields.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "5691131d9bb1bf42ae2eafbc42a4c7adfd8462d1c88b3dc6fe6a456a6f749b60"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/test_weather_station_counter.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "0fa3d18dad25ea209b129af2eb8fcd62682318fe1ce9bdc8d64fd562e4f4ffc7"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/test_weather_station_http_contract.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "0201e2071ecfaf37937305641aecc95467d70bd70e38d85c7eb4a41dbc61bc7d"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/test_weather_station_ingestion.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "2b6fdb8c4a3952b238f5907eb2708e4655d01d0f3b9478fa24888bf833d58850"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/test_weather_station_rain.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "e99197030a6d4467ae8612aa371743e11991a1ee902dcda77d65ceef8276423f"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/test_weather_station_totals.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "732eff250de5e8142d035e9bf540b19af095e46d97417aafd651f4a788e4ef15"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_atmospheric_ablation.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "ae838957d2a7ccdec3c4f93a8d1bae2effa0d0e2d7fd8dc89e07c79aa86f513b"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_atmospheric_context.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "f99466f1e4de2b57e48f25c92092997037de215a6e1165f709f56b784b3a49ef"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_atmospheric_dataset.py",
+      "normal_ci_owner": "CI OpenHAB tests (0/3)",
+      "sha256": "7d8a5490f8c846122234712215eada448fe87b6ada13b45943a2ed83944af348"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_atmospheric_features.py",
+      "normal_ci_owner": "CI OpenHAB tests (0/3)",
+      "sha256": "181f46116ce4fc839d08946bfc14f05ef5d5be101a23c710a8f656a06b5c9a0e"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_atmospheric_publish.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "a06e6724c927c1cc29d3ffb4c1021ce4945f7320b2a5a2aa8019cd45beb8f82e"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_atmospheric_retained.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "506448489b263ee942ba415e5d1d19c34276fe80d7911bcc2d6504a610a9ab36"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_capability_acquisition.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "d24d6936b05e31371bc442610e10de9fc9d9eafbf945d72ee9c98ee0324f77fc"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_capability_profiles.py",
+      "normal_ci_owner": "CI OpenHAB tests (0/3)",
+      "sha256": "1104566d28c206c907872896c8a8ffbdd905f7c1726ebfc5a133de2c9269929d"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_capability_publish.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "d0ee4fd60b9f9d082cf541294df8791b0bf39dda433b00981ed6c08737d430ce"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_capability_scoring.py",
+      "normal_ci_owner": "CI OpenHAB tests (0/3)",
+      "sha256": "fafa9d0b7648d0a83bea25b494c2f9729ff78d59c4741846ca745976cc30cb90"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_capability_sdk.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "dc2f32ea02779bba80003f81a8497b3cc414df8d149dbe538296acbbd4f05330"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_complete_uncertainty_profile.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "3644a559aceb96ed3e66ea0711c6b4d9089893ce400a0912b5a941679317e8d6"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_component_household_projection.py",
+      "normal_ci_owner": "CI OpenHAB tests (0/3)",
+      "sha256": "508aef3f9aa9eec1530a00c326130d3939a590ed67013305c7001e9c36b305f9"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_marginal_candidate_fit.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "e348c97046c8584e6b53ea8c106629ee1147b06d6358e70b69ecf0cd0678b02e"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_marginal_kernel_golden.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "50a2a98a7356c591e949651b57b03ba108b1862c45857a5561c381f02d867adb"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_marginal_outcomes.py",
+      "normal_ci_owner": "CI OpenHAB tests (0/3)",
+      "sha256": "1ac722e9ffcf6e1fd46f39e9e9c3e6061395bcef38c078a5b53ba77e0f46bba4"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_marginal_queue.py",
+      "normal_ci_owner": "CI OpenHAB tests (0/3)",
+      "sha256": "336a78993c6b3e39a0cf0d87b6a2913090e30677dc2eb1af3677aea7ffdbc255"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_marginal_reporting.py",
+      "normal_ci_owner": "CI OpenHAB tests (0/3)",
+      "sha256": "326fbc6788a3670ffa8267433bdd85293e49a6608bc7d24e62c5a65b280076f6"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_marginal_runtime.py",
+      "normal_ci_owner": "CI OpenHAB tests (0/3)",
+      "sha256": "86cac25683be14f4d144dd3dc567f60a485f297ed3867fe5eaa49c5f07d87088"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_moisture_context.py",
+      "normal_ci_owner": "CI OpenHAB tests (0/3)",
+      "sha256": "1288d4533468da81cee6fe36ab29e5a49a9fda8cc47a59c69db0acce3f302b16"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_native_solar_forecast.py",
+      "normal_ci_owner": "CI OpenHAB tests (0/3)",
+      "sha256": "6dabe64282a4f984bc6d3c723013c8ebe8bca051130d6042fd62d421ed6896c0"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_near_term_correction.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "3b05f796affa714055153fb061397079550dd7687d05ac05471a4818b758866a"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_operations.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "a64f40646c369651b8df8ad172c2b8be1c39f449c164fd980a280a38f6d457fd"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_probabilistic.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "99220d0e837250c76987642e04b218fab75aca10e5054da419329d32c87d2969"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_probabilistic_artifacts.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "c8945f8dc658b8aed1db221f3d5c672d71530fe297e52ae7af1ca85c58e24473"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_probabilistic_evaluation.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "ae45c09862789961025585fd49d489db80353d180f5cc8fb23222b3e8c036dc3"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_probabilistic_issue.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "e63cea6ab92747523362fa8940ebdba48418accea6094da8ae6865b1a5b344a3"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_probabilistic_population.py",
+      "normal_ci_owner": "CI OpenHAB tests (0/3)",
+      "sha256": "336cc094a89faa92765f563942b7bcb021fee2a57715c15e7fb720c47a17cad8"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_probabilistic_retained.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "9d507df0da9df4c51bd9cdb5921b3eb7f3662f3a136566fff84632f2dad34591"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_production_cutover.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "53c6a37fade1410e21c569697ea57b7f3da67a389d0051ea2e2f3a2a9b3e66d9"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_production_emissions.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "13fb4dfde000c315dce78cd64b254bcc163da285861fd9ce73a7007425f518c7"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_production_forecast.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "68fe934657c69fb42b0a0137c1b76548abb91f762af681eb1a48153e150cdfb8"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_production_model_admission.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "2305556f9c341c1ac0f8c89eaa9a448449395148e76043286e3e0935ac68168a"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_production_model_train.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "05b251c184500bae166026e9443ff3e1dfe4beaa74e6e1038b727923553a63fc"
+    },
+    {
+      "change_from_source_baseline": "added",
       "file": "openhab/scripts/weather_learning/tests/test_production_native_sensitivity.py",
-      "normal_ci_owner": "CI OpenHAB partition 1/3",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
       "sha256": "a3dda10f1277d02cc9fb528794f76ac1f7b05f15db8acf0e56ec4cdeb7ac74a6"
     },
     {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_production_public.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "3ab67e40938b089ba3c367941db1ac8d6230a3be9b07b2eda5ebb36b1bb874c2"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_production_pv.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "5f297c85c5494505655e7a904f163003e0b94b5412addfde8da2b3d5551d3571"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_production_pv_runtime.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "fb59656728eec2f79aaf12bfe32dd7e0d0e06d1ad56192b8bbc3b44cfa77217c"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_production_pv_scoring.py",
+      "normal_ci_owner": "CI OpenHAB tests (0/3)",
+      "sha256": "e97258dbb123414f8711cbc3136ad23aec199ba02e3fafb7fcb54c9e8e40865c"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_production_pv_worker.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "ced543208a348b78522aaeb7d5a40e2bb7625c6f422cdf4b6a8388ec3141873b"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_production_queue.py",
+      "normal_ci_owner": "CI OpenHAB tests (0/3)",
+      "sha256": "408c0b84eecb9449a1584c459b520e1a539bdd5be17ff6cd76e5297fc7bb925b"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_production_reporting.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "37f6262c402e9802ec1b17b30b987aeec6c5b088667a20a3a1ba47def26daf87"
+    },
+    {
+      "change_from_source_baseline": "added",
       "file": "openhab/scripts/weather_learning/tests/test_production_scenario_worker.py",
-      "normal_ci_owner": "CI OpenHAB partition 2/3",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
       "sha256": "e9d3ee64befe53eedbcaf21429095585c2c9e4d7e2ecc24b1d047287e4ea2759"
     },
     {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_production_scoring.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "71a555318e9ffdfb92518f9745182e068e6eb37e194753b8a075548b26c5272d"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_production_selection.py",
+      "normal_ci_owner": "CI OpenHAB tests (0/3)",
+      "sha256": "b56f53982356d3178b3858d40a9b4326168316039eb9cb305d94e9dce17b5d3a"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_production_thermal_temperature.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "5ad8a93862e3e3077b452b12410ce2f715f3a12e5eed989ceb8701e1dbe40fdf"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_production_training.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "28de0dc085013a95ce58c33f4f09181feb41516762f6525537c0d859c709390f"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_rain_calibration.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "a2342a3e123fe8df941aa394f0b3d66ab9aa5d0d5cbfcccc3ba0aed5f9fde996"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_rain_evaluation.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "bacdc07ae9c1b472862b434ab271adfc4d08156d82931a0acc0a85bfbecf8209"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_rain_history.py",
+      "normal_ci_owner": "CI OpenHAB tests (0/3)",
+      "sha256": "79771e799d5773a8bbec3670784b8e3c2f35b0d793a593a9c06299145048fc91"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_rain_issues.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "5722b3d854b43359039a1dd13e5999e4814e8b2d307656249934918c2c45ba78"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_rain_origin.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "b404a39e11afe344b2513da096a36c20d4ae71a0cbe5e39fe6afb83ff254bbf6"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_rain_queue.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "7f779e379b0fbe01d8d05abfb68c7f34a997e80621b1165b68de67b9b73428c8"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_rain_runtime.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "6b6c70b44a25abd8b2d0df5c538c0449ece76cb3e5d9560c7a0c92c0d1b04e35"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_rain_two_part.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "20d08080bcf781d94690f2f2345b0d65a4ea7b1158fcc13f4edc8a8a7e94a27c"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_refresh_evaluation.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "4b04abf07abd02c7c50ce96202f1055ff646c68492d7bb1a81c39018c6400af2"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_refresh_queue.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "997fcf6835b731b7573974357fd41ad0dae11fb595bee705b3f5e5664838e749"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_refresh_retained_experiment.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "f363d943100617269af652f82e36fec15e95d32f0dd2dd9445f10c1404d5fdef"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_refresh_runtime.py",
+      "normal_ci_owner": "CI OpenHAB tests (0/3)",
+      "sha256": "e6601e8c41085af22d25d5167bf9cf230e4498d5608f53f9d1adddd2c3724987"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_refresh_scoring.py",
+      "normal_ci_owner": "CI OpenHAB tests (0/3)",
+      "sha256": "4273868d66a28fc0ef4d75dee96e1cc46d3bb394b89e7ba8f068515aceded3e3"
+    },
+    {
+      "change_from_source_baseline": "added",
       "file": "openhab/scripts/weather_learning/tests/test_scenario_compact_retention.py",
-      "normal_ci_owner": "CI OpenHAB partition 2/3",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
       "sha256": "e0ef23a8a2eaaa329181c371e4beb8965507064f96e16a42bc47515fa9a49e46"
     },
     {
+      "change_from_source_baseline": "added",
       "file": "openhab/scripts/weather_learning/tests/test_scenario_production_view.py",
-      "normal_ci_owner": "CI OpenHAB partition 1/3",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
       "sha256": "882260341b55a066ff7b041c3cb5c652b7b812df94d64e3ac27fb7068a096dbb"
     },
     {
-      "file": "tests/weather-sensitivity.test.js",
-      "normal_ci_owner": "CI test / bare Vitest",
-      "sha256": "6a8af710acf8a8954eed9fc934d78b5ae850acecb09ec513acf7d539c7b75bfa"
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_scenario_reporting.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "a751d6d162345c8bcac611dd436f42086e0615cfe5ec720b50c7aa62c831abdf"
     },
     {
-      "file": "tests/weather-sensitivity-server.test.js",
-      "normal_ci_owner": "CI test / bare Vitest",
-      "sha256": "8a17ca8a4980be75c6ad15b5716a1e85841e41070b2cf82fea573046105a2c48"
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_scenario_scores.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "79e10b1c4177aa8a5e6af80f159d4e82eb02c8983def9450e1e3847937f6ea61"
     },
     {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_selected_production_runtime.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "b747961f4f44cb749e5e5973acc2cfa184d20f3d65ccf19164a80946c11894e8"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_solar_evaluation.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "74ec8e805e6b36b9d89f01ca4176cce90fdb6f70dc257c400a62bb8dda28e410"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_solar_experiment.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "9ed3d3d90bf7013474be896ac987cf71a2753508a41d9127fff2506e5451a6b5"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_solar_pairing.py",
+      "normal_ci_owner": "CI OpenHAB tests (1/3)",
+      "sha256": "2085ec3be0bc5b6b999fb98f2f356ce47e3430f2fabf571ea6befdd5693487ee"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "openhab/scripts/weather_learning/tests/test_thermal_solar_experiment.py",
+      "normal_ci_owner": "CI OpenHAB tests (2/3)",
+      "sha256": "eac8bb379d9056ce7129cd293c7a001fc33ce0ff8159ba9236fcff5523b535e6"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "tests/e2e/station-rain-periods.spec.js",
+      "normal_ci_owner": "CI browser-fixtures / Playwright fixtures project",
+      "sha256": "0a9a52a7e8a51880fcc8e44c9b91951a3d3afc4318659fad6a47f1336ae954a1"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "tests/e2e/weather-capabilities.spec.js",
+      "normal_ci_owner": "CI browser-fixtures / Playwright fixtures project",
+      "sha256": "750838692b807dd59f9154a78da00303090ab2e10c07ce9411bf39ace3e1e3bc"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "tests/e2e/weather-production.spec.js",
+      "normal_ci_owner": "CI browser-fixtures / Playwright fixtures project",
+      "sha256": "0cc5111034b32d6483ecfcf53483e3f9cc3e406ea8ca056b66590533d055f4b0"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "tests/e2e/weather-sensitivity.spec.js",
+      "normal_ci_owner": "CI browser-fixtures / Playwright fixtures project",
+      "sha256": "25156ff7a9b676e193c9939556411f6656d04f2866237ac73dd5855a6122e317"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "tests/e2e/weather-shadow-details.spec.js",
+      "normal_ci_owner": "CI browser-fixtures / Playwright fixtures project",
+      "sha256": "228e62761125d7aed63636e9eaab0caec2bb87ca895bb633896dec4a222dce5a"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "tests/production-forecast.test.js",
+      "normal_ci_owner": "CI test / bare Vitest (not excluded by vite.config.js)",
+      "sha256": "a4709011eddc9e968fd0d4b6f2b36e4712672f288977e24865b49baf630ac420"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "tests/temperature-evidence-reconciliation.test.js",
+      "normal_ci_owner": "CI test / bare Vitest (not excluded by vite.config.js)",
+      "sha256": "40349ddb4efb2fa313e8358e3bc3f0005ed6fe6be4d4e7930be8d1abe93ad7cf"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "tests/ui/ProductionForecastDetails.test.js",
+      "normal_ci_owner": "CI test / bare Vitest (not excluded by vite.config.js)",
+      "sha256": "959ec97e3eb8765af85a74c12e97d3bdfcaccb220f3ea1077343af24dd7c7fb6"
+    },
+    {
+      "change_from_source_baseline": "added",
       "file": "tests/ui/WeatherSensitivity.test.js",
-      "normal_ci_owner": "CI test / bare Vitest",
+      "normal_ci_owner": "CI test / bare Vitest (not excluded by vite.config.js)",
       "sha256": "381ef07c8bebe93ae7abd63f2846a2f4a8b36e2fd5f176dcea907c59f1641279"
     },
     {
-      "file": "tests/e2e/weather-sensitivity.spec.js",
-      "normal_ci_owner": "CI browser-fixtures",
-      "sha256": "25156ff7a9b676e193c9939556411f6656d04f2866237ac73dd5855a6122e317"
+      "change_from_source_baseline": "added",
+      "file": "tests/weather-atmosphere-forecast.test.js",
+      "normal_ci_owner": "CI test / bare Vitest (not excluded by vite.config.js)",
+      "sha256": "368aa4f7e1d5ab52935acf53b7de2ea81d033fe9b44c64a187271af5fe4b843e"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "tests/weather-capability-forecast.test.js",
+      "normal_ci_owner": "CI test / bare Vitest (not excluded by vite.config.js)",
+      "sha256": "f59b1ba893c9cefc01984e6fc75d9bae0725c74cd7b78a86bfdce4db325da9bc"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "tests/weather-capability-server.test.js",
+      "normal_ci_owner": "CI test / bare Vitest (not excluded by vite.config.js)",
+      "sha256": "b026a6aef1f25a886413a234723f3dcc176ee11345e416405cf20312c9a8f8c6"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "tests/weather-marginal-forecast.test.js",
+      "normal_ci_owner": "CI test / bare Vitest (not excluded by vite.config.js)",
+      "sha256": "5eca0f91010839fd3d45fa3791cddc539b86c34387d124913551249bbf00c55d"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "tests/weather-marginal-server.test.js",
+      "normal_ci_owner": "CI test / bare Vitest (not excluded by vite.config.js)",
+      "sha256": "a9928db20cecdd304174f0c758b6d72168c6ac290ef01041a865ff8aeacfb5ed"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "tests/weather-production-server.test.js",
+      "normal_ci_owner": "CI test / bare Vitest (not excluded by vite.config.js)",
+      "sha256": "b48b9845ea8529f101ef4bfe91e990baab3fd346374d3cd9039e6582ce9b803e"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "tests/weather-production-view.test.js",
+      "normal_ci_owner": "CI test / bare Vitest (not excluded by vite.config.js)",
+      "sha256": "d64284b81f721f263447f63802e48e01f77780516807f03e56343492449b64fd"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "tests/weather-rain-forecast.test.js",
+      "normal_ci_owner": "CI test / bare Vitest (not excluded by vite.config.js)",
+      "sha256": "a62467c01ea4a6484cf54fa04a1cc7d8fc433a3169ff47d3155c51054d8a2e60"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "tests/weather-rain-server.test.js",
+      "normal_ci_owner": "CI test / bare Vitest (not excluded by vite.config.js)",
+      "sha256": "836201a38646c9fc64162d7715d7f5023a1be4e8493d26611b3491ea317e4721"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "tests/weather-sensitivity-server.test.js",
+      "normal_ci_owner": "CI test / bare Vitest (not excluded by vite.config.js)",
+      "sha256": "8a17ca8a4980be75c6ad15b5716a1e85841e41070b2cf82fea573046105a2c48"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "tests/weather-sensitivity.test.js",
+      "normal_ci_owner": "CI test / bare Vitest (not excluded by vite.config.js)",
+      "sha256": "6a8af710acf8a8954eed9fc934d78b5ae850acecb09ec513acf7d539c7b75bfa"
+    },
+    {
+      "change_from_source_baseline": "added",
+      "file": "tests/weather-station-presentation.test.js",
+      "normal_ci_owner": "CI test / bare Vitest (not excluded by vite.config.js)",
+      "sha256": "9dcd6c4b1a8a62a2a73533c6a9289e235c54356f4ec3521013ef79af9dec9b77"
     }
   ],
+  "new_test_ownership_scope": {
+    "code_revision": "97164f533f88f12c4cdd057ff3aba1c3431820a2",
+    "discovery_configuration_sha256": "0c1ca9024695cec9a3fe1ddfba5bb89d54be3c6dbd706094cf418dcf9fb6681d",
+    "existing_late_regression_files": 1,
+    "new_files": 110,
+    "private_complete_discovery_proof_sha256": "de18e8f8d338b5e9157de891e35d485404e4b10fe2f76837357aff031e1737fd",
+    "source_baseline": "263a27862424906fbb853bb12663e0be10d22001"
+  },
   "regressions": [
     {
       "expected_result": "Existing deterministic UI/replay remain valid",
