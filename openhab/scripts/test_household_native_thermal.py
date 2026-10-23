@@ -103,6 +103,8 @@ def test_production_temperature_context_survives_complete_household_freeze_and_p
         expected_capture_sha256=capture['capture_sha256'],check_budget=lambda:None)
     assert project(thermal)['output']==capture['output']
     value=thermal.to_dict()
+    from household_pipeline import thermal_execution_runtime
+    assert thermal_execution_runtime(Path(__file__).resolve().parent,value)==value['executing_runtime']
     assert set(proof['runtime_manifest'])<=set(value['executing_runtime']['household_source_manifest'])
     changed=deepcopy(value);changed['executing_runtime']['household_source_manifest']['production_thermal_source.py']='f'*64
     changed['prepared_sha256']=identity({k:v for k,v in changed.items() if k!='prepared_sha256'})
