@@ -1,0 +1,307 @@
+{
+  "authority": "deployment-policy.json",
+  "automatic_actuation": false,
+  "checked_at": "2026-10-23T12:42:30.888463+00:00",
+  "cohorts": [
+    {
+      "dependencies": [
+        "source_bound_independently_counted_local_gauge_tip_resolution",
+        "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+        "three_independent_qualified_wet_events"
+      ],
+      "interval_kind": "local_calendar_day",
+      "lead_scope_hours": 168,
+      "local_occurrence_probability": null,
+      "matched_original_target_scope_pairs": 10,
+      "new_fitted_artifact": null,
+      "original_fit_refusals": {
+        "coherent_class_event_support_required": 4
+      },
+      "original_forecast_count": 12,
+      "physical_calibration_qualified": false,
+      "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+      "scope_sha256": "05bc073b8efceab60839e8a81bc1c0a3ce489875ac50f3e781f29eb6f10f2587",
+      "training_availability_basis": "historical_assumed_full_cycle_9h",
+      "within_selected_336_hour_model_domain": true
+    },
+    {
+      "dependencies": [
+        "source_bound_independently_counted_local_gauge_tip_resolution",
+        "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+        "three_independent_qualified_wet_events"
+      ],
+      "interval_kind": "rolling_24_hours",
+      "lead_scope_hours": 72,
+      "local_occurrence_probability": null,
+      "matched_original_target_scope_pairs": 3,
+      "new_fitted_artifact": null,
+      "original_fit_refusals": {
+        "coherent_class_event_support_required": 1
+      },
+      "original_forecast_count": 65,
+      "physical_calibration_qualified": false,
+      "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+      "scope_sha256": "0d9db7172e8bb8e83822dbc71f2611a4b22a928087e5506c18e99465a470608c",
+      "training_availability_basis": "recorded_ingestion_availability",
+      "within_selected_336_hour_model_domain": true
+    },
+    {
+      "dependencies": [
+        "source_bound_independently_counted_local_gauge_tip_resolution",
+        "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+        "three_independent_qualified_wet_events"
+      ],
+      "interval_kind": "local_calendar_day",
+      "lead_scope_hours": 360,
+      "local_occurrence_probability": null,
+      "matched_original_target_scope_pairs": 10,
+      "new_fitted_artifact": null,
+      "original_fit_refusals": {
+        "coherent_class_event_support_required": 4
+      },
+      "original_forecast_count": 12,
+      "physical_calibration_qualified": false,
+      "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+      "scope_sha256": "20a9704319f363c0660693257f20cd9fc886cb99a3afb22f39d4c5f55a07b0ca",
+      "training_availability_basis": "historical_assumed_full_cycle_9h",
+      "within_selected_336_hour_model_domain": false
+    },
+    {
+      "dependencies": [
+        "source_bound_independently_counted_local_gauge_tip_resolution",
+        "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+        "three_independent_qualified_wet_events"
+      ],
+      "interval_kind": "remaining_day",
+      "lead_scope_hours": 24,
+      "local_occurrence_probability": null,
+      "matched_original_target_scope_pairs": 4,
+      "new_fitted_artifact": null,
+      "original_fit_refusals": {
+        "coherent_class_event_support_required": 2
+      },
+      "original_forecast_count": 66,
+      "physical_calibration_qualified": false,
+      "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+      "scope_sha256": "2133d4777757791495f059b2106f8ea9773462fff25eb533ea248747368cb24e",
+      "training_availability_basis": "recorded_ingestion_availability",
+      "within_selected_336_hour_model_domain": true
+    },
+    {
+      "dependencies": [
+        "source_bound_independently_counted_local_gauge_tip_resolution",
+        "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+        "three_independent_qualified_wet_events"
+      ],
+      "interval_kind": "rolling_24_hours",
+      "lead_scope_hours": 168,
+      "local_occurrence_probability": null,
+      "matched_original_target_scope_pairs": 1,
+      "new_fitted_artifact": null,
+      "original_fit_refusals": {
+        "coherent_class_event_support_required": 1
+      },
+      "original_forecast_count": 22,
+      "physical_calibration_qualified": false,
+      "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+      "scope_sha256": "22ee9975479fdf945e0b1a6c4e6c8078163f4bf8ed4df012caa7ce3b76213f02",
+      "training_availability_basis": "recorded_ingestion_availability",
+      "within_selected_336_hour_model_domain": true
+    },
+    {
+      "dependencies": [
+        "source_bound_independently_counted_local_gauge_tip_resolution",
+        "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+        "three_independent_qualified_wet_events"
+      ],
+      "interval_kind": "rolling_24_hours",
+      "lead_scope_hours": 72,
+      "local_occurrence_probability": null,
+      "matched_original_target_scope_pairs": 8,
+      "new_fitted_artifact": null,
+      "original_fit_refusals": {
+        "coherent_class_event_support_required": 4
+      },
+      "original_forecast_count": 43,
+      "physical_calibration_qualified": false,
+      "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+      "scope_sha256": "409ad74323e6fc733c79123324ee617ac9362b40ad86b53ce0201e093674ff3f",
+      "training_availability_basis": "historical_assumed_full_cycle_9h",
+      "within_selected_336_hour_model_domain": true
+    },
+    {
+      "dependencies": [
+        "source_bound_independently_counted_local_gauge_tip_resolution",
+        "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+        "three_independent_qualified_wet_events"
+      ],
+      "interval_kind": "remaining_day",
+      "lead_scope_hours": 72,
+      "local_occurrence_probability": null,
+      "matched_original_target_scope_pairs": 3,
+      "new_fitted_artifact": null,
+      "original_fit_refusals": {
+        "coherent_class_event_support_required": 1
+      },
+      "original_forecast_count": 3,
+      "physical_calibration_qualified": false,
+      "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+      "scope_sha256": "550e940d4c4c1ed516edf75ecf6d905d7f04aeefaa695fec6c82232e47283f9b",
+      "training_availability_basis": "recorded_ingestion_availability",
+      "within_selected_336_hour_model_domain": true
+    },
+    {
+      "dependencies": [
+        "source_bound_independently_counted_local_gauge_tip_resolution",
+        "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+        "three_independent_qualified_wet_events"
+      ],
+      "interval_kind": "rolling_24_hours",
+      "lead_scope_hours": 360,
+      "local_occurrence_probability": null,
+      "matched_original_target_scope_pairs": 10,
+      "new_fitted_artifact": null,
+      "original_fit_refusals": {
+        "coherent_class_event_support_required": 5
+      },
+      "original_forecast_count": 49,
+      "physical_calibration_qualified": false,
+      "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+      "scope_sha256": "93e947a8b66313fea71a3ba5da0641ebd6113aa102aef68d8b6c2f361ab86f31",
+      "training_availability_basis": "historical_assumed_full_cycle_9h",
+      "within_selected_336_hour_model_domain": false
+    },
+    {
+      "dependencies": [
+        "source_bound_independently_counted_local_gauge_tip_resolution",
+        "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+        "three_independent_qualified_wet_events"
+      ],
+      "interval_kind": "local_calendar_day",
+      "lead_scope_hours": 72,
+      "local_occurrence_probability": null,
+      "matched_original_target_scope_pairs": 9,
+      "new_fitted_artifact": null,
+      "original_fit_refusals": {
+        "coherent_class_event_support_required": 4
+      },
+      "original_forecast_count": 11,
+      "physical_calibration_qualified": false,
+      "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+      "scope_sha256": "bb852af9b788274274271106553b9dd9778ea33d4c08d3eeb52fc8feb9458119",
+      "training_availability_basis": "historical_assumed_full_cycle_9h",
+      "within_selected_336_hour_model_domain": true
+    },
+    {
+      "dependencies": [
+        "source_bound_independently_counted_local_gauge_tip_resolution",
+        "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+        "three_independent_qualified_wet_events"
+      ],
+      "interval_kind": "remaining_day",
+      "lead_scope_hours": 24,
+      "local_occurrence_probability": null,
+      "matched_original_target_scope_pairs": 8,
+      "new_fitted_artifact": null,
+      "original_fit_refusals": {
+        "coherent_class_event_support_required": 4
+      },
+      "original_forecast_count": 39,
+      "physical_calibration_qualified": false,
+      "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+      "scope_sha256": "c28e11bc03062a4b32eec22ae63f336a13583e5b753e956141c606b421fd8e4e",
+      "training_availability_basis": "historical_assumed_full_cycle_9h",
+      "within_selected_336_hour_model_domain": true
+    },
+    {
+      "dependencies": [
+        "source_bound_independently_counted_local_gauge_tip_resolution",
+        "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+        "three_independent_qualified_wet_events"
+      ],
+      "interval_kind": "local_calendar_day",
+      "lead_scope_hours": 168,
+      "local_occurrence_probability": null,
+      "matched_original_target_scope_pairs": 1,
+      "new_fitted_artifact": null,
+      "original_fit_refusals": {
+        "coherent_class_event_support_required": 1
+      },
+      "original_forecast_count": 1,
+      "physical_calibration_qualified": false,
+      "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+      "scope_sha256": "d7f9ea7b847ef032bd74912d00edd0210ac1a9185c138271a3953c4285d6911b",
+      "training_availability_basis": "recorded_ingestion_availability",
+      "within_selected_336_hour_model_domain": true
+    },
+    {
+      "dependencies": [
+        "source_bound_independently_counted_local_gauge_tip_resolution",
+        "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+        "three_independent_qualified_wet_events"
+      ],
+      "interval_kind": "local_calendar_day",
+      "lead_scope_hours": 72,
+      "local_occurrence_probability": null,
+      "matched_original_target_scope_pairs": 3,
+      "new_fitted_artifact": null,
+      "original_fit_refusals": {
+        "coherent_class_event_support_required": 1
+      },
+      "original_forecast_count": 3,
+      "physical_calibration_qualified": false,
+      "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+      "scope_sha256": "eff2066888702b61d0f6666d771b725b5e46eb20b1ab43336db9e39c8d3b2670",
+      "training_availability_basis": "recorded_ingestion_availability",
+      "within_selected_336_hour_model_domain": true
+    },
+    {
+      "dependencies": [
+        "source_bound_independently_counted_local_gauge_tip_resolution",
+        "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+        "three_independent_qualified_wet_events"
+      ],
+      "interval_kind": "rolling_24_hours",
+      "lead_scope_hours": 168,
+      "local_occurrence_probability": null,
+      "matched_original_target_scope_pairs": 10,
+      "new_fitted_artifact": null,
+      "original_fit_refusals": {
+        "coherent_class_event_support_required": 5
+      },
+      "original_forecast_count": 49,
+      "physical_calibration_qualified": false,
+      "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+      "scope_sha256": "ffab296232f0d58d5510bb07004a18e16ec7102599c570a04e71e500980b0eb8",
+      "training_availability_basis": "historical_assumed_full_cycle_9h",
+      "within_selected_336_hour_model_domain": true
+    }
+  ],
+  "current_counter": {
+    "received_at": "2026-10-23T12:41:49.424718+00:00",
+    "sensor_id": 206,
+    "source_item": "Weather_Rain_Evidence_JSON",
+    "status": "valid",
+    "stream_epoch": "0e35995b-4632-4479-9c55-dcbc121dd721"
+  },
+  "current_item_bytes_sha256": "e44c1c350e8a10815a3ddc5a709326261b3a66163102b11f0106e3e55348fb41",
+  "disposition_sha256": "984e29abfded0ce993e245469f3f7b0018a18e6fbdf1531ca3906bc87999a660",
+  "home_rainfall_basis": "observed_recorded_station_totals_and_configured_roof_collection_estimate",
+  "independently_measured_resolution_supplied": false,
+  "interval_semantics": "complete_disjoint_native_intervals; actual_calendar_duration; no_marginal_quantile_sums",
+  "learned_rain_models_installed": false,
+  "native_measurement_policy_file_sha256": "dc2a4c485a35d0920e5285173ef78e0f7e75d3604d34ff8a1962f953b072251b",
+  "native_measurement_policy_sha256": "578071caf7e7e64a225a45a5cdf9feceaf3350f6c3a2fdeaa7efd35608bc485f",
+  "original_experiment_generated_at": "2026-10-22T19:33:28.603889+00:00",
+  "original_experiment_policy_sha256": "e064f05044d5cf6f518578a673c66726289df58290100045ff4ca53e0db52d7c",
+  "original_experiment_unchanged": true,
+  "original_source_inventory_sha256": "96db45263e112c692e5d39c3ca8a8674b6777e413ce423a1b44c6af6ac46754e",
+  "parallel_old_model_shadow_required": false,
+  "physical_calibration_qualified": false,
+  "raw_head_comparison": "original_matched_continuous_depth_results_retained_without_occurrence_qualification",
+  "schema": "earthship-production-rain-target-dispositions/v1",
+  "serving_depth_unit": "mm",
+  "serving_rain_head": "total_precipitation_1hr",
+  "source_bound_resolution_required": true,
+  "status": "explicit_unsupported_local_models_native_totals_available"
+}

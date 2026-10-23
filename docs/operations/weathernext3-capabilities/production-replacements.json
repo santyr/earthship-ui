@@ -476,7 +476,7 @@
         "deterministic stress"
       ],
       "remaining": [
-        "Package the admitted genuine fit into a complete exact source family using its retained supported environment and original inputs.",
+        "Finalize rollback/configuration and install the verified source/model family only after final CI and whole-capability review.",
         "Complete staged capture and shared household integration, all CI/review and exact rollback.",
         "Deploy and verify actual native air/wall predictions and prospective outcomes."
       ],
@@ -484,7 +484,16 @@
         "No physical facade or causal action-benefit qualification inferred from operational replacement."
       ],
       "rollback": "Restore the captured original selector/config/source bytes under the existing writer lock; preserve new originals and scores.",
-      "production_replaced": false
+      "production_replaced": false,
+      "serving_implementation": {
+        "status": "real_exact_source_v3_family_verified_not_installed",
+        "evidence": "production-native-stage-verification.json",
+        "code_revision": "fb5294be35c5a77af632a24bbc4a1cff08331f02",
+        "stage_deployment_sha256": "55c353c3a5b71928b1c45b11f09d0775d4c4a934515a1766cb2ea3876c747266",
+        "family_sha256": "126546364c492d24f8d7fa0369acbbd630071e6f30f97740b4a16bb77c11d594",
+        "original_historical_selections": 12,
+        "supported_retained_interpreter": true
+      }
     },
     {
       "id": "rain_interval_amount",
@@ -492,11 +501,14 @@
         "method": "Raw native precipitation interval means in the current core forecast; observed station totals are a separate already-deployed source."
       },
       "replacement": {
-        "method": "Source-bound three-head interval choice and the two-part occurrence/amount method only for valid supported target/class/event cohorts.",
+        "method": "Source-bound native total_precipitation_1hr interval means. The frozen two-part local occurrence/amount method is withheld for each individually recorded unsupported cohort.",
         "target": "Calendar-day, rolling24h and remaining-day rainfall, with explicit interval identities.",
         "artifact_sha256": null,
         "production_admission_sha256": null,
-        "installed": false
+        "installed": false,
+        "target_disposition_evidence": "production-rain-dispositions.json",
+        "unsupported_local_scopes": 13,
+        "unsupported_reason": "independent_local_gauge_resolution_and_coherent_class_event_support_required"
       },
       "consumers": [
         "forecast rainfall",
@@ -504,9 +516,8 @@
         "harvesting estimate inputs"
       ],
       "remaining": [
-        "Reassess causal training inputs under current source.",
-        "For each valid model, fit/admit a new original artifact and retain actual issued predictions.",
-        "Name invalid targets and use their explicit raw fallback; do not delay other replacement models."
+        "Install the declared native interval-depth fallback with the replacement weather publisher and verify actual Item/UI values.",
+        "Fit a local two-part model only after independent local tip-resolution evidence and the stated wet/below-threshold/event support exist in that exact interval/lead/epoch cohort; other valid replacements proceed."
       ],
       "limitations": [
         "Independent local gauge resolution, wet/dry classes and distinct wet-event support remain concrete fitting dependencies. No invented occurrence probability or cistern inventory."
