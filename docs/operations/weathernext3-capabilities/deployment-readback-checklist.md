@@ -45,3 +45,11 @@ overtaken responses, and preserve the original clock on failure. Astro event
 evidence and equal-clock contradiction checks retain their existing behavior.
 Verify an actual temperature update after initial connection, rather than only
 the boot snapshot, before declaring the freshness display correct.
+
+A targeted response must also belong to the same reconciliation epoch and
+completed inventory generation as its request. Successful authoritative snapshots
+clear earlier queued notifications. A notification alone does not count as a
+new Item value when preserving stream deltas across reconciliation; this prevents
+a delayed read from restoring a removed Item. The deferred-read regression covers
+requests before reconciliation, during reconciliation, and coalesced notifications
+before inventory removal.

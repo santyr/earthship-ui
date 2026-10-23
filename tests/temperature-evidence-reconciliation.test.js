@@ -87,3 +87,21 @@ it.each(['different_name', 'older_clock', 'same_clock_conflict', 'missing_clock'
   await vi.advanceTimersByTimeAsync(0);
   expect(evidence()).toMatchObject({ lastKnown: at, state: '61.52', available: false });
 });
+
+it.each(['before_reconnect', 'during_reconnect', 'coalesced_before_removal'])('does not resurrect an Item removed by authoritative reconciliation (%s)', async order => {
+  const read = deferred(), snapshot = deferred();
+  client.getItem.mockReturnValue(read.promise);
+  client.getAllItems.mockReturnValueOnce(snapshot.promise);
+  if (order === 'during_reconnect') hooks.onReconnect();
+  hooks.onUpdateEvidence(name, at, '61.7');
+  if (order === 'coalesced_before_removal') hooks.onUpdateEvidence(name, at, '62');
+  if (order !== 'during_reconnect') hooks.onReconnect();
+  snapshot.resolve([]);
+  await vi.advanceTimersByTimeAsync(0);
+  expect(get(store.items)[name]).toBeUndefined();
+  read.resolve({ name, state: '61.7', lastStateUpdate: at + 30000 });
+  await vi.advanceTimersByTimeAsync(0);
+  expect(get(store.items)[name]).toBeUndefined();
+  expect(evidence().available).toBe(false);
+  expect(client.getItem).toHaveBeenCalledOnce();
+});
