@@ -12,7 +12,13 @@ PROFILE='.household-profiled-energy-v1.json'
 
 
 def read_current_originals(stage,observation_path,*,guard=lambda:None):
-    guard();observation_path=Path(observation_path);observed=_private_file(observation_path,32768);view=loads(observed[0])
+    guard();observation_path=Path(observation_path)
+    try:observed=_private_file(observation_path,32768)
+    except FileNotFoundError:
+        # Existing owner temporarily displaces its old cache before linking
+        # the verified replacement. No completed observation means no source.
+        guard();return None
+    view=loads(observed[0])
     if view.get('schema') not in ('earthship-household-observation/v1','earthship-household-observation/v2','earthship-household-observation/v3','earthship-household-observation/v4') or view.get('automatic_actuation') is not False:
         raise ValueError('original read-only household observation required')
     pin=digest(view['receipt_sha256']);energies=[];profiles=[]

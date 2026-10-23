@@ -24,11 +24,18 @@ SAMPLE_SUFFIX='.calibrated-sample-v1.json'
 
 def sample_key(forecast):
     issue=instant(forecast['output']['issued_at']).replace(minute=0,second=0,microsecond=0)
-    calibration=json.loads(forecast['inputs']['calibration_raw'])['final_model']['model_sha256']
-    return issue,calibration,forecast['output'].get('calibration_policy_sha256')
+    component=forecast.get('schema')=='earthship-household-calibrated-energy-receipt/v2'
+    calibration=forecast['output']['calibration_model_sha256'] if component else json.loads(forecast['inputs']['calibration_raw'])['final_model']['model_sha256']
+    return issue,calibration,forecast['output'].get('calibration_policy_sha256'),forecast['output'].get('procedure_sha256')
 
 
 def resolve_originals(forecast,*,stages):
+    if forecast.get('schema')=='earthship-household-calibrated-energy-receipt/v2':
+        from component_household_receipt import expand_context
+        context=forecast['inputs']['context']
+        if Path(context['producer']['stage']) not in [Path(s) for s in stages]:raise ValueError('registered original component stage required')
+        owned=expand_context(context)['owned_sources'];refs=context['original_references']
+        return owned['energy'],owned['plan'],owned['profiled'],dict(energy_path=refs['energy']['path'],profiled_path=None if refs['profiled'] is None else refs['profiled']['path'])
     inputs=forecast['inputs'];pin=inputs['original_energy_document_sha256'];profile_pin=inputs['original_profiled_document_sha256']
     for stage in stages:
         evidence=Path(stage)/'evidence';path=evidence/(pin+'.household-energy-forecast-v1.json')
@@ -44,6 +51,10 @@ def resolve_originals(forecast,*,stages):
 
 
 def _forecast(path):
+    from component_household_receipt import SUFFIX as COMPONENT_SUFFIX
+    if path.name.endswith(COMPONENT_SUFFIX):
+        from component_household_confirmation import read_confirmed_forecast
+        return read_confirmed_forecast(path)
     raw=_private_file(path,FORECAST_MAX)[0];value=loads(raw)
     if path.name!=sha256(raw).hexdigest()+FORECAST_SUFFIX or value.get('receipt_sha256')!=identity({k:v for k,v in value.items() if k!='receipt_sha256'}):raise ValueError('original calibrated forecast differs')
     return value
@@ -62,7 +73,9 @@ def _inventory(store,*,now,guard):
     for _,path in sorted(entries,reverse=True)[:512]:
         guard();value=_forecast(path);issue=instant(value['output']['issued_at'])
         if now-timedelta(hours=36)<=issue<=now:values.append((issue,path,value))
-    return sorted(values,key=lambda r:(r[0],str(r[1])))
+    from component_household_confirmation import confirmed_inventory
+    values.extend(confirmed_inventory(store,now=now,guard=guard))
+    return sorted(values,key=lambda r:(r[0],r[2].get('schema')=='earthship-household-calibrated-energy-receipt/v2',str(r[1])))
 
 
 def _read_score(store,ref):
@@ -101,13 +114,13 @@ def run(*,state,view,clock=lambda:datetime.now(timezone.utc)):
         except FileNotFoundError:index=dict(schema='earthship-calibrated-outcome-index/v1',origins={})
         if set(index)!={'schema','origins'} or index['schema']!='earthship-calibrated-outcome-index/v1' or not isinstance(index['origins'],dict) or len(index['origins'])>512:raise ValueError('bounded owned calibrated origin index required')
         refs={k:r for k,r in index['origins'].items() if now-timedelta(days=7)<=instant(r['issued_at'])<=now}
-        seen={(instant(r['issued_at']).replace(minute=0,second=0,microsecond=0),r['calibration_model_sha256'],r.get('calibration_policy_sha256')) for r in refs.values()}
+        seen={(instant(r['issued_at']).replace(minute=0,second=0,microsecond=0),r['calibration_model_sha256'],r.get('calibration_policy_sha256'),r.get('procedure_sha256')) for r in refs.values()}
         for issue,path,forecast in inventory:
             key=sample_key(forecast);calibration=key[1]
             if key in seen:continue
             guard();energy,plan,profile,context=resolve_originals(forecast,stages=stages);metadata=_predictions(forecast,plan,profile);pin=identity(forecast)
             refs[pin]=dict(forecast_path=str(path),stage=str(Path(context['energy_path']).parents[1]),issued_at=issue.isoformat(),cohort_id=metadata['cohort_id'],
-                calibration_model_sha256=calibration,calibration_policy_sha256=key[2],score_file_sha256=None,sample_sha256=None,retry_after=(issue+timedelta(hours=1,minutes=5)).isoformat())
+                calibration_model_sha256=calibration,calibration_policy_sha256=key[2],procedure_sha256=key[3],score_file_sha256=None,sample_sha256=None,retry_after=(issue+timedelta(hours=1,minutes=5)).isoformat())
             seen.add(key)
         if len(refs)>512:raise ValueError('bounded sampled calibrated origins required')
         due=[(instant(r['retry_after']),k,r) for k,r in refs.items() if r['retry_after'] is not None and instant(r['retry_after'])<=now]
@@ -153,7 +166,7 @@ def run(*,state,view,clock=lambda:datetime.now(timezone.utc)):
         report=performance(samples,origin=origin,generated_at=clock());directory(Path(view).parent)
         try:old=loads(_private_file(view,32768)[0])
         except FileNotFoundError:old=None
-        if old is not None and old.get('schema') not in ('earthship-household-calibrated-energy-performance/v1',report['schema']):raise ValueError('calibrated report belongs to another producer')
+        if old is not None and old.get('schema') not in ('earthship-household-calibrated-energy-performance/v1','earthship-household-calibrated-energy-performance/v2','earthship-household-calibrated-energy-performance/v3'):raise ValueError('calibrated report belongs to another producer')
         guard();save(index_path,dict(schema=index['schema'],origins=refs));save(view,report)
         return dict(status='calibrated_outcomes_published',sampled_origins=len(refs),scored_origin=scored,deferred_source_reasons=deferred,cohort_id=origin['cohort_id'],by_horizon=report['by_horizon'],automatic_actuation=False)
 

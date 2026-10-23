@@ -8,7 +8,9 @@
   import { loadCalibratedEnergy, loadCalibratedPerformance } from '../household/observationClient.js';
   let calibratedRaw = $state(null), calibratedReportRaw = $state(null);
   const calibratedReport = $derived(parseCalibratedPerformance(calibratedReportRaw, { nowMs }));
-  const sameCalibratedModel = $derived(Boolean(calibrated && calibratedReport?.calibration_model_sha256 === calibrated.calibration_model_sha256 && calibratedReport?.calibration_policy_sha256 === calibrated.calibration_policy_sha256));
+  const sameCalibratedModel = $derived(Boolean(calibrated && calibratedReport?.calibration_model_sha256 === calibrated.calibration_model_sha256 && calibratedReport?.calibration_policy_sha256 === calibrated.calibration_policy_sha256
+    && (calibrated.schema !== 'earthship-household-calibrated-energy-observation/v4' || calibratedReport.procedure_sha256 === calibrated.procedure_sha256
+      && calibratedReport.baseline_rule === calibrated.baseline_rule && calibratedReport.measurement_cohort_sha256 === calibrated.measurement_cohort_sha256 && calibratedReport.cohort_id === calibrated.cohort_id)));
   const error = (v, places) => v === null ? "—" : v.toFixed(places);
   const calibrated = $derived(parseCalibratedEnergy(calibratedRaw, { nowMs }));
   let raw = $state(null), reportRaw = $state(null), nowMs = $state(Date.now()), selectedHour = $state(1);
@@ -74,7 +76,10 @@
   <Tile label="Learned-load storage scenario">
     {#if calibrated?.status === 'projected_provisional_calibrated_potential'}
       {#if calibrated.expired}<p class="notice">Calibrated forecast is stale</p>{/if}
-      <p>Next 24 hours PV potential: {kwh(calibrated.calibrated_potential_kwh)} with the empirical correction; {kwh(calibrated.raw_potential_kwh)} from raw physics.</p>
+      {#if calibrated.schema === 'earthship-household-calibrated-energy-observation/v4'}
+        <p>Next 24 hours PV potential: {kwh(calibrated.calibrated_potential_kwh)} from native solar components; {kwh(calibrated.raw_potential_kwh)} before the electrical correction.</p>
+        <p>{calibrated.source_support.native_hours} native component source intervals; {calibrated.source_support.fallback_hours} raw fallback source intervals. {calibrated.calibration_mode === 'experimental_production' ? 'The fitted gain applies to supported native components.' : 'The projection uses raw physics.'}</p>
+      {:else}<p>Next 24 hours PV potential: {kwh(calibrated.calibrated_potential_kwh)} with the empirical correction; {kwh(calibrated.raw_potential_kwh)} from raw physics.</p>{/if}
       {#if calibrated.profiled_storage_status === 'conditional_nominal_simulation'}
         <p>Modeled PV capture with learned demand: {kwh(calibrated.profiled_captured_pv_kwh)}.</p>
         <svg viewBox="0 0 710 215" role="img" aria-label="Battery SoC with calibrated and uncalibrated PV">

@@ -30,3 +30,18 @@ it('accepts a versioned calibration policy without changing the numerical model 
  const parsed=parseCalibratedEnergy(JSON.stringify(v),{nowMs:CALIBRATED_NOW});expect(parsed?.calibration_policy_sha256).toBe('b'.repeat(64));
  v.calibration_policy_sha256='bad';expect(parseCalibratedEnergy(JSON.stringify(v),{nowMs:CALIBRATED_NOW})).toBeNull();
 });
+
+it('accepts the new component model with explicit native and raw fallback support',async()=>{
+ const {componentEnergy}=await import('./fixtures/calibrated-energy.js');const v=componentEnergy();
+ const parsed=parseCalibratedEnergy(JSON.stringify(v),{nowMs:CALIBRATED_NOW});
+ expect(parsed?.procedure_sha256).toBe(v.procedure_sha256);expect(parsed?.source_support.fallback_hours).toBe(13);
+});
+it.each(['scope','support','mode','deadline','baseline'])('refuses unsupported new component %s',async damage=>{
+ const {componentEnergy}=await import('./fixtures/calibrated-energy.js');const v=componentEnergy();
+ if(damage==='scope')v.calibration_scope='native_components_only';
+ if(damage==='support')v.source_support.fallback_reasons.no_daylight_support=12;
+ if(damage==='mode')v.calibration_mode='qualified';
+ if(damage==='deadline'){v.generated_at=new Date(Date.parse(v.issued_at)+86000).toISOString();}
+ if(damage==='baseline')v.baseline_rule='old_total_radiation';
+ expect(parseCalibratedEnergy(JSON.stringify(v),{nowMs:CALIBRATED_NOW+120000})).toBeNull();
+});

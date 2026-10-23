@@ -446,3 +446,22 @@ for (const target of TARGETS) {
     await page.screenshot({ path: testInfo.outputPath('earthship.png') });
   });
 }
+
+for(const target of TARGETS){
+ test('Earthship component PV and storage use matching production method at '+target.name,async({page},testInfo)=>{
+  const {componentEnergy,componentPerformance,CALIBRATED_NOW}=await import('../fixtures/calibrated-energy.js');
+  await page.clock.install({time:new Date(CALIBRATED_NOW)});
+  await page.route('**/api/household-calibrated-energy-observation',route=>route.fulfill({json:componentEnergy()}));
+  await page.route('**/api/household-calibrated-energy-performance',route=>route.fulfill({json:componentPerformance()}));
+  await openFixture(page,'earthship',target);
+  const view=page.locator('.profiled-energy');
+  await expect(view).toContainText('14.00 kWh from native solar components');
+  await expect(view).toContainText('13 raw fallback source intervals');
+  await expect(view).toContainText('Conditional nominal storage');
+  await expect(view.getByRole('table',{name:'Calibrated PV and storage forecast accuracy'})).toBeVisible();
+  await view.scrollIntoViewIfNeeded();
+  const overflow=await view.evaluate(el=>el.scrollWidth>el.clientWidth+1);
+  expect(overflow).toBe(false);
+  await view.screenshot({path:testInfo.outputPath('component-storage.png')});
+ });
+}

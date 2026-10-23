@@ -425,7 +425,7 @@
         "Energy outlook"
       ],
       "remaining": [
-        "Connect the household calibrated/storage consumer to the same component factory and original artifact.",
+        "Stage permanent exact source/environment/owner profiles and replace the existing calibrated worker command; preserve old producer replay.",
         "Stage permanent owner/model/runtime paths, complete all CI/review, install and verify exact rollback.",
         "Observe actual issued outputs and compare their eligible constituent powers with real measured input; track archive growth."
       ],
@@ -435,11 +435,13 @@
       "rollback": "Restore the captured original selector/config/source bytes under the existing writer lock; preserve new originals and scores.",
       "production_replaced": false,
       "serving_implementation": {
-        "status": "daily_path_and_household_projection_implemented_not_installed",
+        "status": "daily_household_publication_outcome_ui_implemented_tested_not_installed",
         "evidence": "production-household-components.md",
         "original_input_bridge": "retained_original_source_and_environment_verified",
         "shared_component_kernel": true,
-        "nominal_storage_integrators": "existing_constant_and_original_learned_load"
+        "nominal_storage_integrators": "existing_constant_and_original_learned_load",
+        "publication_evidence": "production-household-publication-verification.json",
+        "confirmed_publications_only_for_new_outcomes": true
       }
     },
     {

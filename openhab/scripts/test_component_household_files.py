@@ -55,3 +55,9 @@ def test_current_observation_v4_keeps_the_same_original_plan_link(tmp_path):
  path,plan=originals(tmp_path/'stage/evidence','c')
  obs=write(tmp_path/'observation.json',dict(schema='earthship-household-observation/v4',receipt_sha256=plan['receipt_sha256'],automatic_actuation=False))
  assert read_current_originals(tmp_path/'stage',obs)['energy_path']==path
+
+
+def test_missing_observation_during_owned_replace_waits_without_borrowing_a_plan(tmp_path):
+ from component_household_files import read_current_originals
+ originals(tmp_path/'stage/evidence','a')
+ assert read_current_originals(tmp_path/'stage',tmp_path/'observation.json') is None

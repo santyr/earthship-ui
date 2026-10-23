@@ -32,11 +32,14 @@ def _predictions(forecast,plan,profiled):
     load_available=load is not None and load['status']=='projected'
     initial=out.get('storage_initial_conditions',{});energy=plan['inputs']['snapshot']['domains']['energy']
     source=energy['battery_soc'].get('evidence');epoch=None if source is None else source['source_epoch']
-    calibration=json.loads(forecast['inputs']['calibration_raw'])['final_model']['model_sha256']
+    component=forecast.get('schema')=='earthship-household-calibrated-energy-receipt/v2'
+    calibration=out['calibration_model_sha256'] if component else json.loads(forecast['inputs']['calibration_raw'])['final_model']['model_sha256']
     model=None if profiled is None or profiled['inputs']['load_source'] is None else profiled['inputs']['load_source']['artifact']['profile']['model_sha256']
     cohort=dict(calibration_model_sha256=calibration,forecast_runtime_sha256=identity(forecast['runtime_manifest']),
         physical_bank_epoch=energy['physical_bank_epoch']['value'],nominal_bank_kwh=initial.get('nominal_bank_kwh'),source_epoch=epoch)
     if 'calibration_policy_sha256' in out:cohort['calibration_policy_sha256']=out['calibration_policy_sha256']
+    if component:
+        for key in ('procedure_sha256','baseline_rule','measurement_cohort_sha256','power_policy_sha256','solar_grid_sha256'):cohort[key]=out[key]
     rows={}
     for h in HORIZONS:
         target=issue+timedelta(hours=h);soc=None;mean=None
@@ -89,8 +92,18 @@ def _score_rows(origin,*,hour_sources,endpoint_sources,assessed):
     return output
 
 
+
+def replay_original(forecast,*,energy,plan,profiled):
+    if forecast.get('schema')=='earthship-household-calibrated-energy-receipt/v2':
+        from component_household_receipt import replay as component_replay,expand_context
+        verified=component_replay(forecast);owned=expand_context(forecast['inputs']['context'])['owned_sources']
+        if canonical(owned)!=canonical(dict(energy=energy,plan=plan,profiled=profiled)):raise ValueError('same original component scoring parents required')
+        return verified
+    return replay(forecast,energy=energy,plan=plan,profiled=profiled)
+
+
 def seal_outcomes(*,forecast,energy,plan,profiled,hour_sources,endpoint_sources,assessed_at):
-    forecast=replay(forecast,energy=energy,plan=plan,profiled=profiled);assessed=utc(assessed_at)
+    forecast=replay_original(forecast,energy=energy,plan=plan,profiled=profiled);assessed=utc(assessed_at)
     if assessed<instant(forecast['inputs']['assessed_at']):raise ValueError('outcome assessment precedes original forecast')
     for sources in (hour_sources,endpoint_sources):
         if not isinstance(sources,dict) or not set(sources)<={str(h) for h in HORIZONS}:raise ValueError('closed original outcome source map required')
@@ -205,4 +218,7 @@ def performance(samples,*,origin,generated_at):
         by_horizon=result,**FLAGS)
     if 'calibration_policy_sha256' in origin['cohort']:
         value.update(schema='earthship-household-calibrated-energy-performance/v2',calibration_policy_sha256=origin['cohort']['calibration_policy_sha256'])
+    if 'procedure_sha256' in origin['cohort']:
+        value.update(schema='earthship-household-calibrated-energy-performance/v3',procedure_sha256=origin['cohort']['procedure_sha256'],
+            baseline_rule=origin['cohort']['baseline_rule'],measurement_cohort_sha256=origin['cohort']['measurement_cohort_sha256'])
     value['view_sha256']=identity(value);return value

@@ -32,7 +32,25 @@ def project(owner,*,forecast,positions,storage_inputs,load_forecast):
         constant_load_storage=constant,profiled_storage=profiled,uncalibrated_profiled_storage=unadjusted,storage_initial_conditions=initial,
         calibration_sha256=body['calibration_sha256'],calibration_model_sha256=body['model']['model_sha256'],
         calibration_policy_sha256=body['policy_sha256'],procedure_sha256=body['procedure_sha256'],baseline_rule=body['baseline_rule'],
+        measurement_cohort_sha256=owner.context['measurement_cohort_sha256'],power_policy_sha256=owner.context['power_policy_sha256'],solar_grid_sha256=owner.context['solar_grid_sha256'],
         calibration_scope=pv['calibration_scope'],calibration_mode='experimental_production' if applied else 'raw_component_fallback',
         source_support=pv['source_support'],component_window=window,confidence='experimental_native_component_model',
         physical_calibration_qualified=False,automatic_actuation=False)
     value['output_sha256']=identity(value);owner.verify();return loads(canonical(value))
+
+
+def project_inputs(owner,context):
+    """Compile only the original producer's measured-availability snapshot."""
+    from weather_learning.retained_scenarios import RetainedComponentInputs
+    from weather_learning.native_forecast import _snapshot,_decode,make_native_component_forecast
+    from weather_learning.config import Site
+    if type(context) is not RetainedComponentInputs:raise ValueError('verified retained component inputs required')
+    prepared=context.to_dict()['prepared']
+    for field in ('system','horizon'):
+        if prepared[field+'_source']['raw'].encode()!=owner.configurations[field+'_path'][1]:
+            raise ValueError('same original household component physical configuration required')
+    original=prepared['forecast']
+    forcing=make_native_component_forecast(_snapshot(_decode(original['source_original'])),origin=instant(prepared['issued_at']),
+        available_by=instant(original['available_by']),horizon_hours=original['horizon_hours'],site=Site(**original['site']))
+    result=project(owner,forecast=forcing,positions=prepared['positions'],storage_inputs=prepared['storage_initial_conditions'],load_forecast=prepared['load_forecast'])
+    return forcing,result

@@ -68,9 +68,52 @@ in-progress energy file. It supports the existing observation schemasv1-v4,
 preserves named missing-profile behavior, and refuses a changed observation
 before commit. Four reader cases pass, including the actual currentv4 shape.
 
-Still required: wire
-the existing calibrated worker, outcome actor and compatible UI through new
-schemas; preserve all legacy producer replay; complete normal CI, final
-whole-capability review, permanent export, exact rollback and authorized
-installation/readback/UI checks. No new household component output is
-installed.
+The replacement worker and existing outcome actor are now connected through
+new explicit schemas. The worker prepares privately by default. Explicit
+publication retains the original receipt before the cache, reads back exact
+cache bytes, then retains a separately confirmed emission with the actual
+publication time. Full archives, insufficient disk reserve, changed originals,
+changed selectors and missed deadlines withhold publication. Failures after
+a cache write preserve the published or uncertain state and return nonzero.
+
+Compact custody stores the literal producer package once and references the
+original energy/plan/profile documents by path, byte SHA and document SHA.
+The measured new receipt is 413,812 bytes, with a separate 1,425,805-byte
+source package reused across origins. The existing private namespace remains
+bounded at 2 GiB, 10,000 entries and a 32 MiB free-space reserve; nothing is
+deleted or relabeled.
+
+The existing calibrated outcome actor discovers confirmed new emissions and
+excludes prepared receipts. Its one-horizon/two-fixed-query budget is unchanged.
+New procedure, baseline, measured-power/grid, original bank/source epoch and
+forecast-runtime identities define distinct cohorts. Per-producer interpreter
+pins preserve old numerical replay while selecting the supported environment
+for new models.
+
+The new observation v4 and performance v3 UI readers retain legacy readers.
+They display native and raw fallback source intervals, conditional nominal
+storage and accuracy for the exact matching procedure/cohort. Two browser
+checks passed at 1340x800 and 1280x720, using explicit synthetic fixtures.
+The screenshots were visually inspected; they are separate from real-data
+and installed-service evidence.
+
+A genuine private worker run passed at 2026-10-23 06:00:52 UTC against original
+issue 06:00:15. Raw potential was 18.4654163492 kWh and selected potential
+11.9789767509 kWh. Both constant-load and learned-load nominal storage were
+available. Frozen receipt replay and the actual retained-process origin replay
+were identical under NumPy 2.5.4/SciPy 1.18.1. The run took 12.832 seconds at
+151,928 KiB RSS, without fits, HTTP/SQL acquisition, public cache or selector
+writes. The original 02:27 fit readiness was preserved.
+
+An earlier attempt caught the existing observer briefly displacing its old
+cache before linking its verified replacement. Its exact failed source/log
+generation is retained. A RED regression reproduced the absent-current-file
+case; the reader now awaits the completed observation without borrowing any
+other plan. The final 55-case backend suite passed after that correction.
+
+[Verification metadata](production-household-publication-verification.json)
+records the actual proof, source identities and normal CI ownership.
+Still required: final integrated CI and whole-capability review, permanent
+export of all evidence generations, per-unit runtime/profile configuration,
+exact rollback and authorized installation/readback/UI checks. No new household
+component output is installed.

@@ -18,3 +18,18 @@ export function calibratedPerformance() {
    load:{attempted_count:h===1?1:0,count:h===1?1:0,current_count:0,mae_kwh:{learned_ac:h===1?.05:null,current_ac:null}},
   }])),physical_calibration_qualified:false,causal_benefit_qualified:false,graduated:false,automatic_actuation:false};
 }
+
+export function componentEnergy() {
+ const v=calibratedEnergy(),hash='b'.repeat(64);
+ return {...v,schema:'earthship-household-calibrated-energy-observation/v4',
+  calibration_policy_sha256:hash,calibration_sha256:hash,procedure_sha256:hash,cohort_id:'a'.repeat(64),measurement_cohort_sha256:hash,
+  baseline_rule:'native_fdir_ssrd_isotropic_faiman_proxy_pvwatts_dc_v2',
+  calibration_scope:'mixed_native_and_raw_fallback',calibration_mode:'experimental_production',
+  source_support:{native_hours:12,fallback_hours:13,fallback_reasons:{no_daylight_support:13}},
+  confidence:'experimental_native_component_model',source_freshness_basis:'qualified_original_issue_with_85_second_publication_deadline'};
+}
+export function componentPerformance() {
+ return {...calibratedPerformance(),schema:'earthship-household-calibrated-energy-performance/v3',
+  calibration_policy_sha256:'b'.repeat(64),procedure_sha256:'b'.repeat(64),measurement_cohort_sha256:'b'.repeat(64),
+  baseline_rule:'native_fdir_ssrd_isotropic_faiman_proxy_pvwatts_dc_v2'};
+}

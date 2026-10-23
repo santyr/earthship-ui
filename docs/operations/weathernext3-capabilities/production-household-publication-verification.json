@@ -1,0 +1,102 @@
+{
+  "actual_private_preview": {
+    "active_seconds": 12.832081554923207,
+    "adapter_source_sha256": "0975c050a22273ba5c0ffa6e38c1796d159bb37d65406bd8c220d701b469904c",
+    "automatic_actuation": false,
+    "cache_written": false,
+    "calibrated_potential_kwh": 11.97897675092482,
+    "calibration_sha256": "1b294e90f5a3895f8f83c7061293a05e5aee2bb38a47791fbbba55c0f7178fce",
+    "checked_at": "2026-10-23T06:00:52.357955+00:00",
+    "cloud_requests": 0,
+    "cohort_id": "9a52a2b6200fa4c8c45fd05f30c1d46ada4959478547dcc158362e9c22f7a1e2",
+    "constant_storage_status": "conditional_nominal_simulation",
+    "frozen_replay_identical": true,
+    "issued": false,
+    "issued_at": "2026-10-23T06:00:15+00:00",
+    "model_ready_at": "2026-10-23T02:27:06.832328+00:00",
+    "model_sha256": "3e5531fb9b7cfc4ba91042d50fdda9430a557f3ade751e2da37183fee6c33258",
+    "models_fitted": 0,
+    "numerical_environment": {
+      "binary_sha256s": {
+        "_lbfgsb.cpython-312-x86_64-linux-gnu.so": "23d19ac49896c4ab452fc0bc807312bba273482ea01530ad6c0bc020ac8ccddb",
+        "_multiarray_umath.cpython-312-x86_64-linux-gnu.so": "b185dfe64b07180bedc7c15fb2735b0d0f4f4e09eb9c15bd8e67f74568aebcbf",
+        "_ufuncs.cpython-312-x86_64-linux-gnu.so": "4136c006138bbf3439006e3ac72297b3e06e2e4d384cc0674f1b07264290f264",
+        "_umath_linalg.cpython-312-x86_64-linux-gnu.so": "2e075f582c3a25a21fe97a55931a0fdb22ceb84f4fce8203a5040d405ccf65ce",
+        "python3.12": "e50d468e8b0adfb05733f5b87b3cff34829c4a8c1aea50c865aa8bdfe4bb150f"
+      },
+      "numpy": "2.5.4",
+      "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+      "scipy": "1.18.1"
+    },
+    "owner_runtime_sha256": "72b273b0587393d2390ce993d0bf149606ab4ab14b43b0d88250a2d71ba1f27b",
+    "peak_rss_kib": 151928,
+    "physical_calibration_qualified": false,
+    "procedure_sha256": "dcce27aa2edc538551a20dda12fe33d45256971452a88e59dc40cca15e3990a8",
+    "production_states_written": false,
+    "profiled_storage_status": "conditional_nominal_simulation",
+    "proof_sha256": "23c7afede98f46de5e1ea8653242610d06b091ceda8519634d39ee0e12afca5d",
+    "raw_potential_kwh": 18.465416349194648,
+    "receipt_bytes": 413812,
+    "receipt_file_sha256": "9d9e4f11b00b3b3ab2c363537f3623ac89153764de435a156d91fe164b5796d0",
+    "receipt_sha256": "136b465afdff277e661d2fd115110ff2508868804fe2d4292149f7de62ae3885",
+    "retained_process_origin_identical": true,
+    "schema": "earthship-real-component-household-worker-preview/v1",
+    "source_context_sha256": "21a7abb86454ead077d1ae971b1a3f408a0573ce87c00cd7446304c6ed00ccdc",
+    "source_package_bytes": 1425805,
+    "source_support": {
+      "fallback_hours": 13,
+      "fallback_reasons": {
+        "direct_exceeds_total": 3,
+        "incomplete_hour_geometry": 2,
+        "no_daylight_support": 8
+      },
+      "native_hours": 12
+    },
+    "sql_requests": 0,
+    "status": "component_household_prepared",
+    "supported_interpreter_sha256": "e50d468e8b0adfb05733f5b87b3cff34829c4a8c1aea50c865aa8bdfe4bb150f",
+    "whole_seconds": 12.898919563042
+  },
+  "automatic_actuation": false,
+  "backend": {
+    "passed": 55,
+    "scope": "new_publication_custody_confirmation_outcomes_and_original_source_kernel_regressions",
+    "seconds": 77.6
+  },
+  "browser": {
+    "passed": 2,
+    "population": "synthetic_contract_fixtures",
+    "seconds": 6.2,
+    "viewports": [
+      "1340x800",
+      "1280x720"
+    ],
+    "visually_inspected": true
+  },
+  "ci_ownership": {
+    "openhab/scripts/test_calibrated_score_runtime.py": 2,
+    "openhab/scripts/test_component_household_files.py": 1,
+    "openhab/scripts/test_component_household_outcomes.py": 1,
+    "openhab/scripts/test_component_household_receipt.py": 1,
+    "openhab/scripts/test_component_household_worker.py": 0
+  },
+  "frontend": {
+    "files": 4,
+    "passed": 41
+  },
+  "latest_published_checkpoint_ci": {
+    "commit": "a8f8f625a09bc45d6836e30d907fd98ff831aba4",
+    "covers_this_unpublished_generation": false,
+    "run_id": 39905945673,
+    "status": "success"
+  },
+  "original_gap_regression": {
+    "handling": "wait_for_completed_observation_without_borrowing_other_origin",
+    "observed": true,
+    "original_source_package_retained": true
+  },
+  "physical_calibration_qualified": false,
+  "production_states_written": false,
+  "schema": "earthship-component-household-publication-verification/v1",
+  "status": "implemented_verified_private_not_installed"
+}
