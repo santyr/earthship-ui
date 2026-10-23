@@ -1,10 +1,10 @@
 # Selected production forecast integration
 
-Step 11 replaces the active methods after the integrated release is reviewed.
-The selected-product adapter, publication boundary, version-three UI reader and
-confirmed-output scoring functions are implemented. The selected v2 configuration, original model owner, bounded evaluator scheduling
-and confirmed public ranges are now connected in software. Dependent PV/thermal
-replacements, release review and installation remain outstanding. This document does not certify a live cutover.
+The selected methods are installed as the active production defaults. Current
+source-role pins, original model/fit/admission identities, actual operation,
+rollback and scientific limits are in [the release readback](production-release.json)
+and [release operations](production-release.md). Source pins are intentionally
+split by compatible owner; historical preview measurements below remain dated.
 
 `production_forecast.prepare_production_forecast` consumes original provider
 selections, the current measured-target contexts and explicitly registered fitted
@@ -71,9 +71,7 @@ results. Private originals and source files are retained separately. A preview
 uses a frozen prepared selection for read-only evaluation, not an installed
 production owner. Its UI exercise uses a captured real OpenHAB Item inventory
 with the prepared forecast values overlaid locally. It performs no OpenHAB state
-writes. Final release review, permanent original/source export, source and
-selector installation, rollback, actual deployed UI readback and natural-cycle
-verification remain required by Step 11.
+writes. Those preview-stage prerequisites were subsequently completed; the current release readback records installation, export, rollback, actual UI and natural cycles.
 
 
 The v2 publisher configuration pins the exact selected-profile bytes, original
@@ -105,7 +103,13 @@ The full 28-day, 48-row/hour workload has 32,256 records and 224 daily-refit
 artifacts. Its complete comparison report measured 563,317 bytes against the
 former 512 KiB cap. The cap is now 640 KiB, preserving all diagnostics; the
 verified report is 563,401 bytes and aggregates in 20.3 seconds under the
-512 MiB test envelope. A second database test includes the full per-score producer manifest and scalar\nruntime provenance. Eager loading exceeded the 512 MiB job limit. The owner now\nstreams literal records and retains only validated aggregation metadata; the\nsame complete workload passes under a 256 MiB hard limit with 212,844 KiB peak\nRSS, a 160,190,464-byte database and a 564,391-byte complete performance report\nin 25.45 seconds. The database remains capped at 256 MiB. These are synthetic\ncapacity checks, not observation or forecast-accuracy evidence. Retention caps do not grant
+512 MiB test envelope. A second database test includes the full per-score producer manifest and scalar
+runtime provenance. Eager loading exceeded the 512 MiB job limit. The owner now
+streams literal records and retains only validated aggregation metadata; the
+same complete workload passes under a 256 MiB hard limit with 212,844 KiB peak
+RSS, a 160,190,464-byte database and a 564,391-byte complete performance report
+in 25.45 seconds. The database remains capped at 256 MiB. These are synthetic
+capacity checks, not observation or forecast-accuracy evidence. Retention caps do not grant
 unlimited runway; final deployment must budget all existing state and originals.
 
 The fixed /api/weather-production route serves only a bounded 512 KiB sanitized

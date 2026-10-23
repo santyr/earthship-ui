@@ -1,0 +1,636 @@
+{
+  "active_role_sources": {
+    "future_daily_training": "97164f533f88f12c4cdd057ff3aba1c3431820a2",
+    "household_component_adapter": "83d080a13aadb51a4285c8061e464b907ce7aaca",
+    "household_scorer_collector_code": "99c4aad3604b13cb8bf2e9336b787157a9340c6e",
+    "native_forecast_geometry_scorer": "97164f533f88f12c4cdd057ff3aba1c3431820a2",
+    "scalar_publisher_daily_pv_evaluator": "db8ab178fedcd3ea31175dc8d04de3747e6baf3c",
+    "ui": "f17f9dcacfcef5b2c5e63bf5b0a35e97660d12a6",
+    "weather_sensitivity": "f17f9dcacfcef5b2c5e63bf5b0a35e97660d12a6"
+  },
+  "all_views_verification": {
+    "application_views": 8,
+    "checked_at": "2026-10-23T19:44:04.226Z",
+    "console_sizes": 2,
+    "distinct_application_routes": 4,
+    "errors": 0,
+    "failures": 0,
+    "home_and_earthship_screenshots_viewed": true,
+    "minimum_item_count": 460,
+    "openhab_overview_verified": true,
+    "proof_sha256": "ec29dfa5cabc16cfbdf5299bf64c447bada990cbf365f9fa812d47b389cbac63",
+    "source_revision": "f17f9dcacfcef5b2c5e63bf5b0a35e97660d12a6",
+    "unexpected_mutations": 0
+  },
+  "authorization": {
+    "automatic_actuation": false,
+    "extra_cloud_collection_authorized": false,
+    "parallel_shadow_required": false,
+    "policy": "deployment-policy.json",
+    "policy_bytes_frozen": true,
+    "policy_deployment_completed_field": "historical authorization-document snapshot, not current installation state",
+    "policy_file_sha256": "94af88aa502e7fded9583edbe09be4f458d5bf7a8f6d85d81f629bccc3d00e97",
+    "policy_identity": "26d4dc4f3cd73515e1a39b8c63d5b0b66bd78e001bd1f83c6bc5318ec22d7f0d"
+  },
+  "code_release_gates": [
+    {
+      "all_passed": true,
+      "proof_sha256": "87d0429159b789ec3058e602f5026d1d8af0d79ab9ffa43a31aefa095f7734b7",
+      "role": "sensitivity",
+      "source_revision": "f17f9dcacfcef5b2c5e63bf5b0a35e97660d12a6",
+      "workflows": [
+        {
+          "conclusion": "success",
+          "head_sha": "f17f9dcacfcef5b2c5e63bf5b0a35e97660d12a6",
+          "html_url": "https://github.com/santyr/earthship-ui/actions/runs/40002928617",
+          "id": 40002928617,
+          "name": "Thermal delivery qualification",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "head_sha": "f17f9dcacfcef5b2c5e63bf5b0a35e97660d12a6",
+          "html_url": "https://github.com/santyr/earthship-ui/actions/runs/40002928405",
+          "id": 40002928405,
+          "name": "Distributed sensor qualification",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "head_sha": "f17f9dcacfcef5b2c5e63bf5b0a35e97660d12a6",
+          "html_url": "https://github.com/santyr/earthship-ui/actions/runs/40002928355",
+          "id": 40002928355,
+          "name": "Household receipt integrity",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "head_sha": "f17f9dcacfcef5b2c5e63bf5b0a35e97660d12a6",
+          "html_url": "https://github.com/santyr/earthship-ui/actions/runs/40002928414",
+          "id": 40002928414,
+          "name": "Forecast ML hardening",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "head_sha": "f17f9dcacfcef5b2c5e63bf5b0a35e97660d12a6",
+          "html_url": "https://github.com/santyr/earthship-ui/actions/runs/40002928585",
+          "id": 40002928585,
+          "name": "CI",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "all_passed": true,
+      "proof_sha256": "f1dfd40d576dd41d72d077def36060c24af2c6a9f6f3e13ccde70561364bbc0f",
+      "role": "native_geometry_deferral",
+      "source_revision": "97164f533f88f12c4cdd057ff3aba1c3431820a2",
+      "workflows": [
+        {
+          "conclusion": "success",
+          "head_sha": "97164f533f88f12c4cdd057ff3aba1c3431820a2",
+          "html_url": "https://github.com/santyr/earthship-ui/actions/runs/40009347760",
+          "id": 40009347760,
+          "name": "Thermal delivery qualification",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "head_sha": "97164f533f88f12c4cdd057ff3aba1c3431820a2",
+          "html_url": "https://github.com/santyr/earthship-ui/actions/runs/40009347667",
+          "id": 40009347667,
+          "name": "Distributed sensor qualification",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "head_sha": "97164f533f88f12c4cdd057ff3aba1c3431820a2",
+          "html_url": "https://github.com/santyr/earthship-ui/actions/runs/40009347743",
+          "id": 40009347743,
+          "name": "Household receipt integrity",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "head_sha": "97164f533f88f12c4cdd057ff3aba1c3431820a2",
+          "html_url": "https://github.com/santyr/earthship-ui/actions/runs/40009347878",
+          "id": 40009347878,
+          "name": "Forecast ML hardening",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "head_sha": "97164f533f88f12c4cdd057ff3aba1c3431820a2",
+          "html_url": "https://github.com/santyr/earthship-ui/actions/runs/40009347846",
+          "id": 40009347846,
+          "name": "CI",
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "code_revision": "97164f533f88f12c4cdd057ff3aba1c3431820a2",
+  "completion_audit": "completion-audit.json",
+  "current_ui_verification": {
+    "checked_at": "2026-10-23T19:17:11.389Z",
+    "errors": 0,
+    "minimum_item_count": 460,
+    "mutations": 0,
+    "overflow": false,
+    "proof_sha256": "66e8ff50da91fc0f6243efaefbb34ce704c3ba5ccf1135cff79fb3d7980283a9",
+    "screenshot_viewed": true,
+    "sizes": [
+      {
+        "height": 800,
+        "width": 1340
+      },
+      {
+        "height": 720,
+        "width": 1280
+      }
+    ],
+    "source_revision": "f17f9dcacfcef5b2c5e63bf5b0a35e97660d12a6"
+  },
+  "deployment_completed": true,
+  "evaluation": {
+    "current_production_predictions_retained": true,
+    "finite_remaining_checks": [
+      "Observe naturally matured6/12/24h household and long-horizon scalar targets through the existing bounded evaluators",
+      "Check adequate seasons/regimes, wet events and independent target/date counts before qualification",
+      "Refit/admit supported scalar procedure before original November5 expiry; never renew old clocks",
+      "Reassess exact rain cohorts after gauge/class/event evidence exists",
+      "Reassess joint scenarios after qualified physical targets and eight eligible template dates exist",
+      "Monitor shared capacity without deleting originals or silently raising resource limits"
+    ],
+    "local_coverage_qualified": false,
+    "old_shadow_and_training_timers_disabled": true,
+    "parallel_shadow_required": false,
+    "physical_calibration_qualified": false,
+    "superior_skill_claim": false
+  },
+  "evidence_export": {
+    "base_manifest_sha256": "b60da4dcb1e248a54aae63492d8848484384c3ac6b8ca00f2776a724d00662ac",
+    "base_reused_files": 25293,
+    "complete_literal_source_package_manifest_sha256": "4a3397b8a3b7fadbf6ed2953ae5175dc8ce716888c24c91836b3493ec43215ed",
+    "files": 26339,
+    "final_delta_manifest_sha256": "33108e5db7f293c116a572f8d465a00be88fad7640cffe376ec471b77d1e4526",
+    "literal_delta_bytes": 53550797,
+    "original_source_environment_and_evidence_paths_retained": true,
+    "originals_deleted": false,
+    "private": true,
+    "regular_bytes": 1786817365,
+    "verified": true
+  },
+  "finalized_at": "2026-10-23T19:51:38.837762+00:00",
+  "first_issued_outcome_evidence": {
+    "household": {
+      "ac_load_count": 1,
+      "cohort_id": "6bdccff224b5e8c12a65b6013a5a27cb8a659658f94961bcd82ac093396685bc",
+      "constant_load_mae_kwh": 0.011758035556,
+      "corrected_soc_mae_pct_points": 3.625346,
+      "hold_soc_mae_pct_points": 7,
+      "horizon_hours": 1,
+      "learned_load_mae_kwh": 0.042882421247,
+      "origin": "2026-10-23T15:05:15+00:00",
+      "raw_soc_mae_pct_points": 3.340903,
+      "scored_at": "2026-10-23T16:31:09+00:00",
+      "soc_count": 1
+    },
+    "scalar": {
+      "checked_at": "2026-10-23T15:03:00+00:00",
+      "distinct_observed_temperature_targets": 1,
+      "forecast_records_scored": 2
+    },
+    "scope": "Dated first real samples; not current cumulative support or demonstrated improvement"
+  },
+  "installed_unit_readback": {
+    "old_shadow_training_timers_disabled": true,
+    "proof_sha256": "889cd58db5810fa7d372b93592105b512ceb28e40f49600dd4dbdc3f8e148472",
+    "sensitivity_timer_enabled": true,
+    "shared_resource_limits_verified": true,
+    "units": 19
+  },
+  "modal_wording_verification": {
+    "checked_at": "2026-10-23T19:37:31.732Z",
+    "console_sizes": 2,
+    "errors": 0,
+    "forecast_hours_each": 12,
+    "numerical_ranges_retained": true,
+    "proof_sha256": "754532a86ffc7d0c91d63a1b10afe284c294bc715ecae2aa364cc5bee932adb0",
+    "requested_text_and_source_initialized_tooltip_absent": true,
+    "screenshot_viewed": true,
+    "source_revision": "f17f9dcacfcef5b2c5e63bf5b0a35e97660d12a6",
+    "unexpected_mutations": 0
+  },
+  "native_geometry_deferral": {
+    "activated_at": "2026-10-23T19:41:38.291036+00:00",
+    "future_daily_installation_sha256": "02c12ad6c615c596f05ef634e5f57e3bb7011ce2394abb22f3eb0f30d46e68e1",
+    "handoff_proof_sha256": "b63d11ee880732fa1076e566b352c4d11c8f87fe27e1548cf224ef1736f83da2",
+    "installed": true,
+    "malformed_source_or_model_refused": true,
+    "model_and_fit_clocks_unchanged": true,
+    "natural_cycle": {
+      "checked_at": "2026-10-23T19:50:23.543334+00:00",
+      "geometry_exit": 75,
+      "native_result": "deferred",
+      "proof_sha256": "c193ce7f06ef064c649fa4d28d082b15d52f7fd2fdd5ae8c8387a2f61bf7fcef",
+      "thermal_state_and_clocks_unchanged": true
+    },
+    "only_absent_leaf_defers": true,
+    "preserves_old_issue_and_freshness_clocks": true,
+    "rollback_literal_proof_sha256": "a636548a8697f47625a35e44550cdd600f6ac68ecb0883c2f8258a18df45edf2",
+    "source_revision": "97164f533f88f12c4cdd057ff3aba1c3431820a2",
+    "staged_actual_no_transport_probe_sha256": "6105baae27f175085231529dbcdd646f5918c73e5bf1c0f403748733c4a7e671"
+  },
+  "observed_regular_collection": {
+    "additional_profiles": [],
+    "archive_growth_bytes": 299673,
+    "completed_at": "2026-10-23T16:42:19+00:00",
+    "eecu_remaining": null,
+    "eecu_used": null,
+    "enabled_profile": "core-v1",
+    "manual_cloud_acquisition": false,
+    "peak_rss_kib": 72824,
+    "requested_bands": 12,
+    "requests": 8,
+    "response_bytes": 1029222,
+    "seconds": 11.798,
+    "source_revision": "99c4aad3604b13cb8bf2e9336b787157a9340c6e",
+    "started_at": "2026-10-23T16:42:05+00:00"
+  },
+  "pending_engineering": [],
+  "post_handoff_verification": {
+    "artifact_sha256": "1257692a3e69e0d8ed3a62da94785d90dae64ba347ae496635d8dc1c20a5f65e",
+    "checked_at": "2026-10-23T19:46:04.460509+00:00",
+    "completed_energy_plan_profile_verified": true,
+    "deployment_sha256": "7ffafa33bf82fc80f838efd95d9d9f7f7eb2d6adaa86ff58743350131783c471",
+    "fit_created_at": "2026-10-23T13:32:14.718815+00:00",
+    "household_origin": "2026-10-23T19:45:15+00:00",
+    "manual_cloud_requests": 0,
+    "new_fit": false,
+    "nominal_storage_reason": "source_skew",
+    "nominal_storage_status": "unavailable",
+    "passed": true,
+    "profile_original_present": true,
+    "profile_reason": "original_storage_inputs_unavailable",
+    "profile_semantics": "Original proof profile_available means receipt presence; qualified availability is separately recorded here.",
+    "profile_status": "unavailable",
+    "proof_sha256": "99b950d16a0a02d58511bcf93aae7087b3546c98f0b365e31f603ff57840707e",
+    "source_revision": "97164f533f88f12c4cdd057ff3aba1c3431820a2",
+    "thermal_openhab_item_read": true
+  },
+  "prepared_at": "2026-10-23T18:37:58.495649+00:00",
+  "pv": {
+    "calibration_sha256": "1b294e90f5a3895f8f83c7061293a05e5aee2bb38a47791fbbba55c0f7178fce",
+    "component_profile_sha256": "05f689420adb8c845826876f06b788f5eb923d0b32051d84ce9ef67bb5da7bcf",
+    "expires_at": "2026-11-06T02:27:06.832328+00:00",
+    "fit_completed_at": "2026-10-23T02:27:06.832328+00:00",
+    "local_target_dates": 29,
+    "model_sha256": "3e5531fb9b7cfc4ba91042d50fdda9430a557f3ade751e2da37183fee6c33258",
+    "native_gain": 0.6487249745358313,
+    "procedure_sha256": "dcce27aa2edc538551a20dda12fe33d45256971452a88e59dc40cca15e3990a8",
+    "storage": "conditional nominal simulation, not measured usable capacity",
+    "total_only_fallback_gain_applied": false,
+    "training_targets": 737
+  },
+  "rain": {
+    "dependencies": [
+      "independent gauge-tip resolution trials",
+      "six wet and six below-threshold targets per exact 28-day cohort",
+      "three qualified independent wet events"
+    ],
+    "disposition": "native total_precipitation_1hr interval means",
+    "evidence": "production-rain-dispositions.json",
+    "local_fitted_replacement_installed": false,
+    "model_domain_hours": 336,
+    "outside_selected_model_domain_cohorts": 2,
+    "probability_claim": false,
+    "target_cohorts": [
+      {
+        "dependencies": [
+          "source_bound_independently_counted_local_gauge_tip_resolution",
+          "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+          "three_independent_qualified_wet_events"
+        ],
+        "interval_kind": "local_calendar_day",
+        "lead_scope_hours": 168,
+        "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+        "scope_sha256": "05bc073b8efceab60839e8a81bc1c0a3ce489875ac50f3e781f29eb6f10f2587",
+        "within_selected_336_hour_model_domain": true
+      },
+      {
+        "dependencies": [
+          "source_bound_independently_counted_local_gauge_tip_resolution",
+          "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+          "three_independent_qualified_wet_events"
+        ],
+        "interval_kind": "rolling_24_hours",
+        "lead_scope_hours": 72,
+        "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+        "scope_sha256": "0d9db7172e8bb8e83822dbc71f2611a4b22a928087e5506c18e99465a470608c",
+        "within_selected_336_hour_model_domain": true
+      },
+      {
+        "dependencies": [
+          "source_bound_independently_counted_local_gauge_tip_resolution",
+          "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+          "three_independent_qualified_wet_events"
+        ],
+        "interval_kind": "local_calendar_day",
+        "lead_scope_hours": 360,
+        "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+        "scope_sha256": "20a9704319f363c0660693257f20cd9fc886cb99a3afb22f39d4c5f55a07b0ca",
+        "within_selected_336_hour_model_domain": false
+      },
+      {
+        "dependencies": [
+          "source_bound_independently_counted_local_gauge_tip_resolution",
+          "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+          "three_independent_qualified_wet_events"
+        ],
+        "interval_kind": "remaining_day",
+        "lead_scope_hours": 24,
+        "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+        "scope_sha256": "2133d4777757791495f059b2106f8ea9773462fff25eb533ea248747368cb24e",
+        "within_selected_336_hour_model_domain": true
+      },
+      {
+        "dependencies": [
+          "source_bound_independently_counted_local_gauge_tip_resolution",
+          "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+          "three_independent_qualified_wet_events"
+        ],
+        "interval_kind": "rolling_24_hours",
+        "lead_scope_hours": 168,
+        "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+        "scope_sha256": "22ee9975479fdf945e0b1a6c4e6c8078163f4bf8ed4df012caa7ce3b76213f02",
+        "within_selected_336_hour_model_domain": true
+      },
+      {
+        "dependencies": [
+          "source_bound_independently_counted_local_gauge_tip_resolution",
+          "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+          "three_independent_qualified_wet_events"
+        ],
+        "interval_kind": "rolling_24_hours",
+        "lead_scope_hours": 72,
+        "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+        "scope_sha256": "409ad74323e6fc733c79123324ee617ac9362b40ad86b53ce0201e093674ff3f",
+        "within_selected_336_hour_model_domain": true
+      },
+      {
+        "dependencies": [
+          "source_bound_independently_counted_local_gauge_tip_resolution",
+          "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+          "three_independent_qualified_wet_events"
+        ],
+        "interval_kind": "remaining_day",
+        "lead_scope_hours": 72,
+        "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+        "scope_sha256": "550e940d4c4c1ed516edf75ecf6d905d7f04aeefaa695fec6c82232e47283f9b",
+        "within_selected_336_hour_model_domain": true
+      },
+      {
+        "dependencies": [
+          "source_bound_independently_counted_local_gauge_tip_resolution",
+          "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+          "three_independent_qualified_wet_events"
+        ],
+        "interval_kind": "rolling_24_hours",
+        "lead_scope_hours": 360,
+        "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+        "scope_sha256": "93e947a8b66313fea71a3ba5da0641ebd6113aa102aef68d8b6c2f361ab86f31",
+        "within_selected_336_hour_model_domain": false
+      },
+      {
+        "dependencies": [
+          "source_bound_independently_counted_local_gauge_tip_resolution",
+          "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+          "three_independent_qualified_wet_events"
+        ],
+        "interval_kind": "local_calendar_day",
+        "lead_scope_hours": 72,
+        "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+        "scope_sha256": "bb852af9b788274274271106553b9dd9778ea33d4c08d3eeb52fc8feb9458119",
+        "within_selected_336_hour_model_domain": true
+      },
+      {
+        "dependencies": [
+          "source_bound_independently_counted_local_gauge_tip_resolution",
+          "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+          "three_independent_qualified_wet_events"
+        ],
+        "interval_kind": "remaining_day",
+        "lead_scope_hours": 24,
+        "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+        "scope_sha256": "c28e11bc03062a4b32eec22ae63f336a13583e5b753e956141c606b421fd8e4e",
+        "within_selected_336_hour_model_domain": true
+      },
+      {
+        "dependencies": [
+          "source_bound_independently_counted_local_gauge_tip_resolution",
+          "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+          "three_independent_qualified_wet_events"
+        ],
+        "interval_kind": "local_calendar_day",
+        "lead_scope_hours": 168,
+        "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+        "scope_sha256": "d7f9ea7b847ef032bd74912d00edd0210ac1a9185c138271a3953c4285d6911b",
+        "within_selected_336_hour_model_domain": true
+      },
+      {
+        "dependencies": [
+          "source_bound_independently_counted_local_gauge_tip_resolution",
+          "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+          "three_independent_qualified_wet_events"
+        ],
+        "interval_kind": "local_calendar_day",
+        "lead_scope_hours": 72,
+        "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+        "scope_sha256": "eff2066888702b61d0f6666d771b725b5e46eb20b1ab43336db9e39c8d3b2670",
+        "within_selected_336_hour_model_domain": true
+      },
+      {
+        "dependencies": [
+          "source_bound_independently_counted_local_gauge_tip_resolution",
+          "six_unambiguous_wet_and_six_below_threshold_targets_in_same_28_day_cohort",
+          "three_independent_qualified_wet_events"
+        ],
+        "interval_kind": "rolling_24_hours",
+        "lead_scope_hours": 168,
+        "production_disposition": "native_total_precipitation_interval_mean_without_local_occurrence_calibration",
+        "scope_sha256": "ffab296232f0d58d5510bb07004a18e16ec7102599c570a04e71e500980b0eb8",
+        "within_selected_336_hour_model_domain": true
+      }
+    ],
+    "unsupported_local_cohorts": 13
+  },
+  "resources": {
+    "limits_increased": false,
+    "shared_cpu_count": 8,
+    "shared_memory_high_bytes": 5368709120,
+    "shared_memory_max_bytes": 6442450944,
+    "shared_tasks_max": 256,
+    "simultaneous_jobs_max": 2,
+    "swap_allowed": false
+  },
+  "schema": "earthship-production-release-readback/v1",
+  "selected_scalar_models": {
+    "earliest_original_expiry": "2026-11-05T23:24:43.096499+00:00",
+    "expiry_renewed": false,
+    "families": [
+      "temperature_normal",
+      "nonnegative"
+    ],
+    "lead_buckets_hours": [
+      [
+        0,
+        24
+      ],
+      [
+        24,
+        72
+      ],
+      [
+        72,
+        168
+      ],
+      [
+        168,
+        336
+      ]
+    ],
+    "model_count": 8,
+    "models": [
+      {
+        "admission_sha256": "dfa3655cb2bafd922e3a22cfb6620ac5a3eb5b638ad301bb96690ab05eaef9ab",
+        "artifact_sha256": "a9f75b9a9fd1c90425885a82451f2643378daccba7e45132290fbf370a604461",
+        "bundle_sha256": "1a08780d38983896f7edba6b340dd394aa9e251214b147461e857f863aa119cd",
+        "model_sha256": "9917e37390e8a1f4d0f51036849e773f814553271650f7d6536cab0212b37ffe"
+      },
+      {
+        "admission_sha256": "6b6532f34be9f16dd5d0ee26fe1a5871c6af39e53697bb2e9b4def8ae08dae91",
+        "artifact_sha256": "933ed9c0a0141b55ccd9a62c30e874452aefb28d682d6c973981cee9b2e372ab",
+        "bundle_sha256": "5674e940790e592f701660e083bce9413cda2a458976020ca39f987d61c2488b",
+        "model_sha256": "83e334e750dc2f78a38b85f7611e718b117bea55c21085a685d260a5adac0eb1"
+      },
+      {
+        "admission_sha256": "bc3b9f2b1c670c3525c82845fabfad417308d348d01f818cbbe29cf1bbbf45d1",
+        "artifact_sha256": "bf5704dddd2574c621dd012abcf0c08fc4d778844cba63d5da96dc6d7dae35f0",
+        "bundle_sha256": "6ba1c6dd2067a8446462ae101c2d876aa36ed95b24f063102eb9e73b734380fe",
+        "model_sha256": "826ac575586f9d68cc5f2d8b94e88657abf8dad0ea7c9f1df87727664f62c672"
+      },
+      {
+        "admission_sha256": "6508ad02d37ea49451c0e0da64c163df119f88eced11283d6d997ef00cf71d8a",
+        "artifact_sha256": "b4529959502e43f06c1ce722ad8c32b8c1f0c5c37c9c31ed5191dc3d96868a60",
+        "bundle_sha256": "973931d6c77bde44fc9a4d0c5582615e5b5745961b3a64ae3f1e9231a1cc6611",
+        "model_sha256": "f1399face7156b8b4bfff9925548dc64b371e84b69d8eed9afee839d1e780731"
+      },
+      {
+        "admission_sha256": "82eda1aec0bf2d49573452d5df108f896716453add577e88df1e21bce57b85e0",
+        "artifact_sha256": "6f69174c3aa25c255862280ceb1d5d726c98dded04f702e970182d516859e2d1",
+        "bundle_sha256": "a781a7b0f651c302351b4fb530cd23f8e0a999fa1582e8f22eb2ff5aabcacc31",
+        "model_sha256": "470980898b70f90c8f788eea01a96233935230e9dc4de8c4f5e46019b5f72dc9"
+      },
+      {
+        "admission_sha256": "756c0c9b6f1d36a79fed1d7282ced33cf9e66cec10bd19060730829aa9b52428",
+        "artifact_sha256": "887e9488e3fec5ca0dee662af1739b7afcdda8e5736b6ffc63432bb805ede96b",
+        "bundle_sha256": "e19159ddc4e18fba2d9daae0b5e25833912a85277f57e94400cfa44221c82354",
+        "model_sha256": "d534cf1f73e67d74fa10ecbf9f1fee62b3ac1eac31ada91ca0c3dbede84813c9"
+      },
+      {
+        "admission_sha256": "d08f2fda6b17582877587b5aca3e6bcd26eda4f6e9e7471fa9f26fdf865e7faf",
+        "artifact_sha256": "23dc473be4c44beeae1d99aa2a66cf0cc2a4406fdba77d54af0e893bd90a3004",
+        "bundle_sha256": "e9818fff81a28fdcd06f05b1aa11910220c2e63e6ea80eeb4c563580e284e2b7",
+        "model_sha256": "3176cf23f76b791761f098de028a964f344e8060e89b25569245c4d1db4bbf80"
+      },
+      {
+        "admission_sha256": "a9b71e280594e2eeb2cbb1cc20f20a2f7b05dcc518c26a89a1cae65d49c57dac",
+        "artifact_sha256": "3c12a79c16ca13995aed95bbefb90e1ce4c13e11fcf4bf3909fe607f218498bd",
+        "bundle_sha256": "f3069a915db4da11af558fb98450d9dd27d12a1cc2a144fb124e66dd0e1d73c9",
+        "model_sha256": "faf12d1e9f7535d04f6fd595f9d121df17494317365bf65461a53795ae09477c"
+      }
+    ],
+    "profile_sha256": "fd0d8d4106d6769f00b36ec5c9a49bf93686f8baf6417bf1e03011721d83065f"
+  },
+  "sensitivity": {
+    "estimated_28_day_hourly_bytes": 122502464,
+    "estimated_28_day_hourly_objects": 2690,
+    "exact_original_restored": true,
+    "first_original_report_sha256": "7e35c956bdd418d89971c19a1533af492af9730f4d0e84ef76d825fd164987d5",
+    "first_preparation_clock_retained": true,
+    "first_published_at": "2026-10-23T18:51:46.360654+00:00",
+    "history_evicted": false,
+    "installed": true,
+    "joint_eligible_template_dates": 0,
+    "joint_status": "insufficient_evidence",
+    "minimum_template_dates": 8,
+    "missing_joint_targets": [
+      "qualified physical GHI",
+      "complete matched household energy targets"
+    ],
+    "natural_cycle": {
+      "automatic_actuation": false,
+      "case_count": 3,
+      "checked_at": "2026-10-23T19:22:51.484820+00:00",
+      "cloud_requests": 0,
+      "generated_at": "2026-10-23T19:18:02.559119+00:00",
+      "origin": "2026-10-23T19:15:15+00:00",
+      "published_at": "2026-10-23T19:18:52.197778+00:00",
+      "report_sha256": "3e28ffca0a13ae5ce386d0e54aa209a1ed486a6a5cce0eab76e7dcd584b77650",
+      "schema": "earthship-sensitivity-natural-cycle-proof/v1",
+      "source_revision": "f17f9dcacfcef5b2c5e63bf5b0a35e97660d12a6"
+    },
+    "optional_ceiling_bytes": 268435456,
+    "per_issue_original_bytes": 176734,
+    "per_source_generation_bytes": 3737216,
+    "post_handoff_input_guard": {
+      "exact_old_cache_bytes_verified": true,
+      "last_confirmed_report_unchanged": true,
+      "measurement_guards_relaxed": false,
+      "origin": "2026-10-23T19:45:15+00:00",
+      "original_clocks_not_refreshed": true,
+      "reason": "source_skew",
+      "result": "refused_unqualified_storage"
+    },
+    "probability_claim": false,
+    "raw_component_pv_before_electrical_correction": true,
+    "shared_core_reserve_bytes": 402653184,
+    "source_identity_proof_sha256": "0fc1e0cbc57e08c2e778fb6df2ec6565aaa8e5ef002ca56810d55807725bcca5",
+    "source_package_sha256": "d7dcd3671cd0486676ce4163680abda83f8a254b90f9e471954c101adc7669ff",
+    "thermal_central_parity_max_abs_f": 0,
+    "three_fixed_recipes": true,
+    "verified_source_files": 447
+  },
+  "station_readback": {
+    "change_bounds_inhg": [
+      -0.05999999999999872,
+      -0.05999999999999872
+    ],
+    "checked_at": "2026-10-23T18:44:29.783723+00:00",
+    "legacy_openhab_trend": "falling",
+    "pressure_identity": "station_absolute",
+    "pressure_trend": "falling",
+    "rain_day": "0.03 in",
+    "rain_week": "0.38 in",
+    "scope": "Actual retained station/OpenHAB data; prior cold history correctly withheld the trend until three-hour support existed",
+    "support_seconds": 10800.332087
+  },
+  "status": "production_installed_verified",
+  "thermal": {
+    "admission_sha256": "e1dd8addc99424cd37b5a9a46efb878c58cf656f269d760bce79f4d7631a9d26",
+    "admitted_at": "2026-10-23T13:32:52.852477+00:00",
+    "artifact_sha256": "1257692a3e69e0d8ed3a62da94785d90dae64ba347ae496635d8dc1c20a5f65e",
+    "dataset_sha256": "1a28d636235f06c1809aac2d08e94e8a7f783067463d7be974bbccd629efad09",
+    "endpoint_count": 34,
+    "fit_completed_at": "2026-10-23T13:32:14.664784+00:00",
+    "fit_started_at": "2026-10-23T13:32:13.143770+00:00",
+    "independent_origin_dates": 9,
+    "physical_calibration_qualified": false,
+    "runtime_sha256": "57b4554def71a71cb3356fa3b76c99d6f6aba0104f2d601d6f3af5e5c8270ca6",
+    "source_only_handoff_preserves_fit": true,
+    "training_end": "2026-10-23T12:00:00+00:00",
+    "training_start": "2026-10-15T06:00:00+00:00"
+  }
+}

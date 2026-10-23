@@ -1,0 +1,1920 @@
+{
+  "code_revision": "97164f533f88f12c4cdd057ff3aba1c3431820a2",
+  "complete": true,
+  "counts": {
+    "global_constraints": 10,
+    "recommendations": 13,
+    "regressions": 30,
+    "steps": 70
+  },
+  "global_constraints": [
+    {
+      "disposition": "WeatherNext sole external provider; no old provider reactivated",
+      "evidence": "production-release.json",
+      "id": "GC-1",
+      "status": "verified"
+    },
+    {
+      "disposition": "Statistics-only no-billing original collector configuration retained; optional acquisition disabled",
+      "evidence": "production-release.json",
+      "id": "GC-2",
+      "status": "verified"
+    },
+    {
+      "disposition": "6GiB max/5GiB high,8CPU,256tasks,no swap,max2 managed jobs unchanged",
+      "evidence": "production-release.json",
+      "id": "GC-3",
+      "status": "verified"
+    },
+    {
+      "disposition": "EECU/account eligibility and remaining balance explicitly unknown; runtime is not EECU",
+      "evidence": "production-release.json",
+      "id": "GC-4",
+      "status": "verified"
+    },
+    {
+      "disposition": "Read-only consumers and scenarios; no new actuator/feeder authority",
+      "evidence": "production-release.json",
+      "id": "GC-5",
+      "status": "verified"
+    },
+    {
+      "disposition": "Original source/model/fit/admission/prediction/score clocks and literal originals retained",
+      "evidence": "production-release.json",
+      "id": "GC-6",
+      "status": "verified"
+    },
+    {
+      "disposition": "Sensor epochs and measurement validity retained; no physical-GHI,usable-capacity or cistern-inventory fabrication",
+      "evidence": "production-release.json",
+      "id": "GC-7",
+      "status": "verified"
+    },
+    {
+      "disposition": "Curated public hashes/status only; literal configurations, credentials and household data retained privately",
+      "evidence": "production-release.json",
+      "id": "GC-8",
+      "status": "verified"
+    },
+    {
+      "disposition": "Optional isolation, source-bound serving/readback, target weighting and mature-target scoring verified",
+      "evidence": "production-release.json",
+      "id": "GC-9",
+      "status": "verified"
+    },
+    {
+      "disposition": "Explicit session deployment authorization; all code releases reviewed and exact-head CI passed before installation",
+      "evidence": "production-release.json",
+      "id": "GC-10",
+      "status": "verified"
+    }
+  ],
+  "historical_evidence_revision": "f17f9dcacfcef5b2c5e63bf5b0a35e97660d12a6",
+  "historical_evidence_semantics": "Hashes bind original pre-finalization documents at the named revision or retained exact private snapshot; current installation is recorded separately.",
+  "new_test_ownership": [
+    {
+      "file": "openhab/scripts/test_retained_scenario_child_protocol.py",
+      "normal_ci_owner": "CI OpenHAB partition 2/3",
+      "sha256": "c2a8f7eb310049a049c6decd10194c447e07e836dce87746de7bcb98443cf0bc"
+    },
+    {
+      "file": "openhab/scripts/test_native_serving_driver.py",
+      "normal_ci_owner": "CI OpenHAB partition 0/3",
+      "sha256": "92a5dfe6e7385d6f999c9507de8db349fa54b5bc9f56fbd86771e56f11c71c23"
+    },
+    {
+      "file": "openhab/scripts/weather_learning/tests/test_production_native_sensitivity.py",
+      "normal_ci_owner": "CI OpenHAB partition 1/3",
+      "sha256": "a3dda10f1277d02cc9fb528794f76ac1f7b05f15db8acf0e56ec4cdeb7ac74a6"
+    },
+    {
+      "file": "openhab/scripts/weather_learning/tests/test_production_scenario_worker.py",
+      "normal_ci_owner": "CI OpenHAB partition 2/3",
+      "sha256": "e9d3ee64befe53eedbcaf21429095585c2c9e4d7e2ecc24b1d047287e4ea2759"
+    },
+    {
+      "file": "openhab/scripts/weather_learning/tests/test_scenario_compact_retention.py",
+      "normal_ci_owner": "CI OpenHAB partition 2/3",
+      "sha256": "e0ef23a8a2eaaa329181c371e4beb8965507064f96e16a42bc47515fa9a49e46"
+    },
+    {
+      "file": "openhab/scripts/weather_learning/tests/test_scenario_production_view.py",
+      "normal_ci_owner": "CI OpenHAB partition 1/3",
+      "sha256": "882260341b55a066ff7b041c3cb5c652b7b812df94d64e3ac27fb7068a096dbb"
+    },
+    {
+      "file": "tests/weather-sensitivity.test.js",
+      "normal_ci_owner": "CI test / bare Vitest",
+      "sha256": "6a8af710acf8a8954eed9fc934d78b5ae850acecb09ec513acf7d539c7b75bfa"
+    },
+    {
+      "file": "tests/weather-sensitivity-server.test.js",
+      "normal_ci_owner": "CI test / bare Vitest",
+      "sha256": "8a17ca8a4980be75c6ad15b5716a1e85841e41070b2cf82fea573046105a2c48"
+    },
+    {
+      "file": "tests/ui/WeatherSensitivity.test.js",
+      "normal_ci_owner": "CI test / bare Vitest",
+      "sha256": "381ef07c8bebe93ae7abd63f2846a2f4a8b36e2fd5f176dcea907c59f1641279"
+    },
+    {
+      "file": "tests/e2e/weather-sensitivity.spec.js",
+      "normal_ci_owner": "CI browser-fixtures",
+      "sha256": "25156ff7a9b676e193c9939556411f6656d04f2866237ac73dd5855a6122e317"
+    }
+  ],
+  "regressions": [
+    {
+      "expected_result": "Existing deterministic UI/replay remain valid",
+      "id": "T01",
+      "normal_test_anchors": [
+        {
+          "file": "tests/weather-capability-forecast.test.js",
+          "sha256": "f59b1ba893c9cefc01984e6fc75d9bae0725c74cd7b78a86bfdce4db325da9bc"
+        },
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_production_forecast.py",
+          "sha256": "68fe934657c69fb42b0a0137c1b76548abb91f762af681eb1a48153e150cdfb8"
+        }
+      ],
+      "scenario": "Current/legacy schemas, missing supplemental report",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "expected_result": "Core forecast remains valid; group explains missingness",
+      "id": "T02",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_capability_acquisition.py",
+          "sha256": "d24d6936b05e31371bc442610e10de9fc9d9eafbf945d72ee9c98ee0324f77fc"
+        },
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_atmospheric_publish.py",
+          "sha256": "a06e6724c927c1cc29d3ffb4c1021ce4945f7320b2a5a2aa8019cd45beb8f82e"
+        }
+      ],
+      "scenario": "Optional quantile/dewpoint/cloud group fails",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "expected_result": "Accepted and truthfully labeled",
+      "id": "T03",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_capability_profiles.py",
+          "sha256": "1104566d28c206c907872896c8a8ffbdd905f7c1726ebfc5a133de2c9269929d"
+        },
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_rain_calibration.py",
+          "sha256": "a2342a3e123fe8df941aa394f0b3d66ab9aa5d0d5cbfcccc3ba0aed5f9fde996"
+        }
+      ],
+      "scenario": "p10=p50=p90=0 rain; mean differs from median",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "expected_result": "Reject malformed quantiles; do not reject a valid mean merely for lying outside the range",
+      "id": "T04",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_capability_profiles.py",
+          "sha256": "1104566d28c206c907872896c8a8ffbdd905f7c1726ebfc5a133de2c9269929d"
+        }
+      ],
+      "scenario": "Crossing/nonfinite quantiles; mean outside nominal range",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "expected_result": "32\u00b0F value and 18\u00b0F spread, without applying the temperature offset to a spread",
+      "id": "T05",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_capability_publish.py",
+          "sha256": "d0ee4fd60b9f9d082cf541294df8791b0bf39dda433b00981ed6c08737d430ce"
+        }
+      ],
+      "scenario": "273.15 K and a 10 K spread",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "expected_result": "Old cache cannot falsely satisfy new fields; originals unchanged",
+      "id": "T06",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_capability_acquisition.py",
+          "sha256": "d24d6936b05e31371bc442610e10de9fc9d9eafbf945d72ee9c98ee0324f77fc"
+        }
+      ],
+      "scenario": "Expanded profile against old cached subset",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "expected_result": "Second write checked against updated usage; no overrun",
+      "id": "T07",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_capability_acquisition.py",
+          "sha256": "d24d6936b05e31371bc442610e10de9fc9d9eafbf945d72ee9c98ee0324f77fc"
+        }
+      ],
+      "scenario": "Two writes approach byte/object cap in one cycle",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "expected_result": "Bounded retries/deferred optional work, no billing or fallback provider",
+      "id": "T08",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_capability_acquisition.py",
+          "sha256": "d24d6936b05e31371bc442610e10de9fc9d9eafbf945d72ee9c98ee0324f77fc"
+        }
+      ],
+      "scenario": "Restricted quota/late provider run",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "evidence": [
+        "task4-verification.json"
+      ],
+      "expected_result": "500/300/200 W/m\u00b2 total/direct-horizontal/diffuse",
+      "id": "T09",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/test_native_solar_components.py",
+          "sha256": "228edcd660697a5159375496aa16e777745894ba31967195e63f39d7f1534fb4"
+        }
+      ],
+      "scenario": "Solar 1.8 MJ total / 1.08 MJ direct over 1 h",
+      "status": "verified",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "evidence": [
+        "task4-verification.json"
+      ],
+      "expected_result": "300 W/m\u00b2 direct-horizontal corresponds to 600 W/m\u00b2 DNI",
+      "id": "T10",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/test_native_solar_components.py",
+          "sha256": "228edcd660697a5159375496aa16e777745894ba31967195e63f39d7f1534fb4"
+        }
+      ],
+      "scenario": "Ideal constant 30\u00b0 elevation",
+      "status": "verified",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "evidence": [
+        "task4-verification.json"
+      ],
+      "expected_result": "Declared reconstruction conserves original energy before terrain loss; diffuse is not incorrectly erased",
+      "id": "T11",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/test_native_solar_components.py",
+          "sha256": "228edcd660697a5159375496aa16e777745894ba31967195e63f39d7f1534fb4"
+        },
+        {
+          "file": "openhab/scripts/test_household_native_weather_scenarios.py",
+          "sha256": "be67d02e973a0bb048cf29ba7cc7f28cd2ec60c1796ffd9e50a35027bfa67e17"
+        }
+      ],
+      "scenario": "Real varying elevation/hour crossing/terrain masking",
+      "status": "verified",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "evidence": [
+        "task4-verification.json"
+      ],
+      "expected_result": "Explicit versioned total-only fallback/rejection, no silent fabricated component",
+      "id": "T12",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/test_native_solar_components.py",
+          "sha256": "228edcd660697a5159375496aa16e777745894ba31967195e63f39d7f1534fb4"
+        }
+      ],
+      "scenario": "Missing direct or substantial direct>total",
+      "status": "verified",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "evidence": [
+        "task4-verification.json"
+      ],
+      "expected_result": "Exact or predeclared numerical-tolerance parity and identical units/intervals",
+      "id": "T13",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_production_pv.py",
+          "sha256": "5f297c85c5494505655e7a904f163003e0b94b5412addfde8da2b3d5551d3571"
+        },
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_production_thermal_temperature.py",
+          "sha256": "5ad8a93862e3e3077b452b12410ce2f715f3a12e5eed989ceb8701e1dbe40fdf"
+        }
+      ],
+      "scenario": "Same inputs to training and serving",
+      "status": "verified",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "expected_result": "Correct wind-from direction; calm unavailable; scalar speed retained separately",
+      "id": "T14",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_atmospheric_context.py",
+          "sha256": "f99466f1e4de2b57e48f25c92092997037de215a6e1165f709f56b784b3a49ef"
+        }
+      ],
+      "scenario": "u/v cardinal directions and calm",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "expected_result": "No false matched comparison or moisture/condensation assurance",
+      "id": "T15",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_atmospheric_context.py",
+          "sha256": "f99466f1e4de2b57e48f25c92092997037de215a6e1165f709f56b784b3a49ef"
+        }
+      ],
+      "scenario": "Mixed pressure conventions or absent indoor humidity",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "expected_result": "Complete total 23/25 mm; no synthetic 24-hour assumption",
+      "id": "T16",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_rain_calibration.py",
+          "sha256": "a2342a3e123fe8df941aa394f0b3d66ab9aa5d0d5cbfcccc3ba0aed5f9fde996"
+        }
+      ],
+      "scenario": "23/25-hour Denver day, 1 mm/h mean",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "expected_result": "Not labeled a daily p10; reject quantile aggregation API misuse",
+      "id": "T17",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_capability_profiles.py",
+          "sha256": "1104566d28c206c907872896c8a8ffbdd905f7c1726ebfc5a133de2c9269929d"
+        },
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_rain_calibration.py",
+          "sha256": "a2342a3e123fe8df941aa394f0b3d66ab9aa5d0d5cbfcccc3ba0aed5f9fde996"
+        }
+      ],
+      "scenario": "Add hourly marginal rain/solar p10",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "expected_result": "Only actual remaining targets available; 24 h near profile selected when supported",
+      "id": "T18",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_refresh_evaluation.py",
+          "sha256": "4b04abf07abd02c7c50ce96202f1055ff646c68492d7bb1a81c39018c6400af2"
+        }
+      ],
+      "scenario": "48 h interim arrives >7 h after init",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "expected_result": "Cannot enter historical as-issued features or selection",
+      "id": "T19",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_refresh_evaluation.py",
+          "sha256": "4b04abf07abd02c7c50ce96202f1055ff646c68492d7bb1a81c39018c6400af2"
+        },
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_probabilistic_evaluation.py",
+          "sha256": "ae45c09862789961025585fd49d489db80353d180f5cc8fb23222b3e8c036dc3"
+        }
+      ],
+      "scenario": "Late run or observation discovered after decision",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "expected_result": "Correct target weights/cohorts; no inflated independent sample count",
+      "id": "T20",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_probabilistic_evaluation.py",
+          "sha256": "ae45c09862789961025585fd49d489db80353d180f5cc8fb23222b3e8c036dc3"
+        },
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_production_reporting.py",
+          "sha256": "37f6262c402e9802ec1b17b30b987aeec6c5b088667a20a3a1ba47def26daf87"
+        }
+      ],
+      "scenario": "Many forecasts verify against one observation",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "expected_result": "Bounded calibrated-model refusal/fallback, no infinite confidence",
+      "id": "T21",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_probabilistic.py",
+          "sha256": "99220d0e837250c76987642e04b218fab75aca10e5054da419329d32c87d2969"
+        }
+      ],
+      "scenario": "Sparse statistics, zero spread, cold adaptive state",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "expected_result": "Matched comparison plus full fallback-policy result and availability",
+      "id": "T22",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_probabilistic_evaluation.py",
+          "sha256": "ae45c09862789961025585fd49d489db80353d180f5cc8fb23222b3e8c036dc3"
+        },
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_production_reporting.py",
+          "sha256": "37f6262c402e9802ec1b17b30b987aeec6c5b088667a20a3a1ba47def26daf87"
+        }
+      ],
+      "scenario": "Candidate available only on easy targets",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "expected_result": "Policy and artifact results distinct, no old skill attributed to new weights",
+      "id": "T23",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_production_reporting.py",
+          "sha256": "37f6262c402e9802ec1b17b30b987aeec6c5b088667a20a3a1ba47def26daf87"
+        }
+      ],
+      "scenario": "Old and new model scores mixed",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "expected_result": "Explicit hypothetical label and no probability claim",
+      "id": "T24",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/test_household_weather_scenarios.py",
+          "sha256": "0441e2aeee66ecfd1eaa70e77eec27921df63ac9cef503dd5a5abb0d1da3b6bf"
+        },
+        {
+          "file": "tests/weather-sensitivity.test.js",
+          "sha256": "6a8af710acf8a8954eed9fc934d78b5ae850acecb09ec513acf7d539c7b75bfa"
+        }
+      ],
+      "scenario": "Stress trajectory using marginal endpoints",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "expected_result": "Uses only past available blocks; deterministic replay and bounded runtime",
+      "id": "T25",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/test_household_weather_scenarios.py",
+          "sha256": "0441e2aeee66ecfd1eaa70e77eec27921df63ac9cef503dd5a5abb0d1da3b6bf"
+        },
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_scenario_scores.py",
+          "sha256": "79e10b1c4177aa8a5e6af80f159d4e82eb02c8983def9450e1e3847937f6ea61"
+        }
+      ],
+      "scenario": "Joint scenario resampling/template selection",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "expected_result": "No unsupported occurrence model or promotion",
+      "id": "T26",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_rain_calibration.py",
+          "sha256": "a2342a3e123fe8df941aa394f0b3d66ab9aa5d0d5cbfcccc3ba0aed5f9fde996"
+        }
+      ],
+      "scenario": "All-dry or uncertain-boundary rain observations",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "expected_result": "Staged compatible handoff or truthful fallback; never bypass source checks",
+      "id": "T27",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/test_retained_scenario_child_protocol.py",
+          "sha256": "c2a8f7eb310049a049c6decd10194c447e07e836dce87746de7bcb98443cf0bc"
+        },
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_production_native_sensitivity.py",
+          "sha256": "a3dda10f1277d02cc9fb528794f76ac1f7b05f15db8acf0e56ec4cdeb7ac74a6"
+        },
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_production_cutover.py",
+          "sha256": "53c6a37fade1410e21c569697ea57b7f3da67a389d0051ea2e2f3a2a9b3e66d9"
+        }
+      ],
+      "scenario": "New consumer/source closure with old admission",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "expected_result": "Readback describes changed/uncertain state, not unsupported preservation",
+      "id": "T28",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_production_cutover.py",
+          "sha256": "53c6a37fade1410e21c569697ea57b7f3da67a389d0051ea2e2f3a2a9b3e66d9"
+        },
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_production_publish.py",
+          "sha256": "16c5e478457bd2ef1569dcd8192cc3bff91be389a4222f357cddf513361a45b5"
+        },
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_production_scenario_worker.py",
+          "sha256": "e9d3ee64befe53eedbcaf21429095585c2c9e4d7e2ecc24b1d047287e4ea2759"
+        }
+      ],
+      "scenario": "Selector changes then child exits unsuccessfully",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "expected_result": "Original prediction matures once under bounded durable work",
+      "id": "T29",
+      "normal_test_anchors": [
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_production_queue.py",
+          "sha256": "408c0b84eecb9449a1584c459b520e1a539bdd5be17ff6cd76e5297fc7bb925b"
+        },
+        {
+          "file": "openhab/scripts/weather_learning/tests/test_refresh_queue.py",
+          "sha256": "997fcf6835b731b7573974357fd41ad0dae11fb595bee705b3f5e5664838e749"
+        }
+      ],
+      "scenario": "Long-horizon score plus restart/late observation",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    },
+    {
+      "expected_result": "Legible layout, accurate source/qualification status, no page errors or unexpected commands",
+      "id": "T30",
+      "normal_test_anchors": [
+        {
+          "file": "tests/e2e/weather-sensitivity.spec.js",
+          "sha256": "25156ff7a9b676e193c9939556411f6656d04f2866237ac73dd5855a6122e317"
+        },
+        {
+          "file": "tests/e2e/weather-earthship-layout.spec.js",
+          "sha256": "ba3434c517202f990db91a78ad355f54665de707693f5bc6565a771c3b457832"
+        },
+        {
+          "file": "tests/e2e/weather-detail-modal.spec.js",
+          "sha256": "0751a6e38bf0fd9804abbbdda4c175d7411a97724be193ed7040fb5e5484a419"
+        }
+      ],
+      "scenario": "Both console sizes, stale/offline optional products",
+      "verification": "Exact source CI, retained targeted/local tests and actual installed verification in production-release.json; test anchors are coverage pointers, not standalone proof."
+    }
+  ],
+  "release": "production-release.json",
+  "requirements": [
+    {
+      "current_evidence": [
+        "production-release.json",
+        "capability-matrix.json",
+        "production-replacements.json"
+      ],
+      "id": "WN-01",
+      "owning_tasks": "0, 11",
+      "requirement": "Preserve latest audit repairs and reconcile source versus installed runtimes",
+      "status": "implemented_verified_with_declared_evidence_limits"
+    },
+    {
+      "current_evidence": [
+        "production-release.json",
+        "capability-matrix.json",
+        "production-replacements.json"
+      ],
+      "id": "WN-02",
+      "owning_tasks": "1, 2, 11",
+      "requirement": "Version contracts and make optional capabilities independently available",
+      "status": "implemented_verified_with_declared_evidence_limits"
+    },
+    {
+      "current_evidence": [
+        "production-release.json",
+        "capability-matrix.json",
+        "production-replacements.json"
+      ],
+      "id": "WN-03",
+      "owning_tasks": "2",
+      "requirement": "Expose already acquired temperature p10/p90; preserve mean versus median",
+      "status": "implemented_verified_with_declared_evidence_limits"
+    },
+    {
+      "current_evidence": [
+        "production-release.json",
+        "capability-matrix.json",
+        "production-replacements.json"
+      ],
+      "id": "WN-04",
+      "owning_tasks": "1, 3",
+      "requirement": "Selectively acquire additional quantiles within explicit cost/resource budgets",
+      "status": "implemented_verified_with_declared_evidence_limits"
+    },
+    {
+      "current_evidence": [
+        "production-release.json",
+        "capability-matrix.json",
+        "production-replacements.json"
+      ],
+      "evidence": [
+        "pv-experiment.json",
+        "thermal-experiment.json",
+        "task4-verification.json"
+      ],
+      "historical_status": "comparison_verified_incumbent_retained",
+      "id": "WN-05",
+      "owning_tasks": "4",
+      "requirement": "Compare native direct/total solar against the current decomposition",
+      "status": "implemented_verified_with_declared_evidence_limits"
+    },
+    {
+      "current_evidence": [
+        "production-release.json",
+        "capability-matrix.json",
+        "production-replacements.json"
+      ],
+      "evidence": [
+        "atmospheric-semantics.md",
+        "atmospheric-experiment.json",
+        "task5-verification.json"
+      ],
+      "historical_status": "implemented_locally_with_actual_feature_dispositions_not_deployed",
+      "id": "WN-06",
+      "owning_tasks": "3, 5",
+      "requirement": "Use dew point, pressure, wind components, and cloud structure appropriately",
+      "status": "implemented_verified_with_declared_evidence_limits"
+    },
+    {
+      "current_evidence": [
+        "production-release.json",
+        "capability-matrix.json",
+        "production-replacements.json"
+      ],
+      "evidence": [
+        "refresh-cadence.md",
+        "refresh-experiment.json",
+        "near24-compatibility.json",
+        "task6-verification.json"
+      ],
+      "historical_status": "implemented_locally_actual_refresh_measured_near24_source_bound_not_deployed",
+      "id": "WN-07",
+      "owning_tasks": "6",
+      "requirement": "Measure actual hourly refresh value and separately identify near-term correction",
+      "status": "implemented_verified_with_declared_evidence_limits"
+    },
+    {
+      "current_evidence": [
+        "production-release.json",
+        "capability-matrix.json",
+        "production-replacements.json"
+      ],
+      "evidence": [
+        "marginal-calibration.md",
+        "marginal-calibration-protocol.json",
+        "marginal-population.json",
+        "marginal-experiment.json",
+        "task7-science-progress-verification.json",
+        "marginal-source-scope-audit.json",
+        "marginal-prospective-preparation.json",
+        "marginal-native-population.json",
+        "marginal-native-experiment.json",
+        "marginal-native-verification.json",
+        "marginal-native-preparation.json",
+        "marginal-durable-progress.json",
+        "task7-verification.json"
+      ],
+      "historical_status": "complete_locally_unselected_unqualified_not_deployed",
+      "id": "WN-08",
+      "owning_tasks": "7",
+      "requirement": "Test adaptive temperature correction and locally calibrated marginal uncertainty",
+      "status": "implemented_verified_with_declared_evidence_limits"
+    },
+    {
+      "current_evidence": [
+        "production-release.json",
+        "capability-matrix.json",
+        "production-replacements.json"
+      ],
+      "evidence": [
+        "scenario-protocol.json",
+        "household-scenarios.md",
+        "scenario-adapter-verification.json",
+        "scenario-original-producer-verification.json",
+        "scenario-experiment-protocol.json",
+        "scenario-population.json",
+        "scenario-projection-experiment.json",
+        "scenario-final-verification.json"
+      ],
+      "historical_status": "complete_local_scenario_experiments_and_actual_outcome_assessment_production_replacement_pending",
+      "id": "WN-09",
+      "owning_tasks": "8",
+      "requirement": "Provide stress scenarios; evaluate dependence-aware household scenarios before probabilities",
+      "status": "implemented_verified_with_declared_evidence_limits"
+    },
+    {
+      "current_evidence": [
+        "production-release.json",
+        "capability-matrix.json",
+        "production-replacements.json"
+      ],
+      "evidence": [
+        "rain-calibration.md",
+        "rain-experiment.json",
+        "task9-verification.json"
+      ],
+      "historical_status": "complete_local_matched_rain_assessment_production_replacement_pending",
+      "id": "WN-10",
+      "owning_tasks": "9",
+      "requirement": "Compare all three rain products and a bounded occurrence/amount challenger",
+      "status": "implemented_verified_with_declared_evidence_limits"
+    },
+    {
+      "current_evidence": [
+        "production-release.json",
+        "capability-matrix.json",
+        "production-replacements.json"
+      ],
+      "id": "WN-11",
+      "owning_tasks": "All",
+      "requirement": "Preserve provider, cost, archive, privacy, authority, and historical replay boundaries",
+      "status": "implemented_verified_with_declared_evidence_limits"
+    },
+    {
+      "current_evidence": [
+        "production-release.json",
+        "capability-matrix.json",
+        "production-replacements.json"
+      ],
+      "evidence": [
+        "task10-verification.json",
+        "capability-matrix.json"
+      ],
+      "historical_status": "local_ui_operations_complete_integrated_production_rollout_pending",
+      "id": "WN-12",
+      "owning_tasks": "2, 5, 8\u201311",
+      "requirement": "Integrate accessible UI, observability, complete tests, and scoped rollout",
+      "status": "implemented_verified_with_declared_evidence_limits"
+    },
+    {
+      "current_evidence": [
+        "production-release.json",
+        "capability-matrix.json",
+        "production-replacements.json"
+      ],
+      "evidence": [
+        "capability-matrix.json",
+        "ui-and-operations.md"
+      ],
+      "historical_status": "dispositions_complete_local_installation_readback_owned_by_Task11",
+      "id": "WN-13",
+      "owning_tasks": "0, 10",
+      "requirement": "Disposition longer-range display, station-grid limits, and deliberately unused capabilities",
+      "status": "implemented_verified_with_declared_evidence_limits"
+    }
+  ],
+  "schema": "earthship-final-capability-requirement-audit/v1",
+  "scope": "Implementation/experiments and reviewed production integration; no claim of superiority, all-season coverage, physical calibration or extra cloud acquisition",
+  "steps": [
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Runtime/source baseline and repaired evaluator established; dirty overlays and original compatibility roots retained. Current installed role pins are independently read back in the final release record.",
+      "historical_evidence": [
+        {
+          "file": "baseline.json",
+          "sha256": "543203b7b01053f2d834942deffdaae4813442216fd5f7e42bfd99833f6b8005"
+        },
+        {
+          "file": "source-map.json",
+          "sha256": "b17c85f4860bec9a5ebac93c61ece5f75399e021059213f38d95611ccd2b9309"
+        }
+      ],
+      "requirement": "Identify latest main, working revision, local modifications, open work, source compatibility roots, and actual scheduled commands. Preserve immutable packages and unrelated dirty overlays.",
+      "requirement_sha256": "99a22f82cc269449ba78c0cdb12e18fbf2f62b78c30d33182977283004053f07",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 0
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Runtime/source baseline and repaired evaluator established; dirty overlays and original compatibility roots retained. Current installed role pins are independently read back in the final release record.",
+      "historical_evidence": [
+        {
+          "file": "baseline.json",
+          "sha256": "543203b7b01053f2d834942deffdaae4813442216fd5f7e42bfd99833f6b8005"
+        },
+        {
+          "file": "source-map.json",
+          "sha256": "b17c85f4860bec9a5ebac93c61ece5f75399e021059213f38d95611ccd2b9309"
+        }
+      ],
+      "requirement": "Map every required feature from source acquisition to public consumer; identify current capabilities already implemented since this plan's baseline.",
+      "requirement_sha256": "d7e6c9436facb0f4b70577b22f2797170a5fa4dee479b9ddd1aa30ecd47313aa",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 0
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Runtime/source baseline and repaired evaluator established; dirty overlays and original compatibility roots retained. Current installed role pins are independently read back in the final release record.",
+      "historical_evidence": [
+        {
+          "file": "baseline.json",
+          "sha256": "543203b7b01053f2d834942deffdaae4813442216fd5f7e42bfd99833f6b8005"
+        },
+        {
+          "file": "source-map.json",
+          "sha256": "b17c85f4860bec9a5ebac93c61ece5f75399e021059213f38d95611ccd2b9309"
+        }
+      ],
+      "requirement": "Verify the relevant audit repairs and existing evaluator gates in the normal harness. If a remaining correctness defect compromises the new comparisons, fix it before using the results; parallelize independent schema/UI fixture work.",
+      "requirement_sha256": "b338cd041910f3e85600ec4bd4b1f7782c30900af0efdfdba32fdc1b573667da",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 0
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Runtime/source baseline and repaired evaluator established; dirty overlays and original compatibility roots retained. Current installed role pins are independently read back in the final release record.",
+      "historical_evidence": [
+        {
+          "file": "baseline.json",
+          "sha256": "543203b7b01053f2d834942deffdaae4813442216fd5f7e42bfd99833f6b8005"
+        },
+        {
+          "file": "source-map.json",
+          "sha256": "b17c85f4860bec9a5ebac93c61ece5f75399e021059213f38d95611ccd2b9309"
+        }
+      ],
+      "requirement": "Read current cloud access eligibility, remaining quota where available, permission boundaries, and effective host limits without changing them. Mark unavailable facts explicitly.",
+      "requirement_sha256": "59fe55310f61cd48f294edd94ee912122355a6cb2ee86d415a92d15a3ccf5d2d",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 0
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Runtime/source baseline and repaired evaluator established; dirty overlays and original compatibility roots retained. Current installed role pins are independently read back in the final release record.",
+      "historical_evidence": [
+        {
+          "file": "baseline.json",
+          "sha256": "543203b7b01053f2d834942deffdaae4813442216fd5f7e42bfd99833f6b8005"
+        },
+        {
+          "file": "source-map.json",
+          "sha256": "b17c85f4860bec9a5ebac93c61ece5f75399e021059213f38d95611ccd2b9309"
+        }
+      ],
+      "requirement": "Record a baseline with exact source/runtime IDs and known evidence limitations. Inspect elapsed natural cycles before calling an old deployment note a future dependency.",
+      "requirement_sha256": "554a54fc6730b5b905ab3af6f137373cd28dae27f70e869096dede4abc68d250",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 0
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Closed statistics-only opt-in profiles, partial availability and native cache signatures implemented. EECU/account balance remains unavailable. No manual extra acquisition or billing change authorized.",
+      "historical_evidence": [
+        {
+          "file": "profile-contract.json",
+          "sha256": "72ef2cffae72114d96b6c348cbe4d8fe7975d4ab0cf93012dc7834fe60514a74"
+        },
+        {
+          "file": "evaluation-protocol.json",
+          "sha256": "a11639200d188070c9a73ece3d334a0456d1680f4389e5e52f65d8507c50ccf3"
+        }
+      ],
+      "requirement": "Add rejection tests for paid/full-ensemble/requester-billing paths; unsupported bands; cloud fractions outside 0\u20131; renamed fields; wrong units; mixed-run/cell products; and response/archive caps.",
+      "requirement_sha256": "70b78d595948c4e559248951dcd33a7d8142103ac0041daab629a02e8e35722b",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 1
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Closed statistics-only opt-in profiles, partial availability and native cache signatures implemented. EECU/account balance remains unavailable. No manual extra acquisition or billing change authorized.",
+      "historical_evidence": [
+        {
+          "file": "profile-contract.json",
+          "sha256": "72ef2cffae72114d96b6c348cbe4d8fe7975d4ab0cf93012dc7834fe60514a74"
+        },
+        {
+          "file": "evaluation-protocol.json",
+          "sha256": "a11639200d188070c9a73ece3d334a0456d1680f4389e5e52f65d8507c50ccf3"
+        }
+      ],
+      "requirement": "Specify partial availability: optional field or group failure must not suppress valid core forecasts. Avoid making every exploratory field part of the global required-variable set.",
+      "requirement_sha256": "9d9f3bf965b38d164630d689bfaa833f53b9de5e8a4d39adb017d3de9c8dde42",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 1
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Closed statistics-only opt-in profiles, partial availability and native cache signatures implemented. EECU/account balance remains unavailable. No manual extra acquisition or billing change authorized.",
+      "historical_evidence": [
+        {
+          "file": "profile-contract.json",
+          "sha256": "72ef2cffae72114d96b6c348cbe4d8fe7975d4ab0cf93012dc7834fe60514a74"
+        },
+        {
+          "file": "evaluation-protocol.json",
+          "sha256": "a11639200d188070c9a73ece3d334a0456d1680f4389e5e52f65d8507c50ccf3"
+        }
+      ],
+      "requirement": "Include profile signatures in cache eligibility. An old mean-only source cannot satisfy an expanded profile. Retain supplementary originals with actual acquisition clocks; never rewrite the older source or its earlier availability.",
+      "requirement_sha256": "ae34a7e901ad47fc4ecb7142e65a0a3bbe6d0e97a56193e7879faf8ad4fd39cf",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 1
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Closed statistics-only opt-in profiles, partial availability and native cache signatures implemented. EECU/account balance remains unavailable. No manual extra acquisition or billing change authorized.",
+      "historical_evidence": [
+        {
+          "file": "profile-contract.json",
+          "sha256": "72ef2cffae72114d96b6c348cbe4d8fe7975d4ab0cf93012dc7834fe60514a74"
+        },
+        {
+          "file": "evaluation-protocol.json",
+          "sha256": "a11639200d188070c9a73ece3d334a0456d1680f4389e5e52f65d8507c50ccf3"
+        }
+      ],
+      "requirement": "Measure bounded real access only under existing authorization; otherwise complete fixtures and supply the exact probe/acceptance procedure. Record EECU usage when actually observable; use labeled request/byte/time budgets otherwise.",
+      "requirement_sha256": "7265bc966a5bf62979166ab0903903c5f959e9ff80d9c5012093f722f66c3eb4",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 1
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Native temperature ranges, target-matured evaluation, legacy schemas and fixed curated transport implemented and installed. October23 user wording amendment removes the specified labels, raw prefix and Source initialized row/tooltip; numerical ranges remain literal.",
+      "historical_evidence": [
+        {
+          "file": "task2-verification.json",
+          "sha256": "d83bc83c8d79a7405651afc98643848cd48e1e8bad8fe8a4013440540fe8f791"
+        }
+      ],
+      "requirement": "Test raw quantile preservation, Kelvin/\u00b0C/\u00b0F conversions, ties, missing percentiles, crossing quantiles, source expiry, optional failure, old payload compatibility, and mean/p50 distinction.",
+      "requirement_sha256": "1f88f5b652bc35509ce928a5cdea73dac6d29eda096a98300b8df348394083bb",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 2
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Native temperature ranges, target-matured evaluation, legacy schemas and fixed curated transport implemented and installed. October23 user wording amendment removes the specified labels, raw prefix and Source initialized row/tooltip; numerical ranges remain literal.",
+      "historical_evidence": [
+        {
+          "file": "task2-verification.json",
+          "sha256": "d83bc83c8d79a7405651afc98643848cd48e1e8bad8fe8a4013440540fe8f791"
+        }
+      ],
+      "requirement": "Publish raw mean/p10/p90 initially; include p50 only when actually acquired. Attach profile/run, initialization, actual available-at, valid time, and nominal/local-calibration labels. Never substitute mean for missing median.",
+      "requirement_sha256": "6aa46fea8d5cfa884d804675ab1f40a5dd65b94b8e01d0f3cd9b775655939714",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 2
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Native temperature ranges, target-matured evaluation, legacy schemas and fixed curated transport implemented and installed. October23 user wording amendment removes the specified labels, raw prefix and Source initialized row/tooltip; numerical ranges remain literal.",
+      "historical_evidence": [
+        {
+          "file": "task2-verification.json",
+          "sha256": "d83bc83c8d79a7405651afc98643848cd48e1e8bad8fe8a4013440540fe8f791"
+        }
+      ],
+      "requirement": "Render a legible interval band and values in the existing hourly detail, with accessible legend/tooltips and unambiguous source age. Label it \u201cWeatherNext p10\u2013p90; local coverage not yet verified.\u201d Do not draw it as a bound around a separately corrected mean without explaining their different sources.",
+      "requirement_sha256": "67940ba8892d80494de1a44d6f200de7b0215a1aec17ea9bbb85c449bc93987c",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 2
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Native temperature ranges, target-matured evaluation, legacy schemas and fixed curated transport implemented and installed. October23 user wording amendment removes the specified labels, raw prefix and Source initialized row/tooltip; numerical ranges remain literal.",
+      "historical_evidence": [
+        {
+          "file": "task2-verification.json",
+          "sha256": "d83bc83c8d79a7405651afc98643848cd48e1e8bad8fe8a4013440540fe8f791"
+        }
+      ],
+      "requirement": "Add target-matured quantile verification using original emitted values. Report raw-range coverage and quantile scores without declaring calibration from a small sample.",
+      "requirement_sha256": "eff5c0074061e3bc7d38b465e5c55bc5cbfe4562dbe63cd4d3007a5913178b46",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 2
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Native temperature ranges, target-matured evaluation, legacy schemas and fixed curated transport implemented and installed. October23 user wording amendment removes the specified labels, raw prefix and Source initialized row/tooltip; numerical ranges remain literal.",
+      "historical_evidence": [
+        {
+          "file": "task2-verification.json",
+          "sha256": "d83bc83c8d79a7405651afc98643848cd48e1e8bad8fe8a4013440540fe8f791"
+        }
+      ],
+      "requirement": "Preserve legacy parsers and old receipts. Serve the supplemental product through the existing fixed-route security pattern, no query-selected files or browser cloud credentials.",
+      "requirement_sha256": "df64ab64cfd78c3905dcf0f002752a36c10046ebda23f46dd39a9a25af77fb04",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 2
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Collector source installed with original SDK, hourly schedule and twelve core bands. Offline SDK/new-profile fixtures and cold/warm original replay complete; optional expanded profiles remain disabled for lack of extra collection authorization. One existing scheduled source99 cycle measured8requests/1029222responsebytes/11.798s and299673archivegrowthbytes.",
+      "historical_evidence": [
+        {
+          "file": "task3-verification.json",
+          "sha256": "3bf11f149b406253aa98907963656b44af8afec980105c3360af969975c212d7"
+        },
+        {
+          "file": "acquisition.md",
+          "sha256": "737671d3a3d0a799e1dc2f1b6af94d5900d407db353b08755463ad22c4c4ecf7"
+        }
+      ],
+      "requirement": "Add offline SDK/query and original-response fixtures covering both native grids, full/interim horizons, all requested statistics, and partial per-group delivery.",
+      "requirement_sha256": "91f9bd03aa34b7419ec1b35544fb870bb7140932c185d0bce4c53e7b92a39820",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 3
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Collector source installed with original SDK, hourly schedule and twelve core bands. Offline SDK/new-profile fixtures and cold/warm original replay complete; optional expanded profiles remain disabled for lack of extra collection authorization. One existing scheduled source99 cycle measured8requests/1029222responsebytes/11.798s and299673archivegrowthbytes.",
+      "historical_evidence": [
+        {
+          "file": "task3-verification.json",
+          "sha256": "3bf11f149b406253aa98907963656b44af8afec980105c3360af969975c212d7"
+        },
+        {
+          "file": "acquisition.md",
+          "sha256": "737671d3a3d0a799e1dc2f1b6af94d5900d407db353b08755463ad22c4c4ecf7"
+        }
+      ],
+      "requirement": "Implement the staged profile selection and native-cell/interval validations. Retain the two native resolutions; do not invent site-specific downscaling by interpolating percentile fields.",
+      "requirement_sha256": "9170097e8c17788c5ffd5e6997396316850b9c09f12e86d8b171bf11eaeba091",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 3
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Collector source installed with original SDK, hourly schedule and twelve core bands. Offline SDK/new-profile fixtures and cold/warm original replay complete; optional expanded profiles remain disabled for lack of extra collection authorization. One existing scheduled source99 cycle measured8requests/1029222responsebytes/11.798s and299673archivegrowthbytes.",
+      "historical_evidence": [
+        {
+          "file": "task3-verification.json",
+          "sha256": "3bf11f149b406253aa98907963656b44af8afec980105c3360af969975c212d7"
+        },
+        {
+          "file": "acquisition.md",
+          "sha256": "737671d3a3d0a799e1dc2f1b6af94d5900d407db353b08755463ad22c4c4ecf7"
+        }
+      ],
+      "requirement": "Confirm per-write caps also cover multiple products in one collection cycle and expanded profiles. Protect raw originals and pending outcome dependencies from eviction; compute archive runway and bounded growth. Do not delete history to make room without an approved retention policy.",
+      "requirement_sha256": "98dbcabcab02af26c74bf72c135404b44236f83e3eafa8930c5da864252c82bc",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 3
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Collector source installed with original SDK, hourly schedule and twelve core bands. Offline SDK/new-profile fixtures and cold/warm original replay complete; optional expanded profiles remain disabled for lack of extra collection authorization. One existing scheduled source99 cycle measured8requests/1029222responsebytes/11.798s and299673archivegrowthbytes.",
+      "historical_evidence": [
+        {
+          "file": "task3-verification.json",
+          "sha256": "3bf11f149b406253aa98907963656b44af8afec980105c3360af969975c212d7"
+        },
+        {
+          "file": "acquisition.md",
+          "sha256": "737671d3a3d0a799e1dc2f1b6af94d5900d407db353b08755463ad22c4c4ecf7"
+        }
+      ],
+      "requirement": "Report collected, normalized, consumed, unavailable, rejected, and deferred groups with specific reasons. Add bounded backoff for late provider delivery and quota restriction. Do not endlessly poll a predicted publication time.",
+      "requirement_sha256": "76621cee5167bbaf068bac162a4ef41aaa1b1b4c12c45d02309fbb6838e36c62",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 3
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Collector source installed with original SDK, hourly schedule and twelve core bands. Offline SDK/new-profile fixtures and cold/warm original replay complete; optional expanded profiles remain disabled for lack of extra collection authorization. One existing scheduled source99 cycle measured8requests/1029222responsebytes/11.798s and299673archivegrowthbytes.",
+      "historical_evidence": [
+        {
+          "file": "task3-verification.json",
+          "sha256": "3bf11f149b406253aa98907963656b44af8afec980105c3360af969975c212d7"
+        },
+        {
+          "file": "acquisition.md",
+          "sha256": "737671d3a3d0a799e1dc2f1b6af94d5900d407db353b08755463ad22c4c4ecf7"
+        }
+      ],
+      "requirement": "Exercise a representative source-to-public replay under current host limits, including cold and warm caches. Verify runtime source closures and schema readers before an authorized staged collection rollout.",
+      "requirement_sha256": "2f8d9797c4a5217204b0a48ebb1ed7632b5e789af528d153a3daaea5d310250c",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 3
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Native total/direct-horizontal reconstruction, shared physical kernel, conservation/terrain fixtures and matched unrefitted/refitted experiments complete. Fresh native-component electrical calibration and dependent thermal fit active; scientific comparison dispositions remain historical, not proof of improvement.",
+      "historical_evidence": [
+        {
+          "file": "task4-verification.json",
+          "sha256": "3c08ccfa80249d6096ac96ab82f322dd5b3a48c27f6f5b37f3a0b2362ff94df9"
+        },
+        {
+          "file": "pv-experiment.json",
+          "sha256": "3b35563dbd0dd38afd37d8c201f9dd9b125a2daef14c0a2da402aee6d0f9ccae"
+        },
+        {
+          "file": "thermal-experiment.json",
+          "sha256": "fe2f55fc02cfd2281684cb92d5f97a0ffa4d260c8c4a8054ca06555ddd163cfe"
+        }
+      ],
+      "requirement": "Verify provider field semantics and source metadata; block the new component method if interpretation remains ambiguous. Do not assume FDIR is DNI. [D05]",
+      "requirement_sha256": "d1b9f539ed569a51c1513fae3d8ecec7e68936d8054eb66caf5970042eca86eb",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 4
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Native total/direct-horizontal reconstruction, shared physical kernel, conservation/terrain fixtures and matched unrefitted/refitted experiments complete. Fresh native-component electrical calibration and dependent thermal fit active; scientific comparison dispositions remain historical, not proof of improvement.",
+      "historical_evidence": [
+        {
+          "file": "task4-verification.json",
+          "sha256": "3c08ccfa80249d6096ac96ab82f322dd5b3a48c27f6f5b37f3a0b2362ff94df9"
+        },
+        {
+          "file": "pv-experiment.json",
+          "sha256": "3b35563dbd0dd38afd37d8c201f9dd9b125a2daef14c0a2da402aee6d0f9ccae"
+        },
+        {
+          "file": "thermal-experiment.json",
+          "sha256": "fe2f55fc02cfd2281684cb92d5f97a0ffa4d260c8c4a8054ca06555ddd163cfe"
+        }
+      ],
+      "requirement": "Add analytic fixtures: 1,800,000 J/m\u00b2 total and 1,080,000 J/m\u00b2 direct over one hour imply means of 500 and 300 W/m\u00b2 and diffuse 200 W/m\u00b2. A constant 30\u00b0 solar elevation gives DNI 600 W/m\u00b2 for that idealized fixture. These are not instructions to use one midpoint elevation for a changing real hour.",
+      "requirement_sha256": "7f8ad3a05844e6c55369ea45d22651ac055e8f7fa8e1220ea4dff98aa6505fd6",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 4
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Native total/direct-horizontal reconstruction, shared physical kernel, conservation/terrain fixtures and matched unrefitted/refitted experiments complete. Fresh native-component electrical calibration and dependent thermal fit active; scientific comparison dispositions remain historical, not proof of improvement.",
+      "historical_evidence": [
+        {
+          "file": "task4-verification.json",
+          "sha256": "3c08ccfa80249d6096ac96ab82f322dd5b3a48c27f6f5b37f3a0b2362ff94df9"
+        },
+        {
+          "file": "pv-experiment.json",
+          "sha256": "3b35563dbd0dd38afd37d8c201f9dd9b125a2daef14c0a2da402aee6d0f9ccae"
+        },
+        {
+          "file": "thermal-experiment.json",
+          "sha256": "fe2f55fc02cfd2281684cb92d5f97a0ffa4d260c8c4a8054ca06555ddd163cfe"
+        }
+      ],
+      "requirement": "Specify a bounded intrahour reconstruction. Prefer retained geometry with a declared nonnegative direct-normal shape normalized so its horizontal integral equals original direct energy. Low-sun/zero-denominator handling must be explicit. Preserve raw interval energy before terrain masking; then remove the blocked direct beam while retaining the declared diffuse treatment.",
+      "requirement_sha256": "42a50e9851e278b7d0ddbc64906ee4d7c3d0edf940c340be0c15d1fe2226805f",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 4
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Native total/direct-horizontal reconstruction, shared physical kernel, conservation/terrain fixtures and matched unrefitted/refitted experiments complete. Fresh native-component electrical calibration and dependent thermal fit active; scientific comparison dispositions remain historical, not proof of improvement.",
+      "historical_evidence": [
+        {
+          "file": "task4-verification.json",
+          "sha256": "3c08ccfa80249d6096ac96ab82f322dd5b3a48c27f6f5b37f3a0b2362ff94df9"
+        },
+        {
+          "file": "pv-experiment.json",
+          "sha256": "3b35563dbd0dd38afd37d8c201f9dd9b125a2daef14c0a2da402aee6d0f9ccae"
+        },
+        {
+          "file": "thermal-experiment.json",
+          "sha256": "fe2f55fc02cfd2281684cb92d5f97a0ffa4d260c8c4a8054ca06555ddd163cfe"
+        }
+      ],
+      "requirement": "Test sunrise/sunset, fractional origins and hour crossings, diffuse-only days, below-skyline sunlight, missing direct data, direct greater than total, negative inputs, and geometry gaps. Small floating-point discrepancies may use a versioned tolerance; substantial inconsistency must reject/fallback with a reason, not silently clip into plausibility.",
+      "requirement_sha256": "39de7438816cdce22077d64cce536a424b9a6b005114175d72f51aff7af33231",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 4
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Native total/direct-horizontal reconstruction, shared physical kernel, conservation/terrain fixtures and matched unrefitted/refitted experiments complete. Fresh native-component electrical calibration and dependent thermal fit active; scientific comparison dispositions remain historical, not proof of improvement.",
+      "historical_evidence": [
+        {
+          "file": "task4-verification.json",
+          "sha256": "3c08ccfa80249d6096ac96ab82f322dd5b3a48c27f6f5b37f3a0b2362ff94df9"
+        },
+        {
+          "file": "pv-experiment.json",
+          "sha256": "3b35563dbd0dd38afd37d8c201f9dd9b125a2daef14c0a2da402aee6d0f9ccae"
+        },
+        {
+          "file": "thermal-experiment.json",
+          "sha256": "fe2f55fc02cfd2281684cb92d5f97a0ffa4d260c8c4a8054ca06555ddd163cfe"
+        }
+      ],
+      "requirement": "Keep total-only decomposition as the declared fallback and benchmark. Share the new numerical kernel across training, serving, historical pair construction, daily potential and storage. Preserve original implementations for old forecasts.",
+      "requirement_sha256": "1ace3154b39963d7b63515e7742b018c410b10a6a1b4dc9248903533469c5469",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 4
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Native total/direct-horizontal reconstruction, shared physical kernel, conservation/terrain fixtures and matched unrefitted/refitted experiments complete. Fresh native-component electrical calibration and dependent thermal fit active; scientific comparison dispositions remain historical, not proof of improvement.",
+      "historical_evidence": [
+        {
+          "file": "task4-verification.json",
+          "sha256": "3c08ccfa80249d6096ac96ab82f322dd5b3a48c27f6f5b37f3a0b2362ff94df9"
+        },
+        {
+          "file": "pv-experiment.json",
+          "sha256": "3b35563dbd0dd38afd37d8c201f9dd9b125a2daef14c0a2da402aee6d0f9ccae"
+        },
+        {
+          "file": "thermal-experiment.json",
+          "sha256": "fe2f55fc02cfd2281684cb92d5f97a0ffa4d260c8c4a8054ca06555ddd163cfe"
+        }
+      ],
+      "requirement": "Evaluate in two steps: native components without refitting electrical correction; then like-for-like separately refitted corrections using each baseline. Match outcomes and censoring policy. Do not compare a newly refitted challenger against an intentionally mismatched old calibration.",
+      "requirement_sha256": "b788f1ed9885a651f7d95d65942866c935c16406f0c2764974a95258a072b856",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 4
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Native total/direct-horizontal reconstruction, shared physical kernel, conservation/terrain fixtures and matched unrefitted/refitted experiments complete. Fresh native-component electrical calibration and dependent thermal fit active; scientific comparison dispositions remain historical, not proof of improvement.",
+      "historical_evidence": [
+        {
+          "file": "task4-verification.json",
+          "sha256": "3c08ccfa80249d6096ac96ab82f322dd5b3a48c27f6f5b37f3a0b2362ff94df9"
+        },
+        {
+          "file": "pv-experiment.json",
+          "sha256": "3b35563dbd0dd38afd37d8c201f9dd9b125a2daef14c0a2da402aee6d0f9ccae"
+        },
+        {
+          "file": "thermal-experiment.json",
+          "sha256": "fe2f55fc02cfd2281684cb92d5f97a0ffa4d260c8c4a8054ca06555ddd163cfe"
+        }
+      ],
+      "requirement": "Evaluate thermal benefit only on comparable recorded action/state trajectories. Do not replace a lux-proxy empirical thermal target with physical GHI or facade heat gain without a distinct target/model experiment. Do not stack proxy and electrical corrections by default.",
+      "requirement_sha256": "d5aa4da1fdfd9a67085c317bdcfd5c3b3778b034e645c8fee36e47bc161ca8ec",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 4
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Dewpoint/sea-level-pressure diagnostics and qualified moisture context implemented, with cardinal-vector/cloud-layer contracts and bounded individual ablations. Extra u/v/layer acquisition is disabled; unsupported direction/layer evidence stays explicit. No new control authority or change to physical PV cooling wind.",
+      "historical_evidence": [
+        {
+          "file": "task5-verification.json",
+          "sha256": "d76b54c6e6be5da1d5686abd3a1f0284a356e9bddd1ab49bf7b6a4e8c5ac708d"
+        }
+      ],
+      "requirement": "Expose dew point and sea-level pressure without pretending the existing temperature model already uses them. Pair temperature/dew point from compatible station/run/time sources. If derived relative humidity is shown, label it as a diagnostic derived from forecast statistics, not an exact ensemble-mean RH or a calibrated probability.",
+      "requirement_sha256": "64e5ed29a23593403f89872ab835a2770555647ef534f449bd7cc5c2d7d080e8",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 5
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Dewpoint/sea-level-pressure diagnostics and qualified moisture context implemented, with cardinal-vector/cloud-layer contracts and bounded individual ablations. Extra u/v/layer acquisition is disabled; unsupported direction/layer evidence stays explicit. No new control authority or change to physical PV cooling wind.",
+      "historical_evidence": [
+        {
+          "file": "task5-verification.json",
+          "sha256": "d76b54c6e6be5da1d5686abd3a1f0284a356e9bddd1ab49bf7b6a4e8c5ac708d"
+        }
+      ],
+      "requirement": "Define meteorological wind-from direction with cardinal-vector tests: u=1,v=0 means wind from west (270\u00b0); u=0,v=-1 means wind from north (0\u00b0); zero/indeterminate vector means direction unavailable. Keep the provided scalar speed separate from magnitude of the mean vector. Never relabel either as a gust.",
+      "requirement_sha256": "b60cca2799f7ff004dc6235e4686acc7b7227993971f2413d9f639bbd70847b3",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 5
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Dewpoint/sea-level-pressure diagnostics and qualified moisture context implemented, with cardinal-vector/cloud-layer contracts and bounded individual ablations. Extra u/v/layer acquisition is disabled; unsupported direction/layer evidence stays explicit. No new control authority or change to physical PV cooling wind.",
+      "historical_evidence": [
+        {
+          "file": "task5-verification.json",
+          "sha256": "d76b54c6e6be5da1d5686abd3a1f0284a356e9bddd1ab49bf7b6a4e8c5ac708d"
+        }
+      ],
+      "requirement": "Add high/medium/low cloud validation and labels. Do not sum layer percentages into total cloud or assume layers are disjoint. Compare pressure only against a compatible station/sea-level convention; keep any conversion assumptions explicit.",
+      "requirement_sha256": "8fff0018e4df9ea6124d11b0c9efed2e290147162ef11ea7d8b443633d32f4d8",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 5
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Dewpoint/sea-level-pressure diagnostics and qualified moisture context implemented, with cardinal-vector/cloud-layer contracts and bounded individual ablations. Extra u/v/layer acquisition is disabled; unsupported direction/layer evidence stays explicit. No new control authority or change to physical PV cooling wind.",
+      "historical_evidence": [
+        {
+          "file": "task5-verification.json",
+          "sha256": "d76b54c6e6be5da1d5686abd3a1f0284a356e9bddd1ab49bf7b6a4e8c5ac708d"
+        }
+      ],
+      "requirement": "Provide moisture-aware read-only ventilation context only when indoor temperature/humidity sources meet current quality/freshness contracts. Without them, display outdoor moisture information and the missing dependency. Do not infer safe condensation conditions without surface-temperature evidence or a separately declared model.",
+      "requirement_sha256": "b9db638150f358e768ef622738b6513cb118e4c1ee1baadb86387ecb943e6654",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 5
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Dewpoint/sea-level-pressure diagnostics and qualified moisture context implemented, with cardinal-vector/cloud-layer contracts and bounded individual ablations. Extra u/v/layer acquisition is disabled; unsupported direction/layer evidence stays explicit. No new control authority or change to physical PV cooling wind.",
+      "historical_evidence": [
+        {
+          "file": "task5-verification.json",
+          "sha256": "d76b54c6e6be5da1d5686abd3a1f0284a356e9bddd1ab49bf7b6a4e8c5ac708d"
+        }
+      ],
+      "requirement": "Run individual feature-group ablations for temperature residuals/local wind/thermal forecasts. Use forecast-time or origin-time data only, never future observed weather as a predictor. Test gain-only versus one bounded wind challenger; direction features require genuine retained support.",
+      "requirement_sha256": "427e0b6b7e504c4311804182e9eeb8cb77aa6d5e20c23f7a58c51bf4cb8f4f1a",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 5
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Original scheduled decision and first-daily populations remain separate. Availability/source/profile/remaining-horizon semantics, near24 correction identities and durable mature-target work implemented. Production hourly selection and source-bound scoring active; narrow historical-date support is not claimed as all-season skill.",
+      "historical_evidence": [
+        {
+          "file": "task6-verification.json",
+          "sha256": "43f2c061afed1534a306492ad45d83146df1fda0e929e81e7a1d40d15a5d8959"
+        }
+      ],
+      "requirement": "Preserve the existing first-original-per-local-day benchmark. Add a separate evaluation population for actual scheduled publication decisions; do not change the old population retroactively.",
+      "requirement_sha256": "2835e966ba72849a7942d9f546542f1be9a7306d437d731d0c353f3a201f77fb",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 6
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Original scheduled decision and first-daily populations remain separate. Availability/source/profile/remaining-horizon semantics, near24 correction identities and durable mature-target work implemented. Production hourly selection and source-bound scoring active; narrow historical-date support is not claimed as all-season skill.",
+      "historical_evidence": [
+        {
+          "file": "task6-verification.json",
+          "sha256": "43f2c061afed1534a306492ad45d83146df1fda0e929e81e7a1d40d15a5d8959"
+        }
+      ],
+      "requirement": "At each eligible decision compare latest available interim, latest available full-range, actual serving policy, raw baseline and any corrected candidates on identical targets. Record initialization age, actual availability lag, local issue age, remaining coverage, and revision magnitude.",
+      "requirement_sha256": "010917a914119fa654dc547ce8886b075060a9d7c887ac4a3ee9a8371e21e579",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 6
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Original scheduled decision and first-daily populations remain separate. Availability/source/profile/remaining-horizon semantics, near24 correction identities and durable mature-target work implemented. Production hourly selection and source-bound scoring active; narrow historical-date support is not claimed as all-season skill.",
+      "historical_evidence": [
+        {
+          "file": "task6-verification.json",
+          "sha256": "43f2c061afed1534a306492ad45d83146df1fda0e929e81e7a1d40d15a5d8959"
+        }
+      ],
+      "requirement": "Test a nominal 48-hour interim run arriving more than seven hours after initialization. It must not advertise 48 future hours from arrival. A full-range correction requirement must not accidentally exclude useful near-term sources.",
+      "requirement_sha256": "23a4c35b4725feb2bc635ef5edb225767e8c6539ece69d7c46a57089785f3a6e",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 6
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Original scheduled decision and first-daily populations remain separate. Availability/source/profile/remaining-horizon semantics, near24 correction identities and durable mature-target work implemented. Production hourly selection and source-bound scoring active; narrow historical-date support is not claimed as all-season skill.",
+      "historical_evidence": [
+        {
+          "file": "task6-verification.json",
+          "sha256": "43f2c061afed1534a306492ad45d83146df1fda0e929e81e7a1d40d15a5d8959"
+        }
+      ],
+      "requirement": "Implement a separately identified 24-hour near-term local-correction path; use the same source run for origin-bias estimation and future predictors, or declare and validate a source-mixing method explicitly. Keep extended correction and display-composite provenance distinct.",
+      "requirement_sha256": "2d415bdfa6613e88a32cf45852e00d21cda1f2c5c295272d3a20f8ba66609340",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 6
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Original scheduled decision and first-daily populations remain separate. Availability/source/profile/remaining-horizon semantics, near24 correction identities and durable mature-target work implemented. Production hourly selection and source-bound scoring active; narrow historical-date support is not claimed as all-season skill.",
+      "historical_evidence": [
+        {
+          "file": "task6-verification.json",
+          "sha256": "43f2c061afed1534a306492ad45d83146df1fda0e929e81e7a1d40d15a5d8959"
+        }
+      ],
+      "requirement": "Handle delayed/incomplete runs with deterministic selection based only on facts known at the decision. A newer initialization is not automatically better; evaluate the actual policy. Never backfill an \u201cissued\u201d prediction with a run fetched afterward.",
+      "requirement_sha256": "f8c572aafb51699c63ead542d563bfa65b9eb96ae8a07f943b2aeb8a44c6f6f2",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 6
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Original scheduled decision and first-daily populations remain separate. Availability/source/profile/remaining-horizon semantics, near24 correction identities and durable mature-target work implemented. Production hourly selection and source-bound scoring active; narrow historical-date support is not claimed as all-season skill.",
+      "historical_evidence": [
+        {
+          "file": "task6-verification.json",
+          "sha256": "43f2c061afed1534a306492ad45d83146df1fda0e929e81e7a1d40d15a5d8959"
+        }
+      ],
+      "requirement": "Retain or index enough original profile decisions for bounded replay and long-horizon outcome maturity. If sampling is needed for resource limits, predeclare it and do not call the sample exhaustive all-cycle verification.",
+      "requirement_sha256": "8dfe2300011054e3ddda5e05cb8fbfe5be0955d4663861152125c8f77209625a",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 6
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Declared adaptive/temperature location-scale/nonnegative proxy/wind candidates, immutable fitted outputs and matched proper-score diagnostics implemented. Selected technically valid temperature/wind procedures are active without a superiority wait; unqualified proxy/rare-regime results retain their original named dispositions.",
+      "historical_evidence": [
+        {
+          "file": "task7-verification.json",
+          "sha256": "86e1eefd9b8653f1b39dbf1b7d19eaeff1237f4a610aaae63d30291bdad22199"
+        }
+      ],
+      "requirement": "Implement the predeclared temperature adaptive-error challenger using only already available residuals; freeze the decay selection and any training window before outer evaluation. A cold or expired adaptation state falls back explicitly.",
+      "requirement_sha256": "b87840001537fbd919149c8f38cf905c53dcb82b3f43e72b99b8f4096a8d5c43",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 7
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Declared adaptive/temperature location-scale/nonnegative proxy/wind candidates, immutable fitted outputs and matched proper-score diagnostics implemented. Selected technically valid temperature/wind procedures are active without a superiority wait; unqualified proxy/rare-regime results retain their original named dispositions.",
+      "historical_evidence": [
+        {
+          "file": "task7-verification.json",
+          "sha256": "86e1eefd9b8653f1b39dbf1b7d19eaeff1237f4a610aaae63d30291bdad22199"
+        }
+      ],
+      "requirement": "Implement one low-dimensional location/positive-scale temperature model, or an equivalent regularized quantile-calibration model, plus the simple empirical residual-interval benchmark. Native p90\u2013p10 is a predictor; two quantiles are not the full ensemble variance. Handle near-zero spread and missing statistics without division errors or invented certainty. [R01], [R03]",
+      "requirement_sha256": "bc6f9cedfc429b149e790ff73bc21c7a7c26eef72b6593bccd9d720bc1e943a9",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 7
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Declared adaptive/temperature location-scale/nonnegative proxy/wind candidates, immutable fitted outputs and matched proper-score diagnostics implemented. Selected technically valid temperature/wind procedures are active without a superiority wait; unqualified proxy/rare-regime results retain their original named dispositions.",
+      "historical_evidence": [
+        {
+          "file": "task7-verification.json",
+          "sha256": "86e1eefd9b8653f1b39dbf1b7d19eaeff1237f4a610aaae63d30291bdad22199"
+        }
+      ],
+      "requirement": "Add one nonnegative irradiance marginal candidate for the explicitly named local proxy target, and uncertainty evaluation for the wind candidate where observations support it. Nighttime zero solar and zero wind/rain need their declared distributions; do not apply a Gaussian everywhere by convenience.",
+      "requirement_sha256": "4d4a6054e055caf0e09fec8dfd127008c0a7ce2fe573631028b06d83c67c9315",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 7
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Declared adaptive/temperature location-scale/nonnegative proxy/wind candidates, immutable fitted outputs and matched proper-score diagnostics implemented. Selected technically valid temperature/wind procedures are active without a superiority wait; unqualified proxy/rare-regime results retain their original named dispositions.",
+      "historical_evidence": [
+        {
+          "file": "task7-verification.json",
+          "sha256": "86e1eefd9b8653f1b39dbf1b7d19eaeff1237f4a610aaae63d30291bdad22199"
+        }
+      ],
+      "requirement": "Freeze preprocessing, coefficients, training/availability cutoffs, target definitions, observation cohorts, runtime identities and prediction object. Retain fitted values at issuance so later scoring never refits them.",
+      "requirement_sha256": "faf09532c4dac8035903ca7c74ef67abb8b097e86647f44bcfc290aa6945903d",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 7
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Declared adaptive/temperature location-scale/nonnegative proxy/wind candidates, immutable fitted outputs and matched proper-score diagnostics implemented. Selected technically valid temperature/wind procedures are active without a superiority wait; unqualified proxy/rare-regime results retain their original named dispositions.",
+      "historical_evidence": [
+        {
+          "file": "task7-verification.json",
+          "sha256": "86e1eefd9b8653f1b39dbf1b7d19eaeff1237f4a610aaae63d30291bdad22199"
+        }
+      ],
+      "requirement": "Compare point error, interval sharpness/coverage and proper scores across lead, local hour, season and supported regimes. Report absent regimes and group sizes. Avoid claiming rare-event or all-season calibration from dense but narrow data.",
+      "requirement_sha256": "b3a4563499cf3694ac9b453be550999d15cc337f7455e58b8f9202ebcf5ebd42",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 7
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Declared adaptive/temperature location-scale/nonnegative proxy/wind candidates, immutable fitted outputs and matched proper-score diagnostics implemented. Selected technically valid temperature/wind procedures are active without a superiority wait; unqualified proxy/rare-regime results retain their original named dispositions.",
+      "historical_evidence": [
+        {
+          "file": "task7-verification.json",
+          "sha256": "86e1eefd9b8653f1b39dbf1b7d19eaeff1237f4a610aaae63d30291bdad22199"
+        }
+      ],
+      "requirement": "Wire bounded prospective scoring and status into the existing monitor; expose separate raw and local-calibrated products only under their actual qualification state.",
+      "requirement_sha256": "d046481b506320da54f0b7ce3925acf695ee7fe67c007278c703b477999f2c3d",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 7
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Fixed three deterministic recipes, joint-template construction, original-producer propagation and matched household/joint experiments implemented. Final corrected sidecar and Earthship detail supply production sensitivity independently of joint qualification. No qualified physical-GHI/complete joint target cohort or eight template dates exists, so joint probabilities stay unavailable.",
+      "historical_evidence": [
+        {
+          "file": "scenario-final-verification.json",
+          "sha256": "fa1be808c7ab066bf87b4edeef5d12aba246b530dcf2f403fcd265b3ceed4cf4"
+        }
+      ],
+      "requirement": "First implement a small fixed set of deterministic stress cases, such as central, reduced-solar, and warm/high-gain conditions. Record their construction and target horizon. A sequence using every hourly p10 may be a deliberate stress input, but must have `probability_claim=False` and must not be described as a p10 battery trajectory.",
+      "requirement_sha256": "8a2591d4dcad2d6df9a423ed4a0946477d7f99108d474d54071e562c6d60d3f0",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 8
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Fixed three deterministic recipes, joint-template construction, original-producer propagation and matched household/joint experiments implemented. Final corrected sidecar and Earthship detail supply production sensitivity independently of joint qualification. No qualified physical-GHI/complete joint target cohort or eight template dates exists, so joint probabilities stay unavailable.",
+      "historical_evidence": [
+        {
+          "file": "scenario-final-verification.json",
+          "sha256": "fa1be808c7ab066bf87b4edeef5d12aba246b530dcf2f403fcd265b3ceed4cf4"
+        }
+      ],
+      "requirement": "Test one bounded joint method using historical, issue-available residual blocks or analog rank templates to preserve temporal and cross-variable behavior. Freeze template selection, seed, scenario count and runtime budget. Do not claim ECC from native members when no members are available. [R02]",
+      "requirement_sha256": "6f45527fc93116290cb706df8e98ef7c53cbe4e1c55c73e93f56018fe58b957e",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 8
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Fixed three deterministic recipes, joint-template construction, original-producer propagation and matched household/joint experiments implemented. Final corrected sidecar and Earthship detail supply production sensitivity independently of joint qualification. No qualified physical-GHI/complete joint target cohort or eight template dates exists, so joint probabilities stay unavailable.",
+      "historical_evidence": [
+        {
+          "file": "scenario-final-verification.json",
+          "sha256": "fa1be808c7ab066bf87b4edeef5d12aba246b530dcf2f403fcd265b3ceed4cf4"
+        }
+      ],
+      "requirement": "Use native geometry and constraints to keep night solar zero and variables/intervals consistent; document any reconciliation. Reject unsupported joint combinations rather than silently treating marginal percentile combinations as coherent weather.",
+      "requirement_sha256": "f17a47d2a89db6f96ce037975e6e3bb7da24d7af99a7b30fa4e73c0c307c00cd",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 8
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Fixed three deterministic recipes, joint-template construction, original-producer propagation and matched household/joint experiments implemented. Final corrected sidecar and Earthship detail supply production sensitivity independently of joint qualification. No qualified physical-GHI/complete joint target cohort or eight template dates exists, so joint probabilities stay unavailable.",
+      "historical_evidence": [
+        {
+          "file": "scenario-final-verification.json",
+          "sha256": "fa1be808c7ab066bf87b4edeef5d12aba246b530dcf2f403fcd265b3ceed4cf4"
+        }
+      ],
+      "requirement": "Propagate each valid trajectory through the same versioned physical model. Keep weather, household-load, initial-state and model-parameter uncertainty scopes explicit. Weather-only uncertainty is not total battery/thermal uncertainty.",
+      "requirement_sha256": "062c842cf9a1265f9644670a5832ac6bec3f65fa4904afe292855237bfcd6ed8",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 8
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Fixed three deterministic recipes, joint-template construction, original-producer propagation and matched household/joint experiments implemented. Final corrected sidecar and Earthship detail supply production sensitivity independently of joint qualification. No qualified physical-GHI/complete joint target cohort or eight template dates exists, so joint probabilities stay unavailable.",
+      "historical_evidence": [
+        {
+          "file": "scenario-final-verification.json",
+          "sha256": "fa1be808c7ab066bf87b4edeef5d12aba246b530dcf2f403fcd265b3ceed4cf4"
+        }
+      ],
+      "requirement": "Evaluate daily energy, minimum nominal SoC, and indoor/wall outcomes on actual matching evidence. Use multivariate/dependence diagnostics and application scores; verify temporal correlation, ramp behavior, joint extremes and trajectory coverage. Parameter/acceptance uncertainty and sensor limitations remain visible.",
+      "requirement_sha256": "a3b6bcbf10bd3d7f19e803ddaefff99ad0cb22f0fcd7af57d02b75f54436b8dd",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 8
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Fixed three deterministic recipes, joint-template construction, original-producer propagation and matched household/joint experiments implemented. Final corrected sidecar and Earthship detail supply production sensitivity independently of joint qualification. No qualified physical-GHI/complete joint target cohort or eight template dates exists, so joint probabilities stay unavailable.",
+      "historical_evidence": [
+        {
+          "file": "scenario-final-verification.json",
+          "sha256": "fa1be808c7ab066bf87b4edeef5d12aba246b530dcf2f403fcd265b3ceed4cf4"
+        }
+      ],
+      "requirement": "Publish stress results as advisory. Withhold numerical probabilities of reserve breach/overheating until the joint method and downstream target are qualified; never equate an ensemble count from an unvalidated local model with an established risk probability.",
+      "requirement_sha256": "ad50a77f1cdc1ab5079140b96c43dbf1627d9198b3afb05a6a1dc2c2e983331d",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 8
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Three rain heads and two-part challenger compared on complete scoped targets. Station ingestion repairs restore actual OpenHAB rain/pressure semantics and roof totals. Thirteen individual local-rain cohorts lack independent gauge-resolution and coherent class/event support; native total-precipitation interval means are the explicit active fallback, not a fabricated new local fit.",
+      "historical_evidence": [
+        {
+          "file": "task9-verification.json",
+          "sha256": "019ac1507148be68dd2395f644869b8f9e34ba0d75c461d86cc30b2b202e5f46"
+        }
+      ],
+      "requirement": "Compare all three raw products on the same complete targets. Separate local-calendar daily totals, rolling 24-hour totals, and partial remaining-day totals; retain interval and DST semantics. Mean totals may be summed; marginal rain quantiles may not.",
+      "requirement_sha256": "ccad9c7e5e7b5f4fc25e6f607ebe47ad45e012507d6d1e5333c97c780e83f6ac",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 9
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Three rain heads and two-part challenger compared on complete scoped targets. Station ingestion repairs restore actual OpenHAB rain/pressure semantics and roof totals. Thirteen individual local-rain cohorts lack independent gauge-resolution and coherent class/event support; native total-precipitation interval means are the explicit active fallback, not a fabricated new local fit.",
+      "historical_evidence": [
+        {
+          "file": "task9-verification.json",
+          "sha256": "019ac1507148be68dd2395f644869b8f9e34ba0d75c461d86cc30b2b202e5f46"
+        }
+      ],
+      "requirement": "Predeclare wet-event thresholds consistent with gauge resolution/boundary uncertainty and relevant household use. Do not classify ambiguous small accumulation as certainly wet/dry. Assess wet-event amount, false alarms, missed events and timing as well as aggregate error.",
+      "requirement_sha256": "f42a73c26d7b47e482b8df5f6ac1958c2916344fd6f59eae286b243c6cd08532",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 9
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Three rain heads and two-part challenger compared on complete scoped targets. Station ingestion repairs restore actual OpenHAB rain/pressure semantics and roof totals. Thirteen individual local-rain cohorts lack independent gauge-resolution and coherent class/event support; native total-precipitation interval means are the explicit active fallback, not a fabricated new local fit.",
+      "historical_evidence": [
+        {
+          "file": "task9-verification.json",
+          "sha256": "019ac1507148be68dd2395f644869b8f9e34ba0d75c461d86cc30b2b202e5f46"
+        }
+      ],
+      "requirement": "Implement a small two-part model: occurrence probability and conditional positive amount. Use training-only climatology as the probability benchmark. If a censored shifted-gamma method is chosen instead, document why and keep the model set bounded. [R04]",
+      "requirement_sha256": "f6dc4b69233b6e9f82354d227e1800108c27399c61336e8dc692a6564c682b0b",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 9
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Three rain heads and two-part challenger compared on complete scoped targets. Station ingestion repairs restore actual OpenHAB rain/pressure semantics and roof totals. Thirteen individual local-rain cohorts lack independent gauge-resolution and coherent class/event support; native total-precipitation interval means are the explicit active fallback, not a fabricated new local fit.",
+      "historical_evidence": [
+        {
+          "file": "task9-verification.json",
+          "sha256": "019ac1507148be68dd2395f644869b8f9e34ba0d75c461d86cc30b2b202e5f46"
+        }
+      ],
+      "requirement": "Probability labels identify a locally learned forecast, target interval and method; they are not native Google probabilities. A cumulative probability must come from an appropriately trained interval target or coherent joint method, not summed hourly probabilities/quantiles.",
+      "requirement_sha256": "0c5b13817274d8e1e428810f1d07182754c7a6d128a3be1419a11994003ba99b",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 9
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Three rain heads and two-part challenger compared on complete scoped targets. Station ingestion repairs restore actual OpenHAB rain/pressure semantics and roof totals. Thirteen individual local-rain cohorts lack independent gauge-resolution and coherent class/event support; native total-precipitation interval means are the explicit active fallback, not a fabricated new local fit.",
+      "historical_evidence": [
+        {
+          "file": "task9-verification.json",
+          "sha256": "019ac1507148be68dd2395f644869b8f9e34ba0d75c461d86cc30b2b202e5f46"
+        }
+      ],
+      "requirement": "Fit only when the prescribed class/event support exists. All-dry, sparse-wet and unseen-regime cases produce explicit `insufficient_evidence`, not a fabricated calibrated probability. Complete the fixtures, collection, scoring and pending evidence report anyway.",
+      "requirement_sha256": "153c40ca18855ddfe7c1a13235c96f1dc69319456a8f1ccbc5c6a7749444ef25",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 9
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Three rain heads and two-part challenger compared on complete scoped targets. Station ingestion repairs restore actual OpenHAB rain/pressure semantics and roof totals. Thirteen individual local-rain cohorts lack independent gauge-resolution and coherent class/event support; native total-precipitation interval means are the explicit active fallback, not a fabricated new local fit.",
+      "historical_evidence": [
+        {
+          "file": "task9-verification.json",
+          "sha256": "019ac1507148be68dd2395f644869b8f9e34ba0d75c461d86cc30b2b202e5f46"
+        }
+      ],
+      "requirement": "Record the raw production rain baseline and scientific selection disposition at the Task 9 assessment. Step 11 governs the later authorized replacement: use the new rain method when its target and required training class/event inputs are valid, or name the exact dependency and declared raw fallback. Do not manufacture wet-event support or calibrated probability. Support roof-collection decisions with rainfall information only; do not calculate cistern availability without independently approved roof/runoff/reserve/inventory inputs.",
+      "requirement_sha256": "78bfb9c432c4ad749d841a85622db42e071a58a5432fc6fce176a005b53e3021",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 9
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Typed optional readers, observability, current source/model distinctions and ten-day default implemented. Both console sizes and actual OpenHAB data verified. Optional cloud groups and deliberately unused upstream capabilities have explicit dispositions; scientific qualification is distinct from deployment.",
+      "historical_evidence": [
+        {
+          "file": "task10-verification.json",
+          "sha256": "c296440f55cba0a84b6743c5058f3f43823a71120204570d1879f23294339f23"
+        }
+      ],
+      "requirement": "Keep the default console readable at 1340\u00d7800 and 1280\u00d7720. Put detailed ranges, source age, profiles, method, support, limitations and candidate diagnostics in existing expandable detail views; avoid cluttering every tile.",
+      "requirement_sha256": "081c59870d2ecd3e9f2751073d589e7f1515af68883f9cbcd1fb6538a3194812",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 10
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Typed optional readers, observability, current source/model distinctions and ten-day default implemented. Both console sizes and actual OpenHAB data verified. Optional cloud groups and deliberately unused upstream capabilities have explicit dispositions; scientific qualification is distinct from deployment.",
+      "historical_evidence": [
+        {
+          "file": "task10-verification.json",
+          "sha256": "c296440f55cba0a84b6743c5058f3f43823a71120204570d1879f23294339f23"
+        }
+      ],
+      "requirement": "Test loading, zero values, nulls, stale/withdrawn reports, malformed schemas, offline/reconnect, keyboard focus, touch targets, chart resize, accessible legends, and no unauthorized mutation/network requests.",
+      "requirement_sha256": "3cc46e0fc5fc90fbf2bea26a65b295e1e48620081da00487bb69525c550fcbae",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 10
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Typed optional readers, observability, current source/model distinctions and ten-day default implemented. Both console sizes and actual OpenHAB data verified. Optional cloud groups and deliberately unused upstream capabilities have explicit dispositions; scientific qualification is distinct from deployment.",
+      "historical_evidence": [
+        {
+          "file": "task10-verification.json",
+          "sha256": "c296440f55cba0a84b6743c5058f3f43823a71120204570d1879f23294339f23"
+        }
+      ],
+      "requirement": "Preserve terrain direct-sun versus astronomical daylight, native direct/diffuse versus proxy radiation, raw versus local forecasts, nominal storage versus measured history, and mean/median/range/probability distinctions.",
+      "requirement_sha256": "55186a980458f1334a5a9e2ad4ff39666cda1e5a27dcec1265bf4de3a309b165",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 10
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Typed optional readers, observability, current source/model distinctions and ten-day default implemented. Both console sizes and actual OpenHAB data verified. Optional cloud groups and deliberately unused upstream capabilities have explicit dispositions; scientific qualification is distinct from deployment.",
+      "historical_evidence": [
+        {
+          "file": "task10-verification.json",
+          "sha256": "c296440f55cba0a84b6743c5058f3f43823a71120204570d1879f23294339f23"
+        }
+      ],
+      "requirement": "Add operational measures for ingestion lag, provider revision, enabled groups, optional refusals, query/byte/runtime/usage accounting, archive runway, pending/expired scores, correction coverage, and selected model/procedure identity. Keep sensitive diagnostics private.",
+      "requirement_sha256": "cb26b09a901f0f111ab323e8ac828dd73e1d863c4beef116546f66d6eef71b03",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 10
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Typed optional readers, observability, current source/model distinctions and ten-day default implemented. Both console sizes and actual OpenHAB data verified. Optional cloud groups and deliberately unused upstream capabilities have explicit dispositions; scientific qualification is distinct from deployment.",
+      "historical_evidence": [
+        {
+          "file": "task10-verification.json",
+          "sha256": "c296440f55cba0a84b6743c5058f3f43823a71120204570d1879f23294339f23"
+        }
+      ],
+      "requirement": "Record an explicit horizon decision: retain the ten-day default unless a bounded expandable long-range view provides useful actual remaining coverage and honest uncertainty. Do not promise a full 15 days after publication from a 360-hour-from-initialization product. Parser/test hard limits must agree with the chosen display.",
+      "requirement_sha256": "36311c08093687da11be1ef2beb32f3050038382ae68587f1b0adfac84b39fdd",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 10
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Typed optional readers, observability, current source/model distinctions and ten-day default implemented. Both console sizes and actual OpenHAB data verified. Optional cloud groups and deliberately unused upstream capabilities have explicit dispositions; scientific qualification is distinct from deployment.",
+      "historical_evidence": [
+        {
+          "file": "task10-verification.json",
+          "sha256": "c296440f55cba0a84b6743c5058f3f43823a71120204570d1879f23294339f23"
+        }
+      ],
+      "requirement": "Record intentionally unused capabilities: no 100 m turbine winds, upper-air/ocean fields, arbitrary-coordinate custom inference, bulk spatial downloads, full ensembles, or paid backend migration. Document reasons and the specific new use case/evidence that would justify revisiting them, rather than implementing unnecessary features.",
+      "requirement_sha256": "977347c418b31e30df2ee93980355db3dfd2076ab5f93838d0363822f0b864a5",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 10
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Current role/model/fit/admission/source/environment pins, normal exact-source CI, original evaluation, source-only compatibility repairs, literal rollback, current UI, measured natural collection and complete source/evidence export are recorded in the final release proof. No parallel shadow pipeline is required.",
+      "historical_evidence": [
+        {
+          "file": "production-replacements.json",
+          "sha256": "6d1bd15f50f6b90f83f3756cdce10d498676764bd4376b14304919d6ab0247ff"
+        },
+        {
+          "file": "deployment-policy.json",
+          "sha256": "94af88aa502e7fded9583edbe09be4f458d5bf7a8f6d85d81f629bccc3d00e97"
+        }
+      ],
+      "requirement": "Build a per-model replacement manifest naming the existing and replacement method, training procedure, artifact, numerical source closure, input/observation cohort, effective default and exact rollback. New methods are the production target, not optional shadow challengers left alongside the incumbent. Record any target that cannot produce a valid fitted prediction with its concrete missing input/support; do not substitute a blanket incumbent-retention rule.",
+      "requirement_sha256": "65548776d61c4202aa0018617e86f44097952388362967bd3cc0e28c2a7652ab",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 11
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Current role/model/fit/admission/source/environment pins, normal exact-source CI, original evaluation, source-only compatibility repairs, literal rollback, current UI, measured natural collection and complete source/evidence export are recorded in the final release proof. No parallel shadow pipeline is required.",
+      "historical_evidence": [
+        {
+          "file": "production-replacements.json",
+          "sha256": "6d1bd15f50f6b90f83f3756cdce10d498676764bd4376b14304919d6ab0247ff"
+        },
+        {
+          "file": "deployment-policy.json",
+          "sha256": "94af88aa502e7fded9583edbe09be4f458d5bf7a8f6d85d81f629bccc3d00e97"
+        }
+      ],
+      "requirement": "Retrain against the available historical data where needed, using the corrected production numerical path and already available observations. Preserve chronological cutoffs, target definitions, sensor/grid epochs and the small declared method set. Store fresh artifact/procedure identities and original fit clocks. Refit electrical calibration when changing the PV/solar baseline; never apply old coefficients to a changed baseline under the old identity. Keep immutable historical source packages and experiment results replayable.",
+      "requirement_sha256": "370f5a9bd93ac421f20bb8031f0cfae78dff3fe21e80a1486f550435b581cc8c",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 11
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Current role/model/fit/admission/source/environment pins, normal exact-source CI, original evaluation, source-only compatibility repairs, literal rollback, current UI, measured natural collection and complete source/evidence export are recorded in the final release proof. No parallel shadow pipeline is required.",
+      "historical_evidence": [
+        {
+          "file": "production-replacements.json",
+          "sha256": "6d1bd15f50f6b90f83f3756cdce10d498676764bd4376b14304919d6ab0247ff"
+        },
+        {
+          "file": "deployment-policy.json",
+          "sha256": "94af88aa502e7fded9583edbe09be4f458d5bf7a8f6d85d81f629bccc3d00e97"
+        }
+      ],
+      "requirement": "Run normal dependency-pinned unit/build/browser checks, all required OpenHAB partitions, WeatherNext SDK/contracts, sensor/receipt/native/delivery gates affected by shared changes, and numerical golden/old-producer replay. Inventory every new test into current CI ownership. Review the exact integrated source and concrete replacement manifest before release.",
+      "requirement_sha256": "cb4a6df84da21b7793810f4a2ec5667568573e27dcdb67545ed9e17c7fa722eb",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 11
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Current role/model/fit/admission/source/environment pins, normal exact-source CI, original evaluation, source-only compatibility repairs, literal rollback, current UI, measured natural collection and complete source/evidence export are recorded in the final release proof. No parallel shadow pipeline is required.",
+      "historical_evidence": [
+        {
+          "file": "production-replacements.json",
+          "sha256": "6d1bd15f50f6b90f83f3756cdce10d498676764bd4376b14304919d6ab0247ff"
+        },
+        {
+          "file": "deployment-policy.json",
+          "sha256": "94af88aa502e7fded9583edbe09be4f458d5bf7a8f6d85d81f629bccc3d00e97"
+        }
+      ],
+      "requirement": "Migrate compatible readers and schemas before new production outputs publish. Test optional-field failure, source-closure changes, original admission expiry, fit no-op, genuine new fit, interrupted promotion, post-publish nonzero exit, concurrent selector edits and rollback. Preserve post-PR #43 readback truthfulness. Create new production admission/emission identities rather than changing immutable shadow receipts or qualification flags.",
+      "requirement_sha256": "f69f0d2ff8e2bddfec7bfe9e19258ce62d645e1438ab843865af8d9bde73015f",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 11
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Current role/model/fit/admission/source/environment pins, normal exact-source CI, original evaluation, source-only compatibility repairs, literal rollback, current UI, measured natural collection and complete source/evidence export are recorded in the final release proof. No parallel shadow pipeline is required.",
+      "historical_evidence": [
+        {
+          "file": "production-replacements.json",
+          "sha256": "6d1bd15f50f6b90f83f3756cdce10d498676764bd4376b14304919d6ab0247ff"
+        },
+        {
+          "file": "deployment-policy.json",
+          "sha256": "94af88aa502e7fded9583edbe09be4f458d5bf7a8f6d85d81f629bccc3d00e97"
+        }
+      ],
+      "requirement": "Deploy the richer read-only consumers and required bounded acquisition, then switch the registered replacement models/improvements to the active production defaults in Step 11. Use reversible selectors/flags. No separate parallel shadow deployment or elapsed shadow-scoring period is required, and the scientific improvement thresholds are not deployment-entry gates under this user-authorized experimental production rollout.",
+      "requirement_sha256": "5967e0080f5d4a7add5c3138532bcf297982629e1f6d0280e6118c682821ec8d",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 11
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Current role/model/fit/admission/source/environment pins, normal exact-source CI, original evaluation, source-only compatibility repairs, literal rollback, current UI, measured natural collection and complete source/evidence export are recorded in the final release proof. No parallel shadow pipeline is required.",
+      "historical_evidence": [
+        {
+          "file": "production-replacements.json",
+          "sha256": "6d1bd15f50f6b90f83f3756cdce10d498676764bd4376b14304919d6ab0247ff"
+        },
+        {
+          "file": "deployment-policy.json",
+          "sha256": "94af88aa502e7fded9583edbe09be4f458d5bf7a8f6d85d81f629bccc3d00e97"
+        }
+      ],
+      "requirement": "Retain the actual predictions emitted by the replacement models before their targets occur and compare them with real observations after target maturity through the bounded evaluator. Report point, interval, rain and household metrics only for their valid targets/cohorts. Use preserved historical comparisons where comparable; do not run the old models in parallel or invent old live predictions. Keep scoring, qualification and production admission distinct.",
+      "requirement_sha256": "90dd94ab2b11897ae71178b59bfb7a187c38b3ddad96eee5ab8b6f872a331a8a",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 11
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Current role/model/fit/admission/source/environment pins, normal exact-source CI, original evaluation, source-only compatibility repairs, literal rollback, current UI, measured natural collection and complete source/evidence export are recorded in the final release proof. No parallel shadow pipeline is required.",
+      "historical_evidence": [
+        {
+          "file": "production-replacements.json",
+          "sha256": "6d1bd15f50f6b90f83f3756cdce10d498676764bd4376b14304919d6ab0247ff"
+        },
+        {
+          "file": "deployment-policy.json",
+          "sha256": "94af88aa502e7fded9583edbe09be4f458d5bf7a8f6d85d81f629bccc3d00e97"
+        }
+      ],
+      "requirement": "Read back installed source, environment, schemas, effective selectors/artifacts, resource caps and current report consumers. Observe archive growth and actual request/byte/runtime costs at each stage. Verify available natural cycles and view the UI against actual OpenHAB data. Historical retraining and model replacement are authorized by the October 22 instruction; do not fabricate observations, stimulate hardware or grant new control/billing authority.",
+      "requirement_sha256": "a48805d93c3967dd1da1ffb62f56fe700174ea9aecc2e9786262868441695c50",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 11
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Current role/model/fit/admission/source/environment pins, normal exact-source CI, original evaluation, source-only compatibility repairs, literal rollback, current UI, measured natural collection and complete source/evidence export are recorded in the final release proof. No parallel shadow pipeline is required.",
+      "historical_evidence": [
+        {
+          "file": "production-replacements.json",
+          "sha256": "6d1bd15f50f6b90f83f3756cdce10d498676764bd4376b14304919d6ab0247ff"
+        },
+        {
+          "file": "deployment-policy.json",
+          "sha256": "94af88aa502e7fded9583edbe09be4f458d5bf7a8f6d85d81f629bccc3d00e97"
+        }
+      ],
+      "requirement": "Verify exact rollback for each changed source, reader, model and selector. Retain old artifacts for rollback and historical replay, without scheduling a parallel shadow pipeline. A runtime validity failure may use its explicitly declared safe fallback; retain newly emitted originals and scoring state across rollback.",
+      "requirement_sha256": "9e30eb0fb3ba6bb9a7353aae2d6cd6e77c8375856d00b4069e77a64acfc1c77a",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 11
+    },
+    {
+      "current_verification": "production-release.json plus original per-task evidence and normal exact-source CI",
+      "final_disposition": "Current role/model/fit/admission/source/environment pins, normal exact-source CI, original evaluation, source-only compatibility repairs, literal rollback, current UI, measured natural collection and complete source/evidence export are recorded in the final release proof. No parallel shadow pipeline is required.",
+      "historical_evidence": [
+        {
+          "file": "production-replacements.json",
+          "sha256": "6d1bd15f50f6b90f83f3756cdce10d498676764bd4376b14304919d6ab0247ff"
+        },
+        {
+          "file": "deployment-policy.json",
+          "sha256": "94af88aa502e7fded9583edbe09be4f458d5bf7a8f6d85d81f629bccc3d00e97"
+        }
+      ],
+      "requirement": "Freeze the final verification revision, source/evidence manifest and delivery record. Separate implemented, passing, installed, active, naturally exercised and scientifically supported claims. Include the post-deployment evaluation schedule and a finite checklist for remaining wet events, horizon maturity and measurement quality. These pending scientific outcomes do not postpone otherwise valid production replacement or unblocked engineering.",
+      "requirement_sha256": "41022fde26d90da0965d3082b145da6ac3c9e421b2dd77d8549e236a308aadad",
+      "status": "implemented_verified_or_precise_external_dependency_disposition",
+      "task": 11
+    }
+  ]
+}
