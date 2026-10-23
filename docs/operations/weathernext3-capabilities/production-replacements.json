@@ -251,13 +251,20 @@
         "thermal forecast and stress projections"
       ],
       "remaining": [
-        "Trace the selected actual weather input into the thermal receipt.",
-        "Rebuild/retrain and register dependent source-valid artifacts where required.",
-        "Verify same-input training/serving parity and selector rollback."
+        "Genuinely refit/admit current native response under the new bound conditioning source closure.",
+        "Exercise full staged capture with actual confirmed production weather originals.",
+        "Stage exact v2 thermal selection, complete all CI/review, verify actual installed output and rollback."
       ],
       "limitations": [],
       "rollback": "Restore the captured original selector/config/source bytes under the existing writer lock; preserve new originals and scores.",
-      "production_replaced": false
+      "production_replaced": false,
+      "serving_implementation": {
+        "status": "implemented_focused_tests_passed_not_installed",
+        "evidence": "production-thermal.md",
+        "context_schema": "earthship-thermal-weather-context/v2",
+        "inference": "consume_original_confirmed_hourly_points_without_running_weather_models",
+        "physical_rollouts": 1
+      }
     },
     {
       "id": "local_hourly_wind",

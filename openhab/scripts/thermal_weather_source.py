@@ -21,6 +21,14 @@ def conditioning_runtime():
     return {name:sha256((SCRIPTS/name).read_bytes()).hexdigest() for name in RUNTIME_SOURCES}
 
 
+def production_conditioning_runtime():
+    names=('production_thermal_source.py','household/production_weather_conditioning.py','thermal_weather_source.py',
+        'household/thermal_weather_conditioning.py','household/codec.py','household/control_contracts.py',
+        'weather_learning/production_emissions.py','weather_learning/production_forecast.py','weather_learning/production_scoring.py',
+        'weather_learning/contracts.py','weather_learning/provider.py','weather_source_files.py')
+    return {name:sha256(_read(SCRIPTS/name,262144,source=True)).hexdigest() for name in names}
+
+
 def hash_reference(ref,*,guard):
     path=Path(ref['path']);maximum=ref['maximum'];source=ref['source']
     if not path.is_absolute() or path.resolve()!=path or type(maximum) is not int or not 1<=maximum<=32*1024**2 or type(source) is not bool:raise ValueError('bounded resolved thermal source required')
@@ -62,6 +70,9 @@ def _midpoints(rows,issue):return [(instant(row['at'])-timedelta(minutes=30)).is
 def collect_context(*,selection,forecast,geometry,issue,sensor_epoch,guard,geometry_root=None,clock=lambda:datetime.now(timezone.utc)):
     """Read only; missing geometry is never calculated in the serving cycle."""
     guard();raw=_read(selection,16384);selected=loads(raw)
+    if selected.get('schema')=='earthship-thermal-weather-selection/v2':
+        from production_thermal_source import collect
+        return collect(selection=selection,selected=selected,forecast=forecast,geometry=geometry,issue=issue,sensor_epoch=sensor_epoch,guard=guard,clock=clock)
     if (set(selected)!=SELECTION_FIELDS or selected['schema']!='earthship-thermal-weather-selection/v1' or selected['automatic_actuation'] is not False or
             selected['selection_sha256']!=identity({k:v for k,v in selected.items() if k!='selection_sha256'})):
         raise ValueError('explicit owned thermal weather selection required')
@@ -90,6 +101,9 @@ def collect_context(*,selection,forecast,geometry,issue,sensor_epoch,guard,geome
 
 def verify_bindings(value,*,guard):
     """Validate as-issued immutable sources, without rereading today's selector."""
+    if value.get('schema')=='earthship-thermal-weather-context/v2':
+        from production_thermal_source import verify
+        return verify(value,guard=guard)
     issue=instant(value['issue']);validate_context(value,issue=issue,available=instant(value['prepared_at']))
     admission=value['admission'];selected=value['selection'];ref=value['admission_ref']
     if (set(selected)!=SELECTION_FIELDS or selected['selection_sha256']!=identity({k:v for k,v in selected.items() if k!='selection_sha256'}) or

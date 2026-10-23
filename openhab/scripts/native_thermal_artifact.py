@@ -43,6 +43,9 @@ REQUIRED_SOURCES = frozenset('openhab/scripts/'+name for name in (
     'astro_forecast_context.py', 'astro_geometry_worker.py')) | {'scripts/java/NativeSolarGeometry.java'}
 OPTIONAL_SOURCES = frozenset('openhab/scripts/'+name for name in (
     'native_thermal_forecast.py', 'native_thermal_live.py', 'native_thermal_score.py'))
+CONDITIONING_SOURCES = frozenset('openhab/scripts/'+name for name in (
+    'production_thermal_source.py','thermal_weather_source.py',
+    'household/production_weather_conditioning.py','household/thermal_weather_conditioning.py'))
 RUNTIME_FIELDS = {'schema', 'base_runtime', 'native_source_manifest', 'native_code_revision'}
 FIELDS = {'schema', 'created_at', 'runtime', 'runtime_sha256', 'originals', 'fit', 'artifact_sha256'}
 FIT_FIELDS = BASE_FIT_FIELDS | {'schema', 'model_rule', 'solar_feature', 'dataset_sha256',
@@ -62,16 +65,18 @@ def validate_native_runtime(value):
         raise ValueError('closed native model runtime required')
     _runtime(value['base_runtime'])
     sources = value['native_source_manifest']
-    if (not isinstance(sources, dict) or not REQUIRED_SOURCES <= set(sources) <= REQUIRED_SOURCES | OPTIONAL_SOURCES | JOINT_SOURCES | IRRADIANCE_SOURCES or
+    if (not isinstance(sources, dict) or not REQUIRED_SOURCES <= set(sources) <= REQUIRED_SOURCES | OPTIONAL_SOURCES | CONDITIONING_SOURCES | JOINT_SOURCES | IRRADIANCE_SOURCES or
             digest(sources) != _sha(value['native_code_revision'])):
         raise ValueError('complete original native source closure required')
+    if set(sources)&CONDITIONING_SOURCES and not CONDITIONING_SOURCES<=set(sources):
+        raise ValueError('complete production thermal conditioning closure required')
     for identity in sources.values(): _sha(identity)
     return deepcopy(value)
 
 
 def current_native_runtime(*, guard=lambda: None):
     guard(); base = current_base_runtime(); guard()
-    names = REQUIRED_SOURCES | {name for name in OPTIONAL_SOURCES | JOINT_SOURCES | IRRADIANCE_SOURCES if (ROOT/name).exists()}
+    names = REQUIRED_SOURCES | {name for name in OPTIONAL_SOURCES | CONDITIONING_SOURCES | JOINT_SOURCES | IRRADIANCE_SOURCES if (ROOT/name).exists()}
     sources = {}
     for name in sorted(names):
         guard(); sources[name] = sha256(_source_bytes(ROOT/name, maximum=2000000)).hexdigest()
