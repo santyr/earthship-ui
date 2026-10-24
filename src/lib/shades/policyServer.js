@@ -39,14 +39,18 @@ export function createShadePolicyOwner({ upstream, authorization, fetchImpl = fe
     // OpenHAB history is ASCENDING and defaults to only the past day. Use the
     // owner's actual persisted timestamp, including for stable older choices.
     // Disable synthetic chart boundaries/current Item state: neither is proof.
-    const begin = Math.max(0, proofTime - 1), end = proofTime + windowMs;
+    // Some REST persistence providers round query bounds to whole seconds.
+    // Expand acquisition only; exact original proof timestamps still decide.
+    const begin = Math.max(0, Math.floor((proofTime - 1) / 1000) * 1000);
+    const end = Math.ceil((proofTime + windowMs) / 1000) * 1000;
+    const proofEnd = proofTime + windowMs;
     const query = new URLSearchParams({ serviceId: 'jdbc', page: '0', pagelength: '1000',
       starttime: new Date(begin).toISOString(), endtime: new Date(end).toISOString(),
       boundary: 'false', itemState: 'false' });
     const result = await request(`/rest/persistence/items/${name}?${query}`, {}, true);
     if (!Array.isArray(result?.data) || result.data.length >= 1000) return null;
     return result.data.filter((row) => Number.isFinite(row.time) && row.time >= proofTime
-      && row.time <= end && typeof row.state === 'string')
+      && row.time <= proofEnd && typeof row.state === 'string')
       .reduce((latest, row) => !latest || row.time >= latest.time ? row : latest, null);
   }
   function present(input) {
@@ -115,13 +119,13 @@ export function createShadePolicyOwner({ upstream, authorization, fetchImpl = fe
       await request(`/rest/items/${SHADE_POLICY_ITEMS[change.zone]}`, {
         method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: value,
       });
-      for (let attempt = 0; attempt < 10; attempt += 1) {
+      for (let attempt = 0; attempt < 30; attempt += 1) {
         const result = await reconcile();
         if (result.connected && result.sourceGeneration !== before.sourceGeneration
             && result.zones[change.zone].authoritative && result.zones[change.zone].saved === value) {
           if (confirmedAt[change.zone] >= started) return result;
         }
-        if (attempt < 9) await sleep(100);
+        if (attempt < 29) await sleep(100);
       }
       throw error('save_unconfirmed');
     }),

@@ -8,6 +8,7 @@ const { rules, triggers, items, cache } = require('openhab');
 const UUID = Java.type('java.util.UUID');
 const ReentrantLock = Java.type('java.util.concurrent.locks.ReentrantLock');
 const Thread = Java.type('java.lang.Thread');
+const System = Java.type('java.lang.System');
 const LOCK_KEY = 'earthship/shade-recommendation-policy/serialized-owner-v1';
 const lock = cache.shared.get(LOCK_KEY, () => new ReentrantLock());
 const POLICY = {
@@ -48,20 +49,29 @@ function commitReceipt() {
   try {
     const barrier = Date.now();
     Thread.sleep(2); // an older equal Boolean must not satisfy a new commit
+    const pending = new Map();
     for (const [zone, name] of Object.entries(POLICY)) {
       const target = items.getItem(name), value = String(target.state);
       receipt.preferences[zone] = valid(value) ? value : null;
       if (!valid(value)) throw new Error('policy_unrestored');
       target.persistence.persist('jdbc');
-      let proof = null;
-      for (let attempt = 0; attempt < 6; attempt += 1) {
-        Thread.sleep(25);
-        proof = persisted(target);
-        if (proof?.state === value && proof.at > barrier) break;
-      }
-      if (!proof || proof.state !== value || proof.at <= barrier) throw new Error('policy_persistence_unconfirmed');
-      receipt.persistedAt[zone] = proof.at;
+      pending.set(zone, { target, value });
     }
+    // JDBC writes are asynchronous. Submit the four independent observations
+    // together, then confirm actual rows against this commit's original barrier.
+    // A matching older Boolean never acknowledges the new generation.
+    const deadline = Number(System.nanoTime()) + 2_000_000_000;
+    for (let attempt = 0; attempt < 80 && pending.size && Number(System.nanoTime()) < deadline; attempt += 1) {
+      Thread.sleep(25);
+      for (const [zone, { target, value }] of pending) {
+        const proof = persisted(target);
+        if (proof?.state === value && proof.at > barrier) {
+          receipt.persistedAt[zone] = proof.at;
+          pending.delete(zone);
+        }
+      }
+    }
+    if (pending.size) throw new Error('policy_persistence_unconfirmed');
     // Read the existing policy as a stable state, without a last-change TTL.
     const override = state('OverrideSwitch');
     receipt.override = valid(override) ? override : null;

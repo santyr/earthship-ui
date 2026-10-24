@@ -4,15 +4,16 @@ import { describe, expect, it } from 'vitest';
 import { SHADE_POLICY_ITEMS, SHADE_POLICY_REVISION_ITEM, SHADE_POLICY_SESSION_ITEM } from '../../src/lib/shades/policyModel.js';
 
 const rulePath = new URL('../../openhab/file-config/automation/js/shade-recommendation-policy.js', import.meta.url);
-function fixture(initial = {}, persisted = {}) {
+function fixture(initial = {}, persisted = {}, { persistenceDelayMs = 0 } = {}) {
   let clock = 10_000, generation = 0, rule, failPersistence = false;
   const states = { ...Object.fromEntries(Object.values(SHADE_POLICY_ITEMS).map((name) => [name, 'NULL'])), OverrideSwitch: 'OFF', ...initial };
   const history = Object.fromEntries(Object.entries(persisted).map(([name, state]) => [name, { state, at: clock - 100 }]));
-  const updates = [], commands = [], locks = [];
+  const updates = [], commands = [], locks = [], pendingHistory = new Map();
+  function settle() { for (const [name, row] of pendingHistory) if (row.availableAt <= clock) { history[name] = row; pendingHistory.delete(name); } }
   const item = (name) => ({ get state() { return states[name]; }, postUpdate: (state) => { states[name] = state; updates.push({ name, state }); },
     sendCommand: (command) => { commands.push({ name, command }); }, persistence: {
-      persist: () => { if (!failPersistence) history[name] = { state: states[name], at: clock }; },
-      previousState: () => history[name] ? { state: history[name].state, timestamp: { toInstant: () => ({ toEpochMilli: () => history[name].at }) } } : null,
+      persist: () => { if (!failPersistence) { pendingHistory.set(name, { state: states[name], at: clock, availableAt: clock + persistenceDelayMs }); settle(); } },
+      previousState: () => { settle(); return history[name] ? { state: history[name].state, timestamp: { toInstant: () => ({ toEpochMilli: () => history[name].at }) } } : null; },
     } });
   const shared = new Map();
   const context = { console, Date: { now: () => clock }, require: () => ({ items: { getItem: item },
@@ -20,6 +21,7 @@ function fixture(initial = {}, persisted = {}) {
     rules: { JSRule: (definition) => { rule = definition; } },
     triggers: { ItemStateChangeTrigger: (name) => ({ kind: 'change', name }), SystemStartlevelTrigger: (level) => ({ kind: 'start', level }) } }),
     Java: { type: (name) => name === 'java.util.UUID' ? { randomUUID: () => `00000000-0000-4000-8000-${String(++generation).padStart(12, '0')}` }
+      : name === 'java.lang.System' ? { nanoTime: () => clock * 1e6 }
       : name === 'java.lang.Thread' ? { sleep: (ms) => { clock += ms; } }
         : class { lock() { locks.push('lock'); } unlock() { locks.push('unlock'); } } },
   };
@@ -41,6 +43,21 @@ describe('prepared OpenHAB shade policy owner', () => {
     expect(f.history[SHADE_POLICY_REVISION_ITEM].state).toBe(f.states[SHADE_POLICY_REVISION_ITEM]);
     expect(f.commands).toHaveLength(0);
     expect(f.updates.every(({ name }) => name !== 'OverrideSwitch')).toBe(true);
+  });
+  it('confirms delayed asynchronous JDBC writes without treating an older matching Boolean as proof', () => {
+    const f = fixture({}, {}, { persistenceDelayMs: 900 });
+    f.run();
+    expect(f.receipt().durable).toBe(true);
+    expect(Object.keys(f.receipt().persistedAt)).toHaveLength(4);
+    expect(f.states[SHADE_POLICY_SESSION_ITEM]).toBe(f.receipt().ownerSession);
+    expect(f.commands).toHaveLength(0);
+  });
+  it('withholds authority when asynchronous JDBC confirmation exceeds the bound', () => {
+    const f = fixture({}, {}, { persistenceDelayMs: 10000 });
+    f.run();
+    expect(f.receipt().durable).toBe(false);
+    expect(f.states[SHADE_POLICY_SESSION_ITEM]).toBe('UNDEF');
+    expect(f.commands).toHaveLength(0);
   });
   it('does not restore readiness from a previous runtime and binds ready marker to current receipt', () => {
     const f = fixture({ [SHADE_POLICY_SESSION_ITEM]: 'old-session' });
