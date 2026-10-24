@@ -23,7 +23,7 @@ function pngDimensions(buffer) {
 describe('README documentation', () => {
   const readme = readFileSync(README_URL, 'utf8');
 
-  it('describes the implemented five-screen console', () => {
+  it('describes the implemented console', () => {
     expect(readme).toContain('**Status:** implemented and running');
     expect(readme).toContain('## Screenshots');
   });
@@ -43,6 +43,7 @@ describe('README documentation', () => {
     expect(readme).toContain('systemctl --user status earthship-ui.service --no-pager -l');
     expect(readme).toContain('journalctl --user -u earthship-ui.service -n 100 --no-pager');
     expect(readme).toContain('http://127.0.0.1:5190/src/App.svelte');
-    expect(readme).toContain('branch switches, fast-forwards, or other tree-wide checkout changes');
+    expect(readme).toContain('systemctl --user show earthship-ui.service -p WorkingDirectory -p ExecStart');
+    expect(readme).toContain('Pulling commits or switching branches does not deploy the current checkout.');
   });
 });
