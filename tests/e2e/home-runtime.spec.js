@@ -1413,7 +1413,9 @@ for (const target of TARGETS) {
     await expect(page.locator('.baro-trend')).toHaveCSS('color', 'rgb(255, 87, 34)');
     await expect(page.locator('.solar-icon')).toHaveCSS('color', 'rgb(255, 152, 0)');
     await expect(page.locator('.solar-current')).toHaveCSS('color', 'rgb(255, 152, 0)');
-    await expect(page.locator('.curtail-lamp')).toHaveCSS('color', 'rgb(234, 179, 8)');
+    // A retained legacy prediction must not color a missing current forecast.
+    await expect(page.locator('.curtail-lamp')).toContainText('curtail — · 24h');
+    await expect(page.locator('.curtail-lamp')).toHaveCSS('color', 'rgb(139, 147, 161)');
 
     await expect(page.locator('.sm-moon')).toHaveAttribute(
       'title',

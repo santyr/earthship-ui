@@ -37,7 +37,7 @@ def test_expanded_energy_intents_and_nested_plan_restore_original_source():
     snap=model_free();result=run(snap);out=result['output']
     assert result['schema']=='earthship-household-model-plan-receipt/v2'
     assert set(result['inputs']['source_contexts'])=={snap.snapshot_id}
-    assert out['candidate_intents'] and all(item['snapshotId']==snap.snapshot_id for item in out['candidate_intents'])
+    assert out['candidate_intents']==[]
     plan=out['plan_receipt'];assert plan['schema']=='earthship-household-shadow-plan-receipt/v2'
     assert set(plan['inputs']['source_contexts'])=={snap.snapshot_id}
     assert replay_plan(plan,runtime_manifest=RUNTIME)==plan

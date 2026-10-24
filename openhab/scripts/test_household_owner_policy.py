@@ -42,10 +42,11 @@ def test_explicit_current_policy_blockers_become_negative_facts(reason,gate):
 
 def test_current_after_dark_reason_survives_missing_other_permissions_and_replay():
     from household.planning import plan,seal_plan,replay_plan
-    snap,registry=setup();item=candidate(snap);ctx=context();runtime={'household/owner_policy.py':'a'*64}
+    snap,registry=setup();item=candidate(snap,'RUN_GREYWATER_CYCLE');ctx=context();runtime={'household/owner_policy.py':'a'*64}
     receipt=seal_plan(snapshot=snap,registry=registry,candidates=[item],coordination=ctx,utilities={item.intent_id:1e6},
         now=NOW,reserve_soc=10.,horizon_hours=24,runtime_manifest=runtime,model_refs=[],forecast_ref=None)
-    assert receipt['plan']['candidate_decisions'][0]['reason']=='after_dark'
+    assert receipt['plan']['candidate_decisions'][0]['reason']=='planner_authority_disabled'
+    assert loads(ctx['facts']['hex_southoutlet_cycle']['curfew_allowed']['raw'])['value'] is False
     assert receipt['plan']['selected_intent_ids']==[] and not receipt['plan']['automatic_actuation']
     assert replay_plan(receipt,runtime_manifest=runtime)==receipt
     bad=deepcopy(receipt);entry=bad['inputs']['coordination']['facts']['hex_southoutlet_cycle']['curfew_allowed']
@@ -93,11 +94,11 @@ def test_unknown_stable_policy_source_is_retained_without_deriving_facts():
     assert set(ctx['facts']['hex_southoutlet_cycle'])=={'owner_available'}
 
 def test_decision_after_evaluation_expiry_does_not_use_blocker_as_current():
-    from household.planning import plan
-    snap,registry=setup();item=candidate(snap);ctx=context(original(evaluated=NOW-timedelta(seconds=119)))
-    result=plan(snapshot=snap,registry=registry,candidates=[item],coordination=ctx,utilities={item.intent_id:1.},now=NOW+timedelta(seconds=1),reserve_soc=10.,horizon_hours=24)
-    checks={v['rule']:v for v in result['candidate_decisions'][0]['hard_checks']}
-    assert checks['curfew_allowed']['status']=='unknown' and checks['curfew_allowed']['reason']=='source_stale'
+    from household.planning import _fact
+    snap,registry=setup();ctx=context(original(evaluated=NOW-timedelta(seconds=119)))
+    value,reason=_fact(ctx['facts']['hex_southoutlet_cycle']['curfew_allowed'],kind='curfew_allowed',
+        owner='hex_southoutlet_cycle',snapshot_id=snap.snapshot_id,now=NOW+timedelta(seconds=1),horizon_hours=24)
+    assert value is None and reason=='source_stale'
 
 
 def test_collector_keeps_bracketed_policy_originals(tmp_path,monkeypatch):

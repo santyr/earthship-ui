@@ -76,7 +76,7 @@ def _qualification_report(view,registry):
         gates.extend(gate(key,False,reason) for key,reason in missing)
         families.append(dict(intent_type=kind,capability_id=capability_id,owner=None if capability is None else capability['ownerRule'],
             proposal_count=len(proposals),status='not_qualified',release_authorized=False,gates=gates))
-    return dict(schema='earthship-household-intent-qualification/v2',scope='original_plan_evidence',status='not_qualified',
+    return dict(schema='earthship-household-intent-qualification/v3',scope='original_plan_evidence',status='not_qualified',
         receipt_sha256=view['receipt_sha256'],snapshot_id=view['snapshot_id'],decision_at=view['decision_at'],
         release_authorized=False,automatic_actuation=False,families=families)
 

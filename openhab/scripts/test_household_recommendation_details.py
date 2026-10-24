@@ -6,21 +6,36 @@ from test_household_observation import policy_record,RUNTIME,NOW,materializer_fi
 import pytest,json
 
 
-def test_v4_action_parameters_and_clocks_are_exact_replayed_original_values():
-    record=policy_record()
+@pytest.fixture
+def device_record(monkeypatch):
+    # Exercise the observation boundary with an explicit supported-device policy;
+    # production energy generation currently has no qualified optional action.
+    import household.pipeline as api
+    generation=api._candidates
+    def supported(snapshot,projections,config,now):
+        _,_,no_action,details=generation(snapshot,projections,config,now)
+        ref=snapshot.to_dict()['domains']['energy']['battery_soc']['evidence']['digest']
+        item=api._intent(snapshot,now,'SET_NIGHT_LOAD_DEVICE',{'device':'dishwasher','command':'OFF'},[ref],'low_soc')
+        return [item],{item.intent_id:1.},no_action,details
+    monkeypatch.setattr(api,'_candidates',supported)
+    return policy_record()
+
+
+def test_v4_action_parameters_and_clocks_are_exact_replayed_original_values(device_record):
+    record=device_record
     view=observe_pipeline(record,runtime_manifest=RUNTIME,thermal_runtime=None,observed_at=NOW,include_action_details=True)
     assert view['schema']=='earthship-household-observation/v4'
     original={i['intentId']:i for i in record['output']['candidate_intents']}
     for p in view['proposals']:
         i=original[p['intent_id']]
         assert p['parameters']==i['parameters'] and p['created_at']==i['createdAt'] and p['expires_at']==i['expiresAt']
-    night=next(p for p in view['proposals'] if p['type']=='SET_NIGHT_LOAD_OVERRIDE')
-    assert night['parameters']=={'command':'OFF'} and not night['selected']
+    night=next(p for p in view['proposals'] if p['type']=='SET_NIGHT_LOAD_DEVICE')
+    assert night['parameters']=={'device':'dishwasher','command':'OFF'} and not night['selected']
     assert view['automatic_actuation'] is False and view['qualification_report']['release_authorized'] is False
 
 
-def test_legacy_observation_contract_remains_available_and_reverification_never_renews_actions():
-    record=policy_record();legacy=observe_pipeline(record,runtime_manifest=RUNTIME,thermal_runtime=None,observed_at=NOW)
+def test_legacy_observation_contract_remains_available_and_reverification_never_renews_actions(device_record):
+    record=device_record;legacy=observe_pipeline(record,runtime_manifest=RUNTIME,thermal_runtime=None,observed_at=NOW)
     assert legacy['schema']=='earthship-household-observation/v3' and 'parameters' not in legacy['proposals'][0]
     early=observe_pipeline(record,runtime_manifest=RUNTIME,thermal_runtime=None,observed_at=NOW,include_action_details=True)
     later=observe_pipeline(record,runtime_manifest=RUNTIME,thermal_runtime=None,observed_at=NOW+timedelta(minutes=10),include_action_details=True)
@@ -28,8 +43,8 @@ def test_legacy_observation_contract_remains_available_and_reverification_never_
     assert later['planner_mode']=='unavailable'
 
 
-def test_tampered_action_cannot_survive_replay_even_if_outer_receipt_is_resealed():
-    record=policy_record();next(i for i in record['output']['candidate_intents'] if i['type']=='SET_NIGHT_LOAD_OVERRIDE')['parameters']['command']='ON'
+def test_tampered_action_cannot_survive_replay_even_if_outer_receipt_is_resealed(device_record):
+    record=device_record;next(i for i in record['output']['candidate_intents'] if i['type']=='SET_NIGHT_LOAD_DEVICE')['parameters']['command']='ON'
     record['receipt_sha256']=identity({k:v for k,v in record.items() if k!='receipt_sha256'})
     with pytest.raises(ValueError):observe_pipeline(record,runtime_manifest=RUNTIME,thermal_runtime=None,observed_at=NOW,include_action_details=True)
 

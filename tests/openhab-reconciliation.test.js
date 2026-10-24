@@ -221,3 +221,75 @@ it('starts a declared new session without clocks or state from the previous sour
   expect(get(store.items)[name]).toBe('40');
   expect(get(store.itemUpdateEvidence)[name]).toMatchObject({ state: '40', lastKnown: at - 1000, available: true });
 });
+
+
+it('recovers a malformed Thing status on reconnect without another stream reconnect', async () => {
+  const client = makeClient(); await boot(client);
+  client.getAllThings.mockResolvedValueOnce([{ UID: 'provider', statusInfo: null }])
+    .mockResolvedValue([{ UID: 'provider', statusInfo: { status: 'OFFLINE' } }]);
+  hooks.onReconnect(); await vi.advanceTimersByTimeAsync(0);
+  expect(get(store.reconciliation)).toBe('retrying');
+  expect(get(store.connection)).toBe('reconciling');
+  expect(get(store.thingStatuses).provider.status).toBe('ONLINE');
+  await vi.advanceTimersByTimeAsync(20);
+  expect(get(store.reconciliation)).toBe('ready');
+  expect(get(store.connection)).toBe('live');
+  expect(get(store.thingStatuses).provider.status).toBe('OFFLINE');
+  expect(client.getAllThings).toHaveBeenCalledTimes(3);
+  expect(client.sendCommand).not.toHaveBeenCalled();
+});
+
+it.each([
+  [null], [7], [[]], [{}], [{ UID: '' }], [{ UID: ' provider ', statusInfo: { status: 'ONLINE' } }],
+  [{ UID: 'provider', statusInfo: null }], [{ UID: 'provider', statusInfo: [] }],
+  [{ UID: 'provider', statusInfo: { status: 1 } }],
+  [{ UID: 'provider', statusInfo: { status: 'ONLINE', statusDetail: {} } }],
+  [{ UID: 'provider', statusInfo: { status: 'ONLINE', description: null } }],
+  [{ UID: 'provider', statusInfo: { status: 'OFFLINE' } }, { UID: 'provider', statusInfo: { status: 'ONLINE' } }],
+])('rejects the entire malformed Thing inventory before publication (%j)', async (...rows) => {
+  const client = makeClient(); await boot(client);
+  // A good first row must not be published when a subsequent row is invalid.
+  const bad = [{ UID: 'partial', statusInfo: { status: 'ONLINE' } }, ...rows];
+  client.getAllThings.mockResolvedValueOnce(bad);
+  hooks.onReconnect(); await vi.advanceTimersByTimeAsync(0);
+  expect(get(store.thingStatuses)).toEqual({ provider: { status: 'ONLINE', statusDetail: '', description: '' } });
+  expect(get(store.reconciliation)).toBe('retrying');
+  expect(get(store.connection)).toBe('reconciling');
+  await vi.advanceTimersByTimeAsync(20);
+  expect(get(store.reconciliation)).toBe('ready');
+  expect(client.sendCommand).not.toHaveBeenCalled();
+});
+
+it('retries processing errors with one capped backoff while the stream remains open', async () => {
+  const client = makeClient(); await boot(client);
+  const broken = Object.defineProperty({}, 'name', { get() { throw new Error('malformed decoded row'); } });
+  client.getAllItems.mockResolvedValue([broken]);
+  hooks.onReconnect(); await vi.advanceTimersByTimeAsync(0);
+  expect(get(store.reconciliation)).toBe('retrying');
+  expect(get(store.items).A).toBe('OFF');
+  await vi.advanceTimersByTimeAsync(19); expect(client.getAllItems).toHaveBeenCalledTimes(2);
+  await vi.advanceTimersByTimeAsync(1); expect(client.getAllItems).toHaveBeenCalledTimes(3);
+  await vi.advanceTimersByTimeAsync(39); expect(client.getAllItems).toHaveBeenCalledTimes(3);
+  await vi.advanceTimersByTimeAsync(1); expect(client.getAllItems).toHaveBeenCalledTimes(4);
+  await vi.advanceTimersByTimeAsync(40); expect(client.getAllItems).toHaveBeenCalledTimes(5);
+  client.getAllItems.mockResolvedValue([{ name: 'A', state: 'RECOVERED' }]);
+  await vi.advanceTimersByTimeAsync(40);
+  expect(get(store.items).A).toBe('RECOVERED'); expect(get(store.connection)).toBe('live');
+  expect(vi.getTimerCount()).toBe(0);
+  expect(client.sendCommand).not.toHaveBeenCalled();
+});
+
+it('does not let a late Thing response or callback mutate a replacement session', async () => {
+  const first = makeClient(); await boot(first); const oldHooks = hooks;
+  const staleThings = deferred(); first.getAllThings.mockReturnValueOnce(staleThings.promise);
+  oldHooks.onReconnect(); await vi.advanceTimersByTimeAsync(0);
+  const second = makeClient(); second.getAllThings.mockResolvedValue([{ UID: 'current', statusInfo: { status: 'OFFLINE' } }]);
+  await boot(second);
+  staleThings.resolve([{ UID: 'obsolete', statusInfo: { status: 'ONLINE' } }]);
+  oldHooks.onThingStatus('obsolete', { status: 'ONLINE' }); oldHooks.onReconnect();
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(get(store.thingStatuses)).toEqual({ current: { status: 'OFFLINE', statusDetail: '', description: '' } });
+  expect(get(store.reconciliation)).toBe('ready');
+  expect(second.getAllThings).toHaveBeenCalledOnce();
+  store.stopOpenhab(); expect(vi.getTimerCount()).toBe(0);
+});

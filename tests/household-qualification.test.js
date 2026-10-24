@@ -1,4 +1,5 @@
 import {describe,it,expect} from 'vitest';
+import {AUTOMATED_QUALIFICATION_FAMILIES} from '../src/lib/household/qualification.js';
 import {parseHouseholdObservation} from '../src/lib/household/observation.js';
 import {AT,policyObservation} from './fixtures/household-observation.js';
 import {qualificationObservation} from './fixtures/household-qualification.js';
@@ -54,4 +55,35 @@ it('accepts current qualification v2 containing only automated household familie
 it('rejects feeder release qualification in a current v2 report',()=>{
  const v=qualificationObservation();v.qualification_report.schema='earthship-household-intent-qualification/v2';
  expect(parse(v)).toBeNull();
+});
+
+
+function currentQualification() {
+ const v=qualificationObservation();v.planner_version='bounded_exhaustive_v2';
+ v.proposals=[];v.policy_comparison.comparisons=[];
+ v.qualification_report.schema='earthship-household-intent-qualification/v3';
+ v.qualification_report.families=v.qualification_report.families.filter(f=>f.intent_type==='SET_NIGHT_LOAD_DEVICE');
+ return v;
+}
+it('accepts the current scope-bound planner v2 and device-only qualification v3 together',()=>{
+ const v=currentQualification(),r=parse(v);expect(r).not.toBeNull();
+ expect(r.planner_version).toBe('bounded_exhaustive_v2');
+ expect(r.qualification_report.families.map(f=>f.intent_type)).toEqual(['SET_NIGHT_LOAD_DEVICE']);
+ expect(r.automatic_actuation).toBe(false);
+});
+it('excludes manual greywater and coupled overrides from the current qualification catalog',()=>{
+ expect(AUTOMATED_QUALIFICATION_FAMILIES.map(([kind])=>kind)).toEqual(['SET_NIGHT_LOAD_DEVICE']);
+});
+it.each(['RUN_GREYWATER_CYCLE','SET_NIGHT_LOAD_OVERRIDE','RUN_FEEDER_CYCLE'])(
+ 'rejects a current v3 qualification report carrying an excluded family: %s',kind=>{
+ const v=currentQualification();const old=qualificationObservation().qualification_report.families.find(f=>f.intent_type===kind);
+ v.qualification_report.families.unshift(old);expect(parse(v)).toBeNull();
+ });
+it('refuses to relabel a historical plan as current without its new scope contract',()=>{
+ const v=currentQualification();v.planner_version='bounded_exhaustive_v1';expect(parse(v)).toBeNull();
+ const old=qualificationObservation();old.planner_version='bounded_exhaustive_v2';expect(parse(old)).toBeNull();
+});
+it('does not allow a retained greywater proposal to enter a current device-only observation',()=>{
+ const v=currentQualification(),old=qualificationObservation();v.proposals=old.proposals;
+ v.policy_comparison=old.policy_comparison;expect(parse(v)).toBeNull();
 });

@@ -22,9 +22,9 @@ MIN_RESERVE_SOC=10.  # Existing full-bank emergency reserve; input may tighten i
 # Legacy/manual identity catalog remains readable for retained originals.
 CAPABILITIES={'RUN_GREYWATER_CYCLE':'greywater-request-v1','RUN_FEEDER_CYCLE':'feeder-request-v1',
               'SET_NIGHT_LOAD_OVERRIDE':'night-load-owner-v1','SET_NIGHT_LOAD_DEVICE':'night-load-owner-v1'}
-# New shadow plans must obey the operator's manual/payment-only feeder scope.
-AUTOMATED_CAPABILITIES={kind:CAPABILITIES[kind] for kind in
-    ('RUN_GREYWATER_CYCLE','SET_NIGHT_LOAD_OVERRIDE','SET_NIGHT_LOAD_DEVICE')}
+# Greywater remains manual; coupled override commands are not energy recommendations.
+# Preserve the historical catalog above for original typed/manual records.
+AUTOMATED_CAPABILITIES={'SET_NIGHT_LOAD_DEVICE':CAPABILITIES['SET_NIGHT_LOAD_DEVICE']}
 GATES={'owner_available':'capability_unavailable','owner_idle':'busy','cooldown_ready':'cooldown','curfew_allowed':'after_dark',
        'operator_unlocked':'hard_constraint','manual_override_clear':'hard_constraint'}
 FACT_FIELDS={'schema','kind','owner','value','snapshotId','receivedAt','validUntil','scope','horizonHours'}
@@ -153,7 +153,7 @@ def plan(*,snapshot,registry,candidates,coordination,utilities,now,reserve_soc,h
     for item in sorted(eligible,key=lambda item:(-utilities[item.intent_id],item.intent_id)):
         if utilities[item.intent_id]>0 and feasible(greedy+[item]):greedy.append(item)
     status='selected_shadow_candidates' if best else 'input_incomplete' if baseline is None else 'baseline_outside_reserve' if baseline<reserve_soc else 'input_incomplete' if any(row['status']=='unknown' for row in decisions) else 'no_optional_action_preferred'
-    result=dict(status=status,horizon_hours=horizon_hours,planner_version='bounded_exhaustive_v1',schema='earthship-household-shadow-plan/v1',scope=SCOPE,as_of=now.isoformat(),snapshot_id=snapshot.snapshot_id,
+    result=dict(status=status,horizon_hours=horizon_hours,planner_version='bounded_exhaustive_v2',schema='earthship-household-shadow-plan/v1',scope=SCOPE,as_of=now.isoformat(),snapshot_id=snapshot.snapshot_id,
         registry_sha256=identity(registry),coordination_sha256=identity(coordination),selected_intent_ids=selected_ids,candidate_decisions=decisions,
         constraint_catalog=[dict(rule=name,classification='HARD_CONSTRAINT') for name in ('intent_identity_and_freshness','automated_intent_scope','source_freshness','registered_capability',*GATES,'battery_reserve','owner_exclusivity','cumulative_battery_reserve')],
         objective=dict(unit='normalized_declared_preference_points',components={key:utilities[key] for key in sorted(ids)},total=best_score),

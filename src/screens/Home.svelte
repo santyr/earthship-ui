@@ -31,6 +31,7 @@
   import { bitcoinReceiptState } from '../lib/ui/bitcoinReceipt.js';
   import { officeHallwayTemperature } from '../lib/thermal/officeHallwayTemperature.js';
   import { stationPresentation } from '../lib/weather/stationPresentation.js';
+  import { pressureProduct } from '../lib/weather/pressureProduct.js';
   import { estimateDailyLoadKWh } from '../lib/ui/dailyLoad.js';
   import {
     batteryPowerFlowPresentation,
@@ -159,7 +160,7 @@
   }
   async function refreshBaroSpark() {
     return pressureRefresh.run(
-      signal => fetchHistorySafe(pressureItem, 6, signal),
+      signal => fetchHistorySafe(pressure.item, 6, signal),
       data => { baroSpark = data; },
     );
   }
@@ -361,8 +362,7 @@
 
   const station = $derived(stationPresentation($items, {nowMs:Math.max(wallClock,Date.now())}));
   const stationItems = $derived(station.mode === 'legacy' ? $items : {...$items,...station.current});
-  const pressureItem = $derived(station.mode === 'legacy' ? 'AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative' : 'WeatherStation_PressureAbsoluteV2');
-  const pressureValue = $derived(station.mode === 'legacy' ? stationItems.AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative : station.pressure.value);
+  const pressure = $derived(pressureProduct(station, $items));
   const rainDayInches = $derived(station.mode === 'legacy' ? num(stationItems.AmbientWeatherWS2902A_RainFallDay) : (station.rain.day ?? station.rain.recordedDay));
   const rainWeekInches = $derived(station.mode === 'legacy' ? num(stationItems.AmbientWeatherWS2902A_RainFallWeek) : (station.rain.week ?? station.rain.recordedWeek));
   const rainDayGallons = $derived(harvestedGallons(rainDayInches));
@@ -499,12 +499,12 @@
   }
   function openBaroChart() {
     openChart({
-      title: 'Station pressure (absolute)',
+      title: pressure.chartTitle,
       series: [
         {
-          name: pressureItem,
+          name: pressure.item,
           color: colors.label,
-          label: 'Station pressure',
+          label: pressure.chartTitle,
         },
       ],
       hours: 24,
@@ -712,16 +712,17 @@
     class="cell baro-cell clickable"
     role="button"
     tabindex="0"
-    aria-label="Open Station pressure chart"
+    aria-label={`Open ${pressure.chartTitle} chart`}
+    title={pressure.chartTitle}
     onclick={openBaroChart}
     onkeydown={(e) => onKeyActivate(e, openBaroChart)}
   >
-    <Tile label="Baro" accent={pressureStatus.color} hideLabel fill clip centerBody padding="0.65rem">
+    <Tile label="Baro" accessibleLabel={pressure.label} accent={pressureStatus.color} hideLabel fill clip centerBody padding="0.65rem">
       <div class="baro-body">
         <div class="baro-head">
           <span class="baro-status-icon" style="color: {pressureStatus.color}"><OhIcon icon={pressureStatus.icon} size="1.15rem" /></span>
           <div class="baro-value">
-            {fmt(pressureValue, '', 2)} <span class="unit">inHg</span>
+            {fmt(pressure.value, '', 2)} <span class="unit">inHg</span>
           </div>
         </div>
         <div class="baro-spark"><Sparkline data={baroSpark} color={colors.label} lineWidth={2} smoothingAlpha={0.12} heldUntil={wallClock} /></div>

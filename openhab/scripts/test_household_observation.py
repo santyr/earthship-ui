@@ -23,14 +23,14 @@ def test_no_selected_action_remains_inspectable_without_policy_agreement():
     assert view['receipt_sha256']==record['receipt_sha256']
     assert view['snapshot_id']==record['inputs']['snapshot']['snapshot_id']
     assert view['planner_mode']=='shadow' and view['authority']=='none' and view['automatic_actuation'] is False
-    assert len(view['proposals'])==2 and all(row['selected'] is False for row in view['proposals'])
+    assert view['proposals']==[]
     assert view['policy_comparison']=={'status':'unavailable','reason':'source_unavailable'}
     assert view['effects_qualified'] is False
 
 
 def test_proposal_checks_effects_and_model_identity_come_from_replayed_plan():
     record=pipeline();view=observe(record);original=record['output']
-    assert {row['type'] for row in view['proposals']}=={'RUN_GREYWATER_CYCLE','SET_NIGHT_LOAD_OVERRIDE'}
+    assert view['proposals']==[]
     for row in view['proposals']:
         assert row['confidence']=='unavailable'
         assert all(value is None for value in row['expected_effects'].values())
@@ -59,7 +59,7 @@ def test_missing_models_and_empty_generation_remain_inspectable():
 def test_resealed_derived_corruption_cannot_be_published(damage):
     record=pipeline()
     if damage=='energy':record['output']['projections']['energy']['output']['trough_pred']=0
-    elif damage=='proposal':record['output']['candidate_intents']=[]
+    elif damage=='proposal':record['output']['candidate_intents']=[{'type':'RUN_GREYWATER_CYCLE'}]
     else:record['operator_approval']=True
     record['receipt_sha256']=identity({k:v for k,v in record.items() if k!='receipt_sha256'})
     with pytest.raises(ValueError):observe(record)
@@ -195,7 +195,7 @@ def policy_record(reason='after_dark', **changes):
 
 
 @pytest.mark.parametrize('reason,gate',[('after_dark','curfew_allowed'),('cooldown_wait','cooldown_ready'),('cycle_active','owner_idle')])
-def test_retained_explicit_owner_block_matches_only_its_shadow_gate(reason,gate):
+def test_retained_explicit_owner_block_is_observable_without_greywater_recommendations(reason,gate):
     record=policy_record(reason);before=json.dumps(record,sort_keys=True);view=observe(record)
     assert view['schema']=='earthship-household-observation/v3'
     comparison=view['policy_comparison']
@@ -203,9 +203,7 @@ def test_retained_explicit_owner_block_matches_only_its_shadow_gate(reason,gate)
     assert comparison['status']=='observed_block' and comparison['gate']==gate
     assert comparison['owner_reason']==reason and comparison['physical_permission'] is False
     assert comparison['performance_status']=='unavailable' and comparison['automatic_actuation'] is False
-    assert len(comparison['comparisons'])==1
-    assert comparison['comparisons'][0]['status']=='matching_block'
-    assert comparison['comparisons'][0]['shadow_status']=='rejected'
+    assert comparison['comparisons']==[]
     assert record['output']['plan_receipt']['plan']['baseline_scores']['current_owner_policy'] is None
     assert json.dumps(record,sort_keys=True)==before
 
@@ -271,6 +269,26 @@ def test_private_materializer_upgrades_a_known_cache_and_preserves_issued_origin
     api().materialize(source,target,clock=lambda:NOW)
     view=json.loads(target.read_bytes())
     assert view['schema']=='earthship-household-observation/v4'
-    assert view['policy_comparison']['comparisons'][0]['status']=='matching_block'
+    assert view['policy_comparison']['comparisons']==[]
     assert source.read_bytes()==before and target.stat().st_nlink==1
     assert 'rule_before' not in target.read_text() and 'policy_source' not in target.read_text()
+
+
+def test_current_basic_observation_roundtrips_through_frontend_parser():
+    # Current coordination/v1 retains the basic observation contract: it has
+    # no qualification report, but still identifies the new planning scope.
+    import subprocess,shutil
+    node=shutil.which('node')
+    if node is None:pytest.skip('Node is required for the producer/frontend contract check')
+    view=observe();assert view['schema']=='earthship-household-observation/v1'
+    assert view['planner_version']=='bounded_exhaustive_v2' and view['proposals']==[]
+    parser=Path(__file__).resolve().parents[2]/'src/lib/household/observation.js'
+    code="""import {readFileSync} from 'node:fs';
+const {parseHouseholdObservation}=await import(process.argv[1]);
+const value=parseHouseholdObservation(readFileSync(0,'utf8'),{nowMs:Number(process.argv[2])});
+if(!value)process.exit(2);
+console.log(JSON.stringify({plannerVersion:value.planner_version,automaticActuation:value.automatic_actuation}));"""
+    result=subprocess.run([node,'--input-type=module','-e',code,parser.as_uri(),str(int(NOW.timestamp()*1000))],
+        input=json.dumps(view),capture_output=True,text=True,check=False)
+    assert result.returncode==0,result.stderr
+    assert json.loads(result.stdout)==dict(plannerVersion='bounded_exhaustive_v2',automaticActuation=False)

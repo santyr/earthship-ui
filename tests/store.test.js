@@ -129,3 +129,26 @@ describe('store', () => {
     expect(get(clientReady)).toBe(false);
   });
 });
+
+
+describe('Thing status validation', () => {
+  it('preserves valid unknown/offline states and treats missing optional fields as unavailable', () => {
+    expect(applyThingSnapshot([
+      { UID: 'unknown', statusInfo: { status: ' UNKNOWN ' } },
+      { UID: 'offline', statusInfo: { status: 'offline' } },
+      { UID: 'unavailable', statusInfo: {} },
+    ])).toBe(true);
+    expect(get(thingStatuses)).toEqual({
+      unknown: { status: 'UNKNOWN', statusDetail: '', description: '' },
+      offline: { status: 'OFFLINE', statusDetail: '', description: '' },
+      unavailable: { status: '', statusDetail: '', description: '' },
+    });
+  });
+  it('ignores malformed direct Thing deltas without throwing or replacing prior status', () => {
+    applyThingSnapshot([{ UID: 'known', statusInfo: { status: 'OFFLINE' } }]);
+    for (const value of [null, [], 1, { status: ['ONLINE'] }]) {
+      expect(applyThingStatus('known', value)).toBe(false);
+      expect(get(thingStatuses).known.status).toBe('OFFLINE');
+    }
+  });
+});

@@ -6,7 +6,7 @@ from hashlib import sha256
 import argparse,sys
 from household.codec import canonical,loads,identity
 from household.evidence import utc
-from household.control_contracts import instant,ContractRefused
+from household.control_contracts import instant
 from household.model_snapshot import restore_snapshot
 from household.capabilities import CapabilityRegistry
 from household.pipeline import replay_pipeline,_intent
@@ -106,15 +106,8 @@ def seal_trajectory_plan(*,plan_receipt,energy_receipt,profiled_receipt,now,runt
     projection,load_source=_projection(energy,profiled,origin=origin,now=now,horizon=horizon)
     refs,reason=_source_refs(snapshot,now);candidates=[];utilities={}
     if reason is None and projection['status']!='projected_nominal_scenario':reason=projection['reason']
-    if reason is None:
-        specs=[];excess=projection['modeled_unaccepted_pv_kwh'];minimum=projection['minimum_nominal_soc_pct']
-        if excess>0:specs.append(('RUN_GREYWATER_CYCLE',{},'unqualified_effect',excess*config['surplus_weight']))
-        if minimum<config['low_trough_threshold_soc_pct']:
-            specs.append(('SET_NIGHT_LOAD_OVERRIDE',{'command':'OFF'},'low_soc',(config['low_trough_threshold_soc_pct']-minimum)*config['reserve_weight']))
-        try:
-            for kind,parameters,why,utility in specs:
-                item=_intent(snapshot,now,kind,parameters,refs,why);candidates.append(item);utilities[item.intent_id]=utility
-        except ContractRefused as error:reason=error.reason_code;candidates=[];utilities={}
+    # These trajectories qualify no device-specific action effects. Manual
+    # greywater and coupled night overrides are outside the current scope.
     candidates.sort(key=lambda item:item.intent_id)
     model_refs=[]
     if load_source is not None:

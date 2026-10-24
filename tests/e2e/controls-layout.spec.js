@@ -69,7 +69,7 @@ async function openControls(page, target) {
   await page.setViewportSize({ width: target.width, height: target.height });
   await page.addInitScript(() => {
     class FixtureEventSource {
-      constructor() { setTimeout(() => this.onopen?.({ type: 'open' }), 0); }
+      constructor() { (window.__controlFixtureSources ??= []).push(this); setTimeout(() => this.onopen?.({ type: 'open' }), 0); }
       close() {}
     }
     Object.defineProperty(window, 'EventSource', {
@@ -190,6 +190,30 @@ for (const target of TARGETS) {
       expect(button.scrollHeight).toBeLessThanOrEqual(button.clientHeight);
     }
 
+    expect(runtime.commandRequests).toEqual([]);
+    expect(runtime.pageErrors).toEqual([]);
+  });
+}
+
+
+for (const target of TARGETS) {
+  test(`Controls recover from a malformed reconnect without another stream open at ${target.name}`, async ({ page }) => {
+    const runtime = await openControls(page, target);
+    let reads = 0;
+    await page.route('**/fixture-openhab/rest/things', route => {
+      reads += 1;
+      return route.fulfill({ json: reads === 1
+        ? [{ UID: THINGS[0].UID, statusInfo: null }] : THINGS });
+    });
+    await page.evaluate(() => window.__controlFixtureSources.at(-1).onopen({ type: 'open' }));
+    const light = page.getByRole('button', { name: /Living Room 1/i });
+    await expect.poll(() => reads).toBe(1);
+    await expect(light).toBeDisabled();
+    await expect(page.getByRole('img', { name: 'openHAB connection: reconciling' })).toBeVisible();
+    await expect.poll(() => reads).toBe(2);
+    await expect(light).toBeEnabled();
+    await expect(page.getByRole('img', { name: 'openHAB connection: live' })).toBeVisible();
+    await expect(page.locator('[data-recommendation-group="greywater"]')).toHaveCount(0);
     expect(runtime.commandRequests).toEqual([]);
     expect(runtime.pageErrors).toEqual([]);
   });

@@ -8,8 +8,8 @@ from .capabilities import CapabilityRegistry
 from .energy_model import PreparedEnergyInputs,project_energy,bind_energy_inputs
 from .thermal_model import PreparedProjection,project as project_thermal
 from .intents import build_intent,EFFECT_UNITS
-from .control_contracts import instant,ContractRefused
-from .planning import seal_plan,_runtime_manifest,MIN_RESERVE_SOC
+from .control_contracts import instant
+from .planning import seal_plan,_runtime_manifest,MIN_RESERVE_SOC,_source_checks
 
 # Native thermal inputs and original weather sources also appear in the
 # nested plan receipt. Bound the complete private envelope independently of
@@ -103,17 +103,11 @@ def _candidates(snapshot,projections,config,now):
         row=snapshot.to_dict()['domains']['energy']['battery_soc'];ref=row['evidence']
         if row['value'] is None or row['reason'] is not None or ref is None or ref['quality']!='qualified':reason='source_unavailable'
         else:
-            try:_intent(snapshot,now,'RUN_GREYWATER_CYCLE',{},[ref['digest']],'unqualified_effect')
-            except ContractRefused as error:reason=error.reason_code
-        if reason is None:
-            specs=[]
-            if surplus>0:specs.append(('RUN_GREYWATER_CYCLE',{},'unqualified_effect',surplus*config['surplus_weight']))
-            if minimum<config['low_trough_threshold_soc_pct']:
-                specs.append(('SET_NIGHT_LOAD_OVERRIDE',{'command':'OFF'},'low_soc',
-                    (config['low_trough_threshold_soc_pct']-minimum)*config['reserve_weight']))
-            for kind,parameters,why,utility in specs:
-                item=_intent(snapshot,now,kind,parameters,[ref['digest']],why)
-                items.append(item);utilities[item.intent_id]=utility
+            checks=_source_checks({'evidenceRefs':[ref['digest']]},snapshot.to_dict(),now)
+            reason=next((check['reason'] for check in checks if check['status']!='pass'),None)
+        # No supported device-specific energy policy is defined. Greywater is
+        # manual and the generic override couples optional and essential loads;
+        # keep the forecast observable without inventing replacement actions.
     items.sort(key=lambda item:item.intent_id)
     return items,utilities,no_action,dict(status='unavailable' if reason else 'generated_shadow_only',reason=reason,
         action_effects_qualified=False,input_qualification='not_assessed',

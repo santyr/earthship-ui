@@ -2,6 +2,7 @@
   import { itemUpdateEvidence, thingStatuses } from '../lib/openhab/store.js';
   import { nativeCurrentSkyContext } from '../lib/weather/astroPresentation.js';
   import { stationPresentation, rainPeriodText } from '../lib/weather/stationPresentation.js';
+  import { pressureProduct } from '../lib/weather/pressureProduct.js';
 
   import { onMount } from 'svelte';
   import {
@@ -144,10 +145,7 @@
 
   const station = $derived(stationPresentation($items, { nowMs:Math.max(wallClock,Date.now()) }));
   const stationItems = $derived(station.mode === 'legacy' ? $items : {...$items,...station.current});
-  const pressureValue = $derived(station.mode === 'legacy'
-    ? stationItems.AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative : station.pressure.value);
-  const pressureItem = $derived(station.mode === 'legacy'
-    ? 'AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative' : 'WeatherStation_PressureAbsoluteV2');
+  const pressure = $derived(pressureProduct(station, $items));
   const rainDay = $derived(station.mode === 'legacy' ? stationItems.AmbientWeatherWS2902A_RainFallDay : station.rain.day);
 
   // ---- Rain footer (mirrors Home's Rain tile) ------------------------------
@@ -192,12 +190,12 @@
   }
   function openPressureChart() {
     openChart({
-      title: 'Station pressure (absolute)',
+      title: pressure.chartTitle,
       series: [
         {
-          name: pressureItem,
+          name: pressure.item,
           color: colors.label,
-          label: 'Station pressure',
+          label: pressure.chartTitle,
         },
       ],
       hours: 24,
@@ -292,14 +290,16 @@
 
   <div
     class="cell pressure-cell clickable"
+    title={pressure.chartTitle}
+    aria-label={`Open ${pressure.chartTitle} chart`}
     role="button"
     tabindex="0"
     onclick={openPressureChart}
     onkeydown={(e) => onKeyActivate(e, openPressureChart)}
   >
     <StatTile
-      label="Station pressure"
-      value={fmt(pressureValue, '', 2)}
+      label={pressure.label}
+      value={fmt(pressure.value, '', 2)}
       unit=" inHg"
       accent={colors.label}
       footer={baroTrend}

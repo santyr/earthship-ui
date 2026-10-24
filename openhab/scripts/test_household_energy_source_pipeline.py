@@ -173,7 +173,7 @@ def test_resealed_configured_receipt_cannot_detach_originals_or_candidates(damag
     if damage=='configuration':receipt['inputs']['source_contexts'][snap.snapshot_id]['energy_configuration']['bank_source']['raw']='invalid'
     elif damage=='projection':receipt['output']['projections']['energy_configuration']['bank']['nominal_usable_kwh']=40.
     elif damage=='binding':receipt['inputs']['energy_inputs']['configuration_binding']['configuration_sha256']='f'*64
-    elif damage=='candidate_context':receipt['output']['plan_receipt']['inputs']['candidates'][0]['validation_snapshot_id']='f'*64
+    elif damage=='candidate_context':receipt['output']['plan_receipt']['inputs']['candidates']=[dict(validation_snapshot_id='f'*64)]
     else:receipt['output']['plan_receipt']['inputs']['validation_snapshots']['f'*64]=snap.to_dict()
     receipt['receipt_sha256']=identity({k:v for k,v in receipt.items() if k!='receipt_sha256'})
     with pytest.raises(ValueError):replay_pipeline(receipt,runtime_manifest=RUNTIME,thermal_runtime=prepared.to_dict()['executing_runtime'])

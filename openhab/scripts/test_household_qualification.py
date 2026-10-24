@@ -14,12 +14,12 @@ def test_all_registered_intent_families_have_all_twelve_unqualified_release_gate
     record=policy_record();before=deepcopy(record);view=observe(record)
     assert view['schema']=='earthship-household-observation/v3'
     report=view['qualification_report']
-    assert report['schema']=='earthship-household-intent-qualification/v2'
+    assert report['schema']=='earthship-household-intent-qualification/v3'
     assert report['scope']=='original_plan_evidence' and report['status']=='not_qualified'
     assert report['receipt_sha256']==record['receipt_sha256']
     assert report['snapshot_id']==view['snapshot_id'] and report['decision_at']==view['decision_at']
     assert report['release_authorized'] is False and report['automatic_actuation'] is False
-    assert {r['intent_type'] for r in report['families']}=={'RUN_GREYWATER_CYCLE','SET_NIGHT_LOAD_OVERRIDE','SET_NIGHT_LOAD_DEVICE'}
+    assert {r['intent_type'] for r in report['families']}=={'SET_NIGHT_LOAD_DEVICE'}
     for family in report['families']:
         assert tuple(g['id'] for g in family['gates'])==GATES
         assert family['status']=='not_qualified' and family['release_authorized'] is False
@@ -29,13 +29,14 @@ def test_all_registered_intent_families_have_all_twelve_unqualified_release_gate
     assert record==before
 
 
-def test_actual_unknown_checks_are_observed_only_for_their_own_proposal_family():
+def test_absent_current_family_proposals_cannot_qualify_manual_or_retired_actions():
     view=observe(policy_record());families={r['intent_type']:r for r in view['qualification_report']['families']}
-    grey=families['RUN_GREYWATER_CYCLE']
-    assert grey['proposal_count']==1 and 'RUN_FEEDER_CYCLE' not in families
-    assert grey['gates'][2]['evidence_status']=='observed'
-    assert grey['gates'][3]['evidence_status']=='observed'
-    assert grey['gates'][7]['reason']=='policy_performance_not_qualified'
+    device=families['SET_NIGHT_LOAD_DEVICE']
+    assert device['proposal_count']==0
+    assert set(families)=={'SET_NIGHT_LOAD_DEVICE'}
+    assert device['gates'][2]['evidence_status']=='unavailable'
+    assert device['gates'][3]['evidence_status']=='unavailable'
+    assert device['gates'][7]['reason']=='policy_performance_not_qualified'
 
 
 def test_no_proposals_and_later_verification_never_create_qualification():
@@ -89,10 +90,10 @@ def test_materializer_upgrades_legacy_feeder_qualification_without_rewriting_ori
     source.write_bytes(canonical(record));source.chmod(0o600);original=source.read_bytes()
     old=api.observe_pipeline(record,runtime_manifest=manifest,thermal_runtime=None,observed_at=NOW,include_action_details=True)
     report=old['qualification_report'];report['schema']='earthship-household-intent-qualification/v1'
-    feeder=deepcopy(report['families'][1]);feeder.update(intent_type='RUN_FEEDER_CYCLE',capability_id='feeder-request-v1',owner='88bd9ec4de')
+    feeder=deepcopy(report['families'][0]);feeder.update(intent_type='RUN_FEEDER_CYCLE',capability_id='feeder-request-v1',owner='88bd9ec4de')
     report['families'].insert(1,feeder);target.write_bytes(canonical(old));target.chmod(0o600)
     api.materialize(source,target,clock=lambda:NOW)
     current=json.loads(target.read_bytes())['qualification_report']
-    assert current['schema']=='earthship-household-intent-qualification/v2'
-    assert [row['intent_type'] for row in current['families']]==['RUN_GREYWATER_CYCLE','SET_NIGHT_LOAD_OVERRIDE','SET_NIGHT_LOAD_DEVICE']
+    assert current['schema']=='earthship-household-intent-qualification/v3'
+    assert [row['intent_type'] for row in current['families']]==['SET_NIGHT_LOAD_DEVICE']
     assert source.read_bytes()==original

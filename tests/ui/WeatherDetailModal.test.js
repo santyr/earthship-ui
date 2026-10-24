@@ -119,6 +119,29 @@ describe('WeatherDetailModal', () => {
     document.body.style.overflow = '';
   });
 
+  it('announces missing coverage and leaves the missing time visible in the chart and accessible strip', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-19T06:30:00-06:00'));
+    const issue = JSON.parse(payload({ count: 13 }));
+    issue.days[0].hours.splice(3, 1); // 10 AM is absent; 7 PM cannot replace it.
+    items.set({ Forecast_10Day_JSON: JSON.stringify(issue) });
+    render(WeatherDetailModal);
+    openWeatherDetail({ date: '2026-07-19', label: 'Today' });
+    await screen.findByRole('dialog');
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(screen.getByRole('status').textContent).toContain('11 of 12 hours available');
+    expect(document.getElementById('weather-detail-modal-description').textContent).toContain('11 of 12 hourly periods shown');
+    expect(screen.getAllByTestId('weather-detail-hour')).toHaveLength(11);
+    const gap = screen.getByTestId('weather-detail-gap');
+    expect(gap.getAttribute('aria-label')).toBe('10 AM, Forecast unavailable');
+    expect(gap.textContent).toContain('10 AM');
+    expect(screen.queryByText('7 PM')).toBeNull();
+    const option = mocks.chart.setOption.mock.calls.at(-1)[0];
+    expect(option.xAxis.data).toHaveLength(12);
+    expect(option.series.find(series => series.name === 'Temperature').data).toEqual([60,61,62,null,64,65,66,67,68,69,70,71]);
+  });
+
   it('keeps the selected day and chart when a later production issue arrives while open', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-18T12:00:00-06:00'));
