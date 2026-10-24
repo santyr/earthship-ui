@@ -1,4 +1,5 @@
 """Opt-in directional comparisons without invented operator or device state."""
+from datetime import timedelta
 from zoneinfo import ZoneInfo
 from .contracts import closed, number
 from ..codec import identity
@@ -83,7 +84,9 @@ def evaluate(report, snapshot, projections, state, now):
     if not valid_solar:
         report['domains']['shades'] = _domain('insufficient_evidence', 'provisional_solar_basis_unavailable', ['solar_gain_basis'])
         return True
-    recent = any(0 <= (now - instant(row['stop_observed_at'])).total_seconds() < 600 for row in state['shade_movements'])
+    recent_deadlines = [instant(row['stop_observed_at']) + timedelta(seconds=600) for row in state['shade_movements']
+                        if 0 <= (now - instant(row['stop_observed_at'])).total_seconds() < 600]
+    recent = bool(recent_deadlines)
     gain = solar['direct_gain_available']
     if recent:
         action, reason = 'Keep the recent shade setting', 'Allow the recent setting time to settle before reconsidering.'
@@ -93,5 +96,8 @@ def evaluate(report, snapshot, projections, state, now):
         action, reason = 'Use available solar heat', f'{air["value"]:g}°F indoors is below the comfort band while direct sun is available.'
     else:
         action, reason = 'No solar-driven shade change', 'No current solar/temperature advantage supports changing solar shading.'
-    comparison('shades', action, reason, [air, {'until': instant(solar['valid_until'])}])
+    sources = [air, {'until': instant(solar['valid_until'])}]
+    if recent:
+        sources.append({'until': min(recent_deadlines)})
+    comparison('shades', action, reason, sources)
     return True

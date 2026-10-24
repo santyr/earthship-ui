@@ -63,3 +63,16 @@ def test_invalid_provisional_band_is_rejected():
  import pytest
  from household.advice.provisional import validate_preferences
  with pytest.raises(ValueError):validate_preferences(dict(schema='earthship-provisional-advice-preferences/v1',enabled=True,comfort_min_f=80,comfort_max_f=70,timezone='America/Denver'))
+
+
+def test_recent_setting_comparison_expires_at_the_end_of_the_hold(monkeypatch):
+ import household.advice.provisional as provisional
+ original=provisional.evaluate
+ def recent(report,snap,projections,action,now):
+  action=deepcopy(action);action['shade_movements']=[dict(shade_id='shade-9',epoch='installation-1',stop_observed_at=(NOW-timedelta(seconds=590)).isoformat(),event_refs=['d'*64])]
+  return original(report,snap,projections,action,now)
+ monkeypatch.setattr(provisional,'evaluate',recent)
+ report,_=evaluate()
+ from household.control_contracts import instant
+ assert report['domains']['shades']['comparison'][1]['alternative']=='Keep the recent shade setting'
+ assert instant(report['domains']['shades']['valid_until'])<=NOW+timedelta(seconds=10)

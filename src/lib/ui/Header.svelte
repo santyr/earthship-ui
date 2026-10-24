@@ -58,7 +58,7 @@
     flex-shrink: 0;
     overflow: visible;
   }
-  .suggestion-slot { flex: 1 1 auto; min-width: 0; }
+  .suggestion-slot { flex: 1 1 auto; min-width: 0; align-self: stretch; display: flex; }
   .clock {
     flex: 0 0 auto;
     white-space: nowrap;
