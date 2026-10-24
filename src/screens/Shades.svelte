@@ -1,6 +1,5 @@
 <script>
  import ShadeObservations from "../lib/ui/ShadeObservations.svelte";
-  import DecisionRecommendations from '../lib/ui/DecisionRecommendations.svelte';
   import { officeHallwayTemperature } from '../lib/thermal/officeHallwayTemperature.js';
   import { onMount } from 'svelte';
   import { items, connection } from '../lib/openhab/index.js';
@@ -172,7 +171,7 @@
       <h1>Window shades</h1>
       <p>{SHADE_COUNT} planned · {mapped} mapped · {reporting} reporting</p>
     </div>
-    <div class="shade-guidance"><DecisionRecommendations scope="shades" tiny compact /><ShadeObservations /></div>
+    <div class="shade-guidance"><ShadeObservations /></div>
     <div class="release-state" role="status">{previewMode ? sharedPreviewConnected ? 'Shared preview only · no shade commands' : 'Local preview only · no shade commands' : 'Hardware not commissioned · movement disabled'}</div>
   </header>
 

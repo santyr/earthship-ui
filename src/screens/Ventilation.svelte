@@ -1,5 +1,4 @@
 <script>
- import DecisionRecommendations from "../lib/ui/DecisionRecommendations.svelte";
  import {onMount} from 'svelte';
  import {items,connection} from '../lib/openhab/index.js';
  import {sensorView,counts,since} from '../lib/sensors/view.js';
@@ -19,7 +18,6 @@
  function changeSection(value){section=value;page=0;zone='all';}
  function stateLabel(value){return value==='OPEN'?'Open':value==='CLOSED'?'Closed':'Unknown';}
 </script>
-<DecisionRecommendations scope="ventilation" tiny compact />
 
 
 <section class="ventilation" aria-label="Distributed sensor observations" data-ventilation-screen>

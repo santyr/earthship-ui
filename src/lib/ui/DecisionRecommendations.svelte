@@ -2,7 +2,7 @@
  import {adviceState} from '../household/adviceState.js';
  import {parseAdvice,feedbackStatus} from '../household/advice.js';
  import {recommendationClock} from '../household/recommendationState.js';
- let {scope=null,tiny=false,compact=false}=$props();
+ let {scope=null,tiny=false,compact=false,header=false}=$props();
  const detailsId=$props.id();
  let pending=$state(false),notice=$state(''),localEvents=$state([]),localDeclarations=$state([]);
  let target=$state(''),declaredValue=$state('');
@@ -13,6 +13,9 @@
  const current=$derived((model?.current??[]).filter(r=>(!scope||r.kind===family[scope])&&!declarations.some(d=>d.target===r.target&&Date.parse(d.reported_at)>Date.parse(r.decision_at))));
  const visible=$derived(current.filter(r=>!['dismissed','snoozed'].includes(feedbackStatus(r,events,$recommendationClock))));
  const domains=$derived(Object.entries(model?.domains??{}).filter(([name])=>!scope||name===scope));
+ const provisional=$derived(Object.entries(model?.report.domains??{}).filter(([domain,result])=>(!scope||domain===scope)&&result.reason.startsWith('provisional_')&&result.comparison.length>1).map(([domain,result])=>({domain,...result.comparison[1],expired:$recommendationClock>=Math.min(Date.parse(result.valid_until),Date.parse(result.comparison[1].horizon_end))})).sort((a,b)=>Number(a.expired)-Number(b.expired)||(a.domain==='ventilation'?-1:b.domain==='ventilation'?1:0)));
+ const summaryExpired=$derived(!visible.length&&(provisional.length?provisional.every(r=>r.expired):Boolean(model?.expired)));
+ const summaryText=$derived([...visible.map(r=>r.action),...(provisional.some(r=>!r.expired)?provisional.filter(r=>!r.expired):provisional).map(r=>r.alternative)].slice(0,2).join(' · ')||(model?.expired?model.report.recommendations[0]?.action??'Awaiting fresh evidence':domains[0]?words(domains[0][1].reason):'Awaiting a household issue'));
  const time=value=>new Intl.DateTimeFormat('en-US',{timeZone:model?.report.timezone??'America/Denver',hour:'numeric',minute:'2-digit'}).format(Date.parse(value));
  const words=value=>value.replaceAll('_',' ');
  async function saveFeedback(payload,episodeId){
@@ -69,10 +72,18 @@
     </article>
    {/each}
   </div>
-  {#if !visible.length}<p class="status">{current.length?'Advice dismissed or snoozed.':'No current actionable suggestion.'}</p>{/if}
+  {#if !visible.length&&!provisional.length}<p class="status">{current.length?'Advice dismissed or snoozed.':'No current actionable suggestion.'}</p>{/if}
   <details class="readiness"><summary>Decision evidence and human records</summary>
    {#each domains as [domain,result]}<p><strong>{words(domain)}:</strong> {words(result.status)} · {words(result.reason)}{result.missing.length?` · needed: ${result.missing.map(words).join(', ')}`:''}</p>{/each}
   </details>
+ {/if}
+ {#if provisional.length}
+  <div class="provisional-comparisons" aria-label="Provisional suggestions">
+   <p class="basis">Provisional · issued {time(model.report.evaluated_at)}{model.expired?' · expired':''}</p>
+   {#each provisional as suggestion (suggestion.domain)}
+    <article><strong>{suggestion.alternative}</strong>{#if suggestion.expired}<span class="expired-label"> · expired</span>{/if}<p>{suggestion.outcome}</p></article>
+   {/each}
+  </div>
  {/if}
  {#if events.length}<details class="history"><summary>Human feedback and observed targets</summary>
   {#each events.filter(e=>e.kind!=='undo'&&!events.some(u=>u.kind==='undo'&&u.corrects===e.event_id)) as event (event.event_id)}
@@ -90,11 +101,20 @@
  {#if notice}<p role="status">{notice}</p>{/if}
 </section>
 {/snippet}
-{#if compact}
+{#if header}
+ <div class="header-suggestions" aria-label="Household decision support">
+  <button class="header-summary" type="button" popovertarget={`${detailsId}-header`} aria-label={`Suggestions · ${provisional.length?'Provisional · ':''}${summaryExpired?'Expired · ':''}${summaryText}`} title={summaryText}>
+   <span class="header-label">Suggestions</span>{#if provisional.length}<span class="provisional-label">Provisional</span>{/if}{#if summaryExpired}<span class="expired-label">Expired</span>{/if}<span class="summary-action">{summaryText}</span><span aria-hidden="true">▾</span>
+  </button>
+  <div class="header-popover" popover="auto" id={`${detailsId}-header`}>{@render adviceBody()}<button type="button" popovertarget={`${detailsId}-header`} popovertargetaction="hide">Close suggestions</button></div>
+ </div>
+{:else if compact}
  <div class="compact-summary"><span title={visible[0]?.reason??''}>Manual advice · {visible[0]?.action??(model?.expired?'Last advice expired':domains[0]?words(domains[0][1].reason):'Awaiting a verified household issue')}</span><button type="button" popovertarget={`${detailsId}-all`}>Details</button></div>
  <div class="compact-popover" popover="auto" id={`${detailsId}-all`}>{@render adviceBody()}<button type="button" popovertarget={`${detailsId}-all`} popovertargetaction="hide">Close advice</button></div>
 {:else}{@render adviceBody()}{/if}
 <style>
+ .header-suggestions{min-width:0;width:100%;height:44px;display:flex;align-items:center}.header-summary{display:flex;align-items:center;gap:.45rem;width:100%;height:44px;min-width:0;border:0;background:transparent;text-align:left;white-space:nowrap;padding:0 .25rem;font-size:.76rem}.header-label{font-size:.66rem;color:#96b6d7;flex:0 0 auto}.provisional-label,.expired-label{font-size:.62rem;color:#f4cd8b;flex:0 0 auto}.summary-action{min-width:0;overflow:hidden;text-overflow:ellipsis;color:#deebf8}.header-popover{width:min(48rem,calc(100vw - 2rem));max-height:calc(100dvh - 4rem);overflow:auto;position:fixed;inset:48px 1rem auto auto;margin:0;padding:.65rem;background:#111d2c;color:#d7e3ef;border:1px solid #45617b;border-radius:.5rem;box-shadow:0 .7rem 2rem #0008}.header-popover::backdrop{background:transparent}.provisional-comparisons article{padding:.45rem 0;border-top:1px solid #34506b}
+
  .compact-summary{display:flex;align-items:center;gap:.4rem;min-width:0;color:#b9cce1;font-size:.65rem}.compact-summary span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.compact-summary button{min-height:22px;font-size:.65rem;padding:.1rem .3rem}.compact-popover{max-width:min(48rem,calc(100vw - 2rem));max-height:calc(100dvh - 3rem);overflow:auto;background:#111d2c;color:#d7e3ef;border:1px solid #45617b;border-radius:.5rem;padding:.7rem}.compact-popover::backdrop{background:#0008}
 
  .advice-details{max-width:min(44rem,calc(100vw - 2rem));max-height:calc(100dvh - 3rem);overflow:auto;background:#111d2c;color:#d7e3ef;border:1px solid #45617b;border-radius:.5rem;padding:1rem;font-size:.9rem}.advice-details::backdrop{background:#0008}.detail-button{font-size:.7rem;margin-top:.2rem}

@@ -179,7 +179,10 @@ def evaluate_advice(*,snapshot,projections,policy,action_state,now):
     p=None if policy is None else validate_policy(policy)
     until=now+timedelta(seconds=120 if p is None else p['validity_seconds'])
     r=dict(schema=SCHEMA,evaluation_version=VERSION,snapshot_id=snapshot.snapshot_id,policy_sha256=None if p is None else identity(p),evaluated_at=now.isoformat(),valid_until=until.isoformat(),timezone='America/Denver' if p is None else p['timezone'],domains={},recommendations=[],human_action_only=True,automatic_actuation=False)
-    if p is None or instant(p['valid_until'])<=now:
+    if p is None and projections.get('provisional_preferences',{}).get('enabled') is True:
+        from .provisional import evaluate as evaluate_provisional
+        evaluate_provisional(r,snap,projections,state,now)
+    elif p is None or instant(p['valid_until'])<=now:
         reason='operator_policy_missing' if p is None else 'operator_policy_expired'
         r['domains']={key:_domain('insufficient_evidence',reason,['operator_policy']) for key in ('shades','ventilation','energy')}
     else:
@@ -197,6 +200,7 @@ def evaluate_advice(*,snapshot,projections,policy,action_state,now):
             r['recommendations'].remove(cool);r['domains']['ventilation']=_domain('conditional','thermal_action_conflict',['resolve_heat_capture_versus_cooling'])
     for domain,result in r['domains'].items():
         limits=[instant(r['valid_until'])]
+        if result.get('valid_until'):limits.append(instant(result['valid_until']))
         if p is not None and result['status'] in ('recommendation_available','no_change_recommended','conditional'):
             roles=[('thermal','air_temperature')] if domain=='shades' else [('thermal','air_temperature'),('weather','outdoor_temperature')] if domain=='ventilation' else [('energy','battery_soc')] if p['energy'] and p['energy']['loads'] else []
             for source_domain,role in roles:

@@ -9,7 +9,8 @@ for(const size of [{width:1340,height:800},{width:1280,height:720}])test(`decisi
  await page.route('**/fixture-openhab/rest/items?*',r=>r.fulfill({json:[]}));await page.route('**/fixture-openhab/rest/things',r=>r.fulfill({json:[]}));
  await page.route('**/api/household-advice',r=>r.fulfill({json:fixture}));const feedback=[];await page.route('**/api/household-advice-feedback',r=>{if(r.request().method()==='POST'){feedback.push(r.request().postDataJSON());return r.fulfill({json:{status:'retained'}});}return r.fulfill({json:{events:[]}});});
  await page.route('**/api/household-advice-context',r=>r.fulfill({json:{targets:[]}}));await page.route('**/api/household-advice-state',r=>r.fulfill({json:{declarations:[],checks:{}}}));
- await page.goto(baseURL,{waitUntil:'domcontentloaded'});const region=page.getByRole('region',{name:'Household decision support'});
+ await page.goto(baseURL,{waitUntil:'domcontentloaded'});const summary=page.getByRole('button',{name:/^Suggestions/});await expect(summary).toBeVisible();
+ const clock=await page.locator('header.header .clock').boundingBox(),entry=await summary.boundingBox();expect(Math.abs((entry.y+entry.height/2)-(clock.y+clock.height/2))).toBeLessThan(14);expect(await page.locator('header.header').evaluate(e=>e.getBoundingClientRect().height)).toBe(44);expect(await page.locator('main.screen .decisions').count()).toBe(0);await summary.click();const region=page.getByRole('region',{name:'Household decision support'});
  await expect(region.locator('.action').filter({hasText:'Open living shades to 100% open'})).toBeVisible();await expect(region.getByText('Manual advice')).toBeVisible();
  const box=await region.boundingBox();expect(box.width).toBeGreaterThan(500);expect(box.x+box.width).toBeLessThanOrEqual(size.width);
  await region.getByText('Baseline, alternatives and uncertainty').click();
@@ -18,4 +19,19 @@ for(const size of [{width:1340,height:800},{width:1280,height:720}])test(`decisi
  await page.screenshot({path:`/tmp/earthship-decision-${size.width}.png`});
  await page.clock.fastForward(121000);await expect(region.getByText(/Last advice expired/)).toBeVisible();await expect(region.getByRole('button',{name:'Seen'})).toHaveCount(0);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+for(const size of [{width:1340,height:800},{width:1280,height:720}])test(`provisional suggestions share the clock row and preserve alert space at ${size.width}`,async({page})=>{
+ const {default:provisional}=await import('../fixtures/household-provisional-advice-v1.json',{with:{type:'json'}});
+ await page.setViewportSize(size);await page.clock.install({time:new Date(provisional.evaluated_at)});
+ await page.addInitScript(()=>{window.EventSource=class{constructor(){setTimeout(()=>this.onopen?.({type:'open'}),0);}close(){}};});
+ await page.route('**/config.json',r=>r.fulfill({json:{openhabUrl:'/fixture-openhab',apiToken:'fixture-only',staleBannerSeconds:90}}));
+ await page.route('**/fixture-openhab/rest/items?*',r=>r.fulfill({json:[]}));await page.route('**/fixture-openhab/rest/things',r=>r.fulfill({json:[]}));
+ await page.route('**/api/household-advice',r=>r.fulfill({json:provisional}));await page.route('**/api/household-advice-feedback',r=>r.fulfill({json:{events:[]}}));await page.route('**/api/household-advice-context',r=>r.fulfill({json:{targets:[]}}));await page.route('**/api/household-advice-state',r=>r.fulfill({json:{declarations:[],checks:{}}}));
+ await page.goto(baseURL+'#/home',{waitUntil:'domcontentloaded'});const summary=page.getByRole('button',{name:/Suggestions.*Provisional.*Ventilate briefly/});await expect(summary).toBeVisible();
+ const clock=await page.locator('header.header .clock').boundingBox(),box=await summary.boundingBox();expect(box.y).toBeGreaterThanOrEqual(0);expect(box.y+box.height).toBeLessThanOrEqual(44);expect(Math.abs(box.y+box.height/2-clock.y-clock.height/2)).toBeLessThan(14);
+ expect(await page.locator('main.screen .decisions').count()).toBe(0);await summary.click();const region=page.getByRole('region',{name:'Household decision support'});
+ await expect(region.getByText(/80°F indoors and 60°F outdoors/)).toBeVisible();await expect(region.getByText(/70–76°F/).first()).toBeVisible();expect(await region.getByText(/unconfirmed|shade state|window state/i).count()).toBe(0);
+ await page.getByRole('button',{name:'Close suggestions',exact:true}).click();await expect(region).not.toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
+ await page.screenshot({path:`/tmp/earthship-provisional-header-${size.width}.png`});
 });

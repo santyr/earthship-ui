@@ -4,6 +4,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { connection } from '../openhab/index.js';
   import HeaderAlerts from './HeaderAlerts.svelte';
+  import DecisionRecommendations from './DecisionRecommendations.svelte';
 
   let now = $state(new Date());
   let timer;
@@ -35,6 +36,7 @@
     <span class="time">{timeText}</span>
     <span class="date">{dateText}</span>
   </div>
+  <div class="suggestion-slot"><DecisionRecommendations header /></div>
   <HeaderAlerts />
   <div class="badge" role="img" aria-label="openHAB connection: {badge.text}" title="openHAB connection: {badge.text}">
     <span class="dot" style="background: {badge.color}"></span>
@@ -56,7 +58,10 @@
     flex-shrink: 0;
     overflow: visible;
   }
+  .suggestion-slot { flex: 1 1 auto; min-width: 0; }
   .clock {
+    flex: 0 0 auto;
+    white-space: nowrap;
     display: flex;
     align-items: baseline;
     gap: 0.5rem;

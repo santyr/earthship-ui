@@ -30,6 +30,11 @@ def _optional(path,default,maximum=32768):
 def publish_advice(*,snapshot,projections,directory,now,guard):
     directory=Path(directory).absolute();_directory(directory);now=utc(now);guard();runtime=runtime_manifest()
     policy=_optional(directory/'advice-policy.json',None)
+    provisional=None if policy is not None else _optional(directory/'advice-provisional-preferences.json',None)
+    if provisional is not None:
+        from household.advice.provisional import validate_preferences
+        provisional=validate_preferences(provisional)
+        projections={**projections,'provisional_preferences':provisional}
     operator=_optional(directory/'advice-operator-state.json',dict(schema='earthship-household-operator-state/v1',declarations=[],checks={}))
     if set(operator)!={'schema','declarations','checks'} or operator['schema']!='earthship-household-operator-state/v1':raise ValueError('closed operator state required')
     history=directory/'shade-observations.sqlite'
@@ -37,7 +42,7 @@ def publish_advice(*,snapshot,projections,directory,now,guard):
     state=dict(schema='earthship-household-action-state/v1',snapshot_id=snapshot.snapshot_id,declarations=operator['declarations'],shade_reports=events,shade_movements=[] if not history.exists() else ShadeHistory(history).movements()[-26:],checks=operator['checks'])
     # Transient declarations and device state are retained beside, not injected
     # into, the immutable numerical source snapshot.
-    advisory={key:value for key,value in projections.items() if key in ('solar','flexible_energy','energy_context_error')}
+    advisory={key:value for key,value in projections.items() if key in ('solar','flexible_energy','energy_context_error','provisional_preferences')}
     report=evaluate_advice(snapshot=snapshot,projections=advisory,policy=policy,action_state=state,now=now)
     store=AdviceHistory(directory/'advice.sqlite')
     inputs=dict(snapshot=snapshot.to_dict(),projections=projections,policy=policy,action_state=state,now=now.isoformat())
@@ -46,7 +51,7 @@ def publish_advice(*,snapshot,projections,directory,now,guard):
     guard()
     if runtime_manifest()!=runtime:raise ValueError('advice evaluation runtime changed')
     # Recheck mutable private policy/state bytes before publishing the frozen result.
-    if canonical(_optional(directory/'advice-policy.json',None))!=canonical(policy) or canonical(_optional(directory/'advice-operator-state.json',dict(schema='earthship-household-operator-state/v1',declarations=[],checks={})))!=canonical(operator):raise ValueError('advice policy/state changed during evaluation')
+    if canonical(None if policy is not None else _optional(directory/'advice-provisional-preferences.json',None))!=canonical(provisional) or canonical(_optional(directory/'advice-policy.json',None))!=canonical(policy) or canonical(_optional(directory/'advice-operator-state.json',dict(schema='earthship-household-operator-state/v1',declarations=[],checks={})))!=canonical(operator):raise ValueError('advice policy/state changed during evaluation')
     target=directory/'advice.json'
     old=None if not target.exists() else _private_file(target,32768)[0]
     status='unchanged' if old==canonical(report) else 'written'
@@ -69,7 +74,7 @@ def replay_retained(path,report_id):
     from household.snapshot import HouseholdSnapshot
     body=inputs['snapshot'];snapshot=HouseholdSnapshot(canonical({k:v for k,v in body.items() if k!='snapshot_id'}))
     if snapshot.snapshot_id!=body['snapshot_id']:raise ValueError('original snapshot changed')
-    advisory={key:value for key,value in inputs['projections'].items() if key in ('solar','flexible_energy','energy_context_error')}
+    advisory={key:value for key,value in inputs['projections'].items() if key in ('solar','flexible_energy','energy_context_error','provisional_preferences')}
     result=evaluate_advice(snapshot=snapshot,projections=advisory,policy=inputs['policy'],action_state=inputs['action_state'],now=instant(inputs['now']))
     if result!=original:raise ValueError('rederived original advice differs')
     return result

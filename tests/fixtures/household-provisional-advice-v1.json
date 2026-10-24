@@ -1,0 +1,72 @@
+{
+  "automatic_actuation": false,
+  "domains": {
+    "energy": {
+      "comparison": [],
+      "missing": [
+        "approved_flexible_task"
+      ],
+      "reason": "approved_flexible_task_missing",
+      "status": "insufficient_evidence",
+      "valid_until": "2026-09-29T23:35:23+00:00"
+    },
+    "shades": {
+      "comparison": [
+        {
+          "alternative": "Leave unchanged",
+          "horizon_end": "2026-09-29T23:35:03+00:00",
+          "metric": "directional_thermal_effect",
+          "outcome": "Compare with keeping existing settings and independent schedules.",
+          "unit": "qualitative",
+          "value": null
+        },
+        {
+          "alternative": "Reduce solar heat gain",
+          "horizon_end": "2026-09-29T23:35:03+00:00",
+          "metric": "directional_thermal_effect",
+          "outcome": "80°F indoors is above the comfort band while direct sun is available. Provisional comfort band 70–76°F.",
+          "unit": "qualitative",
+          "value": null
+        }
+      ],
+      "missing": [],
+      "reason": "provisional_comfort_comparison",
+      "status": "conditional",
+      "valid_until": "2026-09-29T23:35:03+00:00"
+    },
+    "ventilation": {
+      "comparison": [
+        {
+          "alternative": "Leave unchanged",
+          "horizon_end": "2026-09-29T23:35:03+00:00",
+          "metric": "directional_thermal_effect",
+          "outcome": "Compare with keeping existing settings and independent schedules.",
+          "unit": "qualitative",
+          "value": null
+        },
+        {
+          "alternative": "Ventilate briefly",
+          "horizon_end": "2026-09-29T23:35:03+00:00",
+          "metric": "directional_thermal_effect",
+          "outcome": "80°F indoors and 60°F outdoors; cooler air can help reduce indoor heat. Provisional comfort band 70–76°F.",
+          "unit": "qualitative",
+          "value": null
+        }
+      ],
+      "missing": [],
+      "reason": "provisional_comfort_comparison",
+      "status": "conditional",
+      "valid_until": "2026-09-29T23:35:03+00:00"
+    }
+  },
+  "evaluated_at": "2026-09-29T23:33:23+00:00",
+  "evaluation_version": "directional-advice-1",
+  "human_action_only": true,
+  "policy_sha256": "26918db5057bdff43b55d01d38b21d64eebf144f45abf9793a9d3d3dc473cdfb",
+  "recommendations": [],
+  "report_id": "17fe2879ec16275e33fdfd9d677eeda3d686b2490ac00ce94c99d25337886ec0",
+  "schema": "earthship-household-advice/v1",
+  "snapshot_id": "d3e1286648de71f5fc5176204ded516b5b722f37bfa6fbad99869983bc795804",
+  "timezone": "America/Denver",
+  "valid_until": "2026-09-29T23:35:23+00:00"
+}

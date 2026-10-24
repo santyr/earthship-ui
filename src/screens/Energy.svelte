@@ -12,7 +12,6 @@
   // history charts. Reuses Home's dark instrument-panel aesthetic (Tile /
   // StatTile chrome, tokens.colors) but favors inline HistoryChart panels
   // over Home's click-to-modal pattern, since this screen IS the charts.
-  import DecisionRecommendations from '../lib/ui/DecisionRecommendations.svelte';
   import Tile from '../lib/ui/Tile.svelte';
   import StatTile from '../lib/ui/StatTile.svelte';
   import HistoryChart from '../lib/ui/HistoryChart.svelte';
@@ -119,7 +118,6 @@
             </span>
           {/if}
         </div>
-        <DecisionRecommendations scope="energy" tiny compact />
       </div>
     </Tile>
   </div>

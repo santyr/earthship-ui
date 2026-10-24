@@ -493,3 +493,13 @@ These source references are pinned to the inspected revision. The executing agen
 **Instruction for the running agent:** Adopt this goal at the next safe checkpoint. Make decisions and recommendations the explicit product objective. Remove greywater from recommendation/optimization scope without changing its OpenHAB behavior. Preserve prior verified repairs; implement the three human-advice slices and their feedback/evaluation through existing infrastructure. Prepare per-shade position and manual-movement telemetry now for the motors expected within approximately one month; commission actual feedback when available and use it for both updated advice and carefully evaluated action-response learning. Do not add Snap or automatic actuation. Reprioritize remaining WeatherNext/ML work by the decision it improves. Finish implementable work and report source verification, installation, real-input availability, device-observation commissioning, and action-effect qualification separately.
 
 Current implementation and acceptance status are maintained in [decision coverage](../../operations/decision-use-cases.md) and the [2026-10-23 verification record](../../operations/decision-support-verification-2026-10-23.md). The original task checklists above remain the acceptance contract; the current coverage separates software completion from installation, real inputs, device commissioning and action-effect qualification.
+
+### Approved follow-up — clock-row suggestions and provisional evaluation
+
+The user requested suggestions in the existing time-display row and authorized showing provisional advice now, selecting 70–76°F. The user also requested omitting shade/window-state caveats from the display. Use concise directional comparisons backed by actual qualified temperatures/solar data; do not invent physical states, effects, or discretionary tasks. Automatic actuation remains disabled.
+
+- [ ] Add explicit opt-in provisional preferences and source-bound conditional domain comparisons; preserve standard recommendation/state gates and original validity.
+- [ ] Put one compact summary in the shared 44px header, open full details on click, and remove the separate Home advice strip. Keep alert/clock usability and both supported sizes.
+- [ ] Verify focused source, replay, UI and browser cases; deploy compatible UI before the source-only native update, preserve all model/owner/resource identities, and activate the approved provisional band.
+
+Implementation choice: use conditional comparisons in the existing v1 report instead of inventing a baseline or weakening recommendation contracts. Cost: provisional suggestions have no action-confirmation buttons until an actual recommendation is supported.
