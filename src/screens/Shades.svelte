@@ -2,8 +2,74 @@
   import RecommendationPreview from '../lib/ui/RecommendationPreview.svelte';
   import { officeHallwayTemperature } from '../lib/thermal/officeHallwayTemperature.js';
   import { onMount } from 'svelte';
+  import { createShadePolicyRequests, shadePolicyPresentation, validateShadePolicySnapshot } from '../lib/shades/policy.js';
   import { items, connection } from '../lib/openhab/index.js';
   import { SHADE_COUNT, SHADE_GROUPS, SHADE_SLOTS, SHADE_VIEWS, shadeGroupPresentation, shadePresentation, shadePreviewEnabled } from '../lib/shades/catalog.js';
+
+  let policySnapshot = $state(null);
+  let policySaving = $state('');
+  let policyErrors = $state({});
+  let policyRequest = 0;
+  let policyMounted = false;
+  let policyReading = false;
+  const policyRequests = createShadePolicyRequests();
+
+  async function readPolicy() {
+    if (!policyMounted || policySaving || policyReading) return;
+    policyReading = true;
+    const request = ++policyRequest;
+    try {
+      const { response, snapshot } = await policyRequests.request();
+      if (!response.ok || !validateShadePolicySnapshot(snapshot)) throw new Error('Policy unavailable');
+      if (policyMounted && request === policyRequest) policySnapshot = snapshot;
+    } catch {
+      if (policyMounted && request === policyRequest) policySnapshot = null;
+    } finally { if (policyMounted) policyReading = false; }
+  }
+
+  async function savePolicy(zone) {
+    const presentation = shadePolicyPresentation(policySnapshot, zone);
+    if (!policyMounted || policySaving || !presentation.canSave) return;
+    const enabled = presentation.checked !== true;
+    const request = ++policyRequest;
+    policySaving = zone;
+    policyErrors = { ...policyErrors, [zone]: '' };
+    try {
+      const { response, snapshot } = await policyRequests.request({
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store',
+        body: JSON.stringify({ zone, enabled, expectedGeneration: policySnapshot.generation, expectedSessionId: policySnapshot.sessionId }),
+      });
+      if (!response.ok || !validateShadePolicySnapshot(snapshot) || !snapshot.connected
+          || !snapshot.zones[zone].authoritative || snapshot.zones[zone].saved !== (enabled ? 'ON' : 'OFF')) {
+        throw new Error('Save not confirmed');
+      }
+      if (policyMounted && request === policyRequest) policySnapshot = snapshot;
+    } catch {
+      if (policyMounted && request === policyRequest) {
+        policySnapshot = null;
+        policyErrors = { ...policyErrors, [zone]: 'Save not confirmed — checking policy again' };
+      }
+    } finally { if (policyMounted && request === policyRequest) policySaving = ''; }
+  }
+
+  onMount(() => {
+    policyMounted = true;
+    readPolicy();
+    const timer = setInterval(readPolicy, 5000);
+    const reconcile = () => { if (document.visibilityState !== 'hidden') readPolicy(); };
+    window.addEventListener('online', reconcile);
+    window.addEventListener('focus', reconcile);
+    document.addEventListener('visibilitychange', reconcile);
+    return () => {
+      policyMounted = false;
+      ++policyRequest;
+      policyRequests.dispose();
+      clearInterval(timer);
+      window.removeEventListener('online', reconcile);
+      window.removeEventListener('focus', reconcile);
+      document.removeEventListener('visibilitychange', reconcile);
+    };
+  });
 
   const shadeTints = ['#63889a', '#78876d', '#807591', '#947e68', '#6b8590'];
 
@@ -216,9 +282,20 @@
       {@const groupDisplay = shadeGroupPresentation(cards, $items, $connection, nowMs)}
       {@const groupOpen = previewMode ? previewGroupOpen(cards) : groupDisplay.openPercent}
       {@const officeTemperature = room.temperatureRole === 'office_reference' && $connection === 'live' ? officeHallwayTemperature($items.Weather_Temperature_Evidence_JSON, Math.max(nowMs, Date.now())) : null}
+      {@const automation = shadePolicyPresentation(policySnapshot, room.id)}
       <section class="zone" aria-label="{room.label} shades">
         <div class="zone-heading">
           <div class="zone-title"><h2>{room.label}</h2><span>{cards.length} shades</span><span class="sensor-evidence">{#if room.temperatureRole === 'office_reference'}Office temperature {officeTemperature === null ? 'unavailable' : `reference · ${officeTemperature.toFixed(1)} °F`}{:else}{room.temperatureRole === 'unavailable' ? 'Zone temperature pending' : 'Hallway temperature reference'}{/if}</span></div>
+          <div class="zone-policy">
+            <button type="button" class="policy-switch" role="switch" aria-checked={automation.checked}
+              aria-label="Automate recommendations" aria-busy={policySaving === room.id} aria-describedby={`shade-policy-${room.id}`}
+              disabled={Boolean(policySaving) || !automation.canSave} onclick={() => savePolicy(room.id)}>
+              <span>Automate recommendations</span><strong>{automation.savedLabel}</strong>
+            </button>
+            <span class="policy-status" id={`shade-policy-${room.id}`} aria-live="polite">{automation.label}</span>
+            {#if policySaving === room.id}<span class="policy-progress" role="status">Saving…</span>{/if}
+            {#if policyErrors[room.id]}<span class="policy-error" role="alert">{policyErrors[room.id]}</span>{/if}
+          </div>
           <div class="zone-actions" aria-label="{room.label} controls">
             <button type="button" class:pressed={pressedAction === `${room.id}-open`} disabled={!previewMode} title={previewMode ? 'Preview only; no shade command' : 'Movement remains disabled until commissioning'} onclick={() => previewButton(cards, 100, `${room.id}-open`)}>Open {room.label}</button>
             <button type="button" class:pressed={pressedAction === `${room.id}-close`} disabled={!previewMode} title={previewMode ? 'Preview only; no shade command' : 'Movement remains disabled until commissioning'} onclick={() => previewButton(cards, 0, `${room.id}-close`)}>Close {room.label}</button>
@@ -332,8 +409,20 @@
   .all-actions button:disabled, .zone-actions button:disabled { background: #263540; border-color: #596f7d; color: #a3b6c1; cursor: not-allowed; }
   .shades-layout { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: .5rem; min-width: 0; min-height: 0; overflow: hidden; }
   .zones { display: grid; grid-template-rows: repeat(2, minmax(0, 1fr)); gap: .55rem; min-width: 0; min-height: 0; overflow: hidden; }
-  .zone { display: grid; grid-template-rows: 34px minmax(0, 1fr); gap: .25rem; min-width: 0; min-height: 0; overflow: hidden; }
-  .zone-heading { display: flex; align-items: center; justify-content: space-between; gap: .6rem; min-width: 0; }
+  .zone { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: .25rem; min-width: 0; min-height: 0; overflow: hidden; }
+  .zone-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: .2rem .6rem; min-width: 0; }
+  .zone-title { grid-column: 1; grid-row: 1; flex-wrap: wrap; }
+  .zone-actions { grid-column: 3; grid-row: 1; }
+  .zone-policy { grid-column: 2; grid-row: 1; display: grid; grid-template-columns: auto minmax(140px, 220px); align-items: center; gap: .15rem .55rem; min-width: 0; }
+  .policy-switch { display: inline-flex; align-items: center; justify-content: space-between; gap: .65rem; min-height: 44px; padding: .25rem .55rem; border: 1px solid #7798aa; border-radius: .35rem; background: #263c4b; color: #edf3f8; font: inherit; font-size: .7rem; cursor: pointer; }
+  .policy-switch strong { color: #becbd5; font-size: .68rem; }
+  .policy-switch[aria-checked='true'] { border-color: #8dc4cf; background: #345368; }
+  .policy-switch[aria-checked='mixed'] { border-style: dashed; }
+  .policy-switch:disabled { cursor: not-allowed; }
+  .policy-switch:focus-visible { outline: 2px solid #b6e9f0; outline-offset: -3px; }
+  .policy-status, .policy-progress, .policy-error { font-size: .68rem; color: #c4ccd6; }
+  .policy-progress { color: #d5b677; }
+  .policy-error { color: #efb4a3; }
   .zone-title { display: flex; align-items: baseline; gap: .48rem; }
   h2 { margin: 0; font-size: .96rem; font-weight: 650; }
   .zone-title span { color: #91a1b2; font-size: .7rem; }
@@ -374,6 +463,14 @@
   .window-control.unknown input[type='range'] { opacity: .27; }
   .window-control.unknown input[type='range']::-webkit-slider-thumb { opacity: 0; }
   .window-control.unknown input[type='range']::-moz-range-thumb { opacity: 0; }
+  @media (min-width: 1000px) {
+    .shade-grid .shade-card { padding-top: .2rem; padding-bottom: .2rem; }
+  }
+  @media (max-width: 999px) {
+    .zone-heading { grid-template-columns: minmax(0, 1fr) auto; }
+    .zone-actions { grid-column: 2; }
+    .zone-policy { grid-column: 1 / -1; grid-row: 2; display: flex; flex-wrap: wrap; }
+  }
   @media (max-width: 899px) and (min-width: 700px) {
     .shades-page { gap: .3rem; }
     .page-heading { min-height: 44px; }
@@ -391,9 +488,9 @@
     .shades-page { grid-template-rows: auto auto auto; overflow-y: auto; }
     .shades-layout, .zones, .zone, .shade-grid { overflow: visible; }
     .shades-layout, .zones { min-height: max-content; }
-    .shades-layout { height: calc(496px + .35rem); }
-    .zones { grid-template-rows: repeat(2, 248px); }
-    .zone { min-height: 248px; }
+    .shades-layout { height: calc(608px + .35rem); }
+    .zones { grid-template-rows: repeat(2, 304px); }
+    .zone { min-height: 304px; }
   }
   @media (max-height: 540px) { .shades-page { grid-template-rows: auto auto auto; overflow-y: auto; } .shades-layout { min-height: max-content; overflow: visible; } .zones { grid-template-rows: repeat(2, auto); min-height: max-content; overflow: visible; } .zone { grid-template-rows: auto auto; min-height: max-content; overflow: visible; } .shade-grid { grid-template-rows: auto; min-height: 190px; overflow: visible; } .shade-card { min-height: 190px; } }
   @media (max-width: 699px) { .shades-page { overflow-y: auto; } .shades-layout { grid-template-columns: minmax(0, 1fr); overflow: visible; } .master-card { min-height: 155px; } .master-card .window-control { min-height: 95px; } .zones { grid-template-rows: auto; overflow: visible; } .zone { min-height: 0; grid-template-rows: auto auto; overflow: visible; } .shade-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: auto; overflow: visible; } .shade-card { min-height: 190px; } .page-selector { align-items: flex-start; flex-direction: column; gap: .4rem; } .page-heading { align-items: flex-start; } }

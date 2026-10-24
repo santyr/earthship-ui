@@ -10,6 +10,7 @@ import {
 } from './src/lib/openhab/proxyPolicy.js'
 import { validateControlCatalog } from './src/lib/controls/catalog.js'
 import { shadePreviewPlugin } from './src/lib/shades/previewServer.js'
+import { shadePolicyPlugin } from './src/lib/shades/policyServer.js'
 import { householdObservationPlugin, HOUSEHOLD_FS_DENY } from './src/lib/household/observationServer.js'
 
 // https://vite.dev/config/
@@ -81,7 +82,7 @@ export default defineConfig(() => {
     throw new Error(`Control catalog invalid: ${catalogErrors.join('; ')}`)
   }
   return {
-    plugins: [openhabProxyGuard(releaseMode, OPENHAB, proxyAuthorization), shadePreviewPlugin(), householdObservationPlugin(), terrainDaylightPlugin(), svelte()],
+    plugins: [openhabProxyGuard(releaseMode, OPENHAB, proxyAuthorization), shadePreviewPlugin(), shadePolicyPlugin({ upstream: OPENHAB, authorization: proxyAuthorization }), householdObservationPlugin(), terrainDaylightPlugin(), svelte()],
     define: {
       __EARTHSHIP_RELEASE_MODE__: JSON.stringify(releaseMode),
     },

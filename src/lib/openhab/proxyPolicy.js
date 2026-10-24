@@ -61,10 +61,13 @@ export function isAllowedProxyRequest(method, rawUrl, releaseMode = 'maintenance
 // ever reads off a Thing. Projecting to exactly these drops anything else openHAB
 // might nest inside statusInfo in a future version.
 function projectStatusInfo(statusInfo) {
-  if (!statusInfo || typeof statusInfo !== 'object') return undefined;
+  if (!statusInfo || typeof statusInfo !== 'object' || Array.isArray(statusInfo)) return null;
   const projected = {};
   for (const key of ['status', 'statusDetail', 'description']) {
-    if (statusInfo[key] !== undefined) projected[key] = statusInfo[key];
+    if (statusInfo[key] !== undefined) {
+      if (typeof statusInfo[key] !== 'string') return null;
+      projected[key] = statusInfo[key];
+    }
   }
   return projected;
 }
@@ -73,19 +76,22 @@ function projectStatusInfo(statusInfo) {
 // A raw DTO carries `configuration` (plaintext MQTT/Shelly passwords, usernames,
 // device IPs), `properties`, and `channels`; NONE of those keys survive here.
 export function sanitizeThingDto(thing) {
-  if (!thing || typeof thing !== 'object') return null;
-  const projected = {};
-  if (thing.UID !== undefined) projected.UID = thing.UID;
-  if (thing.label !== undefined) projected.label = thing.label;
+  if (!thing || typeof thing !== 'object' || Array.isArray(thing)
+      || typeof thing.UID !== 'string' || !thing.UID || thing.UID.trim() !== thing.UID) return null;
   const statusInfo = projectStatusInfo(thing.statusInfo);
-  if (statusInfo !== undefined) projected.statusInfo = statusInfo;
+  if (statusInfo === null) return null;
+  const projected = { UID: thing.UID, statusInfo };
+  if (typeof thing.label === 'string') projected.label = thing.label;
   return projected;
 }
 
 // Projects a /rest/things response: an array of Things (collection endpoint) or a
 // single Thing DTO (/rest/things/{uid}).
 export function sanitizeThingsResponse(raw) {
-  if (Array.isArray(raw)) return raw.map(sanitizeThingDto).filter(Boolean);
+  // Preserve invalid rows as credential-free null markers. Dropping a row
+  // would turn a failed provider read into an authoritative partial inventory
+  // (or even []), bypassing the store's whole-collection reconciliation check.
+  if (Array.isArray(raw)) return raw.map(sanitizeThingDto);
   return sanitizeThingDto(raw);
 }
 

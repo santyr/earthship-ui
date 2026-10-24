@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import viteConfig from '../vite.config.js';
+import { get } from 'svelte/store';
+import { applyThingSnapshot, thingStatuses } from '../src/lib/openhab/store.js';
 import {
   isAllowedProxyRequest,
   openhabProxyAuthorization,
@@ -57,8 +59,24 @@ describe('household Vite OpenHAB proxy policy', () => {
       statusInfo: { status: 'ONLINE', statusDetail: 'NONE', description: '' },
     });
     expect(sanitizeThingDto(null)).toBeNull();
-    expect(sanitizeThingsResponse([raw, null, 'junk'])).toEqual([sanitizeThingDto(raw)]);
+    expect(sanitizeThingsResponse([raw, null, 'junk'])).toEqual([sanitizeThingDto(raw), null, null]);
     expect(sanitizeThingsResponse(raw)).toEqual(sanitizeThingDto(raw));
+  });
+
+  it.each([null, 'junk', [], { UID: 'broken', statusInfo: [] },
+    { UID: 'broken', statusInfo: { status: { password: 'private' } } },
+    { UID: 'broken', statusInfo: null }])('retains an invalid marker through projection instead of publishing a partial inventory: %j', (invalid) => {
+    const prior = [{ UID: 'prior', statusInfo: { status: 'OFFLINE' } }];
+    applyThingSnapshot(prior);
+    const expected = get(thingStatuses);
+    const projected = sanitizeThingsResponse([{ UID: 'new', statusInfo: { status: 'ONLINE' } }, invalid]);
+    expect(projected).toHaveLength(2);
+    expect(projected[1]).toBeNull();
+    expect(JSON.stringify(projected)).not.toContain('private');
+    expect(applyThingSnapshot(projected)).toBe(false);
+    expect(get(thingStatuses)).toEqual(expected);
+    expect(applyThingSnapshot(sanitizeThingsResponse([invalid]))).toBe(false);
+    expect(get(thingStatuses)).toEqual(expected);
   });
 
   it('intercepts GET /rest/things and serves the sanitized projection', async () => {

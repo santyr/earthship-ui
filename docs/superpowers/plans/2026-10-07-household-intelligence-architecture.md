@@ -16,6 +16,31 @@ receipt parsing may remain; their presence does not make feeding an automated
 household-planning capability. This scope decision supersedes broader feeder
 references elsewhere in this plan and remains in force until the operator changes it.
 
+## Current decision-support scope — October 24, 2026
+
+Shades, ventilation and discretionary-energy advice remain in scope. Greywater
+pumps are excluded from new proposals, optimization, ranking and qualification;
+retain their existing owners, schedules, manual controls, observation and measured
+household demand. The generic night-load override is not a discretionary-device
+recommendation: its established OFF matrix energizes Shureflo. Retain historical
+records and their original producer; never reinterpret them as current advice.
+
+Shade recommendation automation requires a separate saved permission for each of
+Kitchen, Living Room, Bathroom and Bedroom. OFF or unknown withholds automation,
+not human advice or actual motor-report collection. Bathroom and Bedroom also
+require an authoritative `OverrideSwitch` OFF; ON applies even in daytime. This
+nightly overlay never changes saved choices, the override, or actual positions.
+Policy generation, current observations and the original recommendation must be
+checked at admission and again by a serialized commissioned execution owner.
+An ON/OFF/ON transition cannot revive earlier work. All-zone automation must be
+expanded by actual membership and recomputed for only eligible members.
+
+The implementation and acceptance contract is
+[shade recommendation permissions](../../operations/shade-recommendation-permissions.md).
+Four policy switches do not release global automation or commission hardware.
+Planner-to-device translation remains disabled. Manual commands require the
+existing trusted manual path; a caller-supplied manual label grants no exception.
+
 ## 1. Goal
 
 Evolve the Earthship project from a collection of strong domain-specific sensing,

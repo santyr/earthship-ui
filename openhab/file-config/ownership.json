@@ -1244,6 +1244,13 @@
       "source": "items/forecast-provider-shadow.items",
       "destination": "/etc/openhab/items/forecast-provider-shadow.items",
       "state_writer": "local-forecast-shadow.service"
-    }
+    },
+    {"kind": "item", "id": "Shade_Kitchen_RecommendationAutomation", "provider": "file", "migration": "prepared", "source": "items/shade-recommendation-policy.items", "destination": "/etc/openhab/items/shade-recommendation-policy.items", "state_writer": "hex_shade_recommendation_policy", "notes": "Source only; not installed or commissioned. Existing wildcard JDBC restores explicit choices."},
+    {"kind": "item", "id": "Shade_LivingRoom_RecommendationAutomation", "provider": "file", "migration": "prepared", "source": "items/shade-recommendation-policy.items", "destination": "/etc/openhab/items/shade-recommendation-policy.items", "state_writer": "hex_shade_recommendation_policy", "notes": "Source only; not installed or commissioned. Existing wildcard JDBC restores explicit choices."},
+    {"kind": "item", "id": "Shade_Bathroom_RecommendationAutomation", "provider": "file", "migration": "prepared", "source": "items/shade-recommendation-policy.items", "destination": "/etc/openhab/items/shade-recommendation-policy.items", "state_writer": "hex_shade_recommendation_policy", "notes": "Source only; not installed or commissioned. Existing wildcard JDBC restores explicit choices."},
+    {"kind": "item", "id": "Shade_Bedroom_RecommendationAutomation", "provider": "file", "migration": "prepared", "source": "items/shade-recommendation-policy.items", "destination": "/etc/openhab/items/shade-recommendation-policy.items", "state_writer": "hex_shade_recommendation_policy", "notes": "Source only; not installed or commissioned. Existing wildcard JDBC restores explicit choices."},
+    {"kind": "item", "id": "Shade_RecommendationAutomationRevision", "provider": "file", "migration": "prepared", "source": "items/shade-recommendation-policy.items", "destination": "/etc/openhab/items/shade-recommendation-policy.items", "state_writer": "hex_shade_recommendation_policy", "notes": "Source only; not installed or commissioned. Existing wildcard JDBC restores explicit choices."},
+    {"kind": "rule", "id": "hex_shade_recommendation_policy", "provider": "file", "migration": "prepared", "source": "automation/js/shade-recommendation-policy.js", "destination": "/etc/openhab/automation/js/shade-recommendation-policy.js", "notes": "Source only; policy receipts and default-OFF restoration. Never commands devices or writes OverrideSwitch."},
+    {"kind": "item", "id": "Shade_RecommendationAutomationSession", "provider": "file", "migration": "prepared", "source": "items/shade-recommendation-policy.items", "destination": "/etc/openhab/items/shade-recommendation-policy.items", "state_writer": "hex_shade_recommendation_policy", "notes": "Source only. Volatile owner readiness excluded from JDBC; never restore this Item."}
   ]
 }

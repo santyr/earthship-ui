@@ -4,6 +4,27 @@
   "spec": "docs/superpowers/plans/2026-10-07-household-intelligence-architecture.md",
   "goal_complete": false,
   "scope_reduced_to_foundation": false,
+  "current_source_handoff_20261024": {
+    "baseline_revision": "597aedb3e4515fc6d75a116b3e5d9e3d05cee741",
+    "bug_repair_revision": "a9587258a97b60cb50f16619492268e4c029e554",
+    "scope_contract": "docs/operations/shade-recommendation-permissions.md",
+    "findings": {
+      "BUG-01": "repaired_source_regressions",
+      "BUG-02": "repaired_source_regressions",
+      "BUG-03": "repaired_source_regressions",
+      "BUG-04": "repaired_source_regressions",
+      "BUG-05": "repaired_source_regressions"
+    },
+    "shade_requirements": {
+      "SCOPE-SHADE-01": "implemented_source_mock_regressions_installation_pending",
+      "SCOPE-SHADE-02": "implemented_source_mock_regressions_installation_pending"
+    },
+    "production_installation": false,
+    "physical_commissioning": false,
+    "automatic_actuation_released": false,
+    "historical_producers": "retain_original_source_bound_replay",
+    "supersedes_current_proposal_scope_only": true
+  },
   "requirements": [
     {
       "phase": "0",
