@@ -173,7 +173,8 @@ for (const target of TARGETS) {
     expect(geometry.screen.scrollHeight).toBeLessThanOrEqual(geometry.screen.clientHeight);
     expect(geometry.grid.scrollWidth).toBeLessThanOrEqual(geometry.grid.clientWidth);
     expect(geometry.grid.scrollHeight).toBeLessThanOrEqual(geometry.grid.clientHeight);
-    expect(geometry.buttons).toHaveLength(10);
+    expect(geometry.cells).toHaveLength(4);
+    expect(geometry.buttons).toHaveLength(14);
 
     for (const cell of geometry.cells) {
       expect(cell.left).toBeGreaterThanOrEqual(geometry.grid.left - 0.5);

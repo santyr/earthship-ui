@@ -114,7 +114,13 @@ export function holdAction(node, initialOptions = {}) {
   }
 
   function onBlur() {
-    if (!submitting) clearHold();
+    if (submitting) return;
+    // Removing a focused button can fire blur inside a framework render.
+    // Cancel its timer now, but notify state only after teardown has settled.
+    clearHold({ announce: false });
+    queueMicrotask(() => {
+      if (!destroyed && !submitting && !active) emit(restingPhase());
+    });
   }
 
   function onClick() {

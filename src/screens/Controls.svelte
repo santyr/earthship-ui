@@ -1,5 +1,6 @@
 <script>
   import RecommendationPreview from '../lib/ui/RecommendationPreview.svelte';
+  import ShadeAutomationControls from '../lib/shades/ShadeAutomationControls.svelte';
   import Toggle from '../lib/ui/Toggle.svelte';
   import Tile from '../lib/ui/Tile.svelte';
   import { CONTROL_CATALOG } from '../lib/controls/catalog.js';
@@ -66,12 +67,20 @@
       <RecommendationPreview group="night-policy" />
     </Tile>
   </section>
+  <section class="cell" aria-label="Shade automation">
+    <Tile label="Shade Automation" accent={colors.advisory}>
+      <div class="control-stack four">
+        <ShadeAutomationControls />
+      </div>
+    </Tile>
+  </section>
+
 </div>
 
 <style>
   .controls-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.72rem;
     width: 100%;
     height: 100%;

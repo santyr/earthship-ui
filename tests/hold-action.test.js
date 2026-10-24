@@ -121,14 +121,27 @@ describe('holdAction', () => {
     ['pointercancel', () => pointer('pointercancel', 1)],
     ['pointerleave', () => pointer('pointerleave', 1)],
     ['blur', () => new FocusEvent('blur')],
-  ])('cancels on early %s', (_name, eventFactory) => {
+  ])('cancels on early %s', async (_name, eventFactory) => {
     node.dispatchEvent(pointer('pointerdown', 1));
     vi.advanceTimersByTime(300);
     node.dispatchEvent(eventFactory());
+    await settle();
     vi.advanceTimersByTime(400);
 
     expect(submit).not.toHaveBeenCalled();
     expect(phases.at(-1)).toBe('confirmed');
+  });
+
+  it('cancels blur immediately without notifying state during DOM teardown', async () => {
+    node.dispatchEvent(pointer('pointerdown', 1));
+    const beforeBlur = phases.length;
+    node.dispatchEvent(new FocusEvent('blur'));
+    expect(phases).toHaveLength(beforeBlur);
+    action.destroy();
+    await settle();
+    vi.advanceTimersByTime(HOLD_DURATION_MS);
+    expect(phases).toHaveLength(beforeBlur);
+    expect(submit).not.toHaveBeenCalled();
   });
 
   it('cancels an unfinished hold when destroyed', () => {
