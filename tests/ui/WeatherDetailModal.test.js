@@ -28,7 +28,7 @@ vi.mock('../../src/lib/weather/capabilityState.js', async () => {
 });
 
 import WeatherDetailModal from '../../src/lib/ui/WeatherDetailModal.svelte';
-import { items } from '../../src/lib/openhab/store.js';
+import { applyState, items } from '../../src/lib/openhab/store.js';
 import {
   closeWeatherDetail,
   openWeatherDetail,
@@ -117,6 +117,94 @@ describe('WeatherDetailModal', () => {
     cleanup();
     document.body.innerHTML = '';
     document.body.style.overflow = '';
+  });
+
+  it('keeps the selected day and chart when a later production issue arrives while open', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-18T12:00:00-06:00'));
+    const issue = JSON.parse(payload({ firstTempF: 65 }));
+    Object.assign(issue, { version: 3, provider: 'weathernext3', providerStatus: 'AVAILABLE',
+      productionModel: { issueSha256: 'a'.repeat(64), status: 'ACTIVE', localCoverageQualified: false,
+        probabilityClaim: false, temperatureStatistic: 'model_point_with_declared_raw_fallback',
+        windStatistic: 'native_instantaneous_with_separate_local_hour_mean' } });
+    Object.assign(issue.days[0].summary, { temperatureScope: 'full_day', temperatureStatistic: 'extrema_of_hourly_point_forecasts' });
+    items.set({ Forecast_10Day_JSON: JSON.stringify(issue) });
+    render(WeatherDetailModal);
+    await openTomorrow();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(screen.getAllByTestId('weather-detail-hour')).toHaveLength(12);
+
+    // A publication can arrive between clock ticks; its real generation time
+    // is later than opening, but not later than the current wall clock.
+    vi.setSystemTime(new Date('2026-07-18T12:00:00.050-06:00'));
+    issue.generatedAt = new Date().toISOString();
+    issue.productionModel.issueSha256 = 'b'.repeat(64);
+    issue.days[0].hours[0].tempF = 66;
+    applyState('Forecast_10Day_JSON', JSON.stringify(issue));
+    flushSync();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(screen.getByRole('dialog', { name: /Tomorrow forecast/i })).toBeTruthy();
+    expect(screen.queryByText('Hourly detail unavailable')).toBeNull();
+    expect(screen.getAllByTestId('weather-detail-hour')).toHaveLength(12);
+    expect(screen.getAllByTestId('weather-detail-hour')[0].querySelector('.hour-temp').textContent).toBe('66°');
+    expect(mocks.chart.setOption.mock.calls.at(-1)[0].series.find(series => series.name === 'Temperature').data[0]).toBe(66);
+  });
+
+  it('ages the forecast stale without an item update', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-18T12:00:00-06:00'));
+    items.set({ Forecast_10Day_JSON: payload() });
+    render(WeatherDetailModal);
+    await openTomorrow();
+    expect(screen.queryByText('Forecast data may be stale')).toBeNull();
+
+    vi.setSystemTime(new Date('2026-07-18T16:00:01-06:00'));
+    await vi.advanceTimersByTimeAsync(1000);
+    flushSync();
+
+    expect(screen.getByText('Forecast data may be stale')).toBeTruthy();
+  });
+
+  it('advances the rolling hours and remaining temperature range without an item update', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-19T06:30:00-06:00'));
+    const issue = JSON.parse(payload());
+    issue.days[0].summary.highF = null;
+    issue.days[0].summary.lowF = null;
+    items.set({ Forecast_10Day_JSON: JSON.stringify(issue) });
+    render(WeatherDetailModal);
+    openWeatherDetail({ date: '2026-07-19', label: 'Today' });
+    await screen.findByRole('dialog');
+    expect(screen.getAllByTestId('weather-detail-hour')[0].querySelector('.hour-time').textContent).toBe('7 AM');
+    expect(screen.getByText('71° / 60° · remaining hours')).toBeTruthy();
+
+    vi.setSystemTime(new Date('2026-07-19T07:30:00-06:00'));
+    await vi.advanceTimersByTimeAsync(1000);
+    flushSync();
+
+    expect(screen.getAllByTestId('weather-detail-hour')).toHaveLength(11);
+    expect(screen.getAllByTestId('weather-detail-hour')[0].querySelector('.hour-time').textContent).toBe('8 AM');
+    expect(screen.getByText('71° / 61° · remaining hours')).toBeTruthy();
+  });
+
+  it('rejects a future issue until the current clock reaches its generation time', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-18T12:00:00-06:00'));
+    const issue = JSON.parse(payload());
+    issue.generatedAt = '2026-07-18T12:01:00-06:00';
+    items.set({ Forecast_10Day_JSON: JSON.stringify(issue) });
+    render(WeatherDetailModal);
+    await openTomorrow();
+    expect(screen.getByText('Hourly detail unavailable')).toBeTruthy();
+    expect(screen.queryAllByTestId('weather-detail-hour')).toHaveLength(0);
+
+    vi.setSystemTime(new Date('2026-07-18T12:01:00-06:00'));
+    await vi.advanceTimersByTimeAsync(1000);
+    flushSync();
+
+    expect(screen.queryByText('Hourly detail unavailable')).toBeNull();
+    expect(screen.getAllByTestId('weather-detail-hour')).toHaveLength(12);
   });
 
   it('shows active production points and wind scope without explanatory labels', async () => {

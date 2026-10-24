@@ -42,21 +42,33 @@
   let bodyLocked = false;
   let priorBodyOverflow = '';
   let latestWidthPx = 0;
+  let wallClock = $state(Date.now());
+
+  $effect(() => {
+    if (!$weatherDetailStore.open) return;
+    wallClock = Date.now();
+    const timer = setInterval(() => { wallClock = Date.now(); }, 1000);
+    return () => clearInterval(timer);
+  });
+
+  // Item updates may arrive between ticks; validate against their actual receipt
+  // time while the timer also ages unchanged forecasts and rolling windows.
+  const forecastNowMs = () => Math.max(wallClock, Date.now());
 
   const forecast = $derived(parseForecast10Day(
     $items.Forecast_10Day_JSON,
-    { nowMs: $weatherDetailStore.openedAtMs || Date.now() },
+    { nowMs: forecastNowMs() },
   ));
   const selectedDay = $derived(
     (() => { const day = forecast.days.find(({ date }) => date === $weatherDetailStore.date);
-      return day ? forecastDisplayDay(day, { nowMs: $weatherDetailStore.openedAtMs || Date.now(), timezone: forecast.timezone }) : null; })(),
+      return day ? forecastDisplayDay(day, { nowMs: forecastNowMs(), timezone: forecast.timezone }) : null; })(),
   );
   const selectedCondition = $derived(forecastCondition({ ...selectedDay?.summary, isDay: true, hours: selectedDay?.hours ?? [] }));
   const capabilities = $derived(parseWeatherCapabilities($weatherCapabilityRaw, { nowMs: $weatherCapabilityClock }));
   const selectedWindow = $derived(
     selectedDay
       ? selectForecastWindow(forecast, selectedDay.date, {
-        nowMs: $weatherDetailStore.openedAtMs || Date.now(),
+        nowMs: forecastNowMs(),
       })
       : { mode: 'unavailable', hours: [], expectedHours: FORECAST_DETAIL_HOURS, missingHours: FORECAST_DETAIL_HOURS },
   );

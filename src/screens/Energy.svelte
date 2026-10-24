@@ -18,9 +18,7 @@
   import HistoryChart from '../lib/ui/HistoryChart.svelte';
   import EnergyAnalyticsDetail from '../lib/ui/EnergyAnalyticsDetail.svelte';
   import { ENERGY_ANALYTICS_REFRESH_MS, parseEnergyAnalyticsResult } from '../lib/energy/analyticsResult.js';
-  import { pvForecastComparison } from '../lib/energy/pvForecastComparison.js';
   import { parseForecast10Day, pvForecastDaysFromToday } from '../lib/weather/forecastDetail.js';
-  import { parsePredictionReceipt, parsePreDuskTroughReceipt } from '../lib/forecast/predictionReceipt.js';
   import { colors } from '../lib/ui/tokens.js';
   import { items, num, fmt, socBands, runtimeText } from '../lib/openhab';
   import { freshCurrentSoc } from '../lib/battery/currentSoc.js';
@@ -28,18 +26,6 @@
   import { bmsHealthPresentation } from '../lib/alerts/batteryHealth.js';
 
   let analyticsNowMs = $state(Date.now());
-  const predictionReceipt = $derived(parsePredictionReceipt($items.Forecast_Prediction_Receipt_JSON, { nowMs: analyticsNowMs }));
-  // Display the latest qualified issue until replaced. Completed windows are
-  // explicitly dated; alerts still use the parser's strict expiry default.
-  const preDuskEstimate = $derived(parsePreDuskTroughReceipt(
-    $items.Forecast_PreDusk_Trough_Receipt_JSON,
-    { nowMs: analyticsNowMs, allowCompletedForDisplay: true }));
-  const troughNight = $derived(preDuskEstimate ? new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Denver', month: 'short', day: 'numeric',
-  }).format(preDuskEstimate.issuedAtMs) : '');
-  const troughCompleted = $derived(preDuskEstimate
-    && analyticsNowMs >= preDuskEstimate.targetEndAtMs);
-
   // ---- Battery / SoC -------------------------------------------------------
   const soc = $derived(freshCurrentSoc($items, Math.max(analyticsNowMs, Date.now())));
   const socColor = $derived(socBands(soc));
@@ -64,10 +50,8 @@
   // ---- PV production --------------------------------------------------------
   const pvToday = $derived(num($items.MPPT60_EnergyFromPV_Today));
   const forecastDetail = $derived(parseForecast10Day($items.Forecast_10Day_JSON, { nowMs: analyticsNowMs }));
-  const pvPredicted = $derived(predictionReceipt?.pvTodayKwh ?? null);
-  const pvPredictionText = $derived(liveEnergyForecast ? `${liveEnergyForecast.potentialRemainingTodayKwh.toFixed(1)} kWh potential remaining today` : pvForecastComparison(pvToday, pvPredicted));
-  const pvError = $derived(num($items.Forecast_PV_Error_7d));
-  const pvAccuracyBadge = $derived(liveEnergyForecast ? 'Potential estimate · uncalibrated' : pvError === null ? 'Forecast error unavailable' : `Forecast error ${Math.round(Math.abs(pvError))}%`);
+  const pvPredictionText = $derived(liveEnergyForecast ? `${liveEnergyForecast.potentialRemainingTodayKwh.toFixed(1)} kWh potential remaining today` : 'PV forecast unavailable');
+  const pvAccuracyBadge = $derived(liveEnergyForecast ? 'Potential estimate · uncalibrated' : 'Potential estimate unavailable');
 
   // ---- Curtailment ------------------------------------------------------
   const curtailKwh = $derived(liveEnergyForecast?.curtailment24hKwh ?? null);
@@ -113,11 +97,6 @@
           {:else}
             <span class="hero-trough">Predicted SoC unavailable</span>
           {/if}
-          {#if preDuskEstimate}
-            <span class="hero-trough" title={`Pre-dusk estimate for ${troughNight} night; not a measured minimum.`}>
-              Estimated trough {preDuskEstimate.overnightTroughSocPct}%{troughCompleted ? ` · ${troughNight} night` : ''}
-            </span>
-          {/if}
         </div>
         <RecommendationPreview group="loads" />
       </div>
@@ -133,7 +112,7 @@
             <span class="pv-unit">kWh today</span>
           </div>
           <div class="pv-sub">{pvPredictionText}</div>
-          <span class="pv-badge" title={liveEnergyForecast ? 'Uncalibrated array potential; battery charging and household demand can limit captured energy.' : 'Mean absolute percentage error of recent scored PV forecasts; not a prediction interval.'}>{pvAccuracyBadge}</span>
+          <span class="pv-badge" title={liveEnergyForecast ? 'Uncalibrated array potential; battery charging and household demand can limit captured energy.' : 'Waiting for a current PV potential forecast.'}>{pvAccuracyBadge}</span>
         </div>
         <div class="pv-chart">
           <HistoryChart

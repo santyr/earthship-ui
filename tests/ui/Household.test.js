@@ -28,14 +28,13 @@ describe('Earthship household observation panels', () => {
     const signal = fetcher.mock.calls[0][1].signal;
     unmount(); expect(signal.aborted).toBe(true);
   });
-  it('shows proposed effects as unknown and exposes the blocking hard constraint', async () => {
+  it('keeps original plan identity without resurfacing retired automated proposals', async () => {
     const row = observation();const item=proposal();item.type='RUN_GREYWATER_CYCLE';row.proposals=[item];serve(row);
     const { container, getByText } = render(HouseholdObservation);
-    await waitFor(() => expect(getByText('RUN_GREYWATER_CYCLE')).toBeTruthy());
-    expect(container.textContent).toContain('battery reserve: unknown');
-    expect(container.textContent).toContain('unqualified effect');
-    expect(container.textContent).toContain('batteryKwh: unknown');
-    expect(container.textContent).toContain('Shadow proposal');
+    await waitFor(() => expect(getByText('Shadow')).toBeTruthy());
+    expect(container.textContent).toContain(row.snapshot_id);
+    expect(container.textContent).not.toContain('RUN_GREYWATER_CYCLE');
+    expect(container.textContent).toContain('No automated proposals to display.');
   });
   it('withholds current planning for an expired artifact while keeping identities inspectable', async () => {
     const row = observation(); serve(row); vi.spyOn(Date, 'now').mockReturnValue(AT + 60_000);
@@ -136,19 +135,14 @@ it('expires the displayed owner observation at its original clock independently 
   expect(container.textContent).toContain('Owner policy observation is stale');
 });
 
-it.each(['v1','v2'])('shows twelve gates per automated family and excludes feeder in qualification %s',async version=>{
+it.each(['v1','v2'])('does not revive automated qualification surfaces from retained %s originals',async version=>{
  const {qualificationObservation}=await import('../fixtures/household-qualification.js');const view=qualificationObservation();
  if(version==='v2'){view.qualification_report.schema='earthship-household-intent-qualification/v2';view.qualification_report.families=view.qualification_report.families.filter(f=>f.intent_type!=='RUN_FEEDER_CYCLE');}
- serve(view);
- const {container,getByText}=render(HouseholdObservation);
- await waitFor(()=>expect(getByText('Intent qualification')).toBeTruthy());
- const region=container.querySelector('section[aria-label="Intent qualification"]');
- expect(region.querySelectorAll('details')).toHaveLength(3);
- expect(region.textContent).not.toContain('Feeder cycle');
- expect(region.querySelectorAll('tbody tr')).toHaveLength(36);
- expect(region.textContent).toContain('Automated intent families remain unqualified');
- expect(region.textContent).toContain('Original-plan evidence');
- expect(region.querySelector('button,form,input,select')).toBeNull();
+ serve(view);const {container,getByText}=render(HouseholdObservation);
+ await waitFor(()=>expect(getByText('Shadow')).toBeTruthy());
+ expect(container.querySelector('section[aria-label="Intent qualification"]')).toBeNull();
+ expect(container.textContent).not.toContain('Selected shadow proposals:');
+ expect(container.textContent).toContain(view.snapshot_id);
 });
 
 it('shows chronological counts without claiming independent evidence or actuator permission',async()=>{

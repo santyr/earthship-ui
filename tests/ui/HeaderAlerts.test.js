@@ -76,7 +76,7 @@ describe('Header alerts UI', () => {
     connection.set('offline');
     items.update((value) => ({
       ...value,
-      Forecast_Prediction_Receipt_JSON: thermalWarningReceipt(),
+      BMS_DevicePresent: '0',
     }));
     render(Header);
 
@@ -87,7 +87,7 @@ describe('Header alerts UI', () => {
 
     const list = screen.getByRole('dialog', { name: 'Active alerts' });
     expect(list).toHaveTextContent('openHAB offline');
-    expect(list).toHaveTextContent('Close up for thermal storage');
+    expect(list).toHaveTextContent('The battery-management device is not present.');
     expect(list.querySelectorAll('[data-alert-list-item]')).toHaveLength(2);
   });
 
@@ -119,7 +119,7 @@ describe('Header alerts UI', () => {
 
     items.update((value) => ({ ...value, Forecast_Prediction_Receipt_JSON: thermalWarningReceipt() }));
     await vi.waitFor(() => {
-      expect(container.querySelector('[aria-live="polite"]')).toHaveTextContent('Close up for thermal storage');
+      expect(container.querySelector('[aria-live="polite"]')).toHaveTextContent('No active alerts');
     });
     expect(assertive).toHaveTextContent('');
 

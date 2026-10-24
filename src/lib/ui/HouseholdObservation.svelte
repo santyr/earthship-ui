@@ -167,7 +167,7 @@
       <p>Report updated {date(capturedPv.generated_at)}. Potential array yield remains unscored. These provisional comparisons do not establish calibration or action benefits.</p>
     {:else}<p>Captured-PV accuracy report unavailable</p>{/if}
   </Tile>
-  {#if view?.qualification_report}
+  {#if view?.qualification_report && automatedFamilies.length}
     <Tile label="Intent qualification">
       <section aria-label="Intent qualification">
         <p>Automated intent families remain unqualified. Request translation stays disabled.</p>

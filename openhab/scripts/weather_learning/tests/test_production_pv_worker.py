@@ -29,7 +29,8 @@ def daily(tmp_path,monkeypatch):
  policy=json.dumps(dict(json.loads(power_fixture.POLICY),cutover=(start-timedelta(days=1)).isoformat()))
  monkeypatch.setattr(history,'START',start);monkeypatch.setattr(history,'END',start+timedelta(hours=1));monkeypatch.setattr(history,'POLICY',policy)
  measured=history.source()
- measurement=identity({k:measured[k] for k in ('policy_raw','bank_start','items')})
+ # Match the cohort sealed by solar_component_experiment's retained measurements.
+ measurement=identity(dict(policy=measured['policy_raw'],bank_start=measured['bank_start'],items=measured['items']))
  power=policy.encode()
  system_path=write(repo/'openhab/household-pv-system.json',system,0o644);horizon_path=write(repo/'openhab/household-solar-horizon.json',horizon,0o644);power_path=write(tmp_path/'power.json',power,0o644)
  context=dict(CONTEXT,measurement_cohort_sha256=measurement,system_sha256=sha256(system_path.read_bytes()).hexdigest(),horizon_sha256=sha256(horizon_path.read_bytes()).hexdigest(),power_policy_sha256=sha256(power).hexdigest())

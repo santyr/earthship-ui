@@ -1,4 +1,3 @@
-import { parsePredictionReceipt, parsePreDuskTroughReceipt, selectTroughForecast } from '../forecast/predictionReceipt.js';
 import { normalizedComms, normalizedDevicePresent } from './batteryHealth.js';
 import { freshCurrentSoc } from '../battery/currentSoc.js';
 
@@ -8,9 +7,6 @@ export const ALERT_PRIORITY = Object.freeze([
   'connection-offline',
   'battery-critical',
   'telemetry-stale',
-  'thermal-close',
-  'soc-trough',
-  'thermal-vent',
   'control-outcome',
 ]);
 
@@ -142,50 +138,6 @@ export function projectConsoleAlerts({ connection = 'connecting', items = {}, st
       fullText: clean(stale.fullText) || `${label} telemetry is stale.`,
       route: stale.route ?? null, dedupeKey: `telemetry:stale:${name}`,
       priorityKey: 'telemetry-stale', transitionAt: Number(stale.transitionAt),
-    }));
-  }
-
-  const predictionReceipt = parsePredictionReceipt(items.Forecast_Prediction_Receipt_JSON,
-    { nowMs: now });
-  const preDuskReceipt = parsePreDuskTroughReceipt(items.Forecast_PreDusk_Trough_Receipt_JSON,
-    { nowMs: now });
-  const thermalParts = clean(predictionReceipt?.thermalAdvisory).split('|');
-  const thermalCode = clean(thermalParts.shift()).toLowerCase();
-  const thermalText = clean(thermalParts.join('|'));
-  if (thermalCode === 'close_up_tomorrow') {
-    alerts.push(baseAlert({
-      id: 'thermal-close', severity: 'warning', shortText: thermalText || 'Close up tomorrow',
-      fullText: thermalText || 'Close up tomorrow to retain thermal mass.', route: 'earthship',
-      dedupeKey: 'thermal:close-up-tomorrow', priorityKey: 'thermal-close',
-    }));
-  } else if (thermalCode === 'vent_tonight') {
-    alerts.push(baseAlert({
-      id: 'thermal-vent', severity: 'advisory', shortText: thermalText || 'Vent tonight',
-      fullText: thermalText || 'Vent tonight when outdoor conditions permit.', route: 'earthship',
-      dedupeKey: 'thermal:vent-tonight', priorityKey: 'thermal-vent',
-    }));
-  } else if (thermalCode && thermalCode !== 'none') {
-    alerts.push(baseAlert({
-      id: `thermal-unknown:${thermalCode}`, severity: 'warning',
-      shortText: thermalText || `Thermal advisory · ${thermalCode}`,
-      fullText: thermalText || `Unknown thermal advisory code: ${thermalCode}`,
-      route: 'earthship', dedupeKey: `thermal:unknown:${thermalCode}`, priorityKey: 'thermal-close',
-    }));
-    diagnostics.push({
-      code: 'unknown-thermal-code', value: thermalCode,
-      message: `Unknown Thermal_Advisory code: ${thermalCode}`,
-    });
-  }
-
-  const troughForecast = selectTroughForecast(preDuskReceipt);
-  const trough = troughForecast?.value ?? null;
-  if (trough !== null && trough < 40) {
-    const rounded = Math.round(trough);
-    alerts.push(baseAlert({
-      id: 'soc-trough', severity: trough <= 12 ? 'critical' : 'warning',
-      shortText: `Pre-dusk SoC estimate · ${rounded}%`,
-      fullText: `Pre-dusk estimate of the overnight battery state-of-charge minimum is ${rounded}%.`, route: 'energy',
-      dedupeKey: 'battery:predicted-trough', priorityKey: 'soc-trough',
     }));
   }
 
