@@ -1,6 +1,6 @@
 # Decision-support verification and delivery — 2026-10-23
 
-This record closes source verification for the [adopted decision-support goal](../superpowers/plans/2026-10-22-decision-support.md). The [current decision coverage](decision-use-cases.md) remains the product tracker. It does not establish installation, commissioned observations, or useful causal effects.
+This record describes the initial source handoff. Subsequent authorized installation is recorded in the [deployment readback](decision-support-deployment-2026-10-23.md). It closes source verification for the [adopted decision-support goal](../superpowers/plans/2026-10-22-decision-support.md). The [current decision coverage](decision-use-cases.md) remains the product tracker. It does not establish installation, commissioned observations, or useful causal effects.
 
 ## Candidate and preservation
 
@@ -31,7 +31,7 @@ The fresh whole-branch review found eight Important issues and two initially gra
 
 ## Installation/readback
 
-Not installed. Read-only service inspection found `earthship-ui.service` active/running from `artifacts/weathernext3-capabilities.local/sensitivity-release-f17f9dc`. Existing publication continues independently. The new source remains committed in its isolated worktree. Use the existing [installation/commissioning runbook](decision-support-commissioning.md), stage compatible readers before writers, and reconcile root-only overlays before selecting a new release. No installation or movement approval is requested by this source handoff.
+At the source handoff this was not installed. Read-only service inspection then found `earthship-ui.service` active/running from `artifacts/weathernext3-capabilities.local/sensitivity-release-f17f9dc`. Existing publication continues independently. The new source remains committed in its isolated worktree. Use the existing [installation/commissioning runbook](decision-support-commissioning.md), stage compatible readers before writers, and reconcile root-only overlays before selecting a new release. No installation or movement approval is requested by this source handoff.
 
 ## Real-input advice availability
 

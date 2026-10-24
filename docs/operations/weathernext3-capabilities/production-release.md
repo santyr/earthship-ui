@@ -1,5 +1,7 @@
 # Installed weather and household replacements
 
+Source selections subsequently advanced through the authorized [decision-support deployment](../decision-support-deployment-2026-10-23.md). That record is current for UI, native household, compatible readers and future native refresh source pins; the original model/admission clocks and the historical readback below remain preserved.
+
 The selected temperature and hourly-mean wind methods, native-component PV
 calibration, refitted thermal response, household PV/storage projection and
 three deterministic weather sensitivity cases are active. The home page shows

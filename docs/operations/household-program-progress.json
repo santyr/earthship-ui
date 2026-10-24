@@ -10282,7 +10282,7 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-23T23:06:19.167933+00:00",
+  "updated_at": "2026-10-23T23:51:43.533367+00:00",
   "current_source_audit": {
     "as_of": "2026-10-20",
     "requirements": "docs/audits/2026-10-20/requirements.md",
@@ -10316,8 +10316,11 @@
     "operator_clarification": "Nightly override scheduling stays with existing OpenHAB rules; shades still need connection; standalone flexible tasks require explicit approval.",
     "verification": "docs/operations/decision-support-verification-2026-10-23.md",
     "software_verification": "local_passed_with_explicit_profile_qualification_skips",
-    "installed": false,
+    "installed": true,
     "device_observation_commissioned": false,
-    "action_effects_qualified": false
+    "action_effects_qualified": false,
+    "deployment": "docs/operations/decision-support-deployment-2026-10-23.md",
+    "installed_source": "e6085e9a71279e5eb8f3b020f218605af1880e11",
+    "real_input_advice_status": "insufficient_evidence_operator_policy_missing"
   }
 }
