@@ -1,4 +1,5 @@
 import { expect, test } from './fixture-test.js';
+import { energyForecastFixture } from '../fixtures/energyForecast.js';
 import { createServer } from 'vite';
 import { readFile } from 'node:fs/promises';
 
@@ -257,8 +258,11 @@ test('ordinary overcast and stale sky icons render without full offline collecti
   expect(runtime.pageErrors).toEqual([]);
 });
 
-test('Home curtailment follows the dated daily prediction receipt', async ({ page }) => {
+test('Home curtailment uses the current energy forecast instead of the retired receipt', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-09-24T07:00:00-06:00') });
+  await page.route('**/api/household-energy-observation', route => route.fulfill({
+    json: energyForecastFixture('2026-09-24T06:59:00-06:00'),
+  }));
   const receipt = JSON.stringify({ version: 1, predictionDay: '2026-09-24',
     issuedAt: '2026-09-24T06:40:29-06:00', pvTodayKwh: 3.3,
     curtailmentHoursToday: 1.5, overnightTroughSocPct: 59,
@@ -266,7 +270,11 @@ test('Home curtailment follows the dated daily prediction receipt', async ({ pag
   await openHomeFixture(page, TARGETS[0], {
     states: { Predicted_Curtailment_Hours: '0', Forecast_Prediction_Receipt_JSON: receipt },
   });
-  await expect(page.locator('.curtail-lamp')).toContainText('curtail 1.5 h');
+  await expect(page.locator('.curtail-lamp')).toContainText('curtail 3.0 kWh · 24h');
+  await expect(page.locator('.curtail-lamp .lamp-dot')).toHaveClass(/active/);
+  await page.clock.fastForward('15:00');
+  await expect(page.locator('.curtail-lamp')).toContainText('curtail — · 24h');
+  await expect(page.locator('.curtail-lamp .lamp-dot')).not.toHaveClass(/active/);
 });
 
 test('Solar comparison follows the dated forecast across local midnight', async ({ page }) => {

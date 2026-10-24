@@ -70,9 +70,9 @@
   const pvAccuracyBadge = $derived(liveEnergyForecast ? 'Potential estimate · uncalibrated' : pvError === null ? 'Forecast error unavailable' : `Forecast error ${Math.round(Math.abs(pvError))}%`);
 
   // ---- Curtailment ------------------------------------------------------
-  const curtailHours = $derived(predictionReceipt?.curtailmentHoursToday ?? null);
-  const curtailPct = $derived(curtailHours === null ? 0 : Math.max(0, Math.min(100, (curtailHours / 24) * 100)));
-  const curtailText = $derived(curtailHours === null ? 'Unavailable' : `${curtailHours.toFixed(1)} h`);
+  const curtailKwh = $derived(liveEnergyForecast?.curtailment24hKwh ?? null);
+  const curtailPct = $derived(liveEnergyForecast?.curtailmentPct ?? 0);
+  const curtailText = $derived(curtailKwh === null ? 'Unavailable' : `${curtailKwh.toFixed(1)} kWh`);
 
   // ---- 7-day PV outlook -------------------------------------------------
   const pvOutlook = $derived.by(() => {
@@ -156,9 +156,10 @@
   </div>
 
   <div class="cell curtail-cell">
-    <Tile label="Predicted Curtailment (today)" accent={colors.advisory}>
+    <Tile label="Predicted Curtailment · Next 24 Hours" accent={colors.advisory}>
       <div class="curtail-body">
         <div class="curtail-value">{curtailText}</div>
+        <div class="curtail-note">Current-load estimate · uncalibrated</div>
         <div class="curtail-bar-track">
           <div class="curtail-bar-fill" style="width: {curtailPct}%; background: {colors.advisory}"></div>
         </div>
@@ -379,6 +380,7 @@
     background: #1c2230;
     overflow: hidden;
   }
+  .curtail-note { color: #94a3b8; font-size: .6rem; line-height: 1.2; }
   .curtail-bar-fill {
     height: 100%;
     border-radius: 999px;

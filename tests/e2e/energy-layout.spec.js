@@ -1,4 +1,5 @@
 import { expect, test } from './fixture-test.js';
+import { energyForecastFixture } from '../fixtures/energyForecast.js';
 import { createServer } from 'vite';
 
 import { energyAnalyticsFixture, energyAnalyticsV2Fixture, energyAnalyticsCurrentV3Fixture } from '../fixtures/energyAnalytics.js';
@@ -197,19 +198,22 @@ test('Energy marks realized PV above the immutable morning forecast', async ({ p
   await expect(page.locator('.pv-sub')).toHaveText('above 5.4 kWh morning forecast');
 });
 
-test('Energy keeps morning curtailment but does not display the morning trough', async ({ page }) => {
+test('Energy uses current curtailment energy without a legacy prediction and expires it', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-09-24T07:00:00-06:00') });
+  await page.route('**/api/household-energy-observation', route => route.fulfill({
+    json: energyForecastFixture('2026-09-24T06:59:00-06:00'),
+  }));
   await openEnergyFixture(page, TARGETS[0], energyAnalyticsFixture(), {
     Predicted_Curtailment_Hours: '0', Predicted_SoC_Trough_Tomorrow: '52',
-    Forecast_Prediction_Receipt_JSON: JSON.stringify({
-      version: 1, predictionDay: '2026-09-24', issuedAt: '2026-09-24T06:40:29-06:00',
-      pvTodayKwh: 3.3, curtailmentHoursToday: 1.5, overnightTroughSocPct: 59,
-      thermalAdvisory: 'none|No thermal action needed',
-    }),
+    Forecast_Prediction_Receipt_JSON: 'UNDEF',
   });
-  await expect(page.locator('.curtail-value')).toHaveText('1.5 h');
-  await expect(page.locator('.hero-trough').filter({ hasText: /^Estimated trough / })).toHaveCount(0);
-  await expect(page.locator('.hero-trough').filter({ hasText: /^Predicted SoC / })).toHaveText('Predicted SoC unavailable');
+  await expect(page.locator('.curtail-value')).toHaveText('3.0 kWh');
+  await expect(page.locator('.curtail-cell .tile-label')).toHaveText('Predicted Curtailment · Next 24 Hours');
+  await expect(page.locator('.curtail-note')).toHaveText('Current-load estimate · uncalibrated');
+  await expect(page.locator('.curtail-bar-fill')).toHaveAttribute('style', /width: 25%/);
+  await page.clock.fastForward('15:00');
+  await expect(page.locator('.curtail-value')).toHaveText('Unavailable');
+  await expect(page.locator('.curtail-bar-fill')).toHaveAttribute('style', /width: 0%/);
 });
 
 test('Energy shows one dated pre-dusk estimate without mixing forecasts into measured history', async ({ page }) => {

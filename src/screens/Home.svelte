@@ -30,7 +30,6 @@
   import { greywaterSchedule } from '../lib/ui/greywaterSchedule.js';
   import { bitcoinReceiptState } from '../lib/ui/bitcoinReceipt.js';
   import { officeHallwayTemperature } from '../lib/thermal/officeHallwayTemperature.js';
-  import { parsePredictionReceipt } from '../lib/forecast/predictionReceipt.js';
   import { stationPresentation } from '../lib/weather/stationPresentation.js';
   import { estimateDailyLoadKWh } from '../lib/ui/dailyLoad.js';
   import {
@@ -381,11 +380,10 @@
       : `Week ${rainWeekInches.toFixed(2)}″ / ${rainWeekGallons.toLocaleString('en-US')} gal`
   );
 
-  const predictionReceipt = $derived(parsePredictionReceipt($items.Forecast_Prediction_Receipt_JSON, { nowMs: wallClock }));
-  const curtailHours = $derived(predictionReceipt?.curtailmentHoursToday ?? null);
-  const curtailActive = $derived(curtailHours !== null && curtailHours > 0);
-  const curtailText = $derived(curtailHours === null ? '—' : `${curtailHours.toFixed(1)} h`);
-  const curtailColor = $derived(curtailmentColor(curtailHours));
+  const curtailKwh = $derived(liveEnergyForecast?.curtailment24hKwh ?? null);
+  const curtailActive = $derived(curtailKwh !== null && curtailKwh > 0);
+  const curtailText = $derived(curtailKwh === null ? '—' : `${curtailKwh.toFixed(1)} kWh`);
+  const curtailColor = $derived(curtailmentColor(curtailKwh));
   const solarColor = $derived(solarPvColor(pvWatts));
 
   const pressureStatus = $derived.by(() => {
@@ -793,9 +791,9 @@
         </div>
         <div class="solar-sub">{liveEnergyForecast ? `${liveEnergyForecast.potentialRemainingTodayKwh.toFixed(1)} kWh potential left` : solarTodayForecast === null ? 'PV forecast unavailable' : `of ${fmt(solarTodayForecast, '', 1)} predicted`}</div>
         <div class="solar-current" style="color: {solarColor}">{fmt($items.MPPT60_PV_Power, ' W', 0)} now</div>
-        <div class="curtail-lamp" style="color: {curtailColor}">
+        <div class="curtail-lamp" style="color: {curtailColor}" title="Predicted curtailment · next 24 hours · current-load estimate, uncalibrated">
           <span class="lamp-dot" class:active={curtailActive}></span>
-          curtail {curtailText}
+          curtail {curtailText} · 24h
         </div>
       </div>
     </Tile>
