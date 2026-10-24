@@ -45,8 +45,9 @@ function snapshot() {
     zones: Object.fromEntries(['kitchen', 'living', 'bathroom', 'bedroom'].map(zone => [zone,
       { saved: 'OFF', authoritative: true, status: 'automation_off', label: labels.automation_off }])) };
 }
-const zone = (page, label) => page.getByRole('region', { name: `${label} shades`, exact: true });
-const toggle = (page, label) => zone(page, label).getByRole('switch', { name: 'Automate recommendations', exact: true });
+const zone = (page, label) => page.locator('[data-shade-automation-zone="'+({Kitchen:'kitchen','Living Room':'living',Bathroom:'bathroom',Bedroom:'bedroom'}[label])+'"]');
+const toggle = (page, label) => zone(page, label).getByRole('button');
+async function holdToggle(page, label) { await toggle(page, label).focus(); await page.keyboard.down('Space'); await page.waitForTimeout(650); await page.keyboard.up('Space'); }
 
 async function fixturePolicy(page, state, options = {}) {
   const writes = [];
@@ -71,7 +72,7 @@ async function fixturePolicy(page, state, options = {}) {
 }
 
 for (const size of [{ width: 1340, height: 800 }, { width: 1280, height: 720 }]) {
-  test(`${size.width}×${size.height}: four zone headings expose bounded saved choice and backend status`, async ({ page }) => {
+  test(`${size.width}×${size.height}: Controls shows four conventional shade policy cards and no policy switches remain on Shades`, async ({ page }) => {
     await page.setViewportSize(size);
     const state = snapshot();
     state.zones.kitchen = { saved: 'ON', authoritative: true, status: 'awaiting_commissioning', label: labels.awaiting_commissioning };
@@ -79,66 +80,58 @@ for (const size of [{ width: 1340, height: 800 }, { width: 1280, height: 720 }])
     state.zones.bathroom = { saved: 'ON', authoritative: true, status: 'nightly_override', label: labels.nightly_override };
     state.zones.bedroom = { saved: null, authoritative: false, status: 'policy_unavailable', label: labels.policy_unavailable };
     const writes = await fixturePolicy(page, state);
-    await page.goto(`${baseURL}#/shades`);
-    for (const [view, names] of [['Kitchen + Living Room', ['Kitchen', 'Living Room']], ['Bathroom + Bedroom', ['Bathroom', 'Bedroom']]]) {
-      await page.getByRole('button', { name: view, exact: true }).click();
-      for (const name of names) {
-        await expect(toggle(page, name)).toBeVisible();
-        const geometry = await zone(page, name).locator('.zone-heading').evaluate(element => {
-          const box = element.getBoundingClientRect();
-          const controls = [...element.querySelectorAll('button')].map(button => {
-            const rect = button.getBoundingClientRect();
-            return { top: rect.top, right: rect.right, bottom: rect.bottom, left: rect.left, height: rect.height };
-          });
-          return { top: box.top, right: box.right, bottom: box.bottom, left: box.left,
-            clipped: [...element.querySelectorAll('*')].some(child => child.scrollWidth > child.clientWidth + 1), controls };
-        });
-        expect(geometry.clipped).toBe(false);
-        expect(geometry.right).toBeLessThanOrEqual(size.width);
-        expect(geometry.bottom).toBeLessThanOrEqual(size.height);
-        expect(geometry.controls.every(control => control.left >= geometry.left && control.right <= geometry.right + 1
-          && control.top >= geometry.top && control.bottom <= geometry.bottom + 1)).toBe(true);
-        expect(await toggle(page, name).evaluate(element => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
-      }
+    await page.goto(`${baseURL}#/controls`);
+    for (const name of ['Kitchen', 'Living Room', 'Bathroom', 'Bedroom']) {
+      await expect(toggle(page, name)).toBeVisible();
+      await expect(toggle(page, name)).toHaveClass(/control/);
+      expect(await toggle(page, name).evaluate(element => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
     }
-    await expect(toggle(page, 'Bathroom')).toHaveAttribute('aria-checked', 'true');
+    await expect(toggle(page, 'Bathroom')).toHaveAttribute('aria-pressed', 'true');
     await expect(zone(page, 'Bathroom').getByText(labels.nightly_override, { exact: true })).toBeVisible();
-    await expect(toggle(page, 'Bedroom')).toHaveAttribute('aria-checked', 'mixed');
-    await expect(zone(page, 'Bedroom').getByText('Unknown', { exact: true })).toBeVisible();
+    await expect(toggle(page, 'Bedroom')).not.toHaveAttribute('aria-pressed');
+    await expect(zone(page, 'Bedroom').getByText('Unavailable', { exact: true })).toBeVisible();
     await page.reload();
-    await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-checked', 'true');
+    await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-pressed', 'true');
+    await page.goto(`${baseURL}#/shades`);
+    await expect(page.getByRole('switch')).toHaveCount(0);
+    await expect(page.locator('.zone-policy')).toHaveCount(0);
     expect(writes).toEqual([]);
   });
 }
 
-test('keyboard and touch save only addressed zones; enabling during override stays paused without preview writes', async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 720 });
-  const state = snapshot();
-  const writes = await fixturePolicy(page, state, { paused: true });
-  const previewPositions = [25, 75, ...Array(24).fill(50)];
-  await page.route('**/api/shades-preview/events', route => route.fulfill({
-    contentType: 'text/event-stream', body: `data: ${JSON.stringify({ positions: previewPositions })}\n\n`,
-  }));
-  await page.goto(`${baseURL}#/shades`);
-  await expect(page.getByRole('slider', { name: 'Kitchen Shade 01 local preview percent open', exact: true })).toHaveValue('25');
-  await expect(page.getByRole('slider', { name: 'Kitchen Shade 02 local preview percent open', exact: true })).toHaveValue('75');
-  for (const [view, names] of [['Kitchen + Living Room', ['Kitchen', 'Living Room']], ['Bathroom + Bedroom', ['Bathroom', 'Bedroom']]]) {
-    await page.getByRole('button', { name: view, exact: true }).click();
-    for (const name of names) {
-      await toggle(page, name).focus();
-      await toggle(page, name).press('Space');
-      await expect(toggle(page, name)).toHaveAttribute('aria-checked', 'true');
-      await expect(zone(page, name).getByText(['Bathroom', 'Bedroom'].includes(name) ? labels.nightly_override : labels.awaiting_commissioning, { exact: true })).toBeVisible();
-    }
+test('shade policies use hold interaction and submit only their authoritative policy request', async ({page}) => {
+  const state = snapshot(); const writes = await fixturePolicy(page, state, {paused:true});
+  await page.goto(`${baseURL}#/controls`);
+  await expect(toggle(page, 'Kitchen')).toContainText('Hold 600 ms');
+  await toggle(page, 'Kitchen').tap();
+  expect(writes).toEqual([]);
+  for(const name of ['Kitchen','Living Room','Bathroom','Bedroom']) {
+    await holdToggle(page,name);
+    await expect(toggle(page,name)).toHaveAttribute('aria-pressed','true');
   }
-  expect(writes.map(write => [write.zone, write.enabled])).toEqual(['kitchen', 'living', 'bathroom', 'bedroom'].map(id => [id, true]));
-  await toggle(page, 'Bathroom').tap();
-  await expect(toggle(page, 'Bathroom')).toHaveAttribute('aria-checked', 'false');
-  await expect(toggle(page, 'Bedroom')).toHaveAttribute('aria-checked', 'true');
-  expect(writes.at(-1)).toEqual({ zone: 'bathroom', enabled: false, expectedGeneration: 5, expectedSessionId: 'fixture-policy-session' });
-  await page.getByRole('button', { name: 'Kitchen + Living Room', exact: true }).click();
-  await expect(page.getByRole('slider', { name: 'Kitchen Shade 01 local preview percent open', exact: true })).toHaveValue('25');
-  await expect(page.getByRole('slider', { name: 'Kitchen Shade 02 local preview percent open', exact: true })).toHaveValue('75');
+  expect(writes.map(write=>[write.zone,write.enabled])).toEqual(['kitchen','living','bathroom','bedroom'].map(id=>[id,true]));
+  await expect(zone(page,'Bathroom').getByText(labels.nightly_override,{exact:true})).toBeVisible();
+  await page.goto(`${baseURL}#/shades`);
+  await expect(page.getByRole('switch')).toHaveCount(0);
+  await expect(page.locator('.policy-switch')).toHaveCount(0);
+});
+
+test('cancels a held policy switch when the source generation changes or Controls unmounts', async ({page}) => {
+  await page.clock.install();
+  const state = snapshot(); const writes = await fixturePolicy(page, state);
+  await page.goto(`${baseURL}#/controls`);
+  await expect(toggle(page, 'Kitchen')).toBeEnabled();
+  await toggle(page, 'Kitchen').focus(); await page.keyboard.down('Space');
+  state.generation++;
+  const reread = page.waitForResponse(response => response.url().endsWith('/api/shades-policy'));
+  await page.evaluate(() => window.dispatchEvent(new Event('online')));
+  await reread; await page.clock.runFor(50); await page.clock.fastForward(650);
+  await page.keyboard.up('Space'); expect(writes).toEqual([]);
+  await toggle(page, 'Kitchen').focus(); await page.keyboard.down('Space');
+  await page.evaluate(() => window.location.hash = '#/shades');
+  await expect(page.locator('[data-shades-page]')).toBeVisible();
+  await page.clock.fastForward(650); await page.keyboard.up('Space');
+  expect(writes).toEqual([]);
 });
 
 test('pending and failed save never show confirmed ON; subsequent authoritative read recovers', async ({ page }) => {
@@ -147,40 +140,39 @@ test('pending and failed save never show confirmed ON; subsequent authoritative 
   const held = new Promise(resolve => release = resolve);
   await fixturePolicy(page, state, { fail: true, beforeSave: () => held });
   await page.clock.install();
-  await page.goto(`${baseURL}#/shades`);
-  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-checked', 'false');
-  await toggle(page, 'Kitchen').click();
+  await page.goto(`${baseURL}#/controls`);
+  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-pressed', 'false');
+  await holdToggle(page, 'Kitchen');
   await expect(zone(page, 'Kitchen').getByText('Saving…', { exact: true })).toBeVisible();
-  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-checked', 'false');
+  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-pressed', 'false');
   await expect(toggle(page, 'Kitchen')).toBeDisabled();
   release();
   await expect(zone(page, 'Kitchen').getByRole('alert')).toContainText('Save not confirmed');
-  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-checked', 'mixed');
+  await expect(toggle(page, 'Kitchen')).not.toHaveAttribute('aria-pressed');
   await page.clock.fastForward(5001);
-  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-checked', 'false');
+  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-pressed', 'false');
 });
 
 test('multiple clients reconcile remote preferences and a new backend session with no lifecycle writes', async ({ page, context }) => {
   const state = snapshot();
   const writes = await fixturePolicy(page, state);
   await page.clock.install();
-  await page.goto(`${baseURL}#/shades`);
-  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-checked', 'false');
+  await page.goto(`${baseURL}#/controls`);
+  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-pressed', 'false');
   const second = await context.newPage();
   const secondWrites = await fixturePolicy(second, state);
-  await second.goto(`${baseURL}#/shades`);
-  await toggle(second, 'Kitchen').click();
-  await expect(toggle(second, 'Kitchen')).toHaveAttribute('aria-checked', 'true');
+  await second.goto(`${baseURL}#/controls`);
+  await holdToggle(second, 'Kitchen');
+  await expect(toggle(second, 'Kitchen')).toHaveAttribute('aria-pressed', 'true');
   await page.clock.fastForward(5001);
-  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-checked', 'true');
+  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-pressed', 'true');
   state.sessionId = 'new-backend-session'; state.generation = 0;
   state.connected = false;
   await page.clock.fastForward(5001);
-  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-checked', 'mixed');
+  await expect(toggle(page, 'Kitchen')).not.toHaveAttribute('aria-pressed');
   state.connected = true;
   await page.evaluate(() => window.dispatchEvent(new Event('online')));
-  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-checked', 'true');
-  await page.getByRole('button', { name: 'Bathroom + Bedroom', exact: true }).click();
+  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-pressed', 'true');
   await page.reload();
   expect(writes).toEqual([]);
   expect(secondWrites).toHaveLength(1);
@@ -192,8 +184,8 @@ test('an older in-flight poll cannot overwrite a later confirmed save', async ({
   const state = snapshot();
   await page.clock.install();
   await fixturePolicy(page, state);
-  await page.goto(`${baseURL}#/shades`);
-  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-checked', 'false');
+  await page.goto(`${baseURL}#/controls`);
+  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-pressed', 'false');
   let release;
   const held = new Promise(resolve => release = resolve);
   let reading;
@@ -207,13 +199,13 @@ test('an older in-flight poll cannot overwrite a later confirmed save', async ({
   });
   await page.clock.fastForward(5001);
   await started;
-  await toggle(page, 'Kitchen').click();
-  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-checked', 'true');
+  await holdToggle(page, 'Kitchen');
+  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-pressed', 'true');
   const received = page.waitForResponse(response => response.url().endsWith('/api/shades-policy') && response.request().method() === 'GET');
   release();
   await (await received).finished();
   await page.clock.runFor(50);
-  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-checked', 'true');
+  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('a hung policy read expires to Unknown and the next poll recovers without refreshing', async ({ page }) => {
@@ -221,8 +213,8 @@ test('a hung policy read expires to Unknown and the next poll recovers without r
   state.zones.kitchen = { saved: 'ON', authoritative: true, status: 'awaiting_commissioning', label: labels.awaiting_commissioning };
   await page.clock.install();
   const writes = await fixturePolicy(page, state);
-  await page.goto(`${baseURL}#/shades`);
-  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-checked', 'true');
+  await page.goto(`${baseURL}#/controls`);
+  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-pressed', 'true');
   let release;
   const held = new Promise(resolve => release = resolve);
   let started;
@@ -238,10 +230,10 @@ test('a hung policy read expires to Unknown and the next poll recovers without r
   await page.clock.fastForward(5001);
   await reading;
   await page.clock.fastForward(30_001);
-  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-checked', 'mixed');
-  await expect(zone(page, 'Kitchen').getByText('Unknown', { exact: true })).toBeVisible();
+  await expect(toggle(page, 'Kitchen')).not.toHaveAttribute('aria-pressed');
+  await expect(zone(page, 'Kitchen').getByText('Unavailable', { exact: true })).toBeVisible();
   await page.clock.fastForward(5001);
-  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-checked', 'true');
+  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-pressed', 'true');
   release();
   expect(writes).toEqual([]);
 });
@@ -257,20 +249,20 @@ test('a hung policy save expires without confirming ON and polling recovers the 
     await held;
     await route.fulfill({ json: state }).catch(() => {});
   });
-  await page.goto(`${baseURL}#/shades`);
-  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-checked', 'false');
-  await toggle(page, 'Kitchen').click();
+  await page.goto(`${baseURL}#/controls`);
+  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-pressed', 'false');
+  await holdToggle(page, 'Kitchen');
   await expect(zone(page, 'Kitchen').getByText('Saving…', { exact: true })).toBeVisible();
   await page.clock.fastForward(30_001);
   await expect(zone(page, 'Kitchen').getByRole('alert')).toContainText('Save not confirmed');
   await expect(zone(page, 'Kitchen').getByText('Saving…', { exact: true })).toHaveCount(0);
-  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-checked', 'mixed');
+  await expect(toggle(page, 'Kitchen')).not.toHaveAttribute('aria-pressed');
   await page.clock.fastForward(5001);
-  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-checked', 'false');
+  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-pressed', 'false');
   release();
 });
 
-test('leaving Shades aborts its policy read and a late response cannot alter the remounted screen', async ({ page }) => {
+test('leaving Controls aborts its policy read and a late response cannot alter the remounted screen', async ({ page }) => {
   await page.addInitScript(() => {
     const originalFetch = window.fetch;
     window.policyReadAborts = 0;
@@ -298,15 +290,15 @@ test('leaving Shades aborts its policy read and a late response cannot alter the
     await held;
     await route.fulfill({ json: oldState }).catch(() => {});
   });
-  await page.goto(`${baseURL}#/shades`);
+  await page.goto(`${baseURL}#/controls`);
   await reading;
   await page.evaluate(() => window.location.hash = '#/');
-  await expect(page.getByRole('heading', { name: 'Window shades', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('region', {name:'Shade automation',exact:true})).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => window.policyReadAborts)).toBe(1);
-  await page.evaluate(() => window.location.hash = '#/shades');
-  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-checked', 'false');
+  await page.evaluate(() => window.location.hash = '#/controls');
+  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-pressed', 'false');
   release();
   await page.clock.runFor(50);
-  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-checked', 'false');
+  await expect(toggle(page, 'Kitchen')).toHaveAttribute('aria-pressed', 'false');
   expect(writes).toEqual([]);
 });

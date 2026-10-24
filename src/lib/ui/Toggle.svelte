@@ -24,6 +24,8 @@
     capabilities = {},
     ownerTransitioning = false,
     ownerBusy = false,
+    viewOverride = null,
+    submitOverride = null,
   } = $props();
 
   let healthNowMs = $state(Date.now());
@@ -42,7 +44,8 @@
       : {},
   );
 
-  const view = $derived.by(() => deriveControlState(control, {
+  const customSubmission = $derived(viewOverride !== null && typeof submitOverride === 'function');
+  const view = $derived.by(() => customSubmission ? viewOverride : deriveControlState(control, {
     items: $items,
     nowMs: Math.max(healthNowMs, Date.now()),
     connection: $connection,
@@ -60,6 +63,7 @@
   const activationMode = $derived(activationModeFor(control));
   const commandContract = $derived([
     control?.kind || '',
+    control?.contextKey || '',
     commandTargetFor(control) || '',
     view.value || '',
     view.enabled ? 'enabled' : 'disabled',
@@ -111,6 +115,7 @@
   }
 
   async function submit() {
+    if (customSubmission) return submitOverride();
     const client = getClientOnce();
     const target = commandTargetFor(control);
 
