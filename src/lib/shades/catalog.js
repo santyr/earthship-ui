@@ -1,3 +1,4 @@
+import { currentShadeObservation } from './observation.js';
 import { OFFICE_HALLWAY_TEMPERATURE_ITEM } from '../thermal/officeHallwayTemperature.js';
 
 // The adapter remains in santyr/dooya_blinds_openhab. Populate these Item
@@ -31,13 +32,22 @@ export const SHADE_SLOTS = Object.freeze(SHADE_GROUPS.flatMap((group) =>
       positionItem: null,
       availabilityItem: null,
       stateItem: null,
+      serviceAvailabilityItem: null,
+      bridgeAvailabilityItem: null,
+      serviceStateItem: null,
+      bridgeStateItem: null,
+      serviceThingUID: null,
+      resultItem: null,
+      adapterShadeId: null,
+      sourceIdentity: null,
+      commissionedEpoch: null,
     });
   }),
 ));
 
 export function shadePreviewEnabled(slots) {
   return slots.length === SHADE_COUNT && slots.every((slot) =>
-    !slot.positionItem && !slot.availabilityItem && !slot.stateItem);
+    !['positionItem','availabilityItem','stateItem','serviceAvailabilityItem','bridgeAvailabilityItem','serviceStateItem','bridgeStateItem','serviceThingUID','resultItem','adapterShadeId','sourceIdentity','commissionedEpoch'].some(key => slot[key]));
 }
 
 export function shadePosition(raw) {
@@ -48,6 +58,7 @@ export function shadePosition(raw) {
   return Number.isFinite(number) && number >= 0 && number <= 100 ? number : null;
 }
 
+// Historical v1 reader only. Active consumers use the session-bound v2 path.
 export function parseShadeReport(raw, nowMs = Date.now()) {
   if (typeof raw !== 'string' || raw.length > 8192 || !Number.isFinite(nowMs)) return null;
   let report;
@@ -61,36 +72,12 @@ export function parseShadeReport(raw, nowMs = Date.now()) {
   return { position: report.reported_position, observedAtMs: report.report_received_at * 1000, ageMs };
 }
 
-export function shadePresentation(slot, states, connection, nowMs = Date.now()) {
-  if (!slot?.positionItem || !slot?.availabilityItem || !slot?.stateItem) {
-    return { state: 'unmapped', label: 'Awaiting Item mapping', position: null };
-  }
-  if (connection !== 'live') {
-    return { state: 'unavailable', label: 'openHAB unavailable', position: null };
-  }
-  const availability = states?.[slot.availabilityItem];
-  if (availability !== 'ON') {
-    return { state: 'unavailable', label: availability === 'OFF' ? 'Shade offline' : 'Availability unknown', position: null };
-  }
-  const report = parseShadeReport(states?.[slot.stateItem], nowMs);
-  if (!report) {
-    return { state: 'unavailable', label: 'No fresh position report', position: null };
-  }
-  const position = shadePosition(states?.[slot.positionItem]);
-  if (position !== report.position) {
-    return { state: 'unavailable', label: 'Position sources disagree', position: null };
-  }
-  return {
-    state: 'reported',
-    label: position === 0 ? 'Open' : position === 100 ? 'Closed' : `${100 - position}% open`,
-    position,
-    openPercent: 100 - position,
-    observedAtMs: report.observedAtMs,
-  };
+export function shadePresentation(slot, states, connection, nowMs = Date.now(), providers = {}) {
+  return currentShadeObservation(slot, states, connection, nowMs, providers);
 }
 
-export function shadeGroupPresentation(slots, states, connection, nowMs = Date.now()) {
-  const reports = slots.map((slot) => shadePresentation(slot, states, connection, nowMs));
+export function shadeGroupPresentation(slots, states, connection, nowMs = Date.now(), providers = {}) {
+  const reports = slots.map((slot) => shadePresentation(slot, states, connection, nowMs, providers));
   if (reports.length === 0 || reports.some((report) => report.state !== 'reported')) {
     return { state: 'unavailable', openPercent: null, label: 'Position unavailable' };
   }

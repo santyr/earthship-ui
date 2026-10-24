@@ -1,9 +1,11 @@
 <script>
+  import ShadeManualControls from '../lib/shades/ShadeManualControls.svelte';
+  import { emptyShadeInstallation, hasInstallationMapping, manualShadeTargets, validateShadeInstallation } from '../lib/shades/installation.js';
   import RecommendationPreview from '../lib/ui/RecommendationPreview.svelte';
   import { officeHallwayTemperature } from '../lib/thermal/officeHallwayTemperature.js';
   import { onMount } from 'svelte';
   import { createShadePolicyRequests, shadePolicyPresentation, validateShadePolicySnapshot } from '../lib/shades/policy.js';
-  import { items, connection } from '../lib/openhab/index.js';
+  import { items, connection, thingStatuses } from '../lib/openhab/index.js';
   import { SHADE_COUNT, SHADE_GROUPS, SHADE_SLOTS, SHADE_VIEWS, shadeGroupPresentation, shadePresentation, shadePreviewEnabled } from '../lib/shades/catalog.js';
 
   let policySnapshot = $state(null);
@@ -71,14 +73,61 @@
     };
   });
 
+  let installation = $state(emptyShadeInstallation());
+  let installationAvailable = $state(false);
+  let installationResolved = $state(false);
+  let previewBlocked = $state(false);
+  let installationMounted = false;
+  let installationReading = false;
+  const installationRequests = createShadePolicyRequests({
+    fetchImpl: (_url, options) => fetch('/api/shades-installation', options),
+  });
+  const slots = $derived(installation.slots);
+
+  async function readInstallation() {
+    if (!installationMounted || installationReading) return;
+    installationReading = true;
+    try {
+      const { response, snapshot } = await installationRequests.request();
+      if (!installationMounted) return;
+      if (hasInstallationMapping(snapshot)) previewBlocked = true;
+      const validated = response.ok ? validateShadeInstallation(snapshot) : null;
+      if (!validated) throw new Error('Installation unavailable');
+      installation = validated;
+      installationAvailable = true;
+    } catch {
+      if (installationMounted) installationAvailable = false;
+    } finally {
+      if (installationMounted) { installationReading = false; installationResolved = true; }
+    }
+  }
+
+  onMount(() => {
+    installationMounted = true;
+    readInstallation();
+    const timer = setInterval(readInstallation, 5000);
+    const reconcile = () => { if (document.visibilityState !== 'hidden') readInstallation(); };
+    window.addEventListener('online', reconcile);
+    window.addEventListener('focus', reconcile);
+    document.addEventListener('visibilitychange', reconcile);
+    return () => {
+      installationMounted = false;
+      installationRequests.dispose();
+      clearInterval(timer);
+      window.removeEventListener('online', reconcile);
+      window.removeEventListener('focus', reconcile);
+      document.removeEventListener('visibilitychange', reconcile);
+    };
+  });
+
   const shadeTints = ['#63889a', '#78876d', '#807591', '#947e68', '#6b8590'];
 
   let viewIndex = $state(0);
   let nowMs = $state(Date.now());
   const view = $derived(SHADE_VIEWS[viewIndex]);
   const rooms = $derived(SHADE_GROUPS.filter((room) => view.rooms.includes(room.id)));
-  const mapped = $derived(SHADE_SLOTS.filter((slot) => slot.positionItem && slot.availabilityItem && slot.stateItem).length);
-  const previewMode = $derived(shadePreviewEnabled(SHADE_SLOTS));
+  const mapped = $derived(slots.filter((slot) => slot.positionItem && slot.availabilityItem && slot.stateItem).length);
+  const previewMode = $derived(installationResolved && !previewBlocked && shadePreviewEnabled(slots));
   let previewOpen = $state(Object.fromEntries(SHADE_SLOTS.map((slot) => [slot.number, 50])));
   let sharedPreviewConnected = $state(false);
   let previewWrites = Promise.resolve();
@@ -121,20 +170,38 @@
     adjustmentDialog.close();
   }
 
+  let previewMounted = $state(false);
+  const previewControllers = new Set();
   onMount(() => {
+    previewMounted = true;
     const timer = setInterval(() => nowMs = Date.now(), 1000);
-    if (!previewMode) return () => clearInterval(timer);
+    return () => {
+      previewMounted = false;
+      clearInterval(timer); clearTimeout(pressedTimer);
+      for (const controller of previewControllers) controller.abort();
+    };
+  });
+  $effect(() => {
+    if (!previewMounted || !previewMode) {
+      sharedPreviewConnected = false;
+      if (adjustmentDialog?.open) adjustmentDialog.close();
+      if (activeTouch?.frame) cancelAnimationFrame(activeTouch.frame);
+      activeTouch = null;
+      for (const controller of previewControllers) controller.abort();
+      return;
+    }
     const stream = new EventSource('/api/shades-preview/events');
-    stream.onopen = () => sharedPreviewConnected = true;
+    stream.onopen = () => { if (previewMode) sharedPreviewConnected = true; };
     stream.onerror = () => sharedPreviewConnected = false;
     stream.onmessage = (event) => {
+      if (!previewMode || !previewMounted) return;
       let snapshot;
       try { snapshot = JSON.parse(event.data); } catch { return; }
       if (!Array.isArray(snapshot?.positions) || snapshot.positions.length !== SHADE_COUNT
           || !snapshot.positions.every((position) => Number.isInteger(position) && position >= 0 && position <= 100)) return;
       previewOpen = Object.fromEntries(snapshot.positions.map((position, index) => [index + 1, position]));
     };
-    return () => { clearInterval(timer); clearTimeout(pressedTimer); stream.close(); };
+    return () => { sharedPreviewConnected = false; stream.close(); };
   });
 
   function previewGroupOpen(slots) {
@@ -151,10 +218,18 @@
   function publishPreview(slots, percent) {
     if (!previewMode || !Number.isInteger(percent)) return;
     const body = JSON.stringify({ slots: slots.map((slot) => slot.number), openPercent: percent });
-    previewWrites = previewWrites.catch(() => {}).then(() => fetch('/api/shades-preview', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
-    })).then((response) => { if (!response.ok) sharedPreviewConnected = false; })
-      .catch(() => { sharedPreviewConnected = false; });
+    previewWrites = previewWrites.catch(() => {}).then(async () => {
+      if (!previewMode || !previewMounted) return;
+      const controller = new AbortController();
+      previewControllers.add(controller);
+      try {
+        const response = await fetch('/api/shades-preview', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body, signal: controller.signal,
+        });
+        if (!response.ok) sharedPreviewConnected = false;
+      } catch { sharedPreviewConnected = false; }
+      finally { previewControllers.delete(controller); }
+    });
   }
 
   function previewButton(slots, percent, key) {
@@ -217,7 +292,7 @@
     if (activeTouch.frame) cancelAnimationFrame(activeTouch.frame);
     activeTouch = null;
     recentTouchCommit = { element, at: Date.now() };
-    if (percent !== null) {
+    if (event.type === 'pointerup' && percent !== null) {
       element.value = String(percent);
       requestAnimationFrame(() => {
         if (activeTouch?.element !== element) element.value = String(percent);
@@ -226,8 +301,8 @@
     }
   }
 
-  const reporting = $derived(SHADE_SLOTS.filter((slot) => shadePresentation(slot, $items, $connection, nowMs).state === 'reported').length);
-  const allDisplay = $derived(shadeGroupPresentation(SHADE_SLOTS, $items, $connection, nowMs));
+  const reporting = $derived(slots.filter((slot) => shadePresentation(slot, $items, $connection, nowMs, $thingStatuses).state === 'reported').length);
+  const allDisplay = $derived(shadeGroupPresentation(slots, $items, $connection, nowMs, $thingStatuses));
   const allOpen = $derived(previewMode ? previewGroupOpen(SHADE_SLOTS) : allDisplay.openPercent);
 </script>
 
@@ -238,7 +313,10 @@
       <RecommendationPreview group="shades" tiny />
       <p>{SHADE_COUNT} planned · {mapped} mapped · {reporting} reporting</p>
     </div>
-    <div class="release-state" role="status">{previewMode ? sharedPreviewConnected ? 'Shared preview only · no shade commands' : 'Local preview only · no shade commands' : 'Hardware not commissioned · movement disabled'}</div>
+    <div class="release-state">
+      <div role="status">{previewMode ? sharedPreviewConnected ? 'Shared preview only · no shade commands' : 'Local preview only · no shade commands' : !installationResolved ? 'Checking installation · movement disabled' : installationAvailable && manualShadeTargets(installation).length ? 'Manual requests available · automatic actuation disabled' : 'Observation only · manual control not released'}</div>
+      <ShadeManualControls {installation} available={installationAvailable} />
+    </div>
   </header>
 
   <div class="page-selector" aria-label="Shade views">
@@ -278,8 +356,8 @@
     </article>
     <div class="zones" aria-label="{view.label} shade zones">
       {#each rooms as room (room.id)}
-      {@const cards = SHADE_SLOTS.filter((slot) => slot.room === room.id)}
-      {@const groupDisplay = shadeGroupPresentation(cards, $items, $connection, nowMs)}
+      {@const cards = slots.filter((slot) => slot.room === room.id)}
+      {@const groupDisplay = shadeGroupPresentation(cards, $items, $connection, nowMs, $thingStatuses)}
       {@const groupOpen = previewMode ? previewGroupOpen(cards) : groupDisplay.openPercent}
       {@const officeTemperature = room.temperatureRole === 'office_reference' && $connection === 'live' ? officeHallwayTemperature($items.Weather_Temperature_Evidence_JSON, Math.max(nowMs, Date.now())) : null}
       {@const automation = shadePolicyPresentation(policySnapshot, room.id)}
@@ -309,7 +387,7 @@
             <div class="card-name">All {cards.length}</div>
             <div class="position-row">
               <span class="position-value">{groupOpen === null ? '—' : `${groupOpen}%`}</span>
-              <span class="position-caption">{previewMode ? groupOpen === null ? 'mixed' : 'preview' : groupDisplay.state === 'mixed' ? 'mixed' : 'open'}</span>
+              <span class="position-caption">{previewMode ? groupOpen === null ? 'mixed' : 'preview' : groupDisplay.state === 'mixed' ? 'mixed' : groupOpen === null ? 'unknown' : 'reported open'}</span>
             </div>
             <div class="window-control" class:unknown={!previewMode && groupOpen === null} class:mixed={previewMode && groupOpen === null} style:--closed-percent={`${groupOpen === null ? 0 : 100 - groupOpen}%`}>
               <div class="window-glass" aria-hidden="true"><div class="shade-fabric"></div></div>
@@ -325,16 +403,18 @@
             </div>
           </article>
           {#each cards as slot (slot.number)}
-            {@const display = shadePresentation(slot, $items, $connection, nowMs)}
+            {@const display = shadePresentation(slot, $items, $connection, nowMs, $thingStatuses)}
             {@const openPercent = previewMode ? previewOpen[slot.number] : display.openPercent}
-            <article class="shade-card" class:reported={!previewMode && display.state === 'reported'} style:--shade-tint={shadeTints[(slot.number - 1) % shadeTints.length]} aria-label={`${slot.label}: ${previewMode ? 'Local preview' : display.label}`}>
+            {@const lastKnownOpen = display.state === 'last_known' ? 100 - display.lastKnownPosition : undefined}
+            <article class="shade-card" class:reported={!previewMode && display.state === 'reported'} style:--shade-tint={shadeTints[(slot.number - 1) % shadeTints.length]} aria-label={`${slot.label}: ${previewMode ? 'Local preview' : display.label}`} title={previewMode ? 'Synthetic preview; no motor evidence' : display.label}>
               <div class="card-top">
                 <span class="shade-number">{String(slot.number).padStart(2, '0')}</span>
                 <span class="shade-status" class:online={!previewMode && display.state === 'reported'}>{previewMode ? 'PREVIEW' : display.state === 'reported' ? 'REPORT' : 'PENDING'}</span>
               </div>
               <div class="position-row">
-                <span class="position-value">{openPercent === undefined ? '—' : `${openPercent}%`}</span>
-                <span class="position-caption">{previewMode ? 'preview' : 'open'}</span>
+                <span class="position-value">{openPercent === undefined ? lastKnownOpen === undefined ? '—' : `${lastKnownOpen}%` : `${openPercent}%`}</span>
+                <span class="position-caption">{previewMode ? 'preview' : lastKnownOpen !== undefined ? 'last known' : display.state === 'unmapped' ? 'unmapped' : openPercent === undefined ? 'unknown' : 'reported open'}</span>
+                {#if !previewMode && display.requestedTarget !== null && display.requestedTarget !== undefined}<span class="position-caption">Requested {typeof display.requestedTarget === 'number' ? `${100-display.requestedTarget}%` : display.requestedTarget}</span>{/if}
               </div>
               <div class="window-control" class:unknown={openPercent === undefined} style:--closed-percent={`${openPercent === undefined ? 0 : 100 - openPercent}%`}>
                 <div class="window-glass" aria-hidden="true"><div class="shade-fabric"></div></div>
@@ -346,7 +426,7 @@
                   onpointerup={(event) => endTouchPreview([slot], event)}
                   onpointercancel={(event) => endTouchPreview([slot], event)}
                   aria-label="{slot.label} {previewMode ? 'local preview percent open' : 'percent open; movement disabled until commissioning'}"
-                  aria-valuetext={`${openPercent ?? 0}% open${previewMode ? ' in local preview' : ''}`} />
+                  aria-valuetext={openPercent === undefined ? 'Current position unavailable' : `${openPercent}% open${previewMode ? ' in local preview' : ''}`} />
               </div>
             </article>
           {/each}
