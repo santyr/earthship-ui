@@ -1,6 +1,6 @@
 // Prepared server-only installation/owner path. Missing private profile means
 // all 26 slots stay unmapped and no publisher process or device transport starts.
-import { constants, openSync, fstatSync, readFileSync, closeSync, realpathSync, statSync } from 'node:fs';
+import { constants, openSync, fstatSync, readFileSync, closeSync, realpathSync, statSync, readdirSync } from 'node:fs';
 import { resolve, dirname, relative, isAbsolute } from 'node:path';
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -126,6 +126,7 @@ export function shadeExecutionPlugin(options={}) {
     if(config.server.fs.strict===false)throw new Error('Private owner requires strict served-file boundaries');
     loadShadeOwnerProfile(options.profilePath);
     const privateRoot=realpathSync(dirname(resolve(options.profilePath)));
+    if(readdirSync(privateRoot).length>256)throw new Error('Private owner directory exceeds bounds');
     serving={privateRoot,root:config.root,publicDir:config.publicDir,base:config.base};
     const roots=[config.root,config.publicDir,...config.server.fs.allow].filter(value=>typeof value==='string'&&value);
     for(const root of roots){
@@ -143,8 +144,14 @@ export function shadeExecutionPlugin(options={}) {
       if(path.startsWith('/@fs/'))candidates.push(resolve('/'+path.slice(5)));
       for(const candidate of candidates){
         let target;try{target=realpathSync(candidate);}catch{continue;}
+        let protectedInode=false;
+        try{
+          const candidateInfo=statSync(target),names=readdirSync(serving.privateRoot);
+          if(names.length>256)throw new Error();
+          protectedInode=names.some(name=>{const info=statSync(resolve(serving.privateRoot,name),{throwIfNoEntry:false});return info?.isFile()&&info.dev===candidateInfo.dev&&info.ino===candidateInfo.ino;});
+        }catch{res.statusCode=503;res.end();return;}
         const part=relative(serving.privateRoot,target);
-        if(!part||(!part.startsWith('../')&&part!=='..'&&!isAbsolute(part))){res.statusCode=403;res.end();return;}
+        if(protectedInode||!part||(!part.startsWith('../')&&part!=='..'&&!isAbsolute(part))){res.statusCode=403;res.end();return;}
       }
       next();
     });

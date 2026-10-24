@@ -1,6 +1,6 @@
 import { it, expect } from 'vitest';
 import { createServer } from 'vite';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync, linkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { shadeExecutionPlugin } from '../src/lib/shades/executionServer.js';
@@ -24,8 +24,10 @@ it('actual HTTP cannot read a permitted private profile or key through normal or
   symlinkSync(path,join(root,'public','linked-profile.json'));
   symlinkSync(privateDir,join(root,'public','linked-dir'));
   symlinkSync(privateDir,join(root,'linked-root-dir'));
+  linkSync(join(privateDir,'secret.bin'),join(root,'public','hardlink.bin'));
+  linkSync(join(privateDir,'secret.bin'),join(root,'root-hardlink.bin'));
   server=await createServer(options(root,path));await server.listen();const origin=`http://127.0.0.1:${server.httpServer.address().port}`;
-  for(const route of ['/linked-profile.json','/linked-dir/profile.json','/linked-dir/secret.bin','/linked-root-dir/secret.bin','/linked-dir/secret.bin?raw'])expect((await fetch(origin+route)).status).toBe(403);
+  for(const route of ['/hardlink.bin','/root-hardlink.bin','/linked-profile.json','/linked-dir/profile.json','/linked-dir/secret.bin','/linked-root-dir/secret.bin','/linked-dir/secret.bin?raw'])expect((await fetch(origin+route)).status).toBe(403);
   for(const file of ['profile.json','secret.bin']){
    const direct=await fetch(origin+'/'+file);expect(direct.status).toBe(404);
    const absolute=await fetch(origin+'/@fs/'+join(privateDir,file));expect(absolute.status).toBe(403);expect(await absolute.text()).not.toContain('synthetic-key-only');
