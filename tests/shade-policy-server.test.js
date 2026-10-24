@@ -49,7 +49,7 @@ function fixture() {
   let sessions = 0;
   const owner = createShadePolicyOwner({ upstream: 'http://openhab', authorization: 'Bearer test', fetchImpl,
     now: () => tick, sessionIdFactory: () => `session-${++sessions}` });
-  return { owner, values, history, writes, publish, generations, fetchImpl,
+  return { owner, values, history, writes, publish, generations, fetchImpl, now: () => tick,
     failPersistence: () => { failPersistence = true; }, failRead: () => { failRead = true; },
     recover: () => { failRead = false; } };
 }
@@ -113,6 +113,18 @@ describe('persisted source policy reconciliation and narrow writes', () => {
     expect(f.writes).toEqual([{ name: SHADE_POLICY_ITEMS.bathroom, value: 'ON' }]);
     f.values.OverrideSwitch = 'ON'; f.publish();
     expect((await f.owner.read()).zones.bathroom.status).toBe('nightly_override');
+  });
+  it('waits for delayed durable policy readback without reposting the command', async () => {
+    const f = fixture(); f.failPersistence();
+    const fetchImpl = async (url, options = {}) => {
+      const response = await f.fetchImpl(url, options);
+      if (options.method === 'POST') setTimeout(() => f.publish(), 1200);
+      return response;
+    };
+    const owner = createShadePolicyOwner({ upstream: 'http://openhab', authorization: 'Bearer test', fetchImpl, now: f.now });
+    const before = await owner.read();
+    expect((await owner.update(update(before, 'kitchen', true))).zones.kitchen.saved).toBe('ON');
+    expect(f.writes).toEqual([{ name: SHADE_POLICY_ITEMS.kitchen, value: 'ON' }]);
   });
   it('does not treat accepted command or matching historical ON as successful persistence', async () => {
     const f = fixture(); const before = await f.owner.read(); f.failPersistence();

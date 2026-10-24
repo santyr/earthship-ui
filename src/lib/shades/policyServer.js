@@ -115,13 +115,13 @@ export function createShadePolicyOwner({ upstream, authorization, fetchImpl = fe
       await request(`/rest/items/${SHADE_POLICY_ITEMS[change.zone]}`, {
         method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: value,
       });
-      for (let attempt = 0; attempt < 10; attempt += 1) {
+      for (let attempt = 0; attempt < 30; attempt += 1) {
         const result = await reconcile();
         if (result.connected && result.sourceGeneration !== before.sourceGeneration
             && result.zones[change.zone].authoritative && result.zones[change.zone].saved === value) {
           if (confirmedAt[change.zone] >= started) return result;
         }
-        if (attempt < 9) await sleep(100);
+        if (attempt < 29) await sleep(100);
       }
       throw error('save_unconfirmed');
     }),
