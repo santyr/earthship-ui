@@ -3,7 +3,7 @@ import { createShadePolicyOwner, shadePolicyPlugin } from '../src/lib/shades/pol
 import { SHADE_POLICY_ITEMS, SHADE_POLICY_REVISION_ITEM, SHADE_POLICY_SESSION_ITEM } from '../src/lib/shades/policyModel.js';
 import { EventEmitter } from 'node:events';
 
-function fixture() {
+function fixture({ truncateQueryTimes = false } = {}) {
   let tick = 2000;
   const values = Object.fromEntries([...Object.values(SHADE_POLICY_ITEMS).map((name) => [name, 'OFF']), ['OverrideSwitch', 'OFF']]);
   values[SHADE_POLICY_SESSION_ITEM] = '10000000-0000-4000-8000-000000000001';
@@ -38,8 +38,9 @@ function fixture() {
       expect(url.searchParams.get('boundary')).toBe('false');
       expect(url.searchParams.get('itemState')).toBe('false');
       expect(url.searchParams.has('pageSize')).toBe(false);
-      const start = Date.parse(url.searchParams.get('starttime'));
-      const end = Date.parse(url.searchParams.get('endtime'));
+      let start = Date.parse(url.searchParams.get('starttime'));
+      let end = Date.parse(url.searchParams.get('endtime'));
+      if (truncateQueryTimes) { start = Math.floor(start / 1000) * 1000; end = Math.floor(end / 1000) * 1000; }
       expect(Number.isFinite(start) && Number.isFinite(end) && end > start).toBe(true);
       const rows = Array.isArray(history[name]) ? history[name] : history[name] ? [history[name]] : [];
       return { ok: true, json: async () => ({ data: rows.filter((row) => row.time >= start && row.time <= end).sort((a, b) => a.time - b.time) }) };
@@ -81,6 +82,17 @@ describe('persisted source policy reconciliation and narrow writes', () => {
       const current = f.history[name]; f.history[name] = [{ state: 'ON', time: current.time - 1 }, { state: 'ON', time: current.time }, current];
     }
     expect((await f.owner.read()).zones.kitchen.saved).toBe('OFF');
+  });
+  it('reads exact receipt timestamps through a provider that truncates query bounds to seconds', async () => {
+    const f = fixture({ truncateQueryTimes: true });
+    for (const name of Object.values(SHADE_POLICY_ITEMS)) {
+      const actual = f.history[name];
+      f.history[name] = [actual, { state: 'ON', time: actual.time + 20 }];
+    }
+    const current = await f.owner.read();
+    expect(current.connected).toBe(true);
+    expect(Object.values(current.zones).map(zone => zone.saved)).toEqual(['OFF', 'OFF', 'OFF', 'OFF']);
+    expect(f.writes).toEqual([]);
   });
   it('accepts unchanged all-night policy after successful current reads without a Boolean age TTL', async () => {
     const f = fixture(); f.values.OverrideSwitch = 'ON'; f.values[SHADE_POLICY_ITEMS.bathroom] = 'ON'; f.publish();
