@@ -82,3 +82,60 @@ def test_base_unit_drift_during_install_refuses_and_preserves_operator_change(tm
         if forecast.read_bytes()!=old:base_timer.write_bytes(b'operator timer change')
     with pytest.raises(ValueError):module._install_files(out,guard=guard)
     assert forecast.read_bytes()==old and base_timer.read_bytes()==b'operator timer change'
+
+
+@pytest.mark.parametrize('damage',['unchanged','before_handoff','before_install','delete_before_install','during_install'])
+def test_install_preserves_superseded_history_obligations(tmp_path,monkeypatch,damage):
+    """Real handoff/installation must keep old score pins through replacement."""
+    from datetime import datetime,timedelta
+    from hashlib import sha256
+    import json,os
+    import household_native_history as history
+    import household_native_install as install
+    from household_native_training import save,directory
+    from test_household_native_handoff import retirement_upgrade_fixture
+    handoff,family,kwargs,proof,refs,binding,selected=retirement_upgrade_fixture(tmp_path,monkeypatch)
+    now=datetime.fromisoformat(proof['assessed_at']);at=now.replace(minute=0,second=0,microsecond=0)-timedelta(hours=1)
+    evidence=Path(refs[1]['stage'])/'evidence'
+    plan={'inputs':{'snapshot':{'as_of':at.isoformat()}},'receipt_sha256':'a'*64}
+    raw=json.dumps(plan,sort_keys=True,separators=(',',':')).encode();pin=sha256(raw).hexdigest()
+    source=evidence/(pin+'.household-model-plan-v6.json');source.write_bytes(raw);source.chmod(0o600)
+    os.utime(source,(at.timestamp(),at.timestamp()))
+    store=directory(Path(proof['state_root'])/'battery-outcomes')
+    old=store/'old-partial-score.json';save(old,{'horizon':'partial'})
+    row=dict(plan_path=str(source),plan_sha256=pin,plan_receipt_sha256='a'*64,
+        issued_at=at.isoformat(),cohort_id='b'*64,retry_after=None,score_path=str(old))
+    index=dict(schema='earthship-household-battery-sample-index/v1',samples={at.isoformat():row})
+    save(store/'samples.json',index)
+    original=history.assess(proof['references'],now=now,guard=lambda:None,state_root=proof['state_root'])
+    completed=store/'completed-score.json';save(completed,{'horizon':'completed'})
+    row['score_path']=str(completed);save(store/'samples.json',index)
+    fresh=history.refresh(original,now=now,guard=lambda:None)
+    save(kwargs['history_proof'],fresh)
+    def mutate():old.write_bytes(old.read_bytes().replace(b'partial',b'changed'))
+    if damage=='before_handoff':
+        mutate()
+        with pytest.raises(ValueError,match='dependency changed'):
+            handoff.prepare(family,**kwargs)
+        assert not kwargs['output'].exists()
+        return
+    handoff.prepare(family,**kwargs)
+    record=handoff.verify(kwargs['output'],guard=lambda:None)
+    targets={role:Path(row['target']) for role,row in record['changes'].items()}
+    before={path:path.read_bytes() for path in targets.values()}
+    if damage=='before_install':mutate()
+    elif damage=='delete_before_install':old.unlink()
+    mutated=False
+    def guard():
+        nonlocal mutated
+        if damage=='during_install' and not mutated and targets['forecast'].read_bytes()!=before[targets['forecast']]:
+            mutate();mutated=True
+    if damage=='unchanged':
+        assert install._install_files(kwargs['output'],guard=guard)['file_count']==5
+        assert old.read_bytes()==b'{"horizon":"partial"}'
+        assert all(path.read_bytes()==Path(record['changes'][role]['desired']['path']).read_bytes() for role,path in targets.items())
+    else:
+        with pytest.raises((ValueError,OSError)):
+            install._install_files(kwargs['output'],guard=guard)
+        assert all(path.read_bytes()==raw for path,raw in before.items())
+        if damage=='during_install':assert mutated

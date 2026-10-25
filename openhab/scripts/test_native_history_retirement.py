@@ -295,8 +295,10 @@ def test_retry_history_validates_superseded_immutable_scores_after_index_progres
     advanced=case.index.parent/'advanced-score.json';save(advanced,{'score_fixture':'next mature horizon'})
     row['score_path']=str(advanced);save(case.index,index)
     fresh=case.history.refresh(proof,now=case.now,guard=lambda:None)
-    assert str(advanced) in fresh['files'] and str(old) not in fresh['files']
-    assert case.history.revalidate(fresh,now=case.now,guard=lambda:None)==fresh
+    assert str(advanced) in fresh['files']
+    final=case.history.revalidate(fresh,now=case.now,guard=lambda:None)
+    assert final==fresh
+    case.history.snapshot_guard(final)()
     old.write_bytes(old.read_bytes()+b' ')
     with pytest.raises(ValueError,match='dependency changed or missing'):
         case.history.refresh(proof,now=case.now,guard=lambda:None)
@@ -310,8 +312,42 @@ def test_retry_history_accepts_actual_compact_scorer_progress_and_checks_superse
     later=advance();assert later.date()==now.date()
     fresh=history.refresh(proof,now=later,guard=lambda:None)
     assert fresh['retained']==[reference] and all(path.read_bytes()==raw for path,raw in old.items())
-    assert any(str(path) not in fresh['files'] for path in old)
-    assert history.revalidate(fresh,now=later,guard=lambda:None)==fresh
-    path=next(iter(old));path.write_bytes(old[path]+b' ')
+    superseded=[path for path in old if str(path) not in fresh['files']]
+    assert len(superseded)==2
+    final=history.revalidate(fresh,now=later,guard=lambda:None)
+    assert final==fresh
+    check=history.snapshot_guard(final);check()
+    # Exercise both real compact contracts without re-refreshing the old proof.
+    path=next(path for path in superseded if (path.suffix=='.gz') is (kind=='pv'))
+    path.write_bytes(old[path]+b' ')
     with pytest.raises(ValueError,match='dependency changed or missing'):
-        history.refresh(proof,now=later,guard=lambda:None)
+        history.revalidate(fresh,now=later,guard=lambda:None)
+    with pytest.raises(ValueError,match='dependency changed'):
+        check()
+
+
+@pytest.mark.parametrize('store_name',['battery-outcomes','energy-outcomes'])
+@pytest.mark.parametrize('damage',['rewrite','delete'])
+@pytest.mark.parametrize('phase',['revalidate','snapshot'])
+def test_final_history_rejects_superseded_score_change(tmp_path,monkeypatch,store_name,damage,phase):
+    """Dropping an original pin at refresh must not admit later score damage."""
+    case=mutable_history_case(tmp_path,monkeypatch,store_name)
+    old=case.index.parent/'old-partial-score.json';save(old,{'horizon':'partial'})
+    index=json.loads(case.index.read_bytes());row=next(iter(index['samples'].values()))
+    row['score_path']=str(old);save(case.index,index)
+    original=case.history.assess(case.refs,now=case.now,guard=lambda:None)
+    advanced=case.index.parent/'completed-score.json';save(advanced,{'horizon':'completed'})
+    row['score_path']=str(advanced);save(case.index,index)
+    fresh=case.history.refresh(original,now=case.now,guard=lambda:None)
+    # The actual installer composes these two production consumers in this order.
+    final=case.history.revalidate(fresh,now=case.now,guard=lambda:None)
+    check=case.history.snapshot_guard(final);check()
+    parent_before=old.parent.stat()
+    if damage=='delete':old.unlink()
+    else:
+        raw=old.read_bytes();old.write_bytes(raw.replace(b'partial',b'changed'))
+        parent_after=old.parent.stat()
+        assert (parent_after.st_mtime_ns,parent_after.st_ctime_ns)==(parent_before.st_mtime_ns,parent_before.st_ctime_ns)
+    with pytest.raises((ValueError,OSError)):
+        if phase=='revalidate':case.history.revalidate(fresh,now=case.now,guard=lambda:None)
+        else:check()

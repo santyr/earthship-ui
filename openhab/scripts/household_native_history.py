@@ -228,12 +228,16 @@ def assess(references,*,now,guard,state_root=None):
 def validate_partition(proof):
     fields={'schema','assessed_at','references','retained','retired','policies','files','directories',
         'absent','state_root','archives_modified','automatic_actuation'}
-    if (not isinstance(proof,dict) or set(proof) not in (fields,fields|{'memberships'}) or proof['schema']!=SCHEMA or
+    if (not isinstance(proof,dict) or set(proof) not in (fields,fields|{'memberships'},fields|{'retained_files'},fields|{'memberships','retained_files'}) or proof['schema']!=SCHEMA or
         proof['archives_modified'] is not False or proof['automatic_actuation'] is not False or
         any(not isinstance(proof[key],dict) for key in ('policies','files','directories')) or
         not isinstance(proof['absent'],list) or not isinstance(proof.get('memberships',{}),dict) or
+        not isinstance(proof.get('retained_files',{}),dict) or
         not isinstance(proof['state_root'],str) or not Path(proof['state_root']).is_absolute()):
         raise ValueError('closed history retirement proof required')
+    indexes={str(Path(proof['state_root'])/name/'samples.json') for name in STORES}
+    if set(proof.get('retained_files',{}))&(set(proof['files'])|indexes):
+        raise ValueError('separate immutable retained history files required')
     def keys(rows):
         if not isinstance(rows,list) or len(rows)>64:raise ValueError('bounded history partition required')
         result=set();stages=set()
@@ -251,17 +255,37 @@ def validate_partition(proof):
         raise ValueError('disjoint exhaustive history partition required')
 
 
+def _retain_immutable(files,current,inventory):
+    """Carry superseded originals through the same bounded current inventory."""
+    inventory.files.update(current['files']);retained={}
+    for path,expected in files.items():
+        actual=current['files'].get(path)
+        if actual is None:
+            if Path(path).lstat().st_size!=expected['identity'][5]:
+                raise ValueError('original history dependency changed or missing')
+            inventory.read(path,min(32000000,expected['identity'][5]),decode=False)
+            actual=inventory.files[path];retained[path]=actual
+        if actual!=expected:raise ValueError('original history dependency changed or missing')
+    if retained:current['retained_files']=retained
+    current['directories'].update(inventory.directories)
+    inventory.check()
+
+
 def revalidate(proof,*,now,guard):
     validate_partition(proof)
     if proof.get('schema')!=SCHEMA or instant(proof['assessed_at']).date()!=now.date() or instant(proof['assessed_at'])>now:raise ValueError('history proof clock changed')
-    current=assess(proof['references'],now=now,guard=guard,state_root=proof['state_root'])
+    original=Inventory(guard)
+    current=assess(proof['references'],now=now,guard=original.check,state_root=proof['state_root'])
     if current['policies']!=proof['policies']:raise ValueError('original history policy changed')
-    for kind in ('files','directories'):
-        if any(current[kind].get(path)!=value for path,value in proof[kind].items()):raise ValueError('original history dependency changed or missing')
+    if any(current['files'].get(path)!=value for path,value in proof['files'].items()):raise ValueError('original history dependency changed or missing')
+    # These files can legitimately be absent from current index dependencies,
+    # but their original bytes and identities remain mandatory until installed.
+    _retain_immutable(proof.get('retained_files',{}),current,original)
+    if any(current['directories'].get(path)!=value for path,value in proof['directories'].items()):raise ValueError('original history dependency changed or missing')
     for path,names in proof.get('memberships',{}).items():
         if not set(names)<=set(current.get('memberships',{}).get(path,[])):raise ValueError('original history inventory entry removed')
     if any(r not in proof['retained'] for r in current['retained']):raise ValueError('new history dependency requires retired selection')
-    return current
+    original.check();return current
 
 
 def refresh(proof,*,now,guard):
@@ -279,21 +303,11 @@ def refresh(proof,*,now,guard):
     current=assess(proof['references'],now=now,guard=original.check,state_root=proof['state_root'])
     if current['policies']!=proof['policies']:raise ValueError('original history policy changed')
     indexes={str(Path(proof['state_root'])/name/'samples.json') for name in STORES}
-    for path,value in proof['files'].items():
-        if path in indexes:
-            if path not in current['files']:raise ValueError('original history index missing')
-            continue
-        actual=current['files'].get(path)
-        if actual is None:
-            # A later horizon can supersede an immutable score/sample. Verify
-            # its old bytes/identity directly before qualifying the new current
-            # dependency set; never delete it or rewrite its original proof.
-            if Path(path).lstat().st_size!=value['identity'][5]:
-                raise ValueError('original history dependency changed or missing')
-            original.read(path,min(32000000,value['identity'][5]),decode=False)
-            actual=original.files[path]
-        if actual!=value:
-            raise ValueError('original history dependency changed or missing')
+    if any(path not in current['files'] for path in indexes&set(proof['files'])):
+        raise ValueError('original history index missing')
+    immutable={path:value for path,value in proof['files'].items() if path not in indexes}
+    immutable.update(proof.get('retained_files',{}))
+    _retain_immutable(immutable,current,original)
     if any(current['directories'].get(path)!=value for path,value in proof['directories'].items()):
         raise ValueError('original history directory changed or missing')
     for path,names in proof.get('memberships',{}).items():
@@ -311,8 +325,9 @@ def snapshot_guard(proof):
     serving lock. A new publication after final quiescence refuses this attempt.
     """
     directories={path:(Path(path).stat().st_mtime_ns,Path(path).stat().st_ctime_ns) for path in proof['directories']}
+    files={**proof['files'],**proof.get('retained_files',{})}
     def check():
-        for path,expected in proof['files'].items():
+        for path,expected in files.items():
             path=Path(path);info=path.lstat()
             actual=[info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_nlink,info.st_size,info.st_mtime_ns,info.st_ctime_ns]
             if path.resolve()!=path or actual!=expected['identity']:raise ValueError('final history dependency changed')
