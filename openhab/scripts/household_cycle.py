@@ -549,11 +549,15 @@ def _run_cycle(config_path,*,code_revision,forecast_config=None,stage=None,deplo
                 published=publish_cycle(settings,guard=forecast_guard,backend=backend,serving_model=serving_model)
             else:
                 published=publish_cycle(settings,guard=forecast_guard,backend=backend)
-        except Exception:
+        except Exception as error:
+            from household_forecast_score import serving_failure
+            diagnostic=serving_failure(error,phase='publication')
             try:
                 result=withdraw(settings,guard=forecast_guard)
-                return dict(status='withheld_and_withdrawn',delivery_verified=result.get('delivery_verified',False),automatic_actuation=False)
-            except Exception:return dict(status='withheld',delivery_verified=False,automatic_actuation=False)
+                return dict(status='withheld_and_withdrawn',delivery_verified=result.get('delivery_verified',False),automatic_actuation=False,**diagnostic)
+            except Exception as withdrawal:
+                return dict(status='withheld',delivery_verified=False,automatic_actuation=False,**diagnostic,
+                    withdrawal_failure=serving_failure(withdrawal,phase='withdrawal'))
         result=dict(status=published['status'],delivery_verified=published.get('delivery_verified',False),automatic_actuation=False)
         if published['status']!='published':return result
         if not ready:
@@ -582,10 +586,12 @@ def main(argv=None):
     try:
         selected={} if args.stage is None and args.deployment_sha256 is None else dict(stage=args.stage,deployment_sha256=args.deployment_sha256)
         result=run_cycle(args.config,code_revision=args.code_revision,forecast_config=args.forecast_config,**selected)
-    except BlockingIOError:
-        print(json.dumps(dict(status='busy',delivery_verified=False,automatic_actuation=False)));return 75
-    except Exception:
-        print(json.dumps(dict(status='cycle_refused',delivery_verified=False,automatic_actuation=False)),file=sys.stderr);return 1
+    except BlockingIOError as error:
+        from household_forecast_score import serving_failure
+        print(json.dumps(dict(status='busy',delivery_verified=False,automatic_actuation=False,**serving_failure(error,phase='cycle_admission'))));return 75
+    except Exception as error:
+        from household_forecast_score import serving_failure
+        print(json.dumps(dict(status='cycle_refused',delivery_verified=False,automatic_actuation=False,**serving_failure(error,phase='cycle_admission'))),file=sys.stderr);return 1
     print(json.dumps(result,sort_keys=True))
     return 0 if result['status'] in ('published','deferred') else 1
 

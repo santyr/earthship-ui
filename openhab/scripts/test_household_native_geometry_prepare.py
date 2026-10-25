@@ -100,7 +100,25 @@ def test_cli_failure_does_not_print_private_configuration(tmp_path,monkeypatch,c
     monkeypatch.setattr(m,'run',broken)
     assert m.main(['--config',str(tmp_path/'c'),'--libraries',str(tmp_path/'l')])==1
     value=json.loads(capsys.readouterr().out)
-    assert value=={'status':'geometry_withheld','fit_executed':False,'automatic_actuation':False}
+    assert value['status']=='geometry_withheld' and value['fit_executed'] is False and value['automatic_actuation'] is False
+    assert value['reason']=='validation_refused' and value['failure_phase']=='geometry_preparation'
+    assert value['exception_class']=='ValueError'
+    assert 'private diagnostic' not in str(value)
+
+
+@pytest.mark.parametrize('error,reason',[(TimeoutError('private timeout'),'acquisition_timeout'),
+    (ValueError('native preparation lifetime elapsed'),'deadline'),
+    (ValueError('publication memory pressure unavailable'),'memory_pressure'),
+    (BlockingIOError('private window'),'window_or_lock_busy')])
+def test_cli_preserves_allowlisted_preparation_cause(tmp_path,monkeypatch,capsys,error,reason):
+    m=api()
+    def broken(*a,**kw):raise error
+    monkeypatch.setattr(m,'run',broken)
+    assert m.main(['--config',str(tmp_path/'c'),'--libraries',str(tmp_path/'l')])==(75 if isinstance(error,BlockingIOError) else 1)
+    value=json.loads(capsys.readouterr().out)
+    assert value['reason']==reason and value['failure_phase']=='geometry_preparation'
+    assert value['automatic_actuation'] is False and value['fit_executed'] is False
+    assert str(error) not in str(value)
 
 
 def test_stage_option_refuses_execution_from_an_unsealed_source_path(tmp_path,monkeypatch):

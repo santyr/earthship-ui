@@ -98,6 +98,53 @@ def test_forecast_failure_uses_existing_withdrawal_behavior(tmp_path,monkeypatch
     assert 'withdrawn' in calls
 
 
+@pytest.mark.parametrize('error,reason',[
+    (ValueError('closed staged source inventory differs'),'validation_refused'),
+    (ValueError('publication memory pressure unavailable'),'memory_pressure'),
+    (TimeoutError('private acquisition credentials'),'acquisition_timeout'),
+    (ValueError('original native sources arrived after issue'),'late_data'),
+    (ValueError('native delivery not actually persisted'),'delivery_refused'),
+])
+def test_serving_failure_retains_sanitized_cause_and_withdrawal(tmp_path,monkeypatch,error,reason):
+    import native_thermal_live as forecast
+    cycle,config,_,calls=setup(tmp_path,monkeypatch)
+    def failed(*args,**kw):raise error
+    monkeypatch.setattr(forecast,'publish_cycle',failed)
+    result=cycle.run_cycle(config,code_revision='e'*40)
+    assert result['status']=='withheld_and_withdrawn' and result['delivery_verified'] is False
+    assert result['reason']==reason and result['failure_phase']=='publication'
+    assert result['exception_class']==type(error).__name__
+    assert result['failure_site']['source']=='test_household_cycle_driver.py'
+    assert 'withdrawn' in calls and 'observation' not in calls
+    assert str(error).encode() not in canonical(result)
+
+
+def test_withdrawal_failure_preserves_publication_cause(tmp_path,monkeypatch):
+    import native_thermal_live as forecast
+    cycle,config,_,calls=setup(tmp_path,monkeypatch)
+    def failed(*args,**kw):raise ValueError('original native sources arrived after issue')
+    def withdrawal(*args,**kw):raise TimeoutError('private transport credentials')
+    monkeypatch.setattr(forecast,'publish_cycle',failed);monkeypatch.setattr(forecast,'withdraw',withdrawal)
+    result=cycle.run_cycle(config,code_revision='e'*40)
+    assert result['status']=='withheld' and result['delivery_verified'] is False
+    assert result['reason']=='late_data'
+    assert result['withdrawal_failure']['failure_phase']=='withdrawal'
+    assert 'private transport' not in str(result)
+
+
+def test_diagnostic_uses_innermost_repo_site_and_fixed_exception_class():
+    from household_forecast_score import serving_failure
+    namespace={}
+    exec(compile("def external():\n raise ValueError('secret')\n",'/tmp/external_fixture.py','exec'),namespace)
+    def repo():namespace['external']()
+    try:repo()
+    except ValueError as error:
+        value=serving_failure(error,phase='publication')
+    assert value['failure_site']['source']=='test_household_cycle_driver.py'
+    class PrivateCredentialName(ValueError):pass
+    assert serving_failure(PrivateCredentialName('secret'),phase='publication')['exception_class']=='ValueError'
+
+
 def test_observer_initialization_failure_still_runs_original_publisher(tmp_path,monkeypatch):
     import household_cycle_sources as sources
     cycle,config,_,calls=setup(tmp_path,monkeypatch)

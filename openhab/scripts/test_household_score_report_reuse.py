@@ -132,7 +132,7 @@ def test_report_rechecks_model_bindings_at_boundaries_not_per_historical_step(tm
     assert serving.read_serving_model is original
 
 
-@pytest.mark.parametrize('changed',['candidate','dataset','receipt'])
+@pytest.mark.parametrize('changed',['candidate','dataset','receipt','snapshot','geometry','fit_evidence','completion','source_manifest'])
 def test_reused_model_still_refuses_final_original_changes(tmp_path,originals,monkeypatch,changed):
     from household_forecast_score import production_score_policy
     import json,native_model_serving_receipt as serving
@@ -141,6 +141,9 @@ def test_reused_model_still_refuses_final_original_changes(tmp_path,originals,mo
     selected=json.loads(kwargs['selections'][0]._encoded)
     candidate=json.loads(Path(selected['candidate_path']).read_bytes())
     target=Path({'candidate':selected['candidate_path'],'dataset':candidate['originals']['dataset']['path'],
+        'snapshot':candidate['originals']['snapshot']['path'],'geometry':candidate['originals']['geometry']['path'],
+        'fit_evidence':candidate['originals']['fit_evidence']['path'],'completion':entries[0]['completion_path'],
+        'source_manifest':str(Path(selected['stage'])/'sources/openhab/scripts/native_thermal_score.py'),
         'receipt':selected['receipt']['path']}[changed])
     old=target.read_bytes();mutated=[];reader=serving.read_serving_model
     def guard():
@@ -148,6 +151,29 @@ def test_reused_model_still_refuses_final_original_changes(tmp_path,originals,mo
     with pytest.raises(ValueError):
         with production_score_policy():scores.reconcile_serving_source_report(entries,check_budget=guard,**kwargs)
     assert mutated and serving.read_serving_model is reader
+
+
+def test_optimized_report_equals_unchanged_original_on_valid_fixture(tmp_path,originals,monkeypatch):
+    import household_score_report_reuse as reuse
+    scores,entries,kwargs,expected,calls,args,path=report_fixture(tmp_path,originals,monkeypatch)
+    unchanged=scores.reconcile_serving_source_report(entries,**kwargs)
+    assert unchanged==expected
+    assert reuse.wrap_report(scores)(entries,**kwargs)==unchanged
+    with pytest.raises(ValueError,match='duplicate'):
+        reuse.wrap_report(scores)(entries+entries,**kwargs)
+
+
+def test_report_refuses_operational_helper_change_before_return(tmp_path,originals,monkeypatch):
+    import importlib.util
+    import household_score_report_reuse as reuse
+    scores,entries,kwargs,expected,calls,args,path=report_fixture(tmp_path,originals,monkeypatch)
+    helper=tmp_path/'private_report_helper.py';helper.write_bytes(Path(reuse.__file__).read_bytes());helper.chmod(0o644)
+    spec=importlib.util.spec_from_file_location('private_report_helper',helper);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    changed=[]
+    def guard():
+        if calls and not changed:helper.write_bytes(helper.read_bytes()+b' ');changed.append(True)
+    with pytest.raises(ValueError):module.wrap_report(scores)(entries,check_budget=guard,**kwargs)
+    assert changed
 
 
 def test_intermediate_model_reuse_preserves_chronology_and_caller_isolation(tmp_path,originals,monkeypatch):

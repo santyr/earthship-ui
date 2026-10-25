@@ -160,10 +160,12 @@ def main(argv=None):
     try:
         selection={} if args.deployment_sha256 is None else dict(deployment_sha256=args.deployment_sha256)
         result=run(args.config,args.libraries,stage=args.stage,**selection)
-    except BlockingIOError:
-        print(json.dumps(dict(status='busy',fit_executed=False,automatic_actuation=False)));return 75
-    except Exception:
-        print(json.dumps(dict(status='geometry_withheld',fit_executed=False,automatic_actuation=False)));return 1
+    except BlockingIOError as error:
+        from household_forecast_score import serving_failure
+        print(json.dumps(dict(status='busy',fit_executed=False,automatic_actuation=False,**serving_failure(error,phase='geometry_preparation'))));return 75
+    except Exception as error:
+        from household_forecast_score import serving_failure
+        print(json.dumps(dict(status='geometry_withheld',fit_executed=False,automatic_actuation=False,**serving_failure(error,phase='geometry_preparation'))));return 1
     print(json.dumps(result));return 0 if result.get('status')=='prepared' else 1
 
 

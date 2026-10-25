@@ -19,7 +19,7 @@ PUBLICATION_POLICY_SHA256 = 'e7a330a82886605ef80f418f818bf2da90a2e419aa3264d7d98
 _production_policy = None
 PUBLICATION_MONITOR_SHA256 = '43cef34e31bc9b82a9d416f97bf9e15f255ebe95b873409089478e41e40fd9f9'
 _production_monitor = None
-REPORT_REPLAY_HELPER_SHA256 = 'cb83f94a8f0e21d83fa14a61248584d532b48728c83e3b0a005536cc8d3f2d8e'
+REPORT_REPLAY_HELPER_SHA256 = '529234fedbf601fd52ddcecfe8d4524879bba9610b7eb95b257d7f885abe1b1c'
 _production_report_reuse = None
 
 
@@ -389,18 +389,44 @@ def failure_site(error):
     """Return only the innermost repository source name and line, never locals."""
     import re
     from pathlib import PurePosixPath
-    trace=error.__traceback__
-    if trace is None:return None
-    while trace.tb_next is not None:trace=trace.tb_next
-    filename=trace.tb_frame.f_code.co_filename
     marker='/openhab/scripts/'
-    if marker not in filename:return None
+    trace=error.__traceback__;selected=None
+    while trace is not None:
+        if marker in trace.tb_frame.f_code.co_filename:selected=trace
+        trace=trace.tb_next
+    if selected is None:return None
+    trace=selected;filename=trace.tb_frame.f_code.co_filename
     relative=filename.rsplit(marker,1)[1]
     path=PurePosixPath(relative)
     if (len(relative)>200 or re.fullmatch(r'[A-Za-z0-9_./-]+\.py',relative) is None or
             path.is_absolute() or '..' in path.parts or str(path)!=relative or
             not 1<=trace.tb_lineno<=100000):return None
     return dict(source=relative,line=trace.tb_lineno)
+
+
+def serving_failure(error,*,phase):
+    """Fixed serving diagnostics; never emit exception text or dynamic names."""
+    if phase not in ('publication','withdrawal','cycle_admission','geometry_preparation','observation'):
+        raise ValueError('fixed serving diagnostic phase required')
+    reason=failure_reason(error)
+    if isinstance(error,BlockingIOError):reason='window_or_lock_busy'
+    elif isinstance(error,TimeoutError):reason='acquisition_timeout'
+    elif isinstance(error,ValueError):
+        reason={
+            'original native sources arrived after issue':'late_data',
+            'native delivery not actually persisted':'delivery_refused',
+            'original native delivery readback differs':'delivery_refused',
+            'native withdrawal delivery unverified':'delivery_refused',
+            'native publication deadline exceeded':'deadline',
+            'native geometry preparation deadline elapsed':'deadline',
+            'native preparation lifetime elapsed':'deadline',
+        }.get(str(error),reason)
+    classes=(BlockingIOError,TimeoutError,FileNotFoundError,PermissionError,OSError,ValueError,TypeError,KeyError,RuntimeError)
+    name=next((kind.__name__ for kind in classes if isinstance(error,kind)),'Exception')
+    result=dict(reason=reason,exception_class=name,failure_phase=phase)
+    site=failure_site(error)
+    if site is not None:result['failure_site']=site
+    return result
 
 
 def run_retained_worker(script,config,*,stage,deployment_sha256,retained_native,
