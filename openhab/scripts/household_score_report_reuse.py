@@ -60,6 +60,60 @@ def _json_key(value):
     return json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
 
 
+_TEMPERATURE_QUERY_FIELDS={'schema','stream','policy','sensor_epoch','targets','assessed_at','history_start','native_rows','release_authority'}
+_TEMPERATURE_POLICY_FIELDS={'model','sensor_id','minimum_f','maximum_f','validity_seconds'}
+
+
+def _temperature_query_key(packet):
+    """Copy the known plain packet and fingerprint ALL original input values.
+
+    Canonical metadata includes every non-row field. Row count, order, exact
+    stored-at UTF8, null tags and exact raw UTF8 use fixed-width length frames;
+    raw JSON strings are never parsed, escaped or normalized for this key.
+    Only mutable containers are copied; their exact scalar values are immutable.
+    Alias/cycle/custom-type inputs use the original query instead of copy hooks.
+    This changes no retained key/value weight or cache budget.
+    """
+    def unsupported():raise TypeError('original query fallback required')
+    if (type(packet) is not dict or any(type(k) is not str for k in packet) or
+            set(packet)!=_TEMPERATURE_QUERY_FIELDS):unsupported()
+    policy=packet['policy'];targets=packet['targets'];rows=packet['native_rows']
+    if (type(policy) is not dict or any(type(k) is not str for k in policy) or
+            set(policy)!=_TEMPERATURE_POLICY_FIELDS or
+            any(type(v) not in (str,int,float,bool,type(None)) or type(v) is str and len(v)>64
+                for v in policy.values()) or
+            type(targets) is not list or not 1<=len(targets)<=289 or
+            any(type(v) is not str or len(v)>64 for v in targets) or
+            type(rows) is not list or len(rows)>10000):unsupported()
+    for name in ('schema','stream','assessed_at','history_start'):
+        if type(packet[name]) is not str or len(packet[name])>64:unsupported()
+    if (packet['schema']!='earthship-native-temperature-query-sources/v1' or
+            type(packet['release_authority']) is not bool or
+            packet['sensor_epoch'] is not None and
+            (type(packet['sensor_epoch']) is not str or len(packet['sensor_epoch'])>64)):unsupported()
+    seen={id(packet),id(policy),id(targets),id(rows)}
+    if len(seen)!=4:unsupported()
+    copied_rows=[]
+    for row in rows:
+        if (type(row) is not list or len(row)!=2 or id(row) in seen or
+                type(row[0]) is not str or len(row[0])>64 or
+                row[1] is not None and type(row[1]) is not str):unsupported()
+        seen.add(id(row));copied_rows.append(row.copy())
+    saved=packet.copy();saved['policy']=policy.copy();saved['targets']=targets.copy();saved['native_rows']=copied_rows
+    header=_json_key({k:v for k,v in saved.items() if k!='native_rows'})
+    digest=sha256();digest.update(b'earthship-query-full-raw-v1\0')
+    digest.update(len(header).to_bytes(8,'big'));digest.update(header)
+    digest.update(len(copied_rows).to_bytes(8,'big'));total=0
+    for at,raw in copied_rows:
+        at=at.encode();digest.update(len(at).to_bytes(8,'big'));digest.update(at)
+        if raw is None:digest.update(b'\0')
+        else:
+            raw=raw.encode();total+=len(raw)
+            if len(raw)>8192 or total>8*1024*1024:unsupported()
+            digest.update(b'\1');digest.update(len(raw).to_bytes(8,'big'));digest.update(raw)
+    return digest.digest(),saved
+
+
 @contextmanager
 def _capture_reads(guard):
     """One captured numerical replay per exact capture/model in a report.
@@ -246,10 +300,9 @@ def _temperature_reads(guard):
             return reuse(0,key,original,32+len(stream.encode())+len(repr(policy))+256)
         def replay(packet):
             if _temperature_frame.get() is not frame:return query(packet)
-            packet=deepcopy(packet)
-            try:key=sha256(_json_key(packet)).digest()
+            try:key,saved=_temperature_query_key(packet)
             except (ValueError,TypeError,RecursionError,OverflowError):return query(packet)
-            return reuse(1,key,lambda:query(packet),len(key))
+            return reuse(1,key,lambda:query(saved),len(key))
         reader._snapshot=read_snapshot;sources.replay_temperature_source=replay;hooked=True
         if alias is query:raw_sources.replay_temperature_source=replay
         yield
