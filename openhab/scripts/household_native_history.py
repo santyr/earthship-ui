@@ -198,17 +198,61 @@ def assess(references,*,now,guard,state_root=None):
             if 'score_path' in ref and ref['score_path'] is not None:inv.read(ref['score_path'],2097152)
             if ref.get('sample_sha256') is not None:
                 suffix='.profiled-energy-sample-v1.json' if name=='profiled-energy-outcomes' else '.captured-pv-verified-v1.json'
-                sample=store/(ref['sample_sha256']+suffix);inv.read(sample)
+                sample=store/(ref['sample_sha256']+suffix);sample_value=inv.read(sample,32768)
                 raw_suffix='.profiled-energy-outcome-v1.json.gz' if name=='profiled-energy-outcomes' else '.captured-pv-outcome-v1.json.gz'
                 raw=store/(ref['score_file_sha256']+raw_suffix);inv.read(raw,32000000,decode=False)
-                if inv.files[str(sample)]['sha256']!=ref['sample_sha256'] or inv.files[str(raw)]['sha256']!=ref['score_file_sha256']:raise ValueError('indexed compact score dependency differs')
+                if inv.files[str(raw)]['sha256']!=ref['score_file_sha256']:raise ValueError('indexed compact score dependency differs')
+                if name=='profiled-energy-outcomes':
+                    from household_profiled_samples import validate_sample
+                    sample_value=validate_sample(sample_value)
+                    if (inv.files[str(sample)]['sha256']!=ref['sample_sha256'] or
+                        sample_value['profiled_receipt_sha256']!=ref['forecast_receipt_sha256'] or
+                        sample_value['output']['cohort_id']!=ref['cohort_id'] or
+                        sample_value['output']['origin']['issued_at']!=ref['issued_at']):
+                        raise ValueError('indexed compact profile sample binding differs')
+                else:
+                    from household_pv_samples import validate_sample
+                    sample_value=validate_sample(sample_value)
+                    if (sample_value['sample_sha256']!=ref['sample_sha256'] or
+                        sample_value['inputs']['energy_document_sha256']!=ref['forecast_sha256'] or
+                        sample_value['inputs']['energy_receipt_sha256']!=ref['forecast_receipt_sha256'] or
+                        sample_value['output']['cohort_id']!=ref['cohort_id'] or
+                        sample_value['output']['prediction_context']['issued_at']!=ref['issued_at']):
+                        raise ValueError('indexed compact PV sample binding differs')
     retained=[r for r in refs if r['stage'] in needed]
     return dict(schema=SCHEMA,assessed_at=now.isoformat(),references=refs,retained=retained,
         retired=[r for r in refs if r not in retained],policies=policies,files=inv.files,directories=inv.directories,
         absent=sorted(set(inv.absent)),memberships=inv.memberships,state_root=str(state),archives_modified=False,automatic_actuation=False)
 
 
+def validate_partition(proof):
+    fields={'schema','assessed_at','references','retained','retired','policies','files','directories',
+        'absent','state_root','archives_modified','automatic_actuation'}
+    if (not isinstance(proof,dict) or set(proof) not in (fields,fields|{'memberships'}) or proof['schema']!=SCHEMA or
+        proof['archives_modified'] is not False or proof['automatic_actuation'] is not False or
+        any(not isinstance(proof[key],dict) for key in ('policies','files','directories')) or
+        not isinstance(proof['absent'],list) or not isinstance(proof.get('memberships',{}),dict) or
+        not isinstance(proof['state_root'],str) or not Path(proof['state_root']).is_absolute()):
+        raise ValueError('closed history retirement proof required')
+    def keys(rows):
+        if not isinstance(rows,list) or len(rows)>64:raise ValueError('bounded history partition required')
+        result=set();stages=set()
+        for row in rows:
+            if not isinstance(row,dict) or set(row)!={'stage','deployment_sha256'} or not isinstance(row['stage'],str):
+                raise ValueError('closed history partition reference required')
+            path=Path(row['stage'])
+            if not path.is_absolute() or path.resolve()!=path:raise ValueError('owned history partition path required')
+            key=(row['stage'],digest(row['deployment_sha256']))
+            if row['stage'] in stages:raise ValueError('unique history partition references required')
+            result.add(key);stages.add(row['stage'])
+        return result
+    references=keys(proof['references']);retained=keys(proof['retained']);retired=keys(proof['retired'])
+    if retained&retired or retained|retired!=references:
+        raise ValueError('disjoint exhaustive history partition required')
+
+
 def revalidate(proof,*,now,guard):
+    validate_partition(proof)
     if proof.get('schema')!=SCHEMA or instant(proof['assessed_at']).date()!=now.date() or instant(proof['assessed_at'])>now:raise ValueError('history proof clock changed')
     current=assess(proof['references'],now=now,guard=guard,state_root=proof['state_root'])
     if current['policies']!=proof['policies']:raise ValueError('original history policy changed')

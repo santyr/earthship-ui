@@ -42,7 +42,7 @@ def test_final_revalidation_refuses_changed_original_and_new_retired_binding(mon
     from copy import deepcopy
     now=datetime(2026,10,25,8,tzinfo=timezone.utc)
     proof=dict(schema=history.SCHEMA,assessed_at=now.isoformat(),references=[],retained=[],policies={},
-        files={'original':{'sha256':'a'}},directories={},state_root='/private')
+        files={'original':{'sha256':'a'}},directories={},state_root='/private',retired=[],absent=[],archives_modified=False,automatic_actuation=False)
     current=deepcopy(proof);current['files']['original']['sha256']='b'
     monkeypatch.setattr(history,'assess',lambda *a,**kw:current)
     with pytest.raises(ValueError,match='changed'):history.revalidate(proof,now=now,guard=lambda:None)
@@ -130,3 +130,68 @@ def test_valid_new_binding_to_retired_stage_refuses_sealed_dispatch(tmp_path,mon
     value['binding_sha256']=identity({k:v for k,v in value.items() if k!='binding_sha256'})
     save(path.parent/('f'*64+'.native-serving-model-binding-v1.json'),value)
     with pytest.raises(ValueError,match='retired selection'):history.revalidate(proof,now=now,guard=lambda:None)
+
+
+from test_household_energy_forecast import originals
+
+
+def completed_compact_history(tmp_path,monkeypatch,originals,kind):
+    """Run the original private scorer to produce real compact/raw contracts."""
+    import household_native_history as history
+    import household_cycle_deploy as deploy
+    from hashlib import sha256
+    if kind=='pv':
+        from test_household_pv_score import setup
+        import household_pv_score as scorer
+        args,stage,state,_=setup(tmp_path,monkeypatch,originals)
+        scorer.run(stage=stage,historical=[],guard=lambda:None,deadline=100.,clock=lambda:args['assessed_at'],
+            monotonic=lambda:0.,state_root=state,hour_reader=lambda **kw:args['hour_sources']['1'])
+        store=state/'captured-pv-outcomes'
+    else:
+        from test_household_profiled_score import staged
+        scorer,kwargs,_,args=staged(tmp_path,monkeypatch,originals);scorer.run(**kwargs)
+        stage=kwargs['stage'];state=kwargs['state_root'];store=state/'profiled-energy-outcomes'
+    stage.chmod(0o700)
+    native=directory(tmp_path/'native-history');config=tmp_path/'history-config.json';save(config,dict(evidence_directory=str(native)))
+    save(stage/'cycle.json',dict(forecast_config=str(config)))
+    record={'source_manifest':{name:sha256((Path(__file__).resolve().parents[2]/name).read_bytes()).hexdigest() for name in history.POLICIES}}
+    save(stage/'deployment.json',record);reference=dict(stage=str(stage),deployment_sha256=sha256((stage/'deployment.json').read_bytes()).hexdigest())
+    monkeypatch.setattr(deploy,'verify_stage',lambda *a,**kw:record)
+    return history,reference,state,store,args['assessed_at']
+
+
+@pytest.mark.parametrize('kind',['pv','profiled'])
+def test_assess_accepts_real_completed_compact_sample_and_pinned_compressed_score(tmp_path,monkeypatch,originals,kind):
+    history,reference,state,store,now=completed_compact_history(tmp_path,monkeypatch,originals,kind)
+    from hashlib import sha256
+    index=json.loads((store/'samples.json').read_bytes());row=next(iter(index['samples'].values()))
+    suffix='.captured-pv-verified-v1.json' if kind=='pv' else '.profiled-energy-sample-v1.json'
+    sample=store/(row['sample_sha256']+suffix);value=json.loads(sample.read_bytes())
+    assert (sha256(sample.read_bytes()).hexdigest()==row['sample_sha256']) is (kind=='profiled')
+    if kind=='pv':assert value['sample_sha256']==row['sample_sha256']
+    before={p:p.read_bytes() for p in tmp_path.rglob('*') if p.is_file()}
+    proof=history.assess([reference],now=now,guard=lambda:None,state_root=state)
+    assert proof['retained']==[reference] and not proof['retired']
+    assert all(p.read_bytes()==raw for p,raw in before.items())
+
+
+@pytest.mark.parametrize('kind',['pv','profiled'])
+@pytest.mark.parametrize('damage',['sample_binding','raw_score','cohort'])
+def test_assess_refuses_changed_compact_original_bindings(tmp_path,monkeypatch,originals,kind,damage):
+    history,reference,state,store,now=completed_compact_history(tmp_path,monkeypatch,originals,kind)
+    from household.codec import canonical,identity
+    from hashlib import sha256
+    index_path=store/'samples.json';index=json.loads(index_path.read_bytes());row=next(iter(index['samples'].values()))
+    if damage=='raw_score':
+        suffix='.captured-pv-outcome-v1.json.gz' if kind=='pv' else '.profiled-energy-outcome-v1.json.gz'
+        path=store/(row['score_file_sha256']+suffix);path.write_bytes(path.read_bytes()+b'changed')
+    elif damage=='cohort':row['cohort_id']='f'*64;save(index_path,index)
+    else:
+        suffix='.captured-pv-verified-v1.json' if kind=='pv' else '.profiled-energy-sample-v1.json'
+        sample=json.loads((store/(row['sample_sha256']+suffix)).read_bytes())
+        if kind=='pv':sample['inputs']['energy_receipt_sha256']='f'*64
+        else:sample['profiled_receipt_sha256']='f'*64
+        sample['sample_sha256']=identity({k:v for k,v in sample.items() if k!='sample_sha256'})
+        raw=canonical(sample);pin=sample['sample_sha256'] if kind=='pv' else sha256(raw).hexdigest()
+        save(store/(pin+suffix),sample);row['sample_sha256']=pin;save(index_path,index)
+    with pytest.raises(ValueError,match='compact|sample|score'):history.assess([reference],now=now,guard=lambda:None,state_root=state)

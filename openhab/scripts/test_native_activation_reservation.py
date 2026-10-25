@@ -137,7 +137,7 @@ def manager_fixture(tmp_path,owner):
     reservation=directory(root/'reservation')
     life.save(reservation/'request.json',dict(nonce='reservation',owner=life.process_identity(owner.pid),run=str(root/'run'),
         previous={'stage':str(root/'old/final'),'deployment_sha256':'a'*64},root=str(units),shared_lock=str(lock),expires=time.monotonic()+60,
-        phase='reserve',family=None,sources={str(Path(life.__file__)):life.fingerprint(Path(life.__file__))},source_sha256=sha256(Path(life.__file__).read_bytes()).hexdigest()))
+        phase='reserve',family=None,start_attempted=True,sources={str(Path(life.__file__)):life.fingerprint(Path(life.__file__))},source_sha256=sha256(Path(life.__file__).read_bytes()).hexdigest()))
     return root,targets
 
 
@@ -286,10 +286,11 @@ def test_external_owner_start_is_charged_to_existing_shared_admission(monkeypatc
         if args[0]=='show':return f'/user.slice/user-{os.getuid()}.slice/user@{os.getuid()}.service/earthship.slice/earthship-work.slice'
         calls.append(args)
     monkeypatch.setattr(deploy,'_systemctl',systemctl)
-    life.start_owner('private-owner.service')
-    assert calls==['lock','verified',('start','private-owner.service'),'verified','unlock']
+    life.start_owner('private-owner.service',before_start=lambda:calls.append('dispatch'))
+    assert calls==['lock','verified','dispatch',('start','private-owner.service'),'verified','unlock']
     calls.clear();available[0]=2*1024**3
-    with pytest.raises(AdmissionDeferred):life.start_owner('private-owner.service')
+    with pytest.raises(AdmissionDeferred):life.start_owner('private-owner.service',before_start=lambda:calls.append('dispatch'))
+    assert 'dispatch' not in calls
     assert not any(isinstance(c,tuple) and c[0]=='start' for c in calls)
 
 
@@ -325,3 +326,73 @@ def test_external_recovery_rejects_changed_imported_source_helper(tmp_path):
     life.verify_sources(data)
     helper.write_bytes(b'new helper')
     with pytest.raises(ValueError,match='source closure'):life.verify_sources(data)
+
+
+def reservation_constructor_fixture(tmp_path,monkeypatch):
+    import household_native_lifecycle as life
+    import household_native_training as training
+    import household_cycle_deploy as deploy
+    state=training.directory(tmp_path/'state');stage=training.directory(tmp_path/'old/final')
+    config=tmp_path/'config.json';training.save(config,{'shared_lock':str(tmp_path/'shared.lock')});training.save(stage/'cycle.json',{'forecast_config':str(config)})
+    previous={'stage':str(stage),'deployment_sha256':'a'*64}
+    monkeypatch.setattr(life.subprocess,'check_output',lambda *a,**kw:b'')
+    monkeypatch.setattr(training,'effective_selection',lambda:previous)
+    monkeypatch.setattr(deploy,'verify_stage',lambda *a,**kw:{'service_file':str(tmp_path/'units/thermal-provisional-forecast.service')})
+    monkeypatch.setattr(life,'source_snapshot',lambda repo:{str(Path(life.__file__)):life.fingerprint(Path(life.__file__))})
+    monkeypatch.setattr(deploy,'_systemctl',lambda *a:'0')
+    def started(unit,**kwargs):
+        if 'before_start' in kwargs:kwargs['before_start']()
+        nonce=unit.split('@')[1].removesuffix('.service')
+        life.save(state/'activation-reservations'/nonce/'status.json',{'phase':'reserved','manager':life.process_identity(os.getpid())})
+    return life,deploy,state,previous,started
+
+
+@pytest.mark.parametrize('preflight',['stage','settings','source'])
+def test_constructor_preflight_failure_creates_no_reservation_blocker(tmp_path,monkeypatch,preflight):
+    life,deploy,state,previous,started=reservation_constructor_fixture(tmp_path,monkeypatch)
+    def refuse(*a,**kw):raise ValueError('private preflight refusal')
+    if preflight=='stage':monkeypatch.setattr(deploy,'verify_stage',refuse)
+    elif preflight=='source':monkeypatch.setattr(life,'source_snapshot',refuse)
+    else:(tmp_path/'config.json').unlink()
+    monkeypatch.setattr(life,'start_owner',lambda *a,**kw:pytest.fail('preflight tried to start owner'))
+    with pytest.raises((ValueError,OSError)):life.Reservation(state,tmp_path/'run',previous,guard=lambda:None)
+    assert not (state/'activation-reservations').exists()
+
+
+def test_prestart_admission_refusal_does_not_poison_later_constructor(tmp_path,monkeypatch):
+    from household_job_budget import AdmissionDeferred
+    life,deploy,state,previous,started=reservation_constructor_fixture(tmp_path,monkeypatch)
+    monkeypatch.setattr(life,'start_owner',lambda *a,**kw:(_ for _ in ()).throw(AdmissionDeferred('headroom')))
+    with pytest.raises(AdmissionDeferred):life.Reservation(state,tmp_path/'run',previous,guard=lambda:None)
+    monkeypatch.setattr(life,'start_owner',started)
+    reservation=life.Reservation(state,tmp_path/'run',previous,guard=lambda:None)
+    assert life.read(reservation.status)['phase']=='reserved'
+
+
+def test_ambiguous_systemctl_start_remains_blocking_without_creating_more_orphans(tmp_path,monkeypatch):
+    life,deploy,state,previous,started=reservation_constructor_fixture(tmp_path,monkeypatch)
+    def ambiguous(unit,**kwargs):
+        if 'before_start' in kwargs:kwargs['before_start']()
+        raise TimeoutError('start response lost')
+    monkeypatch.setattr(life,'start_owner',ambiguous)
+    with pytest.raises(TimeoutError):life.Reservation(state,tmp_path/'run',previous,guard=lambda:None)
+    paths=list((state/'activation-reservations').iterdir());assert len(paths)==1
+    assert not (paths[0]/'status.json').exists()
+    monkeypatch.setattr(life,'start_owner',started)
+    with pytest.raises(ValueError,match='reconciliation'):life.Reservation(state,tmp_path/'run',previous,guard=lambda:None)
+    assert list((state/'activation-reservations').iterdir())==paths
+
+
+def test_never_armed_marker_cannot_clear_changed_request_or_start_a_pause(tmp_path,monkeypatch):
+    from household_job_budget import AdmissionDeferred
+    life,deploy,state,previous,started=reservation_constructor_fixture(tmp_path,monkeypatch)
+    monkeypatch.setattr(life,'start_owner',lambda *a,**kw:(_ for _ in ()).throw(AdmissionDeferred('headroom')))
+    with pytest.raises(AdmissionDeferred):life.Reservation(state,tmp_path/'run',previous,guard=lambda:None)
+    path=next((state/'activation-reservations').iterdir())
+    assert life.read(path/'status.json')['phase']=='never_armed'
+    assert life._finished_attempt(path)
+    with pytest.raises(ValueError,match='dispatched original'):life.watch(path)
+    request=life.read(path/'request.json');request['start_attempted']=True;life.save(path/'request.json',request)
+    monkeypatch.setattr(life,'start_owner',started)
+    with pytest.raises(ValueError,match='reconciliation'):life.Reservation(state,tmp_path/'run',previous,guard=lambda:None)
+    assert list((state/'activation-reservations').iterdir())==[path]

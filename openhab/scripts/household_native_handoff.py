@@ -76,13 +76,15 @@ def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard,previo
             omitted=[row for row in required if row not in dispatch['historical']]
             if omitted:
                 if history_proof is None:raise ValueError('upgrade must retain all Google native score backlogs')
-                from household_native_history import revalidate
+                from household_native_history import revalidate,validate_partition
                 from datetime import datetime,timezone
                 proof=json.loads(deploy._bytes(history_proof,private=True,maximum=32000000))
+                validate_partition(proof)
                 if proof['references']!=previous_dispatch['historical']+[required[0]] or required[0] in omitted:
                     raise ValueError('history retirement must bind exact original dispatch and retain incumbent')
-                revalidate(proof,now=datetime.now(timezone.utc),guard=guard)
-                if any(row not in proof['retired'] for row in omitted):raise ValueError('retired history still required')
+                current=revalidate(proof,now=datetime.now(timezone.utc),guard=guard)
+                if any(row not in proof['retired'] or row not in current['retired'] or row in current['retained'] for row in omitted):
+                    raise ValueError('retired history still required')
     cycles=[json.loads(deploy._bytes(path/'cycle.json',private=True)) for path in (stage,forecast,score)]
     current,old_forecast,old_score=records
     stripped=lambda cycle:{k:v for k,v in cycle.items() if k not in ('evidence_directory','forecast_config')}

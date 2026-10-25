@@ -78,3 +78,83 @@ def test_resealed_handoff_targets_cannot_redirect_writes(tmp_path,monkeypatch):
     from hashlib import sha256
     value['handoff_sha256']=sha256(encode({k:v for k,v in value.items() if k!='handoff_sha256'})).hexdigest();path.write_bytes(encode(value))
     with pytest.raises(ValueError):m.verify(out,guard=lambda:None)
+
+
+def retirement_upgrade_fixture(tmp_path,monkeypatch):
+    """Actual upgrade assembly plus actual history inventory, private originals."""
+    from test_native_serving_upgrade import fixture as upgrade
+    from test_native_active_score_history import fixture as history_fixture
+    from household_native_training import save,directory
+    from household.codec import identity
+    from datetime import datetime,timezone
+    import household_native_history as history
+    import household_forecast_score as scorer
+    deploy,handoff,family,kwargs,targets,old_family=upgrade(tmp_path,monkeypatch)
+    verify_stage=deploy.verify_stage
+    history_root=directory(tmp_path/'history-fixture')
+    _,refs,binding,old_now=history_fixture(history_root,monkeypatch)
+    verify_history=deploy.verify_stage;stages={row['stage'] for row in refs}
+    monkeypatch.setattr(deploy,'verify_stage',lambda stage,**kw:verify_history(stage,**kw) if str(stage) in stages else verify_stage(stage,**kw))
+    now=datetime.now(timezone.utc);body=json.loads(binding.read_bytes());body['issued_at']=now.isoformat()
+    body['binding_sha256']=identity({k:v for k,v in body.items() if k!='binding_sha256'})
+    folder=directory(binding.parent.parent/('origins-'+now.strftime('%Y%m%d')))
+    path=folder/binding.name;binding.unlink();save(path,body)
+    incumbent={'stage':str(kwargs['previous_forecast_stage']),'deployment_sha256':kwargs['previous_deployment_sha256']}
+    proof=history.assess([*refs,incumbent],now=now,guard=lambda:None)
+    proof_path=tmp_path/'retirement-proof.json';save(proof_path,proof);kwargs['history_proof']=proof_path
+    read_dispatch=scorer.read_score_dispatch
+    selected={'historical':[*refs[1:],incumbent]}
+    def dispatch(stage,**kw):
+        value=read_dispatch(stage,**kw)
+        value['historical']=refs if Path(stage)==kwargs['previous_forecast_stage'] else selected['historical']
+        return value
+    monkeypatch.setattr(scorer,'read_score_dispatch',dispatch)
+    return handoff,family,kwargs,proof,refs,path,selected
+
+
+@pytest.mark.parametrize('damage',['overlap','duplicate','unknown_field','missing_partition','missing_field','foreign_reference'])
+def test_handoff_rejects_malformed_or_overlapping_history_partition(tmp_path,monkeypatch,damage):
+    from household_native_training import save
+    handoff,family,kwargs,proof,refs,binding,selected=retirement_upgrade_fixture(tmp_path,monkeypatch)
+    if damage=='overlap':
+        proof['retired'].append(refs[1]);selected['historical'].remove(refs[1])
+    elif damage=='duplicate':proof['retained'].append(refs[1])
+    elif damage=='unknown_field':proof['retirement_authorized']=True
+    elif damage=='missing_field':del proof['references']
+    elif damage=='foreign_reference':proof['retired'][0]=dict(refs[0],deployment_sha256='f'*64)
+    else:proof['retained'].remove(refs[2])
+    save(kwargs['history_proof'],proof)
+    with pytest.raises(ValueError,match='partition|closed history'):
+        handoff.prepare(family,**kwargs)
+    assert not kwargs['output'].exists()
+
+
+@pytest.mark.parametrize('target',['retained','retired'])
+def test_handoff_rescans_new_binding_and_preserves_additive_retained_history(tmp_path,monkeypatch,target):
+    from household_native_training import save
+    from household.codec import identity
+    handoff,family,kwargs,proof,refs,binding,selected=retirement_upgrade_fixture(tmp_path,monkeypatch)
+    row=refs[1] if target=='retained' else refs[0]
+    body=json.loads(binding.read_bytes());body.update(stage=row['stage'],deployment_sha256=row['deployment_sha256'],capture_sha256='e'*64)
+    body['binding_sha256']=identity({k:v for k,v in body.items() if k!='binding_sha256'})
+    save(binding.parent/('e'*64+'.native-serving-model-binding-v1.json'),body)
+    if target=='retired':
+        with pytest.raises(ValueError,match='retired selection|still required'):handoff.prepare(family,**kwargs)
+        assert not kwargs['output'].exists()
+    else:
+        handoff.prepare(family,**kwargs)
+        assert handoff.verify(kwargs['output'],guard=lambda:None)['history_proof']['path']==str(kwargs['history_proof'])
+
+
+def test_handoff_uses_fresh_omission_result_instead_of_supplied_retired_list(tmp_path,monkeypatch):
+    import household_native_history as history
+    handoff,family,kwargs,proof,refs,binding,selected=retirement_upgrade_fixture(tmp_path,monkeypatch)
+    revalidate=history.revalidate
+    def freshly_required(*args,**kw):
+        current=revalidate(*args,**kw)
+        # Exercise the consumer of the independent result, separately from its
+        # own partition/inventory tests: the final result must be authoritative.
+        current['retired'].remove(refs[0]);current['retained'].append(refs[0]);return current
+    monkeypatch.setattr(history,'revalidate',freshly_required)
+    with pytest.raises(ValueError,match='still required'):handoff.prepare(family,**kwargs)
+    assert not kwargs['output'].exists()

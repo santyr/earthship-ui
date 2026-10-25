@@ -158,7 +158,7 @@ def _matches(targets):
     except (OSError,ValueError):return False
 
 
-def start_owner(unit):
+def start_owner(unit,*,before_start=lambda:None):
     """Charge the finite recovery service to the unchanged shared admission gate."""
     from household_job_launch import admission_gate
     from household_job_budget import admit_memory
@@ -172,10 +172,28 @@ def start_owner(unit):
         check_host_pressure()
         memory=admit_memory(available_bytes=available_memory(),**read_pool(pool),
             minimum_bytes=256*1024**2,preferred_bytes=256*1024**2,reserve_bytes=HOST_RESERVE)
-        verify();_systemctl('start',unit)
+        verify();before_start();_systemctl('start',unit)
         if _counter(pool/unit/'memory.max')!=memory or _counter(pool/unit/'memory.swap.max')!=0:
             raise ValueError('external recovery service commitment differs')
         verify()
+
+
+def _request_pin(data):
+    return sha256(json.dumps(data,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
+
+
+def _finished_attempt(path):
+    """Only durable completed recovery or proven never-dispatched starts clear."""
+    status=path/'status.json'
+    if not status.exists():return False
+    record=read(status)
+    if record.get('phase')=='restored':return True
+    if (set(record)!={'schema','phase','nonce','request_sha256'} or
+        record['schema']!='earthship-native-activation-never-armed/v1' or
+        record['phase']!='never_armed' or record['nonce']!=path.name):return False
+    request=read(path/'request.json')
+    return (request.get('nonce')==path.name and request.get('phase')=='never_armed' and
+        request.get('start_attempted') is False and _request_pin(request)==record['request_sha256'])
 
 
 class Reservation:
@@ -186,7 +204,15 @@ class Reservation:
         if subprocess.check_output(['git','-C',str(repo),'status','--porcelain'],timeout=10).strip():raise ValueError('clean Git-backed repaired release required')
         from household_native_training import effective_selection
         if effective_selection()!={k:previous[k] for k in ('stage','deployment_sha256')}:raise ValueError('selected model changed before reservation')
-        self.guard=guard;self.nonce=uuid4().hex;self.directory=directory(Path(state)/'activation-reservations'/self.nonce)
+        from thermal_model.forcing_capture import _private_directory
+        root=_private_directory(Path(state))/'activation-reservations'
+        if root.exists() or root.is_symlink():
+            _private_directory(root)
+            for path in root.iterdir():
+                _private_directory(path)
+                if not _finished_attempt(path):raise ValueError('previous reservation requires reconciliation')
+        guard()
+        self.guard=guard;self.nonce=uuid4().hex;self.directory=root/self.nonce
         self.request=self.directory/'request.json';self.status=self.directory/'status.json'
         self.unit='thermal-native-activation-owner@'+self.nonce+'.service'
         stage=Path(previous['stage']);record=verify_stage(stage,expected_deployment_sha256=previous['deployment_sha256'])
@@ -194,18 +220,25 @@ class Reservation:
         self.data=dict(nonce=self.nonce,owner=process_identity(os.getpid()),run=str(run),previous=previous,
             root=str(Path(record['service_file']).parent),shared_lock=settings['shared_lock'],
             expires=time.monotonic()+min(600,max(0,getattr(guard,'deadline',time.monotonic()+600)-time.monotonic())),
-            phase='reserve',family=None,sources=source_snapshot(repo),source_sha256=sha256(Path(__file__).read_bytes()).hexdigest())
-        # A previous unresolved pause is never silently superseded.
-        for path in self.directory.parent.iterdir():
-            if path==self.directory:continue
-            status=path/'status.json'
-            if not status.exists() or read(status).get('phase')!='restored':raise ValueError('previous reservation requires reconciliation')
-        save(self.request,self.data)
+            phase='reserve',family=None,start_attempted=False,sources=source_snapshot(repo),source_sha256=sha256(Path(__file__).read_bytes()).hexdigest())
+        # All source/selection/settings/prior-attempt preflight precedes publication.
+        guard();directory(root);directory(self.directory)
+        dispatched=False
+        def before_start():
+            nonlocal dispatched
+            # Mark ambiguous BEFORE sending the manager command, never afterward.
+            dispatched=True;self.data['start_attempted']=True;save(self.request,self.data)
         try:
-            start_owner(self.unit)
+            save(self.request,self.data)
+            start_owner(self.unit,before_start=before_start)
             self.wait('reserved')
             drain_score(guard=self.check,read_pid=lambda:_systemctl('show','thermal-provisional-score.service','-p','MainPID','--value'))
         except BaseException as error:
+            if not dispatched:
+                self.data['phase']='never_armed';save(self.request,self.data)
+                save(self.status,dict(schema='earthship-native-activation-never-armed/v1',phase='never_armed',
+                    nonce=self.nonce,request_sha256=_request_pin(self.data)))
+                raise
             self.data['phase']='release';save(self.request,self.data)
             if self.status.exists():
                 try:self.close()
@@ -271,6 +304,7 @@ def watch(directory):
     from household_cycle_deploy import _systemctl
     from household_native_family import verify
     directory=Path(directory);request=directory/'request.json';status=directory/'status.json';data=read(request)
+    if data.get('start_attempted') is not True or data.get('phase')!='reserve':raise ValueError('dispatched original reservation required')
     if data['nonce']!=directory.name or data['source_sha256']!=sha256(Path(__file__).read_bytes()).hexdigest():raise ValueError('pinned external owner required')
     verify_sources(data)
     manager_binding=verify_manager_domain(data)
