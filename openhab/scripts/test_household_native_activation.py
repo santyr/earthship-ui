@@ -25,6 +25,10 @@ def activation_case(tmp_path, monkeypatch):
     settings=dict(shared_lock=str(shared),geometry_directory=str(geometry),artifact_sha256='c'*64,runtime_sha256='d'*64)
     training.save(run/'activation-input.json',dict(selection=selection,previous=previous))
     training.save(run/'final-config.json',settings)
+    import household_native_history as history
+    training.save(run/'score-history-window.json',{})
+    monkeypatch.setattr(history,'revalidate',lambda *a,**kw:{})
+    monkeypatch.setattr(history,'snapshot_guard',lambda *a,**kw:lambda:None)
     training.save(run/'geometry-libraries.json',dict(original_libraries=True))
     marker=units/'selected';marker.write_text('old')
     clock=[datetime(2026,10,20,18,42,tzinfo=timezone.utc)]
@@ -38,11 +42,27 @@ def activation_case(tmp_path, monkeypatch):
     monkeypatch.setattr(training.subprocess,'check_output',lambda *args,**kw:'0\n')
     monkeypatch.setattr(training,'effective_selection',lambda:{k:previous[k] for k in ('stage','deployment_sha256')})
     monkeypatch.setattr(handoff,'__file__',str(stage/'sources/openhab/scripts/household_native_handoff.py'))
+    monkeypatch.setattr(deploy,'_qualify',lambda *a,**kw:None)
+    monkeypatch.setattr(training,'selected_family_interpreter',lambda *a,**kw:{'path':'/private/python3.12'})
     monkeypatch.setattr(deploy,'verify_stage',lambda *a,**kw:dict(service_file=str(units/'thermal-provisional-forecast.service')))
     monkeypatch.setattr(receipt,'load_serving_selection',lambda *a,**kw:object())
     model=SimpleNamespace(candidate=dict(fit=dict(training_end=selection['trained_through'])))
     monkeypatch.setattr(receipt,'read_serving_model',lambda *a,**kw:model)
     timers={name:'active' for name in (*install.TIMERS,install.PREPARER_TIMER)}
+    import household_native_lifecycle as lifecycle
+    monkeypatch.setenv('EARTHSHIP_NATIVE_RESERVATION',str(run/'reservation'))
+    class Owner:
+        data={'run':str(run),'previous':previous}
+        def check(self):pass
+        def quiesce(self,family):
+            for name in timers:timers[name]='inactive'
+    monkeypatch.setattr(lifecycle,'attach',lambda *a,**kw:Owner())
+    actual_activate=training.activate
+    def managed_activate(run):
+        try:return actual_activate(run)
+        finally:
+            for name in timers:timers[name]='active'
+    monkeypatch.setattr(training,'activate',managed_activate)
     monkeypatch.setattr(install,'_timer_state',lambda unit:dict(ActiveState=timers[unit]))
     monkeypatch.setattr(install,'_services_inactive',lambda root:None)
     monkeypatch.setattr(deploy,'_service_state',lambda path:{})
@@ -69,7 +89,7 @@ def activation_case(tmp_path, monkeypatch):
         return object()
     monkeypatch.setattr(live,'read_geometry',read_geometry)
     monkeypatch.setattr(handoff,'prepare',lambda *a,**kw:kw['guard']())
-    def install_new(output,*,guard):
+    def install_new(output,*,guard,_reservation=None):
         guard()
         assert packet.exists(), 'new-model geometry missing before source cutover'
         assert set(timers.values())=={'inactive'}

@@ -10,9 +10,13 @@ from weather_learning.contracts import identity
 def fixture(tmp_path,monkeypatch):
     import household_cycle_deploy as deploy
     now=datetime(2026,10,20,2,tzinfo=timezone.utc);root=directory(tmp_path/'evidence');policy=Path(__file__).parent/'thermal_model/native_operational_io.py';policy_sha=sha256(policy.read_bytes()).hexdigest();records={};refs=[]
+    import household_native_history as history
+    policy_vector={name:sha256((Path(__file__).resolve().parents[2]/name).read_bytes()).hexdigest() for name in history.POLICIES}
+    state=directory(tmp_path/'state');monkeypatch.setattr(history.Path,'home',lambda:tmp_path)
+    directory(tmp_path/'.local/state/household-intel')
     for i in range(3):
-        stage=directory(tmp_path/str(i));config=tmp_path/(str(i)+'.config.json');save(config,dict(evidence_directory=str(root)));save(stage/'cycle.json',dict(forecast_config=str(config)))
-        record=dict(source_manifest={'openhab/scripts/thermal_model/native_operational_io.py':policy_sha if i<2 else 'c'*64});save(stage/'deployment.json',record);pin=sha256((stage/'deployment.json').read_bytes()).hexdigest();records[str(stage)]=record;refs.append(dict(stage=str(stage),deployment_sha256=pin))
+        stage=directory(tmp_path/str(i));directory(stage/'evidence');config=tmp_path/(str(i)+'.config.json');save(config,dict(evidence_directory=str(root),artifact_sha256='b'*64,runtime_sha256='c'*64,model_receipt_path='/private/receipt.json',model_receipt_sha256='d'*64));save(stage/'cycle.json',dict(forecast_config=str(config)))
+        record=dict(source_manifest=policy_vector if i<2 else {'unknown':'c'*64});save(stage/'deployment.json',record);pin=sha256((stage/'deployment.json').read_bytes()).hexdigest();records[str(stage)]=record;refs.append(dict(stage=str(stage),deployment_sha256=pin))
     monkeypatch.setattr(deploy,'verify_stage',lambda stage,expected_deployment_sha256:records[str(stage)])
     folder=directory(root/'origins-20261020');binding=dict(schema='earthship-native-serving-model-binding/v1',capture_sha256='a'*64,artifact_sha256='b'*64,runtime_sha256='c'*64,
         issued_at=now.isoformat(),stage=refs[1]['stage'],deployment_sha256=refs[1]['deployment_sha256'],model_receipt_path='/private/receipt.json',model_receipt_sha256='d'*64,automatic_actuation=False)

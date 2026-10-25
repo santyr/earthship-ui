@@ -186,3 +186,11 @@ def test_intraday_state_uses_long_original_prefix_without_mutating_it():
     assert selected==rows[:2] and rows==original
     short=dict(rows[0],end='2026-10-10T12:00:00+00:00')
     assert daily().long_part_prefix([short])==[]
+
+
+def test_valid_retained_package_retries_activation_without_a_second_fit():
+    b=Backend('2026-10-14T06:00:00+00:00')
+    b.retry_selection=lambda cutoff,previous:{'stage':'retained-qualified'}
+    result=daily().run_daily(b,now=datetime(2026,10,15,13,tzinfo=timezone.utc),timezone_name='America/Denver')
+    assert b.calls==[('activate',{'stage':'retained-qualified'},b.current())]
+    assert result['fit_executed'] is False

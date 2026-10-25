@@ -69,9 +69,14 @@ def run_daily(backend, *, now, timezone_name, cadence='daily'):
     if datetime.fromisoformat(previous['trained_through']) >= cutoff:
         return result(dict(status='already_current', trained_through=previous['trained_through'],
                     cutoff=cutoff.isoformat(), fit_executed=False, automatic_actuation=False))
-    selection = backend.prepare(cutoff, previous)
-    return result(dict(backend.activate(selection, previous), cutoff=cutoff.isoformat(),
-                fit_executed=True, automatic_actuation=False))
+    try:
+        retry=getattr(backend,'retry_selection',lambda *args:None)(cutoff,previous)
+        selection=retry if retry is not None else backend.prepare(cutoff,previous)
+        return result(dict(backend.activate(selection,previous),cutoff=cutoff.isoformat(),
+            fit_executed=retry is None,automatic_actuation=False))
+    finally:
+        close=getattr(backend,'close_reservation',None)
+        if close is not None:close()
 
 
 def main(argv=None):
@@ -93,11 +98,27 @@ def main(argv=None):
     backend = None
     try:
         if args.activate:
-            result = activate(args.activate)
+            from household_native_lifecycle import activation_lock,cancellation_boundary
+            if os.environ.get('EARTHSHIP_NATIVE_DAILY_LOCK_FD') is not None:
+                with activation_lock(args.activate),cancellation_boundary():
+                    result = activate(args.activate)
+            else:
+                trusted=Path('/home/sat/.local/state/earthship-weather/audit-rollout-8f3747-20261020-native/native-config.json')
+                config=json.loads(_owned_bytes(trusted,32768));backend=NativeTraining(config)
+                with daily_lock(backend.state/'daily.lock') as lock,cancellation_boundary():
+                    backend.learner_lock=lock
+                    cutoff=training_cutoff(datetime.now(timezone.utc),config['timezone'],cadence=config.get('training_cadence','daily'))
+                    try:
+                        previous=backend.current();selection=backend.retry_selection(cutoff,previous)
+                        if selection is None or Path(selection['stage']).parent!=args.activate:raise ValueError('exact valid retained activation package required')
+                        result=backend.activate(selection,previous)
+                    finally:backend.close_reservation()
         else:
             config = json.loads(_owned_bytes(args.config, 32768))
             backend = NativeTraining(config)
-            with daily_lock(backend.state / 'daily.lock'):
+            from household_native_lifecycle import cancellation_boundary
+            with daily_lock(backend.state / 'daily.lock') as lock,cancellation_boundary():
+                backend.learner_lock=lock
                 result = run_daily(backend, now=datetime.now(timezone.utc),
                                    timezone_name=config['timezone'],cadence=config.get('training_cadence','daily'))
     except Exception as error:
