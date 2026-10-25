@@ -189,9 +189,9 @@ def test_retained_config_guard_checks_bytes_without_reparsing_each_boundary(tmp_
     import thermal_model.policy_registration as policy
     from thermal_model.replay_budget import capture_source_reads
     retained,config,options,ticks,events,now=outer_context(tmp_path,monkeypatch)
-    original=policy._read_private;parses=[]
-    def parsed(path):parses.append(path);return original(path)
-    monkeypatch.setattr(policy,'_read_private',parsed)
+    original=policy.json.loads;parses=[]
+    def parsed(*a,**kw):parses.append(True);return original(*a,**kw)
+    monkeypatch.setattr(policy.json,'loads',parsed)
     def scored(settings,*,guard,**kw):
         before=len(parses)
         with capture_source_reads() as first:
@@ -243,6 +243,52 @@ def test_retained_config_guard_preserves_unknown_observer_and_nested_restore(tmp
             finally:_source_reads.reset(token)
             guard();assert config in outer.records;outer.verify()
         assert observer.paths==[config,config]
+        return {'status':'waiting'}
+    monkeypatch.setattr(retained,'score_jobs',scored)
+    assert retained.run(config,**options)=={'status':'waiting'}
+
+
+def test_unknown_configuration_reader_retains_original_per_boundary_calls(tmp_path,monkeypatch):
+    import thermal_model.policy_registration as policy
+    retained,config,options,ticks,events,now=outer_context(tmp_path,monkeypatch)
+    original=policy._read_private;calls=[]
+    def unknown(path):calls.append(path);return original(path)
+    monkeypatch.setattr(policy,'_read_private',unknown)
+    def scored(settings,*,guard,**kw):
+        before=len(calls);guard();guard();assert len(calls)==before+2
+        return {'status':'waiting'}
+    monkeypatch.setattr(retained,'score_jobs',scored)
+    assert retained.run(config,**options)=={'status':'waiting'}
+
+
+def test_config_guard_detects_admitted_source_mutation_at_original_inventory_boundary(tmp_path,monkeypatch):
+    import household_observation as observations
+    from thermal_model.replay_budget import capture_source_reads
+    retained,config,options,ticks,events,now=outer_context(tmp_path,monkeypatch)
+    source=tmp_path/'household_observation.py';source.write_bytes(Path(observations.__file__).read_bytes());source.chmod(0o644)
+    monkeypatch.setattr(observations,'__file__',str(source))
+    monkeypatch.setattr(observations._private_file,'__code__',observations._private_file.__code__.replace(co_filename=str(source)))
+    def scored(settings,*,guard,**kw):
+        with capture_source_reads() as originals:
+            guard();assert source in originals.records
+            source.write_bytes(source.read_bytes()+b'\n# changed admitted original\n')
+            originals.verify()
+        pytest.fail('changed admitted source passed original inventory boundary')
+    monkeypatch.setattr(retained,'score_jobs',scored)
+    with pytest.raises(ValueError,match='source'):retained.run(config,**options)
+
+
+def test_config_guard_reverts_to_original_expression_when_loaded_reader_changes(tmp_path,monkeypatch):
+    import thermal_model.policy_registration as policy
+    retained,config,options,ticks,events,now=outer_context(tmp_path,monkeypatch)
+    original_loads=policy.json.loads;parses=[]
+    def counted(*a,**kw):parses.append(True);return original_loads(*a,**kw)
+    monkeypatch.setattr(policy.json,'loads',counted)
+    original_reader=policy._read_private
+    def scored(settings,*,guard,**kw):
+        guard();before=len(parses)
+        monkeypatch.setattr(policy,'_read_private',lambda path:original_reader(path))
+        guard();guard();assert len(parses)==before+2
         return {'status':'waiting'}
     monkeypatch.setattr(retained,'score_jobs',scored)
     assert retained.run(config,**options)=={'status':'waiting'}

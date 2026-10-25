@@ -33,6 +33,33 @@ def _reader_factory():
     return queries.RecentCycleWindowReader
 
 
+CONFIGURATION_GUARD_SOURCES={
+    'household_observation':'ae25be2471747d337031ed6f0ccd68118eb58253ac6b59f22ccf88e03baf11b7',
+    'thermal_model.policy_registration':'9baf4b13fea46eb35d8ea1e1c19a6fdb5fe5270180da16a5193e19ce07b99bfb',
+    'thermal_model.forcing_capture':'c492418769bfff01d0b42b1f2c982e3570a910eb2011ada4deb9bc5014dd9ec0',
+    'thermal_model.replay_budget':'0962de5a39db509d0abe4cde4afce5c0a3366f8ce3c876e3c9a9a08f76a935b9',
+}
+
+
+def _configuration_reuse_supported(*functions):
+    """Only the original pure parser/readers permit duplicate-work reuse."""
+    import sys
+    from hashlib import sha256
+    from thermal_model.origin_capture import _source_bytes
+    sources=[]
+    for function in functions:
+        expected=CONFIGURATION_GUARD_SOURCES.get(function.__module__)
+        module=sys.modules.get(function.__module__)
+        if expected is None or module is None:return None
+        try:
+            path=Path(module.__file__).absolute()
+            raw=_source_bytes(path,maximum=262144)
+            if Path(function.__code__.co_filename).absolute()!=path or sha256(raw).hexdigest()!=expected:return None
+            sources.append((module,function.__name__,function,function.__code__,path,raw))
+        except (OSError,ValueError,AttributeError):return None
+    return tuple(sources)
+
+
 def run(config,*,stage,deployment_sha256,deadline,resource_preflight,pressure_factory,
         source_guard,verify_archive,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic):
     import os,math
@@ -56,23 +83,32 @@ def run(config,*,stage,deployment_sha256,deadline,resource_preflight,pressure_fa
     if cycle.get('forecast_config')!=str(config):raise ValueError('retained native cycle configuration differs')
     # Parse the already validated original once. Every guard still freshly
     # checks the original full metadata/bytes, private parent and live settings.
-    sealed_settings=_read_private(config);observed_inventory=object()
+    configuration_sources=_configuration_reuse_supported(_private_file,_read_private,_private_directory,observe_source_bytes)
+    reuse_configuration=configuration_sources is not None
+    sealed_settings=_read_private(config) if reuse_configuration else None
+    observed_inventory=object()
     issue=_next_issue(clock())
     if issue-clock()<timedelta(seconds=90):raise BlockingIOError('forecast preparation window reserved')
     with SharedScoreLock(settings['shared_lock']) as lock:
         pressure=pressure_factory();pressure.check(force=True)
         def guard():
-            nonlocal observed_inventory
+            nonlocal observed_inventory,reuse_configuration
             lock.verify();pressure.check();source_guard()
             if monotonic()>=deadline or clock()>=issue-timedelta(seconds=135):raise ValueError('score lifetime elapsed')
+            if reuse_configuration and any(getattr(module,name,None) is not function or function.__code__ is not code
+                    for module,name,function,code,_,_ in configuration_sources):reuse_configuration=False
+            inventory=_source_reads.get()
+            if not reuse_configuration or (inventory is not None and type(inventory) is not OriginalSourceInventory):
+                if _private_file(config,8192)!=original or _read_private(config)!=settings:raise ValueError('score source or configuration changed')
+                return
             if _private_file(config,8192)!=original or sealed_settings!=settings:raise ValueError('score source or configuration changed')
             _private_directory(config.parent)
-            inventory=_source_reads.get()
             # Register genuine immutable bytes in EACH original inventory.
             # The strict metadata/byte check above runs even on repeated guards;
             # only duplicate JSON parsing/observation is omitted. Unknown
             # observers retain their original per-boundary observation calls.
-            if type(inventory) is not OriginalSourceInventory or inventory is not observed_inventory:
+            if inventory is not None and inventory is not observed_inventory:
+                for _,_,_,_,path,raw in configuration_sources:observe_source_bytes(path,raw)
                 observe_source_bytes(config,original[0]);observed_inventory=inventory
         guard()
         selected=load_serving_selection(stage,expected_deployment_sha256=deployment_sha256,assessed_at=clock(),guard=guard)
