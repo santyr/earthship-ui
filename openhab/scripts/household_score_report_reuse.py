@@ -133,6 +133,7 @@ def _capture_reads(guard):
     from thermal_model.runtime_bundle import _owned_bytes
     from thermal_model.replay_budget import _source_reads,OriginalSourceInventory
     original=forecasts.validate_serving_capture;path=Path(forecasts.__file__).absolute()
+    weather_hooked=False
     frame=object();token=_capture_frame.set(frame);hooked=False;cache=OrderedDict();size=0;identities={}
     try:
         guard();raw=_source_bytes(path,maximum=262144);info=path.lstat()
@@ -145,6 +146,12 @@ def _capture_reads(guard):
                 sha256(model_raw).hexdigest() not in (SUPPORTED_MODEL_HELPER_SHA256,PRIOR_MODEL_HELPER_SHA256) or
                 Path(original.__code__.co_filename).absolute()!=path):
             yield;return
+        import thermal_weather_source as weather
+        import production_thermal_source as production_weather
+        original_weather=weather.verify_bindings;weather_code=getattr(original_weather,'__code__',None)
+        weather_admission=ContextVar('full_capture_weather_admission',default=None)
+        weather_functions=tuple((name,getattr(production_weather,name),getattr(getattr(production_weather,name),'__code__',None))
+            for name in ('verify','_points'))
         def retained_size(value):
             seen=set()
             def count(v):
@@ -170,20 +177,50 @@ def _capture_reads(guard):
             if previous is None:
                 if len(identities)>=MAX_CAPTURE_DEPENDENCIES:raise ValueError('bounded captured dependency inventory required')
                 identities[selected]=actual
-        def observe_dependencies(value,refs,check):
+        def observe_weather(context,refs,check):
             # Weather's original streaming reader does not add its reads to
             # the numerical report inventory. Explicitly bind ALL its original
             # files and runtime sources before retaining a validation hit.
             for ref in refs:
                 selected=Path(ref['path']);check();remember(selected);body=_owned_bytes(selected,ref['maximum']);remember(selected)
                 if sha256(body).hexdigest()!=ref['sha256']:raise ValueError('captured weather original changed')
-            if value.get('weather_conditioning') is not None:
+            if context is not None:
                 for name,pin in CAPTURE_WEATHER_RUNTIME.items():
                     selected=path.parent/name;check();remember(selected);body=_source_bytes(selected,maximum=262144);remember(selected)
                     if sha256(body).hexdigest()!=pin:raise ValueError('captured weather runtime changed')
+        def observe_dependencies(value,refs,check):
+            observe_weather(value.get('weather_conditioning'),refs,check)
             for name in value['native_origin_binding']['query_sources'].values():
                 from weather_temperature_sources import MAX_CONTAINER_BYTES
                 selected=Path(name);check();remember(selected);_owned_bytes(selected,MAX_CONTAINER_BYTES);remember(selected)
+        def weather_key(value):
+            if type(value) is not dict or dependencies({'weather_conditioning':value}) is None:return None
+            try:
+                raw=_json_key(value)
+                return sha256(raw).digest() if len(raw)<=32768 else None
+            except (ValueError,TypeError,RecursionError,OverflowError):return None
+        def known_weather():
+            return getattr(original_weather,'__code__',None) is weather_code and all(
+                getattr(production_weather,name,None) is function and getattr(function,'__code__',None) is code
+                for name,function,code in weather_functions)
+        def verify_weather(value,*,guard):
+            # The known verifier has only this complete context and callback as
+            # inputs: issue/availability, policy, authority, source refs and all
+            # runtime pins are IN the context. It consults no current clock or
+            # model. Successful full captures alone admit its validation digest.
+            inventory=_source_reads.get()
+            if (_capture_frame.get() is not frame or type(inventory) is not OriginalSourceInventory or
+                    not known_weather()):
+                return original_weather(value,guard=guard)
+            key=weather_key(value)
+            if key is None:return original_weather(value,guard=guard)
+            saved=deepcopy(value)
+            if any(capture_key[0] is inventory and metadata==key for capture_key,(metadata,_) in cache.items()):
+                guard();observe_weather(saved,saved['originals'],guard);guard();result=None
+            else:result=original_weather(saved,guard=guard)
+            admitted=weather_admission.get()
+            if admitted is not None and known_weather():admitted[:]=[key]
+            return result
         def read(value,model,*,expected_capture_sha256,check_budget=lambda:None):
             nonlocal size
             def full():return original(value,model,expected_capture_sha256=expected_capture_sha256,check_budget=check_budget)
@@ -199,20 +236,32 @@ def _capture_reads(guard):
                     sha256(model._selection._encoded).digest(),expected_capture_sha256)
             except (ValueError,TypeError,RecursionError,OverflowError):return full()
             if key in cache:
-                _,weight=cache.pop(key);cache[key]=(True,weight)
+                metadata,weight=cache.pop(key);cache[key]=(metadata,weight)
                 # Preserve the original serving candidate's issue-time model
                 # admission/chronology check even when numerical work is reused.
                 model.verify_bindings(assessed_at=value['issued_at'],guard=check_budget)
                 observe_dependencies(value,refs,check_budget)
                 result=deepcopy(value);check_budget();guard();return result
-            result=full();check_budget();guard()
+            admitted=[];admission_token=weather_admission.set(admitted)
+            try:result=full()
+            finally:weather_admission.reset(admission_token)
+            check_budget();guard()
             observe_dependencies(result,dependencies(result),check_budget)
-            weight=retained_size(key[1:])+512
+            metadata=weather_key(result.get('weather_conditioning')) if weather_hooked else None
+            if admitted!=[metadata]:metadata=None
+            weight=retained_size((key[1:],metadata))+512
             if weight<=MAX_CAPTURE_CACHE_BYTES:
                 while cache and (len(cache)>=MAX_CAPTURE_CACHE_ENTRIES or size+weight>MAX_CAPTURE_CACHE_BYTES):
                     _,(_,removed)=cache.popitem(last=False);size-=removed
-                if MAX_CAPTURE_CACHE_ENTRIES>0:cache[key]=(True,weight);size+=weight
+                if MAX_CAPTURE_CACHE_ENTRIES>0:cache[key]=(metadata,weight);size+=weight
             return result
+        weather_path=Path(weather.__file__).absolute()
+        production_path=Path(production_weather.__file__).absolute()
+        if (weather_code is not None and Path(weather_code.co_filename).absolute()==weather_path and
+                all(code is not None and Path(code.co_filename).absolute()==production_path for _,_,code in weather_functions) and
+                sha256(_source_bytes(weather_path,maximum=262144)).hexdigest()==CAPTURE_WEATHER_RUNTIME['thermal_weather_source.py'] and
+                sha256(_source_bytes(production_path,maximum=262144)).hexdigest()==CAPTURE_WEATHER_RUNTIME['production_thermal_source.py']):
+            weather.verify_bindings=verify_weather;weather_hooked=True
         forecasts.validate_serving_capture=read;hooked=True
         yield
         for selected,expected in identities.items():
@@ -225,6 +274,7 @@ def _capture_reads(guard):
         guard()
     finally:
         if hooked:forecasts.validate_serving_capture=original
+        if weather_hooked:weather.verify_bindings=original_weather
         cache.clear();identities.clear();_capture_frame.reset(token)
 
 
