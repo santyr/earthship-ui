@@ -102,8 +102,27 @@ def fingerprint(path,*,link=False):
     if link:
         if not stat.S_ISLNK(info.st_mode):raise ValueError('exact timer enablement link required')
         return result+[str(path.readlink())]
-    from household_cycle_deploy import _bytes
-    return result+[sha256(_bytes(path)).hexdigest()]
+    from household_cycle_deploy import _bytes,_path,MAX_BYTES
+    if path.name!='thermal-native-activation-owner@.service':
+        return result+[sha256(_bytes(path)).hexdigest()]
+    # Only this installed manager template needs '@'. Deployment/source readers
+    # retain their closed path contract; the parent still uses that contract.
+    if not path.is_absolute() or _path(path.parent)!=path.parent or path.resolve()!=path:
+        raise ValueError('canonical activation template required')
+    metadata=lambda row:(row.st_dev,row.st_ino,row.st_mode,row.st_uid,row.st_nlink,row.st_size,row.st_mtime_ns,row.st_ctime_ns)
+    try:fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+    except OSError:raise ValueError('owned activation template unavailable') from None
+    try:
+        opened=os.fstat(fd)
+        if (not stat.S_ISREG(opened.st_mode) or opened.st_uid!=os.getuid() or opened.st_mode&0o022 or
+            opened.st_nlink!=1 or opened.st_size>MAX_BYTES or metadata(info)!=metadata(opened)):
+            raise ValueError('bounded owned activation template required')
+        raw=os.read(fd,MAX_BYTES+1)
+        if (len(raw)!=opened.st_size or len(raw)>MAX_BYTES or metadata(opened)!=metadata(os.fstat(fd)) or
+            metadata(opened)!=metadata(path.lstat()) or path.resolve()!=path):
+            raise ValueError('activation template changed while reading')
+        return result+[sha256(raw).hexdigest()]
+    finally:os.close(fd)
 
 
 def source_snapshot(repo):
