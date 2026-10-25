@@ -9,6 +9,30 @@ from pathlib import Path
 import time
 
 
+# This is an operational reader integration; the fitted archived class stays
+# untouched. Unknown archived source implementations retain their own reader.
+NATIVE_READER_SOURCE_SHA256='61851a694333d3cd66c24e8e71aab016631844a34b09411c6816c74e0e5c11f8'
+OPERATIONAL_READER_SOURCE_SHA256='5621fba1de64e317bfe5b4a7b0f7fa12d8e05ecc323961a6a96e170601f9f4a5'
+
+
+def _reader_factory():
+    import importlib.util
+    from hashlib import sha256
+    import native_thermal_live as native
+    from thermal_model.origin_capture import _source_bytes
+    if sha256(_source_bytes(Path(native.__file__).absolute(),maximum=262144)).hexdigest()!=NATIVE_READER_SOURCE_SHA256:
+        return native.NativeScoreReader
+    path=Path(__file__).absolute().with_name('household_native_score_queries.py')
+    if sha256(_source_bytes(path,maximum=262144)).hexdigest()!=OPERATIONAL_READER_SOURCE_SHA256:
+        raise ValueError('retained operational reader source differs')
+    import sys
+    queries=sys.modules.get('household_native_score_queries')
+    if queries is None or Path(queries.__file__).absolute()!=path:
+        spec=importlib.util.spec_from_file_location('_earthship_retained_score_queries',path)
+        queries=importlib.util.module_from_spec(spec);spec.loader.exec_module(queries)
+    return queries.RecentCycleWindowReader
+
+
 def run(config,*,stage,deployment_sha256,deadline,resource_preflight,pressure_factory,
         source_guard,verify_archive,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic):
     import os,math
@@ -92,7 +116,7 @@ def score_jobs(settings,*,guard,deadline,clock,monotonic,reader=None,max_jobs=1,
         if reader is None:
             config={key:settings[key] for key in ('token_file','native_db_config','native_policy','openhab_base')}
             config.update(schema=COMPRESSED_SOURCE_SCHEMA,output_directory=str(folder))
-            reader=NativeScoreReader(config,shared_lock_guard=remaining)
+            reader=_reader_factory()(config,shared_lock_guard=remaining)
         paths=[]
         for directory in _folders(root,'origins',now):paths.extend(directory.glob('*.native-provisional-delivery-v2.json'))
         if len(paths)>1024:raise ValueError('bounded native delivered forecast inventory required')
