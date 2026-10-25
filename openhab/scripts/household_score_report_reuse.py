@@ -10,6 +10,7 @@ from hashlib import sha256
 from pathlib import Path
 from contextlib import contextmanager
 from contextvars import ContextVar
+from types import FunctionType
 
 SUPPORTED_SOURCE_SHA256='60cd7a67a914ef8d996390f60e9be398475f9a1ef08c5da011d7d279a0db0608'
 PRIOR_SOURCE_SHA256='2e4abc7c8f655bcc5f7ff839b9750816f56f08b02bd516e10c8b8c2c6aaa6dab'
@@ -175,8 +176,11 @@ def _capture_reads(guard):
         for module,selected,names in ((weather,weather_path,('verify_bindings','production_conditioning_runtime')),
                 (production_weather,production_path,('verify','_points'))):
             for name in names:
-                function=getattr(module,name,None);code=getattr(function,'__code__',None)
-                if code is None or Path(code.co_filename).absolute()!=selected:
+                function=getattr(module,name,None)
+                if type(function) is not FunctionType or function.__globals__ is not module.__dict__:
+                    yield;return
+                code=function.__code__
+                if Path(code.co_filename).absolute()!=selected:
                     yield;return
                 weather_functions.append((module,name,function,code))
         original_weather=weather.verify_bindings
@@ -234,7 +238,7 @@ def _capture_reads(guard):
             # from a path, mtime, or object identity.
             return weather_roots_match() and all(
                 getattr(module,name,None) is (verify_weather if module is weather and name=='verify_bindings' else function) and
-                getattr(function,'__code__',None) is code
+                type(function) is FunctionType and function.__globals__ is module.__dict__ and function.__code__ is code
                 for module,name,function,code in weather_functions)
         def verify_weather(value,*,guard):
             # The known verifier has only this complete context and callback as

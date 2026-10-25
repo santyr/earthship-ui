@@ -319,3 +319,64 @@ def test_loaded_weather_source_location_change_falls_back(tmp_path,originals,mon
             assert forecasts.validate_serving_capture(first,model,expected_capture_sha256=first['capture_sha256'])==first
         assert len(calls)==2,'loaded source-location change retained a full-capture skip'
     finally:sys.setprofile(None)
+
+
+@pytest.mark.parametrize('same_capture',[False,True])
+def test_same_code_weather_runtime_with_foreign_globals_uses_original_root(tmp_path,originals,monkeypatch,same_capture):
+    from types import FunctionType
+    import household_score_report_reuse as reuse,native_thermal_score as scores,thermal_weather_source as weather
+    from thermal_model.replay_budget import capture_source_reads
+    forecasts,model,first,second,at=weather_captures(tmp_path,originals,monkeypatch)
+    foreign=copied_weather_runtime(tmp_path);original_runtime=weather.production_conditioning_runtime
+    rebound=FunctionType(original_runtime.__code__,{**weather.__dict__,'SCRIPTS':foreign})
+    monkeypatch.setattr(weather,'production_conditioning_runtime',rebound)
+    assert rebound.__code__ is original_runtime.__code__ and rebound.__globals__ is not weather.__dict__
+    assert weather.SCRIPTS!=foreign and rebound()==first['weather_conditioning']['runtime_manifest']
+    calls,profile=count_weather();sys.setprofile(profile)
+    try:
+        with reuse._model_reads(scores,at),reuse._capture_reads(lambda:None),capture_source_reads():
+            assert forecasts.validate_serving_capture(first,model,expected_capture_sha256=first['capture_sha256'])==first
+            target=foreign/'weather_learning/provider.py';target.write_bytes(target.read_bytes()+b'\n')
+            value=first if same_capture else second
+            with pytest.raises(ValueError,match='original production thermal runtime differs'):
+                forecasts.validate_serving_capture(value,model,expected_capture_sha256=value['capture_sha256'])
+        assert len(calls)==2,'same code with foreign globals bypassed original runtime verification'
+    finally:sys.setprofile(None)
+
+
+@pytest.mark.parametrize('function_name',['verify_bindings','production_conditioning_runtime','verify','_points'])
+def test_foreign_function_globals_leave_full_weather_validation_original(tmp_path,originals,monkeypatch,function_name):
+    from types import FunctionType
+    import household_score_report_reuse as reuse,native_thermal_score as scores,thermal_weather_source as weather,production_thermal_source as production
+    from thermal_model.replay_budget import capture_source_reads
+    forecasts,model,first,second,at=weather_captures(tmp_path,originals,monkeypatch)
+    owner=weather if function_name in ('verify_bindings','production_conditioning_runtime') else production
+    function=getattr(owner,function_name)
+    monkeypatch.setattr(owner,function_name,FunctionType(function.__code__,dict(owner.__dict__)))
+    calls,profile=count_weather();sys.setprofile(profile)
+    try:
+        with reuse._model_reads(scores,at),reuse._capture_reads(lambda:None),capture_source_reads():
+            for value in (first,second,first):
+                assert forecasts.validate_serving_capture(value,model,expected_capture_sha256=value['capture_sha256'])==value
+        assert len(calls)==3,'foreign function globals admitted cached weather validation'
+    finally:sys.setprofile(None)
+
+
+def test_unsupported_callable_metadata_preserves_original_weather_validation(tmp_path,originals,monkeypatch):
+    import household_score_report_reuse as reuse,native_thermal_score as scores,production_thermal_source as production
+    from thermal_model.replay_budget import capture_source_reads
+    forecasts,model,first,second,at=weather_captures(tmp_path,originals,monkeypatch)
+    original=production.verify
+    class CompatibleVerifier:
+        def __call__(self,value,*,guard):return original(value,guard=guard)
+        @property
+        def __code__(self):raise AssertionError('optional callable code metadata is unavailable')
+    monkeypatch.setattr(production,'verify',CompatibleVerifier())
+    production.verify(first['weather_conditioning'],guard=lambda:None)
+    calls,profile=count_weather();sys.setprofile(profile)
+    try:
+        with reuse._model_reads(scores,at),reuse._capture_reads(lambda:None),capture_source_reads():
+            for value in (first,second,first):
+                assert forecasts.validate_serving_capture(value,model,expected_capture_sha256=value['capture_sha256'])==value
+        assert len(calls)==3
+    finally:sys.setprofile(None)
