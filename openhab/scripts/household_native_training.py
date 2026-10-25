@@ -447,8 +447,25 @@ class NativeTraining:
         environment.update(EARTHSHIP_NATIVE_DAILY_LOCK_FD=str(lock.fd),
             EARTHSHIP_NATIVE_RESERVATION=str(self.reservation.directory))
         from household_native_lifecycle import run_activation_child
-        run_activation_child([interpreter['path'],'-B','-m','household_native_daily','--activate',str(run)],
-            environment=environment,lock=lock,guard=self.reservation.check)
+        from household_native_daily import activation_failure_path,FAILURE_TYPES,FAILURE_REASONS
+        failure_path=activation_failure_path(run,self.reservation.directory)
+        if failure_path.exists() or failure_path.is_symlink():raise ValueError('activation attempt failure evidence already exists')
+        try:
+            run_activation_child([interpreter['path'],'-B','-m','household_native_daily','--activate',str(run)],
+                environment=environment,lock=lock,guard=self.reservation.check)
+        except subprocess.CalledProcessError as error:
+            # Preserve the child's fixed primary cause without scraping journal
+            # text or publishing private command/stdout contents.
+            if failure_path.exists():
+                try:
+                    value=read(failure_path,8192);failure=value['failure']
+                    if (set(value)=={'schema','run','nonce','failure'} and
+                        value['schema']=='earthship-native-activation-failure/v1' and value['run']==str(run) and
+                        value['nonce']==self.reservation.directory.name and isinstance(failure,dict) and
+                        set(failure)=={'error','reason'} and failure['error'] in FAILURE_TYPES and failure['reason'] in FAILURE_REASONS):
+                        error.native_primary_failure=failure
+                except (OSError,ValueError,KeyError,TypeError):pass
+            raise
         return read(run / 'activation-result.json')
 
 

@@ -137,7 +137,7 @@ def manager_fixture(tmp_path,owner):
     reservation=directory(root/'reservation')
     life.save(reservation/'request.json',dict(nonce='reservation',owner=life.process_identity(owner.pid),run=str(root/'run'),
         previous={'stage':str(root/'old/final'),'deployment_sha256':'a'*64},root=str(units),shared_lock=str(lock),expires=time.monotonic()+60,
-        phase='reserve',family=None,start_attempted=True,sources={str(Path(life.__file__)):life.fingerprint(Path(life.__file__))},source_sha256=sha256(Path(life.__file__).read_bytes()).hexdigest()))
+        phase='reserve',family=None,handoff_deadline=time.monotonic()+15,start_attempted=True,sources={str(Path(life.__file__)):life.fingerprint(Path(life.__file__))},source_sha256=sha256(Path(life.__file__).read_bytes()).hexdigest()))
     return root,targets
 
 
@@ -396,3 +396,86 @@ def test_never_armed_marker_cannot_clear_changed_request_or_start_a_pause(tmp_pa
     monkeypatch.setattr(life,'start_owner',started)
     with pytest.raises(ValueError,match='reconciliation'):life.Reservation(state,tmp_path/'run',previous,guard=lambda:None)
     assert list((state/'activation-reservations').iterdir())==[path]
+
+
+@pytest.mark.parametrize('change',['release','owner_loss','expired','ack_expired','timer_edit'])
+def test_long_family_verification_cannot_act_on_stale_handoff(tmp_path,change):
+    import household_native_lifecycle as life
+    owner=subprocess.Popen([sys.executable,'-B','-c','import time;time.sleep(60)'])
+    manager=None
+    script='''from pathlib import Path
+import sys,time
+import household_native_lifecycle as life
+import household_native_family as family
+from test_native_activation_manager_fixture import configure
+root=Path(sys.argv[1]);change=sys.argv[2];configure(root)
+original=family.verify
+def slow(family_path,guard):
+ result=original(family_path,guard=guard)
+ if Path(family_path)==root/'new/family':
+  # Verification crossed the child's acknowledgement deadline; the child has
+  # cancelled or its owner/deadline/observed timer state no longer permits pause.
+  request=life.read(root/'reservation/request.json')
+  if change=='release':request['phase']='release';life.save(root/'reservation/request.json',request)
+  elif change=='owner_loss':life.process_identity=lambda pid:None
+  elif change=='expired':life.time.monotonic=lambda:request['expires']+1
+  elif change=='ack_expired':life.time.monotonic=lambda:request['handoff_deadline']+.1
+  else:
+   timers=life.read(root/'timers.json');timers[life.TIMERS[0]]['InactiveEnterTimestampMonotonic']='changed';life.save(root/'timers.json',timers)
+ return result
+family.verify=slow
+try:life.watch(root/'reservation')
+except ValueError:pass
+'''
+    try:
+        root,_=manager_fixture(tmp_path,owner)
+        manager=subprocess.Popen([sys.executable,'-B','-c',script,str(root),change])
+        wait_phase(root,'reserved')
+        request=life.read(root/'reservation/request.json');request.update(phase='handoff',family=str(root/'new/family'));life.save(root/'reservation/request.json',request)
+        manager.wait(timeout=5)
+        status=life.read(root/'reservation/status.json')
+        assert set(status['paused'])=={life.SCORE}
+        assert status['new_family'] is None
+        assert life.read(root/'timers.json')[life.TIMERS[2]]['ActiveState']=='active'
+    finally:
+        for child in (owner,manager):
+            if child is not None and child.poll() is None:child.kill();child.wait()
+
+
+@pytest.mark.parametrize('change',['timer','target','lock'])
+def test_recovery_rechecks_late_mutation_after_admitted_verification(tmp_path,change):
+    import household_native_lifecycle as life
+    owner=subprocess.Popen([sys.executable,'-B','-c','import time;time.sleep(60)'])
+    manager=None
+    script='''from pathlib import Path
+import sys
+import household_native_lifecycle as life
+import household_native_install as install
+from test_native_activation_manager_fixture import configure
+root=Path(sys.argv[1]);change=sys.argv[2];configure(root)
+original=install._verify_effective_family
+def verified(path,guard):
+ result=original(path,guard=guard)
+ if change=='timer':
+  rows=life.read(root/'timers.json');rows[life.TIMERS[-1]]['InactiveEnterTimestampMonotonic']='foreign';life.save(root/'timers.json',rows)
+ elif change=='target':
+  status=life.read(root/'reservation/status.json');Path(next(iter(status['old_targets']))).write_bytes(b'foreign')
+ else:
+  path=root/'shared.lock';path.unlink();path.write_bytes(b'');path.chmod(0o600)
+ return result
+install._verify_effective_family=verified
+life.recover(root/'reservation')
+'''
+    try:
+        root,_=manager_fixture(tmp_path,owner)
+        manager=subprocess.Popen([sys.executable,'-B','-m','test_native_activation_manager_fixture',str(root),'watch'])
+        wait_phase(root,'reserved');request=life.read(root/'reservation/request.json')
+        request.update(phase='handoff',family=str(root/'new/family'));life.save(root/'reservation/request.json',request)
+        wait_phase(root,'quiesced');request['phase']='release';life.save(root/'reservation/request.json',request);manager.wait(timeout=5)
+        result=subprocess.run([sys.executable,'-B','-c',script,str(root),change],capture_output=True,text=True,timeout=10)
+        assert result.returncode!=0
+        assert life.read(root/'reservation/status.json')['phase']=='reconciliation_required'
+        assert all(row['ActiveState']=='inactive' for row in life.read(root/'timers.json').values())
+    finally:
+        for child in (owner,manager):
+            if child is not None and child.poll() is None:child.kill();child.wait()

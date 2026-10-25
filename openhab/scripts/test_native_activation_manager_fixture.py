@@ -25,6 +25,7 @@ def configure(root):
         assert all(timer(u)['ActiveState']=='inactive' for u in life.TIMERS)
         return {'status':'native_effective_family_verified'}
     life._timer=timer;deploy._systemctl=systemctl;family.verify=verified;install._verify_effective_family=effective
+    life._verify_family=lambda directory,path,effective=False: install._verify_effective_family(path,guard=lambda:None) if effective else family.verify(path,guard=lambda:None)
 
 
 def main():
@@ -167,3 +168,49 @@ def test_manager_rejects_shared_worker_kill_domain(tmp_path,monkeypatch):
         return original(path,*args,**kwargs)
     monkeypatch.setattr(Path,'read_text',same_group)
     with pytest.raises(ValueError,match='worker kill domain'):life.verify_manager_domain(data)
+
+
+def test_family_verification_uses_bounded_admitted_readonly_worker(tmp_path,monkeypatch):
+    import pytest
+    import household_job_launch as launcher
+    from household_native_training import directory
+    root=directory(tmp_path/'reservation');old=directory(tmp_path/'old/family')
+    request=dict(nonce='a'*32,run=str(tmp_path/'new'),previous={'stage':str(tmp_path/'old/final')},
+        phase='handoff',family=str(tmp_path/'new/family'),sources={str(Path(life.__file__)):life.fingerprint(Path(life.__file__))},
+        source_sha256=sha256(Path(life.__file__).read_bytes()).hexdigest())
+    life.save(root/'request.json',request)
+    monkeypatch.setattr(family,'verify',lambda path,guard:guard() or {'checked':str(path)})
+    monkeypatch.setattr(deploy,'_systemctl',lambda *args:f'/user.slice/user-{os.getuid()}.slice/user@{os.getuid()}.service/earthship.slice/earthship-work.slice')
+    def launch(command,**kwargs):
+        assert kwargs['minimum_bytes']==kwargs['preferred_bytes']==256*1024**2
+        assert kwargs['tasks']==24 and kwargs['seconds']==10 and kwargs['production'] is True
+        assert command[0]==sys.executable and command[1]=='-B'
+        assert command[2]==str(Path(life.__file__))
+        values=dict(zip(command[3::2],command[4::2]))
+        assert '--verify-family' in values and '--verification-request' in values
+        life._verification_worker(Path(values['--verification-request']),values['--verification-pin'],
+            Path(values['--verify-family']),Path(values['--verification-output']),effective=False)
+        return 0
+    monkeypatch.setattr(launcher,'launch_job',launch)
+    assert life._verify_family(root,old)=={'checked':str(old)}
+    for fault in ('refused','result_binding','deadline'):
+        def damaged(command,**kwargs):
+            if fault=='refused':return 75
+            result=launch(command,**kwargs)
+            if fault=='result_binding':
+                path=Path(command[command.index('--verification-output')+1]);value=life.read(path)
+                value['request_sha256']='0'*64;life.save(path,value)
+            else:
+                clock=life.time.monotonic;now=clock();monkeypatch.setattr(life.time,'monotonic',lambda:now+11)
+            return result
+        with monkeypatch.context() as patch:
+            # Restore the clock explicitly because damaged uses the outer fixture.
+            clock=life.time.monotonic
+            patch.setattr(launcher,'launch_job',damaged)
+            with pytest.raises((ValueError,TimeoutError)):life._verify_family(root,old)
+            monkeypatch.setattr(life.time,'monotonic',clock)
+    def changed(path,guard):
+        value=life.read(root/'request.json');value['phase']='release';life.save(root/'request.json',value)
+        return {'checked':str(path)}
+    monkeypatch.setattr(family,'verify',changed)
+    with pytest.raises(ValueError,match='verification request changed'):life._verify_family(root,old)

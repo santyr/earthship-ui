@@ -194,3 +194,81 @@ def test_valid_retained_package_retries_activation_without_a_second_fit():
     result=daily().run_daily(b,now=datetime(2026,10,15,13,tzinfo=timezone.utc),timezone_name='America/Denver')
     assert b.calls==[('activate',{'stage':'retained-qualified'},b.current())]
     assert result['fit_executed'] is False
+
+
+@pytest.mark.parametrize('primary,cleanup',[(True,True),(False,True),(False,False)])
+def test_main_persists_primary_and_cleanup_domains_separately(tmp_path,monkeypatch,capsys,primary,cleanup):
+    import json
+    import household_native_training as training
+    import household_native_daily as module
+    tmp_path.chmod(0o700);config=tmp_path/'config.json';training.save(config,{'timezone':'UTC'})
+    backend=Backend('2000-01-01T00:00:00+00:00');backend.state=tmp_path
+    calls=[]
+    def activate(*args):
+        if primary:raise ValueError('private model payload '+('x'*10000))
+        return {'status':'native_family_activated'}
+    def close():
+        calls.append('close')
+        if cleanup:raise TimeoutError('external cleanup acknowledgment missing')
+    backend.activate=activate;backend.close_reservation=close
+    monkeypatch.setattr(training,'NativeTraining',lambda config:backend)
+    assert module.main(['--config',str(config)])==int(primary or cleanup)
+    result=json.loads((tmp_path/'last-result.json').read_bytes())
+    assert json.loads(capsys.readouterr().out)==result
+    assert calls==['close']
+    if primary:
+        assert result['error']=='ValueError'
+        assert result['reason']=='native_refresh_failed'
+        assert result['cleanup_failure']=={'error':'TimeoutError','reason':'external cleanup acknowledgment missing'}
+        assert 'private model payload' not in json.dumps(result) and len(json.dumps(result))<1024
+    elif cleanup:
+        assert result['error']=='TimeoutError' and result['reason']=='external cleanup acknowledgment missing'
+        assert result['failure_domain']=='cleanup' and 'cleanup_failure' not in result
+    else:
+        assert result['status']=='native_family_activated' and 'cleanup_failure' not in result
+
+
+def test_cleanup_failure_does_not_replace_cancellation():
+    import household_native_daily as module
+    backend=Backend('2000-01-01T00:00:00+00:00')
+    def activate(*args):raise KeyboardInterrupt('original cancellation')
+    def close():raise ValueError('private cleanup details')
+    backend.activate=activate;backend.close_reservation=close
+    with pytest.raises(KeyboardInterrupt,match='original cancellation') as captured:
+        module.run_daily(backend,now=datetime(2026,10,25,tzinfo=timezone.utc),timezone_name='UTC')
+    assert captured.value.native_cleanup_failure=={'error':'ValueError','reason':'native_refresh_failed'}
+
+
+def test_child_failure_is_bound_and_preserved_in_parent_daily_result(tmp_path,monkeypatch,capsys):
+    import contextlib,json,os,subprocess,sys
+    from types import SimpleNamespace
+    import household_native_daily as module
+    import household_native_training as training
+    import household_native_lifecycle as life
+    tmp_path.chmod(0o700);run=training.directory(tmp_path/'run');reservation=training.directory(tmp_path/('a'*32))
+    config=tmp_path/'config.json';training.save(config,{'timezone':'UTC'})
+    backend=training.NativeTraining.__new__(training.NativeTraining);backend.state=tmp_path;backend.guard=lambda:None
+    backend.reservation=SimpleNamespace(directory=reservation,check=lambda:None)
+    backend.current=lambda:dict(trained_through='2000-01-01T00:00:00+00:00',stage='old',deployment_sha256='a'*64)
+    backend.prepare=lambda *args:dict(stage=str(run/'final'))
+    backend.retry_selection=lambda *args:None
+    def close():raise TimeoutError('external cleanup acknowledgment missing')
+    backend.close_reservation=close
+    monkeypatch.setattr(training,'NativeTraining',lambda config:backend)
+    monkeypatch.setattr(training,'selected_family_interpreter',lambda *a,**kw:{'path':sys.executable})
+    monkeypatch.setattr(life,'activation_lock',lambda run:contextlib.nullcontext())
+    def child_activate(run):raise TimeoutError('external activation owner acknowledgment missing')
+    monkeypatch.setattr(training,'activate',child_activate)
+    def child(command,*,environment,lock,guard):
+        with monkeypatch.context() as patch:
+            for key in ('EARTHSHIP_NATIVE_DAILY_LOCK_FD','EARTHSHIP_NATIVE_RESERVATION'):patch.setenv(key,environment[key])
+            assert module.main(['--activate',str(run)])==1
+        raise subprocess.CalledProcessError(1,command)
+    monkeypatch.setattr(life,'run_activation_child',child)
+    assert module.main(['--config',str(config)])==1
+    result=json.loads((tmp_path/'last-result.json').read_bytes())
+    assert result['error']=='TimeoutError' and result['reason']=='external activation owner acknowledgment missing'
+    assert result['cleanup_failure']=={'error':'TimeoutError','reason':'external cleanup acknowledgment missing'}
+    failure=json.loads((run/('activation-failure-'+reservation.name+'.json')).read_bytes())
+    assert failure['nonce']==reservation.name and failure['run']==str(run)
+    assert failure['failure']=={'error':'TimeoutError','reason':'external activation owner acknowledgment missing'}

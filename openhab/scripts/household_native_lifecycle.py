@@ -239,7 +239,7 @@ class Reservation:
         self.data=dict(nonce=self.nonce,owner=process_identity(os.getpid()),run=str(run),previous=previous,
             root=str(Path(record['service_file']).parent),shared_lock=settings['shared_lock'],
             expires=time.monotonic()+min(600,max(0,getattr(guard,'deadline',time.monotonic()+600)-time.monotonic())),
-            phase='reserve',family=None,start_attempted=False,sources=source_snapshot(repo),source_sha256=sha256(Path(__file__).read_bytes()).hexdigest())
+            phase='reserve',family=None,handoff_deadline=None,start_attempted=False,sources=source_snapshot(repo),source_sha256=sha256(Path(__file__).read_bytes()).hexdigest())
         # All source/selection/settings/prior-attempt preflight precedes publication.
         guard();directory(root);directory(self.directory)
         dispatched=False
@@ -265,6 +265,7 @@ class Reservation:
             raise
     def wait(self,phase):
         end=min(self.data['expires'],time.monotonic()+15)
+        if phase=='quiesced':end=min(end,self.data['handoff_deadline'])
         while time.monotonic()<end:
             self.guard()
             if self.status.exists():
@@ -279,7 +280,7 @@ class Reservation:
         value=read(self.status)
         if value['phase'] not in ('reserved','stopping','quiesced') or process_identity(value['manager'][0])!=value['manager']:raise ValueError('external activation owner lost')
     def quiesce(self,family):
-        self.check();self.data.update(phase='handoff',family=str(family));save(self.request,self.data);self.wait('quiesced')
+        self.check();self.data.update(phase='handoff',family=str(family),handoff_deadline=min(self.data['expires'],time.monotonic()+15));save(self.request,self.data);self.wait('quiesced')
     def close(self):
         self.data['phase']='release';save(self.request,self.data)
         end=time.monotonic()+30
@@ -319,16 +320,92 @@ def verify_manager_domain(data):
     return dict(invocation=state['InvocationID'],fragment=state['FragmentPath'],definition=fingerprint(state['FragmentPath']))
 
 
+def _verification_worker(request,pin,family,output,*,effective=False):
+    """Read-only admitted leaf: run the existing complete validators unchanged."""
+    data=read(request)
+    if (_request_pin(data)!=pin or request.resolve()!=request or output.parent!=request.parent or
+        output.exists() or output.is_symlink() or not output.name.startswith('verification-') or
+        data['source_sha256']!=sha256(Path(__file__).read_bytes()).hexdigest()):
+        raise ValueError('pinned private family verification required')
+    if family not in (Path(data['previous']['stage']).parent/'family',Path(data['run'])/'family'):
+        raise ValueError('original or candidate family required')
+    verify_sources(data)
+    end=time.monotonic()+8
+    def guard():
+        if time.monotonic()>=end:raise TimeoutError('bounded family verification expired')
+    if effective:
+        from household_native_install import _verify_effective_family
+        result=_verify_effective_family(family,guard=guard)
+    else:
+        from household_native_family import verify
+        result=verify(family,guard=guard)
+    guard();verify_sources(data)
+    if _request_pin(read(request))!=pin:raise ValueError('verification request changed')
+    save(output,dict(schema='earthship-native-family-check/v1',request_sha256=pin,
+        family=str(family),effective=effective,result=result))
+
+
+def _verify_family(directory,family,*,effective=False):
+    """Keep full verification off the CPU20% pause owner's control path.
+
+    A separately charged 256MiB/24-task, ten-second shared leaf is read-only.
+    The original launcher revokes/kills its owned scope on cancellation/failure;
+    the kernel runtime bound also applies if the external owner itself is lost.
+    """
+    import sys
+    from household_job_launch import launch_job
+    from household_job_pool import POOL_NAME,check_host_pressure
+    from household_cycle_deploy import _systemctl
+    directory=Path(directory);family=Path(family);request=directory/'request.json'
+    data=read(request);pin=_request_pin(data)
+    output=directory/('verification-'+uuid4().hex+'.json')
+    relative=_systemctl('show',POOL_NAME,'--value','-p','ControlGroup')
+    expected=f'/user.slice/user-{os.getuid()}.slice/user@{os.getuid()}.service/earthship.slice/'+POOL_NAME
+    if relative!=expected:raise ValueError('original shared work pool required')
+    end=time.monotonic()+10
+    def checked():
+        check_host_pressure()
+        if time.monotonic()>=end:raise TimeoutError('bounded family verification expired')
+        verify_sources(data,full=False)
+    command=[sys.executable,'-B',str(Path(__file__)),
+        '--verify-family',str(family),'--verification-request',str(request),
+        '--verification-pin',pin,'--verification-output',str(output)]
+    if effective:command+=['--verify-effective']
+    result=launch_job(command,pool_path=Path('/sys/fs/cgroup')/relative.lstrip('/'),
+        lock_path=Path('/run/user')/str(os.getuid())/'earthship-job-admission.lock',
+        minimum_bytes=256*1024**2,preferred_bytes=256*1024**2,production=True,tasks=24,seconds=10,health=checked)
+    checked();verify_sources(data)
+    if result:raise ValueError('external family verification failed')
+    value=read(output)
+    if (set(value)!={'schema','request_sha256','family','effective','result'} or
+        value['schema']!='earthship-native-family-check/v1' or value['request_sha256']!=pin or
+        value['family']!=str(family) or value['effective'] is not effective or _request_pin(read(request))!=pin):
+        raise ValueError('family verification result binding changed')
+    return value['result']
+
+
+def _current_request(request,data):
+    current=read(request)
+    if {k:v for k,v in current.items() if k not in ('phase','family','handoff_deadline')}!={k:v for k,v in data.items() if k not in ('phase','family','handoff_deadline')}:
+        raise ValueError('reservation owner record changed')
+    if current['phase']=='handoff' and (type(current.get('handoff_deadline')) not in (float,int) or
+        not 0<current['handoff_deadline']<=min(data['expires'],time.monotonic()+15)):raise ValueError('bounded handoff acknowledgement deadline required')
+    return current
+
+
 def watch(directory):
     from household_cycle_deploy import _systemctl
-    from household_native_family import verify
     directory=Path(directory);request=directory/'request.json';status=directory/'status.json';data=read(request)
     if data.get('start_attempted') is not True or data.get('phase')!='reserve':raise ValueError('dispatched original reservation required')
     if data['nonce']!=directory.name or data['source_sha256']!=sha256(Path(__file__).read_bytes()).hexdigest():raise ValueError('pinned external owner required')
     verify_sources(data)
     manager_binding=verify_manager_domain(data)
-    old=Path(data['previous']['stage']).parent/'family';selected=verify(old,guard=lambda:None)
+    old=Path(data['previous']['stage']).parent/'family';selected=_verify_family(directory,old)
     if selected['deployment_sha256']!=data['previous']['deployment_sha256']:raise ValueError('previous family pin differs')
+    if (_current_request(request,data)['phase']!='reserve' or process_identity(data['owner'][0])!=data['owner'] or
+        time.monotonic()>=data['expires']):return
+    verify_sources(data)
+    if verify_manager_domain(data)!=manager_binding:raise ValueError('external manager binding changed')
     root=Path(data['root']);baseline=_dependencies(root);timers={unit:_timer(unit) for unit in TIMERS}
     if any(v.get('ActiveState') not in ('active','inactive') for v in timers.values()):raise ValueError('stable original timer activity required')
     info=Path(data['shared_lock']).lstat();lock_identity=[info.st_dev,info.st_ino]
@@ -338,6 +415,11 @@ def watch(directory):
     record['original_target_identities']={path:fingerprint(path) for path in record['old_targets']}
     save(status,record)
     def pause(unit):
+        if unit!=SCORE:
+            current=_current_request(request,data)
+            if (current['phase']!='handoff' or current['family']!=record['new_family'] or
+                process_identity(data['owner'][0])!=data['owner'] or time.monotonic()>=current['handoff_deadline']):
+                raise ValueError('handoff authorization elapsed before pause')
         # Persist intention BEFORE a possible stop. A kill before its readback is ambiguous.
         record['phase']='stopping';record['stopping']=unit;save(status,record)
         if _timer(unit)!=timers[unit]:raise ValueError('timer changed before owned stop')
@@ -347,8 +429,7 @@ def watch(directory):
         record['paused'][unit]=stopped;record.pop('stopping',None);save(status,record)
     pause(SCORE);record['phase']='reserved';save(status,record)
     while True:
-        current=read(request)
-        if {k:v for k,v in current.items() if k not in ('phase','family')}!={k:v for k,v in data.items() if k not in ('phase','family')}:raise ValueError('reservation owner record changed')
+        current=_current_request(request,data)
         verify_sources(data,full=False)
         if verify_manager_domain(data)!=manager_binding:raise ValueError('external manager binding changed')
         if data['source_sha256']!=sha256(Path(__file__).read_bytes()).hexdigest():raise ValueError('owner source changed')
@@ -359,7 +440,20 @@ def watch(directory):
         if current['phase']=='release':return
         if process_identity(data['owner'][0])!=data['owner'] or time.monotonic()>=data['expires']:return
         if current['phase']=='handoff' and record['phase']=='reserved':
-            family=Path(current['family']);verify(family,guard=lambda:None)
+            family=Path(current['family']);_verify_family(directory,family)
+            # A late verifier must never pause on a cancelled, expired or changed
+            # request. Recheck every ownership input after the admitted work.
+            latest=_current_request(request,data)
+            if latest['phase']=='release' or process_identity(data['owner'][0])!=data['owner']:return
+            if latest!=current:raise ValueError('handoff request changed during verification')
+            if time.monotonic()>=min(data['expires'],latest['handoff_deadline']):return
+            verify_sources(data)
+            if verify_manager_domain(data)!=manager_binding or _dependencies(root)!=baseline:
+                raise ValueError('handoff ownership changed during verification')
+            if any((_timer(u)!=timers[u] if u not in record['paused'] else not same_pause(record['paused'][u],_timer(u))) for u in TIMERS):
+                raise ValueError('timer ownership changed during verification')
+            if any(fingerprint(path)!=saved for path,saved in record['original_target_identities'].items()):
+                raise ValueError('original files changed during verification')
             record.update(new_family=str(family),new_targets=_targets(root,family));save(status,record)
             for unit in TIMERS:
                 if unit!=SCORE:pause(unit)
@@ -370,7 +464,6 @@ def watch(directory):
 def recover(directory):
     """ExecStopPost; outside learner kill domain, conservative on any unknown."""
     from household_cycle_deploy import _systemctl
-    from household_native_install import _verify_effective_family
     from thermal_model.capture_guard import SharedScoreLock
     directory=Path(directory);path=directory/'status.json'
     if not path.exists():return
@@ -378,7 +471,7 @@ def recover(directory):
     if record['phase']=='restored':return
     data=record['request'];root=Path(data['root'])
     try:
-        current=read(directory/'request.json')
+        current=_current_request(directory/'request.json',data)
         verify_sources(data)
         if verify_manager_domain(data)!=record['manager_binding']:raise ValueError('external manager identity changed')
         if data['source_sha256']!=sha256(Path(__file__).read_bytes()).hexdigest():raise ValueError('recovery source changed')
@@ -389,12 +482,20 @@ def recover(directory):
         if any(not same_pause(v,_timer(u)) for u,v in record['paused'].items()):raise ValueError('timer ownership changed')
         info=Path(data['shared_lock']).lstat()
         if [info.st_dev,info.st_ino]!=record['lock_identity']:raise ValueError('original serving lock replaced')
-        with SharedScoreLock(data['shared_lock']):
+        with SharedScoreLock(data['shared_lock']) as lock:
             family=record['old_family'] if _matches(record['old_targets']) else record['new_family'] if record['new_targets'] and _matches(record['new_targets']) else None
             if family is None:raise ValueError('mixed or absent family files require reconciliation')
             if record['new_family'] is not None:
-                _systemctl('daemon-reload');_verify_effective_family(Path(family),guard=lambda:None)
+                _systemctl('daemon-reload');_verify_family(directory,Path(family),effective=True)
+                lock.verify();verify_sources(data)
+                latest=_current_request(directory/'request.json',data)
+                if latest!=current or verify_manager_domain(data)!=record['manager_binding'] or _dependencies(root)!=record['dependencies']:
+                    raise ValueError('recovery ownership changed during verification')
+                targets=record['old_targets'] if family==record['old_family'] else record['new_targets']
+                if not _matches(targets):raise ValueError('family files changed during recovery verification')
             elif family!=record['old_family']:raise ValueError('unknown pre-handoff family')
+            if any(not same_pause(paused,_timer(unit)) for unit,paused in record['paused'].items()):
+                raise ValueError('timer ownership changed during recovery verification')
             for unit,paused in record['paused'].items():
                 if not same_pause(paused,_timer(unit)):raise ValueError('timer ownership changed during recovery')
                 if record['original'][unit]['ActiveState']=='active':_systemctl('start',unit)
@@ -404,7 +505,17 @@ def recover(directory):
 
 
 def main():
-    import argparse
+    import argparse,sys
+    if '--verify-family' in sys.argv[1:]:
+        parser=argparse.ArgumentParser()
+        parser.add_argument('--verify-family',type=Path,required=True)
+        parser.add_argument('--verification-request',type=Path,required=True)
+        parser.add_argument('--verification-pin',required=True)
+        parser.add_argument('--verification-output',type=Path,required=True)
+        parser.add_argument('--verify-effective',action='store_true');args=parser.parse_args()
+        try:_verification_worker(args.verification_request,args.verification_pin,args.verify_family,args.verification_output,effective=args.verify_effective)
+        except Exception:raise SystemExit(1) from None
+        return
     parser=argparse.ArgumentParser();parser.add_argument('--config',type=Path,required=True);parser.add_argument('--nonce',required=True);parser.add_argument('--recover',action='store_true');args=parser.parse_args()
     if len(args.nonce)!=32 or any(c not in '0123456789abcdef' for c in args.nonce):raise ValueError('owned reservation nonce required')
     directory=Path(read(args.config)['state_directory'])/'activation-reservations'/args.nonce
