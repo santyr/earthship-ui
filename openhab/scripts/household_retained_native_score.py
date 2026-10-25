@@ -42,6 +42,8 @@ def run(config,*,stage,deployment_sha256,deadline,resource_preflight,pressure_fa
     from thermal_model.capture_guard import SharedScoreLock
     from thermal_model.native_operational_io import _next_issue
     from thermal_model.policy_registration import _read_private
+    from thermal_model.forcing_capture import _private_directory
+    from thermal_model.replay_budget import _source_reads,OriginalSourceInventory,observe_source_bytes
     from household_observation import _private_file
     if not math.isfinite(deadline) or monotonic()>=deadline:raise ValueError('score lifetime elapsed')
     source_guard();resource_preflight()
@@ -52,14 +54,26 @@ def run(config,*,stage,deployment_sha256,deadline,resource_preflight,pressure_fa
     from household_cycle_deploy import _bytes
     cycle=loads(_bytes(Path(stage)/'cycle.json',private=True))
     if cycle.get('forecast_config')!=str(config):raise ValueError('retained native cycle configuration differs')
+    # Parse the already validated original once. Every guard still freshly
+    # checks the original full metadata/bytes, private parent and live settings.
+    sealed_settings=_read_private(config);observed_inventory=object()
     issue=_next_issue(clock())
     if issue-clock()<timedelta(seconds=90):raise BlockingIOError('forecast preparation window reserved')
     with SharedScoreLock(settings['shared_lock']) as lock:
         pressure=pressure_factory();pressure.check(force=True)
         def guard():
+            nonlocal observed_inventory
             lock.verify();pressure.check();source_guard()
             if monotonic()>=deadline or clock()>=issue-timedelta(seconds=135):raise ValueError('score lifetime elapsed')
-            if _private_file(config,8192)!=original or _read_private(config)!=settings:raise ValueError('score source or configuration changed')
+            if _private_file(config,8192)!=original or sealed_settings!=settings:raise ValueError('score source or configuration changed')
+            _private_directory(config.parent)
+            inventory=_source_reads.get()
+            # Register genuine immutable bytes in EACH original inventory.
+            # The strict metadata/byte check above runs even on repeated guards;
+            # only duplicate JSON parsing/observation is omitted. Unknown
+            # observers retain their original per-boundary observation calls.
+            if type(inventory) is not OriginalSourceInventory or inventory is not observed_inventory:
+                observe_source_bytes(config,original[0]);observed_inventory=inventory
         guard()
         selected=load_serving_selection(stage,expected_deployment_sha256=deployment_sha256,assessed_at=clock(),guard=guard)
         model=read_serving_model(selected,assessed_at=clock(),guard=guard)

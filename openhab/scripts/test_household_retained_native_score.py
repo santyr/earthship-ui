@@ -182,3 +182,67 @@ def test_retained_reader_never_imports_unselected_archived_query_helper(tmp_path
     monkeypatch.delitem(sys.modules,'household_native_score_queries',raising=False);monkeypatch.syspath_prepend(str(tmp_path))
     selected=retained._reader_factory()
     assert Path(selected.native.__code__.co_filename).absolute()==Path(retained.__file__).absolute().with_name('household_native_score_queries.py')
+
+
+def test_retained_config_guard_checks_bytes_without_reparsing_each_boundary(tmp_path,monkeypatch):
+    """Every boundary keeps strict metadata; immutable bytes need one parse."""
+    import thermal_model.policy_registration as policy
+    from thermal_model.replay_budget import capture_source_reads
+    retained,config,options,ticks,events,now=outer_context(tmp_path,monkeypatch)
+    original=policy._read_private;parses=[]
+    def parsed(path):parses.append(path);return original(path)
+    monkeypatch.setattr(policy,'_read_private',parsed)
+    def scored(settings,*,guard,**kw):
+        before=len(parses)
+        with capture_source_reads() as first:
+            guard();guard()
+            assert config in first.records
+            first.verify()
+        with capture_source_reads() as second:
+            guard();guard()
+            assert config in second.records
+            second.verify()
+        assert len(parses)==before,'unchanged full metadata/bytes were needlessly reread and JSON-parsed at every guard'
+        return {'status':'waiting'}
+    monkeypatch.setattr(retained,'score_jobs',scored)
+    assert retained.run(config,**options)=={'status':'waiting'}
+
+
+@pytest.mark.parametrize('damage',['settings','same_bytes_replace','parent_mode','file_mode','symlink','content','duplicate_key','nonfinite'])
+def test_retained_config_guard_preserves_original_mutation_refusals(tmp_path,monkeypatch,damage):
+    retained,config,options,ticks,events,now=outer_context(tmp_path,monkeypatch)
+    def scored(settings,*,guard,**kw):
+        guard()
+        if damage=='settings':settings['schema']='mutated in-memory settings'
+        elif damage=='same_bytes_replace':
+            replacement=config.with_name('replacement');replacement.write_bytes(config.read_bytes());replacement.chmod(0o600);replacement.replace(config)
+        elif damage=='parent_mode':config.parent.chmod(0o755)
+        elif damage=='file_mode':config.chmod(0o644)
+        elif damage=='symlink':
+            original=config.with_name('original');config.rename(original);config.symlink_to(original)
+        elif damage=='duplicate_key':config.write_text('{"schema":"one","schema":"two"}')
+        elif damage=='nonfinite':config.write_text('{"schema":NaN}')
+        else:config.write_bytes(config.read_bytes()+b' ')
+        guard();pytest.fail('changed original configuration accepted')
+    monkeypatch.setattr(retained,'score_jobs',scored)
+    with pytest.raises((ValueError,OSError)):retained.run(config,**options)
+
+
+def test_retained_config_guard_preserves_unknown_observer_and_nested_restore(tmp_path,monkeypatch):
+    from thermal_model.replay_budget import _source_reads,capture_source_reads
+    retained,config,options,ticks,events,now=outer_context(tmp_path,monkeypatch)
+    class Observer:
+        def __init__(self):self.paths=[]
+        def record(self,path,raw):self.paths.append(path)
+    observer=Observer()
+    def scored(settings,*,guard,**kw):
+        with capture_source_reads() as outer:
+            guard()
+            token=_source_reads.set(observer)
+            try:guard();guard()
+            finally:_source_reads.reset(token)
+            guard();assert config in outer.records;outer.verify()
+        assert observer.paths==[config,config]
+        return {'status':'waiting'}
+    monkeypatch.setattr(retained,'score_jobs',scored)
+    assert retained.run(config,**options)=={'status':'waiting'}
