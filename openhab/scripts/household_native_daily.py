@@ -150,8 +150,8 @@ def main(argv=None):
                     backend.learner_lock=lock
                     cutoff=training_cutoff(datetime.now(timezone.utc),config['timezone'],cadence=config.get('training_cadence','daily'))
                     with reservation_cleanup(backend):
-                        previous=backend.current();selection=backend.retry_selection(cutoff,previous)
-                        if selection is None or Path(selection['stage']).parent!=args.activate:raise ValueError('exact valid retained activation package required')
+                        previous=backend.current();selection=backend.retry_selection(cutoff,previous,requested_run=args.activate)
+                        if selection is None:raise ValueError('exact valid retained activation package required')
                         result=backend.activate(selection,previous)
         else:
             config = json.loads(_owned_bytes(args.config, 32768))

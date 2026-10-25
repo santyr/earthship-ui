@@ -135,7 +135,7 @@ def test_valid_new_binding_to_retired_stage_refuses_sealed_dispatch(tmp_path,mon
 from test_household_energy_forecast import originals
 
 
-def completed_compact_history(tmp_path,monkeypatch,originals,kind):
+def completed_compact_history(tmp_path,monkeypatch,originals,kind,*,pending=False):
     """Run the original private scorer to produce real compact/raw contracts."""
     import household_native_history as history
     import household_cycle_deploy as deploy
@@ -144,25 +144,31 @@ def completed_compact_history(tmp_path,monkeypatch,originals,kind):
         from test_household_pv_score import setup
         import household_pv_score as scorer
         args,stage,state,_=setup(tmp_path,monkeypatch,originals)
-        scorer.run(stage=stage,historical=[],guard=lambda:None,deadline=100.,clock=lambda:args['assessed_at'],
+        kwargs=dict(stage=stage,historical=[],guard=lambda:None,deadline=100.,clock=lambda:args['assessed_at'],
             monotonic=lambda:0.,state_root=state,hour_reader=lambda **kw:args['hour_sources']['1'])
         store=state/'captured-pv-outcomes'
     else:
         from test_household_profiled_score import staged
-        scorer,kwargs,_,args=staged(tmp_path,monkeypatch,originals);scorer.run(**kwargs)
+        scorer,kwargs,_,args=staged(tmp_path,monkeypatch,originals)
         stage=kwargs['stage'];state=kwargs['state_root'];store=state/'profiled-energy-outcomes'
+    initial_kwargs=dict(kwargs,hour_reader=lambda **kw:None) if pending else kwargs
+    scorer.run(**initial_kwargs)
+    def advance():
+        later=args['assessed_at']+timedelta(minutes=11)
+        scorer.run(**dict(kwargs,clock=lambda:later))
+        return later
     stage.chmod(0o700)
     native=directory(tmp_path/'native-history');config=tmp_path/'history-config.json';save(config,dict(evidence_directory=str(native)))
     save(stage/'cycle.json',dict(forecast_config=str(config)))
     record={'source_manifest':{name:sha256((Path(__file__).resolve().parents[2]/name).read_bytes()).hexdigest() for name in history.POLICIES}}
     save(stage/'deployment.json',record);reference=dict(stage=str(stage),deployment_sha256=sha256((stage/'deployment.json').read_bytes()).hexdigest())
     monkeypatch.setattr(deploy,'verify_stage',lambda *a,**kw:record)
-    return history,reference,state,store,args['assessed_at']
+    return history,reference,state,store,args['assessed_at'],advance
 
 
 @pytest.mark.parametrize('kind',['pv','profiled'])
 def test_assess_accepts_real_completed_compact_sample_and_pinned_compressed_score(tmp_path,monkeypatch,originals,kind):
-    history,reference,state,store,now=completed_compact_history(tmp_path,monkeypatch,originals,kind)
+    history,reference,state,store,now,_=completed_compact_history(tmp_path,monkeypatch,originals,kind)
     from hashlib import sha256
     index=json.loads((store/'samples.json').read_bytes());row=next(iter(index['samples'].values()))
     suffix='.captured-pv-verified-v1.json' if kind=='pv' else '.profiled-energy-sample-v1.json'
@@ -178,7 +184,7 @@ def test_assess_accepts_real_completed_compact_sample_and_pinned_compressed_scor
 @pytest.mark.parametrize('kind',['pv','profiled'])
 @pytest.mark.parametrize('damage',['sample_binding','raw_score','cohort'])
 def test_assess_refuses_changed_compact_original_bindings(tmp_path,monkeypatch,originals,kind,damage):
-    history,reference,state,store,now=completed_compact_history(tmp_path,monkeypatch,originals,kind)
+    history,reference,state,store,now,_=completed_compact_history(tmp_path,monkeypatch,originals,kind)
     from household.codec import canonical,identity
     from hashlib import sha256
     index_path=store/'samples.json';index=json.loads(index_path.read_bytes());row=next(iter(index['samples'].values()))
@@ -195,3 +201,117 @@ def test_assess_refuses_changed_compact_original_bindings(tmp_path,monkeypatch,o
         raw=canonical(sample);pin=sample['sample_sha256'] if kind=='pv' else sha256(raw).hexdigest()
         save(store/(pin+suffix),sample);row['sample_sha256']=pin;save(index_path,index)
     with pytest.raises(ValueError,match='compact|sample|score'):history.assess([reference],now=now,guard=lambda:None,state_root=state)
+
+
+def mutable_history_case(tmp_path,monkeypatch,store_name='battery-outcomes'):
+    """A real pending index advances while every original dependency remains."""
+    from test_native_active_score_history import fixture
+    from hashlib import sha256
+    from types import SimpleNamespace
+    import os
+    import household_native_history as history
+    backend,refs,binding,now=fixture(tmp_path,monkeypatch)
+    evidence=Path(refs[1]['stage'])/'evidence';at=now-timedelta(hours=1)
+    def original(value,suffix):
+        raw=json.dumps(value,sort_keys=True,separators=(',',':')).encode()
+        path=evidence/(sha256(raw).hexdigest()+suffix)
+        path.write_bytes(raw);path.chmod(0o600);os.utime(path,(at.timestamp(),at.timestamp()))
+        return path,sha256(raw).hexdigest()
+    plan,plan_pin=original({'inputs':{'snapshot':{'as_of':at.isoformat()}},'receipt_sha256':'a'*64},'.household-model-plan-v6.json')
+    energy,energy_pin=original({'inputs':{'plan_document_sha256':plan_pin},'output':{'array_pv':{'origin':at.isoformat()}},'receipt_sha256':'b'*64},'.household-energy-forecast-v1.json')
+    profile,profile_pin=original({'inputs':{'original_energy_document_sha256':energy_pin,'original_energy_receipt_sha256':'b'*64},'receipt_sha256':'c'*64},'.household-profiled-energy-v1.json')
+    state=tmp_path/'.local/state/household-intel';store=directory(state/store_name)
+    schema,kind,suffix,compact=history.STORES[store_name]
+    source,pin,receipt=(plan,plan_pin,'a'*64) if store_name=='battery-outcomes' else (profile,profile_pin,'c'*64) if store_name=='profiled-energy-outcomes' else (energy,energy_pin,'b'*64)
+    row={kind+'_path':str(source),kind+'_sha256':pin,kind+'_receipt_sha256':receipt,
+        'issued_at':at.isoformat(),'cohort_id':'d'*64,'retry_after':None}
+    row.update({'sample_sha256':None,'score_file_sha256':None} if compact else {'score_path':None})
+    index=store/'samples.json';save(index,dict(schema=schema,samples={at.isoformat():row}))
+    proof=history.assess(refs,now=now,guard=lambda:None,state_root=state)
+    def advance():
+        value=json.loads(index.read_bytes());value['samples'][at.isoformat()]['retry_after']=(now+timedelta(minutes=1)).isoformat();save(index,value)
+    return SimpleNamespace(history=history,backend=backend,refs=refs,binding=binding,now=now,
+        index=index,proof=proof,advance=advance,plan=plan,source=source)
+
+
+@pytest.mark.parametrize('store_name',['battery-outcomes','energy-outcomes','profiled-energy-outcomes','captured-pv-outcomes'])
+def test_retry_history_qualifies_normal_index_advance_without_changing_sealed_proof(tmp_path,monkeypatch,store_name):
+    from copy import deepcopy
+    case=mutable_history_case(tmp_path,monkeypatch,store_name);original=deepcopy(case.proof)
+    case.advance()
+    # This is the sufficient14:12 blocker in the original retained package.
+    with pytest.raises(ValueError,match='dependency changed or missing'):
+        case.history.revalidate(case.proof,now=case.now,guard=lambda:None)
+    fresh=case.history.refresh(case.proof,now=case.now,guard=lambda:None)
+    assert case.proof==original
+    assert fresh['files'][str(case.index)]!=original['files'][str(case.index)]
+    assert fresh['retained']==case.refs[1:]
+    assert case.history.revalidate(fresh,now=case.now,guard=lambda:None)==fresh
+    case.advance()
+    with pytest.raises(ValueError,match='dependency changed or missing'):
+        case.history.revalidate(fresh,now=case.now,guard=lambda:None)
+
+
+@pytest.mark.parametrize('damage',['immutable','removed','membership','malformed_index','unowned_index','partition','policy'])
+def test_retry_history_cannot_refresh_unsafe_originals_or_partition(tmp_path,monkeypatch,damage):
+    case=mutable_history_case(tmp_path,monkeypatch);case.advance()
+    if damage=='immutable':case.plan.write_bytes(case.plan.read_bytes()+b' ')
+    elif damage=='removed':case.binding.unlink()
+    elif damage=='membership':
+        path=case.binding.parent/'unparsed-original.txt';path.write_bytes(b'original')
+        case.proof=case.history.assess(case.refs,now=case.now,guard=lambda:None)
+        path.unlink()
+    elif damage=='malformed_index':save(case.index,{'schema':'wrong','samples':{}})
+    elif damage=='unowned_index':case.index.chmod(0o644)
+    elif damage=='partition':case.proof['retained'].append(case.proof['retired'][0])
+    else:
+        import household_cycle_deploy as deploy
+        original=deploy.verify_stage
+        def policy(*args,**kwargs):
+            record=original(*args,**kwargs)
+            return dict(record,source_manifest={**record['source_manifest'],'openhab/scripts/household_battery_score.py':'f'*64})
+        monkeypatch.setattr(deploy,'verify_stage',policy)
+    with pytest.raises((ValueError,OSError)):
+        case.history.refresh(case.proof,now=case.now,guard=lambda:None)
+
+
+def test_retry_history_still_refuses_new_dependency_on_originally_retired_selection(tmp_path,monkeypatch):
+    from household.codec import identity
+    case=mutable_history_case(tmp_path,monkeypatch);case.advance()
+    value=json.loads(case.binding.read_bytes())
+    value.update(stage=case.refs[0]['stage'],deployment_sha256=case.refs[0]['deployment_sha256'],capture_sha256='e'*64)
+    value['binding_sha256']=identity({k:v for k,v in value.items() if k!='binding_sha256'})
+    save(case.binding.parent/('e'*64+'.native-serving-model-binding-v1.json'),value)
+    with pytest.raises(ValueError,match='retired selection'):
+        case.history.refresh(case.proof,now=case.now,guard=lambda:None)
+
+
+@pytest.mark.parametrize('store_name',['battery-outcomes','energy-outcomes'])
+def test_retry_history_validates_superseded_immutable_scores_after_index_progress(tmp_path,monkeypatch,store_name):
+    case=mutable_history_case(tmp_path,monkeypatch,store_name)
+    old=case.index.parent/'previous-score.json';save(old,{'score_fixture':'first mature horizon'})
+    index=json.loads(case.index.read_bytes());row=next(iter(index['samples'].values()));row['score_path']=str(old);save(case.index,index)
+    proof=case.history.assess(case.refs,now=case.now,guard=lambda:None)
+    advanced=case.index.parent/'advanced-score.json';save(advanced,{'score_fixture':'next mature horizon'})
+    row['score_path']=str(advanced);save(case.index,index)
+    fresh=case.history.refresh(proof,now=case.now,guard=lambda:None)
+    assert str(advanced) in fresh['files'] and str(old) not in fresh['files']
+    assert case.history.revalidate(fresh,now=case.now,guard=lambda:None)==fresh
+    old.write_bytes(old.read_bytes()+b' ')
+    with pytest.raises(ValueError,match='dependency changed or missing'):
+        case.history.refresh(proof,now=case.now,guard=lambda:None)
+
+
+@pytest.mark.parametrize('kind',['pv','profiled'])
+def test_retry_history_accepts_actual_compact_scorer_progress_and_checks_superseded_originals(tmp_path,monkeypatch,originals,kind):
+    history,reference,state,store,now,advance=completed_compact_history(tmp_path,monkeypatch,originals,kind,pending=True)
+    proof=history.assess([reference],now=now,guard=lambda:None,state_root=state)
+    old={Path(path):Path(path).read_bytes() for path in proof['files'] if Path(path).parent==store and Path(path).name!='samples.json'}
+    later=advance();assert later.date()==now.date()
+    fresh=history.refresh(proof,now=later,guard=lambda:None)
+    assert fresh['retained']==[reference] and all(path.read_bytes()==raw for path,raw in old.items())
+    assert any(str(path) not in fresh['files'] for path in old)
+    assert history.revalidate(fresh,now=later,guard=lambda:None)==fresh
+    path=next(iter(old));path.write_bytes(old[path]+b' ')
+    with pytest.raises(ValueError,match='dependency changed or missing'):
+        history.refresh(proof,now=later,guard=lambda:None)

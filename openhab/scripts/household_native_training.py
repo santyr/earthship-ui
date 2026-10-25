@@ -16,6 +16,11 @@ from household_native_daily import capture_windows, retained_parts,long_part_pre
 from zoneinfo import ZoneInfo
 from thermal_model.runtime_bundle import _owned_bytes
 
+RETRY_FILES=('activation-input.json','final-selection.json','final-config.json',
+    'score-history-window.json','model-admission.json','score-dispatch.json')
+RETRY_CONTROL_SOURCES=frozenset('openhab/scripts/'+name for name in
+    ('household_native_training.py','household_native_daily.py','household_native_history.py'))
+
 
 def read(path, maximum=131072):
     return json.loads(_owned_bytes(Path(path), maximum))
@@ -134,6 +139,44 @@ def retained_model_admission(candidate, *, selections, guard):
 def selected_family_interpreter(selection,*,guard):
     from household_native_family import selected_interpreter
     return selected_interpreter(Path(selection['stage']),deployment_sha256=selection['deployment_sha256'],guard=guard)
+
+
+def retained_retry_revision(repo,record,original_revision,*,guard):
+    """Permit only a proven controller repair around the unchanged fitted code."""
+    import io,tarfile
+    import household_cycle_deploy as deploy
+    guard()
+    if (not isinstance(original_revision,str) or re.fullmatch('[0-9a-f]{40}',original_revision) is None or
+        record['code_revision']!=original_revision):
+        raise ValueError('retained activation original source revision changed')
+    commit=deploy._git(repo,'rev-parse','HEAD').decode().strip()
+    if deploy._git(repo,'status','--porcelain').strip():raise ValueError('clean retained retry source required')
+    if commit!=original_revision:
+        try:deploy._git(repo,'merge-base','--is-ancestor',original_revision,commit)
+        except subprocess.CalledProcessError:raise ValueError('retained source must precede repaired source') from None
+        changed=deploy._git(repo,'diff','--name-only','-z',original_revision,commit,'--').decode().split('\0')
+        if any(name and name not in RETRY_CONTROL_SOURCES and
+            re.fullmatch(r'openhab/scripts/test_[^/]+\.py',name) is None for name in changed):
+            raise ValueError('retained activation source revision changed outside retry controller')
+    # Bind the original stage's complete manifest to its actual original Git
+    # object as well as to the unchanged current non-controller bytes.
+    manifest=record['source_manifest']
+    archived=deploy._git(repo,'archive','--format=tar',original_revision,'--',*manifest)
+    if len(archived)>32*1024*1024:raise ValueError('bounded retained source archive required')
+    found={}
+    with tarfile.open(fileobj=io.BytesIO(archived),mode='r:') as archive:
+        for member in archive:
+            if member.isdir():continue
+            guard()
+            if member.name not in manifest or member.name in found or not member.isfile() or member.size>deploy.MAX_BYTES:
+                raise ValueError('original retained source archive differs')
+            found[member.name]=sha256(archive.extractfile(member).read(deploy.MAX_BYTES+1)).hexdigest()
+    if found!=manifest:raise ValueError('retained stage differs from original Git source')
+    for name,pin in manifest.items():
+        guard()
+        if (commit==original_revision or name not in RETRY_CONTROL_SOURCES) and sha256(deploy._bytes(repo/name)).hexdigest()!=pin:
+            raise ValueError('retained fitted or policy source changed')
+    guard();return commit
 
 
 class NativeTraining:
@@ -347,34 +390,73 @@ class NativeTraining:
             self.reservation=None
             reservation.close()
 
-    def retry_selection(self,cutoff,previous):
+    def retry_selection(self,cutoff,previous,*,requested_run=None):
         """At most one retry before the next cutoff; never refit on a miss."""
         path=self.state/'activation-retry.json'
         if not path.exists():return None
         retry=read(path)
+        if (not isinstance(retry,dict) or set(retry)!={'selection','previous','cutoff','code_revision','attempts','files'} or
+            type(retry['attempts']) is not int or retry['attempts']<1 or
+            not isinstance(retry['files'],dict) or set(retry['files'])!=set(RETRY_FILES) or
+            any(not isinstance(pin,str) or re.fullmatch('[0-9a-f]{64}',pin) is None for pin in retry['files'].values())):
+            raise ValueError('complete original retained retry checkpoint required')
         if retry['cutoff']!=cutoff.isoformat():return None
         if retry['attempts']>=2:raise ValueError('retained activation retry exhausted')
         if retry['previous']!=previous:raise ValueError('retained activation previous selection changed')
-        commit=subprocess.check_output(['git','-C',str(self.repo),'rev-parse','HEAD'],text=True).strip()
-        if retry['code_revision']!=commit:raise ValueError('retained activation source revision changed')
+        if retry['selection']['trained_through']!=retry['cutoff']:raise ValueError('retained activation cutoff differs')
         run=Path(retry['selection']['stage']).parent
         if run.parent!=self.state or run.resolve()!=run:raise ValueError('retained activation outside original state')
-        if (run/'handoff').exists():raise ValueError('begun handoff requires explicit reconciliation')
+        if requested_run is not None and Path(requested_run)!=run:raise ValueError('exact original retained activation run required')
+        if (run/'handoff').exists() or (run/'handoff').is_symlink():raise ValueError('begun handoff requires explicit reconciliation')
         from household_cycle_deploy import verify_stage
         from household_native_family import verify
         record=verify_stage(Path(retry['selection']['stage']),expected_deployment_sha256=retry['selection']['deployment_sha256'])
-        if record['code_revision']!=commit or verify(run/'family',guard=self.guard)['deployment_sha256']!=retry['selection']['deployment_sha256']:
+        commit=retained_retry_revision(self.repo,record,retry['code_revision'],guard=self.guard)
+        if verify(run/'family',guard=self.guard)['deployment_sha256']!=retry['selection']['deployment_sha256']:
             raise ValueError('retained package family or source changed')
         for name,pin in retry['files'].items():
             if sha256(_owned_bytes(run/name,32000000)).hexdigest()!=pin:raise ValueError('retained package original changed')
-        from household_native_history import revalidate
-        revalidate(read(run/'score-history-window.json',32000000),now=datetime.now(timezone.utc),guard=self.guard)
-        retry['attempts']+=1;save(path,retry)
-        from household_native_lifecycle import Reservation
-        self.reservation=Reservation(self.state,run,previous,guard=self.guard)
-        return retry['selection']
+        if (read(run/'activation-input.json')!=dict(selection=retry['selection'],previous=previous) or
+            read(run/'final-selection.json')!=retry['selection']):raise ValueError('retained package selection differs')
+        from household_native_history import validate_partition
+        from household_forecast_score import read_score_dispatch
+        proof=read(run/'score-history-window.json',32000000);validate_partition(proof)
+        old=read_score_dispatch(Path(previous['stage']),deployment_sha256=previous['deployment_sha256'],guard=self.guard)
+        incumbent={key:previous[key] for key in ('stage','deployment_sha256')}
+        original_dispatch=read_score_dispatch(Path(retry['selection']['stage']),deployment_sha256=retry['selection']['deployment_sha256'],guard=self.guard)
+        if (proof['references']!=[*old['historical'],incumbent] or
+            original_dispatch['historical']!=[row for row in old['historical'] if row in proof['retained']]+[incumbent]):
+            raise ValueError('retained history must bind original dispatch and partition')
+        from native_model_serving_receipt import load_serving_selection,read_serving_model
+        from native_thermal_artifact import current_native_runtime
+        model=read_serving_model(load_serving_selection(Path(retry['selection']['stage']),
+            expected_deployment_sha256=retry['selection']['deployment_sha256'],assessed_at=datetime.now(timezone.utc),guard=self.guard),
+            assessed_at=datetime.now(timezone.utc),guard=self.guard)
+        candidate=model.candidate
+        if (candidate['artifact_sha256']!=retry['selection']['artifact_sha256'] or candidate['fit']['training_end']!=retry['cutoff'] or
+            candidate['runtime']!=current_native_runtime(guard=self.guard)):
+            raise ValueError('retained fit or current numerical runtime differs')
+        originals={key:Path(ref['path']) for key,ref in candidate['originals'].items()}
+        if read(originals['fit_evidence'])['code_revision']!=retry['code_revision']:
+            raise ValueError('retained fit original source revision differs')
+        retained=dict(selection=retry['selection'],candidate=candidate,proof=proof)
+        # Spend the sole remaining attempt before any reservation or assembly.
+        # Keep every original descriptor field/pin; the derived run is separate.
+        attempted=dict(retry,attempts=retry['attempts']+1)
+        if read(path)!=retry:raise ValueError('retained activation checkpoint changed')
+        save(path,attempted)
+        output=self.state/(run.name+'-retry-'+uuid4().hex);output.mkdir(mode=0o700)
+        selection=self.package(output,originals,candidate['runtime'],previous,read(run/'geometry-libraries.json',8192),commit,retained=retained)
+        self.reservation.check()
+        if read(path)!=attempted or (run/'handoff').exists() or (run/'handoff').is_symlink():
+            raise ValueError('retained activation ownership changed during assembly')
+        for name,pin in retry['files'].items():
+            if sha256(_owned_bytes(run/name,32000000)).hexdigest()!=pin:raise ValueError('retained package original changed')
+        save(output/'retained-fit.json',dict(schema='earthship-native-retained-fit-activation/v1',
+            original_retry=retry,activation_code_revision=commit,selection=selection,fit_executed=False,automatic_actuation=False))
+        return selection
 
-    def package(self, run, originals, runtime, previous, libraries, commit):
+    def package(self, run, originals, runtime, previous, libraries, commit,*,retained=None):
         from native_thermal_artifact import write_native_candidate
         from native_model_serving_receipt import admit_model
         import household_cycle_deploy as deploy
@@ -388,12 +470,16 @@ class NativeTraining:
         previous_candidate = read(settings['candidate_path'])
         if previous_candidate['artifact_sha256'] != settings['artifact_sha256']:
             raise ValueError('previous model selection differs')
+        if retained is not None:previous_candidate=retained['candidate']
         candidate = build_deployment_candidate(originals=originals, runtime=runtime,
             previous=previous_candidate, created_at=datetime.now(timezone.utc), guard=checked)
         old = read_score_dispatch(Path(previous['stage']),
             deployment_sha256=previous['deployment_sha256'], guard=checked)
-        admission = retained_model_admission(candidate,
-            selections=[{k:previous[k] for k in ('stage','deployment_sha256')},*old['historical']],guard=checked)
+        selections=[{k:previous[k] for k in ('stage','deployment_sha256')},*old['historical']] if retained is None else [
+            {k:retained['selection'][k] for k in ('stage','deployment_sha256')}]
+        admission = retained_model_admission(candidate,selections=selections,guard=checked)
+        if retained is not None and (candidate!=retained['candidate'] or admission is None):
+            raise ValueError('exact original retained model admission required')
         if admission is None:
             path = write_native_candidate(directory(run / 'candidate'), candidate,
                 assessed_at=datetime.now(timezone.utc), runtime=runtime,
@@ -411,8 +497,12 @@ class NativeTraining:
         config = run / 'final-config.json'
         save(config, settings)
         save(run / 'geometry-libraries.json', libraries)
-        from household_native_history import assess
-        proof=assess([*old['historical'],{k:previous[k] for k in ('stage','deployment_sha256')}],now=datetime.now(timezone.utc),guard=self.reservation.check)
+        from household_native_history import assess,refresh
+        references=[*old['historical'],{k:previous[k] for k in ('stage','deployment_sha256')}]
+        if retained is not None and retained['proof']['references']!=references:
+            raise ValueError('retained activation current dispatch changed')
+        proof=(assess(references,now=datetime.now(timezone.utc),guard=checked) if retained is None else
+            refresh(retained['proof'],now=datetime.now(timezone.utc),guard=checked))
         active=[row for row in old['historical'] if row in proof['retained']]
         save(run/'score-history-window.json',proof)
         historical = tuple([*active, {k: previous[k] for k in ('stage', 'deployment_sha256')}])
@@ -432,8 +522,9 @@ class NativeTraining:
                          trained_through=candidate['fit']['training_end'])
         save(run / 'final-selection.json', selection)
         save(run / 'activation-input.json', dict(selection=selection, previous=previous))
-        save(self.state/'activation-retry.json',dict(selection=selection,previous=previous,cutoff=selection['trained_through'],code_revision=commit,attempts=1,
-            files={name:sha256(_owned_bytes(run/name,32000000)).hexdigest() for name in ('activation-input.json','final-selection.json','final-config.json','score-history-window.json','model-admission.json','score-dispatch.json')}))
+        if retained is None:
+            save(self.state/'activation-retry.json',dict(selection=selection,previous=previous,cutoff=selection['trained_through'],code_revision=commit,attempts=1,
+                files={name:sha256(_owned_bytes(run/name,32000000)).hexdigest() for name in RETRY_FILES}))
         return selection
 
     def activate(self, selection, previous):

@@ -272,3 +272,216 @@ def test_child_failure_is_bound_and_preserved_in_parent_daily_result(tmp_path,mo
     failure=json.loads((run/('activation-failure-'+reservation.name+'.json')).read_bytes())
     assert failure['nonce']==reservation.name and failure['run']==str(run)
     assert failure['failure']=={'error':'TimeoutError','reason':'external activation owner acknowledgment missing'}
+
+
+def retained_retry_case(tmp_path,monkeypatch):
+    """Exercise real retry/history/package control flow with private inputs.
+
+    Numerical receipt admission and stage/family validation have their own real
+    fixtures; their expensive or manager-facing boundaries are doubled here.
+    The checkpoint, index, history inventory, Git provenance and package writes
+    under test are real.
+    """
+    import json,subprocess
+    from hashlib import sha256
+    from types import SimpleNamespace
+    import household_native_training as training
+    import household_native_lifecycle as lifecycle
+    import household_native_family as family
+    import household_cycle_deploy as deploy
+    import household_forecast_score as scorer
+    import native_model_serving_receipt as serving
+    import native_thermal_artifact as artifact
+    from test_native_history_retirement import mutable_history_case
+    case=mutable_history_case(tmp_path,monkeypatch)
+    backend=case.backend;backend.state=training.directory(tmp_path/'learner')
+    repo=training.directory(tmp_path/'repo');backend.repo=repo
+    sources={'openhab/scripts/household_native_training.py':b'# original controller\n',
+        'openhab/scripts/native_thermal_fit.py':b'# immutable fitted source\n'}
+    for name,raw in sources.items():
+        path=repo/name;path.parent.mkdir(mode=0o700,parents=True,exist_ok=True);path.write_bytes(raw)
+    def git(*args):return subprocess.check_output(['git','-C',str(repo),*args]).decode().strip()
+    git('init','-q');git('add','.')
+    git('-c','commit.gpgsign=false','-c','user.name=Test','-c','user.email=test@example.invalid','commit','-qm','retained source')
+    revision=git('rev-parse','HEAD')
+    run=training.directory(backend.state/'retained');stage=training.directory(run/'final')
+    cutoff=case.now;previous=dict(case.refs[-1],trained_through=(cutoff-training.timedelta(hours=6)).isoformat())
+    candidate=dict(artifact_sha256='c'*64,runtime_sha256='d'*64,runtime={'original_runtime':True},
+        created_at=cutoff.isoformat(),fit={'training_end':cutoff.isoformat()},originals={})
+    for role in ('snapshot','dataset','geometry','fit_evidence'):
+        path=run/(role+'.json');training.save(path,{'original':role,'code_revision':revision})
+        candidate['originals'][role]={'path':str(path),'sha256':sha256(path.read_bytes()).hexdigest()}
+    candidate_path=run/'candidate.json';training.save(candidate_path,candidate)
+    receipt=run/'receipt.json';training.save(receipt,{'original_admission':True})
+    receipt_pin=sha256(receipt.read_bytes()).hexdigest()
+    previous_config=Path(json.loads((Path(previous['stage'])/'cycle.json').read_bytes())['forecast_config'])
+    settings=json.loads(previous_config.read_bytes());old_candidate=tmp_path/'incumbent.json'
+    training.save(old_candidate,{'artifact_sha256':settings['artifact_sha256']})
+    settings['candidate_path']=str(old_candidate);training.save(previous_config,settings)
+    retained_settings=dict(settings,candidate_path=str(candidate_path),artifact_sha256=candidate['artifact_sha256'],runtime_sha256=candidate['runtime_sha256'],model_receipt_path=str(receipt),model_receipt_sha256=receipt_pin)
+    training.save(run/'final-config.json',retained_settings)
+    training.save(run/'geometry-libraries.json',{'original_libraries':True})
+    training.save(stage/'cycle.json',{'forecast_config':str(run/'final-config.json')})
+    record=dict(code_revision=revision,source_manifest={name:sha256(raw).hexdigest() for name,raw in sources.items()},
+        artifact_sha256=candidate['artifact_sha256'],runtime_sha256=candidate['runtime_sha256'])
+    training.save(stage/'deployment.json',record);pin=sha256((stage/'deployment.json').read_bytes()).hexdigest()
+    selection=dict(stage=str(stage),deployment_sha256=pin,artifact_sha256=candidate['artifact_sha256'],trained_through=cutoff.isoformat())
+    proof=case.history.assess(case.refs,now=cutoff,guard=lambda:None)
+    training.save(run/'score-history-window.json',proof)
+    training.save(run/'final-selection.json',selection)
+    training.save(run/'activation-input.json',dict(selection=selection,previous=previous))
+    training.save(run/'model-admission.json',dict(reused=False,original=None))
+    training.save(run/'score-dispatch.json',dict(schema='earthship-native-score-dispatch/v2',current='current',historical=case.refs[1:]))
+    names=('activation-input.json','final-selection.json','final-config.json','score-history-window.json','model-admission.json','score-dispatch.json')
+    checkpoint=dict(selection=selection,previous=previous,cutoff=cutoff.isoformat(),code_revision=revision,attempts=1,
+        files={name:sha256((run/name).read_bytes()).hexdigest() for name in names})
+    training.save(backend.state/'activation-retry.json',checkpoint)
+    immutable={path:path.read_bytes() for path in run.rglob('*') if path.is_file()}
+    history_verify=deploy.verify_stage
+    records={str(stage):record}
+    monkeypatch.setattr(deploy,'verify_stage',lambda path,**kwargs:records[str(path)] if str(path) in records else history_verify(path,**kwargs))
+    monkeypatch.setattr(family,'verify',lambda path,**kwargs:dict(deployment_sha256=pin))
+    monkeypatch.setattr(scorer,'read_score_dispatch',lambda path,**kwargs:dict(historical=case.refs[:2] if Path(path)==Path(previous['stage']) else case.refs[1:]))
+    monkeypatch.setattr(serving,'load_serving_selection',lambda path,**kwargs:selection)
+    monkeypatch.setattr(serving,'read_serving_model',lambda *args,**kwargs:SimpleNamespace(candidate=candidate,runtime=candidate['runtime'],verify_bindings=lambda **kw:None))
+    monkeypatch.setattr(artifact,'current_native_runtime',lambda **kwargs:candidate['runtime'])
+    numerical=[]
+    def rederive(*,originals,runtime,previous,created_at,guard):
+        guard();assert previous==candidate and runtime==candidate['runtime']
+        assert originals=={key:Path(ref['path']) for key,ref in candidate['originals'].items()}
+        numerical.append(True);return candidate
+    monkeypatch.setattr(training,'build_deployment_candidate',rederive)
+    def admission(actual,*,selections,guard):
+        guard();assert actual==candidate and selections==[{key:selection[key] for key in ('stage','deployment_sha256')}]
+        return dict(candidate_path=str(candidate_path),receipt_path=str(receipt),receipt_sha256=receipt_pin,
+            verified_at=cutoff.isoformat(),source_stage=str(stage),source_deployment_sha256=pin)
+    monkeypatch.setattr(training,'retained_model_admission',admission)
+    def forbidden(*args,**kwargs):pytest.fail('retained retry must not fit or issue a replacement admission')
+    monkeypatch.setattr(serving,'admit_model',forbidden)
+    import native_thermal_fit
+    monkeypatch.setattr(native_thermal_fit,'fit_native_development',forbidden)
+    backend.inputs={key:str(tmp_path/key) for key in ('parameters','observation_cache','service_file','service_base_config')}
+    backend.inputs['parameters_sha256']='e'*64
+    def stage_candidate(**kwargs):
+        output=training.directory(kwargs['stage']);body=dict(record,code_revision=kwargs['code_revision'])
+        training.save(output/'deployment.json',body);records[str(output)]=body
+    monkeypatch.setattr(deploy,'stage_deployment',stage_candidate)
+    def dispatch(*,historical_selections,output,guard):
+        guard();training.save(output,dict(schema='earthship-native-score-dispatch/v2',current='current',historical=list(historical_selections)))
+        return dict(path=str(output),sha256=sha256(output.read_bytes()).hexdigest())
+    monkeypatch.setattr(family,'prepare_score_dispatch',dispatch)
+    monkeypatch.setattr(family,'prepare',lambda *args,**kwargs:kwargs['guard']())
+    monkeypatch.setattr(training,'selected_family_interpreter',lambda *args,**kwargs:{'path':'/private/python3.12','sha256':'f'*64})
+    owners=[]
+    class Reservation:
+        def __init__(self,state,run,previous,*,guard):self.check=guard;owners.append(run)
+    monkeypatch.setattr(lifecycle,'Reservation',Reservation)
+    class Clock(datetime):
+        @classmethod
+        def now(cls,tz=None):return cutoff
+    monkeypatch.setattr(training,'datetime',Clock)
+    return SimpleNamespace(
+        history=case,backend=backend,run=run,selection=selection,previous=previous,cutoff=cutoff,checkpoint=checkpoint,
+        immutable=immutable,candidate=candidate,candidate_path=candidate_path,receipt=receipt,numerical=numerical,owners=owners,git=git,record=record)
+
+
+def test_retained_retry_repackages_normal_index_advance_without_refitting_or_rewriting_originals(tmp_path,monkeypatch):
+    import json
+    case=retained_retry_case(tmp_path,monkeypatch);case.history.advance()
+    selection=case.backend.retry_selection(case.cutoff,case.previous)
+    assert selection!=case.selection and selection['artifact_sha256']==case.selection['artifact_sha256']
+    assert selection['trained_through']==case.selection['trained_through']
+    new_run=Path(selection['stage']).parent
+    assert new_run.parent==case.backend.state and new_run!=case.run
+    assert all(path.read_bytes()==raw for path,raw in case.immutable.items())
+    checkpoint=json.loads((case.backend.state/'activation-retry.json').read_bytes())
+    assert checkpoint==dict(case.checkpoint,attempts=2)
+    settings=json.loads((new_run/'final-config.json').read_bytes())
+    assert settings['candidate_path']==str(case.candidate_path) and settings['model_receipt_path']==str(case.receipt)
+    fresh=json.loads((new_run/'score-history-window.json').read_bytes())
+    assert case.history.history.revalidate(fresh,now=case.cutoff,guard=lambda:None)==fresh
+    assert case.numerical==[True] and case.owners==[new_run]
+    provenance=json.loads((new_run/'retained-fit.json').read_bytes())
+    assert provenance['original_retry']==case.checkpoint
+    assert provenance['activation_code_revision']==case.git('rev-parse','HEAD')
+    with pytest.raises(ValueError,match='exhausted'):
+        case.backend.retry_selection(case.cutoff,case.previous)
+
+
+@pytest.mark.parametrize('damage',['exhausted','previous','handoff','checkpoint_pin','missing_pin','requested_run'])
+def test_retained_retry_refuses_invalid_owner_or_checkpoint_before_packaging(tmp_path,monkeypatch,damage):
+    import json
+    import household_native_training as training
+    case=retained_retry_case(tmp_path,monkeypatch);previous=case.previous;kwargs={}
+    if damage=='exhausted':case.checkpoint['attempts']=2
+    elif damage=='previous':previous=dict(previous,deployment_sha256='0'*64)
+    elif damage=='handoff':training.directory(case.run/'handoff')
+    elif damage=='checkpoint_pin':(case.run/'activation-input.json').write_bytes(b'{}')
+    elif damage=='missing_pin':case.checkpoint['files'].pop('score-history-window.json')
+    else:kwargs['requested_run']=case.backend.state/'other-run'
+    training.save(case.backend.state/'activation-retry.json',case.checkpoint)
+    with pytest.raises(ValueError):case.backend.retry_selection(case.cutoff,previous,**kwargs)
+    assert case.owners==[] and case.numerical==[]
+    assert json.loads((case.backend.state/'activation-retry.json').read_bytes())==case.checkpoint
+
+
+def test_retained_retry_records_new_controller_revision_without_relabelling_fit(tmp_path,monkeypatch):
+    import json
+    case=retained_retry_case(tmp_path,monkeypatch)
+    source=case.backend.repo/'openhab/scripts/household_native_training.py'
+    source.write_bytes(b'# repaired controller\n')
+    case.git('add','.')
+    case.git('-c','commit.gpgsign=false','-c','user.name=Test','-c','user.email=test@example.invalid','commit','-qm','controller repair')
+    revision=case.git('rev-parse','HEAD');assert revision!=case.checkpoint['code_revision']
+    case.history.advance();selected=case.backend.retry_selection(case.cutoff,case.previous)
+    new_run=Path(selected['stage']).parent
+    assert json.loads((Path(selected['stage'])/'deployment.json').read_bytes())['code_revision']==revision
+    assert json.loads((new_run/'retained-fit.json').read_bytes())['original_retry']['code_revision']==case.checkpoint['code_revision']
+    assert all(path.read_bytes()==raw for path,raw in case.immutable.items())
+
+
+@pytest.mark.parametrize('damage',['fitted_source','new_source','dirty','original_revision','dispatch'])
+def test_retained_retry_rejects_incompatible_source_and_original_dispatch(tmp_path,monkeypatch,damage):
+    import household_forecast_score as scorer
+    case=retained_retry_case(tmp_path,monkeypatch)
+    if damage=='original_revision':case.record['code_revision']='0'*40
+    elif damage=='dispatch':monkeypatch.setattr(scorer,'read_score_dispatch',lambda *args,**kwargs:dict(historical=[]))
+    else:
+        name='native_thermal_fit.py' if damage=='fitted_source' else 'new_unreviewed.py' if damage=='new_source' else 'household_native_training.py'
+        (case.backend.repo/'openhab/scripts'/name).write_bytes(b'# incompatible source\n')
+        if damage!='dirty':
+            case.git('add','.')
+            case.git('-c','commit.gpgsign=false','-c','user.name=Test','-c','user.email=test@example.invalid','commit','-qm','incompatible source')
+    with pytest.raises(ValueError):case.backend.retry_selection(case.cutoff,case.previous)
+    assert case.owners==[] and case.numerical==[]
+
+
+def test_retained_retry_respects_unresolved_reservation_before_numerical_or_history_reassembly(tmp_path,monkeypatch):
+    import household_native_lifecycle as lifecycle
+    case=retained_retry_case(tmp_path,monkeypatch);case.history.advance()
+    def unresolved(*args,**kwargs):raise ValueError('previous reservation requires reconciliation')
+    monkeypatch.setattr(lifecycle,'Reservation',unresolved)
+    with pytest.raises(ValueError,match='reconciliation'):
+        case.backend.retry_selection(case.cutoff,case.previous)
+    assert case.numerical==[] and all(path.read_bytes()==raw for path,raw in case.immutable.items())
+
+
+def test_standalone_retry_binds_requested_original_then_activates_derived_candidate(tmp_path,monkeypatch,capsys):
+    import json
+    import household_native_training as training
+    import household_native_daily as module
+    import thermal_model.runtime_bundle as bundle
+    backend=Backend('2000-01-01T00:00:00+00:00');backend.state=training.directory(tmp_path/'state')
+    original=backend.state/'original';derived=backend.state/'derived'
+    def retry(cutoff,previous,*,requested_run):
+        if requested_run!=original:raise ValueError('exact original retained run required')
+        return dict(stage=str(derived/'final'))
+    backend.retry_selection=retry
+    monkeypatch.setattr(training,'NativeTraining',lambda config:backend)
+    trusted=Path('/home/sat/.local/state/earthship-weather/audit-rollout-8f3747-20261020-native/native-config.json')
+    read=bundle._owned_bytes
+    monkeypatch.setattr(bundle,'_owned_bytes',lambda path,*args:json.dumps({'timezone':'UTC'}).encode() if path==trusted else read(path,*args))
+    monkeypatch.delenv('EARTHSHIP_NATIVE_DAILY_LOCK_FD',raising=False)
+    assert module.main(['--activate',str(original)])==0
+    assert backend.calls==[('activate',{'stage':str(derived/'final')},backend.current())]
+    assert json.loads(capsys.readouterr().out)['status']=='native_family_activated'

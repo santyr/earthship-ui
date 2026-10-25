@@ -264,6 +264,46 @@ def revalidate(proof,*,now,guard):
     return current
 
 
+def refresh(proof,*,now,guard):
+    """Qualify a new retry proof; never amend or authorize the old package.
+
+    Scoring replaces the four indexes. Their complete current rows and all
+    dependencies must pass assess again, while every previously observed
+    immutable dependency and the original retention boundary still hold.
+    The returned proof is subject to ordinary strict final revalidation.
+    """
+    validate_partition(proof)
+    if instant(proof['assessed_at']).date()!=now.date() or instant(proof['assessed_at'])>now:
+        raise ValueError('history proof clock changed')
+    original=Inventory(guard)
+    current=assess(proof['references'],now=now,guard=original.check,state_root=proof['state_root'])
+    if current['policies']!=proof['policies']:raise ValueError('original history policy changed')
+    indexes={str(Path(proof['state_root'])/name/'samples.json') for name in STORES}
+    for path,value in proof['files'].items():
+        if path in indexes:
+            if path not in current['files']:raise ValueError('original history index missing')
+            continue
+        actual=current['files'].get(path)
+        if actual is None:
+            # A later horizon can supersede an immutable score/sample. Verify
+            # its old bytes/identity directly before qualifying the new current
+            # dependency set; never delete it or rewrite its original proof.
+            if Path(path).lstat().st_size!=value['identity'][5]:
+                raise ValueError('original history dependency changed or missing')
+            original.read(path,min(32000000,value['identity'][5]),decode=False)
+            actual=original.files[path]
+        if actual!=value:
+            raise ValueError('original history dependency changed or missing')
+    if any(current['directories'].get(path)!=value for path,value in proof['directories'].items()):
+        raise ValueError('original history directory changed or missing')
+    for path,names in proof.get('memberships',{}).items():
+        if not set(names)<=set(current.get('memberships',{}).get(path,[])):
+            raise ValueError('original history inventory entry removed')
+    if any(row not in proof['retained'] for row in current['retained']):
+        raise ValueError('new history dependency requires retired selection')
+    original.check();return current
+
+
 def snapshot_guard(proof):
     """Keep final independently scanned inputs fixed through file replacement.
 
