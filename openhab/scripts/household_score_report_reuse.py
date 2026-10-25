@@ -146,12 +146,41 @@ def _capture_reads(guard):
                 sha256(model_raw).hexdigest() not in (SUPPORTED_MODEL_HELPER_SHA256,PRIOR_MODEL_HELPER_SHA256) or
                 Path(original.__code__.co_filename).absolute()!=path):
             yield;return
-        import thermal_weather_source as weather
-        import production_thermal_source as production_weather
-        original_weather=weather.verify_bindings;weather_code=getattr(original_weather,'__code__',None)
+        # These adapters are optional to original weather-free validation.
+        # Admit their sources and exact runtime root BEFORE inspecting private
+        # implementation details; unknown layouts retain the original path.
+        try:
+            import thermal_weather_source as weather
+            import production_thermal_source as production_weather
+        except ImportError:
+            yield;return
+        weather_path=path.parent/'thermal_weather_source.py'
+        production_path=path.parent/'production_thermal_source.py'
+        def weather_roots_match():
+            return (sys.modules.get('thermal_weather_source') is weather and
+                sys.modules.get('production_thermal_source') is production_weather and
+                getattr(weather,'__file__',None)==str(weather_path) and
+                getattr(production_weather,'__file__',None)==str(production_path) and
+                getattr(weather,'SCRIPTS',None)==path.parent)
+        if not weather_roots_match():
+            yield;return
+        try:
+            supported_weather=(
+                sha256(_source_bytes(weather_path,maximum=262144)).hexdigest()==CAPTURE_WEATHER_RUNTIME['thermal_weather_source.py'] and
+                sha256(_source_bytes(production_path,maximum=262144)).hexdigest()==CAPTURE_WEATHER_RUNTIME['production_thermal_source.py'])
+        except (OSError,ValueError):supported_weather=False
+        if not supported_weather:
+            yield;return
+        weather_functions=[]
+        for module,selected,names in ((weather,weather_path,('verify_bindings','production_conditioning_runtime')),
+                (production_weather,production_path,('verify','_points'))):
+            for name in names:
+                function=getattr(module,name,None);code=getattr(function,'__code__',None)
+                if code is None or Path(code.co_filename).absolute()!=selected:
+                    yield;return
+                weather_functions.append((module,name,function,code))
+        original_weather=weather.verify_bindings
         weather_admission=ContextVar('full_capture_weather_admission',default=None)
-        weather_functions=tuple((name,getattr(production_weather,name),getattr(getattr(production_weather,name),'__code__',None))
-            for name in ('verify','_points'))
         def retained_size(value):
             seen=set()
             def count(v):
@@ -200,9 +229,13 @@ def _capture_reads(guard):
                 return sha256(raw).digest() if len(raw)<=32768 else None
             except (ValueError,TypeError,RecursionError,OverflowError):return None
         def known_weather():
-            return getattr(original_weather,'__code__',None) is weather_code and all(
-                getattr(production_weather,name,None) is function and getattr(function,'__code__',None) is code
-                for name,function,code in weather_functions)
+            # Cheap bindings bracket hit callbacks; file bytes are still read
+            # below and by the unchanged original inventories, never inferred
+            # from a path, mtime, or object identity.
+            return weather_roots_match() and all(
+                getattr(module,name,None) is (verify_weather if module is weather and name=='verify_bindings' else function) and
+                getattr(function,'__code__',None) is code
+                for module,name,function,code in weather_functions)
         def verify_weather(value,*,guard):
             # The known verifier has only this complete context and callback as
             # inputs: issue/availability, policy, authority, source refs and all
@@ -216,7 +249,8 @@ def _capture_reads(guard):
             if key is None:return original_weather(value,guard=guard)
             saved=deepcopy(value)
             if any(capture_key[0] is inventory and metadata==key for capture_key,(metadata,_) in cache.items()):
-                guard();observe_weather(saved,saved['originals'],guard);guard();result=None
+                guard();observe_weather(saved,saved['originals'],guard);guard()
+                result=None if known_weather() else original_weather(saved,guard=guard)
             else:result=original_weather(saved,guard=guard)
             admitted=weather_admission.get()
             if admitted is not None and known_weather():admitted[:]=[key]
@@ -231,7 +265,7 @@ def _capture_reads(guard):
             value=deepcopy(value)
             check_budget();guard()
             refs=dependencies(value) if type(value) is dict else None
-            if refs is None:return full()
+            if refs is None or value.get('weather_conditioning') is not None and not known_weather():return full()
             try:key=(inventory,sha256(_json_key(value)).digest(),sha256(model._encoded).digest(),
                     sha256(model._selection._encoded).digest(),expected_capture_sha256)
             except (ValueError,TypeError,RecursionError,OverflowError):return full()
@@ -241,12 +275,16 @@ def _capture_reads(guard):
                 # admission/chronology check even when numerical work is reused.
                 model.verify_bindings(assessed_at=value['issued_at'],guard=check_budget)
                 observe_dependencies(value,refs,check_budget)
-                result=deepcopy(value);check_budget();guard();return result
+                result=deepcopy(value);check_budget();guard()
+                if value.get('weather_conditioning') is not None and not known_weather():return full()
+                return result
             admitted=[];admission_token=weather_admission.set(admitted)
             try:result=full()
             finally:weather_admission.reset(admission_token)
             check_budget();guard()
+            if result.get('weather_conditioning') is not None and not known_weather():return result
             observe_dependencies(result,dependencies(result),check_budget)
+            if result.get('weather_conditioning') is not None and not known_weather():return result
             metadata=weather_key(result.get('weather_conditioning')) if weather_hooked else None
             if admitted!=[metadata]:metadata=None
             weight=retained_size((key[1:],metadata))+512
@@ -255,13 +293,7 @@ def _capture_reads(guard):
                     _,(_,removed)=cache.popitem(last=False);size-=removed
                 if MAX_CAPTURE_CACHE_ENTRIES>0:cache[key]=(metadata,weight);size+=weight
             return result
-        weather_path=Path(weather.__file__).absolute()
-        production_path=Path(production_weather.__file__).absolute()
-        if (weather_code is not None and Path(weather_code.co_filename).absolute()==weather_path and
-                all(code is not None and Path(code.co_filename).absolute()==production_path for _,_,code in weather_functions) and
-                sha256(_source_bytes(weather_path,maximum=262144)).hexdigest()==CAPTURE_WEATHER_RUNTIME['thermal_weather_source.py'] and
-                sha256(_source_bytes(production_path,maximum=262144)).hexdigest()==CAPTURE_WEATHER_RUNTIME['production_thermal_source.py']):
-            weather.verify_bindings=verify_weather;weather_hooked=True
+        weather.verify_bindings=verify_weather;weather_hooked=True
         forecasts.validate_serving_capture=read;hooked=True
         yield
         for selected,expected in identities.items():
