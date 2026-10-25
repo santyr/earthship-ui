@@ -137,7 +137,7 @@ def manager_fixture(tmp_path,owner):
     reservation=directory(root/'reservation')
     life.save(reservation/'request.json',dict(nonce='reservation',owner=life.process_identity(owner.pid),run=str(root/'run'),
         previous={'stage':str(root/'old/final'),'deployment_sha256':'a'*64},root=str(units),shared_lock=str(lock),expires=time.monotonic()+60,
-        phase='reserve',family=None,source_sha256=sha256(Path(life.__file__).read_bytes()).hexdigest()))
+        phase='reserve',family=None,sources={str(Path(life.__file__)):life.fingerprint(Path(life.__file__))},source_sha256=sha256(Path(life.__file__).read_bytes()).hexdigest()))
     return root,targets
 
 
@@ -184,7 +184,7 @@ def test_hard_kill_external_recovery_accepts_only_complete_family(tmp_path,files
             if child is not None and child.poll() is None:child.kill();child.wait()
 
 
-@pytest.mark.parametrize('change',['aba','link','source','owner_loss'])
+@pytest.mark.parametrize('change',['aba','link','source','owner_loss','file_aba'])
 def test_recovery_preserves_operator_changes_and_owner_loss_as_reconciliation(tmp_path,change):
     import household_native_lifecycle as life
     owner=subprocess.Popen([sys.executable,'-B','-c','import time;time.sleep(60)'],start_new_session=True)
@@ -200,6 +200,9 @@ def test_recovery_preserves_operator_changes_and_owner_loss_as_reconciliation(tm
             rows=life.read(root/'timers.json');rows[life.SCORE]['InactiveEnterTimestampMonotonic']='999';life.save(root/'timers.json',rows)
         elif change=='link':
             path=root/'units/timers.target.wants'/life.SCORE;path.unlink();path.symlink_to(root/'foreign.timer')
+        elif change=='file_aba':
+            path=root/'units/thermal-provisional-forecast.service.d/zzzz-household-cycle.conf'
+            raw=path.read_bytes();path.unlink();path.write_bytes(raw);path.chmod(0o600)
         elif change=='source':
             path=root/'reservation/status.json';record=life.read(path);record['request']['source_sha256']='0'*64;life.save(path,record)
         if change!='owner_loss':owner.kill();owner.wait(timeout=5)
@@ -312,3 +315,13 @@ print('reaped')
     result=subprocess.run([sys.executable,'-B','-c',script,str(tmp_path/'root')],capture_output=True,text=True,timeout=5)
     assert result.returncode==0,result.stderr
     assert result.stdout.strip()=='reaped'
+
+
+def test_external_recovery_rejects_changed_imported_source_helper(tmp_path):
+    import household_native_lifecycle as life
+    from hashlib import sha256
+    helper=tmp_path/'helper.py';helper.write_bytes(b'old helper');helper.chmod(0o600)
+    data={'sources':{str(helper):life.fingerprint(helper)}}
+    life.verify_sources(data)
+    helper.write_bytes(b'new helper')
+    with pytest.raises(ValueError,match='source closure'):life.verify_sources(data)

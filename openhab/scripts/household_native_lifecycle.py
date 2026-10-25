@@ -106,6 +106,25 @@ def fingerprint(path,*,link=False):
     return result+[sha256(_bytes(path)).hexdigest()]
 
 
+def source_snapshot(repo):
+    names=subprocess.check_output(['git','-C',str(repo),'ls-files','-z','openhab/scripts','scripts/run-household-job.py'],timeout=10).decode().split('\0')
+    paths=[repo/name for name in names if name.endswith('.py') and not Path(name).name.startswith('test_')]
+    if not 1<=len(paths)<=1024:raise ValueError('bounded committed owner source closure required')
+    return {str(path):fingerprint(path) for path in paths}
+
+
+def verify_sources(data,*,full=True):
+    sources=data['sources']
+    if not isinstance(sources,dict) or not 1<=len(sources)<=1024:raise ValueError('bounded owner source closure required')
+    for path,expected in sources.items():
+        if full:actual=fingerprint(path)
+        else:
+            info=Path(path).lstat();actual=[info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_mtime_ns,info.st_ctime_ns]
+            if Path(path).resolve()!=Path(path):raise ValueError('owner source closure path changed')
+            expected=expected[:-1]
+        if actual!=expected:raise ValueError('owner source closure changed')
+
+
 def _dependencies(root):
     """Fixed base definitions, enable links, and target-parent identities."""
     paths={}
@@ -164,7 +183,7 @@ class Reservation:
         from household_native_training import directory
         from household_cycle_deploy import verify_stage,_systemctl
         repo=Path(__file__).resolve().parents[2]
-        if subprocess.check_output(['git','-C',str(repo),'status','--porcelain','--untracked-files=no'],timeout=10).strip():raise ValueError('clean Git-backed repaired release required')
+        if subprocess.check_output(['git','-C',str(repo),'status','--porcelain'],timeout=10).strip():raise ValueError('clean Git-backed repaired release required')
         from household_native_training import effective_selection
         if effective_selection()!={k:previous[k] for k in ('stage','deployment_sha256')}:raise ValueError('selected model changed before reservation')
         self.guard=guard;self.nonce=uuid4().hex;self.directory=directory(Path(state)/'activation-reservations'/self.nonce)
@@ -175,7 +194,7 @@ class Reservation:
         self.data=dict(nonce=self.nonce,owner=process_identity(os.getpid()),run=str(run),previous=previous,
             root=str(Path(record['service_file']).parent),shared_lock=settings['shared_lock'],
             expires=time.monotonic()+min(600,max(0,getattr(guard,'deadline',time.monotonic()+600)-time.monotonic())),
-            phase='reserve',family=None,source_sha256=sha256(Path(__file__).read_bytes()).hexdigest())
+            phase='reserve',family=None,sources=source_snapshot(repo),source_sha256=sha256(Path(__file__).read_bytes()).hexdigest())
         # A previous unresolved pause is never silently superseded.
         for path in self.directory.parent.iterdir():
             if path==self.directory:continue
@@ -253,6 +272,7 @@ def watch(directory):
     from household_native_family import verify
     directory=Path(directory);request=directory/'request.json';status=directory/'status.json';data=read(request)
     if data['nonce']!=directory.name or data['source_sha256']!=sha256(Path(__file__).read_bytes()).hexdigest():raise ValueError('pinned external owner required')
+    verify_sources(data)
     manager_binding=verify_manager_domain(data)
     old=Path(data['previous']['stage']).parent/'family';selected=verify(old,guard=lambda:None)
     if selected['deployment_sha256']!=data['previous']['deployment_sha256']:raise ValueError('previous family pin differs')
@@ -262,6 +282,7 @@ def watch(directory):
     record=dict(phase='armed',manager=process_identity(os.getpid()),manager_binding=manager_binding,original=timers,paused={},dependencies=baseline,
         lock_identity=lock_identity,old_family=str(old),old_targets=_targets(root,old),new_family=None,new_targets=None,request=data)
     if not _matches(record['old_targets']):raise ValueError('original family files changed')
+    record['original_target_identities']={path:fingerprint(path) for path in record['old_targets']}
     save(status,record)
     def pause(unit):
         # Persist intention BEFORE a possible stop. A kill before its readback is ambiguous.
@@ -275,10 +296,13 @@ def watch(directory):
     while True:
         current=read(request)
         if {k:v for k,v in current.items() if k not in ('phase','family')}!={k:v for k,v in data.items() if k not in ('phase','family')}:raise ValueError('reservation owner record changed')
+        verify_sources(data,full=False)
         if verify_manager_domain(data)!=manager_binding:raise ValueError('external manager binding changed')
         if data['source_sha256']!=sha256(Path(__file__).read_bytes()).hexdigest():raise ValueError('owner source changed')
         if _dependencies(root)!=baseline:raise ValueError('reservation definitions or enablement changed')
         if any(not same_pause(v,_timer(u)) for u,v in record['paused'].items()):raise ValueError('observable timer ownership changed')
+        if record['new_family'] is None and any(fingerprint(path)!=saved for path,saved in record['original_target_identities'].items()):
+            raise ValueError('original unit file identity changed before handoff')
         if current['phase']=='release':return
         if process_identity(data['owner'][0])!=data['owner'] or time.monotonic()>=data['expires']:return
         if current['phase']=='handoff' and record['phase']=='reserved':
@@ -302,9 +326,12 @@ def recover(directory):
     data=record['request'];root=Path(data['root'])
     try:
         current=read(directory/'request.json')
+        verify_sources(data)
         if verify_manager_domain(data)!=record['manager_binding']:raise ValueError('external manager identity changed')
         if data['source_sha256']!=sha256(Path(__file__).read_bytes()).hexdigest():raise ValueError('recovery source changed')
         if current['phase']!='release' and process_identity(data['owner'][0])==data['owner']:raise ValueError('live mutation owner requires reconciliation')
+        if record['new_family'] is None and any(fingerprint(path)!=saved for path,saved in record['original_target_identities'].items()):
+            raise ValueError('original unit file identity changed before handoff')
         if record.get('stopping') or _dependencies(root)!=record['dependencies']:raise ValueError('uncertain stop or changed unit dependencies')
         if any(not same_pause(v,_timer(u)) for u,v in record['paused'].items()):raise ValueError('timer ownership changed')
         info=Path(data['shared_lock']).lstat()
