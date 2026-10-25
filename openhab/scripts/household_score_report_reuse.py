@@ -192,7 +192,6 @@ def _temperature_reads(guard):
     import weather_temperature_evidence as evidence
     import thermal_model.installed_shade_raw_score_sources as raw_sources
     from thermal_model.origin_capture import _source_bytes
-    from thermal_model.replay_budget import check_shared_budget
     frame=object();token=_temperature_frame.set(frame)
     snapshot=reader._snapshot;query=sources.replay_temperature_source
     hooked=False;caches=[OrderedDict(),OrderedDict()];sizes=[0,0];originals=[];alias=raw_sources.replay_temperature_source
@@ -216,12 +215,19 @@ def _temperature_reads(guard):
             def point(pair):return pair[0],None if pair[1] is None else dict(pair[1])
             return point(value) if index==0 else [point(pair) for pair in value]
         def reuse(index,key,compute,key_bytes):
-            check=check_shared_budget if index==0 else guard
-            check();cache=caches[index]
+            # The original pure snapshot reader has no budget callback. The
+            # shared callback executes full retained guard I/O, not just a
+            # clock read; invoking it per raw row amplifies that I/O greatly.
+            # Keep query/report/capture boundaries, never add per-row guards.
+            if index==1:guard()
+            cache=caches[index]
             if key in cache:
                 value,weight=cache.pop(key);cache[key]=(value,weight)
-                result=copy_result(index,value);check();return result
-            value=compute();check()
+                result=copy_result(index,value)
+                if index==1:guard()
+                return result
+            value=compute()
+            if index==1:guard()
             weight=key_bytes+len(repr(value).encode())+512
             limit=MAX_SNAPSHOT_CACHE_BYTES if index==0 else MAX_TEMPERATURE_CACHE_BYTES
             if weight<=limit:
