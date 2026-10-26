@@ -7,6 +7,38 @@ from test_native_serving_live import fixture,originals
 from test_native_thermal_forecast import ISSUE
 
 
+@pytest.fixture
+def reviewed_native_source():
+    import hashlib
+    import native_thermal_live as native
+    # Independent reviewed pin: never derive the expected digest from this file.
+    source=Path(native.__file__).absolute()
+    assert hashlib.sha256(source.read_bytes()).hexdigest()=='fa74fad2791de66c3e7884960ef6402f7b58c2bd03f05b41aae02edf02cf1833'
+    return source
+
+
+@pytest.fixture(params=['legacy_hash_boundary','reviewed_successor_bytes'])
+def supported_native_source(request,tmp_path,monkeypatch,reviewed_native_source):
+    import hashlib
+    import native_thermal_live as native
+    if request.param=='legacy_hash_boundary':
+        # Dispatch-only stub: actual archived-runtime byte qualification is separate.
+        raw=b'# legacy native source hash-boundary fixture\n'
+        source=tmp_path/'legacy-native.py';source.write_bytes(raw);source.chmod(0o644)
+        original=hashlib.sha256
+        class LegacyDigest:
+            def hexdigest(self):return '61851a694333d3cd66c24e8e71aab016631844a34b09411c6816c74e0e5c11f8'
+        monkeypatch.setattr(hashlib,'sha256',lambda value=b'':LegacyDigest() if value==raw else original(value))
+        monkeypatch.setattr(native,'__file__',str(source))
+    else:source=reviewed_native_source
+    return source
+
+
+def test_supported_native_source_selects_existing_endpoint_reader(supported_native_source):
+    import household_retained_native_score as retained,household_native_score_queries as queries
+    assert retained._reader_factory() is queries.RecentCycleWindowReader
+
+
 def prepared(tmp_path,originals,monkeypatch):
     live,settings,model,backend,geometry,stage=fixture(tmp_path,originals,monkeypatch)
     publication=live.publish_cycle(settings,guard=lambda:None,geometry=geometry,backend=backend,serving_model=model)
@@ -112,7 +144,7 @@ def test_retained_outer_guard_checks_deadline_spent_admitting_the_model(tmp_path
     with pytest.raises(ValueError,match='score lifetime elapsed'):retained.run(config,**options)
 
 
-def test_retained_default_reader_uses_operational_batch_path_with_same_guard(tmp_path,originals,monkeypatch):
+def test_retained_default_reader_uses_operational_batch_path_with_same_guard(tmp_path,originals,monkeypatch,reviewed_native_source):
     """The selected reader, including post-acquisition checks, is operational."""
     import household_retained_native_score as retained
     import household_native_score_queries as queries
@@ -130,21 +162,24 @@ def test_retained_default_reader_uses_operational_batch_path_with_same_guard(tmp
     assert result['scored']==1 and observed==[reader] and guards
 
 
-def test_unknown_archived_reader_keeps_original_path(tmp_path,monkeypatch):
+@pytest.mark.parametrize('source_kind',['unknown','modified_successor'])
+def test_unknown_archived_reader_keeps_original_path(tmp_path,monkeypatch,source_kind):
     import household_retained_native_score as retained,native_thermal_live as native
-    source=tmp_path/'unknown.py';source.write_text('# unknown immutable archived runtime\n');source.chmod(0o644)
+    raw=b'# unknown immutable archived runtime\n' if source_kind=='unknown' else Path(native.__file__).read_bytes()+b'\n# unreviewed successor\n'
+    source=tmp_path/'native_thermal_live.py';source.write_bytes(raw);source.chmod(0o644)
     monkeypatch.setattr(native,'__file__',str(source))
+    monkeypatch.setattr(retained,'__file__',str(tmp_path/'retained.py'))
     assert retained._reader_factory() is native.NativeScoreReader
 
 
-def test_retained_reader_refuses_changed_current_helper_before_execution(tmp_path,monkeypatch):
+def test_retained_reader_refuses_changed_current_helper_before_execution(tmp_path,monkeypatch,supported_native_source):
     import household_retained_native_score as retained
     helper=tmp_path/'household_native_score_queries.py';helper.write_text("raise AssertionError('unverified source executed')\n");helper.chmod(0o644)
     monkeypatch.setattr(retained,'__file__',str(tmp_path/'household_retained_native_score.py'))
     with pytest.raises(ValueError,match='operational reader source differs'):retained._reader_factory()
 
 
-def test_retained_reader_loads_current_sibling_in_archived_import_context(tmp_path,monkeypatch):
+def test_retained_reader_loads_current_sibling_in_archived_import_context(tmp_path,monkeypatch,supported_native_source):
     import household_retained_native_score as retained,household_native_score_queries as queries
     monkeypatch.setattr(queries,'__file__',str(tmp_path/'archived-queries.py'))
     selected=retained._reader_factory()
@@ -153,7 +188,7 @@ def test_retained_reader_loads_current_sibling_in_archived_import_context(tmp_pa
 
 
 @pytest.mark.parametrize('source',['native','helper'])
-def test_retained_reader_rejects_source_permissions_before_selection(tmp_path,monkeypatch,source):
+def test_retained_reader_rejects_source_permissions_before_selection(tmp_path,monkeypatch,source,supported_native_source):
     import household_retained_native_score as retained,native_thermal_live as native
     path=tmp_path/('native.py' if source=='native' else 'household_native_score_queries.py')
     path.write_text('# nonimmutable source\n');path.chmod(0o666)
@@ -162,20 +197,20 @@ def test_retained_reader_rejects_source_permissions_before_selection(tmp_path,mo
     with pytest.raises(ValueError):retained._reader_factory()
 
 
-def test_selected_operational_reader_source_joins_original_boundary_inventory(tmp_path,monkeypatch):
+def test_selected_operational_reader_source_joins_original_boundary_inventory(tmp_path,monkeypatch,reviewed_native_source):
     import household_retained_native_score as retained,household_native_score_queries as queries
     from thermal_model.replay_budget import capture_source_reads
     helper=tmp_path/'household_native_score_queries.py';helper.write_bytes(Path(queries.__file__).read_bytes());helper.chmod(0o644)
     monkeypatch.setattr(retained,'__file__',str(tmp_path/'retained.py'))
     with capture_source_reads() as originals:
         retained._reader_factory()
-        assert helper in originals.records
+        assert helper in originals.records and reviewed_native_source in originals.records
         originals.verify()
         helper.write_bytes(helper.read_bytes()+b'\n# changed after selection\n')
         with pytest.raises(ValueError,match='source'):originals.verify()
 
 
-def test_retained_reader_never_imports_unselected_archived_query_helper(tmp_path,monkeypatch):
+def test_retained_reader_never_imports_unselected_archived_query_helper(tmp_path,monkeypatch,supported_native_source):
     import sys
     import household_retained_native_score as retained
     helper=tmp_path/'household_native_score_queries.py';helper.write_text("raise AssertionError('unselected archived helper executed')\n")
