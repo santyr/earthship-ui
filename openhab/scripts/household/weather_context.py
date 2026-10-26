@@ -61,7 +61,7 @@ def _original(value):
     if native:
         from native_thermal_forecast import capture_fields
         fields=capture_fields(capture);schema=capture.get('schema')
-    expected_model='earthship-household-prepared-thermal/v3' if native and schema=='earthship-provisional-thermal-origin/v3' else 'earthship-household-prepared-thermal/v'+str(2 if native else 1)
+    expected_model='earthship-household-prepared-thermal/v3' if native and schema in ('earthship-provisional-thermal-origin/v3','earthship-provisional-thermal-origin/v5') else 'earthship-household-prepared-thermal/v'+str(2 if native else 1)
     if model['schema']!=expected_model:
         raise ValueError('original weather and prepared model versions differ')
     if (not isinstance(capture,dict) or set(capture)!=fields or capture['schema']!=schema or

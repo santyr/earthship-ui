@@ -12,7 +12,8 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from types import FunctionType
 
-SUPPORTED_SOURCE_SHA256='60cd7a67a914ef8d996390f60e9be398475f9a1ef08c5da011d7d279a0db0608'
+SUPPORTED_SOURCE_SHA256='ffe0a643b44d2e48d5763c4cbe9c0192f0945d1d2983f8d496389b3c40becff8'
+LEGACY_SOURCE_SHA256='60cd7a67a914ef8d996390f60e9be398475f9a1ef08c5da011d7d279a0db0608'
 PRIOR_SOURCE_SHA256='2e4abc7c8f655bcc5f7ff839b9750816f56f08b02bd516e10c8b8c2c6aaa6dab'
 INSTALLED_SOURCE_SHA256='40199b757ec35cd80c1aa8eb857fd1e272c0242f13122b30e76d9b2e9c92b9f6'
 SUPPORTED_MODEL_HELPER_SHA256='11121a94a4501c7af520b9df54ec879a3c75edadc87a0d15afd279bf83bbf58e'
@@ -28,7 +29,8 @@ TEMPERATURE_SOURCE_SHA256={
 MAX_TEMPERATURE_CACHE_ENTRIES=16384
 MAX_TEMPERATURE_CACHE_BYTES=8*1024*1024
 MAX_SNAPSHOT_CACHE_BYTES=16*1024*1024
-CAPTURE_SOURCE_SHA256='de0d87c20c11ff15f27c6474cc558c76532c628fc6cf3aa8e981deb0aaaa0d99'
+CAPTURE_SOURCE_SHA256='e98129a6198fc4acec2648886c7b60ef90d66c9cebe0a34b45f7bbfbf245735e'
+PRIOR_CAPTURE_SOURCE_SHA256='de0d87c20c11ff15f27c6474cc558c76532c628fc6cf3aa8e981deb0aaaa0d99'
 MAX_CAPTURE_CACHE_BYTES=1024*1024
 MAX_CAPTURE_CACHE_ENTRIES=64
 MAX_CAPTURE_DEPENDENCIES=4096
@@ -143,7 +145,8 @@ def _capture_reads(guard):
         model_raw=_source_bytes(model_helper,maximum=262144)
         model_info=model_helper.lstat()
         model_identity=(model_info.st_dev,model_info.st_ino,model_info.st_mode,model_info.st_uid,model_info.st_gid,model_info.st_nlink)
-        if (sha256(raw).hexdigest()!=CAPTURE_SOURCE_SHA256 or
+        capture_source=sha256(raw).hexdigest()
+        if (capture_source not in (CAPTURE_SOURCE_SHA256,PRIOR_CAPTURE_SOURCE_SHA256) or
                 sha256(model_raw).hexdigest() not in (SUPPORTED_MODEL_HELPER_SHA256,PRIOR_MODEL_HELPER_SHA256) or
                 Path(original.__code__.co_filename).absolute()!=path):
             yield;return
@@ -223,7 +226,9 @@ def _capture_reads(guard):
                     if sha256(body).hexdigest()!=pin:raise ValueError('captured weather runtime changed')
         def observe_dependencies(value,refs,check):
             observe_weather(value.get('weather_conditioning'),refs,check)
-            for name in value['native_origin_binding']['query_sources'].values():
+            names=(forecasts.origin_source_files(value,check_budget=check) if capture_source==CAPTURE_SOURCE_SHA256 else
+                value['native_origin_binding']['query_sources'].values())
+            for name in names:
                 from weather_temperature_sources import MAX_CONTAINER_BYTES
                 selected=Path(name);check();remember(selected);_owned_bytes(selected,MAX_CONTAINER_BYTES);remember(selected)
         def weather_key(value):
@@ -308,6 +313,13 @@ def _capture_reads(guard):
             if current!=expected or (info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_gid,info.st_nlink)!=metadata:
                 raise ValueError('capture replay helper changed during report')
         guard()
+        # Check all earlier children together after the last user callback.
+        for selected,expected in identities.items():
+            if identity_of(selected)!=expected:raise ValueError('captured dependency changed after final guard')
+        for selected,expected,metadata in ((path,raw,identity),(model_helper,model_raw,model_identity)):
+            current=_source_bytes(selected,maximum=262144);info=selected.lstat()
+            if current!=expected or (info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_gid,info.st_nlink)!=metadata:
+                raise ValueError('capture replay helper changed after final guard')
     finally:
         if hooked:forecasts.validate_serving_capture=original
         if weather_hooked:weather.verify_bindings=original_weather
@@ -412,7 +424,7 @@ def _supported(scores,report,reader):
     if any(Path(function.__code__.co_filename).resolve()!=path for function in (report,reader)):
         return False
     with path.open('rb') as source:raw=source.read(262145)
-    return len(raw)<=262144 and sha256(raw).hexdigest() in (SUPPORTED_SOURCE_SHA256,PRIOR_SOURCE_SHA256,INSTALLED_SOURCE_SHA256)
+    return len(raw)<=262144 and sha256(raw).hexdigest() in (SUPPORTED_SOURCE_SHA256,LEGACY_SOURCE_SHA256,PRIOR_SOURCE_SHA256,INSTALLED_SOURCE_SHA256)
 
 
 
@@ -507,12 +519,13 @@ def wrap_report(scores):
         previous_reader=scores.read_serving_source_score
         try:
             scores.read_serving_source_score=read
-            with _model_reads(scores,kwargs.get('assessed_at')), _temperature_reads(guard), _capture_reads(guard):
+            with _capture_reads(guard), _model_reads(scores,kwargs.get('assessed_at')), _temperature_reads(guard):
                 result=original_report(*args,**kwargs)
-            guard()
-            if _source_bytes(own,maximum=262144)!=own_raw or identity()!=own_identity:
-                raise ValueError('operational report helper changed before return')
-            guard();return result
+                guard()
+                if _source_bytes(own,maximum=262144)!=own_raw or identity()!=own_identity:
+                    raise ValueError('operational report helper changed before return')
+                guard()
+            return result
         finally:
             cached=None
             scores.read_serving_source_score=previous_reader

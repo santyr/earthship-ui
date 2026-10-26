@@ -192,13 +192,14 @@ def _query_binding(packet,paths,*,issue,epoch,assessed,check_budget):
 def _source_pair(packet,paths,*,runtime,expected_artifact_sha256,expected_capture_sha256,assessed,check_budget,pair_builder):
     from pathlib import Path
     from native_thermal_artifact import _read
-    from native_thermal_forecast import MAX_CAPTURE_BYTES
-    from thermal_model.runtime_bundle import _owned_bytes
-    from weather_temperature_sources import MAX_CONTAINER_BYTES
+    from native_thermal_forecast import (MAX_CAPTURE_BYTES,SEGMENTED_CAPTURE_SCHEMAS,capture_suffix,
+        origin_source_snapshot,verify_origin_source_snapshot)
     from thermal_model.recent_cycles import compare_v2
     if not isinstance(packet,dict) or set(packet)!=SOURCE_INPUT_FIELDS:raise ValueError('closed native source score inputs required')
     raw,capture=_read(Path(packet['origin_path']),MAX_CAPTURE_BYTES)
-    origin_queries={Path(name):_owned_bytes(Path(name),MAX_CONTAINER_BYTES) for name in capture['native_origin_binding'].get('query_sources',{}).values()}
+    if capture.get('schema') in SEGMENTED_CAPTURE_SCHEMAS and Path(packet['origin_path']).name!=_sha(expected_capture_sha256)+capture_suffix(capture):
+        raise ValueError('named original segmented score capture required')
+    origin_queries=origin_source_snapshot(capture,check_budget=check_budget)
     issue=_instant(capture['issued_at']);epoch=capture['candidate']['fit']['sensor_epochs']['air']
     binding=_query_binding(packet,paths,issue=issue,epoch=epoch,assessed=assessed,check_budget=check_budget)
     selected={_instant(at):None if receipt is None else {key:_instant(value) if key in ('receivedAt','storedAt','validUntil') else value for key,value in receipt.items()} for at,receipt in packet['recent_cycle_grid']}
@@ -211,22 +212,25 @@ def _source_pair(packet,paths,*,runtime,expected_artifact_sha256,expected_captur
                expected_capture_sha256=expected_capture_sha256,horizon_hours=packet['horizon_hours'],assessed_at=assessed,
                recent=recent,check_budget=check_budget)
     replay=_query_binding(packet,paths,issue=issue,epoch=epoch,assessed=assessed,check_budget=check_budget)
-    if (any(_owned_bytes(path,MAX_CONTAINER_BYTES)!=original for path,original in origin_queries.items()) or
-            _canonical(replay)!=_canonical(binding) or _read(Path(packet['origin_path']),MAX_CAPTURE_BYTES)[0]!=raw):
+    verify_origin_source_snapshot(origin_queries,check_budget=check_budget)
+    if (_canonical(replay)!=_canonical(binding) or _read(Path(packet['origin_path']),MAX_CAPTURE_BYTES)[0]!=raw):
         raise ValueError('original native score sources changed during replay')
-    return binding,pair
+    return binding,pair,origin_queries
 
 
 def _build_source_score(*,capture_path,receipts,outcome,recent_cycle_grid,source_paths,horizon_hours,assessed_at,
-                       runtime,expected_artifact_sha256,expected_capture_sha256,check_budget,pair_builder):
+                       runtime,expected_artifact_sha256,expected_capture_sha256,check_budget,pair_builder,final_guard=None):
     packet=deepcopy(dict(origin_path=capture_path,receipts=receipts,horizon_hours=horizon_hours,outcome=outcome,recent_cycle_grid=recent_cycle_grid))
     runtime,paths=map(deepcopy,(runtime,source_paths));assessed=_instant(assessed_at)
-    binding,pair=_source_pair(packet,paths,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
+    binding,pair,originals=_source_pair(packet,paths,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
         expected_capture_sha256=expected_capture_sha256,assessed=assessed,check_budget=check_budget,pair_builder=pair_builder)
     record=dict(schema=SOURCE_SCORE_SCHEMA,artifact_sha256=pair['artifact_sha256'],capture_sha256=pair['capture_sha256'],
         runtime_sha256=pair['runtime_sha256'],assessed_at=assessed.isoformat(),score_sources=packet,query_binding=binding,pair=pair,release_authority=False)
     record['source_score_sha256']=digest(record,'source_score_sha256')
     if len(_canonical(record))>MAX_SOURCE_SCORE_BYTES:raise ValueError('bounded native source score record required')
+    if final_guard is not None:
+        from native_thermal_forecast import verify_origin_source_snapshot
+        final_guard();verify_origin_source_snapshot(originals,check_budget=check_budget)
     return record
 
 
@@ -275,10 +279,24 @@ REPORT_ENTRY_FIELDS={'completion_path','completion_sha256','source_score_sha256'
 MAX_COMPLETION_BYTES=65536
 
 
+def _completion_origin_snapshot(path,check):
+    from pathlib import Path
+    from native_thermal_artifact import _read
+    from native_thermal_forecast import MAX_CAPTURE_BYTES,SEGMENTED_CAPTURE_SCHEMAS,origin_source_snapshot
+    _,record=_read(Path(path),MAX_SOURCE_SCORE_BYTES)
+    packet=record.get('score_sources') if isinstance(record,dict) else None
+    if not isinstance(packet,dict) or not isinstance(packet.get('origin_path'),str):
+        raise ValueError('closed original native source score required')
+    _,capture=_read(Path(packet['origin_path']),MAX_CAPTURE_BYTES)
+    if not isinstance(capture,dict):raise ValueError('closed original native capture required')
+    return origin_source_snapshot(capture,check_budget=check) if capture.get('schema') in SEGMENTED_CAPTURE_SCHEMAS else None
+
+
 def _build_source_completion(source_score_path,*,runtime,expected_artifact_sha256,expected_capture_sha256,
-                            expected_source_score_sha256,completed_at,check_budget,source_reader):
+                            expected_source_score_sha256,completed_at,check_budget,source_reader,final_guard=None):
     from pathlib import Path
     runtime=deepcopy(runtime);completed=_instant(completed_at);path=str(Path(source_score_path))
+    originals=_completion_origin_snapshot(path,check_budget)
     record=source_reader(path,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
         expected_capture_sha256=expected_capture_sha256,expected_source_score_sha256=expected_source_score_sha256,check_budget=check_budget)
     if completed<_instant(record['assessed_at']):raise ValueError('native score completion precedes assessment')
@@ -288,6 +306,10 @@ def _build_source_completion(source_score_path,*,runtime,expected_artifact_sha25
         pair_sha256=pair['pair_sha256'],issued_at=pair['issued_at'],target_at=pair['target_at'],horizon_hours=pair['horizon_hours'],
         completed_at=completed.isoformat(),release_authority=False)
     result['completion_sha256']=digest(result,'completion_sha256');check_budget()
+    if final_guard is not None:final_guard()
+    if originals is not None:
+        from native_thermal_forecast import verify_origin_source_snapshot
+        verify_origin_source_snapshot(originals,check_budget=check_budget)
     return result
 
 
@@ -437,8 +459,8 @@ def build_serving_source_score(*,model,capture_path,receipts,outcome,recent_cycl
         return score_serving(capture,model,receipts,outcome,**kwargs)
     result=_build_source_score(capture_path=capture_path,receipts=receipts,outcome=outcome,recent_cycle_grid=recent_cycle_grid,
         source_paths=source_paths,horizon_hours=horizon_hours,assessed_at=assessed_at,**pins,
-        expected_capture_sha256=expected_capture_sha256,check_budget=check_budget,pair_builder=pair)
-    model.verify_bindings(assessed_at=_instant(assessed_at),guard=check_budget)
+        expected_capture_sha256=expected_capture_sha256,check_budget=check_budget,pair_builder=pair,
+        final_guard=lambda:model.verify_bindings(assessed_at=_instant(assessed_at),guard=check_budget))
     return result
 
 
@@ -467,8 +489,8 @@ def build_serving_source_completion(source_score_path,*,model,expected_capture_s
     pins=_model_pins(model,assessed_at=completed_at,check_budget=check_budget)
     result=_build_source_completion(source_score_path,**pins,expected_capture_sha256=expected_capture_sha256,
         expected_source_score_sha256=expected_source_score_sha256,completed_at=completed_at,check_budget=check_budget,
-        source_reader=_serving_callback(model,read_serving_source_score))
-    model.verify_bindings(assessed_at=_instant(completed_at),guard=check_budget)
+        source_reader=_serving_callback(model,read_serving_source_score),
+        final_guard=lambda:model.verify_bindings(assessed_at=_instant(completed_at),guard=check_budget))
     return result
 
 

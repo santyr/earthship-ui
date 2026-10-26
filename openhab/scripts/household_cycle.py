@@ -93,7 +93,8 @@ def derive_cycle(*,originals,capture,receipts,thermal,weather,parameter_record,r
     from household.energy_model import freeze_energy_inputs,bind_energy_inputs
     from household.capabilities import CapabilityRegistry
     from household.pipeline import seal_pipeline,replay_pipeline
-    if capture.get('schema') in ('earthship-provisional-thermal-origin/v2','earthship-provisional-thermal-origin/v3'):
+    if capture.get('schema') in ('earthship-provisional-thermal-origin/v2','earthship-provisional-thermal-origin/v3',
+            'earthship-provisional-thermal-origin/v4','earthship-provisional-thermal-origin/v5'):
         from native_thermal_score import validate_delivery
         from astro_geometry import _instant
         instant=_instant
@@ -260,7 +261,8 @@ def load_cycle_delivery(publication,*,issue,guard,runtime=None,expected_artifact
     fields={'schema','issued_at','capture_path','capture_sha256','artifact_sha256','receipts','delivery_sha256'}
     native=isinstance(delivered,dict) and delivered.get('schema')=='earthship-provisional-thermal-delivery/v2'
     if native:
-        from native_thermal_forecast import MAX_CAPTURE_BYTES,validate_capture
+        from native_thermal_forecast import (MAX_CAPTURE_BYTES,validate_capture,capture_suffix,
+            origin_source_snapshot,verify_origin_source_snapshot)
         from native_thermal_score import validate_delivery
         from astro_geometry import _instant
         maximum=MAX_CAPTURE_BYTES;fields=fields|{'runtime_sha256','geometry_series_sha256'}
@@ -275,6 +277,7 @@ def load_cycle_delivery(publication,*,issue,guard,runtime=None,expected_artifact
     if not isinstance(delivered,dict) or set(delivered)!=fields or delivered['schema']!=('earthship-provisional-thermal-delivery/v2' if native else 'earthship-provisional-thermal-delivery/v1'):
         raise ValueError('closed original delivery required')
     origin=_private_file(origin_path,maximum);capture=loads(origin[0])
+    if native:origin_suffix=capture_suffix(capture)
     if (digest(delivered,'delivery_sha256')!=delivered['delivery_sha256'] or
         delivered['capture_path']!=str(origin_path) or delivered['capture_sha256']!=capture['capture_sha256'] or
         delivered['artifact_sha256']!=capture['candidate']['artifact_sha256'] or
@@ -284,6 +287,7 @@ def load_cycle_delivery(publication,*,issue,guard,runtime=None,expected_artifact
         delivery_path.name!=delivered['delivery_sha256']+delivery_suffix):
         raise ValueError('original delivery binding differs')
     if native:
+        origin_sources=origin_source_snapshot(capture,check_budget=guard)
         if serving_model is None:
             capture=validate_capture(capture,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,
                 expected_capture_sha256=expected_capture_sha256,check_budget=guard)
@@ -299,6 +303,7 @@ def load_cycle_delivery(publication,*,issue,guard,runtime=None,expected_artifact
         if serving_model is not None:serving_model.verify_bindings(assessed_at=instant(issue),guard=guard)
         if _private_file(origin_path,maximum)!=origin or _private_file(delivery_path,65536)!=delivery:
             raise ValueError('original cycle archive changed')
+        if native:verify_origin_source_snapshot(origin_sources,check_budget=guard)
     unchanged()
     return dict(capture=capture,receipts=deepcopy(delivered['receipts']),native=native,verify_unchanged=unchanged)
 
