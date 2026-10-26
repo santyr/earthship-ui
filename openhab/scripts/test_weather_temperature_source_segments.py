@@ -7,6 +7,7 @@ import importlib
 import importlib.util
 import json
 from pathlib import Path
+import stat
 
 import pytest
 
@@ -342,6 +343,66 @@ def test_segment_corruption_refused_even_with_rehashed_descriptor(tmp_path, dama
     with pytest.raises(ValueError): m.read_shared_temperature_source(path.parent, forged)
 
 
+@pytest.mark.parametrize('damage', ['object_row', 'nested_raw', 'nested_clock', 'row_plus_one',
+    'column_plus_one', 'rows_object', 'unknown_field', 'raw_plus_one', 'noncanonical_scalar'])
+def test_segment_structure_refuses_before_unrestricted_json_allocation(tmp_path, monkeypatch, damage):
+    m = module()
+    path, _ = retain(m, tmp_path / damage, m.build_shared_temperature_source(**request([(AT, envelope(AT))])))
+    manifest, parts = documents(path.parent, path)
+    part = parts[0]
+    malformed = {
+        'object_row': [{'': {}}],
+        'nested_raw': [[AT.isoformat(), {'nested': [[], {}]}]],
+        'nested_clock': [[[AT.isoformat()], None]],
+        'row_plus_one': [[AT.isoformat(), None], [AT.isoformat(), None]],
+        'column_plus_one': [[AT.isoformat(), None, None]],
+        'rows_object': {'one': [AT.isoformat(), None]},
+        'raw_plus_one': [[AT.isoformat(), 'x' * 8193]],
+        'noncanonical_scalar': [[AT.isoformat(), 'synthetic']],
+    }
+    if damage == 'unknown_field': part['unknown'] = {'nested': [{}, []]}
+    else: part['native_rows'] = malformed[damage]
+    decoded = _canonical(part)
+    if damage == 'noncanonical_scalar':
+        decoded = decoded.replace(b'"synthetic"', b'"\\u0073ynthetic"')
+    assert len(decoded) < 12000  # Deliberately small structural probes, not stress inputs.
+    stored = gzip.compress(decoded, compresslevel=1, mtime=0)
+    descriptor = manifest['segments'][0]
+    descriptor.update(name=sha256(stored).hexdigest() + '.native-temperature-segment-v1.json.gz',
+        stored_sha256=sha256(stored).hexdigest(), stored_bytes=len(stored),
+        decoded_sha256=sha256(decoded).hexdigest(), decoded_bytes=len(decoded))
+    child = path.parent / descriptor['name']; child.write_bytes(stored); child.chmod(0o600)
+    forged = republish_manifest(path.parent, manifest, account=True)
+    generic_segment_parses = []
+    original_loads = m.json.loads
+    def observe_loads(raw, *args, **kwargs):
+        if isinstance(raw, bytes) and b'"native_rows"' in raw:
+            generic_segment_parses.append(len(raw))
+        return original_loads(raw, *args, **kwargs)
+    monkeypatch.setattr(m.json, 'loads', observe_loads)
+    with pytest.raises(ValueError):
+        m.read_shared_temperature_source(path.parent, forged)
+    assert generic_segment_parses == [], 'unrestricted segment object materialization preceded structural admission'
+
+
+def test_flat_segment_parser_preserves_canonical_escaped_raw_scalars(tmp_path, monkeypatch):
+    m = module()
+    originals = ['synthetic', '"\\', '\\\\"', 'é☃🐐\x00\n\t', '\r\n', 'null', None]
+    rows = [(AT + timedelta(seconds=i), raw) for i, raw in enumerate(originals)]
+    rows.append((AT + timedelta(seconds=len(rows)), envelope(AT + timedelta(seconds=len(rows)))))
+    args = request(rows, [at for at, _ in rows])
+    expected = oracle(args)
+    path, retained = retain(m, tmp_path / 'flat-scalars', m.build_shared_temperature_source(**args))
+    original_loads = m.json.loads
+    generic_segment_parses = []
+    def observe_loads(raw, *a, **kw):
+        if isinstance(raw, bytes) and b'"native_rows"' in raw: generic_segment_parses.append(True)
+        return original_loads(raw, *a, **kw)
+    monkeypatch.setattr(m.json, 'loads', observe_loads)
+    assert m.replay_shared_temperature_source(retained) == expected
+    assert generic_segment_parses == []
+
+
 @pytest.mark.parametrize('damage', ['delete', 'replace_same_bytes', 'append', 'mode', 'symlink', 'hardlink'])
 def test_retained_replay_rechecks_child_custody_after_prior_success(tmp_path, damage):
     m = module()
@@ -411,6 +472,71 @@ def test_last_publication_guard_cannot_mutate_original_source_unnoticed(tmp_path
     with pytest.raises((ValueError, OSError)):
         m.write_shared_temperature_source(destination, retained, guard=revoke_at_last_callback)
     assert not list(destination.glob('*.native-temperature-shared-v1.json'))
+
+
+@pytest.mark.parametrize('fault', ['directory_fsync', 'temporary_unlink'])
+@pytest.mark.parametrize('prior', ['absent', 'existing', 'replacement'])
+def test_manifest_post_link_failure_rolls_back_only_its_owned_link(tmp_path, monkeypatch, fault, prior):
+    m = module()
+    source = m.build_shared_temperature_source(**request([(AT, envelope(AT))]))
+    root = tmp_path / (fault + '-' + prior); root.mkdir(mode=0o700)
+    manifest = root / (sha256(source.manifest_bytes).hexdigest() + '.native-temperature-shared-v1.json')
+    if prior == 'existing':
+        m.write_shared_temperature_source(root, source)
+        original_inode = manifest.stat().st_ino
+    injected = []
+    fsync, unlink = m.os.fsync, m.os.unlink
+    def fail_after_link():
+        if prior == 'replacement':
+            replacement = root / 'replacement'
+            replacement.write_bytes(source.manifest_bytes); replacement.chmod(0o600)
+            replacement.replace(manifest)
+        injected.append(True)
+        raise OSError('synthetic manifest post-link failure')
+    def fail_fsync(fd):
+        if (fault == 'directory_fsync' and not injected and manifest.exists()
+                and stat.S_ISDIR(m.os.fstat(fd).st_mode)
+                and any(path.read_bytes() == source.manifest_bytes for path in root.glob('.temperature-origin-*'))):
+            fail_after_link()
+        return fsync(fd)
+    def fail_unlink(path, *args, **kwargs):
+        path = Path(path)
+        if (fault == 'temporary_unlink' and not injected and manifest.exists()
+                and path.name.startswith('.temperature-origin-')
+                and path.read_bytes() == source.manifest_bytes):
+            fail_after_link()
+        return unlink(path, *args, **kwargs)
+    monkeypatch.setattr(m.os, 'fsync', fail_fsync)
+    monkeypatch.setattr(m.os, 'unlink', fail_unlink)
+    with pytest.raises(OSError, match='synthetic manifest post-link failure'):
+        m.write_shared_temperature_source(root, source)
+    assert injected
+    if prior == 'absent':
+        assert not manifest.exists()
+    else:
+        assert manifest.read_bytes() == source.manifest_bytes
+        if prior == 'existing': assert manifest.stat().st_ino == original_inode
+        assert m.replay_shared_temperature_source(m.read_shared_temperature_source(root, manifest)) == oracle(request([(AT, envelope(AT))]))
+    assert not list(root.glob('.temperature-origin-*'))
+
+
+def test_replaced_manifest_temporary_is_not_published_or_removed(tmp_path):
+    m = module()
+    source = m.build_shared_temperature_source(**request([(AT, envelope(AT))]))
+    root = tmp_path / 'temporary-owner'; root.mkdir(mode=0o700)
+    replaced = []
+    def replace_temporary():
+        if replaced: return
+        for path in root.glob('.temperature-origin-*'):
+            if path.read_bytes() == source.manifest_bytes:
+                path.rename(root / 'retained-original-temporary')
+                path.write_bytes(b'synthetic replacement owned by another attempt')
+                path.chmod(0o600)
+                replaced.append(path)
+    with pytest.raises((ValueError, OSError)):
+        m.write_shared_temperature_source(root, source, guard=replace_temporary)
+    assert replaced and replaced[0].read_bytes() == b'synthetic replacement owned by another attempt'
+    assert not list(root.glob('*.native-temperature-shared-v1.json'))
 
 
 def test_empty_source_exact_inventory_read_count_and_within_loop_deadline(tmp_path, monkeypatch):

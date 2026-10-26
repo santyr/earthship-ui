@@ -5,6 +5,7 @@ three 8 MiB segments. Legacy query formats and limits are unchanged. A source
 is original evidence only: it grants no model, publication or release authority.
 """
 from dataclasses import asdict, dataclass
+from contextlib import contextmanager
 from datetime import timedelta
 import gzip
 from hashlib import sha256
@@ -14,6 +15,7 @@ import os
 from pathlib import Path
 import re
 import stat
+import tempfile
 from uuid import UUID
 import zlib
 
@@ -43,6 +45,7 @@ DESCRIPTOR_FIELDS = {'ordinal', 'row_offset', 'row_count', 'first_stored_at',
                      'last_stored_at', 'raw_bytes', 'decoded_bytes', 'stored_bytes',
                      'decoded_sha256', 'stored_sha256', 'name'}
 _INVALID_SNAPSHOT = (ValueError, TypeError, KeyError, OverflowError, RecursionError)
+_STRING_END = re.compile(rb'(?<!\\)(?:\\\\)*"')
 
 
 @dataclass(frozen=True, slots=True)
@@ -357,6 +360,65 @@ def shared_temperature_source_files(source):
     return source._files
 
 
+def _scalar_string(raw, position, end, maximum, guard):
+    """Admit only one bounded canonical string before decoding its scalar value."""
+    _guard(guard)
+    if raw[position:position + 1] != b'"':
+        raise ValueError('flat original string scalar required')
+    # At most six ASCII wire bytes per original UTF-8 byte (e.g. \u0000),
+    # plus quotes. Find the first quote after an even run of backslashes in C;
+    # nested objects and unbounded strings never reach a generic JSON parser.
+    match = _STRING_END.search(raw, position + 1, min(end, position + 6 * maximum + 2))
+    if match is None:
+        raise ValueError('bounded original string scalar required')
+    token = raw[position:match.end()]
+    try:
+        value, consumed = json.decoder.scanstring(token.decode('ascii'), 1, True)
+        if consumed != len(token) or len(value.encode('utf-8')) > maximum or _canonical(value) != token:
+            raise ValueError('canonical bounded original string required')
+    except (ValueError, UnicodeError) as error:
+        raise ValueError('canonical bounded original string required') from error
+    _guard(guard)
+    return value, match.end()
+
+
+def _segment_rows(raw, descriptor, context_digest, guard):
+    """Parse the closed flat wire grammar incrementally, without object graphs."""
+    _guard(guard)
+    prefix, suffix = _segment_frame(context_digest, descriptor['ordinal'], descriptor['row_offset'])
+    if not raw.startswith(prefix) or not raw.endswith(suffix):
+        raise ValueError('canonical context-bound consecutive segment required')
+    position, end, count = len(prefix), len(raw) - len(suffix), 0
+    while position < end:
+        _guard(guard)
+        if count >= descriptor['row_count'] or count >= MAX_ROWS:
+            raise ValueError('original segment row count differs')
+        row_start = position
+        if raw[position:position + 1] != b'[':
+            raise ValueError('flat original timestamp/raw row required')
+        instant, position = _scalar_string(raw, position + 1, end, 64, guard)
+        if raw[position:position + 1] != b',':
+            raise ValueError('original timestamp/raw pair required')
+        position += 1
+        if raw[position:position + 4] == b'null':
+            value, position = None, position + 4
+        else:
+            value, position = _scalar_string(raw, position, end, 8192, guard)
+        if raw[position:position + 1] != b']':
+            raise ValueError('original timestamp/raw pair required')
+        position += 1
+        count += 1
+        # These exact admitted canonical row bytes are also the transcript,
+        # avoiding another serialization of the decoded original text.
+        yield [instant, value], raw[row_start:position]
+        if position < end:
+            if raw[position:position + 1] != b',' or position + 1 == end:
+                raise ValueError('canonical original row separator required')
+            position += 1
+    if count != descriptor['row_count']:
+        raise ValueError('original segment row count differs')
+
+
 def _decode_segment(stored, descriptor, context_digest, guard):
     _guard(guard)
     if (len(stored) > MAX_STORED_SEGMENT_BYTES or len(stored) != descriptor['stored_bytes']
@@ -374,18 +436,7 @@ def _decode_segment(stored, descriptor, context_digest, guard):
     if gzip.compress(raw, compresslevel=1, mtime=0) != stored:
         raise ValueError('deterministic gzip level 1 source required')
     _guard(guard)
-    document = _json(raw)
-    _closed(document, SEGMENT_FIELDS)
-    if (document['schema'] != SEGMENT_SCHEMA or document['context_sha256'] != context_digest
-            or type(document['ordinal']) is not int or document['ordinal'] != descriptor['ordinal']
-            or type(document['row_offset']) is not int or document['row_offset'] != descriptor['row_offset']
-            or _canonical(document) != raw):
-        raise ValueError('canonical context-bound consecutive segment required')
-    rows = document['native_rows']
-    if not isinstance(rows, list) or len(rows) != descriptor['row_count']:
-        raise ValueError('original segment row count differs')
-    _guard(guard)
-    return rows
+    return _segment_rows(raw, descriptor, context_digest, guard)
 
 
 def _envelope(raw):
@@ -488,7 +539,7 @@ def replay_shared_temperature_source(source, *, guard=None):
         rows = _decode_segment(stored, descriptor, manifest['context_sha256'], guard)
         segment_raw = 0
         first = last = None
-        for row in rows:
+        for row, row_bytes in rows:
             _guard(guard)
             if not isinstance(row, list) or len(row) != 2:
                 raise ValueError('closed original source row required')
@@ -509,7 +560,7 @@ def replay_shared_temperature_source(source, *, guard=None):
                 raise ValueError('original query exceeds global or segment bounds')
             first = first or row[0]
             last = row[0]
-            _record_transcript(transcript, _canonical(row))
+            _record_transcript(transcript, row_bytes)
             while target_index < len(targets) and targets[target_index] < at:
                 emit(targets[target_index])
                 target_index += 1
@@ -556,6 +607,65 @@ def read_shared_temperature_source(directory, path, *, guard=None):
     return source
 
 
+def _unlink_owned(path, identity):
+    """Remove only this attempt's link; replacements and other writers survive."""
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        return
+    if stat.S_ISREG(info.st_mode) and (info.st_dev, info.st_ino) == identity:
+        os.unlink(path)
+
+
+@contextmanager
+def _manifest_publication(root, path, raw, before_publish):
+    """Keep ownership before linking and through every fallible publication step."""
+    fd, name = tempfile.mkstemp(prefix='.temperature-origin-', dir=root)
+    temporary = Path(name)
+    info = os.fstat(fd)
+    identity = (info.st_dev, info.st_ino)
+    linked = False
+    try:
+        # Keep the original inode open through rollback so a replacement cannot
+        # reuse its inode number. The file object does not own this descriptor.
+        with os.fdopen(fd, 'wb', closefd=False) as handle:
+            handle.write(raw)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.chmod(temporary, 0o600)
+        original = _fingerprint(temporary)
+        before_publish()
+        if _fingerprint(temporary) != original:
+            raise ValueError('manifest temporary custody changed')
+        try:
+            os.link(temporary, path, follow_symlinks=False)
+        except FileExistsError:
+            if _read(path, MAX_MANIFEST_BYTES) != raw:
+                raise ValueError('immutable manifest collision')
+        else:
+            linked = True
+        directory_fd = os.open(root, os.O_DIRECTORY | os.O_NOFOLLOW)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+        _unlink_owned(temporary, identity)
+        yield
+        os.close(fd)
+        fd = None
+    except BaseException:
+        try:
+            if linked:
+                _unlink_owned(path, identity)
+        finally:
+            try:
+                _unlink_owned(temporary, identity)
+            finally:
+                if fd is not None:
+                    os.close(fd)
+        raise
+
+
 def write_shared_temperature_source(directory, source, *, guard=None):
     """Guarded atomic private segments first, complete manifest last; return its path."""
     _guard(guard)
@@ -581,23 +691,10 @@ def write_shared_temperature_source(directory, source, *, guard=None):
         _verify_files(source._files + tuple(files), source._fingerprints + tuple(fingerprints), guard)
 
     path = root / (sha256(source.manifest_bytes).hexdigest() + MANIFEST_SUFFIX)
-    existed = path.exists()
-    published = None
-    try:
-        _write(root, path.name, source.manifest_bytes, before_publish=before_manifest)
+    with _manifest_publication(root, path, source.manifest_bytes, before_manifest):
         published = _fingerprint(path)
         _guard(guard)
         read_shared_temperature_source(root, path, guard=guard)
         _verify_files(source._files + tuple(files) + (path,),
                       source._fingerprints + tuple(fingerprints) + (published,), guard)
-    except BaseException:
-        # Never remove a pre-existing immutable manifest, or a replacement not
-        # created by this call. Orphan chunks remain harmless without a manifest.
-        if not existed and published is not None:
-            try:
-                if _fingerprint(path) == published:
-                    path.unlink()
-            except OSError:
-                pass
-        raise
     return path
