@@ -13,7 +13,7 @@ def reviewed_native_source():
     import native_thermal_live as native
     # Independent reviewed pin: never derive the expected digest from this file.
     source=Path(native.__file__).absolute()
-    assert hashlib.sha256(source.read_bytes()).hexdigest()=='fa74fad2791de66c3e7884960ef6402f7b58c2bd03f05b41aae02edf02cf1833'
+    assert hashlib.sha256(source.read_bytes()).hexdigest()=='28714d64f977cb9e7fd25eed7295336baa2870f2062a4ce17a86ad7a8f3c6cbc'
     return source
 
 

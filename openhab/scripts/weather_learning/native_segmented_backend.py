@@ -44,7 +44,7 @@ class SegmentedSourceLiveBackend(LiveBackend):
         from thermal_model.capture_readers import bounded_journal_dsn
         from thermal_model.replay_budget import remaining_budget
         from native_thermal_forecast import _segmented_helpers,_source_fingerprints
-        self.verify_unchanged();_,codec=_segmented_helpers()
+        self.verify_unchanged();binding,_=_segmented_helpers()
         policies,epochs=load_temperature_receiver_configuration(self.settings['native_policy'])
         contexts={}
         for role,(name,model,sensor) in STREAMS.items():
@@ -63,13 +63,13 @@ class SegmentedSourceLiveBackend(LiveBackend):
         if self._shared_request is None:
             config=read_db_config(self.settings['native_db_config'])
             def remaining():return remaining_budget(self.budget.remaining())
-            source=codec.fetch_shared_temperature_source(lambda:self._connect(bounded_journal_dsn(make_dsn(**config))),
+            source=binding.fetch_shared_temperature_source(lambda:self._connect(bounded_journal_dsn(make_dsn(**config))),
                 targets=targets,assessed_at=assessed,contexts=contexts,remaining_timeout=remaining,guard=self.budget.remaining)
             self.verify_unchanged()
-            path=codec.write_shared_temperature_source(Path(self.settings['evidence_directory']),source,guard=self.budget.remaining)
-            source=codec.read_shared_temperature_source(path.parent,path,guard=self.budget.remaining)
-            grid=codec.replay_shared_temperature_source(source,guard=self.budget.remaining)
-            files=codec.shared_temperature_source_files(source)
+            path=binding.write_shared_temperature_source(Path(self.settings['evidence_directory']),source,guard=self.budget.remaining)
+            source=binding.read_shared_temperature_source(path.parent,path,guard=self.budget.remaining)
+            grid=binding.replay_shared_temperature_source(source,guard=self.budget.remaining)
+            files=binding.shared_temperature_source_files(source)
             snapshot=_source_fingerprints(files,check_budget=self.budget.remaining)
             self._shared_request=key;self._shared_grid=grid;self._shared_snapshot=snapshot
             self._native_source_paths={role:str(path) for role in STREAMS}

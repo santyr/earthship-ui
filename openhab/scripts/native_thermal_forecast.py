@@ -43,7 +43,7 @@ def capture_suffix(value):
         SEGMENTED_CONDITIONED_CAPTURE_SCHEMA:'.native-provisional-origin-v5.json'}[value['schema']]
 
 
-SEGMENTED_BINDING_SOURCE_SHA256='77bcd69a3a5fcb6720db697c12064b8a3a159b0660d60dd8e9aebc5af5946d9a'
+SEGMENTED_BINDING_SOURCE_SHA256='bedde3bb5dba4587be8759a924aa95b9f096bfb5c012415253835d59c3534dc5'
 SEGMENTED_CODEC_SOURCE_SHA256='86106647f7f826f70a19d5fcb7ff51979f4c8e99b913be61ad7acff821ff9215'
 
 
@@ -55,7 +55,9 @@ def _segmented_helpers(runtime=None):
     root=Path(__file__).absolute().parent;loaded=[]
     declarations=(
         ('weather_temperature_segmented_binding',SEGMENTED_BINDING_SOURCE_SHA256,
-            ('build_segmented_native_origin_binding','replay_segmented_native_origin_binding','segmented_native_origin_files')),
+            ('build_segmented_native_origin_binding','replay_segmented_native_origin_binding','segmented_native_origin_files',
+             'fetch_shared_temperature_source','write_shared_temperature_source',
+             'read_shared_temperature_source','replay_shared_temperature_source')),
         ('weather_temperature_source_segments',SEGMENTED_CODEC_SOURCE_SHA256,
             ('fetch_shared_temperature_source','write_shared_temperature_source','read_shared_temperature_source',
              'replay_shared_temperature_source','shared_temperature_source_files')))

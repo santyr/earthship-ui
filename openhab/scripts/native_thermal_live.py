@@ -156,6 +156,7 @@ def publish_cycle(settings,*,guard,geometry=None,backend=None,serving_model=None
         guard()
         if monotonic()>=deadline or _clock()>=issue+timedelta(seconds=90):
             raise ValueError('native publication deadline exceeded')
+        return min(deadline-monotonic(),(issue+timedelta(seconds=90)-_clock()).total_seconds())
     with capture_source_reads() as sources:
         runtime=current_runtime(guard=within_deadline)
         if runtime_digest(runtime)!=expected_runtime or SOURCE not in runtime['native_source_manifest']:
@@ -736,7 +737,7 @@ def _native_gap_sources(delivery,delivery_path,capture,paths,guard):
 
 
 SERVING_RECEIPT_SOURCE_SHA256='11121a94a4501c7af520b9df54ec879a3c75edadc87a0d15afd279bf83bbf58e'
-SEGMENTED_BACKEND_SOURCE_SHA256='87e72fc97ec46330c78a0a3d1da06cc536b5a30505ea2cbf85265f3fa4c399d2'
+SEGMENTED_BACKEND_SOURCE_SHA256='0078baaa05a65ba612968e8b9074e2bf550861087b4fafffa9cc48b3720a9063'
 
 
 def serving_delivery_model(delivery_path,delivery,*,current_model,historical_selections,assessed_at,guard):

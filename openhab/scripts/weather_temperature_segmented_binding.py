@@ -7,7 +7,10 @@ from copy import deepcopy
 from datetime import timedelta
 from hashlib import sha256
 import json
+from math import isfinite
+from numbers import Real
 from pathlib import Path
+from time import monotonic
 
 from astro_geometry import _instant
 from thermal_model.forcing_capture import _canonical
@@ -15,13 +18,143 @@ from thermal_model.graduation_policy import _sha
 from thermal_model.temperature_history import STREAMS, POLICY, _validate_sensor_receipt
 from thermal_model.runtime_bundle import _owned_bytes
 from weather_temperature_evidence import sensor_epoch_id
-from weather_temperature_source_segments import (
-    read_shared_temperature_source, replay_shared_temperature_source,
-    shared_temperature_source_files, MAX_STORED_SEGMENT_BYTES)
+import weather_temperature_source_segments as _codec
+from weather_temperature_source_segments import shared_temperature_source_files, MAX_STORED_SEGMENT_BYTES
 
 SCHEMA='earthship-installed-shade-native-origin-binding/v3'
 FIELDS={'schema','origin_temperatures_sha256','issue_at','assessed_at','query_sources',
         'source_manifest_sha256','context_sha256','release_authority'}
+
+
+class _SegmentedGuard:
+    """One operation's nonrenewable budget and bounded full-check cadence.
+
+    None callbacks keep their original unbatched order. Numeric callbacks
+    authorize cheap local expiry checks between full 64-call/5-ms checkpoints.
+    Terminal custody uses local() exclusively: it cannot call user code.
+    """
+    def __init__(self, check):
+        self._check=check;self._failure=None;self.numeric=False
+        self._deadline=None;self._last_time=None;self._calls=0;self._skip_first=False
+        if check is None:return
+        if not callable(check):raise ValueError('callable segmented deadline guard required')
+        try:
+            before=monotonic();remaining=check()
+            if remaining is None:
+                # This entry call replaces exactly the codec's first callback.
+                self._skip_first=True
+                return
+            self.numeric=True
+            self._observe_time(before)
+            self._accept_remaining(before,remaining)
+            self.local()
+        except BaseException as error:self.refuse(error)
+
+    def refuse(self, error):
+        if self._failure is None:self._failure=error
+        raise self._failure
+
+    def _observe_time(self, now):
+        if (not isinstance(now,Real) or isinstance(now,bool) or not isfinite(now) or
+                (self._last_time is not None and now<self._last_time)):
+            raise ValueError('finite nonregressing segmented monotonic clock required')
+        self._last_time=now
+        return now
+
+    def _accept_remaining(self, before, remaining):
+        if (not isinstance(remaining,Real) or isinstance(remaining,bool) or
+                not isfinite(remaining) or remaining<=0 or not isfinite(before+remaining)):
+            raise ValueError('finite positive original segmented remaining budget required')
+        deadline=before+remaining
+        self._deadline=deadline if self._deadline is None else min(self._deadline,deadline)
+        self._last_full=before;self._calls=0
+
+    def local(self):
+        if self._failure is not None:raise self._failure
+        if not self.numeric:return
+        try:
+            now=self._observe_time(monotonic())
+            if now>=self._deadline:raise ValueError('original segmented deadline exceeded')
+            return now
+        except BaseException as error:self.refuse(error)
+
+    def _full(self):
+        self.local()
+        try:
+            before=self._observe_time(monotonic())
+            remaining=self._check()
+            self._accept_remaining(before,remaining)
+            self.local()
+        except BaseException as error:self.refuse(error)
+
+    def __call__(self):
+        if self._failure is not None:raise self._failure
+        if not self.numeric:
+            if self._skip_first:self._skip_first=False
+            elif self._check is not None:
+                try:self._check()
+                except BaseException as error:self.refuse(error)
+            return
+        now=self.local();self._calls+=1
+        if self._calls>=64 or now-self._last_full>=.005:self._full()
+
+    def finish(self):
+        # Initial None has no appended callback after the codec's terminal check.
+        if self._failure is not None:raise self._failure
+        if self.numeric:self._full()
+
+
+def _source_operation(operation, *args, guard, replay_source=None, **kwargs):
+    if guard is None:return operation(*args,guard=None,**kwargs)
+    check=_SegmentedGuard(guard)
+    try:
+        result=operation(*args,guard=check,**kwargs)
+        if check.numeric:
+            check.finish()
+            source=result if replay_source is None else replay_source
+            if source._files:shared_temperature_source_files(source)
+            check.local()
+        return result
+    except BaseException as error:check.refuse(error)
+
+
+def fetch_shared_temperature_source(connection_factory, *, targets, assessed_at, contexts,
+                                    remaining_timeout=None, guard=None):
+    return _source_operation(_codec.fetch_shared_temperature_source,connection_factory,
+        targets=targets,assessed_at=assessed_at,contexts=contexts,
+        remaining_timeout=remaining_timeout,guard=guard)
+
+
+def read_shared_temperature_source(directory, path, *, guard=None):
+    return _source_operation(_codec.read_shared_temperature_source,directory,path,guard=guard)
+
+
+def replay_shared_temperature_source(source, *, guard=None):
+    return _source_operation(_codec.replay_shared_temperature_source,source,guard=guard,replay_source=source)
+
+
+def write_shared_temperature_source(directory, source, *, guard=None):
+    if guard is None:return _codec.write_shared_temperature_source(directory,source,guard=None)
+    check=_SegmentedGuard(guard)
+    try:
+        path=_codec.write_shared_temperature_source(directory,source,guard=check)
+        if check.numeric:
+            from native_thermal_forecast import _source_fingerprints,verify_origin_source_snapshot
+            manifest=json.loads(source.manifest_bytes);root=Path(directory)
+            expected={root/(sha256(source.manifest_bytes).hexdigest()+_codec.MANIFEST_SUFFIX):
+                sha256(source.manifest_bytes).hexdigest()}
+            expected.update((root/part['name'],part['stored_sha256']) for part in manifest['segments'])
+            if path!=next(iter(expected)):raise ValueError('exact original output manifest required')
+            inputs=shared_temperature_source_files(source) if source._files else ()
+            snapshot=_source_fingerprints(tuple(dict.fromkeys((*expected,*inputs))),check_budget=check.local)
+            if any(snapshot[name][1]!=digest for name,digest in expected.items()):
+                raise ValueError('original written source content address differs')
+            check.finish()
+            verify_origin_source_snapshot(snapshot,check_budget=check.local)
+            if inputs:shared_temperature_source_files(source)
+            check.local()
+        return path
+    except BaseException as error:check.refuse(error)
 
 
 def _check(check):

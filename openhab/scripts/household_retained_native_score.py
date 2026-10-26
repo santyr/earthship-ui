@@ -13,6 +13,7 @@ import time
 # untouched. Unknown archived source implementations retain their own reader.
 NATIVE_READER_SOURCE_SHA256='61851a694333d3cd66c24e8e71aab016631844a34b09411c6816c74e0e5c11f8'
 SEGMENTED_NATIVE_READER_SOURCE_SHA256='fa74fad2791de66c3e7884960ef6402f7b58c2bd03f05b41aae02edf02cf1833'
+BOUNDED_SEGMENTED_NATIVE_READER_SOURCE_SHA256='28714d64f977cb9e7fd25eed7295336baa2870f2062a4ce17a86ad7a8f3c6cbc'
 OPERATIONAL_READER_SOURCE_SHA256='5621fba1de64e317bfe5b4a7b0f7fa12d8e05ecc323961a6a96e170601f9f4a5'
 
 
@@ -22,7 +23,8 @@ def _reader_factory():
     import native_thermal_live as native
     from thermal_model.origin_capture import _source_bytes
     if sha256(_source_bytes(Path(native.__file__).absolute(),maximum=262144)).hexdigest() not in (
-            NATIVE_READER_SOURCE_SHA256,SEGMENTED_NATIVE_READER_SOURCE_SHA256):
+            NATIVE_READER_SOURCE_SHA256,SEGMENTED_NATIVE_READER_SOURCE_SHA256,
+            BOUNDED_SEGMENTED_NATIVE_READER_SOURCE_SHA256):
         return native.NativeScoreReader
     path=Path(__file__).absolute().with_name('household_native_score_queries.py')
     if sha256(_source_bytes(path,maximum=262144)).hexdigest()!=OPERATIONAL_READER_SOURCE_SHA256:
