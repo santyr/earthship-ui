@@ -113,7 +113,7 @@ def production_report_replay(scores):
     return _production_report_reuse.wrap_report(scores)
 
 
-RETAINED_COORDINATOR_SHA256 = '909b123003d7b4eb9077727e0c53d287b181af9e9f51a86bdce065190fe5f921'
+RETAINED_COORDINATOR_SHA256 = '80d7fb5c60467bfe132016fb490bd522007193c18593090144c83305720841a3'
 
 
 def production_retained_runner():
