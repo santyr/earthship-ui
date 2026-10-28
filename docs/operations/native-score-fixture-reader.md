@@ -34,3 +34,21 @@ declarations, identity, ownership, deadline, and final custody. The original
 source inventory and terminal verification remain active. Failed validations do
 not admit metadata; unknown or older implementations use their original path.
 All scoped adapters restore on exit, and no metadata survives an invocation.
+
+### Full segmented decoding within report-local reuse
+
+The operational report helper may reuse a complete successful three-role
+segmented replay within its existing temperature-query LRU. This shares the
+unchanged 8 MiB and 16,384-entry limits with ordinary query results; it adds no
+separate cache. The codec, binding, model, source formats, and fitted closures
+remain unchanged.
+
+Each lookup freshly reads the complete manifest and all children through the
+original bounded custody readers. It checks exact bytes, stored digests, file
+identities, complete manifest context, original codec functions, and caller
+context. All freshly read bytes are registered in the report's original source
+inventory. The first full decode remains mandatory; hits copy every role, target,
+receipt, and missing value and keep terminal file/guard checks. Unknown or
+unretained handles use the original replay. No result survives report exit,
+failure, cancellation, or a foreign/nested execution context. The report's final
+full model and source verification remains required.

@@ -35,6 +35,7 @@ MAX_CAPTURE_CACHE_BYTES=1024*1024
 MAX_CAPTURE_CACHE_ENTRIES=64
 MAX_CAPTURE_DEPENDENCIES=4096
 _capture_frame=ContextVar('household_report_capture_validation',default=None)
+SEGMENTED_CODEC_SHA256='86106647f7f826f70a19d5fcb7ff51979f4c8e99b913be61ad7acff821ff9215'
 CAPTURE_WEATHER_RUNTIME={
     'production_thermal_source.py':'556163c8de6e6dd7f5378cd2d972ca676c1417fccd1aa375a2b570a3f84e3d91',
     'household/production_weather_conditioning.py':'12d34105ad6d113bb082f1df12eb2dba6563c35d68ebe55abef39aca44c15a5a',
@@ -401,6 +402,89 @@ def _capture_reads(guard):
 
 
 @contextmanager
+def _segmented_temperature_reads(guard,frame,reuse,caches,sizes):
+    """Share the existing query cache with exact retained segmented replays."""
+    from thermal_model.origin_capture import _source_bytes
+    try:
+        import weather_temperature_source_segments as codec
+    except ImportError:
+        yield;return
+    path=Path(codec.__file__).absolute()
+    raw=_source_bytes(path,maximum=262144)
+    if sha256(raw).hexdigest()!=SEGMENTED_CODEC_SHA256:
+        yield;return
+    original=codec.replay_shared_temperature_source
+    if (type(original) is not FunctionType or original.__globals__ is not vars(codec) or
+            Path(original.__code__.co_filename).absolute()!=path):
+        yield;return
+    functions=[(name,function,function.__code__) for name,function in vars(codec).items()
+        if type(function) is FunctionType and function.__globals__ is vars(codec)]
+    if any(Path(code.co_filename).absolute()!=path for _,_,code in functions):
+        yield;return
+    source_type=codec.SharedTemperatureSource
+    constants={name:deepcopy(value) for name,value in vars(codec).items() if name.isupper()
+        and type(value) in (str,int,tuple,set,frozenset)}
+    info=path.lstat()
+    identity=(info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns,info.st_ctime_ns,
+        info.st_mode,info.st_uid,info.st_gid,info.st_nlink)
+    def known():
+        return (codec.SharedTemperatureSource is source_type and
+            all(getattr(codec,name,None) is (replay if name=='replay_shared_temperature_source' else function)
+                and function.__code__ is code for name,function,code in functions) and
+            all(getattr(codec,name,None)==value for name,value in constants.items()))
+    def original_key(source,check):
+        from thermal_model.replay_budget import observe_source_bytes
+        files=codec.shared_temperature_source_files(source)
+        manifest=codec._parse_manifest(source.manifest_bytes)
+        body,_=codec._read_checked(files[0],codec.MAX_MANIFEST_BYTES,check,source._fingerprints[0])
+        if body!=source.manifest_bytes:raise ValueError('original segmented manifest changed')
+        observe_source_bytes(files[0],body)
+        fingerprints=[]
+        for selected,descriptor,expected in zip(files[1:],manifest['segments'],source._fingerprints[1:]):
+            stored,actual=codec._read_checked(selected,codec.MAX_STORED_SEGMENT_BYTES,check,expected)
+            if (len(stored)!=descriptor['stored_bytes'] or
+                    sha256(stored).hexdigest()!=descriptor['stored_sha256']):
+                raise ValueError('original segmented child bytes differ')
+            observe_source_bytes(selected,stored)
+            fingerprints.append([str(selected),list(actual),sha256(stored).hexdigest()])
+        metadata=_json_key(dict(manifest_sha256=sha256(body).hexdigest(),
+            manifest_path=str(files[0]),identities=[list(v) for v in source._fingerprints],
+            children=fingerprints))
+        return ('segmented-source-v1',sha256(metadata).digest()),files
+    def replay(source,*,guard=None):
+        if (_temperature_frame.get() is not frame or type(source) is not source_type or
+                not source._files or source._chunks or not known()):
+            return original(source,guard=guard)
+        codec._guard(guard)
+        key,files=original_key(source,guard)
+        def unchanged():
+            codec._verify_files(files,source._fingerprints,guard)
+            if not known():raise ValueError('segmented replay implementation changed')
+        def compute():
+            value=original(source,guard=guard)
+            unchanged()
+            return value
+        try:
+            value=reuse(1,key,compute,512+len(repr(key)))
+            unchanged()
+            return value
+        except BaseException:
+            removed=caches[1].pop(key,None)
+            if removed is not None:sizes[1]-=removed[1]
+            raise
+    codec.replay_shared_temperature_source=replay
+    try:
+        yield
+        guard()
+        current=_source_bytes(path,maximum=262144);info=path.lstat()
+        if current!=raw or (info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns,info.st_ctime_ns,
+                info.st_mode,info.st_uid,info.st_gid,info.st_nlink)!=identity or not known():
+            raise ValueError('segmented replay helper changed before return')
+    finally:
+        codec.replay_shared_temperature_source=original
+
+
+@contextmanager
 def _temperature_reads(guard):
     """Reuse pure work, never the original on-disk reads or final inventory.
 
@@ -439,7 +523,9 @@ def _temperature_reads(guard):
             # its mutable dict/list containers; immutable datetime values need
             # no recursive reconstruction on every snapshot hit.
             def point(pair):return pair[0],None if pair[1] is None else dict(pair[1])
-            return point(value) if index==0 else [point(pair) for pair in value]
+            if index==0:return point(value)
+            if type(value) is dict:return {role:[point(pair) for pair in grid] for role,grid in value.items()}
+            return [point(pair) for pair in value]
         def reuse(index,key,compute,key_bytes):
             # The original pure snapshot reader has no budget callback. The
             # shared callback executes full retained guard I/O, not just a
@@ -454,7 +540,20 @@ def _temperature_reads(guard):
                 return result
             value=compute()
             if index==1:guard()
-            weight=key_bytes+len(repr(value).encode())+512
+            if index==1 and type(value) is dict:
+                # Three full role grids share this SAME existing query LRU.
+                # Account for their complete retained object graph rather
+                # than estimating its size from the printed representation.
+                import sys
+                seen=set()
+                def retained_size(v):
+                    if id(v) in seen:return 0
+                    seen.add(id(v));total=sys.getsizeof(v)
+                    if type(v) is dict:return total+sum(retained_size(k)+retained_size(x) for k,x in v.items())
+                    if type(v) in (list,tuple):return total+sum(map(retained_size,v))
+                    return total
+                weight=key_bytes+retained_size(value)+512
+            else:weight=key_bytes+len(repr(value).encode())+512
             limit=MAX_SNAPSHOT_CACHE_BYTES if index==0 else MAX_TEMPERATURE_CACHE_BYTES
             if weight<=limit:
                 while cache and (len(cache)>=MAX_TEMPERATURE_CACHE_ENTRIES or sizes[index]+weight>limit):
@@ -477,7 +576,7 @@ def _temperature_reads(guard):
             return reuse(1,key,lambda:query(saved),len(key))
         reader._snapshot=read_snapshot;sources.replay_temperature_source=replay;hooked=True
         if alias is query:raw_sources.replay_temperature_source=replay
-        yield
+        with _segmented_temperature_reads(guard,frame,reuse,caches,sizes):yield
         # This supplements, rather than replaces, the original report's full
         # source/model inventory. Detect same-byte replacement of our helpers.
         for path,raw,identity in originals:
