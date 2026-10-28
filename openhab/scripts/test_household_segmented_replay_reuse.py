@@ -40,6 +40,10 @@ def test_full_first_decode_then_fresh_all_file_reads_without_decoding(tmp_path,m
         inventory.record=observed
         fresh,first=profiled(lambda:binding.read_shared_temperature_source(path.parent,path,guard=lambda:90))
         assert first==3
+        # A cold retained read discards its decoded grid. The first explicit
+        # replay must still run completely before it can admit a cached grid.
+        value,cold=profiled(lambda:binding.replay_shared_temperature_source(fresh,guard=lambda:90))
+        assert value==expected and cold==3
         reads.clear()
         value,later=profiled(lambda:binding.replay_shared_temperature_source(fresh,guard=lambda:90))
         assert value==expected and later==0
@@ -54,6 +58,20 @@ def test_full_first_decode_then_fresh_all_file_reads_without_decoding(tmp_path,m
         assert binding.replay_shared_temperature_source(fresh,guard=lambda:90)==expected
         inventory.verify()
     assert codec.replay_shared_temperature_source is original
+
+
+def test_original_native_loader_seals_remain_valid_during_replay_reuse(tmp_path,monkeypatch):
+    import native_thermal_forecast as forecasts
+    _,source,expected=retained(tmp_path/'source',monkeypatch)
+    public={name:getattr(codec,name) for name in ('fetch_shared_temperature_source',
+        'write_shared_temperature_source','read_shared_temperature_source',
+        'replay_shared_temperature_source','shared_temperature_source_files')}
+    with reuse._temperature_reads(lambda:None):
+        assert forecasts._segmented_helpers()==(binding,codec)
+        assert binding.replay_shared_temperature_source(source,guard=lambda:90)==expected
+        assert forecasts._segmented_helpers()==(binding,codec)
+        assert all(getattr(codec,name) is function for name,function in public.items())
+        assert binding.replay_shared_temperature_source(source,guard=lambda:90)==expected
 
 
 @pytest.mark.parametrize('damage',['manifest','child','replacement'])

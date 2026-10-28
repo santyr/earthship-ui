@@ -403,37 +403,43 @@ def _capture_reads(guard):
 
 @contextmanager
 def _segmented_temperature_reads(guard,frame,reuse,caches,sizes):
-    """Share the existing query cache with exact retained segmented replays."""
+    """Reuse pure operations while all sealed public codec functions stay original."""
+    import re
     from thermal_model.origin_capture import _source_bytes
+    from thermal_model.replay_budget import observe_source_bytes
     try:
         import weather_temperature_source_segments as codec
+        import weather_temperature_segmented_binding as binding
     except ImportError:
         yield;return
-    path=Path(codec.__file__).absolute()
-    raw=_source_bytes(path,maximum=262144)
-    if sha256(raw).hexdigest()!=SEGMENTED_CODEC_SHA256:
-        yield;return
-    original=codec.replay_shared_temperature_source
-    if (type(original) is not FunctionType or original.__globals__ is not vars(codec) or
-            Path(original.__code__.co_filename).absolute()!=path):
-        yield;return
-    functions=[(name,function,function.__code__) for name,function in vars(codec).items()
-        if type(function) is FunctionType and function.__globals__ is vars(codec)]
-    if any(Path(code.co_filename).absolute()!=path for _,_,code in functions):
+    modules=((codec,SEGMENTED_CODEC_SHA256),
+        (binding,'bedde3bb5dba4587be8759a924aa95b9f096bfb5c012415253835d59c3534dc5'))
+    originals=[];functions=[]
+    for module,pin in modules:
+        path=Path(module.__file__).absolute();raw=_source_bytes(path,maximum=262144)
+        if sha256(raw).hexdigest()!=pin:
+            yield;return
+        originals.append((path,raw,path.stat()))
+        for name,function in vars(module).items():
+            if type(function) is FunctionType and function.__globals__ is vars(module):
+                if Path(function.__code__.co_filename).absolute()!=path:
+                    yield;return
+                functions.append((module,name,function,function.__code__))
+    original=binding._source_operation
+    if (type(original) is not FunctionType or original.__globals__ is not vars(binding) or
+            Path(original.__code__.co_filename).absolute()!=Path(binding.__file__).absolute()):
         yield;return
     source_type=codec.SharedTemperatureSource
+    read_source=codec.read_shared_temperature_source
+    replay_source=codec.replay_shared_temperature_source
     constants={name:deepcopy(value) for name,value in vars(codec).items() if name.isupper()
         and type(value) in (str,int,tuple,set,frozenset)}
-    info=path.lstat()
-    identity=(info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns,info.st_ctime_ns,
-        info.st_mode,info.st_uid,info.st_gid,info.st_nlink)
     def known():
         return (codec.SharedTemperatureSource is source_type and
-            all(getattr(codec,name,None) is (replay if name=='replay_shared_temperature_source' else function)
-                and function.__code__ is code for name,function,code in functions) and
+            all(getattr(module,name,None) is (operation if module is binding and name=='_source_operation' else function)
+                and function.__code__ is code for module,name,function,code in functions) and
             all(getattr(codec,name,None)==value for name,value in constants.items()))
     def original_key(source,check):
-        from thermal_model.replay_budget import observe_source_bytes
         files=codec.shared_temperature_source_files(source)
         manifest=codec._parse_manifest(source.manifest_bytes)
         body,_=codec._read_checked(files[0],codec.MAX_MANIFEST_BYTES,check,source._fingerprints[0])
@@ -448,40 +454,67 @@ def _segmented_temperature_reads(guard,frame,reuse,caches,sizes):
             observe_source_bytes(selected,stored)
             fingerprints.append([str(selected),list(actual),sha256(stored).hexdigest()])
         metadata=_json_key(dict(manifest_sha256=sha256(body).hexdigest(),
-            manifest_path=str(files[0]),identities=[list(v) for v in source._fingerprints],
-            children=fingerprints))
+            manifest_path=str(files[0]),identities=[list(v) for v in source._fingerprints],children=fingerprints))
         return ('segmented-source-v1',sha256(metadata).digest()),files
-    def replay(source,*,guard=None):
-        if (_temperature_frame.get() is not frame or type(source) is not source_type or
-                not source._files or source._chunks or not known()):
-            return original(source,guard=guard)
-        codec._guard(guard)
-        key,files=original_key(source,guard)
-        def unchanged():
-            codec._verify_files(files,source._fingerprints,guard)
-            if not known():raise ValueError('segmented replay implementation changed')
-        def compute():
-            value=original(source,guard=guard)
-            unchanged()
-            return value
-        try:
-            value=reuse(1,key,compute,512+len(repr(key)))
-            unchanged()
-            return value
-        except BaseException:
-            removed=caches[1].pop(key,None)
-            if removed is not None:sizes[1]-=removed[1]
-            raise
-    codec.replay_shared_temperature_source=replay
+    def retained(directory,path,check):
+        root=codec._directory(Path(directory));path=Path(path)
+        if path.parent!=root or re.fullmatch('[0-9a-f]{64}'+re.escape(codec.MANIFEST_SUFFIX),path.name) is None:
+            raise ValueError('exact original manifest content address required')
+        raw,fingerprint=codec._read_checked(path,codec.MAX_MANIFEST_BYTES,check)
+        if sha256(raw).hexdigest()+codec.MANIFEST_SUFFIX!=path.name:
+            raise ValueError('manifest digest differs')
+        manifest=codec._parse_manifest(raw)
+        files=(path,)+tuple(root/descriptor['name'] for descriptor in manifest['segments'])
+        fingerprints=(fingerprint,)+tuple(codec._fingerprint(child) for child in files[1:])
+        return source_type(raw,_files=files,_fingerprints=fingerprints)
+    def operation(selected,*args,guard,replay_source=None,**kwargs):
+        if (_temperature_frame.get() is not frame or not known() or
+                selected not in (read_source,codec.replay_shared_temperature_source)):
+            return original(selected,*args,guard=guard,replay_source=replay_source,**kwargs)
+        reading=selected is read_source
+        if kwargs or len(args)!=(2 if reading else 1):
+            return original(selected,*args,guard=guard,replay_source=replay_source,**kwargs)
+        def pure(*values,guard=None,**options):
+            source=retained(*values,guard) if reading else values[0]
+            if type(source) is not source_type or not source._files or source._chunks:
+                return selected(*values,guard=guard,**options)
+            codec._guard(guard)
+            key,files=original_key(source,guard)
+            def unchanged():
+                codec._verify_files(files,source._fingerprints,guard)
+                if not known():raise ValueError('segmented replay implementation changed')
+            def compute():
+                value=codec.replay_shared_temperature_source(source,guard=guard)
+                unchanged();return value
+            try:
+                if reading and key not in caches[1]:
+                    # The original reader executes its complete cold replay.
+                    # Its discarded grid is not a cache admission.
+                    result=selected(*values,guard=guard,**options)
+                    if result!=source:raise ValueError('original retained source read differs')
+                else:
+                    result=reuse(1,key,compute,512+len(repr(key)))
+                    if reading:result=source
+                unchanged();return result
+            except BaseException:
+                removed=caches[1].pop(key,None)
+                if removed is not None:sizes[1]-=removed[1]
+                raise
+        # Preserve the original nonrenewable numeric/None guard adapter and its
+        # complete terminal custody checks, for both reads and replay results.
+        return original(pure,*args,guard=guard,replay_source=replay_source,**kwargs)
+    binding._source_operation=operation
     try:
         yield
         guard()
-        current=_source_bytes(path,maximum=262144);info=path.lstat()
-        if current!=raw or (info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns,info.st_ctime_ns,
-                info.st_mode,info.st_uid,info.st_gid,info.st_nlink)!=identity or not known():
-            raise ValueError('segmented replay helper changed before return')
+        for path,raw,info in originals:
+            current=_source_bytes(path,maximum=262144);now=path.stat()
+            attributes=('st_dev','st_ino','st_size','st_mtime_ns','st_ctime_ns','st_mode','st_uid','st_gid','st_nlink')
+            if current!=raw or any(getattr(now,key)!=getattr(info,key) for key in attributes):
+                raise ValueError('segmented replay helper changed before return')
+        if not known():raise ValueError('segmented replay implementation changed before return')
     finally:
-        codec.replay_shared_temperature_source=original
+        binding._source_operation=original
 
 
 @contextmanager

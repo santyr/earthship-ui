@@ -43,6 +43,12 @@ unchanged 8 MiB and 16,384-entry limits with ordinary query results; it adds no
 separate cache. The codec, binding, model, source formats, and fitted closures
 remain unchanged.
 
+All public codec and binding functions remain original, so the native loader's
+source and implementation checks run unchanged. Reuse is scoped at the binding's
+private operation boundary and always delegates to its original nonrenewable
+guard and terminal-custody adapter. Cold retained reads and the first explicit
+replay execute the original codec before a complete grid can enter the cache.
+
 Each lookup freshly reads the complete manifest and all children through the
 original bounded custody readers. It checks exact bytes, stored digests, file
 identities, complete manifest context, original codec functions, and caller
