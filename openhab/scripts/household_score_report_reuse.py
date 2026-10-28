@@ -129,14 +129,15 @@ def _capture_reads(guard):
     returns a copy of exactly its input, so a hit copies that fully keyed input.
     """
     from collections import OrderedDict
-    import sys
+    import sys,json
     import native_thermal_forecast as forecasts
     import native_model_serving_receipt as serving
     from thermal_model.origin_capture import _source_bytes
     from thermal_model.runtime_bundle import _owned_bytes
     from thermal_model.replay_budget import _source_reads,OriginalSourceInventory
     original=forecasts.validate_serving_capture;path=Path(forecasts.__file__).absolute()
-    weather_hooked=False
+    weather_hooked=False;inventory_hooked=False
+    original_files=getattr(forecasts,'origin_source_files',None)
     frame=object();token=_capture_frame.set(frame);hooked=False;cache=OrderedDict();size=0;identities={}
     try:
         guard();raw=_source_bytes(path,maximum=262144);info=path.lstat()
@@ -188,6 +189,14 @@ def _capture_reads(guard):
                 weather_functions.append((module,name,function,code))
         original_weather=weather.verify_bindings
         weather_admission=ContextVar('full_capture_weather_admission',default=None)
+        source_admission=ContextVar('full_capture_inventory_admission',default=None)
+        source_functions=[(name,getattr(forecasts,name,None)) for name in ('_segmented_helpers','_source_fingerprints')]
+        files_code=getattr(original_files,'__code__',None)
+        source_codes={name:getattr(function,'__code__',None) for name,function in source_functions}
+        inventory_supported=(capture_source==CAPTURE_SOURCE_SHA256 and all(
+            type(function) is FunctionType and function.__globals__ is forecasts.__dict__ and
+            Path(function.__code__.co_filename).absolute()==path
+            for function in (original_files,*(function for _,function in source_functions))))
         def retained_size(value):
             seen=set()
             def count(v):
@@ -231,6 +240,63 @@ def _capture_reads(guard):
             for name in names:
                 from weather_temperature_sources import MAX_CONTAINER_BYTES
                 selected=Path(name);check();remember(selected);_owned_bytes(selected,MAX_CONTAINER_BYTES);remember(selected)
+        def known_inventory():
+            return (inventory_supported and forecasts.origin_source_files is source_files and
+                original_files.__code__ is files_code and
+                all(getattr(forecasts,name,None) is function and function.__code__ is source_codes[name]
+                    for name,function in source_functions))
+        def source_key(value):
+            if (not known_inventory() or type(value) is not dict or
+                    value.get('schema') not in forecasts.SEGMENTED_CAPTURE_SCHEMAS):return None
+            try:
+                raw=_json_key(dict(schema=value['schema'],runtime=value['candidate']['runtime'],
+                    binding=value['native_origin_binding']))
+                return sha256(raw).digest() if len(raw)<=forecasts.MAX_CAPTURE_BYTES else None
+            except (KeyError,TypeError,ValueError,RecursionError,OverflowError):return None
+        def source_snapshot(value,names,check):
+            # The unchanged codec's own deadline adapter retains numeric/None
+            # semantics. Full byte reads bracket its final caller checkpoint.
+            binding,codec=forecasts._segmented_helpers(value['candidate']['runtime'])
+            budget=binding._SegmentedGuard(check)
+            names=tuple(map(Path,names))
+            actual=forecasts._source_fingerprints(names,check_budget=budget)
+            manifest_raw=_owned_bytes(names[0],codec.MAX_MANIFEST_BYTES)
+            if sha256(manifest_raw).hexdigest()!=value['native_origin_binding']['source_manifest_sha256']:
+                raise ValueError('captured source manifest changed after validation')
+            manifest=json.loads(manifest_raw)
+            expected={names[0]:value['native_origin_binding']['source_manifest_sha256']}
+            expected.update((names[0].parent/part['name'],part['stored_sha256']) for part in manifest['segments'])
+            if set(expected)!=set(names) or any(actual[name][1]!=pin for name,pin in expected.items()):
+                raise ValueError('captured source children differ from validated manifest')
+            budget.finish()
+            terminal=forecasts._source_fingerprints(names,check_budget=budget.local)
+            if terminal!=actual:raise ValueError('captured source changed across final inventory guard')
+            return tuple((str(name),terminal[name]) for name in names)
+        def source_files(value,*,check_budget=lambda:None):
+            inventory=_source_reads.get()
+            if (_capture_frame.get() is not frame or type(inventory) is not OriginalSourceInventory or
+                    not known_inventory()):return original_files(value,check_budget=check_budget)
+            value=deepcopy(value);key=source_key(value)
+            if key is None:return original_files(value,check_budget=check_budget)
+            admitted=source_admission.get();saved=None
+            if admitted is not None and admitted[0] is inventory and admitted[1] and admitted[1][0][0]==key:
+                saved=admitted[1][0][1]
+            if saved is None:
+                saved=next((metadata['source'][1] for capture_key,(metadata,_) in cache.items()
+                    if capture_key[0] is inventory and metadata['source'] is not None and metadata['source'][0]==key),None)
+            if saved is not None:
+                names=tuple(Path(name) for name,_ in saved)
+                current=source_snapshot(value,names,check_budget)
+                if current!=saved:raise ValueError('validated captured source identity or bytes changed')
+                if known_inventory():return names
+                return original_files(value,check_budget=check_budget)
+            names=original_files(value,check_budget=check_budget)
+            if (admitted is not None and admitted[0] is inventory and known_inventory() and
+                    MAX_CAPTURE_CACHE_ENTRIES>0):
+                metadata=source_snapshot(value,names,check_budget)
+                if known_inventory() and retained_size((key,metadata))<=MAX_CAPTURE_CACHE_BYTES-size:
+                    admitted[1][:]=[(key,metadata)]
+            return names
         def weather_key(value):
             if type(value) is not dict or dependencies({'weather_conditioning':value}) is None:return None
             try:
@@ -257,7 +323,7 @@ def _capture_reads(guard):
             key=weather_key(value)
             if key is None:return original_weather(value,guard=guard)
             saved=deepcopy(value)
-            if any(capture_key[0] is inventory and metadata==key for capture_key,(metadata,_) in cache.items()):
+            if any(capture_key[0] is inventory and metadata['weather']==key for capture_key,(metadata,_) in cache.items()):
                 guard();observe_weather(saved,saved['originals'],guard);guard()
                 result=None if known_weather() else original_weather(saved,guard=guard)
             else:result=original_weather(saved,guard=guard)
@@ -288,14 +354,20 @@ def _capture_reads(guard):
                 if value.get('weather_conditioning') is not None and not known_weather():return full()
                 return result
             admitted=[];admission_token=weather_admission.set(admitted)
-            try:result=full()
-            finally:weather_admission.reset(admission_token)
-            check_budget();guard()
-            if result.get('weather_conditioning') is not None and not known_weather():return result
-            observe_dependencies(result,dependencies(result),check_budget)
-            if result.get('weather_conditioning') is not None and not known_weather():return result
-            metadata=weather_key(result.get('weather_conditioning')) if weather_hooked else None
-            if admitted!=[metadata]:metadata=None
+            admitted_sources=[];source_token=source_admission.set((inventory,admitted_sources))
+            try:
+                result=full()
+                check_budget();guard()
+                if result.get('weather_conditioning') is not None and not known_weather():return result
+                observe_dependencies(result,dependencies(result),check_budget)
+                if result.get('weather_conditioning') is not None and not known_weather():return result
+                weather_metadata=weather_key(result.get('weather_conditioning')) if weather_hooked else None
+                if admitted!=[weather_metadata]:weather_metadata=None
+                source_metadata=admitted_sources[0] if admitted_sources and admitted_sources[0][0]==source_key(result) else None
+                metadata=dict(weather=weather_metadata,source=source_metadata)
+            finally:
+                weather_admission.reset(admission_token);source_admission.reset(source_token)
+                admitted_sources.clear()
             weight=retained_size((key[1:],metadata))+512
             if weight<=MAX_CAPTURE_CACHE_BYTES:
                 while cache and (len(cache)>=MAX_CAPTURE_CACHE_ENTRIES or size+weight>MAX_CAPTURE_CACHE_BYTES):
@@ -303,6 +375,7 @@ def _capture_reads(guard):
                 if MAX_CAPTURE_CACHE_ENTRIES>0:cache[key]=(metadata,weight);size+=weight
             return result
         weather.verify_bindings=verify_weather;weather_hooked=True
+        if inventory_supported:forecasts.origin_source_files=source_files;inventory_hooked=True
         forecasts.validate_serving_capture=read;hooked=True
         yield
         for selected,expected in identities.items():
@@ -322,6 +395,7 @@ def _capture_reads(guard):
                 raise ValueError('capture replay helper changed after final guard')
     finally:
         if hooked:forecasts.validate_serving_capture=original
+        if inventory_hooked:forecasts.origin_source_files=original_files
         if weather_hooked:weather.verify_bindings=original_weather
         cache.clear();identities.clear();_capture_frame.reset(token)
 

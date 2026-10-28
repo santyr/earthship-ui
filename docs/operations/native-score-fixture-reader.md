@@ -19,3 +19,18 @@ acquisition budget and pacing, source accounting, reports, independent equality,
 and final custody checks. Synthetic readers and modeled transport/SQL do not
 establish actual PostgreSQL, publication, sensor, or natural-score qualification.
 The original actual historical workload remains a separate test.
+
+The operational report helper also retains segmented source-inventory metadata
+inside its existing invocation-local capture cache. The complete capture,
+serving-model, selection, and expected-hash keys remain unchanged. Inventory
+metadata binds the full schema/runtime/binding inputs to the manifest and every
+child's bytes and identity. It stores no selected grid or raw-source payload.
+
+The first inventory operation still uses the original complete decoder. Only a
+successful full capture validation admits its metadata into the existing
+64-entry/1 MiB cache, with the new metadata included in that byte accounting.
+Every hit freshly reads and hashes all files and checks their original manifest
+declarations, identity, ownership, deadline, and final custody. The original
+source inventory and terminal verification remain active. Failed validations do
+not admit metadata; unknown or older implementations use their original path.
+All scoped adapters restore on exit, and no metadata survives an invocation.
