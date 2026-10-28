@@ -65,7 +65,9 @@ def _configuration_reuse_supported(*functions):
 
 
 def run(config,*,stage,deployment_sha256,deadline,resource_preflight,pressure_factory,
-        source_guard,verify_archive,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic):
+        source_guard,verify_archive,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic,
+        reader_factory=None):
+    if reader_factory is not None and not callable(reader_factory):raise ValueError('explicit reader factory must be callable')
     import os,math
     from native_thermal_live import load_settings,SERVING_SCHEMA
     import native_thermal_live as native
@@ -118,12 +120,13 @@ def run(config,*,stage,deployment_sha256,deadline,resource_preflight,pressure_fa
         selected=load_serving_selection(stage,expected_deployment_sha256=deployment_sha256,assessed_at=clock(),guard=guard)
         model=read_serving_model(selected,assessed_at=clock(),guard=guard)
         guard();pressure.check(force=True)
-        result=score_jobs(settings,guard=guard,deadline=deadline,clock=clock,monotonic=monotonic,serving_model=model)
+        reader_options={} if reader_factory is None else dict(reader_factory=reader_factory)
+        result=score_jobs(settings,guard=guard,deadline=deadline,clock=clock,monotonic=monotonic,serving_model=model,**reader_options)
         guard();verify_archive();pressure.check(force=True);guard()
         return result
 
 
-def score_jobs(settings,*,guard,deadline,clock,monotonic,reader=None,max_jobs=1,serving_model=None,historical_selections=()):
+def score_jobs(settings,*,guard,deadline,clock,monotonic,reader=None,max_jobs=1,serving_model=None,historical_selections=(),reader_factory=None):
     """One native outcome with raw query replay and source-backed reporting."""
     import json
     import native_thermal_live as archive
@@ -140,6 +143,8 @@ def score_jobs(settings,*,guard,deadline,clock,monotonic,reader=None,max_jobs=1,
     from thermal_model.recent_cycles import compare_v2
     from thermal_model.replay_budget import shared_replay_budget,capture_source_reads
     if type(max_jobs) is not int or max_jobs!=1:raise ValueError('one serial native score job required')
+    if reader_factory is not None and not callable(reader_factory):raise ValueError('explicit reader factory must be callable')
+    if reader is not None and reader_factory is not None:raise ValueError('reader and reader_factory are mutually exclusive')
     settings=deepcopy(settings);guard();_resource_preflight();now=clock()
     def remaining():
         guard();seconds=deadline-monotonic()
@@ -170,7 +175,9 @@ def score_jobs(settings,*,guard,deadline,clock,monotonic,reader=None,max_jobs=1,
         if reader is None:
             config={key:settings[key] for key in ('token_file','native_db_config','native_policy','openhab_base')}
             config.update(schema=COMPRESSED_SOURCE_SCHEMA,output_directory=str(folder))
-            reader=_reader_factory()(config,shared_lock_guard=remaining)
+            factory=_reader_factory() if reader_factory is None else reader_factory
+            reader=factory(config,shared_lock_guard=remaining)
+            if reader_factory is not None and reader is None:raise ValueError('reader factory returned no reader')
         paths=[]
         for directory in _folders(root,'origins',now):paths.extend(directory.glob('*.native-provisional-delivery-v2.json'))
         if len(paths)>1024:raise ValueError('bounded native delivered forecast inventory required')

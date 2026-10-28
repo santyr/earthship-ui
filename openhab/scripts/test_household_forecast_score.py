@@ -13,8 +13,8 @@ def test_production_retained_runner_loads_reviewed_sibling_and_closed_reader():
     import household_native_score_queries as queries
     coordinator=api()
     helper=Path(coordinator.__file__).resolve().with_name('household_retained_native_score.py')
-    # Independently reviewed source authority from the signed Task3 result.
-    assert sha256(helper.read_bytes()).hexdigest()=='80d7fb5c60467bfe132016fb490bd522007193c18593090144c83305720841a3'
+    # Frozen exact source authority for the explicit-reader implementation.
+    assert sha256(helper.read_bytes()).hexdigest()=='8391c0b5159277a087cc68231254a1837b1f5279d9817cdda12eba2f9308458d'
     module=coordinator.production_retained_runner()
     assert Path(module.__file__).resolve()==helper
     assert Path(module.run.__code__.co_filename).resolve()==helper

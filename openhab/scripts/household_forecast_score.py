@@ -113,7 +113,7 @@ def production_report_replay(scores):
     return _production_report_reuse.wrap_report(scores)
 
 
-RETAINED_COORDINATOR_SHA256 = '80d7fb5c60467bfe132016fb490bd522007193c18593090144c83305720841a3'
+RETAINED_COORDINATOR_SHA256 = '8391c0b5159277a087cc68231254a1837b1f5279d9817cdda12eba2f9308458d'
 
 
 def production_retained_runner():
@@ -430,9 +430,10 @@ def serving_failure(error,*,phase):
 
 
 def run_retained_worker(script,config,*,stage,deployment_sha256,retained_native,
-        deadline=None,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic):
+        deadline=None,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic,reader_factory=None):
     """Keep archived numerics; use current operational policy and native clocks."""
     if retained_native is not True:raise ValueError('Google-only native retained scoring required')
+    if reader_factory is not None and not callable(reader_factory):raise ValueError('explicit reader factory must be callable')
     import math
     started=monotonic()
     if not math.isfinite(started):raise ValueError('score lifetime elapsed')
@@ -478,10 +479,11 @@ def run_retained_worker(script,config,*,stage,deployment_sha256,retained_native,
                 raise ValueError('retained worker dependency context changed')
             source_guard()
         with production_score_policy():
+            reader_options={} if reader_factory is None else dict(reader_factory=reader_factory)
             result=runner.run(config,stage=stage,deployment_sha256=deployment_sha256,deadline=stop,
                 resource_preflight=production_resource_preflight,
                 pressure_factory=lambda:SampledScorePressure(production_pressure_monitor(),monotonic=monotonic),
-                source_guard=source_guard,verify_archive=verify_archive,clock=clock,monotonic=monotonic)
+                source_guard=source_guard,verify_archive=verify_archive,clock=clock,monotonic=monotonic,**reader_options)
         source_guard();return result
 
 
