@@ -474,12 +474,14 @@ def _segmented_temperature_reads(guard,frame,reuse,caches,sizes):
         reading=selected is read_source
         if kwargs or len(args)!=(2 if reading else 1):
             return original(selected,*args,guard=guard,replay_source=replay_source,**kwargs)
+        used_keys=[]
         def pure(*values,guard=None,**options):
+            codec._guard(guard)
             source=retained(*values,guard) if reading else values[0]
             if type(source) is not source_type or not source._files or source._chunks:
                 return selected(*values,guard=guard,**options)
-            codec._guard(guard)
             key,files=original_key(source,guard)
+            used_keys.append(key)
             def unchanged():
                 codec._verify_files(files,source._fingerprints,guard)
                 if not known():raise ValueError('segmented replay implementation changed')
@@ -487,14 +489,13 @@ def _segmented_temperature_reads(guard,frame,reuse,caches,sizes):
                 value=codec.replay_shared_temperature_source(source,guard=guard)
                 unchanged();return value
             try:
-                if reading and key not in caches[1]:
-                    # The original reader executes its complete cold replay.
-                    # Its discarded grid is not a cache admission.
-                    result=selected(*values,guard=guard,**options)
-                    if result!=source:raise ValueError('original retained source read differs')
-                else:
-                    result=reuse(1,key,compute,512+len(repr(key)))
-                    if reading:result=source
+                # retained() performs the original reader's complete header,
+                # path and custody construction. Execute its original full
+                # decoder once and retain the grid that read_source otherwise
+                # discards. The returned handle and all final checks are the
+                # same; a later explicit replay can reuse that exact result.
+                result=reuse(1,key,compute,512+len(repr(key)))
+                if reading:result=source
                 unchanged();return result
             except BaseException:
                 removed=caches[1].pop(key,None)
@@ -502,7 +503,14 @@ def _segmented_temperature_reads(guard,frame,reuse,caches,sizes):
                 raise
         # Preserve the original nonrenewable numeric/None guard adapter and its
         # complete terminal custody checks, for both reads and replay results.
-        return original(pure,*args,guard=guard,replay_source=replay_source,**kwargs)
+        try:return original(pure,*args,guard=guard,replay_source=replay_source,**kwargs)
+        except BaseException:
+            # A terminal deadline/custody refusal after pure() returns must
+            # discard its admission as well as failures inside the decoder.
+            for key in used_keys:
+                removed=caches[1].pop(key,None)
+                if removed is not None:sizes[1]-=removed[1]
+            raise
     binding._source_operation=operation
     try:
         yield

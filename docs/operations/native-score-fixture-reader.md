@@ -46,8 +46,10 @@ remain unchanged.
 All public codec and binding functions remain original, so the native loader's
 source and implementation checks run unchanged. Reuse is scoped at the binding's
 private operation boundary and always delegates to its original nonrenewable
-guard and terminal-custody adapter. Cold retained reads and the first explicit
-replay execute the original codec before a complete grid can enter the cache.
+guard and terminal-custody adapter. A cold retained read constructs the same
+original custody handle and executes the full original decoder. Its complete
+grid is retained for the subsequent explicit replay rather than discarded.
+Terminal refusals remove admissions made before the final check.
 
 Each lookup freshly reads the complete manifest and all children through the
 original bounded custody readers. It checks exact bytes, stored digests, file

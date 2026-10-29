@@ -40,10 +40,11 @@ def test_full_first_decode_then_fresh_all_file_reads_without_decoding(tmp_path,m
         inventory.record=observed
         fresh,first=profiled(lambda:binding.read_shared_temperature_source(path.parent,path,guard=lambda:90))
         assert first==3
-        # A cold retained read discards its decoded grid. The first explicit
-        # replay must still run completely before it can admit a cached grid.
+        # The cold read has run the full original decoder and retained its
+        # result. Its later explicit replay must not decode the same bytes.
         value,cold=profiled(lambda:binding.replay_shared_temperature_source(fresh,guard=lambda:90))
-        assert value==expected and cold==3
+        assert value==expected and cold==0
+        assert fresh==source
         reads.clear()
         value,later=profiled(lambda:binding.replay_shared_temperature_source(fresh,guard=lambda:90))
         assert value==expected and later==0
@@ -72,6 +73,21 @@ def test_original_native_loader_seals_remain_valid_during_replay_reuse(tmp_path,
         assert forecasts._segmented_helpers()==(binding,codec)
         assert all(getattr(codec,name) is function for name,function in public.items())
         assert binding.replay_shared_temperature_source(source,guard=lambda:90)==expected
+
+
+def test_terminal_refusal_after_cold_decode_discards_admission(tmp_path,monkeypatch):
+    path,source,expected=retained(tmp_path/'source',monkeypatch)
+    finish=binding._SegmentedGuard.finish
+    with reuse._temperature_reads(lambda:None):
+        def refuse(self):
+            finish(self)
+            raise ValueError('terminal qualification refusal')
+        with monkeypatch.context() as patch:
+            patch.setattr(binding._SegmentedGuard,'finish',refuse)
+            with pytest.raises(ValueError,match='terminal qualification refusal'):
+                binding.read_shared_temperature_source(path.parent,path,guard=lambda:90)
+        value,count=profiled(lambda:binding.replay_shared_temperature_source(source,guard=lambda:90))
+        assert value==expected and count==3
 
 
 @pytest.mark.parametrize('damage',['manifest','child','replacement'])
