@@ -72,3 +72,11 @@ fresh-byte verifier. This avoids separately validating the same file list and
 then immediately fingerprinting it again. Each call still reads all original
 files, compares their stored digests and identities, checks the original caller
 guard, and registers the bytes with the report's complete final inventory.
+
+Inventory operations freeze only their schema/runtime/source-binding fields.
+Capture validation still keys its complete plain JSON document and returns
+independent copies; aliased or custom inputs use the original validator.
+Every retained-worker source checkpoint opens and reads all six full originals.
+It checks their shared parent directories before and after the batch, complete
+file identities around each read and again after all reads, without repeatedly
+resolving the same prefixes. The original final archive verification remains.

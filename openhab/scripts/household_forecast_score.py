@@ -19,7 +19,7 @@ PUBLICATION_POLICY_SHA256 = 'e7a330a82886605ef80f418f818bf2da90a2e419aa3264d7d98
 _production_policy = None
 PUBLICATION_MONITOR_SHA256 = '43cef34e31bc9b82a9d416f97bf9e15f255ebe95b873409089478e41e40fd9f9'
 _production_monitor = None
-REPORT_REPLAY_HELPER_SHA256 = 'f296712bde14c68b33f7c5ad75d7c4dd661c975f008eb22dcc4d640950d2b306'
+REPORT_REPLAY_HELPER_SHA256 = '2e29a4ed33e3088aa6ac256c0349e223b2f7a6e6bd105c722da14d50b4e42cb2'
 _production_report_reuse = None
 
 
@@ -66,6 +66,69 @@ def _policy_source_bytes(path):
     from thermal_model.replay_budget import capture_source_reads
     with capture_source_reads():
         return _source_bytes(path,maximum=262144)
+
+
+class RetainedSourceGuard:
+    """Fresh full source reads, with shared canonical parents checked once.
+
+    Each callback still opens and reads every file. Pinning and checking the
+    union of parent directories avoids resolving the same long prefixes six
+    times. No file-byte read is replaced by metadata or a cached digest.
+    """
+    @staticmethod
+    def identity(info):
+        return (info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_gid,
+            info.st_nlink,info.st_size,info.st_mtime_ns,info.st_ctime_ns)
+
+    def __init__(self,references):
+        import os,stat
+        if type(references) is not tuple or not 1<=len(references)<=6:
+            raise ValueError('bounded retained source references required')
+        self.files=[];parents={}
+        for path,raw,kind in references:
+            path=Path(path)
+            if path.resolve()!=path or type(raw) is not bytes or kind not in ('owned','private','source'):
+                raise ValueError('retained worker changed during execution')
+            info=path.lstat()
+            if (not stat.S_ISREG(info.st_mode) or info.st_nlink!=1 or info.st_uid!=os.getuid() or
+                    kind=='private' and stat.S_IMODE(info.st_mode)!=0o600 or
+                    kind=='source' and info.st_mode&0o022 or info.st_size!=len(raw)):
+                raise ValueError('retained worker changed during execution')
+            self.files.append((str(path),raw,self.identity(info)))
+            for parent in path.parents:
+                row=parent.lstat()
+                if not stat.S_ISDIR(row.st_mode):raise ValueError('retained worker changed during execution')
+                parents[str(parent)]=(row.st_dev,row.st_ino,row.st_mode,row.st_uid,row.st_gid)
+        self.parents=tuple(parents.items())
+        self()
+
+    def __call__(self):
+        import os
+        def directories():
+            for path,expected in self.parents:
+                row=os.stat(path,follow_symlinks=False)
+                if (row.st_dev,row.st_ino,row.st_mode,row.st_uid,row.st_gid)!=expected:
+                    raise ValueError('retained worker changed during execution')
+        try:
+            directories()
+            for path,expected,identity in self.files:
+                if self.identity(os.stat(path,follow_symlinks=False))!=identity:
+                    raise ValueError('retained worker changed during execution')
+                fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC)
+                try:
+                    if self.identity(os.fstat(fd))!=identity:
+                        raise ValueError('retained worker changed during execution')
+                    raw=os.read(fd,len(expected)+1)
+                    if raw!=expected or self.identity(os.fstat(fd))!=identity:
+                        raise ValueError('retained worker changed during execution')
+                finally:os.close(fd)
+                if self.identity(os.stat(path,follow_symlinks=False))!=identity:
+                    raise ValueError('retained worker changed during execution')
+            for path,_,identity in self.files:
+                if self.identity(os.stat(path,follow_symlinks=False))!=identity:
+                    raise ValueError('retained worker changed during execution')
+            directories()
+        except OSError:raise ValueError('retained worker changed during execution') from None
 
 
 def production_pressure_monitor():
@@ -475,11 +538,12 @@ def run_retained_worker(script,config,*,stage,deployment_sha256,retained_native,
         runner=production_retained_runner()
         own_path=Path(__file__).resolve();own=own_path.read_bytes()
         helper=own_path.with_name('household_retained_native_score.py')
-        def source_guard():
-            if (own_path.read_bytes()!=own or deploy._bytes(script)!=original or read_manifest()!=manifest or
-                    deploy._bytes(cycle_path,private=True)!=cycle_raw or deploy._bytes(config,private=True)!=config_raw or
-                    sha256(_policy_source_bytes(helper)).hexdigest()!=RETAINED_COORDINATOR_SHA256):
-                raise ValueError('retained worker changed during execution')
+        helper_raw=_policy_source_bytes(helper)
+        if sha256(helper_raw).hexdigest()!=RETAINED_COORDINATOR_SHA256:
+            raise ValueError('retained worker changed during execution')
+        source_guard=RetainedSourceGuard(((own_path,own,'owned'),(script,original,'owned'),
+            (stage/'deployment.json',manifest,'private'),(cycle_path,cycle_raw,'private'),
+            (config,config_raw,'private'),(helper,helper_raw,'source')))
         def verify_archive():
             if deploy.verify_stage(stage,expected_deployment_sha256=deployment_sha256)!=record:
                 raise ValueError('retained worker dependency context changed')

@@ -58,8 +58,12 @@ CAPTURE_WEATHER_RUNTIME={
 def _json_key(value):
     """Canonical full JSON inputs; custom/tuple values use original validation."""
     import json
+    seen=set()
     def plain(v):
         if type(v) in (str,int,float,bool,type(None)):return True
+        if type(v) in (list,dict):
+            if id(v) in seen:return False
+            seen.add(id(v))
         if type(v) is list:return all(plain(item) for item in v)
         if type(v) is dict:return all(type(k) is str and plain(x) for k,x in v.items())
         return False
@@ -260,6 +264,18 @@ def _capture_reads(guard):
                     binding=value['native_origin_binding']))
                 return sha256(raw).digest() if len(raw)<=forecasts.MAX_CAPTURE_BYTES else None
             except (KeyError,TypeError,ValueError,RecursionError,OverflowError):return None
+        def source_context(value):
+            # Only these fields enter the original file-inventory function.
+            # Freeze them before callbacks without cloning geometry, forecast,
+            # trajectory and other fields which this operation never reads.
+            if type(value) is not dict:return None
+            try:
+                if type(value['candidate']) is not dict:return None
+                selected=dict(schema=value['schema'],candidate=dict(runtime=value['candidate']['runtime']),
+                    native_origin_binding=value['native_origin_binding'])
+                _json_key(selected)
+                return deepcopy(selected)
+            except (KeyError,TypeError,ValueError,RecursionError,OverflowError):return None
         def source_snapshot(value,names,check):
             # The unchanged codec's own deadline adapter retains numeric/None
             # semantics. Full byte reads bracket its final caller checkpoint.
@@ -283,7 +299,9 @@ def _capture_reads(guard):
             inventory=_source_reads.get()
             if (_capture_frame.get() is not frame or type(inventory) is not OriginalSourceInventory or
                     not known_inventory()):return original_files(value,check_budget=check_budget)
-            value=deepcopy(value);key=source_key(value)
+            selected=source_context(value)
+            if selected is None:return original_files(value,check_budget=check_budget)
+            value=selected;key=source_key(value)
             if key is None:return original_files(value,check_budget=check_budget)
             admitted=source_admission.get();saved=None
             if admitted is not None and admitted[0] is inventory and admitted[1] and admitted[1][0][0]==key:
@@ -313,7 +331,9 @@ def _capture_reads(guard):
             if (_capture_frame.get() is not frame or type(inventory) is not OriginalSourceInventory or
                     not known_inventory() or original_snapshot.__code__ is not snapshot_code):
                 return original_snapshot(value,check_budget=check_budget)
-            value=deepcopy(value);key=source_key(value)
+            selected=source_context(value)
+            if selected is None:return original_snapshot(value,check_budget=check_budget)
+            value=selected;key=source_key(value)
             saved=next((metadata['source'][1] for capture_key,(metadata,_) in cache.items()
                 if capture_key[0] is inventory and metadata['source'] is not None and metadata['source'][0]==key),None)
             if saved is None:return original_snapshot(value,check_budget=check_budget)
@@ -361,11 +381,13 @@ def _capture_reads(guard):
             if (_capture_frame.get() is not frame or type(inventory) is not OriginalSourceInventory or
                     type(model) is not serving.ServingModel or getattr(model,'_seal',None) is not serving._SEAL or
                     type(expected_capture_sha256) is not str):return full()
-            value=deepcopy(value)
+            try:encoded=_json_key(value)
+            except (TypeError,ValueError,RecursionError,OverflowError):return full()
+            value=json.loads(encoded)
             check_budget();guard()
             refs=dependencies(value) if type(value) is dict else None
             if refs is None or value.get('weather_conditioning') is not None and not known_weather():return full()
-            try:key=(inventory,sha256(_json_key(value)).digest(),sha256(model._encoded).digest(),
+            try:key=(inventory,sha256(encoded).digest(),sha256(model._encoded).digest(),
                     sha256(model._selection._encoded).digest(),expected_capture_sha256)
             except (ValueError,TypeError,RecursionError,OverflowError):return full()
             if key in cache:
@@ -374,7 +396,7 @@ def _capture_reads(guard):
                 # admission/chronology check even when numerical work is reused.
                 model.verify_bindings(assessed_at=value['issued_at'],guard=check_budget)
                 observe_dependencies(value,refs,check_budget)
-                result=deepcopy(value);check_budget();guard()
+                result=json.loads(encoded);check_budget();guard()
                 if value.get('weather_conditioning') is not None and not known_weather():return full()
                 return result
             admitted=[];admission_token=weather_admission.set(admitted)
