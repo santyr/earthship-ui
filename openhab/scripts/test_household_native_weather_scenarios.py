@@ -12,10 +12,19 @@ from test_household_weather_scenarios import POLICY
 
 
 def api():return importlib.import_module('weather_learning.native_scenarios')
-def setup(tmp_path,monkeypatch,originals):
+def setup(tmp_path,monkeypatch,originals,*,segmented=False):
  import native_thermal_forecast as native
- c,inputs,kw=native_case(tmp_path,monkeypatch,originals)
- capture=native.build_capture(c,inputs,**kw)
+ if segmented:
+  from test_native_temperature_segmented_integration import new_capture
+  capture,kw=new_capture(tmp_path,monkeypatch,originals)
+  c,inputs=capture['candidate'],capture['inputs']
+  # The shared numerical fixture stubs the legacy decoder. Restore the real
+  # decoder so this regression exercises the production format dispatch.
+  from thermal_model.installed_shade_raw_score_sources import replay_compressed_native_origin_binding
+  monkeypatch.setattr(native,'replay_binding',replay_compressed_native_origin_binding)
+ else:
+  c,inputs,kw=native_case(tmp_path,monkeypatch,originals)
+  capture=native.build_capture(c,inputs,**kw)
  # Synthetic native fixtures supply original-shaped runtime/geometry. This
  # injection keeps numerical tests separate from the real producer-source probe.
  monkeypatch.setattr(api(),'current_native_runtime',lambda **kw:capture['candidate']['runtime'])
@@ -165,3 +174,26 @@ def test_legacy_conditioner_preserves_original_corrected_right_hour_at_fractiona
  assert result[-2].radiation_wm2==pytest.approx(600.)
  assert result[-1].radiation_wm2==pytest.approx(600.)
  assert result[-2].outdoor_f==pytest.approx(55.4075)
+
+
+def test_segmented_original_sensitivity_reproduces_the_complete_central_trajectory(tmp_path,monkeypatch,originals):
+ capture,ctx,scenarios,positions,kw=setup(tmp_path,monkeypatch,originals,segmented=True)
+ assert capture['schema']=='earthship-provisional-thermal-origin/v4'
+ output=api().project_native_scenario(scenarios[0],ctx,positions=positions)
+ assert len(output['trajectory'])==len(capture['output']['trajectory'])==24
+ for actual,original in zip(output['trajectory'],capture['output']['trajectory']):
+  assert actual['at']==original['at']
+  assert actual['air_f']==pytest.approx(original['air_f'],abs=1e-9)
+  assert actual['mass_f']==pytest.approx(original['mass_f'],abs=1e-9)
+ assert output['model_sha256']==capture['candidate']['artifact_sha256']
+ assert output['automatic_actuation'] is output['probability_claim'] is False
+
+
+def test_segmented_original_sensitivity_rereads_all_children_after_context_preparation(tmp_path,monkeypatch,originals):
+ import native_thermal_forecast as native
+ capture,ctx,scenarios,positions,kw=setup(tmp_path,monkeypatch,originals,segmented=True)
+ paths=native.origin_source_files(capture)
+ assert len(paths)>=4
+ paths[-1].unlink()
+ with pytest.raises((OSError,ValueError)):
+  api().project_native_scenario(scenarios[0],ctx,positions=positions)
