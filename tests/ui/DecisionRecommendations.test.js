@@ -45,7 +45,7 @@ it('marks provisional suggestions expired at their domain deadline on a quiet st
  data.domains.ventilation={status:'conditional',reason:'provisional_comfort_comparison',missing:[],valid_until:new Date(Date.parse(fixture.evaluated_at)+30000).toISOString(),comparison:[{alternative:'Leave unchanged',outcome:'Existing conditions',value:null,unit:'qualitative',metric:'directional_thermal_effect',horizon_end:fixture.valid_until},{alternative:'Ventilate briefly',outcome:'Provisional comfort band 70–76°F.',value:null,unit:'qualitative',metric:'directional_thermal_effect',horizon_end:fixture.valid_until}]};
  let at=Date.parse(fixture.evaluated_at);vi.spyOn(Date,'now').mockImplementation(()=>at);vi.useFakeTimers();vi.stubGlobal('fetch',vi.fn(async url=>new Response(JSON.stringify(url==='/api/household-advice'?data:url.endsWith('context')?{targets:[]}:url.endsWith('state')?{declarations:[],checks:{}}:{events:[]}))));
  const r=render(DecisionRecommendations,{header:true});await vi.advanceTimersByTimeAsync(10);
- expect(r.getByRole('button',{name:/Suggestions.*Ventilate briefly/i}).getAttribute('aria-label')).not.toContain('Expired');
+ expect(r.getByRole('button',{name:/Suggestions.*Ventilate briefly/i}).getAttribute('aria-label')).not.toContain('Stale');
  at+=31000;await vi.advanceTimersByTimeAsync(31000);
- expect(r.getByRole('button',{name:/Suggestions.*Expired.*Ventilate briefly/i})).toBeTruthy();
+ expect(r.getByRole('button',{name:/Suggestions.*Stale.*Ventilate briefly/i})).toBeTruthy();
 });
