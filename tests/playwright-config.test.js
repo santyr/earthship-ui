@@ -15,3 +15,14 @@ describe('Playwright repository fixture isolation', () => {
     });
   });
 });
+
+describe('supported browser entrypoints', () => {
+  it('separates fixtures and sensors and blocks service workers', async () => {
+    const { default: config } = await import('../playwright.config.js');
+    expect(config.use.serviceWorkers).toBe('block');
+    expect(config.projects.map(({ name, testIgnore, testMatch }) => ({ name, ...(testIgnore ? { testIgnore } : {}), ...(testMatch ? { testMatch } : {}) }))).toEqual([
+      { name: 'fixtures', testIgnore: '**/sensors-layout.spec.js' },
+      { name: 'sensors', testMatch: '**/sensors-layout.spec.js' },
+    ]);
+  });
+});

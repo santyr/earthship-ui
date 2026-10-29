@@ -66,10 +66,10 @@ def pipeline(**changes):
     args.update(changes);return pipeline_api().seal_pipeline(**args)
 
 
-def test_models_remain_observable_without_generating_retired_action_families():
+def test_models_generate_bounded_typed_proposals_with_unknown_causal_effects():
     result=pipeline();out=result['output']
     assert out['projections']['energy']['output']['curtail']>0
-    assert out['candidate_intents']==[]
+    assert {item['type'] for item in out['candidate_intents']}=={'RUN_GREYWATER_CYCLE','SET_NIGHT_LOAD_OVERRIDE'}
     assert all(item['shadowOnly'] for item in out['candidate_intents'])
     assert all(all(value is None for value in item['predictedEffects'].values()) for item in out['candidate_intents'])
     assert out['plan_receipt']['plan']['selected_intent_ids']==[]
@@ -107,7 +107,7 @@ def test_pipeline_rederives_models_candidates_and_complete_plan_without_reads(mo
 def test_resealed_pipeline_cannot_preserve_changed_derived_results(damage):
     result=pipeline()
     if damage=='trajectory':result['output']['projections']['energy']['output']['trough_pred']=0
-    elif damage=='candidate':result['output']['candidate_intents']=[{'type':'RUN_GREYWATER_CYCLE'}]
+    elif damage=='candidate':result['output']['candidate_intents']=[]
     elif damage=='utility':result['output']['plan_receipt']['plan']['objective']['total']=1e6
     else:result['operator_approval']=True
     result['receipt_sha256']=identity({key:value for key,value in result.items() if key!='receipt_sha256'})

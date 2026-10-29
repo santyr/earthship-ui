@@ -87,8 +87,11 @@
   }
 
   .daily-forecast[data-forecast-variant='home'] {
-    grid-template-columns: repeat(10, minmax(0, 1fr));
+    grid-template-columns: repeat(10, minmax(max-content, 1fr));
     gap: 0.3rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
   }
 
   .daily-forecast[data-forecast-variant='weather'] {
@@ -113,6 +116,7 @@
   .daily-forecast[data-forecast-variant='home'] .forecast-day {
     display: grid;
     grid-template-rows: repeat(4, minmax(0, auto));
+    line-height: 1.1;
     place-items: center;
     text-align: center;
   }

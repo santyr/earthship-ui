@@ -69,8 +69,8 @@ def test_exact_horizon_uses_only_its_cumulative_energy_and_SOC_targets(tmp_path,
     assert projection['minimum_nominal_soc_pct']==min(storage['initial_soc_pct'],*(r['nominal_soc_pct'] for r in storage['trajectory'][:horizon]))
     assert out['candidate_generation']['reason'] is None,out['candidate_generation']
     kinds={v['type'] for v in out['candidate_intents']}
-    assert kinds==set()
-    assert out['no_action_intent']['type']=='NO_ACTION'
+    assert ('RUN_GREYWATER_CYCLE' in kinds)==(projection['modeled_unaccepted_pv_kwh']>0)
+    assert ('SET_NIGHT_LOAD_OVERRIDE' in kinds)==(projection['minimum_nominal_soc_pct']<args['plan_receipt']['inputs']['config']['low_trough_threshold_soc_pct'])
     units=out['candidate_generation']['objective_units'];assert units['surplus_weight']=='declared_preference_points_per_nominal_unaccepted_DC_kWh'
 
 
@@ -148,8 +148,7 @@ def declared_gates(snapshot,horizon):
 def test_nominal_model_cannot_supply_action_effects_even_when_every_declared_gate_passes(tmp_path,monkeypatch,originals):
     api,args=case(tmp_path,monkeypatch,originals,coordination_factory=declared_gates)
     out=api.seal_trajectory_plan(**args)['output'];plan=out['plan_receipt']['plan']
-    assert out['candidate_intents']==[] and plan['reserve_checks']['baseline_floor_soc']==90
-    assert plan['planner_version']=='bounded_exhaustive_v2'
+    assert out['candidate_intents'] and plan['reserve_checks']['baseline_floor_soc']==90
     assert plan['selected_intent_ids']==[]
     for row in plan['candidate_decisions']:
         checks={v['rule']:v for v in row['hard_checks']}

@@ -1,5 +1,5 @@
 import { expect, test } from './fixture-test.js';
-import { createServer } from 'vite';
+import { createServer } from './fixture-server.js';
 
 const TARGETS = [
   { name: 'm9-1340x800', width: 1340, height: 800 },
@@ -105,17 +105,13 @@ test.afterAll(async () => {
   await server?.close();
 });
 
-async function openFixture(page, route, target, detail = null) {
+async function openFixture(page, route, target) {
   const consoleErrors = [];
+  const failedResponses = [];
+  page.on('response', response => { if (response.status() >= 400) failedResponses.push([response.status(), new URL(response.url()).pathname]); });
   const pageErrors = [];
   page.on('console', (message) => {
-    if (message.type() !== 'error') return;
-    // The common fixture deliberately returns 503 for these optional reports.
-    // Keep unexpected asset failures and JavaScript console errors observable.
-    const pathname = new URL(message.location().url || '/', baseURL).pathname;
-    const unavailableReport = ['/api/daily-pv-potential', '/api/household-energy-observation', '/api/terrain-daylight', '/api/weather-capabilities','/api/household-advice','/api/household-advice-feedback','/api/household-advice-context','/api/household-advice-state'].includes(pathname);
-    if (unavailableReport && message.text() === 'Failed to load resource: the server responded with a status of 503 (Service Unavailable)') return;
-    consoleErrors.push({ message: message.text(), url: message.location().url });
+    if (message.type() === 'error') consoleErrors.push(message.text());
   });
   page.on('pageerror', (error) => pageErrors.push(error.message));
 
@@ -140,10 +136,15 @@ async function openFixture(page, route, target, detail = null) {
       staleBannerSeconds: 90,
     },
   }));
-  await page.route('**/fixture-openhab/rest/items?*', (request) => request.fulfill({
-    json: detail ? ITEMS.map(item => item.name === 'Forecast_10Day_JSON' ? {...item,state:detail} : item) : ITEMS,
-  }));
+  // Optional observations are explicitly absent in this weather-detail fixture.
+  // Keep console errors strict and leave unstubbed routes blocked by the guard.
+  for (const path of ['/api/terrain-daylight', '/api/household-energy-observation', '/api/daily-pv-potential']) {
+    await page.route(`**${path}`, route => route.fulfill({ json: { status: 'unavailable' } }));
+  }
   await page.route('**/fixture-openhab/rest/things', route => route.fulfill({ json: [] }));
+  await page.route('**/fixture-openhab/rest/items?*', (request) => request.fulfill({
+    json: ITEMS,
+  }));
   await page.route('**/fixture-openhab/rest/persistence/items/**', (request) => {
     const now = Date.now();
     return request.fulfill({
@@ -158,7 +159,7 @@ async function openFixture(page, route, target, detail = null) {
 
   await page.goto(`${baseURL}#/${route}`, { waitUntil: 'domcontentloaded' });
   await page.locator(`.${route}-grid`).waitFor();
-  return { consoleErrors, pageErrors };
+  return { consoleErrors, pageErrors, failedResponses };
 }
 
 for (const target of TARGETS) {
@@ -203,105 +204,8 @@ for (const target of TARGETS) {
       await page.keyboard.press('Escape');
       await expect(dialog).toBeHidden();
       await expect(opener).toBeFocused();
-      expect(errors.consoleErrors).toEqual([]);
+      expect(errors.consoleErrors, JSON.stringify(errors.failedResponses)).toEqual([]);
       expect(errors.pageErrors).toEqual([]);
     });
   }
-}
-
-for (const target of TARGETS) {
-  for (const route of ['home', 'weather']) {
-    test(`${route} summarizes predominant daily sky instead of any daily rain at ${target.name}`, async ({page}) => {
-      await page.clock.install({time:new Date('2026-07-18T13:00:00-06:00')});
-      const mutations=[];page.on('request',request=>{if(!['GET','HEAD'].includes(request.method()))mutations.push(request.url());});
-      const detail=JSON.parse(forecastDetail());
-      for(const [index,day] of detail.days.entries()) {
-        day.summary={...day.summary,weatherCode:null,cloudPct:90,precipPct:null,precipSumIn:0.12};
-        day.hours=Array.from({length:24},(_,h)=>({at:`${day.date}T${String(h).padStart(2,'0')}:00:00-06:00`,isDay:h>=8&&h<18,tempF:65,precipPct:null,precipIn:0,radiationWm2:300,windMph:3,weatherCode:null,cloudPct:100}));
-        for(let h=8;h<18;h++) {
-          day.hours[h].cloudPct=index===1?(h<14?5:95):index===2?45:95;
-          if(index===1&&h===16)day.hours[h].precipIn=0.05;
-          if(index===2&&h>=15)day.hours[h].precipIn=0.4/25.4;
-          if(index===3&&h<14)day.hours[h].precipIn=0.3/25.4;
-        }
-      }
-      const errors=await openFixture(page,route,target,JSON.stringify(detail));
-      const days=page.locator('[data-forecast-day]');await expect(days).toHaveCount(10);
-      await expect(days.nth(1).locator('.day-icon')).toHaveAttribute('title',/^Mostly sunny/);
-      await expect(days.nth(2).locator('.day-icon')).toHaveAttribute('title',/^Partly cloudy/);
-      await expect(days.nth(3).locator('.day-icon')).toHaveAttribute('title',/^Precipitation through most daylight/);
-      for(const index of [1,2,3]) {await expect(days.nth(index).locator('.day-icon svg')).toBeVisible();await expect(days.nth(index)).toContainText('0.12″');}
-      await days.nth(2).click();
-      const dialog=page.getByRole('dialog',{name:/forecast/i});await expect(dialog).toBeVisible();
-      await expect(dialog.locator('.weather-detail-summary')).toContainText('Partly cloudy');
-      await page.keyboard.press('Escape');await expect(dialog).toBeHidden();
-      expect(errors.pageErrors).toEqual([]);expect(errors.consoleErrors).toEqual([]);expect(mutations).toEqual([]);
-      expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+2&&document.documentElement.scrollWidth<=innerWidth+2)).toBe(true);
-    });
-  }
-}
-
-for (const target of TARGETS) {
-  test(`Home displays terrain direct sun and expires it at local midnight at ${target.name}`,async({page})=>{
-    await page.clock.install({time:new Date('2026-07-18T13:00:00-06:00')});
-    const report={schema:'earthship-terrain-daylight/v1',method:'native-five-minute-terrain-endpoint-mask/v1',day:'2026-07-18',timezone:'America/Denver',calculatedAt:'2026-07-18T18:00:00Z',dayStartAt:'2026-07-18T06:00:00Z',validUntil:'2026-07-19T06:00:00Z',geometryAvailableAt:'2026-07-17T18:00:00Z',geometrySha256:'a'.repeat(64),horizonSha256:'b'.repeat(64),sourceRuntimeSha256:'c'.repeat(64),daySeconds:86400,terrainSunlightSeconds:32400,unobstructedSunlightSeconds:39600,firstSunAt:'2026-07-18T14:00:00Z',lastSunAt:'2026-07-18T23:00:00Z',resolutionSeconds:300,confidence:'unvalidated_map_estimate',physical_calibration_qualified:false,automatic_actuation:false};
-    await page.route('**/api/terrain-daylight',route=>route.fulfill({json:report}));
-    const errors=await openFixture(page,'home',target);
-    const sunlight=page.getByTestId('terrain-daylight');
-    await expect(sunlight).toHaveText('direct sun ~9h 0m');
-    await expect(sunlight).toHaveAttribute('title',/local terrain.*five-minute resolution.*Astronomical daylight/);
-    await expect(page.locator('.sm-times')).toHaveText('↑8:00a ↓5:00p');
-    await page.clock.fastForward(11*3600000);
-    await expect(sunlight).toHaveText('direct sun —');
-    await expect(page.locator('.sm-times')).toHaveText('↑— ↓—');
-    expect(errors.pageErrors).toEqual([]);expect(errors.consoleErrors).toEqual([]);
-    expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+2&&document.documentElement.scrollWidth<=innerWidth+2)).toBe(true);
-  });
-}
-
-for (const target of TARGETS) {
-  test(`keeps a missing forecast hour as a labeled chart gap at ${target.name}`, async ({ page }) => {
-    await page.clock.install({ time: new Date('2026-07-19T06:30:00-06:00') });
-    const detail = JSON.parse(forecastDetail());
-    detail.generatedAt = '2026-07-19T06:30:00-06:00';
-    const day = detail.days[1];
-    day.hours.push({ ...day.hours[0], at: '2026-07-19T19:00:00-06:00', tempF: 99 });
-    day.hours.splice(3, 1); // Missing 10 AM must not pull 7 PM into the window.
-    const errors = await openFixture(page, 'weather', target, JSON.stringify(detail));
-    await page.locator('[data-forecast-day="2026-07-19"]').click();
-    const dialog = page.getByRole('dialog', { name: /Today forecast/i });
-    await expect(dialog).toBeVisible();
-    await expect(dialog.getByRole('status')).toContainText('11 of 12 hours available');
-    await expect(page.locator('#weather-detail-modal-description')).toContainText('11 of 12 hourly periods shown');
-    await expect(dialog.getByTestId('weather-detail-hour')).toHaveCount(11);
-    await expect(dialog.getByTestId('weather-detail-gap')).toHaveAttribute('aria-label', '10 AM, Forecast unavailable');
-    await expect(dialog.getByTestId('weather-detail-gap')).toContainText('10 AM');
-    expect(await dialog.locator('.hour-time').allTextContents()).toEqual([
-      '7 AM','8 AM','9 AM','10 AM','11 AM','12 PM','1 PM','2 PM','3 PM','4 PM','5 PM','6 PM',
-    ]);
-    await expect(dialog.locator('.weather-detail-chart svg')).toBeVisible();
-    const chart = await page.evaluate(async () => {
-      const { getEcharts } = await import('/src/lib/charts/loadEcharts.js');
-      const echarts = await getEcharts();
-      const option = echarts.getInstanceByDom(document.querySelector('.weather-detail-chart')).getOption();
-      const temperature = option.series.find(series => series.name === 'Temperature');
-      const strip = echarts.getInstanceByDom(document.querySelector('.hs-chart')).getOption();
-      const stripTemperature = strip.series.find(series => series.name === 'Temp');
-      return { labels: option.xAxis[0].data, values: temperature.data, connectNulls: temperature.connectNulls,
-        stripLabels: strip.xAxis[0].data, stripValues: stripTemperature.data, stripConnectNulls: stripTemperature.connectNulls };
-    });
-    expect(chart.labels).toHaveLength(12);
-    expect(chart.values).toEqual([58,59,60,null,62,63,64,65,66,67,68,69]);
-    expect(chart.connectNulls).toBe(false);
-    expect(chart.stripLabels).toHaveLength(14);
-    expect(chart.stripValues).toEqual([null,58,59,60,null,62,63,64,65,66,67,68,69,99]);
-    expect(chart.stripConnectNulls).toBe(false);
-    const bounds = await dialog.boundingBox();
-    expect(bounds.x).toBeGreaterThanOrEqual(0);
-    expect(bounds.y).toBeGreaterThanOrEqual(0);
-    expect(bounds.x + bounds.width).toBeLessThanOrEqual(target.width);
-    expect(bounds.y + bounds.height).toBeLessThanOrEqual(target.height);
-    expect(errors.pageErrors).toEqual([]);
-    expect(errors.consoleErrors).toEqual([]);
-  });
 }

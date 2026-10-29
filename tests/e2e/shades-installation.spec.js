@@ -1,5 +1,5 @@
 import { test as base, expect } from '@playwright/test';
-import { createServer } from 'vite';
+import { createServer } from './fixture-server.js';
 import { SHADE_SLOTS } from '../../src/lib/shades/catalog.js';
 import { emptyShadeInstallation } from '../../src/lib/shades/installation.js';
 

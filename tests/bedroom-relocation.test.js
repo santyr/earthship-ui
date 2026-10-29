@@ -1,0 +1,10 @@
+import { describe,expect,it } from 'vitest';
+import {readFileSync} from 'node:fs';
+import * as sensor from '../src/lib/thermal/officeHallwayTemperature.js';
+import {SHADE_GROUPS} from '../src/lib/shades/catalog.js';
+const boundary="2026-10-24T23:14:52Z";
+const at=Date.parse(boundary),epoch='831b737c-ab25-48d7-9a90-889746e56410';
+function receipt(received=at){return JSON.stringify({version:2,streamEpoch:epoch,records:{bedroom:{version:2,streamEpoch:epoch,sensorEpoch:'edbd6e3b-ed67-4a0f-9a00-405996be0528',model:'AmbientWeather-WH31E',sensorId:223,field:'tempinf',status:'valid',reason:'accepted',temperatureF:66.92,receivedAt:new Date(received).toISOString(),recordedAt:new Date(received).toISOString(),validUntil:new Date(received+120000).toISOString()}}});}
+it('rejects still-fresh former-location receipts before the prospective Bedroom boundary',()=>{expect(sensor.officeHallwayTemperature(receipt(at-1),at)).toBeNull();expect(sensor.officeHallwayTemperature(receipt(at),at)).toBe(66.92);expect(sensor.officeHallwayTemperature(receipt(at),at+120000)).toBeNull();});
+it('keeps the Bedroom source off Living Room and associates it only with actual Bedroom',()=>{expect(SHADE_GROUPS.map(x=>[x.id,x.temperatureItem,x.temperatureRole])).toEqual([['kitchen','AmbientWeatherWS2902A_IndoorSensor_Temperature','hallway_kitchen_reference'],['living',null,'unavailable'],['bathroom',null,'unavailable'],['bedroom','Bedroom_Temperature','bedroom_sensor']]);});
+it('records the new operational boundary while preserving the historical Office Hallway interval',()=>{const r=JSON.parse(readFileSync('openhab/thermal-zone-sensors.json','utf8'));expect(sensor.BEDROOM_VALID_FROM).toBe(boundary);expect(r.zones.bedroom).toMatchObject({item:'Bedroom_Temperature',stream:'bedroom',sensor_id:223,observations_valid_from:boundary,learning_enabled:false});expect(r.zones.living.item).toBeNull();expect(r.zones.office_hallway).toMatchObject({item:null,stream:null,role:'historical_location',observations_valid_from:'2026-09-30T23:15:00Z',observations_valid_until:boundary,learning_enabled:false});});

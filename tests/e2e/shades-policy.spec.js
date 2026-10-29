@@ -1,5 +1,5 @@
 import { test as base, expect } from '@playwright/test';
-import { createServer } from 'vite';
+import { createServer } from './fixture-server.js';
 
 // This suite's policy writes are fulfilled in-browser. No household proxy or
 // motor request may escape the fixture, including in secondary clients.

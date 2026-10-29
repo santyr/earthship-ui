@@ -1,5 +1,5 @@
 import { expect, test } from './fixture-test.js';
-import { createServer } from 'vite';
+import { createServer } from './fixture-server.js';
 
 const TARGETS = [
   { name: 'm9-1340x800', width: 1340, height: 800 },

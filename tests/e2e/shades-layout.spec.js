@@ -1,5 +1,5 @@
 import { expect, test } from './fixture-test.js';
-import { createServer } from 'vite';
+import { createServer } from './fixture-server.js';
 
 const TARGETS = [
   { name: 'lenovo-m9', width: 1340, height: 800 },
@@ -20,17 +20,25 @@ test.beforeAll(async () => {
 
 test.afterAll(async () => { await server?.close(); });
 
-test('Bedroom never borrows the relocated Office Hallway sensor or held Item', async ({ page }) => {
+test('Bedroom uses its relocated sensor prospectively and never supplies Living Room', async ({ page }) => {
   const now = Date.now();
   await page.clock.install({ time: new Date(now) });
   const epoch = '831b737c-ab25-48d7-9a90-889746e56410';
-  const snapshot = JSON.stringify({ version: 1, streamEpoch: epoch, records: { bedroom: {
-    version: 1, streamEpoch: epoch, model: 'AmbientWeather-WH31E', sensorId: 223,
+  const snapshot = JSON.stringify({ version: 2, streamEpoch: epoch, records: { bedroom: {
+    version: 2, streamEpoch: epoch, sensorEpoch: 'edbd6e3b-ed67-4a0f-9a00-405996be0528', model: 'AmbientWeather-WH31E', sensorId: 223,
     field: 'tempinf', status: 'valid', reason: 'accepted', temperatureF: 71.4,
     receivedAt: new Date(now).toISOString(), recordedAt: new Date(now).toISOString(),
     validUntil: new Date(now + 120_000).toISOString(),
   } } });
   await page.setViewportSize({ width: 1340, height: 800 });
+  // Reuse the Home fixture's stable read-only SSE transport.
+  await page.addInitScript(() => {
+    class FixtureEventSource {
+      constructor() { setTimeout(() => this.onopen?.({type:'open'}), 0); }
+      close() {}
+    }
+    Object.defineProperty(window, 'EventSource', {configurable:true,writable:true,value:FixtureEventSource});
+  });
   await page.route('**/config.json', route => route.fulfill({ json: { openhabUrl: '/fixture-openhab', apiToken: 'fixture' } }));
   await page.route('**/fixture-openhab/rest/items?*', route => route.fulfill({ json: [
     { name: 'Weather_Temperature_Evidence_JSON', type: 'String', state: snapshot },
@@ -41,12 +49,16 @@ test('Bedroom never borrows the relocated Office Hallway sensor or held Item', a
   await page.route('**/fixture-openhab/rest/events?*', route => route.fulfill({
     contentType: 'text/event-stream', body: ': fixture\n\n',
   }));
+  await page.goto(`${baseURL}#/home`);
+  await expect(page.locator('.zone-row').filter({hasText: /^Bedroom/})).toContainText('71°');
+  await expect(page.locator('.zone-row').filter({hasText: 'Office Hallway'})).toHaveCount(0);
   await page.goto(`${baseURL}#/shades`);
+  await expect(page.locator('[aria-label="Living Room shades"] .sensor-evidence')).toHaveText('Zone temperature pending');
   await page.getByRole('button', { name: 'Bathroom + Bedroom', exact: true }).click();
   const label = page.locator('[aria-label="Bedroom shades"] .sensor-evidence');
-  await expect(label).toHaveText('Zone temperature pending');
+  await expect(label).toHaveText('Bedroom temperature 71.4 °F');
   await page.clock.fastForward(120_001);
-  await expect(label).toHaveText('Zone temperature pending');
+  await expect(label).toHaveText('Bedroom temperature unavailable');
 });
 
 test('shared preview accepts all 26 slots but rejects the removed 27th shade', async ({ request }) => {

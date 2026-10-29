@@ -24,3 +24,10 @@ change to decision validity requires its own explicit contract and qualification
 This cadence follows the read-only winter/summer analysis retained in
 `artifacts/indoor-thermal-inertia-20261029.local/REPORT.md`. Numerical models,
 receiver policy, forecast schedules and equipment-control permissions are unchanged.
+
+Deployed 2026-10-29: `artifacts/suggestion-refresh-20261029.local/ui-release-suggestions-20261029-a03`.
+Signed source: `0b52dc1`, branch `fix/suggestion-refresh-20261029`.
+Detailed qualification, original failures, deployment and guarded rollback are
+recorded in `openspec/changes/align-suggestion-refresh-cadence/evidence.md`.
+Live publication verification is recorded separately in
+`artifacts/suggestion-refresh-20261029.local/live-suggestions.json`.

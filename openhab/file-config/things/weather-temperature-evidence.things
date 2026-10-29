@@ -7,7 +7,7 @@ Thing http:url:weatherTemperatureEvidence "Weather temperature receipt evidence"
     commandMethod="GET",
     delay=0,
     ignoreSSLErrors=false,
-    refresh=30,
+    refresh=2,
     stateMethod="GET",
     timeout=3000
 ] {

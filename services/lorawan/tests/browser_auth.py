@@ -15,6 +15,7 @@ import urllib.parse
 import urllib.request
 
 from services.lorawan.runtime import private_config
+from services.lorawan.tests.stack_ownership import assert_owned_stack, owned_urlopen
 
 OPENHAB = 'http://127.0.0.1:18084'
 PRIVATE = Path('.superpowers/lorawan-private')
@@ -33,7 +34,7 @@ class Inputs(HTMLParser):
 def request(path, data=None, headers=None):
     payload = None if data is None else urllib.parse.urlencode(data).encode()
     req = urllib.request.Request(OPENHAB + path, data=payload, headers=headers or {})
-    with urllib.request.urlopen(req, timeout=5) as response:
+    with owned_urlopen(req, timeout=5) as response:
         body = response.read(65537)
         if len(body) > 65536:raise ValueError('bounded disposable auth response required')
         return body.decode()
@@ -43,6 +44,7 @@ def prepare_browser_auth():
     if (os.environ.get('SENSOR_INTEGRATION') != '1' or
         private_config(PRIVATE / 'ingest.json')['environment'] != 'simulation'):
         raise ValueError('explicit disposable simulation fixture required')
+    assert_owned_stack()
     path = PRIVATE / 'browser-auth.json'
     if path.exists():
         token = private_config_token(path)

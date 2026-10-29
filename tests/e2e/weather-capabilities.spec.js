@@ -1,5 +1,5 @@
 import {test,expect} from './fixture-test.js';
-import {createServer} from 'vite';
+import {createServer} from './fixture-server.js';
 import {readFileSync} from 'node:fs';
 const atmosphericOriginals=JSON.parse(readFileSync(new URL('../fixtures/weather-atmosphere.json',import.meta.url),'utf8'));
 import {capabilityFixture,CAPABILITY_NOW} from '../fixtures/weather-capabilities.js';

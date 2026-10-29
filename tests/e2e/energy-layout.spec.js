@@ -1,8 +1,8 @@
 import { expect, test } from './fixture-test.js';
-import { energyForecastFixture } from '../fixtures/energyForecast.js';
-import { createServer } from 'vite';
+import { createServer } from './fixture-server.js';
 
 import { energyAnalyticsFixture, energyAnalyticsV2Fixture, energyAnalyticsCurrentV3Fixture } from '../fixtures/energyAnalytics.js';
+import { energyForecastFixture } from '../fixtures/energyForecast.js';
 
 const TARGETS = [
   { name: 'm9-1340x800', width: 1340, height: 800 },
@@ -89,7 +89,6 @@ async function openEnergyFixture(page, target, analytics = energyAnalyticsFixtur
       ...states, Energy_Analytics_JSON: JSON.stringify(analytics) })
       .map(([name, state]) => ({ name, state, type: 'String' })),
   }));
-  await page.route('**/fixture-openhab/rest/things', route => route.fulfill({ json: [] }));
   await page.route('**/fixture-openhab/rest/persistence/items/**', async (route) => {
     const url = new URL(route.request().url());
     historyRequests.push(url);
@@ -118,18 +117,18 @@ test('Energy withholds a held numeric SoC when source evidence is unavailable', 
   await expect(page.locator('.hero-soc')).toHaveText('SoC —');
 });
 
-test('Energy ignores retired PV error values when the current potential is unavailable', async ({ page }) => {
+test('Energy PV forecast error is not presented as a prediction interval', async ({ page }) => {
   await openEnergyFixture(page, TARGETS[0]);
   const badge = page.locator('.pv-badge');
-  await expect(badge).toHaveText('Potential estimate unavailable');
-  await expect(badge).toHaveAttribute('title', /waiting for a current PV potential forecast/i);
+  await expect(badge).toHaveText('Forecast error 13%');
+  await expect(badge).toHaveAttribute('title', /mean absolute percentage error.*not a prediction interval/i);
 });
 
-test('Energy keeps potential unavailable without a current forecast', async ({ page }) => {
+test('Energy PV forecast error is explicitly unavailable without a score', async ({ page }) => {
   await openEnergyFixture(page, TARGETS[0], energyAnalyticsFixture(), {
     Forecast_PV_Error_7d: 'UNDEF',
   });
-  await expect(page.locator('.pv-badge')).toHaveText('Potential estimate unavailable');
+  await expect(page.locator('.pv-badge')).toHaveText('Forecast error unavailable');
 });
 
 test('Energy distinguishes stale BMS telemetry from a reported fault', async ({ page }) => {
@@ -178,14 +177,14 @@ test('Energy withholds a morning PV comparison before its dated issue while reta
       ],
     }),
   });
-  await expect(page.locator('.pv-sub')).toHaveText('PV forecast unavailable');
+  await expect(page.locator('.pv-sub')).toHaveText('morning forecast unavailable');
   await expect(page.locator('.outlook-value')).toHaveText(['3.3', '5.5']);
   await expect(page.locator('.curtail-value')).toHaveText('Unavailable');
   await expect(page.locator('.hero-trough').filter({ hasText: /^Estimated trough / })).toHaveCount(0);
   await expect(page.locator('.hero-trough').filter({ hasText: /^Predicted SoC / })).toHaveText('Predicted SoC unavailable');
 });
 
-test('Energy does not revive a retired morning PV forecast', async ({ page }) => {
+test('Energy marks realized PV above the immutable morning forecast', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-09-24T13:00:00-06:00') });
   await openEnergyFixture(page, TARGETS[0], energyAnalyticsFixture(), {
     MPPT60_EnergyFromPV_Today: '8.4',
@@ -195,7 +194,7 @@ test('Energy does not revive a retired morning PV forecast', async ({ page }) =>
       thermalAdvisory: 'none|No thermal action needed',
     }),
   });
-  await expect(page.locator('.pv-sub')).toHaveText('PV forecast unavailable');
+  await expect(page.locator('.pv-sub')).toHaveText('above 5.4 kWh morning forecast');
 });
 
 test('Energy uses current curtailment energy without a legacy prediction and expires it', async ({ page }) => {
@@ -216,7 +215,7 @@ test('Energy uses current curtailment energy without a legacy prediction and exp
   await expect(page.locator('.curtail-bar-fill')).toHaveAttribute('style', /width: 0%/);
 });
 
-test('Energy ignores retired pre-dusk estimates without mixing them into current history', async ({ page }) => {
+test('Energy shows one dated pre-dusk estimate without mixing forecasts into measured history', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-09-24T18:10:00-06:00') });
   const historyRequests = await openEnergyFixture(page, TARGETS[0], energyAnalyticsFixture(), {
     Forecast_Prediction_Receipt_JSON: JSON.stringify({
@@ -234,23 +233,26 @@ test('Energy ignores retired pre-dusk estimates without mixing them into current
       socAtIssuePct: 99, overnightDropPct: 19.333, overnightTroughSocPct: 80,
     }),
   });
-  await expect(page.locator('.hero-trough').filter({ hasText: /^Estimated trough / })).toHaveCount(0);
+  await expect(page.locator('.hero-trough').filter({ hasText: /^Estimated trough / })).toHaveText('Estimated trough 80%');
+  await expect(page.locator('.hero-trough').filter({ hasText: /^Estimated trough / })).toHaveCount(1);
+  await expect(page.locator('.hero-trough').filter({ hasText: /^Estimated trough / })).toHaveAttribute('title', /estimate/i);
+  await expect(page.locator('.hero-trough').filter({ hasText: /^Predicted SoC / })).toHaveText('Predicted SoC unavailable');
   await expect(page.getByText('Battery history', { exact: true })).toHaveCount(1);
   await expect(page.locator('.hero-chart svg text').filter({ hasText: /^Pre-dusk trough$/ })).toHaveCount(0);
   expect(historyRequests.some(url => url.pathname.includes('Predicted_SoC_Trough'))).toBe(false);
-  await expect(page.locator('.pv-sub')).toHaveText('PV forecast unavailable');
-  // Advancing across the old target window must not revive retired estimates.
+  await expect(page.locator('.pv-sub')).toContainText('morning forecast');
+  // Retain the last estimate until replaced, marking completed target windows.
   await page.clock.setSystemTime(new Date('2026-09-25T06:40:00-06:00'));
   await page.clock.runFor(31_000);
-  await expect(page.locator('.hero-trough').filter({ hasText: /^Estimated trough / })).toHaveCount(0);
+  await expect(page.locator('.hero-trough').filter({ hasText: /^Estimated trough / })).toHaveText('Estimated trough 80%');
   await page.clock.setSystemTime(new Date('2026-09-25T11:00:00-06:00'));
   await page.clock.runFor(31_000);
-  await expect(page.locator('.hero-trough').filter({ hasText: /^Estimated trough / })).toHaveCount(0);
+  await expect(page.locator('.hero-trough').filter({ hasText: /^Estimated trough / })).toHaveText('Estimated trough 80% · Sep 24 night');
   await expect(page.locator('.hero-chart svg text').filter({ hasText: /^Pre-dusk trough$/ })).toHaveCount(0);
 });
 
 for (const target of TARGETS) {
-  test(`Energy keeps both history plots readable at ${target.name}`, async ({ page }, testInfo) => {
+  test(`Energy keeps both history plots readable at ${target.name}`, async ({ page }) => {
     await openEnergyFixture(page, target);
 
     const geometry = await page.evaluate(() => {
@@ -260,10 +262,6 @@ for (const target of TARGETS) {
       };
       return {
         grid: box(document.querySelector('.energy-grid')),
-        layout: [...document.querySelectorAll('.energy-grid, .energy-grid > .cell, .hero-body, .hero-chart, .hero-footer, .hero-cell .recommendation')].map(element => ({
-          className: element.className, ...box(element),
-          clientHeight: element.clientHeight, scrollHeight: element.scrollHeight,
-        })),
         heroPlot: box(document.querySelector('.hero-chart svg')),
         pvPlot: box(document.querySelector('.pv-chart svg')),
         overflowingCells: [...document.querySelectorAll('.energy-grid > .cell')]
@@ -274,7 +272,6 @@ for (const target of TARGETS) {
       };
     });
 
-    await testInfo.attach('energy-layout.json', { body: JSON.stringify(geometry), contentType: 'application/json' });
     expect(geometry.heroPlot.height).toBeGreaterThanOrEqual(64);
     expect(geometry.pvPlot.height).toBeGreaterThanOrEqual(64);
     expect(geometry.overflowingCells).toEqual([]);
@@ -312,7 +309,8 @@ test('Lenovo Energy shows dated observed and earlier estimated EFC without horiz
   await expect(page.getByText('Charge cycles', { exact: true })).toBeVisible();
   await expect(page.locator('.vital-value[title*="Not equivalent full cycles"]')).toHaveText('2');
   await expect(page.getByText('BMS remaining', { exact: true })).toBeVisible();
-  await expect(page.getByText('Predicted Curtailment · Next 24 Hours', { exact: true })).toBeVisible();
+  await expect(page.locator('.curtail-cell .tile-label')).toHaveText('Predicted Curtailment · Next 24 Hours');
+  await expect(page.locator('.curtail-value')).toHaveText('Unavailable');
   await page.getByRole('button', { name: 'Open energy analytics details' }).click();
   await expect(page.getByText('Earlier estimated EFC (Jul 19–Sep 19)')).toBeVisible();
   await expect(page.getByText('9.81')).toBeVisible();
@@ -359,4 +357,47 @@ test('Energy renders legacy battery cycle evidence as unavailable', async ({ pag
     .toHaveText('Unavailable');
   await expect(dialog.getByText('Daily estimated EFC').locator('..').locator('dd'))
     .toHaveText('Unavailable');
+});
+
+test('analytics v5 keeps scoped potentials and expires them without a new Item', async ({ page }, testInfo) => {
+  const { analyticsV5Fixture, GENERATED_AT_MS } = await import('../fixtures/analyticsV5.js');
+  const analytics = analyticsV5Fixture();
+  analytics.generatedAt = new Date(GENERATED_AT_MS + 60_000).toISOString();
+  await page.clock.install({ time: new Date(GENERATED_AT_MS + 60_000) });
+  await openEnergyFixture(page, TARGETS[0], analytics);
+  await page.getByRole('button', { name: 'Open energy analytics details' }).click();
+  const panel = page.getByRole('dialog', { name: 'Energy analytics details' });
+  await expect(panel.getByText('PV potential remaining today', { exact: true })).toBeVisible();
+  await expect(panel.getByText('PV potential tomorrow (full day)', { exact: true })).toBeVisible();
+  await expect(panel.getByText('PV potential next 24 hours', { exact: true })).toBeVisible();
+  await expect(panel.getByText('Modeled captured PV next 24 hours', { exact: true })).toBeVisible();
+  await expect(panel.getByText('Experimental component estimate — physical calibration unqualified')).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('analytics-v5-current.png') });
+  await page.clock.fastForward(14 * 60_000);
+  await expect(panel.getByText('PV potential next 24 hours', { exact: true })).toHaveCount(0);
+  await expect(panel.getByText('Modeled captured PV next 24 hours', { exact: true })).toHaveCount(0);
+  await expect(panel.getByText('PV potential remaining today', { exact: true })).toBeVisible();
+  await page.clock.fastForward(90_000);
+  await expect(panel.getByText('PV potential remaining today', { exact: true })).toHaveCount(0);
+  await expect(panel.getByText('12.5 kWh', { exact: true })).toBeVisible();
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.screenshot({ path: testInfo.outputPath('analytics-v5-expired.png') });
+});
+
+test('analytics retained Item does not relabel prior-day PV after Denver midnight', async ({ page }) => {
+  const { analyticsV5MidnightFixture } = await import('../fixtures/analyticsV5.js');
+  const analytics=analyticsV5MidnightFixture('2026-10-25T05:46:00Z','2026-10-25T06:00:00Z','2026-10-26T06:00:00Z');
+  await page.clock.install({time:new Date(analytics.generatedAt)});
+  await openEnergyFixture(page,TARGETS[0],analytics);
+  await page.getByRole('button',{name:'Open energy analytics details'}).click();
+  const panel=page.getByRole('dialog',{name:'Energy analytics details'});
+  const remaining=panel.getByText('PV potential remaining today',{exact:true}).locator('..').locator('dd');
+  const tomorrow=panel.getByText('PV potential tomorrow (full day)',{exact:true}).locator('..').locator('dd');
+  await expect(remaining).toHaveText('4.0 kWh');
+  await expect(tomorrow).toHaveText('12.0 kWh');
+  await page.clock.fastForward(6*60000);
+  await expect(remaining).toHaveText('Unavailable');
+  await expect(tomorrow).toHaveText('Unavailable');
+  await expect(panel.getByText('PV potential next 24 hours',{exact:true}).locator('..').locator('dd')).toHaveText('15.0 kWh');
+  await expect(panel.getByText('12.5 kWh',{exact:true})).toBeVisible();
 });

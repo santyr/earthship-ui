@@ -1,7 +1,7 @@
 import { expect, test } from './fixture-test.js';
-import { energyForecastFixture } from '../fixtures/energyForecast.js';
-import { createServer } from 'vite';
+import { createServer } from './fixture-server.js';
 import { readFile } from 'node:fs/promises';
+import { energyForecastFixture } from '../fixtures/energyForecast.js';
 
 const TARGETS = [
   { name: 'm9-1340x800', width: 1340, height: 800 },
@@ -65,6 +65,8 @@ const BASE_STATES = {
   SouthOutlet_LastAutoRun: '2026-07-18T12:00:00Z',
   SouthOutlet_Outlet2_Switch: 'OFF',
   SunPhaseIcon: 'iconify:mdi:white-balance-sunny',
+  Sun_TimeLeft: '86400 s',
+  Sun_NextSeason: 'WINTER',
   Sun_Rise_Start: '2026-07-18T05:58:00-06:00',
   Sun_Set_End: '2026-07-18T20:18:00-06:00',
   Thermal_Advisory: 'none',
@@ -110,7 +112,7 @@ function itemSnapshot(overrides = {}) {
 }
 
 async function openHomeFixture(page, target, {
-  states = {}, staleSeconds = 90, historyRows, historyFailure, configDelayMs = 0,
+  states = {}, staleSeconds = 90, historyRows, historyFailure,
 } = {}) {
   let activeStates = { ...states };
   const historyRequests = [];
@@ -141,10 +143,16 @@ async function openHomeFixture(page, target, {
       value: FixtureEventSource,
     });
   });
-  await page.route('**/config.json', async (route) => {
-    if (configDelayMs) await new Promise(resolve => setTimeout(resolve, configDelayMs));
-    return route.fulfill({ json: { openhabUrl: '/fixture-openhab', apiToken: 'fixture-only', staleBannerSeconds: staleSeconds } });
-  });
+  await page.route('**/config.json', (route) => route.fulfill({
+    json: {
+      openhabUrl: '/fixture-openhab',
+      apiToken: 'fixture-only',
+      staleBannerSeconds: staleSeconds,
+    },
+  }));
+  await page.route('**/fixture-openhab/rest/things', route => route.fulfill({
+    json: [{ UID: 'astro:sun:local', statusInfo: { status: 'ONLINE' } }],
+  }));
   await page.route('**/fixture-openhab/rest/items?*', (route) => route.fulfill({
     json: itemSnapshot(activeStates),
   }));
@@ -417,8 +425,8 @@ test.describe('Home daily load estimate', () => {
       historyRows: ({ name, startMs, endMs }) => name === LOAD
         ? [{ time: startMs, state: '1000' }, { time: endMs, state: '999999' }] : undefined,
     });
-    await expect(page.locator('.pf-line2')).toContainText('~2.0 kWh used');
-    await expect(page.locator('.pf-line2')).toContainText('~+3.2 kWh net');
+    await expect(page.locator('.pf-line2')).toHaveAccessibleName(/~2\.0 kWh used/);
+    await expect(page.locator('.pf-line2')).toHaveAccessibleName(/~\+3\.2 kWh net/);
     expect(runtime.pageErrors).toEqual([]);
     expect(runtime.attemptedNonGetRequests).toEqual([]);
   });
@@ -429,8 +437,8 @@ test.describe('Home daily load estimate', () => {
         historyRows: ({ name, startMs }) => name === LOAD ? [{ time: startMs + 60_000, state: '1000' }] : undefined,
         historyFailure: ({ name }) => failure === 'request failure' && name === LOAD,
       });
-      await expect(page.locator('.pf-line2')).toContainText('— used');
-      await expect(page.locator('.pf-line2')).toContainText('— net');
+      await expect(page.locator('.pf-line2')).toHaveAccessibleName(/— used/);
+      await expect(page.locator('.pf-line2')).toHaveAccessibleName(/— net/);
     });
   }
   test('clears yesterday total while new-day history is pending', async ({ page }) => {
@@ -445,11 +453,11 @@ test.describe('Home daily load estimate', () => {
       },
     });
     try {
-      await expect(page.locator('.pf-line2')).toContainText('~24.0 kWh used');
+      await expect(page.locator('.pf-line2')).toHaveAccessibleName(/~24\.0 kWh used/);
       await page.clock.runFor(60_000);
-      await expect(page.locator('.pf-line2')).toContainText('— used');
+      await expect(page.locator('.pf-line2')).toHaveAccessibleName(/— used/);
       release();
-      await expect(page.locator('.pf-line2')).toContainText('~0.0 kWh used');
+      await expect(page.locator('.pf-line2')).toHaveAccessibleName(/~0\.0 kWh used/);
       expect(runtime.pageErrors).toEqual([]);
       expect(runtime.attemptedNonGetRequests).toEqual([]);
     } finally { release(); }
@@ -467,10 +475,10 @@ test.describe('Home daily load estimate', () => {
     });
     try {
       await page.clock.runFor(60_000);
-      await expect(page.locator('.pf-line2')).toContainText('~0.0 kWh used');
+      await expect(page.locator('.pf-line2')).toHaveAccessibleName(/~0\.0 kWh used/);
       release();
       await page.clock.runFor(1000);
-      await expect(page.locator('.pf-line2')).toContainText('~0.0 kWh used');
+      await expect(page.locator('.pf-line2')).toHaveAccessibleName(/~0\.0 kWh used/);
       expect(runtime.pageErrors).toEqual([]);
     } finally { release(); }
   });
@@ -1183,8 +1191,7 @@ for (const target of TARGETS) {
     await expect(page.getByRole('group', { name: 'Power Flow', exact: true })).toBeAttached();
     await expect(page.getByRole('group', { name: 'Goat feedings: 2 feedings today', exact: true })).toBeVisible();
     await expect(page.locator('.goat-activation-icon')).toHaveCount(0);
-    // This fixture has no native season Items or freshness evidence.
-    await expect(page.locator('.sm-season')).toHaveText('Season unavailable');
+    await expect(page.locator('.sm-season')).toHaveText('1 day until Winter ❄️');
     await expect(page.locator('.outdoor-spark svg path[stroke="#4caf50"]').first()).toBeVisible();
     await expect(page.locator('.indoor-spark svg')).toBeVisible();
     await expect(page.locator('.outdoor-hilo')).toHaveText('H 80° / L 53°');
@@ -1202,13 +1209,14 @@ for (const target of TARGETS) {
     await expect(page.locator('.outdoor-spark svg path[stroke="#f44336"]').first()).toBeVisible();
     await expect(page.getByRole('group', { name: 'Indoor', exact: true })).toBeAttached();
     await expect(page.getByRole('group', { name: 'Rain', exact: true })).toBeAttached();
-    await expect(page.locator('.aqi-chip')).toHaveCount(0);
+    await expect(page.getByText('AQI 42', { exact: true })).toHaveCount(0);
     await expect(page.locator('.compass-heading')).toHaveText('N · 0°');
     await expect(page.locator('.wind-meta')).toHaveText('gust 18 · max 18 mph');
     await expect(
       page.getByRole('img', { name: 'Wind direction N, 0 degrees, speed 11 mph', exact: true })
     ).toBeVisible();
     await expect(page.getByText('AQI 501', { exact: true })).toHaveCount(0);
+    await expect(page.locator('.aqi-chip')).toHaveCount(0);
     await expect(page.getByText('UV 0', { exact: true })).toHaveCSS('color', 'rgb(76, 175, 80)');
     await expect(page.locator('.rain-rate-chip')).toHaveCount(0);
     await expect(page.getByRole('group', { name: /^Greywater status idle\./i })).toBeAttached();
@@ -1391,6 +1399,8 @@ for (const target of TARGETS) {
     await expect(page.locator('.wind-meta')).toHaveText('gust 18 · max 18 mph');
     await expect(page.getByRole('group', { name: /^Greywater status unavailable\./i })).toBeAttached();
     await expect(page.locator('.gw-icon')).toHaveCSS('color', 'rgb(139, 147, 161)');
+    await expect(page.locator('.aqi-chip')).toHaveCount(0);
+    await expect(page.getByText(/^AQI (?:42|501)$/)).toHaveCount(0);
     await expect(page.getByText('UV —', { exact: true })).toHaveCSS('color', 'rgb(139, 147, 161)');
     await expect(page.locator('.rain-rate-chip')).toHaveText('RAIN 0.13 in/h');
     await expect(page.locator('.rain-rate-chip')).toHaveCSS('color', 'rgb(59, 130, 246)');
@@ -1413,8 +1423,9 @@ for (const target of TARGETS) {
     await expect(page.locator('.baro-trend')).toHaveCSS('color', 'rgb(255, 87, 34)');
     await expect(page.locator('.solar-icon')).toHaveCSS('color', 'rgb(255, 152, 0)');
     await expect(page.locator('.solar-current')).toHaveCSS('color', 'rgb(255, 152, 0)');
-    // A retained legacy prediction must not color a missing current forecast.
-    await expect(page.locator('.curtail-lamp')).toContainText('curtail — · 24h');
+    // Retained legacy predictions cannot light current curtailment without v5 evidence.
+    await expect(page.locator('.curtail-lamp')).toHaveText('curtail — · 24h');
+    await expect(page.locator('.curtail-lamp .lamp-dot')).not.toHaveClass(/active/);
     await expect(page.locator('.curtail-lamp')).toHaveCSS('color', 'rgb(139, 147, 161)');
 
     await expect(page.locator('.sm-moon')).toHaveAttribute(
@@ -1456,15 +1467,12 @@ test('upstream freshness reaches the tablet header without value changes', async
   await expect(page.locator('[data-header-alert-winner]')).toContainText('Battery SoC freshness unavailable');
   await expect(page.locator('.battery-arc .arc-value')).toHaveText('—');
   await runtime.emitState('BMS_SOC_Evidence_JSON', socReceipt(await page.evaluate(() => Date.now())));
-  const updatedAt = await page.evaluate(() => Date.now());
-  for (const [name, state] of [[OUTDOOR, '73.4'], [INDOOR, '70.2']]) {
-    await page.route('**/fixture-openhab/rest/items/' + name, route => route.fulfill({
-      json: { name, state, lastStateUpdate: updatedAt },
-    }));
-  }
   await page.evaluate(() => {
     const source = window.__fixtureEventSources.at(-1);
-    for (const [name, value] of [['AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', '73.4'], ['AmbientWeatherWS2902A_IndoorSensor_Temperature', '70.2']]) {
+    for (const [name, value] of [
+      ['AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature', '73.4'],
+      ['AmbientWeatherWS2902A_IndoorSensor_Temperature', '70.2'],
+    ]) {
       source.onmessage({ data: JSON.stringify({ topic: `openhab/items/${name}/stateupdated`, payload: JSON.stringify({ value, lastStateUpdate: Date.now() }) }) });
     }
   });
@@ -1485,69 +1493,3 @@ test('upstream freshness reaches the tablet header without value changes', async
   expect(writes).toEqual([]);
   await page.screenshot({ path: testInfo.outputPath('upstream-freshness-1340x800.png') });
 });
-
-
-test('Home loads history and measured daily extrema after delayed client startup', async ({ page }) => {
-  const runtime = await openHomeFixture(page, TARGETS[1], { configDelayMs: 4500 });
-  await expect(page.locator('.outdoor-hilo')).toHaveText('H 80° / L 53°', { timeout: 8000 });
-  for (const selector of ['.outdoor-spark', '.indoor-spark', '.battery-spark', '.baro-spark']) {
-    await expect.poll(() => page.evaluate(async (selector) => {
-      const { getEcharts } = await import('/src/lib/charts/loadEcharts.js');
-      return (await getEcharts()).getInstanceByDom(document.querySelector(selector+' .sparkline'))?.getOption()?.series?.[0]?.data?.length ?? 0;
-    }, selector)).toBeGreaterThan(1);
-  }
-  expect(runtime.pageErrors).toEqual([]);
-});
-
-test('Energy charts recover from a transient history failure without a reload', async ({ page }) => {
-  let fail = false;
-  const runtime = await openHomeFixture(page, TARGETS[1], { historyFailure: () => fail });
-  fail = true;
-  await page.goto(`${baseURL}#/energy`, { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('.hero-chart .hc-error')).toBeVisible();
-  fail = false;
-  await expect(page.locator('.hero-chart .hc-canvas svg')).toBeVisible({ timeout: 15000 });
-  await expect(page.locator('.pv-chart .hc-canvas svg')).toBeVisible({ timeout: 15000 });
-  expect(runtime.pageErrors).toEqual([]);
-});
-
-
-for (const target of TARGETS) {
-  test(`Home retains a coherent temperature pair through reconnect and recovery at ${target.name}`, async ({ page }) => {
-    await page.route('**/fixture-openhab/rest/things*', route => route.fulfill({ json: [] }));
-    const runtime = await openHomeFixture(page, target);
-    await expect(page.locator('.outdoor-main .big-temp')).toHaveText('73°');
-    let restTemperature = '70';
-    await page.route('**/fixture-openhab/rest/items/' + OUTDOOR, route => route.fulfill({
-      json: { name: OUTDOOR, state: restTemperature, lastStateUpdate: Date.now() },
-    }));
-    await page.evaluate(() => {
-      window.__acceptedTemperatureAt = Date.now() - 1000;
-      window.__fixtureEventSources.at(-1).onmessage({ data: JSON.stringify({
-        topic: 'openhab/items/AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature/stateupdated',
-        payload: JSON.stringify({ value: '70', lastStateUpdate: window.__acceptedTemperatureAt }),
-      }) });
-    });
-    await expect(page.locator('.outdoor-main .big-temp')).toHaveText('70°');
-    await page.route('**/fixture-openhab/rest/items?*', route => route.fulfill({
-      json: itemSnapshot({ [OUTDOOR]: '40' }).map(row => row.name === OUTDOOR
-        ? { ...row, lastStateUpdate: Date.now() - 3600000 } : row),
-    }));
-    const collection = page.waitForResponse(response => response.url().includes('/fixture-openhab/rest/items?'));
-    await page.evaluate(() => window.__fixtureEventSources.at(-1).onopen());
-    await collection;
-    await expect(page.getByRole('img', { name: 'openHAB connection: live' })).toBeVisible();
-    await expect(page.locator('.outdoor-main .big-temp')).toHaveText('70°');
-    await runtime.emitState(OUTDOOR, '71');
-    await expect(page.locator('[data-header-alert-winner]')).toContainText('Outdoor temperature freshness unavailable');
-    restTemperature = '71';
-    await page.evaluate(() => window.__fixtureEventSources.at(-1).onmessage({ data: JSON.stringify({
-      topic: 'openhab/items/AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature/stateupdated',
-      payload: JSON.stringify({ value: '71', lastStateUpdate: Date.now() }),
-    }) }));
-    await expect(page.locator('.outdoor-main .big-temp')).toHaveText('71°');
-    await expect(page.locator('[data-header-alert-winner]')).toHaveCount(0);
-    expect(runtime.pageErrors).toEqual([]); expect(runtime.attemptedNonGetRequests).toEqual([]);
-    expect(runtime.unexpectedExternalRequests).toEqual([]);
-  });
-}

@@ -33,24 +33,29 @@ vi.mock('../../src/lib/openhab/index.js', async () => {
   };
 });
 
-import { connection, items } from '../../src/lib/openhab/index.js';
+import { connection, items, clientReady } from '../../src/lib/openhab/index.js';
 import Header from '../../src/lib/ui/Header.svelte';
+import Clock from '../../src/lib/ui/Clock.svelte';
+import { currentRoute } from '../../src/routes.js';
+import { tick } from 'svelte';
+import { startStalenessMonitor, alertContext } from '../../src/lib/alerts/alertStore.js';
+let stopStalenessMonitor;
 
-function thermalWarningReceipt(now = Date.now()) {
-  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Denver',
-    year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now);
-  const date = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
-  return JSON.stringify({ version: 1,
-    predictionDay: `${date.year}-${date.month}-${date.day}`,
-    issuedAt: new Date(now).toISOString(), pvTodayKwh: 3.3, curtailmentHoursToday: 0,
-    overnightTroughSocPct: 55,
-    thermalAdvisory: 'close_up_tomorrow|Close up for thermal storage' });
+function aqiEvidence(aqi) {
+  const fetchedAt = Date.now() - 1000;
+  return JSON.stringify({ version:1, schema:'openmeteo-current-us-aqi/v1',
+    sourceThing:'openmeteo:air-quality:local:aq', sourceItem:'Current_US_AQI',
+    sourceChannel:'openmeteo:air-quality:local:aq:current#us-aqi',
+    status:'valid', reason:'ok', fetchedAt, itemUpdatedAt:fetchedAt+735,
+    validUntil:fetchedAt+75*60_000, aqi });
 }
 
 describe('Header alerts UI', () => {
   beforeEach(() => {
     mocks.navigate.mockReset();
+    currentRoute.set('home');
     connection.set('live');
+    clientReady.set(false);
     items.set({
       BMS_Comms_Status: 'OK',
       BMS_DevicePresent: '1',
@@ -62,7 +67,12 @@ describe('Header alerts UI', () => {
     });
   });
 
-  afterEach(cleanup);
+  afterEach(() => {
+    stopStalenessMonitor?.();
+    stopStalenessMonitor = undefined;
+    cleanup();
+    alertContext.set({ staleEssentials: [], batteryAlarms: [] });
+  });
 
   it('is visually blank with an accessible status when no alerts are active', () => {
     const { container } = render(Header);
@@ -76,7 +86,9 @@ describe('Header alerts UI', () => {
     connection.set('offline');
     items.update((value) => ({
       ...value,
-      BMS_DevicePresent: '0',
+      Current_US_AQI: '119',
+      Current_US_AQI_Evidence_JSON: aqiEvidence(119),
+      BMS_Comms_Status:'FAULT',
     }));
     render(Header);
 
@@ -87,7 +99,8 @@ describe('Header alerts UI', () => {
 
     const list = screen.getByRole('dialog', { name: 'Active alerts' });
     expect(list).toHaveTextContent('openHAB offline');
-    expect(list).toHaveTextContent('The battery-management device is not present.');
+    expect(list).toHaveTextContent('BMS communication status: FAULT');
+    expect(list).not.toHaveTextContent('Modeled US AQI 119');
     expect(list.querySelectorAll('[data-alert-list-item]')).toHaveLength(2);
   });
 
@@ -113,13 +126,14 @@ describe('Header alerts UI', () => {
   });
 
   it('announces only newly entered offline or critical transitions assertively', async () => {
+    stopStalenessMonitor = startStalenessMonitor();
     const { container } = render(Header);
     const assertive = container.querySelector('[aria-live="assertive"]');
     expect(assertive).toHaveTextContent('');
 
-    items.update((value) => ({ ...value, Forecast_Prediction_Receipt_JSON: thermalWarningReceipt() }));
+    clientReady.set(true);
     await vi.waitFor(() => {
-      expect(container.querySelector('[aria-live="polite"]')).toHaveTextContent('No active alerts');
+      expect(container.querySelector('[aria-live="polite"]')).toHaveTextContent(/Indoor temperature freshness unavailable/);
     });
     expect(assertive).toHaveTextContent('');
 
@@ -133,4 +147,47 @@ describe('Header alerts UI', () => {
       expect(assertive).toHaveTextContent('openHAB offline');
     });
   });
+  it('keeps only the date in Home header and restores compact time on another route', async () => {
+    const { container } = render(Header);
+    const date = new Date().toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+    expect(container.querySelector('.clock')).toHaveTextContent(date);
+    expect(container.querySelector('.time')).toBeNull();
+
+    currentRoute.set('energy');
+    await tick();
+    expect(container.querySelector('.time')).toHaveTextContent(/\d{1,2}:\d{2} [AP]M/);
+    expect(container.querySelector('.date')).toHaveTextContent(date);
+
+    currentRoute.set('home');
+    await tick();
+    expect(container.querySelector('.time')).toBeNull();
+    expect(container.querySelectorAll('.date')).toHaveLength(1);
+  });
+
+  it('ticks conditional Clock content across midnight and clears its interval on teardown', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-10-26T23:59:59-06:00'));
+      const baseline = vi.getTimerCount();
+      const view = render(Clock, { showTime: false });
+      expect(view.container.querySelector('.time')).toBeNull();
+      const oldDate = view.container.textContent;
+      await vi.advanceTimersByTimeAsync(1000);
+      await tick();
+      expect(view.container.textContent).not.toBe(oldDate);
+      await view.rerender({ showTime: true, showDate: false });
+      expect(view.container.querySelector('.date')).toBeNull();
+      expect(view.container.querySelector('.time')).toHaveTextContent('12:00 AM');
+      await vi.advanceTimersByTimeAsync(60_000);
+      await tick();
+      expect(view.container.querySelector('.time')).toHaveTextContent('12:01 AM');
+      expect(vi.getTimerCount()).toBe(baseline + 1);
+      view.unmount();
+      expect(vi.getTimerCount()).toBe(baseline);
+    } finally {
+      cleanup();
+      vi.useRealTimers();
+    }
+  });
+
 });

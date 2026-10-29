@@ -14,6 +14,7 @@
   // move to a separate Controls screen).
   import { onMount, onDestroy, untrack } from 'svelte';
   import Tile from '../lib/ui/Tile.svelte';
+  import Clock from '../lib/ui/Clock.svelte';
   import StatTile from '../lib/ui/StatTile.svelte';
   import Arc from '../lib/ui/Arc.svelte';
   import Sparkline from '../lib/ui/Sparkline.svelte';
@@ -264,6 +265,58 @@
     document.removeEventListener('visibilitychange', handleDayVisibility);
   });
 
+
+  // Fit the wider of the two energy rows, including current values and icons.
+  // Actions run only in the browser; the SSR/default style remains readable
+  // and horizontally scrollable until layout is available.
+  function fitEnergyLine(node) {
+    const line = node.firstElementChild;
+    let active = true;
+    let frame = null;
+    let lastWidth = -1;
+    const fit = () => {
+      if (!active || !node.isConnected || !line?.isConnected) return;
+      const available = node.clientWidth;
+      if (available <= 1) return;
+      const minimum = window.innerWidth < 500 ? 6 : 2;
+      line.style.fontSize = '12px';
+      const natural = line.getBoundingClientRect().width;
+      if (!natural) return;
+      let size = Math.min(12, Math.max(minimum, Math.floor(12 * (available - 1) / natural * 100) / 100));
+      line.style.fontSize = `${size}px`;
+      // At most two corrections account for rounded glyph/emoji widths.
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        const actual = line.getBoundingClientRect().width;
+        if (actual <= available || size <= minimum) break;
+        size = Math.max(minimum, Math.floor(size * (available - 1) / actual * 100) / 100);
+        line.style.fontSize = `${size}px`;
+      }
+    };
+    const schedule = () => {
+      if (!active || frame !== null) return;
+      if (typeof requestAnimationFrame !== 'function') { fit(); return; }
+      frame = requestAnimationFrame(() => { frame = null; if (active) fit(); });
+    };
+    const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(() => {
+      const width = node.clientWidth;
+      if (width !== lastWidth) { lastWidth = width; schedule(); }
+    }) : null;
+    observer?.observe(node);
+    window.addEventListener('resize', schedule);
+    document.fonts?.ready?.then(schedule);
+    schedule();
+    return {
+      update: schedule,
+      destroy() {
+        active = false;
+        observer?.disconnect();
+        window.removeEventListener('resize', schedule);
+        if (frame !== null && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(frame);
+        frame = null;
+      },
+    };
+  }
+
   // ---- Small null-safe formatting helpers ----------------------------------
 
 
@@ -318,6 +371,9 @@
   const pvToday = $derived(num($items.MPPT60_EnergyFromPV_Today));
   const netToday = $derived(pvToday === null || loadToday === null ? null : pvToday - loadToday);
   const netTodayColor = $derived(netStateColor(netToday));
+  const powerFlowLabel = $derived(`Power: solar ${numFmt(pvWatts, ' W')}; battery ${battFlow.text}; load ${numFmt(loadWatts, ' W')}; net ${signedFmt(netWatts, ' W')}.`);
+  const dailyEnergyLabel = $derived(`Today: ${numFmt(pvToday, ' kWh', 1)} in · ${loadToday === null ? '—' : `~${numFmt(loadToday, ' kWh', 1)}`} used · ${netToday === null ? '—' : `~${signedFmt(netToday, ' kWh', 1)}`} net. Load and daily net are estimates from held power-history states, refreshed every five minutes; not a source-health measurement.`);
+
 
   const outdoorTemp = $derived(num(stationItems.AmbientWeatherWS2902A_WeatherDataWs2902a_Temperature));
   const astroContext = $derived({ states:$items, evidence:$itemUpdateEvidence, now:Math.max(wallClock, Date.now()),
@@ -402,7 +458,7 @@
       mk('Hallway', 'AmbientWeatherWS2902A_IndoorSensor_Temperature'),
       mk('N.Wall', 'AmbientWeatherWS2902A_WH31E_193_Temperature'),
       mk('S.Glass', 'Shelly_HT1_Indoor_Temperature'),
-      { label: 'Office Hallway', temp: $connection === 'live' ? officeHallwayTemperature($items.Weather_Temperature_Evidence_JSON, Math.max(wallClock, Date.now())) : null,
+      { label: 'Bedroom', temp: $connection === 'live' ? officeHallwayTemperature($items.Weather_Temperature_Evidence_JSON, Math.max(wallClock, Date.now())) : null,
         delta: null },
     ];
   });
@@ -524,22 +580,22 @@
   <div class="cell powerflow-cell">
       <Tile label="Power Flow" accent={colors.solar} hideLabel fill clip centerBody padding="0.55rem 0.65rem">
         <div class="powerflow-body">
-          <div class="pf-line1">
-            <span class="pf-seg" style="color: {colors.solar}">&#9728; {numFmt(pvWatts, ' W')}</span>
-            <span class="pf-arrow">&rarr;</span>
-            <span class="pf-seg" style="color: {battFlow.color}"
-              >&#128267; {battFlow.text} {battFlow.glyph}</span
-            >
-            <span class="pf-arrow">&rarr;</span>
-            <span class="pf-seg pf-load">&#127968; {numFmt(loadWatts, ' W')}</span>
-            <span class="pf-sep">&middot;</span>
-            <span class="pf-net" style="color: {netColor}">net {signedFmt(netWatts, ' W')}</span>
-          </div>
-          <div class="pf-line2" title="Load and daily net are estimates from held power-history states, refreshed every five minutes; not a source-health measurement.">
-            Today: {numFmt(pvToday, ' kWh', 1)} in &middot; {loadToday === null
-              ? '—'
-              : `~${numFmt(loadToday, ' kWh', 1)}`} used &middot;
-            <span style="color: {netTodayColor}">{netToday === null ? '—' : `~${signedFmt(netToday, ' kWh', 1)}`} net</span>
+          <div class="powerflow-clock"><Clock large showDate={false} /></div>
+          <div class="powerflow-metrics" role="region" tabindex="0" aria-label="Power and daily energy" use:fitEnergyLine={[powerFlowLabel, dailyEnergyLabel]}>
+            <div class="pf-energy-line">
+              <div class="pf-line1" role="group" aria-label={powerFlowLabel} title={powerFlowLabel}>
+                <span class="pf-seg" style="color: {colors.solar}">&#9728; {numFmt(pvWatts, ' W')}</span>
+                <span class="pf-seg" style="color: {battFlow.color}">&#128267; {battFlow.text} {battFlow.glyph}</span>
+                <span class="pf-seg pf-load">&#127968; {numFmt(loadWatts, ' W')}</span>
+                <span class="pf-net" style="color: {netColor}">net {signedFmt(netWatts, ' W')}</span>
+              </div>
+              <div class="pf-line2" role="group" aria-label={dailyEnergyLabel} title={dailyEnergyLabel}>
+                <span class="pf-label">Today:</span>
+                <span class="pf-daily">{numFmt(pvToday, ' kWh', 1)} in</span>
+                <span class="pf-daily">{loadToday === null ? '—' : `~${numFmt(loadToday, ' kWh', 1)}`} used</span>
+                <span class="pf-daily" style="color: {netTodayColor}">{netToday === null ? '—' : `~${signedFmt(netToday, ' kWh', 1)}`} net</span>
+              </div>
+            </div>
           </div>
         </div>
       </Tile>
@@ -801,7 +857,7 @@
   </div>
 
   <div class="cell zones-cell">
-    <Tile label="Zones" accent={colors.temperature} hideLabel fill clip centerBody padding="0.65rem">
+    <Tile label="Zones" accent={colors.temperature} hideLabel fill clip centerBody padding="var(--home-zones-padding, 0.65rem)">
       <div class="zones-body">
         {#each zonesList as z (z.label)}
           <div class="zone-row">
@@ -817,7 +873,7 @@
   </div>
 
   <div class="cell forecast-cell">
-    <Tile label="Forecast" accent={colors.forecast} hideLabel fill clip centerBody padding="0.55rem 0.65rem">
+    <Tile label="Forecast" accent={colors.forecast} hideLabel fill clip centerBody padding="var(--home-forecast-padding, 0.55rem 0.65rem)">
       <DailyForecast days={forecastDays} variant="home" onselect={selectForecastDay} />
     </Tile>
   </div>
@@ -832,7 +888,7 @@
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
     grid-template-rows:
-      minmax(3.2rem, 0.38fr)
+      minmax(5.75rem, 0.38fr)
       repeat(6, minmax(0, 0.425fr))
       minmax(0, 0.72fr);
     grid-template-areas:
@@ -907,47 +963,96 @@
 
   /* ---- Power-flow strip; advisories live only in the fixed header. ---- */
   .powerflow-body {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    height: 100%;
-    gap: 0.2rem;
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: center;
+    gap: 1rem;
     min-width: 0;
   }
-  .pf-line1 {
+  .powerflow-clock {
+    padding-right: 1rem;
+    border-right: 1px solid #30394a;
+  }
+  .powerflow-clock :global(.clock.large .time) {
+    font-size: 4rem;
+  }
+  .powerflow-metrics {
     display: flex;
     align-items: baseline;
-    flex-wrap: nowrap;
-    gap: 0.5rem;
-    font-size: 0.82rem;
-    font-weight: 600;
+    min-width: 0;
+    overflow-x: auto;
+    white-space: nowrap;
+    font-size: 0.75rem;
+    line-height: 1.35;
     font-variant-numeric: tabular-nums;
+    scrollbar-width: thin;
+  }
+  .pf-energy-line {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex: 0 0 auto;
+    gap: 0.2em;
+    font-size: 12px;
+    padding-right: 1px;
     white-space: nowrap;
-    overflow: hidden;
-    color: #e6edf3;
   }
-  .pf-seg {
+  .pf-line1, .pf-line2 {
+    display: flex;
+    align-items: baseline;
+    flex: 0 0 auto;
+    gap: 0.3em;
     white-space: nowrap;
   }
-  .pf-load {
-    color: #c7cfd9;
+  .pf-line1 { font-weight: 600; color: #e6edf3; }
+  .pf-line2, .pf-label { color: #aab4c2; }
+  .pf-seg, .pf-net, .pf-daily, .pf-label { flex: 0 0 auto; }
+  .pf-load { color: #c7cfd9; }
+  .pf-net { font-weight: 700; }
+
+  @media (max-width: 1100px) {
+    .home-grid {
+      grid-template-rows:
+        minmax(max-content, 0.38fr)
+        repeat(6, minmax(0, 0.425fr))
+        minmax(0, 0.72fr);
+    }
+    .powerflow-body {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0.5rem;
+      align-content: center;
+    }
+    .powerflow-clock {
+      padding-right: 0;
+      border-right: 0;
+    }
   }
-  .pf-arrow {
-    color: #94a3b8;
-    font-weight: 400;
+
+  @media (min-width: 500px) and (max-width: 1100px) {
+    .powerflow-body {
+      grid-template-columns: max-content minmax(0, 1fr);
+      gap: 0.75rem;
+    }
+    .powerflow-metrics { grid-column: 2; grid-row: 1; }
+    .powerflow-clock {
+      grid-column: 1;
+      grid-row: 1;
+      padding-right: 0.5rem;
+      border-right: 1px solid #30394a;
+    }
   }
-  .pf-sep {
-    color: #94a3b8;
+
+  @media (max-width: 699px) {
+    .powerflow-body { gap: 0.5rem; }
+    .powerflow-clock :global(.clock.large .time) {
+      font-size: clamp(1.5rem, 6vw, 2.625rem);
+    }
   }
-  .pf-net {
-    font-weight: 700;
-  }
-  .pf-line2 {
-    font-size: 0.68rem;
-    color: #aab4c2;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    overflow: hidden;
+
+  @media (max-width: 499px) {
+    .powerflow-clock :global(.clock.large .time) {
+      font-size: clamp(1.5rem, 9vw, 2.625rem);
+    }
   }
 
   /* ---- Greywater ---- */
@@ -1434,6 +1539,20 @@
   }
   .zone-delta.down {
     color: #3b82f6;
+  }
+
+  @media (min-width: 700px) and (max-height: 600px) and (orientation: landscape) {
+    .home-grid {
+      grid-template-rows:
+        minmax(5.75rem, 0.38fr)
+        repeat(6, minmax(0, 0.425fr))
+        minmax(4.9rem, 0.72fr);
+      gap: 0.35rem;
+    }
+    .zones-cell { --home-zones-padding: 0.5rem; }
+    .zones-body { gap: 0.1rem; }
+    .zone-row { line-height: 1; }
+    .forecast-cell { --home-forecast-padding: 0.15rem 0.45rem; }
   }
 
   @media (prefers-reduced-motion: reduce) {

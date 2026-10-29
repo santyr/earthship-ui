@@ -165,12 +165,46 @@
         </section>
         <section>
           <h3>Forecast</h3>
-          <dl>
-            <div><dt>Today's PV forecast</dt><dd>{metric(result.forecast.pv24hKwh, ' kWh')}</dd></div>
-            {#if result.forecast.nextMorningSocPct !== null}<div><dt>Next morning SoC</dt><dd>{metric(result.forecast.nextMorningSocPct, '%')}</dd></div>{/if}
-            {#if result.forecast.fullToday !== null}<div><dt>Full today</dt><dd>{yesNo(result.forecast.fullToday)}</dd></div>{/if}
-            {#if result.forecast.fullTomorrow !== null}<div><dt>Full tomorrow</dt><dd>{yesNo(result.forecast.fullTomorrow)}</dd></div>{/if}
-          </dl>
+          {#if result.forecast?.weather}
+            <p class="section-pending">Forecast set: {result.forecast.status} · {result.forecast.reason ?? 'Current issued products'}</p>
+            <dl>
+              <div><dt>Weather provider</dt><dd>{result.forecast.weather.provider ?? 'Unavailable'} · {result.forecast.weather.status}</dd></div>
+              <div><dt>Weather issued / expires</dt><dd>{result.forecast.weather.issuedAt ?? 'Unavailable'} / {result.forecast.weather.validUntil ?? 'Unavailable'}</dd></div>
+              <div><dt>Selected weather support</dt><dd>{result.forecast.weather.productionStatus ?? 'Unavailable'}</dd></div>
+            </dl>
+            <p class="analytics-note">Experimental component estimate — physical calibration unqualified</p>
+            <dl>
+              <div><dt>Daily PV provider</dt><dd>{result.forecast.dailyPv.provider ?? 'Unavailable'} · {result.forecast.dailyPv.status}</dd></div>
+              <div><dt>Daily PV issued / expires</dt><dd>{result.forecast.dailyPv.issuedAt ?? 'Unavailable'} / {result.forecast.dailyPv.validUntil ?? 'Unavailable'}</dd></div>
+              <div><dt>Component support</dt><dd>{result.forecast.dailyPv.calibrationMode ?? 'Unavailable'} · {result.forecast.dailyPv.reason ?? result.forecast.dailyPv.confidence ?? 'Unavailable'}</dd></div>
+              {#if result.forecast.dailyPv.status === 'current'}
+                <div><dt>PV potential remaining today</dt><dd>{metric(result.forecast.dailyPv.today?.potentialKwh, ' kWh')}</dd></div>
+                <div><dt>PV potential tomorrow (full day)</dt><dd>{metric(result.forecast.dailyPv.tomorrow?.potentialKwh, ' kWh')}</dd></div>
+              {/if}
+            </dl>
+            <p class="analytics-note">Potential estimate — uncalibrated</p>
+            <dl>
+              <div><dt>Household potential</dt><dd>{result.forecast.householdEnergy.status} · {result.forecast.householdEnergy.reason ?? result.forecast.householdEnergy.confidence ?? 'Unavailable'}</dd></div>
+              <div><dt>Household issued / expires</dt><dd>{result.forecast.householdEnergy.issuedAt ?? 'Unavailable'} / {result.forecast.householdEnergy.validUntil ?? 'Unavailable'}</dd></div>
+              {#if result.forecast.householdEnergy.status === 'current'}
+                <div><dt>PV potential next 24 hours</dt><dd>{metric(result.forecast.householdEnergy.potentialNext24hKwh, ' kWh')}</dd></div>
+                {#if result.forecast.householdEnergy.storageStatus === 'conditional' && result.forecast.householdEnergy.capturedNext24hKwh !== null}
+                  <div><dt>Modeled captured PV next 24 hours</dt><dd>{metric(result.forecast.householdEnergy.capturedNext24hKwh, ' kWh')}</dd></div>
+                {/if}
+              {/if}
+            </dl>
+          {:else}
+            <p class="section-pending">{result.forecast?.status ?? 'unavailable'} · {result.forecast?.reason ?? 'No current forecast'}</p>
+            <p class="analytics-note">Issued {result.forecast?.issuedAt ?? 'unavailable'}</p>
+            {#if result.forecast?.status === 'current'}
+              <dl>
+                <div><dt>Today's PV forecast</dt><dd>{metric(result.forecast.pv24hKwh, ' kWh')}</dd></div>
+                {#if result.forecast.nextMorningSocPct !== null}<div><dt>Next morning SoC</dt><dd>{metric(result.forecast.nextMorningSocPct, '%')}</dd></div>{/if}
+                {#if result.forecast.fullToday !== null}<div><dt>Full today</dt><dd>{yesNo(result.forecast.fullToday)}</dd></div>{/if}
+                {#if result.forecast.fullTomorrow !== null}<div><dt>Full tomorrow</dt><dd>{yesNo(result.forecast.fullTomorrow)}</dd></div>{/if}
+              </dl>
+            {/if}
+          {/if}
         </section>
         <section>
           <h3>Health</h3>

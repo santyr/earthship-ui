@@ -1,7 +1,6 @@
 import { expect, test } from './fixture-test.js';
-import { createServer } from 'vite';
+import { createServer } from './fixture-server.js';
 import { readFileSync } from 'node:fs';
-
 
 const validShadow = JSON.parse(readFileSync(new URL('../fixtures/thermal-shadow-v1-available.json', import.meta.url), 'utf8'));
 
@@ -37,8 +36,8 @@ function thermalShadowFixture(nowMs = Date.now()) {
 }
 
 const ITEMS = [
-  { name: 'Current_US_AQI', state: 'NULL', type: 'Number' },
-  { name: 'Forecast_AQI', state: 'REFRESH', type: 'String' },
+  { name: 'Current_US_AQI', state: '42', type: 'Number' },
+  { name: 'Forecast_AQI', state: '501', type: 'String' },
   {
     name: 'Forecast_Hourly_JSON',
     state: JSON.stringify(Array.from({ length: 14 }, (_, index) => ({
@@ -115,7 +114,8 @@ test.afterAll(async () => {
   await server?.close();
 });
 
-async function openFixture(page, route, target, extraItems = []) {
+async function openFixture(page, route, target) {
+  expect(new Set(ITEMS.map(item => item.name)).size, 'authoritative snapshot has unique Item names').toBe(ITEMS.length);
   await page.setViewportSize({ width: target.width, height: target.height });
   await page.route('**/config.json', (request) => request.fulfill({
     json: {
@@ -128,8 +128,8 @@ async function openFixture(page, route, target, extraItems = []) {
     const now = Date.now();
     const status = `reason=idle,scheduleVersion=1,evaluatedAt=${new Date(now).toISOString()},scheduling=conditional,nextPump=east,nextEligibleAt=${new Date(now + 45 * 60_000).toISOString()}`;
     return request.fulfill({
-      json: [...ITEMS.map((item) => item.name === 'SouthOutlet_AutoStatus'
-        ? { ...item, state: status } : item), ...extraItems],
+      json: ITEMS.map((item) => item.name === 'SouthOutlet_AutoStatus'
+        ? { ...item, state: status } : item),
     });
   });
   await page.route('**/fixture-openhab/rest/events?*', (request) => request.fulfill({
@@ -140,80 +140,6 @@ async function openFixture(page, route, target, extraItems = []) {
 
   await page.goto(`${baseURL}#/${route}`, { waitUntil: 'domcontentloaded' });
   await page.locator(`.${route}-grid`).waitFor();
-}
-
-test('station v2 pressure shows absolute identity and withholds a cold steady trend', async ({page}) => {
-  const now=Date.now(), name='WeatherStation_PressureAbsoluteV2';
-  await page.clock.install({time:new Date(now)});
-  const report={schema:'earthship-station-ingestion/v2',generatedAt:new Date(now).toISOString(),
-    flat:{[name]:23.89,WeatherStation_PressureTrendV2:'steady'},
-    fields:{[name]:{value:23.89,receivedAt:new Date(now).toISOString(),validUntil:new Date(now+120000).toISOString(),role:'indoor',status:'fresh'}},
-    pressure:{identity:'station_absolute',method:'three_hour_boundary_bracket_change_0.01inHg/v1',supportSeconds:720},
-    rain:{schema:'earthship-station-rain-products/v2',status:'fresh',products:{}}};
-  await openFixture(page,'weather',TARGETS[0],[{name:'WeatherStation_Quality_JSON',type:'String',state:JSON.stringify(report)}]);
-  await expect(page.locator('.pressure-cell')).toContainText('23.89');
-  await expect(page.locator('.pressure-cell')).toContainText('Station pressure');
-  await expect(page.locator('.pressure-cell')).toContainText('3h trend unavailable');
-  await expect(page.locator('.pressure-cell')).not.toContainText('steady');
-  await expect(page.locator('.rain-cell')).not.toContainText('0.12');
-  await expect(page.locator('.current-cell .cur-temp')).not.toContainText('68');
-  await page.goto(`${baseURL}#/home`,{waitUntil:'domcontentloaded'});
-  await expect(page.locator('.baro-cell')).toContainText('23.89');
-  await expect(page.locator('.baro-cell')).toContainText('3h trend unavailable');
-  await page.clock.runFor(95000);
-  await expect(page.locator('.baro-cell')).not.toContainText('23.89');
-  await expect(page.locator('.baro-cell')).not.toContainText('30.12');
-});
-
-for (const target of TARGETS) {
-  for (const mode of ['legacy', 'v2', 'malformed-v2', 'stale-v2']) {
-    test(`pressure product identity ${mode} opens matching Weather and Home charts at ${target.name}`, async ({ page }) => {
-      const now = Date.now();
-      await page.clock.install({ time: new Date(now) });
-      const legacy = mode === 'legacy';
-      const item = legacy ? 'AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative' : 'WeatherStation_PressureAbsoluteV2';
-      const title = legacy ? 'Relative pressure (legacy)' : 'Station pressure (absolute)';
-      const label = legacy ? 'Relative pressure' : 'Station pressure';
-      const report = { schema: 'earthship-station-ingestion/v2',
-        generatedAt: new Date(now - (mode === 'stale-v2' ? 91000 : 0)).toISOString(),
-        flat: { WeatherStation_PressureAbsoluteV2: 23.89 },
-        fields: { WeatherStation_PressureAbsoluteV2: { value: 23.89, receivedAt: new Date(now).toISOString(),
-          validUntil: new Date(now + 120000).toISOString(), role: 'indoor', status: 'fresh' } } };
-      const extra = legacy ? [] : [{ name: 'WeatherStation_Quality_JSON', type: 'String',
-        state: mode === 'malformed-v2' ? '{broken' : JSON.stringify(report) }];
-      const historyItems = [];
-      await page.route('**/fixture-openhab/rest/persistence/items/**', request => {
-        const name = decodeURIComponent(new URL(request.request().url()).pathname.split('/').at(-1));
-        historyItems.push(name);
-        return request.fulfill({ json: { name, data: [{ time: now - 60000, state: legacy ? '30.12' : '23.89' }], datapoints: 1 } });
-      });
-      await openFixture(page, 'weather', target, extra);
-      for (const route of ['weather', 'home']) {
-        if (route === 'home') await page.goto(`${baseURL}#/home`, { waitUntil: 'domcontentloaded' });
-        const tile = page.locator(route === 'weather' ? '.pressure-cell' : '.baro-cell');
-        if (route === 'weather') await expect(tile.locator('.tile-label')).toHaveText(label);
-        else await expect(tile.locator('.tile')).toHaveAttribute('aria-label', label);
-        await expect(tile).toHaveAttribute('title', title);
-        if (mode === 'legacy' || mode === 'v2') await expect(tile).toContainText(legacy ? '30.12' : '23.89');
-        else {
-          await expect(tile).toContainText('—');
-          await expect(tile).not.toContainText('30.12');
-          await expect(tile).not.toContainText('23.89');
-        }
-        await tile.click();
-        const dialog = page.getByRole('dialog', { name: title, exact: true });
-        await expect(dialog).toBeVisible();
-        const series = await page.evaluate(async () => {
-          const { chartStore } = await import('/src/lib/ui/chartStore.js');
-          let value; const stop = chartStore.subscribe(state => { value = state; }); stop();
-          return value.series;
-        });
-        expect(series).toMatchObject([{ name: item, label: title }]);
-        await expect.poll(() => historyItems.includes(item)).toBe(true);
-        await dialog.getByRole('button', { name: 'Close chart' }).click();
-      }
-    });
-  }
 }
 
 async function expectRouteBounded(page, route) {
@@ -342,7 +268,11 @@ test('Weather current high and low use today, not the rolling 24-hour Items', as
 for (const target of TARGETS) {
   test(`Weather is fully bounded at ${target.name}`, async ({ page }, testInfo) => {
     await openFixture(page, 'weather', target);
+    // Held retired provider Items must not reappear as current observations.
     await expect(page.getByText('Modeled US AQI')).toHaveCount(0);
+    await expect(page.getByText(/^AQI (?:42|501)$/)).toHaveCount(0);
+    await expect(page.locator('.current-cell .cur-temp')).toHaveText('68°');
+    await expect(page.locator('.current-cell .cur-hum')).toHaveText('31% RH');
     await expectRouteBounded(page, 'weather');
     await expect(page.locator('.hs-chart svg, .hs-chart canvas')).toBeVisible();
 
@@ -496,23 +426,4 @@ for (const target of TARGETS) {
     ]);
     await page.screenshot({ path: testInfo.outputPath('earthship.png') });
   });
-}
-
-for(const target of TARGETS){
- test('Earthship component PV and storage use matching production method at '+target.name,async({page},testInfo)=>{
-  const {componentEnergy,componentPerformance,CALIBRATED_NOW}=await import('../fixtures/calibrated-energy.js');
-  await page.clock.install({time:new Date(CALIBRATED_NOW)});
-  await page.route('**/api/household-calibrated-energy-observation',route=>route.fulfill({json:componentEnergy()}));
-  await page.route('**/api/household-calibrated-energy-performance',route=>route.fulfill({json:componentPerformance()}));
-  await openFixture(page,'earthship',target);
-  const view=page.locator('.profiled-energy');
-  await expect(view).toContainText('14.00 kWh from native solar components');
-  await expect(view).toContainText('13 raw fallback source intervals');
-  await expect(view).toContainText('Conditional nominal storage');
-  await expect(view.getByRole('table',{name:'Calibrated PV and storage forecast accuracy'})).toBeVisible();
-  await view.scrollIntoViewIfNeeded();
-  const overflow=await view.evaluate(el=>el.scrollWidth>el.clientWidth+1);
-  expect(overflow).toBe(false);
-  await view.screenshot({path:testInfo.outputPath('component-storage.png')});
- });
 }

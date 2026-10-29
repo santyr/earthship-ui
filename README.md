@@ -123,7 +123,8 @@ curl --fail --silent --show-error --output /dev/null \
   http://127.0.0.1:5190/src/App.svelte
 ```
 
-Pulling commits or switching branches does not deploy the current checkout.
+Treat branch switches, fast-forwards, or other tree-wide checkout changes as
+source maintenance; they do not deploy the service's selected release.
 Prepare and verify a new release, preserve private runtime configuration and
 overlays, then update the service’s release path and restart only the UI.
 Restarting the existing unit reloads its selected package. Vite hot reload is

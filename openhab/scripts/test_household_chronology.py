@@ -30,10 +30,9 @@ def test_counts_deduplicate_originals_and_do_not_count_dense_decisions_as_window
     assert r['counts']['origin_days']==2 and r['counts']['non_overlapping_windows']==2
     assert r['counts']['planner_available']==3
     assert r['families']['RUN_FEEDER_CYCLE']['raw_decisions']==0
-    assert r['families']['RUN_GREYWATER_CYCLE']['raw_decisions']==0
-    assert r['families']['SET_NIGHT_LOAD_OVERRIDE']['raw_decisions']==0
+    assert r['families']['RUN_GREYWATER_CYCLE']['raw_decisions']==3
     assert r['statistical_independence_assessed'] is False and r['release_authorized'] is False and r['automatic_actuation'] is False
-    assert r['counts']['hard_blocked']==0
+    assert r['counts']['hard_blocked']>0
 
 
 def test_versions_are_separate_and_expired_reverification_cannot_renew_a_decision():

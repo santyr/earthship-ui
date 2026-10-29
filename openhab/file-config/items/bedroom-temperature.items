@@ -1,4 +1,4 @@
 // WH32M decoder identity is qualified in Weather_Temperature_Evidence_JSON.
-// Legacy name preserves JDBC Item 663; sensor 223 now lives in Office Hallway.
+// Legacy name preserves JDBC Item 663; sensor 223 is operator-reported in Bedroom; see the prospective location registry.
 // No restore value or other Hallway fallback establishes a fresh reading.
-Number:Temperature Bedroom_Temperature "Office Hallway Temperature [%.1f °F]" <temperature> ["Measurement", "Temperature"] { unit="°F" }
+Number:Temperature Bedroom_Temperature "Bedroom Temperature [%.1f °F]" <temperature> ["Measurement", "Temperature"] { unit="°F" }

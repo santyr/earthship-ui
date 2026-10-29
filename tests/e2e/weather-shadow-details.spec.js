@@ -1,5 +1,5 @@
 import {test,expect} from './fixture-test.js';
-import {createServer} from 'vite';
+import {createServer} from './fixture-server.js';
 import {readFileSync} from 'node:fs';
 const rainOriginal=JSON.parse(readFileSync(new URL('../fixtures/weather-rain-shadow.json',import.meta.url),'utf8'));
 const marginalOriginal=JSON.parse(readFileSync(new URL('../fixtures/weather-marginal-shadow.json',import.meta.url),'utf8'));

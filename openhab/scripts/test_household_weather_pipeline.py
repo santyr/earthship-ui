@@ -50,7 +50,7 @@ def test_weather_pipeline_replays_all_models_and_deduplicated_plan_context(tmp_p
     snap,context,prepared,_=make(tmp_path,monkeypatch);result=model_pipeline(snap,prepared)
     assert result['schema']=='earthship-household-model-plan-receipt/v3'
     assert result['output']['projections']['weather']==project_weather(context)
-    assert result['output']['candidate_intents']==[]
+    assert result['output']['candidate_intents']
     plan=result['output']['plan_receipt'];assert plan['schema']=='earthship-household-shadow-plan-receipt/v3'
     assert set(plan['inputs']['source_contexts'])=={snap.snapshot_id}
     assert plan['inputs']['validation_snapshots']=={}
@@ -86,7 +86,7 @@ def test_resealed_weather_receipt_cannot_change_original_or_derived_context(dama
     snap,_,prepared,_=make(tmp_path,monkeypatch);result=model_pipeline(snap,prepared)
     if damage=='source_context':result['inputs']['source_contexts'][snap.snapshot_id]['weather_inputs']['original_capture']['data']='invalid'
     elif damage=='weather_projection':result['output']['projections']['weather']['forcings'][0]['outdoor_f']+=1
-    elif damage=='validation_snapshot':result['output']['plan_receipt']['inputs']['candidates']=[dict(validation_snapshot_id='f'*64)]
+    elif damage=='validation_snapshot':result['output']['plan_receipt']['inputs']['candidates'][0]['validation_snapshot_id']='f'*64
     else:result['output']['plan_receipt']['inputs']['validation_snapshots']['f'*64]=snap.to_dict()
     result['receipt_sha256']=identity({k:v for k,v in result.items() if k!='receipt_sha256'})
     with pytest.raises(ValueError):replay_pipeline(result,runtime_manifest=RUNTIME,thermal_runtime=prepared.to_dict()['executing_runtime'])
@@ -96,10 +96,8 @@ def test_distinct_candidate_validation_context_is_preserved(tmp_path,monkeypatch
     from household.planning import seal_plan,replay_plan
     from household.intents import parse_intent
     from test_household_planning import setup
-    snap,_,prepared,_=make(tmp_path,monkeypatch);result=model_pipeline(snap,prepared)
-    from household.pipeline import _intent
-    now=instant(result['inputs']['now']);ref=snap.to_dict()['domains']['energy']['battery_soc']['evidence']['digest']
-    intent=_intent(snap,now,'SET_NIGHT_LOAD_DEVICE',{'device':'dishwasher','command':'OFF'},[ref],'low_soc')
+    snap,_,prepared,_=make(tmp_path,monkeypatch);result=model_pipeline(snap,prepared);candidate=result['output']['candidate_intents'][0]
+    intent=parse_intent(canonical(candidate).decode(),snapshot=snap,now=instant(result['inputs']['now']))
     # A different root must reject this candidate, but retain its actual
     # original validation snapshot so offline replay can prove that decision.
     other=api().bind_weather_snapshot(source_receipt=snap.source_receipt,source_runtime_manifest=snap.source_receipt['runtime_manifest'],weather_context=snap.weather,code_revision='f'*40)

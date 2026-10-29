@@ -1,5 +1,5 @@
 import {test,expect} from './fixture-test.js';
-import {createServer} from 'vite';
+import {createServer} from './fixture-server.js';
 import {readFileSync} from 'node:fs';
 let server,baseURL;const NOW=Date.parse('2026-10-22T20:30:00Z');
 test.beforeAll(async()=>{server=await createServer({root:process.cwd(),logLevel:'error',server:{port:0,strictPort:false}});await server.listen();baseURL=server.resolvedUrls.local[0];});

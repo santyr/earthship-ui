@@ -1,4 +1,4 @@
-import { parseQualification } from './qualification.js';
+import { parseQualification, isSeparateAdviceObservation } from './qualification.js';
 import { parsePolicyComparison } from './policyComparison.js';
 import { parseSourceTimestamp } from '../openhab/timestamp.js';
 
@@ -89,8 +89,10 @@ export function parseHouseholdObservation(raw, { nowMs = Date.now() } = {}) {
     const originalMode = verified < until && row.model_identities.length ? 'shadow' : 'unavailable';
     if (row.planner_mode !== originalMode) return null;
     const generation = row.candidate_generation;
+    const separateAdvice = generation?.status === 'human_advice_separate';
+    if (separateAdvice && !isSeparateAdviceObservation(row)) return null;
     if (!shape(generation, ['status', 'reason', 'input_qualification'])
-      || !['generated_shadow_only', 'unavailable'].includes(generation.status)
+      || !(separateAdvice || ['generated_shadow_only', 'unavailable'].includes(generation.status))
       || !reason(generation.reason) || generation.input_qualification !== 'not_assessed') return null;
     if (row.schema==='earthship-household-observation/v1' && (!shape(row.policy_comparison, ['status', 'reason']) || row.policy_comparison.status !== 'unavailable' || !reason(row.policy_comparison.reason))) return null;
     if (!list(row.proposals, 8) || new Set(row.proposals.map(item => item?.intent_id)).size !== row.proposals.length) return null;

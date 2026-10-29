@@ -80,9 +80,7 @@ def test_genuinely_distinct_candidate_retains_its_own_original_context(version,t
             weather_context=root.weather,energy_configuration=root.energy_configuration,measured_weather=measured,code_revision='e'*40)
         assert other.measured_weather.to_dict()!=root.measured_weather.to_dict()
     generated=run_pipeline(other,prepared);now=instant(generated['inputs']['now'])
-    from household.pipeline import _intent
-    ref=other.to_dict()['domains']['energy']['battery_soc']['evidence']['digest']
-    intent=_intent(other,now,'SET_NIGHT_LOAD_DEVICE',{'device':'dishwasher','command':'OFF'},[ref],'low_soc')
+    intent=parse_intent(canonical(generated['output']['candidate_intents'][0]).decode(),snapshot=other,now=now)
     _,registry=setup();coordination={**generated['inputs']['coordination'],'snapshotId':root.snapshot_id}
     plan=seal_plan(snapshot=root,registry=registry,candidates=[intent],coordination=coordination,utilities={intent.intent_id:1.},
         now=now,reserve_soc=10.,horizon_hours=24,runtime_manifest=RUNTIME,model_refs=[],forecast_ref=None)

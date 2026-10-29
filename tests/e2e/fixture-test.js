@@ -1,4 +1,5 @@
 import { test as base, expect } from '@playwright/test';
+import { fixtureOrigins } from './fixture-server.js';
 
 // These suites own disposable Vite servers only. Never inherit a household
 // proxy target or credential from the machine running the fixtures.
@@ -10,33 +11,33 @@ export const test = base.extend({
     const errors = [];
     const violations = [];
     const previewAllowed = testInfo.file.endsWith('/shades-layout.spec.js');
-    const adviceAllowed = testInfo.file.endsWith('/decision-support.spec.js');
-    const allowedMutation = (method,path) => method === 'POST' && ((previewAllowed && path === '/api/shades-preview') || (adviceAllowed && ['/api/household-advice-feedback','/api/household-advice-state'].includes(path)));
     async function guard(target) {
-      const origins = new Set();
       const watch = page => page.on('pageerror', error => errors.push(error.message));
       target.pages().forEach(watch);
       target.on('page', watch);
       target.on('request', request => {
         const url = new URL(request.url());
         if (!['GET', 'HEAD'].includes(request.method())
-          && !allowedMutation(request.method(),url.pathname)) {
+          && !(previewAllowed && request.method() === 'POST' && url.pathname === '/api/shades-preview')) {
           violations.push(`${request.method()} ${url.pathname}`);
         }
       });
       await target.route('**/*', async route => {
         const request = route.request(), url = new URL(request.url());
-        const local = ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname);
-        if (request.isNavigationRequest() && request.resourceType() === 'document' && local) origins.add(url.origin);
-        if (!local || !origins.has(url.origin)) {
+        if (!fixtureOrigins.has(url.origin)) {
           violations.push(`outside fixture origin: ${url.origin}`);
           return route.abort('blockedbyclient');
         }
         if (!['GET', 'HEAD'].includes(request.method())
-          && !allowedMutation(request.method(),url.pathname)) {
+          && !(previewAllowed && request.method() === 'POST' && url.pathname === '/api/shades-preview')) {
           return route.abort('blockedbyclient');
         }
         if (previewAllowed && /^\/api\/shades-preview(?:\/events)?$/.test(url.pathname)) return route.continue();
+        // Retained runtime advice overlays receive explicit unavailable documents;
+        // these are read-only fixtures, never private cache or household data.
+        if (['/api/household-advice','/api/household-advice-feedback','/api/household-advice-state','/api/household-advice-context','/api/household-shade-observations'].includes(url.pathname)) {
+          return route.fulfill({ status: 200, json: { status: 'unavailable' } });
+        }
         // Individual page routes take precedence. Any unstubbed report/REST
         // request gets explicit unavailability, never private cache/live data.
         if (/^\/(?:fixture-openhab\/)?rest(?:\/|$)/.test(url.pathname) || url.pathname.startsWith('/api/')) {

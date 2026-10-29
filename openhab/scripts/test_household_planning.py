@@ -21,9 +21,9 @@ def setup():
     return snap,registry
 
 
-def candidate(snap,kind='SET_NIGHT_LOAD_DEVICE',delta=-1.,device=None):
+def candidate(snap,kind='RUN_GREYWATER_CYCLE',delta=-1.,device=None):
     ref=snap.to_dict()['domains']['energy']['battery_soc']['evidence']['digest']
-    params={'device':device or 'dishwasher','command':'ON'} if kind=='SET_NIGHT_LOAD_DEVICE' else {}
+    params={} if device is None else {'device':device,'command':'ON'}
     body=document(snap,type=kind,parameters=params,evidenceRefs=[ref],confidence='low',reasonCodes=['no_optional_action'],
         predictedEffects=dict(batteryKwh=-.2,socPct=delta,thermalF=None,water=None,wearCost=1.))
     return build_intent(body,snapshot=snap,now=NOW)
@@ -60,7 +60,7 @@ def test_optional_selection_is_shadow_only_and_sealed_deterministically():
 @pytest.mark.parametrize('gate',['owner_available','owner_idle','cooldown_ready','curfew_allowed','operator_unlocked','manual_override_clear'])
 def test_each_hard_gate_blocks_even_with_large_utility(gate):
     def changed(snap):
-        ctx=context(snap);ctx['facts']['hex_night_load_override'][gate]=fact(snap,gate,'hex_night_load_override',False);return ctx
+        ctx=context(snap);ctx['facts']['hex_southoutlet_cycle'][gate]=fact(snap,gate,'hex_southoutlet_cycle',False);return ctx
     result=run(ctx=changed,utilities=lambda items:{item.intent_id:1e6 for item in items})
     assert result['selected_intent_ids']==[]
     assert result['candidate_decisions'][0]['status']=='rejected'
@@ -71,8 +71,8 @@ def test_missing_coordination_never_defaults_to_permission():
     assert result['selected_intent_ids']==[] and result['candidate_decisions'][0]['status']=='unknown'
 
 
-def test_reserve_blocks_unsafe_device_even_with_an_individually_safe_alternative():
-    result=run(candidates=lambda snap:[candidate(snap,delta=-3),candidate(snap,'SET_NIGHT_LOAD_DEVICE',delta=-2,device='shureflo')])
+def test_cumulative_reserve_blocks_pair_that_each_passes_individually():
+    result=run(candidates=lambda snap:[candidate(snap,delta=-2),candidate(snap,'SET_NIGHT_LOAD_DEVICE',delta=-2,device='dishwasher')])
     assert len(result['selected_intent_ids'])==1
     assert result['reserve_checks']['selected_floor_soc']==10
 
@@ -87,7 +87,7 @@ def test_same_owner_intents_conflict_with_deterministic_tie_break():
 @pytest.mark.parametrize('damage',['digest','future','expired','owner','scope','snapshot'])
 def test_bad_original_fact_binding_cannot_pass_a_hard_gate(damage):
     def changed(snap):
-        ctx=context(snap);entry=ctx['facts']['hex_night_load_override']['owner_available'];raw=json.loads(entry['raw'])
+        ctx=context(snap);entry=ctx['facts']['hex_southoutlet_cycle']['owner_available'];raw=json.loads(entry['raw'])
         if damage=='digest':entry['sha256']='0'*64
         else:
             if damage=='future':raw['receivedAt']=(NOW+timedelta(seconds=1)).isoformat()
@@ -101,12 +101,12 @@ def test_bad_original_fact_binding_cannot_pass_a_hard_gate(damage):
     assert result['selected_intent_ids']==[]
 
 
-def test_same_owner_selection_uses_best_utility_not_input_order():
-    def items(snap):return [candidate(snap,delta=-2),candidate(snap,'SET_NIGHT_LOAD_DEVICE',delta=-1,device='shureflo'),candidate(snap,'SET_NIGHT_LOAD_DEVICE',delta=-1,device='goat-cam')]
+def test_exhaustive_selection_beats_a_greedy_first_action():
+    def items(snap):return [candidate(snap,delta=-2),candidate(snap,'SET_NIGHT_LOAD_DEVICE',delta=-1,device='dishwasher'),candidate(snap,delta=-1)]
     def utilities(items):return {item.intent_id:score for item,score in zip(items,(10.,6.,6.))}
     result=run(candidates=items,utilities=utilities)
-    assert result['objective']['total']==10. and result['baseline_scores']['greedy']==10.
-    assert len(result['selected_intent_ids'])==1
+    assert result['objective']['total']==12. and result['baseline_scores']['greedy']==10.
+    assert len(result['selected_intent_ids'])==2
 
 
 def test_bounded_candidates_and_duplicate_identity_refused():
@@ -215,7 +215,7 @@ def test_emergency_reserve_cannot_be_weakened_by_planner_input():
 
 def test_unknown_owner_busy_state_does_not_become_idle_permission():
     def changed(snap):
-        ctx=context(snap);ctx['facts']['hex_night_load_override'].pop('owner_idle',None);return ctx
+        ctx=context(snap);ctx['facts']['hex_southoutlet_cycle'].pop('owner_idle',None);return ctx
     result=run(ctx=changed)
     assert result['selected_intent_ids']==[] and result['candidate_decisions'][0]['status']=='unknown'
 
@@ -264,9 +264,9 @@ def test_feeder_is_excluded_from_new_shadow_optimization_even_with_complete_fact
 def test_excluded_feeder_cannot_displace_an_in_scope_optional_candidate():
     def items(snap):return [candidate(snap),candidate(snap,'RUN_FEEDER_CYCLE',delta=0)]
     result=run(candidates=items,utilities=lambda rows:{item.intent_id:score for item,score in zip(rows,(10.,1e6))})
-    snap,_=setup();device=candidate(snap)
-    assert result['selected_intent_ids']==[device.intent_id]
-    feeder=next(row for row in result['candidate_decisions'] if row['intent_id']!=device.intent_id)
+    snap,_=setup();greywater=candidate(snap)
+    assert result['selected_intent_ids']==[greywater.intent_id]
+    feeder=next(row for row in result['candidate_decisions'] if row['intent_id']!=greywater.intent_id)
     assert feeder['status']=='rejected' and feeder['reason']=='planner_authority_disabled'
 
 

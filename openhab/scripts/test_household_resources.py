@@ -20,8 +20,8 @@ def scales():return dict(batteryKwh=2.,socPct=10.,thermalF=5.,water=100.,wearCos
 def original(effects=None):
     snap,registry=setup();effects=effects or [dict(batteryKwh=-2.,socPct=0.,thermalF=-5.,water=None,wearCost=1.),dict(batteryKwh=2.,socPct=0.,thermalF=5.,water=None,wearCost=1.)]
     items=[];ref=snap.to_dict()['domains']['energy']['battery_soc']['evidence']['digest']
-    for device,effect in zip(('dishwasher','shureflo'),effects):
-        items.append(build_intent(document(snap,type='SET_NIGHT_LOAD_DEVICE',parameters={'device':device,'command':'OFF'},evidenceRefs=[ref],predictedEffects=effect),snapshot=snap,now=NOW))
+    for kind,effect in zip(('RUN_GREYWATER_CYCLE','SET_NIGHT_LOAD_OVERRIDE'),effects):
+        items.append(build_intent(document(snap,type=kind,parameters={} if kind=='RUN_GREYWATER_CYCLE' else {'command':'OFF'},evidenceRefs=[ref],predictedEffects=effect),snapshot=snap,now=NOW))
     return planning().seal_plan(snapshot=snap,registry=registry,candidates=items,coordination=context(snap),utilities={item.intent_id:10. for item in items},now=NOW,reserve_soc=10.,horizon_hours=24,runtime_manifest=PLAN_RUNTIME,model_refs=[],forecast_ref=None)
 
 def seal(plan=None,**changes):
@@ -55,8 +55,7 @@ def test_cancellation_cannot_hide_intermediate_excursions():
 
 def test_unknown_contribution_does_not_become_zero_or_favorable():
     plan=original([dict(batteryKwh=None,socPct=0.,thermalF=None,water=None,wearCost=1.),dict(batteryKwh=2.,socPct=0.,thermalF=None,water=None,wearCost=1.)])
-    ids=[row['intent']['intentId'] for row in plan['inputs']['candidates']]
-    result=seal(plan,orders=[{'name':'declared_candidate_experiment','intent_ids':ids}]);dim=result['output']['order_experiments'][0]['dimensions']['batteryKwh']
+    result=seal(plan);dim=result['output']['selected_order']['dimensions']['batteryKwh']
     assert dim['net_change'] is None and dim['min_prefix'] is None and dim['gross_movement'] is None
     assert dim['known_contribution']==2. and len(dim['unknown_intent_ids'])==1
 
