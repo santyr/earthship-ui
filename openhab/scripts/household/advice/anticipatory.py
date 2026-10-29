@@ -55,8 +55,13 @@ def forecast_advice(context, *, snapshot, now, low, high, timezone_name, glazing
     facing, tilt = 180., 90.
     if glazing is not None:
         from .contracts import closed
-        closed(glazing, {'schema','azimuth_degrees','tilt_from_horizontal_degrees','basis'})
-        if glazing['schema'] != 'earthship-advice-glazing/v1' or glazing['basis'] != 'operator_report':
+        fields={'schema','azimuth_degrees','tilt_from_horizontal_degrees','basis'}
+        if glazing.get('schema') == 'earthship-advice-glazing/v2':
+            fields.add('front_overhang')
+            if glazing.get('front_overhang') is not False:
+                raise ValueError('only confirmed no-overhang geometry is supported')
+        closed(glazing, fields)
+        if glazing['schema'] not in ('earthship-advice-glazing/v1','earthship-advice-glazing/v2') or glazing['basis'] != 'operator_report':
             raise ValueError('explicit operator glazing geometry required')
         facing = number(glazing['azimuth_degrees'],0,360)
         tilt = number(glazing['tilt_from_horizontal_degrees'],0,90)
@@ -91,7 +96,8 @@ def forecast_advice(context, *, snapshot, now, low, high, timezone_name, glazing
     bounds=(min(s[0] for s in baseline),max(s[0] for s in baseline))
     basis=f'Forecast indoors {bounds[0]:.1f}–{bounds[1]:.1f}°F; weather, irradiance and stored heat included. '
     aperture = 'Nominal south vertical glazing' if glazing is None else f'Glazing azimuth {facing:g}°, tilt {tilt:g}° from horizontal'
-    limitations=aperture+'; overhang and night insulation uncalibrated. Scenario, not measured benefit.'
+    shading='no front overhang' if glazing is not None and glazing.get('front_overhang') is False else 'overhang unknown'
+    limitations=aperture+f'; {shading}. Nighttime shade insulation not identified; no position history. Scenario, not measured benefit.'
     if best:
         when='now' if best['start_hour']==0 else f'at {stamp(best["start"])}'
         action=f'{"Close" if best["closed"] else "Open"} shades {when} to {"limit solar heating" if best["closed"] else "capture solar heat"}'

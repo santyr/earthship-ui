@@ -21,3 +21,12 @@ Source manifests, real original inputs, replay report, scheduled browser JSON an
 screenshots are retained in artifacts/proactive-advice-20261029.local/. Rollback:
 remove only thermal-provisional-forecast.service.d/zzzzz-proactive-advice.conf,
 reload systemd, and allow the original publisher's next normal cycle.
+
+
+## No-overhang and historical-data follow-up
+
+- [x] Confirm no front overhang and no historical shade-position data from the operator; preserve the existing thermal predictions as the advice basis.
+- [x] Inspect live OpenHAB Items and fourteen days of JDBC persistence; retain original responses and reproducible exploratory nighttime analysis separately from production models.
+- [x] Verify existing Thermal_Model_JSON publication: 24-hour v4 thermal forecast, artifact18a7d2fc..., trained through2026-10-29T12:00Z; source readback retained. No new predictor is deployed.
+- [x] Update optional geometry to v2/front_overhang=false, remove overhang uncertainty from advice, and verify75 focused tests plus exact original-clock replay with confirmed geometry.
+- [x] Verify the scheduled 11:59:45 MDT cycle: numerical main and advisory sources-v3 postprocessor exited0. Fresh18:00:45.717068Z report23932ec0... includes no front overhang,165°/64.5° geometry and automatic_actuation=false. Numerical forecast coefficients and original release remain unchanged. Readback: artifacts/nighttime-thermal-history-20261029.local/no-overhang-live.json.

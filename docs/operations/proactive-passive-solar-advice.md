@@ -69,3 +69,45 @@ An ExecStartPost companion uses the existing resource admission launcher and
 limits. Removing only the proactive-advice service drop-in and reloading systemd
 restores the original advisory publisher on its next normal cycle. Old reports,
 models, source releases and private configuration remain available.
+
+
+## Confirmed geometry and existing nighttime history (2026-10-29)
+
+The operator confirms **no front overhang** and **no historical shade-position
+data yet**. The private geometry configuration is v2 with `front_overhang:false`,
+azimuth165° and tilt64.5° from horizontal. No overhang correction is applied.
+
+Always inspect actual OpenHAB Items/persistence before declaring thermal inputs
+unavailable. A read-only OpenHAB JDBC REST acquisition from October15–29 found
+3495 indoor-air,11820 outdoor-temperature,2384 north-wall,1722 south-wall,27587
+wind-speed and16301 measured-radiation state changes. These are numeric
+change histories, not complete qualified heartbeat streams.
+
+An explicitly exploratory nighttime baseline used 20:00–05:00 America/Denver,
+retained radiation<=5W/m² and hourly changes with all 13 five-minute grid states
+available. State changes are carried at most30minutes for air/outdoor/wind,
+120minutes for slow-changing north-wall mass and14hours for nighttime zero
+radiation. Non-numeric/NULL states remain barriers; no interpolation bridges
+those barriers or expired carry windows. These carry rules are retrospective
+analysis assumptions, not production freshness extensions.91 retained hourly
+intervals span14 nights; gaps are excluded, and first/last retained temperatures
+must not be interpreted as endpoints of a fully covered night.
+
+A bounded regression predicts the next hourly indoor-temperature change using
+only initial outside-minus-air, mass-minus-air, wind times outside-minus-air,
+and a bias. Nonnegative exchange coefficients and bounded bias avoid inverted
+heat-flow signs.65 intervals before October26 were fitted;26 intervals from
+October26–28 were held out chronologically. Holdout MAE was0.098°F/hour versus
+0.233°F/hour for the training mean and0.803°F/hour for unchanged temperature.
+The overall retained average change was−0.682°F/hour. This demonstrates useful
+nighttime predictive signal in existing OpenHAB history; it does not identify
+shade insulation, exclude occupancy/ventilation effects or qualify a new
+production model. Sensor epochs and full receipt quality were not validated
+in this numeric diagnostic. The existing production thermal model remains
+selected, with unchanged fitted coefficients.
+
+Raw REST responses, acquisition boundaries/counts, runnable `analyze.py`, hourly
+samples, nightly summaries and fit metrics are retained under
+`artifacts/nighttime-thermal-history-20261029.local/`. Future shade-position
+history can distinguish open/closed thermal-loss regimes while controlling for
+outdoor temperature, stored heat, wind, ventilation and other observed changes.
