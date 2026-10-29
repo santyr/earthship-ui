@@ -832,7 +832,7 @@
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
     grid-template-rows:
-      minmax(0, 0.38fr)
+      minmax(3.2rem, 0.38fr)
       repeat(6, minmax(0, 0.425fr))
       minmax(0, 0.72fr);
     grid-template-areas:

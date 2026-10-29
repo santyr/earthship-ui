@@ -63,6 +63,23 @@ def test_native_issuer_retains_exact_v2_origin_and_both_receipts(tmp_path,monkey
     assert restored['capture']==capture and restored['native'] is True
 
 
+@pytest.mark.parametrize('limit,expected', [('monotonic', 83), ('issue_window', 1)])
+def test_native_publication_exposes_only_original_remaining_budget(tmp_path,monkeypatch,originals,limit,expected):
+    live,settings,backend,clock,_,geometry,_=fixture(tmp_path,monkeypatch,originals)
+    ticks=[10.0]
+    monkeypatch.setattr(live,'monotonic',lambda:ticks[0])
+    class ObservedBudget(Exception):pass
+    def runtime(*,guard):
+        ticks[0]=12.0
+        if limit=='issue_window':clock[0]=ISSUE+timedelta(seconds=89)
+        assert guard()==expected
+        raise ObservedBudget
+    monkeypatch.setattr(live,'current_runtime',runtime)
+    with pytest.raises(ObservedBudget):
+        live.publish_cycle(settings,geometry=geometry,guard=lambda:None,backend=backend)
+    assert backend.puts==[]
+
+
 @pytest.mark.parametrize('damage',['receipt','runtime','artifact','geometry','changed_candidate'])
 def test_native_issuer_refuses_missing_delivery_or_changed_originals(tmp_path,monkeypatch,originals,damage):
     live,s,b,clock,c,g,runtime=fixture(tmp_path,monkeypatch,originals)

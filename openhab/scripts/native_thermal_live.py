@@ -156,6 +156,7 @@ def publish_cycle(settings,*,guard,geometry=None,backend=None,serving_model=None
         guard()
         if monotonic()>=deadline or _clock()>=issue+timedelta(seconds=90):
             raise ValueError('native publication deadline exceeded')
+        return min(deadline-monotonic(),(issue+timedelta(seconds=90)-_clock()).total_seconds())
     with capture_source_reads() as sources:
         runtime=current_runtime(guard=within_deadline)
         if runtime_digest(runtime)!=expected_runtime or SOURCE not in runtime['native_source_manifest']:
@@ -205,11 +206,14 @@ def publish_cycle(settings,*,guard,geometry=None,backend=None,serving_model=None
         if receipt_profile:
             capture=forecasts.build_serving_capture(serving_model,inputs,geometry=geometry,
                 expected_geometry_sha256=geometry.sha256,issue=issue,available=available,published=_clock(),
-                check_budget=within_deadline,monitoring_report=report,weather_conditioning=weather_conditioning)
+                check_budget=within_deadline,monitoring_report=report,weather_conditioning=weather_conditioning,
+                source_profile=getattr(backend,'source_profile','compressed-v2'))
         else:
             capture=forecasts.build_capture(candidate,inputs,geometry=geometry,runtime=runtime,
                 expected_artifact_sha256=expected_artifact,expected_geometry_sha256=geometry.sha256,
-                issue=issue,available=available,published=_clock(),check_budget=within_deadline,monitoring_report=report,weather_conditioning=weather_conditioning)
+                issue=issue,available=available,published=_clock(),check_budget=within_deadline,monitoring_report=report,weather_conditioning=weather_conditioning,
+                source_profile=getattr(backend,'source_profile','compressed-v2'))
+        origin_sources=forecasts.origin_source_snapshot(capture,check_budget=within_deadline)
         origin_path=forecasts.persist(archive,capture)
         if receipt_profile:
             _serving_settings(serving_model,settings,assessed_at=_clock(),guard=within_deadline)
@@ -237,7 +241,8 @@ def publish_cycle(settings,*,guard,geometry=None,backend=None,serving_model=None
                 raise ValueError('frozen native candidate or runtime changed')
             _temperatures(capture['inputs']['origin_temperatures'],capture['inputs']['current'],
                 issued_at=issue,published_at=_clock(),version=2)
-            sources.verify();within_deadline()
+            within_deadline();sources.verify()
+            forecasts.verify_origin_source_snapshot(origin_sources,check_budget=within_deadline)
         receipts={}
         for item,value in ((NUMERIC_ITEM,capture['output']),(PUBLICATION_ITEM,forecasts.publication(capture))):
             state=_canonical(value).decode();send_guard();backend.put(item,state,preflight=send_guard)
@@ -302,13 +307,23 @@ def make_forecast_backend(settings,*,evidence_directory,guard):
     guard()
     if not isinstance(settings,dict) or settings.get('schema') not in NATIVE_SCHEMAS:
         raise ValueError('explicit Google native source selection required')
-    from weather_learning.native_backend import native_source,make_native_backend,SCHEMA
+    from weather_learning.native_backend import native_source
     from weather_learning.archive import Archive
+    from native_thermal_forecast import _segmented_helpers
+    _segmented_helpers()
+    path=Path(__file__).absolute().parent/'weather_learning/native_segmented_backend.py'
+    if sha256(_source_bytes(path,maximum=262144)).hexdigest()!=SEGMENTED_BACKEND_SOURCE_SHA256:
+        raise ValueError('shared native backend source changed')
+    from weather_learning import native_segmented_backend as selected
+    factory=selected.make_segmented_native_backend
+    if (getattr(selected,'__file__',None)!=str(path) or Path(factory.__code__.co_filename)!=path or
+            factory.__globals__ is not selected.__dict__):
+        raise ValueError('shared native backend loaded from another runtime')
     root,site=native_source(settings['weather_source'])
     translated={key:settings[key] for key in SOURCE_FIELDS-{'candidate_path'}}
-    translated.update(schema=SCHEMA,release_inputs_path=settings['candidate_path'],
+    translated.update(schema=selected.SCHEMA,release_inputs_path=settings['candidate_path'],
         openhab_base=settings['openhab_base'],evidence_directory=str(evidence_directory))
-    backend=make_native_backend(translated,archive=Archive.open_readonly(root),site=site,shared_lock_guard=guard)
+    backend=factory(translated,archive=Archive.open_readonly(root),site=site,shared_lock_guard=guard)
     guard();return backend
 
 
@@ -680,9 +695,14 @@ def _native_gap_pending(root,now,job,delivery,delivery_path,capture,guard):
         if (assessed>now or _instant(value['retry_after'])!=assessed+timedelta(minutes=15) or
             target!=_instant(capture['issued_at'])+timedelta(hours=value['horizon_hours'])):
             raise ValueError('original native retry clock differs')
+        if set(value['original_fingerprints'])!=_native_gap_sources(delivery,delivery_path,capture,value['native_source_paths'],guard):
+            raise ValueError('complete native absence source inventory required')
         for name,fingerprint in value['original_fingerprints'].items():
             if _fingerprint(name)!=fingerprint:raise ValueError('native absence originals changed')
         _validate_native_absence(value['native_source_paths'],capture,target=target,assessed=assessed,guard=guard)
+        guard()
+        if any(_fingerprint(name)!=fingerprint for name,fingerprint in value['original_fingerprints'].items()):
+            raise ValueError('native absence originals changed after replay')
         if latest is None or assessed>_instant(latest['assessed_at']):latest=value
     return latest is not None and now<_instant(latest['retry_after'])
 
@@ -691,21 +711,33 @@ def _retain_native_gap(folder,job,delivery,delivery_path,capture,*,horizon,targe
     from thermal_model.native_operational_io import _fingerprint
     from thermal_model.provisional_forecast import persist
     _validate_native_absence(paths,capture,target=target,assessed=now,guard=guard)
-    sources=set(paths)|{str(delivery_path),delivery['capture_path']}|{ref['path'] for ref in capture['candidate']['originals'].values()}|set(capture['native_origin_binding'].get('query_sources',{}).values())
+    sources=_native_gap_sources(delivery,delivery_path,capture,paths,guard)
     value=dict(schema=GAP_SCHEMA,job_id=job,delivery_sha256=delivery['delivery_sha256'],capture_sha256=delivery['capture_sha256'],
         artifact_sha256=delivery['artifact_sha256'],runtime_sha256=delivery['runtime_sha256'],horizon_hours=horizon,target_at=target.isoformat(),
         assessed_at=now.isoformat(),retry_after=(now+timedelta(minutes=15)).isoformat(),native_source_paths=list(paths),
         original_fingerprints={name:_fingerprint(name) for name in sorted(sources)},
         queue_source_sha256=sha256(_source_bytes(Path(__file__).resolve(),maximum=2000000)).hexdigest(),automatic_actuation=False)
     value['gap_sha256']=runtime_digest(value,'gap_sha256');guard()
+    if any(_fingerprint(name)!=fingerprint for name,fingerprint in value['original_fingerprints'].items()):
+        raise ValueError('native absence originals changed before retention')
     persist(folder,value,field='gap_sha256',suffix='.native-thermal-gap-v1.json',maximum=131072)
     stored=folder/(value['gap_sha256']+'.native-thermal-gap-v1.json');target_path=folder/(job+'-'+value['gap_sha256']+'.native-thermal-gap-v1.json')
     from thermal_model.rollback import _rename_new
     _rename_new(stored,target_path);guard()
+    if any(_fingerprint(name)!=fingerprint for name,fingerprint in value['original_fingerprints'].items()):
+        raise ValueError('native absence originals changed during retention')
     return value
 
 
+def _native_gap_sources(delivery,delivery_path,capture,paths,guard):
+    from native_thermal_forecast import origin_source_files
+    return (set(paths)|{str(delivery_path),delivery['capture_path']}|
+        {ref['path'] for ref in capture['candidate']['originals'].values()}|
+        {str(path) for path in origin_source_files(capture,check_budget=guard)})
+
+
 SERVING_RECEIPT_SOURCE_SHA256='11121a94a4501c7af520b9df54ec879a3c75edadc87a0d15afd279bf83bbf58e'
+SEGMENTED_BACKEND_SOURCE_SHA256='0078baaa05a65ba612968e8b9074e2bf550861087b4fafffa9cc48b3720a9063'
 
 
 def serving_delivery_model(delivery_path,delivery,*,current_model,historical_selections,assessed_at,guard):

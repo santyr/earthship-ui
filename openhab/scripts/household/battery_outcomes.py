@@ -70,7 +70,7 @@ def _cohort(plan,baseline):
 
 def seal_battery_outcomes(*,plan_receipt,endpoint_sources,assessed_at,plan_runtime_manifest,outcome_runtime_manifest,thermal_runtime):
     plan=replay_pipeline(plan_receipt,runtime_manifest=plan_runtime_manifest,thermal_runtime=thermal_runtime)
-    if plan['schema']!='earthship-household-model-plan-receipt/v6':raise ValueError('original versioned battery projection required')
+    if plan['schema'] not in ('earthship-household-model-plan-receipt/v6','earthship-household-model-plan-receipt/v7'):raise ValueError('original versioned battery projection required')
     runtime=_runtime_manifest(outcome_runtime_manifest);assessed=utc(assessed_at)
     baseline=plan['output']['projections']['energy_persistence'];issue=instant(plan['inputs']['snapshot']['as_of'])
     decision=instant(plan['inputs']['now'])

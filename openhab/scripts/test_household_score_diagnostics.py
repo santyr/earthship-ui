@@ -119,8 +119,14 @@ def test_failure_site_contains_only_owned_source_and_line(tmp_path):
 
 def test_failure_site_omits_external_code_and_invalid_source_paths():
     for filename in ['/private/credentials.py','/archive/openhab/scripts/../private.py','/archive/openhab/scripts/private value.py']:
-        try:exec(compile("raise ValueError('private input')",filename,'exec'),{})
-        except ValueError as error:assert score.failure_site(error) is None
+        # Capture inside the foreign code: unwinding through this allowed
+        # repository caller legitimately adds an owned source to the traceback.
+        namespace={}
+        exec(compile("try:\n raise ValueError('private input')\nexcept ValueError as error:\n captured=error\n",filename,'exec'),namespace)
+        error=namespace['captured']
+        assert error.__traceback__.tb_frame.f_code.co_filename==filename
+        assert error.__traceback__.tb_next is None
+        assert score.failure_site(error) is None
 
 
 def test_retired_entrypoint_cannot_request_even_current_admission(tmp_path,monkeypatch):

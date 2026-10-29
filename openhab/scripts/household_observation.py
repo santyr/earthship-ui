@@ -46,13 +46,15 @@ def _policy_comparison(coordination,proposals,decision):
 
 
 
-def _qualification_report(view,registry):
+def _qualification_report(view,registry,*,current=False):
     """Evidence observed in this replay; no gate or intent is graduated here.
 
     Called only after complete pipeline rederivation. Separate outcome,
     uncertainty, owner and release audits are not part of an as-issued plan.
     """
     from household.planning import AUTOMATED_CAPABILITIES
+    if not current:
+        from household.legacy_planning import AUTOMATED_CAPABILITIES
     missing=(('independent_windows','intent_windows_not_qualified'),
         ('input_stability','input_sensitivity_not_qualified'),
         ('model_error_uncertainty','action_model_error_not_qualified'),
@@ -76,7 +78,7 @@ def _qualification_report(view,registry):
         gates.extend(gate(key,False,reason) for key,reason in missing)
         families.append(dict(intent_type=kind,capability_id=capability_id,owner=None if capability is None else capability['ownerRule'],
             proposal_count=len(proposals),status='not_qualified',release_authorized=False,gates=gates))
-    return dict(schema='earthship-household-intent-qualification/v3',scope='original_plan_evidence',status='not_qualified',
+    return dict(schema='earthship-household-intent-qualification/v3' if current else 'earthship-household-intent-qualification/v2',scope='original_plan_evidence',status='not_qualified',
         receipt_sha256=view['receipt_sha256'],snapshot_id=view['snapshot_id'],decision_at=view['decision_at'],
         release_authorized=False,automatic_actuation=False,families=families)
 
@@ -129,7 +131,7 @@ def observe_pipeline(receipt,*,runtime_manifest,thermal_runtime,observed_at,incl
         policy_comparison=dict(status='unavailable',reason=_reason(plan['baseline_reasons']['current_owner_policy'])))
     if inputs['coordination']['schema']=='earthship-shadow-coordination/v3':
         view.update(schema='earthship-household-observation/v3',policy_comparison=_policy_comparison(inputs['coordination'],proposals,decision))
-        view['qualification_report']=_qualification_report(view,inputs['registry'])
+        view['qualification_report']=_qualification_report(view,inputs['registry'],current=original['schema']=='earthship-household-model-plan-receipt/v7')
         if include_action_details:
             view['schema']='earthship-household-observation/v4'
             intents={item['intentId']:item for item in output['candidate_intents']}
@@ -205,7 +207,9 @@ def materialize(receipt_path,output_path,*,clock=lambda:datetime.now(timezone.ut
     source,target=Path(receipt_path).absolute(),Path(output_path).absolute()
     if source==target:raise ValueError('original receipt cannot be a publication target')
     directory=_directory(target.parent);previous=_existing_view(target)
-    original=_private_file(source,RECEIPT_BYTES);record=loads(original[0]);version=record.get('schema')
+    original=_private_file(source,RECEIPT_BYTES);record=loads(original[0])
+    from household.pipeline import source_receipt_version
+    version=source_receipt_version(record)
     expanded=version in ('earthship-household-model-plan-receipt/v2','earthship-household-model-plan-receipt/v3','earthship-household-model-plan-receipt/v4','earthship-household-model-plan-receipt/v5','earthship-household-model-plan-receipt/v6')
     configured=version in ('earthship-household-model-plan-receipt/v4','earthship-household-model-plan-receipt/v5','earthship-household-model-plan-receipt/v6')
     measured=version in ('earthship-household-model-plan-receipt/v5','earthship-household-model-plan-receipt/v6')

@@ -29,7 +29,7 @@ def case(tmp_path,monkeypatch,originals,*,horizon=24,profiled=False,missing_stor
     source,lr=supported_source(instant(energy['output']['array_pv']['origin'])) if profiled else (None,{})
     profile=seal_profiled_forecast(energy_receipt=energy,plan_receipt=plan,load_source=source,now=energy_args['now'],
         runtime_manifest=profiled_runtime_manifest(),energy_runtime_manifest=energy_api.forecast_runtime_manifest(),load_runtime_manifest=lr)
-    api=importlib.import_module('household_trajectory_plan')
+    api=importlib.import_module('household_legacy_trajectory_plan')
     args=dict(plan_receipt=plan,energy_receipt=energy,profiled_receipt=profile,now=energy_args['now'],runtime_manifest=api.trajectory_runtime_manifest(),
         thermal_runtime=plan['inputs']['thermal_inputs']['executing_runtime'],load_runtime_manifest=lr)
     return api,args

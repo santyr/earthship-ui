@@ -10,6 +10,8 @@ export const test = base.extend({
     const errors = [];
     const violations = [];
     const previewAllowed = testInfo.file.endsWith('/shades-layout.spec.js');
+    const adviceAllowed = testInfo.file.endsWith('/decision-support.spec.js');
+    const allowedMutation = (method,path) => method === 'POST' && ((previewAllowed && path === '/api/shades-preview') || (adviceAllowed && ['/api/household-advice-feedback','/api/household-advice-state'].includes(path)));
     async function guard(target) {
       const origins = new Set();
       const watch = page => page.on('pageerror', error => errors.push(error.message));
@@ -18,7 +20,7 @@ export const test = base.extend({
       target.on('request', request => {
         const url = new URL(request.url());
         if (!['GET', 'HEAD'].includes(request.method())
-          && !(previewAllowed && request.method() === 'POST' && url.pathname === '/api/shades-preview')) {
+          && !allowedMutation(request.method(),url.pathname)) {
           violations.push(`${request.method()} ${url.pathname}`);
         }
       });
@@ -31,7 +33,7 @@ export const test = base.extend({
           return route.abort('blockedbyclient');
         }
         if (!['GET', 'HEAD'].includes(request.method())
-          && !(previewAllowed && request.method() === 'POST' && url.pathname === '/api/shades-preview')) {
+          && !allowedMutation(request.method(),url.pathname)) {
           return route.abort('blockedbyclient');
         }
         if (previewAllowed && /^\/api\/shades-preview(?:\/events)?$/.test(url.pathname)) return route.continue();

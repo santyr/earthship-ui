@@ -335,14 +335,19 @@ def retain_native_delivery_reference(state,path,*,indexed_at,timezone_name='Amer
     body=_read(path,65536);pin=digest(body['delivery_sha256'])
     if body.get('schema')!='earthship-provisional-thermal-delivery/v2' or pin!=identity({k:v for k,v in body.items() if k!='delivery_sha256'}) or path.name!=pin+'.native-provisional-delivery-v2.json':raise ValueError('unchanged original delivery required')
     capture=Path(body['capture_path'])
-    if capture.parent!=path.parent or capture.name!=digest(body['capture_sha256'])+'.native-provisional-origin-v2.json':raise ValueError('original capture must remain with delivery')
+    suffixes={'.native-provisional-origin-v2.json':('earthship-provisional-thermal-origin/v2','earthship-provisional-thermal-origin/v3'),
+        '.native-provisional-origin-v4.json':('earthship-provisional-thermal-origin/v4',),
+        '.native-provisional-origin-v5.json':('earthship-provisional-thermal-origin/v5',)}
+    versions=next((versions for suffix,versions in suffixes.items() if capture.name==digest(body['capture_sha256'])+suffix),None)
+    if capture.parent!=path.parent or versions is None:raise ValueError('original capture must remain with delivery')
     if origin=='historical_header_bootstrap':
         original=_read(capture,6*1024**2)
         if original.get('capture_sha256')!=body['capture_sha256'] or identity({k:v for k,v in original.items() if k!='capture_sha256'})!=body['capture_sha256']:
             raise ValueError('historical capture hash differs from delivery')
+        if original.get('schema') not in versions:raise ValueError('historical capture version and suffix differ')
         # Old raw-only native packages are real delivered forecasts, but are
         # outside this correction population and cannot consume its daily slot.
-        if original.get('schema')!='earthship-provisional-thermal-origin/v3':return None
+        if original.get('schema') not in ('earthship-provisional-thermal-origin/v3','earthship-provisional-thermal-origin/v5'):return None
     issued=instant(body['issued_at']);indexed=utc(indexed_at)
     if indexed<issued:raise ValueError('native reference unavailable before original issue')
     day=issued.astimezone(ZoneInfo(timezone_name)).date().isoformat();store=state if isinstance(state,CorrectionStore) else CorrectionStore(state)

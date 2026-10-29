@@ -1,6 +1,6 @@
 {
   "schema": "earthship-household-program-progress/v1",
-  "objective": "complete PR#3",
+  "objective": "Help the household decide what to do, when, and why about shades, ventilation, and discretionary electricity use",
   "spec": "docs/superpowers/plans/2026-10-07-household-intelligence-architecture.md",
   "goal_complete": false,
   "scope_reduced_to_foundation": false,
@@ -10303,7 +10303,7 @@
       "current_live_browser_write_attempts": 0
     }
   },
-  "updated_at": "2026-10-16T16:45:42.287125+00:00",
+  "updated_at": "2026-10-23T23:51:43.533367+00:00",
   "current_source_audit": {
     "as_of": "2026-10-20",
     "requirements": "docs/audits/2026-10-20/requirements.md",
@@ -10324,5 +10324,24 @@
     "automatic_feeder": false,
     "integrated_revision": "0b3f6fc0a5ec0e86cd4af65604241d9532b2f1ad",
     "final_verification": "docs/audits/2026-10-20/deployment-a20-ci.json; docs/audits/2026-10-20/deployment-a20-native.json"
+  },
+  "active_decision_support": {
+    "plan": "docs/superpowers/plans/2026-10-22-decision-support.md",
+    "coverage": "docs/operations/decision-use-cases.md",
+    "automatic_actuation": false,
+    "greywater_recommendations": false,
+    "feeder_recommendations": false,
+    "prior_repairs_preserved": true,
+    "nightly_override_ml": false,
+    "current_command_planner_capabilities": [],
+    "operator_clarification": "Nightly override scheduling stays with existing OpenHAB rules; shades still need connection; standalone flexible tasks require explicit approval.",
+    "verification": "docs/operations/decision-support-verification-2026-10-23.md",
+    "software_verification": "local_passed_with_explicit_profile_qualification_skips",
+    "installed": true,
+    "device_observation_commissioned": false,
+    "action_effects_qualified": false,
+    "deployment": "docs/operations/decision-support-deployment-2026-10-23.md",
+    "installed_source": "e6085e9a71279e5eb8f3b020f218605af1880e11",
+    "real_input_advice_status": "insufficient_evidence_operator_policy_missing"
   }
 }

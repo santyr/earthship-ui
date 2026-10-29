@@ -117,7 +117,7 @@ def test_complete_cycle_derivation_preserves_original_thermal_and_current_source
     from household.pipeline import replay_pipeline
     args,capture=derived_fixture(tmp_path,monkeypatch)
     record=api().derive_cycle(**args)
-    assert record['schema']=='earthship-household-model-plan-receipt/v5'
+    assert record['schema']=='earthship-household-model-plan-receipt/v7'
     assert record['output']['projections']['thermal']['output']==capture['output']
     assert record['inputs']['snapshot']['as_of']==capture['issued_at']
     assert record['inputs']['snapshot']['domains']['energy']['inverter_output_w']['reason'] is None

@@ -19,6 +19,7 @@
  function stateLabel(value){return value==='OPEN'?'Open':value==='CLOSED'?'Closed':'Unknown';}
 </script>
 
+
 <section class="ventilation" aria-label="Distributed sensor observations" data-ventilation-screen>
  <header class="heading">
   <div><h1>Ventilation &amp; sensors</h1><p>{view.environment==='simulation'?'Synthetic demonstration':'Observations · OpenHAB authority'}</p></div>

@@ -22,6 +22,7 @@
   const battery = $derived(parseBatteryPerformance(batteryRaw, { nowMs }));
   const raw = $derived($householdObservationRaw), nowMs = $derived($recommendationClock);
   const view = $derived(parseHouseholdObservation(raw, { nowMs }));
+  const separateAdvice = $derived(view?.candidate_generation.status === 'human_advice_separate');
   const proposals=$derived(view?.proposals.filter(item=>isAutomatedIntent(item.type))??[]);
   const selected = $derived(proposals.filter(item => item.selected));
   const words = value => value == null ? 'unknown' : value.replaceAll('_', ' ');
@@ -82,10 +83,16 @@
       {:else}
         <p>Current OpenHAB policy comparison: unavailable · {words(view.policy_comparison.reason)}</p>
       {/if}
-      <h2>Suggested action</h2>
-      {#if selected.length === 0}<p>No action selected</p>
-      {:else}<p>Selected shadow proposals: {selected.map(item => item.type).join(', ')}. Effects remain unqualified.</p>{/if}
-      <p>Expected effects are model estimates; unknown values remain unknown.</p>
+      {#if separateAdvice}
+        <h2>Human advice is separate</h2>
+        <p>No command proposals are generated in this observation. Human advice is published separately.</p>
+        <p>No intent families are assessed here; no action release is authorized.</p>
+      {:else}
+        <h2>Suggested action</h2>
+        {#if selected.length === 0}<p>No action selected</p>
+        {:else}<p>Selected shadow proposals: {selected.map(item => item.type).join(', ')}. Effects remain unqualified.</p>{/if}
+        <p>Expected effects are model estimates; unknown values remain unknown.</p>
+      {/if}
     {:else}
       <p>Verified observation unavailable</p>
       <p>Suggested action, model identities, effects and policy comparison are unavailable.</p>
@@ -167,7 +174,7 @@
       <p>Report updated {date(capturedPv.generated_at)}. Potential array yield remains unscored. These provisional comparisons do not establish calibration or action benefits.</p>
     {:else}<p>Captured-PV accuracy report unavailable</p>{/if}
   </Tile>
-  {#if view?.qualification_report && automatedFamilies.length}
+  {#if view?.qualification_report && automatedFamilies.length && !separateAdvice}
     <Tile label="Intent qualification">
       <section aria-label="Intent qualification">
         <p>Automated intent families remain unqualified. Request translation stays disabled.</p>

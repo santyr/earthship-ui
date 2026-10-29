@@ -26,7 +26,7 @@ def flow_runtime_manifest():
 
 def seal_flow_receipt(*,plan_receipt,topology_source,now,runtime_manifest):
     plan=loads(canonical(plan_receipt));runtime=_runtime_manifest(runtime_manifest)
-    if (plan.get('schema') not in ('earthship-household-model-plan-receipt/v4','earthship-household-model-plan-receipt/v5','earthship-household-model-plan-receipt/v6') or
+    if (plan.get('schema') not in ('earthship-household-model-plan-receipt/v4','earthship-household-model-plan-receipt/v5','earthship-household-model-plan-receipt/v6','earthship-household-model-plan-receipt/v7') or
         identity({k:v for k,v in plan.items() if k!='receipt_sha256'})!=plan.get('receipt_sha256') or not REQUIRED<=set(runtime)):
         raise ValueError('original configured plan and complete flow source required')
     original_plan_runtime(plan,actual=runtime)

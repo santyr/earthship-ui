@@ -35,7 +35,7 @@ def _rows(raw,key):
     return [row.split('=',1)[1] for row in raw.decode('utf-8').splitlines() if row.startswith(key+'=')]
 
 
-def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard,previous_family=None,previous_deployment_sha256=None):
+def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard,previous_family=None,previous_deployment_sha256=None,history_proof=None):
     family,forecast,score=map(deploy._directory,(family,previous_forecast_stage,previous_score_stage))
     guard();selected=family_api.verify(family,guard=guard);stage=deploy._directory(selected['stage'])
     serving=selected['schema'] in ('earthship-native-thermal-service-family/v2','earthship-native-thermal-service-family/v3')
@@ -73,8 +73,18 @@ def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard,previo
         elif upgrade:
             previous_dispatch=read_score_dispatch(forecast,deployment_sha256=previous_deployment_sha256,guard=guard)
             required=[dict(stage=str(forecast),deployment_sha256=previous_deployment_sha256),*previous_dispatch['historical']]
-            if any(row not in dispatch['historical'] for row in required):
-                raise ValueError('upgrade must retain all Google native score backlogs')
+            omitted=[row for row in required if row not in dispatch['historical']]
+            if omitted:
+                if history_proof is None:raise ValueError('upgrade must retain all Google native score backlogs')
+                from household_native_history import revalidate,validate_partition
+                from datetime import datetime,timezone
+                proof=json.loads(deploy._bytes(history_proof,private=True,maximum=32000000))
+                validate_partition(proof)
+                if proof['references']!=previous_dispatch['historical']+[required[0]] or required[0] in omitted:
+                    raise ValueError('history retirement must bind exact original dispatch and retain incumbent')
+                current=revalidate(proof,now=datetime.now(timezone.utc),guard=guard)
+                if any(row not in proof['retired'] or row not in current['retired'] or row in current['retained'] for row in omitted):
+                    raise ValueError('retired history still required')
     cycles=[json.loads(deploy._bytes(path/'cycle.json',private=True)) for path in (stage,forecast,score)]
     current,old_forecast,old_score=records
     stripped=lambda cycle:{k:v for k,v in cycle.items() if k not in ('evidence_directory','forecast_config')}
@@ -170,13 +180,14 @@ def _assemble(family,previous_forecast_stage,previous_score_stage,*,guard,previo
         raise ValueError('handoff stage originals changed')
     if family_api.verify(family,guard=guard)!=selected or any(_reference(row['path'],private=role.endswith('override'))[0]!=row for role,row in originals.items()):
         raise ValueError('handoff unit or family originals changed')
+    if history_proof is not None:record['history_proof']=_reference(history_proof,private=True)[0]
     record['handoff_sha256']=sha256(deploy._encode(record)).hexdigest()
     return record
 
 
-def prepare(family,*,previous_forecast_stage,previous_score_stage,output,guard,previous_family=None,previous_deployment_sha256=None):
+def prepare(family,*,previous_forecast_stage,previous_score_stage,output,guard,previous_family=None,previous_deployment_sha256=None,history_proof=None):
     output=deploy._path(output)
-    record=_assemble(family,previous_forecast_stage,previous_score_stage,guard=guard,previous_family=previous_family,previous_deployment_sha256=previous_deployment_sha256)
+    record=_assemble(family,previous_forecast_stage,previous_score_stage,guard=guard,previous_family=previous_family,previous_deployment_sha256=previous_deployment_sha256,history_proof=history_proof)
     if output.exists() or output.is_symlink():raise ValueError('distinct private handoff output required')
     deploy._directory(output.parent);output.mkdir(mode=0o700)
     deploy._write(output/'handoff.json',deploy._encode(record))
@@ -196,6 +207,10 @@ def verify(output,*,guard):
         ref=record['previous_family'];path=deploy._path(ref['path'])
         if path.name!='family.json' or _reference(path,private=True)[0]!=ref:raise ValueError('previous family reference differs')
         kwargs=dict(previous_family=path.parent,previous_deployment_sha256=record['previous_deployment_sha256']['forecast'])
+    if 'history_proof' in record:
+        ref=record['history_proof']
+        if _reference(ref['path'],private=True)[0]!=ref:raise ValueError('history proof changed')
+        kwargs['history_proof']=ref['path']
     expected=_assemble(record['family'],record['previous_forecast_stage'],record['previous_score_stage'],guard=guard,**kwargs)
     if deploy._encode(record)!=deploy._encode(expected) or deploy._bytes(output/'handoff.json',private=True)!=raw:
         raise ValueError('native handoff differs from original bindings')

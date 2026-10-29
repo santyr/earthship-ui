@@ -14,16 +14,18 @@ def main(argv=None):
     parser.add_argument('--receipt',required=True,type=Path);args=parser.parse_args(argv)
     try:
         raw=_read(args.receipt,MAX_RECEIPT_BYTES,private=True);record=loads(raw)
-        expanded=record.get('schema') in ('earthship-household-shadow-plan-receipt/v2','earthship-household-shadow-plan-receipt/v3','earthship-household-shadow-plan-receipt/v4','earthship-household-shadow-plan-receipt/v5')
+        from household.pipeline import source_receipt_version
+        version=source_receipt_version(record)
+        expanded=version in ('earthship-household-shadow-plan-receipt/v2','earthship-household-shadow-plan-receipt/v3','earthship-household-shadow-plan-receipt/v4','earthship-household-shadow-plan-receipt/v5')
         if expanded:
             from household_pipeline import pipeline_runtime_manifest,verify_source_closure
-            executing=pipeline_runtime_manifest(expanded=True,configured=record.get('schema') in ('earthship-household-shadow-plan-receipt/v4','earthship-household-shadow-plan-receipt/v5'),measured=record.get('schema')=='earthship-household-shadow-plan-receipt/v5')
+            executing=pipeline_runtime_manifest(expanded=True,configured=version in ('earthship-household-shadow-plan-receipt/v4','earthship-household-shadow-plan-receipt/v5'),measured=version=='earthship-household-shadow-plan-receipt/v5')
             verify_source_closure(record,executing)
         else:
             executing=runtime_manifest()
             executing['openhab/scripts/household_plan.py']=sha256(_read(Path(__file__).resolve(),262144)).hexdigest()
         replayed=replay_plan(record,runtime_manifest=executing)
-        if expanded:repeated=pipeline_runtime_manifest(expanded=True,configured=record.get('schema') in ('earthship-household-shadow-plan-receipt/v4','earthship-household-shadow-plan-receipt/v5'),measured=record.get('schema')=='earthship-household-shadow-plan-receipt/v5')
+        if expanded:repeated=pipeline_runtime_manifest(expanded=True,configured=version in ('earthship-household-shadow-plan-receipt/v4','earthship-household-shadow-plan-receipt/v5'),measured=version=='earthship-household-shadow-plan-receipt/v5')
         else:
             repeated=runtime_manifest()
             repeated['openhab/scripts/household_plan.py']=sha256(_read(Path(__file__).resolve(),262144)).hexdigest()

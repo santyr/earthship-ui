@@ -43,7 +43,7 @@ from household.snapshot import HouseholdSnapshot
 
 def pipeline_api():
     assert importlib.util.find_spec('household.pipeline') is not None,'model-to-plan pipeline missing'
-    return importlib.import_module('household.pipeline')
+    return importlib.import_module('household.legacy_pipeline')
 
 
 def config():

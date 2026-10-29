@@ -139,7 +139,7 @@ def test_resealed_joint_residual_or_missing_original_observation_cannot_replay()
 
 
 def test_compatible_component_response_projects_indoor_air_without_reusing_proxy_weights():
- from test_thermal_solar_experiment import response_rows
+ from weather_learning.tests.test_thermal_solar_experiment import response_rows
  from weather_learning.thermal_solar_experiment import fit_response,predict_response,component_features
  protocol=json.loads((ROOT/'docs/operations/weathernext3-capabilities/evaluation-protocol.json').read_bytes())
  rows=response_rows()

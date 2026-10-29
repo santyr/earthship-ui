@@ -2701,3 +2701,28 @@ its invocation's original-source guard. Failed checks withdraw via the existing
 model-independent unavailable path. Derived report temporary files are outside
 observation; cached reports and the inventory alone confer no release authority.
 Freeze the exact changed runtime before building a genuine candidate.
+
+### Publication-local confirmed temperature decoding (Oct29 repair)
+
+The operational cycle has an explicitly byte-pinned production-point reader
+scope in addition to its existing temperature reader scope. It changes no fitted
+source, coefficient, candidate, scoring helper, forecast horizon or expiry. The
+first exact request still runs the full original confirmation/issue decoder.
+Later requests must match every argument and reread the complete immutable view,
+emission and issue bytes with a stable file/parent inventory before detached
+points can be reused. Ordinary context/runtime/source verification still runs.
+
+The scope retains at most 8 MiB and 16 entries, falls back to full decoding for
+oversized inputs, preserves the original named raw fallbacks, and latches guard
+refusals. No reuse crosses a finished scope, a fresh context or another thread.
+Cleanup restores the original decoder even when qualification fails. The
+publication's original lock, 85-second work limit, 90-second worker limit,
+resource admission and source checks remain unchanged.
+
+The focused and covering suites pass 235 unique cases under their original
+256 MiB/24-task/90-second limits. The first source-loader run correctly refused a
+new helper created with group-write permission; only that file's write mode was
+corrected, and both entry/exit helper-source refusal tests then passed. Retain
+the failed receipt. Real original-data replay, same-fit reserved activation and
+natural product freshness remain separate qualification steps recorded under
+`artifacts/post-upgrade-repairs-20261024.local/openspec-runtime-20261028/`.

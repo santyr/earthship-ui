@@ -19,7 +19,7 @@ PUBLICATION_POLICY_SHA256 = 'e7a330a82886605ef80f418f818bf2da90a2e419aa3264d7d98
 _production_policy = None
 PUBLICATION_MONITOR_SHA256 = '43cef34e31bc9b82a9d416f97bf9e15f255ebe95b873409089478e41e40fd9f9'
 _production_monitor = None
-REPORT_REPLAY_HELPER_SHA256 = 'cb83f94a8f0e21d83fa14a61248584d532b48728c83e3b0a005536cc8d3f2d8e'
+REPORT_REPLAY_HELPER_SHA256 = '2e29a4ed33e3088aa6ac256c0349e223b2f7a6e6bd105c722da14d50b4e42cb2'
 _production_report_reuse = None
 
 
@@ -68,6 +68,69 @@ def _policy_source_bytes(path):
         return _source_bytes(path,maximum=262144)
 
 
+class RetainedSourceGuard:
+    """Fresh full source reads, with shared canonical parents checked once.
+
+    Each callback still opens and reads every file. Pinning and checking the
+    union of parent directories avoids resolving the same long prefixes six
+    times. No file-byte read is replaced by metadata or a cached digest.
+    """
+    @staticmethod
+    def identity(info):
+        return (info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_gid,
+            info.st_nlink,info.st_size,info.st_mtime_ns,info.st_ctime_ns)
+
+    def __init__(self,references):
+        import os,stat
+        if type(references) is not tuple or not 1<=len(references)<=6:
+            raise ValueError('bounded retained source references required')
+        self.files=[];parents={}
+        for path,raw,kind in references:
+            path=Path(path)
+            if path.resolve()!=path or type(raw) is not bytes or kind not in ('owned','private','source'):
+                raise ValueError('retained worker changed during execution')
+            info=path.lstat()
+            if (not stat.S_ISREG(info.st_mode) or info.st_nlink!=1 or info.st_uid!=os.getuid() or
+                    kind=='private' and stat.S_IMODE(info.st_mode)!=0o600 or
+                    kind=='source' and info.st_mode&0o022 or info.st_size!=len(raw)):
+                raise ValueError('retained worker changed during execution')
+            self.files.append((str(path),raw,self.identity(info)))
+            for parent in path.parents:
+                row=parent.lstat()
+                if not stat.S_ISDIR(row.st_mode):raise ValueError('retained worker changed during execution')
+                parents[str(parent)]=(row.st_dev,row.st_ino,row.st_mode,row.st_uid,row.st_gid)
+        self.parents=tuple(parents.items())
+        self()
+
+    def __call__(self):
+        import os
+        def directories():
+            for path,expected in self.parents:
+                row=os.stat(path,follow_symlinks=False)
+                if (row.st_dev,row.st_ino,row.st_mode,row.st_uid,row.st_gid)!=expected:
+                    raise ValueError('retained worker changed during execution')
+        try:
+            directories()
+            for path,expected,identity in self.files:
+                if self.identity(os.stat(path,follow_symlinks=False))!=identity:
+                    raise ValueError('retained worker changed during execution')
+                fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|os.O_CLOEXEC)
+                try:
+                    if self.identity(os.fstat(fd))!=identity:
+                        raise ValueError('retained worker changed during execution')
+                    raw=os.read(fd,len(expected)+1)
+                    if raw!=expected or self.identity(os.fstat(fd))!=identity:
+                        raise ValueError('retained worker changed during execution')
+                finally:os.close(fd)
+                if self.identity(os.stat(path,follow_symlinks=False))!=identity:
+                    raise ValueError('retained worker changed during execution')
+            for path,_,identity in self.files:
+                if self.identity(os.stat(path,follow_symlinks=False))!=identity:
+                    raise ValueError('retained worker changed during execution')
+            directories()
+        except OSError:raise ValueError('retained worker changed during execution') from None
+
+
 def production_pressure_monitor():
     """Use this release's pressure policy with an archived numerical runtime."""
     global _production_monitor
@@ -113,7 +176,7 @@ def production_report_replay(scores):
     return _production_report_reuse.wrap_report(scores)
 
 
-RETAINED_COORDINATOR_SHA256 = '3914670ce1535ee6291032ae00a2375e57d8db051e0af318e12bd5839f5671e1'
+RETAINED_COORDINATOR_SHA256 = '8391c0b5159277a087cc68231254a1837b1f5279d9817cdda12eba2f9308458d'
 
 
 def production_retained_runner():
@@ -129,12 +192,15 @@ def production_retained_runner():
 
 
 @contextmanager
-def production_score_policy():
+def production_score_policy(*,temperature_guard=None):
     """Explicitly use current admission for an archived scoring invocation only."""
     import thermal_model.serial_publication_caps as serial
     import household_cycle_resources as resources
+    from contextlib import nullcontext
+    if temperature_guard is not None and not callable(temperature_guard):
+        raise ValueError('original bounded temperature job guard required')
     production_resource_preflight()
-    monitors=[]
+    monitors=[];temperature_helper=None
     def current_headroom():
         pressure=SampledScorePressure(production_pressure_monitor())
         monitors.append(pressure)
@@ -152,10 +218,13 @@ def production_score_policy():
         import native_thermal_score as scores
         if hasattr(scores,'reconcile_serving_source_report'):
             hooks.append((scores,'reconcile_serving_source_report',production_report_replay(scores)))
+            temperature_helper=_production_report_reuse
     originals=[(module,name,getattr(module,name)) for module,name,_ in hooks]
     try:
         for module,name,replacement in hooks:setattr(module,name,replacement)
-        yield
+        scope=(temperature_helper.job_temperature_reads(temperature_guard)
+            if temperature_guard is not None and temperature_helper is not None else nullcontext())
+        with scope:yield
         for pressure in monitors:pressure.check(force=True)
     finally:
         for module,name,original in reversed(originals):setattr(module,name,original)
@@ -278,7 +347,7 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
                     assessed_at=clock(),guard=guard))
             historical=tuple(historical)
             pressure.check(force=True)
-            with production_score_policy():
+            with production_score_policy(temperature_guard=guard):
                 result=score_with_report(settings,guard=guard,clock=clock,queue=True,serving_model=model,historical_selections=historical)
         else:
             if isinstance(pressure,SampledScorePressure):pressure.check(force=True)
@@ -389,12 +458,13 @@ def failure_site(error):
     """Return only the innermost repository source name and line, never locals."""
     import re
     from pathlib import PurePosixPath
-    trace=error.__traceback__
-    if trace is None:return None
-    while trace.tb_next is not None:trace=trace.tb_next
-    filename=trace.tb_frame.f_code.co_filename
     marker='/openhab/scripts/'
-    if marker not in filename:return None
+    trace=error.__traceback__;selected=None
+    while trace is not None:
+        if marker in trace.tb_frame.f_code.co_filename:selected=trace
+        trace=trace.tb_next
+    if selected is None:return None
+    trace=selected;filename=trace.tb_frame.f_code.co_filename
     relative=filename.rsplit(marker,1)[1]
     path=PurePosixPath(relative)
     if (len(relative)>200 or re.fullmatch(r'[A-Za-z0-9_./-]+\.py',relative) is None or
@@ -403,10 +473,36 @@ def failure_site(error):
     return dict(source=relative,line=trace.tb_lineno)
 
 
+def serving_failure(error,*,phase):
+    """Fixed serving diagnostics; never emit exception text or dynamic names."""
+    if phase not in ('publication','withdrawal','cycle_admission','geometry_preparation','observation'):
+        raise ValueError('fixed serving diagnostic phase required')
+    reason=failure_reason(error)
+    if isinstance(error,BlockingIOError):reason='window_or_lock_busy'
+    elif isinstance(error,TimeoutError):reason='acquisition_timeout'
+    elif isinstance(error,ValueError):
+        reason={
+            'original native sources arrived after issue':'late_data',
+            'native delivery not actually persisted':'delivery_refused',
+            'original native delivery readback differs':'delivery_refused',
+            'native withdrawal delivery unverified':'delivery_refused',
+            'native publication deadline exceeded':'deadline',
+            'native geometry preparation deadline elapsed':'deadline',
+            'native preparation lifetime elapsed':'deadline',
+        }.get(str(error),reason)
+    classes=(BlockingIOError,TimeoutError,FileNotFoundError,PermissionError,OSError,ValueError,TypeError,KeyError,RuntimeError)
+    name=next((kind.__name__ for kind in classes if isinstance(error,kind)),'Exception')
+    result=dict(reason=reason,exception_class=name,failure_phase=phase)
+    site=failure_site(error)
+    if site is not None:result['failure_site']=site
+    return result
+
+
 def run_retained_worker(script,config,*,stage,deployment_sha256,retained_native,
-        deadline=None,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic):
+        deadline=None,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic,reader_factory=None):
     """Keep archived numerics; use current operational policy and native clocks."""
     if retained_native is not True:raise ValueError('Google-only native retained scoring required')
+    if reader_factory is not None and not callable(reader_factory):raise ValueError('explicit reader factory must be callable')
     import math
     started=monotonic()
     if not math.isfinite(started):raise ValueError('score lifetime elapsed')
@@ -442,20 +538,27 @@ def run_retained_worker(script,config,*,stage,deployment_sha256,retained_native,
         runner=production_retained_runner()
         own_path=Path(__file__).resolve();own=own_path.read_bytes()
         helper=own_path.with_name('household_retained_native_score.py')
-        def source_guard():
-            if (own_path.read_bytes()!=own or deploy._bytes(script)!=original or read_manifest()!=manifest or
-                    deploy._bytes(cycle_path,private=True)!=cycle_raw or deploy._bytes(config,private=True)!=config_raw or
-                    sha256(_policy_source_bytes(helper)).hexdigest()!=RETAINED_COORDINATOR_SHA256):
-                raise ValueError('retained worker changed during execution')
+        helper_raw=_policy_source_bytes(helper)
+        if sha256(helper_raw).hexdigest()!=RETAINED_COORDINATOR_SHA256:
+            raise ValueError('retained worker changed during execution')
+        source_guard=RetainedSourceGuard(((own_path,own,'owned'),(script,original,'owned'),
+            (stage/'deployment.json',manifest,'private'),(cycle_path,cycle_raw,'private'),
+            (config,config_raw,'private'),(helper,helper_raw,'source')))
         def verify_archive():
             if deploy.verify_stage(stage,expected_deployment_sha256=deployment_sha256)!=record:
                 raise ValueError('retained worker dependency context changed')
             source_guard()
-        with production_score_policy():
+        def temperature_guard():
+            source_guard()
+            remaining=stop-monotonic()
+            if remaining<=0:raise ValueError('score lifetime elapsed')
+            return remaining
+        with production_score_policy(temperature_guard=temperature_guard):
+            reader_options={} if reader_factory is None else dict(reader_factory=reader_factory)
             result=runner.run(config,stage=stage,deployment_sha256=deployment_sha256,deadline=stop,
                 resource_preflight=production_resource_preflight,
                 pressure_factory=lambda:SampledScorePressure(production_pressure_monitor(),monotonic=monotonic),
-                source_guard=source_guard,verify_archive=verify_archive,clock=clock,monotonic=monotonic)
+                source_guard=source_guard,verify_archive=verify_archive,clock=clock,monotonic=monotonic,**reader_options)
         source_guard();return result
 
 

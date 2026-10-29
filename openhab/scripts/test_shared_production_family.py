@@ -97,7 +97,15 @@ def test_daily_activation_uses_the_verified_family_interpreter(tmp_path,monkeypa
     calls=[]
     def run(command,**kwargs):
         calls.append(command);training.save(stage.parent/'activation-result.json',{'status':'activated'})
-    monkeypatch.setattr(training.subprocess,'run',run)
+    import household_native_lifecycle as lifecycle
+    from types import SimpleNamespace
+    monkeypatch.setattr(lifecycle,'run_activation_child',run)
     runner=object.__new__(training.NativeTraining);runner.guard=lambda:None
+    runner.learner_lock=SimpleNamespace(fd=42,verify=lambda:None)
+    runner.reservation=SimpleNamespace(directory=tmp_path/'reservation',check=lambda:None)
+    if not retained:
+        with pytest.raises(ValueError,match='retained verified'):runner.activate(dict(stage=str(stage),deployment_sha256='a'*64),{})
+        assert calls==[]
+        return
     assert runner.activate(dict(stage=str(stage),deployment_sha256='a'*64),{})=={'status':'activated'}
     assert calls[0][0]==(ref['path'] if retained else '/usr/bin/python3')

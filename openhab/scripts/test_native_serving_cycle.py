@@ -48,4 +48,4 @@ def test_complete_cycle_passes_owned_context_to_household_preparation(tmp_path,o
     monkeypatch.setattr(cycle,'_retain_original',lambda *a:Path(publication['origin_path']))
     monkeypatch.setattr(household_observation,'materialize',lambda *a,**kw:{'status':'fixture_materialized'})
     result=cycle.complete_cycle(publication=publication,collection={'status':'collected','issue':ISSUE,'originals':{}},parameter_record=None,runtime_manifest=None,code_revision='a'*40,evidence_directory=None,observation_cache=None,guard=lambda:None,clock=lambda:ISSUE,serving_model=model,expected_capture_sha256=capture['capture_sha256'])
-    assert result=={'status':'fixture_materialized'} and seen==['prepared','derived']
+    assert result=={'status':'fixture_materialized','advice_status':'unavailable'} and seen==['prepared','derived']

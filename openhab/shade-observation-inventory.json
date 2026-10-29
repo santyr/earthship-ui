@@ -1,0 +1,163 @@
+{
+  "schema": "earthship-shade-observation-inventory/v1",
+  "hardware_expectation": "approximately one month from 2026-10-22; arrival and mapping unconfirmed",
+  "automatic_actuation": false,
+  "slots": [
+    {
+      "shade_id": "shade-1",
+      "zone": "kitchen",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-2",
+      "zone": "kitchen",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-3",
+      "zone": "kitchen",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-4",
+      "zone": "kitchen",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-5",
+      "zone": "kitchen",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-6",
+      "zone": "kitchen",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-7",
+      "zone": "kitchen",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-8",
+      "zone": "kitchen",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-9",
+      "zone": "living",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-10",
+      "zone": "living",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-11",
+      "zone": "living",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-12",
+      "zone": "living",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-13",
+      "zone": "living",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-14",
+      "zone": "living",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-15",
+      "zone": "living",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-16",
+      "zone": "living",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-17",
+      "zone": "living",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-18",
+      "zone": "bathroom",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-19",
+      "zone": "bathroom",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-20",
+      "zone": "bathroom",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-21",
+      "zone": "bathroom",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-22",
+      "zone": "bedroom",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-23",
+      "zone": "bedroom",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-24",
+      "zone": "bedroom",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-25",
+      "zone": "bedroom",
+      "device_mapping": null,
+      "commissioned": false
+    },
+    {
+      "shade_id": "shade-26",
+      "zone": "bedroom",
+      "device_mapping": null,
+      "commissioned": false
+    }
+  ]
+}

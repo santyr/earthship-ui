@@ -6,8 +6,8 @@ from household.control_contracts import instant,ContractRefused
 from household.snapshot import HouseholdSnapshot
 from household.model_snapshot import bind_model_snapshot
 from household.energy_model import freeze_energy_inputs,bind_energy_inputs
-from household.pipeline import seal_pipeline,replay_pipeline
-from household.planning import replay_plan
+from household.legacy_pipeline import seal_pipeline,replay_pipeline
+from household.legacy_planning import replay_plan
 from household.intents import build_intent,intent_to_request,EFFECT_UNITS
 from test_household_model_snapshot import make,source_at,NOW
 from test_household_pipeline import config,pipeline

@@ -341,7 +341,7 @@ def _inactive_capped(state):
         raise ValueError('effective original limits differ')
 
 
-def _qualify(stage,*,deployment_sha256=None):
+def _qualify(stage,*,deployment_sha256=None,interpreter=None):
     if deployment_sha256 is None:verify_stage(stage)
     else:verify_stage(stage,expected_deployment_sha256=deployment_sha256)
     command=['systemd-run','--user','--scope','-p','CPUQuota=20%','-p','MemoryMax=256M','-p','MemorySwapMax=0',
@@ -349,8 +349,22 @@ def _qualify(stage,*,deployment_sha256=None):
         'OPENBLAS_NUM_THREADS=1','OMP_NUM_THREADS=1','MKL_NUM_THREADS=1','PYTHONDONTWRITEBYTECODE=1',
         'PYTHONPATH='+str(stage/'sources/openhab/scripts')+':/home/sat/Solar_PV/analytics/src','/usr/bin/python3',
         str(stage/'sources/openhab/scripts/household_cycle_deploy.py'),'--stage',str(stage),'--verify-runtime']
+    if interpreter is not None:
+        from household_native_family import _interpreter_reference
+        interpreter=_interpreter_reference(interpreter)
+        if deployment_sha256 is None:raise ValueError('pinned runtime qualification requires external deployment pin')
+        command=['/usr/bin/python3','-B',str(stage/'sources/openhab/scripts/household_job_run.py'),
+            '--production','--collection','--minimum-mib','256','--preferred-mib','256','--tasks','24','--seconds','45','--',
+            interpreter['path'],'-B',str(stage/'sources/openhab/scripts/household_cycle_deploy.py'),
+            '--stage',str(stage),'--verify-runtime']
     if deployment_sha256 is not None:command+=['--deployment-sha256',deployment_sha256]
-    raw=subprocess.check_output(command,timeout=55)
+    options={} if interpreter is None else dict(env=dict(os.environ,
+        PYTHONDONTWRITEBYTECODE="1",OPENBLAS_NUM_THREADS="1",OMP_NUM_THREADS="1",MKL_NUM_THREADS="1",
+        PYTHONPATH=str(stage/"sources/openhab/scripts")+":/home/sat/Solar_PV/analytics/src"))
+    raw=subprocess.check_output(command,timeout=55,**options)
+    if interpreter is not None:
+        _interpreter_reference(interpreter)
+        verify_stage(stage,expected_deployment_sha256=deployment_sha256)
     result=json.loads(raw)
     expected=sha256(_bytes(stage/'deployment.json',private=True)).hexdigest()
     if (set(result)!={'status','deployment_sha256','automatic_actuation'} or result['status']!='runtime_verified' or

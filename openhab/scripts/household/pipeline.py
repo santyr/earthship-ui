@@ -8,8 +8,8 @@ from .capabilities import CapabilityRegistry
 from .energy_model import PreparedEnergyInputs,project_energy,bind_energy_inputs
 from .thermal_model import PreparedProjection,project as project_thermal
 from .intents import build_intent,EFFECT_UNITS
-from .control_contracts import instant
-from .planning import seal_plan,_runtime_manifest,MIN_RESERVE_SOC,_source_checks
+from .control_contracts import instant,ContractRefused
+from .planning import seal_plan,_runtime_manifest,MIN_RESERVE_SOC
 
 # Native thermal inputs and original weather sources also appear in the
 # nested plan receipt. Bound the complete private envelope independently of
@@ -92,27 +92,12 @@ def _intent(snapshot,now,kind,parameters,refs,reason):
 
 
 def _candidates(snapshot,projections,config,now):
+    # Command-oriented shadow proposals are historical diagnostics. Current
+    # decision support is produced by household.advice, with explicit flexible
+    # loads and target-specific evidence, never a greywater prerequisite.
     no_action=_intent(snapshot,now,'NO_ACTION',{},[],'no_optional_action')
-    energy=projections['energy'];items=[];utilities={};reason=None
-    rolling=energy is not None and energy.get('schema')=='earthship-household-trajectory-energy-projection/v1'
-    body={} if energy is None else energy['output']
-    minimum=body.get('minimum_nominal_soc_pct') if rolling else body.get('trough_pred')
-    surplus=body.get('modeled_unaccepted_pv_kwh') if rolling else body.get('curtail')
-    if minimum is None or surplus is None:reason='source_unavailable'
-    else:
-        row=snapshot.to_dict()['domains']['energy']['battery_soc'];ref=row['evidence']
-        if row['value'] is None or row['reason'] is not None or ref is None or ref['quality']!='qualified':reason='source_unavailable'
-        else:
-            checks=_source_checks({'evidenceRefs':[ref['digest']]},snapshot.to_dict(),now)
-            reason=next((check['reason'] for check in checks if check['status']!='pass'),None)
-        # No supported device-specific energy policy is defined. Greywater is
-        # manual and the generic override couples optional and essential loads;
-        # keep the forecast observable without inventing replacement actions.
-    items.sort(key=lambda item:item.intent_id)
-    return items,utilities,no_action,dict(status='unavailable' if reason else 'generated_shadow_only',reason=reason,
-        action_effects_qualified=False,input_qualification='not_assessed',
-        objective_units=dict(surplus_weight='declared_preference_points_per_nominal_unaccepted_DC_kWh' if rolling else 'declared_preference_points_per_curtailment_proxy_hour',
-            reserve_weight='declared_preference_points_per_predicted_soc_percentage_point'))
+    return [],{},no_action,dict(status='human_advice_separate',reason=None,
+        action_effects_qualified=False,input_qualification='not_assessed',objective_units={})
 
 
 def _comfort(thermal,config,now):
@@ -179,22 +164,25 @@ def seal_pipeline(*,snapshot,registry,energy_inputs,thermal_inputs,thermal_runti
     if expanded:
         from .model_snapshot import snapshot_context
         inputs['source_contexts']={snapshot.snapshot_id:snapshot_context(snapshot)}
-    receipt=dict(schema='earthship-household-model-plan-receipt/v'+str(6 if persistence else 5 if measured_bound else 4 if energy_bound else 3 if weather_bound else 2 if expanded else 1),inputs=inputs,runtime_manifest=runtime,output=output)
+    receipt=dict(schema='earthship-household-model-plan-receipt/v7',inputs=inputs,runtime_manifest=runtime,output=output)
     receipt['receipt_sha256']=identity(receipt)
     if len(canonical(receipt))>MAX_BYTES:raise ValueError('bounded model/plan receipt required')
     return loads(canonical(receipt))
 
 
 def replay_pipeline(receipt,*,runtime_manifest,thermal_runtime):
-    if not isinstance(receipt,dict) or set(receipt)!=FIELDS or receipt['schema'] not in ('earthship-household-model-plan-receipt/v1','earthship-household-model-plan-receipt/v2','earthship-household-model-plan-receipt/v3','earthship-household-model-plan-receipt/v4','earthship-household-model-plan-receipt/v5','earthship-household-model-plan-receipt/v6') or len(canonical(receipt))>MAX_BYTES:
+    if isinstance(receipt,dict) and receipt.get('schema')!='earthship-household-model-plan-receipt/v7':
+        from .legacy_pipeline import replay_pipeline as replay_original
+        return replay_original(receipt,runtime_manifest=runtime_manifest,thermal_runtime=thermal_runtime)
+    if not isinstance(receipt,dict) or set(receipt)!=FIELDS or receipt['schema']!='earthship-household-model-plan-receipt/v7' or len(canonical(receipt))>MAX_BYTES:
         raise ValueError('closed bounded original model/plan receipt required')
     if identity({key:value for key,value in receipt.items() if key!='receipt_sha256'})!=receipt['receipt_sha256']:
         raise ValueError('sealed original model/plan differs')
     runtime=_runtime_manifest(runtime_manifest)
     if canonical(runtime)!=canonical(receipt['runtime_manifest']):raise ValueError('executing model/plan runtime differs')
     value=receipt['inputs']
-    expanded=receipt['schema'].endswith(('/v2','/v3','/v4','/v5','/v6'))
-    persistence=receipt['schema']=='earthship-household-model-plan-receipt/v6'
+    expanded='source_contexts' in value
+    persistence='energy_persistence_source' in value
     expected=INPUT_FIELDS|({'source_contexts'} if expanded else set())|({'energy_persistence_source'} if persistence else set())
     if not isinstance(value,dict) or set(value)!=expected:raise ValueError('closed original model/plan inputs required')
     from .model_snapshot import restore_snapshot
@@ -210,3 +198,14 @@ def replay_pipeline(receipt,*,runtime_manifest,thermal_runtime):
         **({'energy_persistence_source':value['energy_persistence_source']} if persistence else {}))
     if canonical(replayed)!=canonical(receipt):raise ValueError('rederived original models or plan differ')
     return replayed
+
+
+def source_receipt_version(record):
+    """Original source-shape version beneath the current decision-scope producer."""
+    version=record.get('schema')
+    if version=='earthship-household-shadow-plan-receipt/v6':
+        inputs=record['inputs'];schema=inputs['snapshot']['schema']
+        return 'earthship-household-shadow-plan-receipt/v'+str({'earthship-household-snapshot/v6':5,'earthship-household-snapshot/v5':4,'earthship-household-snapshot/v4':3,'earthship-household-snapshot/v3':2}.get(schema,1))
+    if version!='earthship-household-model-plan-receipt/v7':return version
+    inputs=record['inputs'];schema=inputs['snapshot']['schema']
+    return 'earthship-household-model-plan-receipt/v'+str(6 if 'energy_persistence_source' in inputs else {'earthship-household-snapshot/v6':5,'earthship-household-snapshot/v5':4,'earthship-household-snapshot/v4':3,'earthship-household-snapshot/v3':2}.get(schema,1))

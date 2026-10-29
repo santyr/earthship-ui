@@ -1,5 +1,11 @@
 # Earthship household intelligence architecture plan
 
+## Current product objective (2026-10-23)
+
+Earthship UI exists to help the household make timely, informed decisions about solar heat gain, ventilation, and electricity use. It combines current measurements, weather forecasts, and models of the house and energy system to compare practical alternatives—including leaving things unchanged—and recommend what to do, when, and why. Recommendations explain the expected benefit, trade-offs, uncertainty, and relevant constraints. Forecasting is a supporting capability, not the final product. Automatic execution is separate and is not required for useful decision support.
+
+The [decision-support contract](2026-10-22-decision-support.md) supersedes earlier greywater planning scope and forecasting-only completion claims. Preserve historical plans and operational owners.
+
 **Date:** 2026-10-07  
 **Repository:** `santyr/earthship-ui`  
 **Status:** planning only; no actuator or production-authority change  

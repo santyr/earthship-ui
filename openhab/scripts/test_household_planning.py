@@ -13,7 +13,7 @@ from household.intents import build_intent
 
 def api():
     assert importlib.util.find_spec('household.planning') is not None,'shadow planner missing'
-    return importlib.import_module('household.planning')
+    return importlib.import_module('household.legacy_planning')
 
 
 def setup():

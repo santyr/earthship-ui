@@ -8,6 +8,30 @@ from test_native_monitor import setup as native_setup,originals
 def api():return importlib.import_module('household_forecast_score')
 
 
+def test_production_retained_runner_loads_reviewed_sibling_and_closed_reader():
+    from hashlib import sha256
+    import household_native_score_queries as queries
+    coordinator=api()
+    helper=Path(coordinator.__file__).resolve().with_name('household_retained_native_score.py')
+    # Frozen exact source authority for the explicit-reader implementation.
+    assert sha256(helper.read_bytes()).hexdigest()=='8391c0b5159277a087cc68231254a1837b1f5279d9817cdda12eba2f9308458d'
+    module=coordinator.production_retained_runner()
+    assert Path(module.__file__).resolve()==helper
+    assert Path(module.run.__code__.co_filename).resolve()==helper
+    assert module._reader_factory() is queries.RecentCycleWindowReader
+
+
+def test_production_retained_runner_refuses_changed_sibling_before_execution(tmp_path,monkeypatch):
+    coordinator=api()
+    helper=Path(coordinator.__file__).resolve().with_name('household_retained_native_score.py')
+    changed=tmp_path/helper.name
+    changed.write_bytes(helper.read_bytes()+b"\nraise AssertionError('unreviewed retained helper executed')\n")
+    changed.chmod(0o644)
+    monkeypatch.setattr(coordinator,'__file__',str(tmp_path/'household_forecast_score.py'))
+    with pytest.raises(ValueError,match='retained coordinator source differs'):
+        coordinator.production_retained_runner()
+
+
 @pytest.mark.parametrize('status,expected',[
     ('scored',0),('waiting',0),('monitoring_refreshed',0),('withheld',1),('unknown',1)])
 def test_cli_preserves_original_integrity_refusal(status,expected,tmp_path,monkeypatch,capsys):

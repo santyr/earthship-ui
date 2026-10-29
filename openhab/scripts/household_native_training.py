@@ -16,6 +16,11 @@ from household_native_daily import capture_windows, retained_parts,long_part_pre
 from zoneinfo import ZoneInfo
 from thermal_model.runtime_bundle import _owned_bytes
 
+RETRY_FILES=('activation-input.json','final-selection.json','final-config.json',
+    'score-history-window.json','model-admission.json','score-dispatch.json')
+RETRY_CONTROL_SOURCES=frozenset('openhab/scripts/'+name for name in
+    ('household_native_training.py','household_native_daily.py','household_native_history.py'))
+
 
 def read(path, maximum=131072):
     return json.loads(_owned_bytes(Path(path), maximum))
@@ -134,6 +139,44 @@ def retained_model_admission(candidate, *, selections, guard):
 def selected_family_interpreter(selection,*,guard):
     from household_native_family import selected_interpreter
     return selected_interpreter(Path(selection['stage']),deployment_sha256=selection['deployment_sha256'],guard=guard)
+
+
+def retained_retry_revision(repo,record,original_revision,*,guard):
+    """Permit only a proven controller repair around the unchanged fitted code."""
+    import io,tarfile
+    import household_cycle_deploy as deploy
+    guard()
+    if (not isinstance(original_revision,str) or re.fullmatch('[0-9a-f]{40}',original_revision) is None or
+        record['code_revision']!=original_revision):
+        raise ValueError('retained activation original source revision changed')
+    commit=deploy._git(repo,'rev-parse','HEAD').decode().strip()
+    if deploy._git(repo,'status','--porcelain').strip():raise ValueError('clean retained retry source required')
+    if commit!=original_revision:
+        try:deploy._git(repo,'merge-base','--is-ancestor',original_revision,commit)
+        except subprocess.CalledProcessError:raise ValueError('retained source must precede repaired source') from None
+        changed=deploy._git(repo,'diff','--name-only','-z',original_revision,commit,'--').decode().split('\0')
+        if any(name and name not in RETRY_CONTROL_SOURCES and
+            re.fullmatch(r'openhab/scripts/test_[^/]+\.py',name) is None for name in changed):
+            raise ValueError('retained activation source revision changed outside retry controller')
+    # Bind the original stage's complete manifest to its actual original Git
+    # object as well as to the unchanged current non-controller bytes.
+    manifest=record['source_manifest']
+    archived=deploy._git(repo,'archive','--format=tar',original_revision,'--',*manifest)
+    if len(archived)>32*1024*1024:raise ValueError('bounded retained source archive required')
+    found={}
+    with tarfile.open(fileobj=io.BytesIO(archived),mode='r:') as archive:
+        for member in archive:
+            if member.isdir():continue
+            guard()
+            if member.name not in manifest or member.name in found or not member.isfile() or member.size>deploy.MAX_BYTES:
+                raise ValueError('original retained source archive differs')
+            found[member.name]=sha256(archive.extractfile(member).read(deploy.MAX_BYTES+1)).hexdigest()
+    if found!=manifest:raise ValueError('retained stage differs from original Git source')
+    for name,pin in manifest.items():
+        guard()
+        if (commit==original_revision or name not in RETRY_CONTROL_SOURCES) and sha256(deploy._bytes(repo/name)).hexdigest()!=pin:
+            raise ValueError('retained fitted or policy source changed')
+    guard();return commit
 
 
 class NativeTraining:
@@ -338,71 +381,111 @@ class NativeTraining:
         return self.package(run, originals, runtime, previous, libraries, commit)
 
     def active_score_history(self,references,*,now):
-        """Keep explicit stages used by the scorer's existing active folders.
+        from household_native_history import assess
+        return tuple(assess(references,now=now,guard=self.guard)['retained'])
 
-        Unknown frozen archive policies remain retained. Binding discovery only
-        filters already owned selections; it never authorizes another model.
-        No forecast, completion, score, stage or original source is removed.
-        """
-        import household_cycle_deploy as deploy
-        from native_thermal_artifact import _read as read_binding
-        from thermal_model.native_operational_io import _folders
-        from thermal_model.graduation_policy import _sha
-        if type(references) is not tuple or len(references)>63:raise ValueError('bounded explicit score history required')
-        policy='openhab/scripts/thermal_model/native_operational_io.py'
-        current=sha256((Path(__file__).parent/'thermal_model/native_operational_io.py').read_bytes()).hexdigest()
-        roots=set();unknown=set();seen=set()
-        for ref in references:
-            self.guard();stage=Path(ref['stage']);key=(str(stage),_sha(ref['deployment_sha256']))
-            if key in seen:raise ValueError('unique owned score history required')
-            seen.add(key)
-            manifest=deploy._bytes(stage/'deployment.json',private=True,maximum=131072)
-            if sha256(manifest).hexdigest()!=key[1]:raise ValueError('retained score stage pin differs')
-            record=deploy.verify_stage(stage,expected_deployment_sha256=key[1])
-            if record['source_manifest'].get(policy)!=current:
-                unknown.add(key);continue
-            cycle=read(stage/'cycle.json',8192);settings=read(cycle['forecast_config'],8192)
-            roots.add(Path(settings['evidence_directory']))
-        needed=set(unknown);fields={'schema','capture_sha256','artifact_sha256','runtime_sha256','issued_at','stage','deployment_sha256',
-            'model_receipt_path','model_receipt_sha256','automatic_actuation','binding_sha256'}
-        for root in roots:
-            self.guard()
-            if root.is_symlink():raise ValueError('original scoring archive cannot be a symlink')
-            if not root.exists():continue
-            paths=[p for folder in _folders(root,'origins',now) for p in folder.glob('*.native-serving-model-binding-v1.json')]
-            if len(paths)>4096:raise ValueError('bounded original scoring binding inventory required')
-            for path in paths:
-                self.guard();_,value=read_binding(path,8192)
-                if (set(value)!=fields or value['schema']!='earthship-native-serving-model-binding/v1' or value['automatic_actuation'] is not False or
-                    value['binding_sha256']!=sha256(json.dumps({k:v for k,v in value.items() if k!='binding_sha256'},sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest() or
-                    path.name!=_sha(value['capture_sha256'])+'.native-serving-model-binding-v1.json'):
-                    raise ValueError('original scoring capture binding differs')
-                needed.add((value['stage'],_sha(value['deployment_sha256'])))
-        return tuple(ref for ref in references if (ref['stage'],ref['deployment_sha256']) in needed)
+    def close_reservation(self):
+        reservation=getattr(self,'reservation',None)
+        if reservation is not None:
+            self.reservation=None
+            reservation.close()
 
-    def package(self, run, originals, runtime, previous, libraries, commit):
+    def retry_selection(self,cutoff,previous,*,requested_run=None):
+        """At most one retry before the next cutoff; never refit on a miss."""
+        path=self.state/'activation-retry.json'
+        if not path.exists():return None
+        retry=read(path)
+        if (not isinstance(retry,dict) or set(retry)!={'selection','previous','cutoff','code_revision','attempts','files'} or
+            type(retry['attempts']) is not int or retry['attempts']<1 or
+            not isinstance(retry['files'],dict) or set(retry['files'])!=set(RETRY_FILES) or
+            any(not isinstance(pin,str) or re.fullmatch('[0-9a-f]{64}',pin) is None for pin in retry['files'].values())):
+            raise ValueError('complete original retained retry checkpoint required')
+        if retry['cutoff']!=cutoff.isoformat():return None
+        if retry['attempts']>=2:raise ValueError('retained activation retry exhausted')
+        if retry['previous']!=previous:raise ValueError('retained activation previous selection changed')
+        if retry['selection']['trained_through']!=retry['cutoff']:raise ValueError('retained activation cutoff differs')
+        run=Path(retry['selection']['stage']).parent
+        if run.parent!=self.state or run.resolve()!=run:raise ValueError('retained activation outside original state')
+        if requested_run is not None and Path(requested_run)!=run:raise ValueError('exact original retained activation run required')
+        if (run/'handoff').exists() or (run/'handoff').is_symlink():raise ValueError('begun handoff requires explicit reconciliation')
+        from household_cycle_deploy import verify_stage
+        from household_native_family import verify
+        record=verify_stage(Path(retry['selection']['stage']),expected_deployment_sha256=retry['selection']['deployment_sha256'])
+        commit=retained_retry_revision(self.repo,record,retry['code_revision'],guard=self.guard)
+        if verify(run/'family',guard=self.guard)['deployment_sha256']!=retry['selection']['deployment_sha256']:
+            raise ValueError('retained package family or source changed')
+        for name,pin in retry['files'].items():
+            if sha256(_owned_bytes(run/name,32000000)).hexdigest()!=pin:raise ValueError('retained package original changed')
+        if (read(run/'activation-input.json')!=dict(selection=retry['selection'],previous=previous) or
+            read(run/'final-selection.json')!=retry['selection']):raise ValueError('retained package selection differs')
+        from household_native_history import validate_partition
+        from household_forecast_score import read_score_dispatch
+        proof=read(run/'score-history-window.json',32000000);validate_partition(proof)
+        old=read_score_dispatch(Path(previous['stage']),deployment_sha256=previous['deployment_sha256'],guard=self.guard)
+        incumbent={key:previous[key] for key in ('stage','deployment_sha256')}
+        original_dispatch=read_score_dispatch(Path(retry['selection']['stage']),deployment_sha256=retry['selection']['deployment_sha256'],guard=self.guard)
+        if (proof['references']!=[*old['historical'],incumbent] or
+            original_dispatch['historical']!=[row for row in old['historical'] if row in proof['retained']]+[incumbent]):
+            raise ValueError('retained history must bind original dispatch and partition')
+        from native_model_serving_receipt import load_serving_selection,read_serving_model
+        from native_thermal_artifact import current_native_runtime
+        model=read_serving_model(load_serving_selection(Path(retry['selection']['stage']),
+            expected_deployment_sha256=retry['selection']['deployment_sha256'],assessed_at=datetime.now(timezone.utc),guard=self.guard),
+            assessed_at=datetime.now(timezone.utc),guard=self.guard)
+        candidate=model.candidate
+        if (candidate['artifact_sha256']!=retry['selection']['artifact_sha256'] or candidate['fit']['training_end']!=retry['cutoff'] or
+            candidate['runtime']!=current_native_runtime(guard=self.guard)):
+            raise ValueError('retained fit or current numerical runtime differs')
+        originals={key:Path(ref['path']) for key,ref in candidate['originals'].items()}
+        if read(originals['fit_evidence'])['code_revision']!=retry['code_revision']:
+            raise ValueError('retained fit original source revision differs')
+        retained=dict(selection=retry['selection'],candidate=candidate,proof=proof)
+        # Spend the sole remaining attempt before any reservation or assembly.
+        # Keep every original descriptor field/pin; the derived run is separate.
+        attempted=dict(retry,attempts=retry['attempts']+1)
+        if read(path)!=retry:raise ValueError('retained activation checkpoint changed')
+        save(path,attempted)
+        output=self.state/(run.name+'-retry-'+uuid4().hex);output.mkdir(mode=0o700)
+        selection=self.package(output,originals,candidate['runtime'],previous,read(run/'geometry-libraries.json',8192),commit,retained=retained)
+        self.reservation.check()
+        if read(path)!=attempted or (run/'handoff').exists() or (run/'handoff').is_symlink():
+            raise ValueError('retained activation ownership changed during assembly')
+        for name,pin in retry['files'].items():
+            if sha256(_owned_bytes(run/name,32000000)).hexdigest()!=pin:raise ValueError('retained package original changed')
+        save(output/'retained-fit.json',dict(schema='earthship-native-retained-fit-activation/v1',
+            original_retry=retry,activation_code_revision=commit,selection=selection,fit_executed=False,automatic_actuation=False))
+        return selection
+
+    def package(self, run, originals, runtime, previous, libraries, commit,*,retained=None):
         from native_thermal_artifact import write_native_candidate
         from native_model_serving_receipt import admit_model
         import household_cycle_deploy as deploy
         from household_native_family import prepare_score_dispatch, prepare
         from household_forecast_score import read_score_dispatch
+        from household_native_lifecycle import Reservation
+        self.reservation=Reservation(self.state,run,previous,guard=self.guard)
+        checked=self.reservation.check
         cycle = read(Path(previous['stage']) / 'cycle.json')
         settings = read(cycle['forecast_config'], 8192)
         previous_candidate = read(settings['candidate_path'])
         if previous_candidate['artifact_sha256'] != settings['artifact_sha256']:
             raise ValueError('previous model selection differs')
+        if retained is not None:previous_candidate=retained['candidate']
         candidate = build_deployment_candidate(originals=originals, runtime=runtime,
-            previous=previous_candidate, created_at=datetime.now(timezone.utc), guard=self.guard)
+            previous=previous_candidate, created_at=datetime.now(timezone.utc), guard=checked)
         old = read_score_dispatch(Path(previous['stage']),
-            deployment_sha256=previous['deployment_sha256'], guard=self.guard)
-        admission = retained_model_admission(candidate,
-            selections=[{k:previous[k] for k in ('stage','deployment_sha256')},*old['historical']],guard=self.guard)
+            deployment_sha256=previous['deployment_sha256'], guard=checked)
+        selections=[{k:previous[k] for k in ('stage','deployment_sha256')},*old['historical']] if retained is None else [
+            {k:retained['selection'][k] for k in ('stage','deployment_sha256')}]
+        admission = retained_model_admission(candidate,selections=selections,guard=checked)
+        if retained is not None and (candidate!=retained['candidate'] or admission is None):
+            raise ValueError('exact original retained model admission required')
         if admission is None:
             path = write_native_candidate(directory(run / 'candidate'), candidate,
                 assessed_at=datetime.now(timezone.utc), runtime=runtime,
-                expected_artifact_sha256=candidate['artifact_sha256'], guard=self.guard)
+                expected_artifact_sha256=candidate['artifact_sha256'], guard=checked)
             receipt = admit_model(path, runtime=runtime, expected_artifact_sha256=candidate['artifact_sha256'],
-                directory=directory(run / 'receipts'), clock=lambda: datetime.now(timezone.utc), guard=self.guard)
+                directory=directory(run / 'receipts'), clock=lambda: datetime.now(timezone.utc), guard=checked)
             receipt_pin = sha256(receipt.read_bytes()).hexdigest()
         else:
             path=Path(admission['candidate_path']);receipt=Path(admission['receipt_path'])
@@ -414,12 +497,17 @@ class NativeTraining:
         config = run / 'final-config.json'
         save(config, settings)
         save(run / 'geometry-libraries.json', libraries)
-        active=self.active_score_history(tuple(old['historical']),now=datetime.now(timezone.utc))
-        save(run/'score-history-window.json',dict(schema='earthship-native-score-history-window/v1',checked_at=datetime.now(timezone.utc).isoformat(),
-            scope='existing_three_UTC_date_scoring_window',retained=list(active),retired_from_active_queue=[v for v in old['historical'] if v not in active],archives_modified=False,automatic_actuation=False))
+        from household_native_history import assess,refresh
+        references=[*old['historical'],{k:previous[k] for k in ('stage','deployment_sha256')}]
+        if retained is not None and retained['proof']['references']!=references:
+            raise ValueError('retained activation current dispatch changed')
+        proof=(assess(references,now=datetime.now(timezone.utc),guard=checked) if retained is None else
+            refresh(retained['proof'],now=datetime.now(timezone.utc),guard=checked))
+        active=[row for row in old['historical'] if row in proof['retained']]
+        save(run/'score-history-window.json',proof)
         historical = tuple([*active, {k: previous[k] for k in ('stage', 'deployment_sha256')}])
         dispatch = prepare_score_dispatch(historical_selections=historical,
-            output=run / 'score-dispatch.json', guard=self.guard)
+            output=run / 'score-dispatch.json', guard=checked)
         stage = run / 'final'
         deploy.stage_deployment(repo_root=self.repo, stage=stage, forecast_config=config,
             parameters=Path(self.inputs['parameters']), parameters_sha256=self.inputs['parameters_sha256'],
@@ -428,12 +516,15 @@ class NativeTraining:
             model_receipt_path=receipt, model_receipt_sha256=receipt_pin,
             score_dispatch_path=Path(dispatch['path']), score_dispatch_sha256=dispatch['sha256'])
         pin = sha256((stage / 'deployment.json').read_bytes()).hexdigest()
-        interpreter=selected_family_interpreter(previous,guard=self.guard)
-        prepare(stage, run / 'geometry-libraries.json', run / 'family', guard=self.guard, deployment_sha256=pin,interpreter=interpreter)
+        interpreter=selected_family_interpreter(previous,guard=checked)
+        prepare(stage, run / 'geometry-libraries.json', run / 'family', guard=checked, deployment_sha256=pin,interpreter=interpreter)
         selection = dict(stage=str(stage), deployment_sha256=pin, artifact_sha256=candidate['artifact_sha256'],
                          trained_through=candidate['fit']['training_end'])
         save(run / 'final-selection.json', selection)
         save(run / 'activation-input.json', dict(selection=selection, previous=previous))
+        if retained is None:
+            save(self.state/'activation-retry.json',dict(selection=selection,previous=previous,cutoff=selection['trained_through'],code_revision=commit,attempts=1,
+                files={name:sha256(_owned_bytes(run/name,32000000)).hexdigest() for name in RETRY_FILES}))
         return selection
 
     def activate(self, selection, previous):
@@ -442,13 +533,35 @@ class NativeTraining:
         environment = dict(os.environ, PYTHONPATH=str(Path(selection['stage']) / 'sources/openhab/scripts')
                            + ':/home/sat/Solar_PV/analytics/src')
         interpreter=selected_family_interpreter(selection,guard=self.guard)
-        subprocess.run(['/usr/bin/python3' if interpreter is None else interpreter['path'], '-m', 'household_native_daily', '--activate', str(run)],
-                       env=environment, check=True, timeout=600)
+        if interpreter is None:raise ValueError('retained verified family interpreter required')
+        lock=self.learner_lock;lock.verify()
+        environment.update(EARTHSHIP_NATIVE_DAILY_LOCK_FD=str(lock.fd),
+            EARTHSHIP_NATIVE_RESERVATION=str(self.reservation.directory))
+        from household_native_lifecycle import run_activation_child
+        from household_native_daily import activation_failure_path,FAILURE_TYPES,FAILURE_REASONS
+        failure_path=activation_failure_path(run,self.reservation.directory)
+        if failure_path.exists() or failure_path.is_symlink():raise ValueError('activation attempt failure evidence already exists')
+        try:
+            run_activation_child([interpreter['path'],'-B','-m','household_native_daily','--activate',str(run)],
+                environment=environment,lock=lock,guard=self.reservation.check)
+        except subprocess.CalledProcessError as error:
+            # Preserve the child's fixed primary cause without scraping journal
+            # text or publishing private command/stdout contents.
+            if failure_path.exists():
+                try:
+                    value=read(failure_path,8192);failure=value['failure']
+                    if (set(value)=={'schema','run','nonce','failure'} and
+                        value['schema']=='earthship-native-activation-failure/v1' and value['run']==str(run) and
+                        value['nonce']==self.reservation.directory.name and isinstance(failure,dict) and
+                        set(failure)=={'error','reason'} and failure['error'] in FAILURE_TYPES and failure['reason'] in FAILURE_REASONS):
+                        error.native_primary_failure=failure
+                except (OSError,ValueError,KeyError,TypeError):pass
+            raise
         return read(run / 'activation-result.json')
 
 
 def wait_for_handoff_window(*,guard,read_pids,clock=lambda:datetime.now(timezone.utc),
-                            monotonic=time.monotonic,sleep=time.sleep,seconds=240):
+                            monotonic=time.monotonic,sleep=time.sleep,seconds=240,minimum_lead=150):
     """Wait before private preparation; never retry a begun handoff.
 
     The preparer reserves the last120s before the next original issue. Allow
@@ -458,6 +571,7 @@ def wait_for_handoff_window(*,guard,read_pids,clock=lambda:datetime.now(timezone
     from thermal_model.native_operational_io import _next_issue
     if type(seconds) not in (int,float) or not 0<seconds<=240:
         raise ValueError('bounded native handoff wait required')
+    if minimum_lead not in (150,195):raise ValueError('original or qualification handoff lead required')
     deadline=monotonic()+seconds
     while True:
         guard()
@@ -465,7 +579,7 @@ def wait_for_handoff_window(*,guard,read_pids,clock=lambda:datetime.now(timezone
         pids=read_pids();now=clock();issue=_next_issue(now)
         if not isinstance(pids,list) or len(pids)!=3 or any(not isinstance(p,str) or not p.isdecimal() for p in pids):
             raise ValueError('three original serving worker identities required')
-        if pids==['0','0','0'] and issue-now>=timedelta(seconds=150):return issue
+        if pids==['0','0','0'] and issue-now>=timedelta(seconds=minimum_lead):return issue
         sleep(1)
 
 
@@ -480,10 +594,16 @@ def activate(run):
     stage = Path(selection['stage'])
     if Path(handoff.__file__).resolve() != stage / 'sources/openhab/scripts/household_native_handoff.py':
         raise ValueError('exact selected transaction source required')
-    guard = RamGuard(seconds=540)
+    resource_guard = RamGuard(seconds=540)
+    from household_native_lifecycle import attach
+    reservation=attach(Path(os.environ['EARTHSHIP_NATIVE_RESERVATION']),guard=resource_guard)
+    if reservation.data['run']!=str(run) or reservation.data['previous']!=previous:
+        raise ValueError('activation reservation belongs to another package or selection')
+    guard=reservation.check
     units = ('thermal-provisional-forecast.service', 'thermal-provisional-score.service',
              'thermal-native-geometry-prepare.service')
-    wait_for_handoff_window(guard=guard,read_pids=lambda:[
+    opportunity_deadline=time.monotonic()+240
+    opportunity=wait_for_handoff_window(guard=guard,minimum_lead=195,read_pids=lambda:[
         subprocess.check_output(['systemctl','--user','show',u,'-p','MainPID','--value'],
                                 text=True,timeout=10).strip() for u in units])
     expected = {k: previous[k] for k in ('stage', 'deployment_sha256')}
@@ -491,6 +611,11 @@ def activate(run):
     from household_cycle_deploy import verify_stage
     record = verify_stage(stage, expected_deployment_sha256=selection['deployment_sha256'])
     unit_root = Path(record['service_file']).parent
+    from household_cycle_deploy import _qualify
+    _qualify(stage,deployment_sha256=selection['deployment_sha256'],interpreter=selected_family_interpreter(selection,guard=guard))
+    if time.monotonic()>=opportunity_deadline or opportunity-datetime.now(timezone.utc)<timedelta(seconds=150):
+        raise TimeoutError('qualified handoff opportunity elapsed')
+    guard()
     # The old preparer's last packet belongs to the old artifact. Warm this
     # exact staged model before replacing its source or pausing serving timers.
     from household_native_geometry_prepare import run as prepare_geometry
@@ -514,7 +639,11 @@ def activate(run):
             if _owned_bytes(geometry, GEOMETRY_MAX) != geometry_original:
                 raise ValueError('prepared handoff geometry changed')
         read_geometry(settings, issue=issue, guard=check)
-        with install._quiesce_timers(unit_root, guard=check, include_preparer=True) as restoration:
+        reservation.quiesce(run/'family')
+        install._services_inactive(unit_root)
+        from household_cycle_deploy import _inactive_capped,_service_state
+        _inactive_capped(_service_state(unit_root/'thermal-native-geometry-prepare.service'))
+        with contextlib.nullcontext({'safe':True}) as restoration:
             try:
                 if effective_selection() != expected:
                     raise ValueError('active model changed while daily training was running')
@@ -527,9 +656,9 @@ def activate(run):
                     raise ValueError('daily training coverage must advance')
                 handoff.prepare(run / 'family', previous_forecast_stage=Path(previous['stage']),
                     previous_score_stage=Path(previous['stage']), previous_family=Path(previous['stage']).parent / 'family',
-                    previous_deployment_sha256=previous['deployment_sha256'], output=run / 'handoff', guard=check)
-                result = install._activate_handoff(run / 'handoff', guard=check)
-            except Exception as error:
+                    previous_deployment_sha256=previous['deployment_sha256'], output=run / 'handoff', guard=check,history_proof=run/'score-history-window.json')
+                result = install._activate_handoff(run / 'handoff', guard=check,_reservation=reservation)
+            except BaseException as error:
                 if isinstance(error, install.PreparerReconciliationRequired) or any(
                     'quiescent' in note or 'cleanup unproven' in note.lower() or 'Concurrent changes' in note
                     for note in getattr(error, '__notes__', [])):

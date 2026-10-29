@@ -3,6 +3,7 @@
 Private training runs beside serving. Only the final owned handoff briefly
 quiesces the three serving timers. A failed refresh leaves the selected model.
 """
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
@@ -52,6 +53,47 @@ def retained_parts(rows, cutoff):
     return rows
 
 
+# Only fixed lifecycle reasons cross the child/result boundary. Arbitrary
+# exceptions can contain private command arguments, payloads or unbounded text.
+FAILURE_REASONS=frozenset(('external activation owner acknowledgment missing',
+    'external cleanup acknowledgment missing','activation reservation expired',
+    'native activation child failed','activation child deadline exceeded','native_refresh_failed'))
+FAILURE_TYPES=frozenset(('ValueError','RuntimeError','TimeoutError','CalledProcessError',
+    'OSError','FileNotFoundError','PermissionError','BlockingIOError','KeyboardInterrupt','Exception'))
+
+
+def failure_details(error):
+    primary=getattr(error,'native_primary_failure',None)
+    if (isinstance(primary,dict) and set(primary)=={'error','reason'} and
+        primary['error'] in FAILURE_TYPES and primary['reason'] in FAILURE_REASONS):return dict(primary)
+    name=type(error).__name__;reason=str(error)
+    return dict(error=name if name in FAILURE_TYPES else 'Exception',
+        reason=reason if reason in FAILURE_REASONS else 'native_refresh_failed')
+
+
+def activation_failure_path(run,reservation):
+    from pathlib import Path
+    run=Path(run);nonce=Path(reservation).name
+    if run.resolve()!=run or len(nonce)!=32 or any(c not in '0123456789abcdef' for c in nonce):
+        raise ValueError('exact activation failure binding required')
+    return run/('activation-failure-'+nonce+'.json')
+
+
+@contextmanager
+def reservation_cleanup(backend):
+    close=getattr(backend,'close_reservation',lambda:None)
+    try:yield
+    except BaseException as primary:
+        try:close()
+        except BaseException as cleanup:primary.native_cleanup_failure=failure_details(cleanup)
+        raise
+    else:
+        try:close()
+        except BaseException as cleanup:
+            cleanup.native_failure_domain='cleanup'
+            raise
+
+
 def run_daily(backend, *, now, timezone_name, cadence='daily'):
     cutoff = training_cutoff(now, timezone_name,cadence=cadence)
     load_cutoff=training_cutoff(now,timezone_name)
@@ -69,9 +111,11 @@ def run_daily(backend, *, now, timezone_name, cadence='daily'):
     if datetime.fromisoformat(previous['trained_through']) >= cutoff:
         return result(dict(status='already_current', trained_through=previous['trained_through'],
                     cutoff=cutoff.isoformat(), fit_executed=False, automatic_actuation=False))
-    selection = backend.prepare(cutoff, previous)
-    return result(dict(backend.activate(selection, previous), cutoff=cutoff.isoformat(),
-                fit_executed=True, automatic_actuation=False))
+    with reservation_cleanup(backend):
+        retry=getattr(backend,'retry_selection',lambda *args:None)(cutoff,previous)
+        selection=retry if retry is not None else backend.prepare(cutoff,previous)
+        return result(dict(backend.activate(selection,previous),cutoff=cutoff.isoformat(),
+            fit_executed=retry is None,automatic_actuation=False))
 
 
 def main(argv=None):
@@ -91,19 +135,41 @@ def main(argv=None):
     started = time.monotonic()
     status = 0
     backend = None
+    failure_path = None
     try:
         if args.activate:
-            result = activate(args.activate)
+            from household_native_lifecycle import activation_lock,cancellation_boundary
+            if os.environ.get('EARTHSHIP_NATIVE_DAILY_LOCK_FD') is not None:
+                with activation_lock(args.activate),cancellation_boundary():
+                    failure_path=activation_failure_path(args.activate,os.environ['EARTHSHIP_NATIVE_RESERVATION'])
+                    result = activate(args.activate)
+            else:
+                trusted=Path('/home/sat/.local/state/earthship-weather/audit-rollout-8f3747-20261020-native/native-config.json')
+                config=json.loads(_owned_bytes(trusted,32768));backend=NativeTraining(config)
+                with daily_lock(backend.state/'daily.lock') as lock,cancellation_boundary():
+                    backend.learner_lock=lock
+                    cutoff=training_cutoff(datetime.now(timezone.utc),config['timezone'],cadence=config.get('training_cadence','daily'))
+                    with reservation_cleanup(backend):
+                        previous=backend.current();selection=backend.retry_selection(cutoff,previous,requested_run=args.activate)
+                        if selection is None:raise ValueError('exact valid retained activation package required')
+                        result=backend.activate(selection,previous)
         else:
             config = json.loads(_owned_bytes(args.config, 32768))
             backend = NativeTraining(config)
-            with daily_lock(backend.state / 'daily.lock'):
+            from household_native_lifecycle import cancellation_boundary
+            with daily_lock(backend.state / 'daily.lock') as lock,cancellation_boundary():
+                backend.learner_lock=lock
                 result = run_daily(backend, now=datetime.now(timezone.utc),
                                    timezone_name=config['timezone'],cadence=config.get('training_cadence','daily'))
     except Exception as error:
         status = 1
-        result = dict(status='daily_native_refresh_failed', error=type(error).__name__,
-                      reason=str(error), automatic_actuation=False)
+        result = dict(status='daily_native_refresh_failed', **failure_details(error), automatic_actuation=False)
+        if hasattr(error,'native_cleanup_failure'):result['cleanup_failure']=error.native_cleanup_failure
+        if hasattr(error,'native_failure_domain'):result['failure_domain']=error.native_failure_domain
+    if status and failure_path is not None:
+        save(failure_path,dict(schema='earthship-native-activation-failure/v1',run=str(args.activate),
+            nonce=Path(os.environ['EARTHSHIP_NATIVE_RESERVATION']).name,
+            failure={key:result[key] for key in ('error','reason')}))
     result.update(exit=status, seconds=time.monotonic() - started)
     if backend is not None:
         save(backend.state / 'last-result.json', result)

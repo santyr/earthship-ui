@@ -190,7 +190,7 @@ def _prepare_native_projection(capture,*,code_revision,runtime,expected_artifact
     from thermal_model.installed_shade_origin import _origin_actions,_forecast_forcing
     from thermal_model.origin_capture import _temperatures
     capture,runtime=map(deepcopy,(capture,runtime));root=Path(__file__).resolve().parents[1]
-    conditioned=capture.get('schema')=='earthship-provisional-thermal-origin/v3'
+    conditioned=capture.get('schema') in ('earthship-provisional-thermal-origin/v3','earthship-provisional-thermal-origin/v5')
     production=conditioned and isinstance(capture.get('weather_conditioning'),dict) and capture['weather_conditioning'].get('schema')=='earthship-thermal-weather-context/v2'
     execution=_native_execution_runtime(root,runtime,check_budget,conditioned=conditioned,production=production)
     original=capture_validator(capture,runtime=runtime,expected_artifact_sha256=expected_artifact_sha256,

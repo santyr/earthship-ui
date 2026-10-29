@@ -7,6 +7,11 @@ import signal
 import subprocess
 import sys
 
+# This outer process imports helpers from a closed immutable stage. Set both
+# protections before those imports; child-only settings arrive too late.
+sys.dont_write_bytecode=True
+os.environ['PYTHONDONTWRITEBYTECODE']='1'
+
 from household_job_budget import AdmissionDeferred, MiB
 from household_job_pool import POOL_NAME
 from household_job_launch import launch_job

@@ -30,7 +30,7 @@ function ownedFile(info,maximumBytes) {
 function same(a, b) {
   return ['dev', 'ino', 'mode', 'uid', 'nlink', 'size', 'mtimeMs', 'ctimeMs'].every(key => a[key] === b[key]);
 }
-async function readObservation(path, nowMs, validate = parseHouseholdObservation, maximumBytes = OBSERVATION_MAX_BYTES, onBytes = null) {
+export async function readObservation(path, nowMs, validate = parseHouseholdObservation, maximumBytes = OBSERVATION_MAX_BYTES, onBytes = null) {
   if (resolve(path) !== path || await realpath(path) !== path) throw new Error('unavailable');
   const parent = await stat(dirname(path));
   if (!parent.isDirectory() || parent.uid !== process.getuid() || (parent.mode & 0o777) !== 0o700) throw new Error('unavailable');

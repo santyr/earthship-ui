@@ -22,9 +22,9 @@ MIN_RESERVE_SOC=10.  # Existing full-bank emergency reserve; input may tighten i
 # Legacy/manual identity catalog remains readable for retained originals.
 CAPABILITIES={'RUN_GREYWATER_CYCLE':'greywater-request-v1','RUN_FEEDER_CYCLE':'feeder-request-v1',
               'SET_NIGHT_LOAD_OVERRIDE':'night-load-owner-v1','SET_NIGHT_LOAD_DEVICE':'night-load-owner-v1'}
-# Greywater remains manual; coupled override commands are not energy recommendations.
-# Preserve the historical catalog above for original typed/manual records.
-AUTOMATED_CAPABILITIES={'SET_NIGHT_LOAD_DEVICE':CAPABILITIES['SET_NIGHT_LOAD_DEVICE']}
+# New shadow plans must obey the operator's manual/payment-only feeder scope.
+AUTOMATED_CAPABILITIES={}  # Human advice is separate; existing owners retain all scheduling.
+
 GATES={'owner_available':'capability_unavailable','owner_idle':'busy','cooldown_ready':'cooldown','curfew_allowed':'after_dark',
        'operator_unlocked':'hard_constraint','manual_override_clear':'hard_constraint'}
 FACT_FIELDS={'schema','kind','owner','value','snapshotId','receivedAt','validUntil','scope','horizonHours'}
@@ -76,6 +76,8 @@ def _candidate_checks(item,*,snapshot,registry,coordination,now,reserve_soc,base
     except ContractRefused as error:
         return None,[dict(rule='intent_identity_and_freshness',status='rejected',reason=error.reason_code)]
     if document['type']!='NO_ACTION' and document['type'] not in AUTOMATED_CAPABILITIES:
+        return None,[dict(rule='automated_intent_scope',status='rejected',reason='planner_authority_disabled')]
+    if document['type']=='SET_NIGHT_LOAD_DEVICE' and document['parameters'].get('device')!='dishwasher':
         return None,[dict(rule='automated_intent_scope',status='rejected',reason='planner_authority_disabled')]
     checks.append(dict(rule='intent_identity_and_freshness',status='pass',reason=None))
     checks.extend(_source_checks(document,snapshot.to_dict(),now))
@@ -153,7 +155,7 @@ def plan(*,snapshot,registry,candidates,coordination,utilities,now,reserve_soc,h
     for item in sorted(eligible,key=lambda item:(-utilities[item.intent_id],item.intent_id)):
         if utilities[item.intent_id]>0 and feasible(greedy+[item]):greedy.append(item)
     status='selected_shadow_candidates' if best else 'input_incomplete' if baseline is None else 'baseline_outside_reserve' if baseline<reserve_soc else 'input_incomplete' if any(row['status']=='unknown' for row in decisions) else 'no_optional_action_preferred'
-    result=dict(status=status,horizon_hours=horizon_hours,planner_version='bounded_exhaustive_v2',schema='earthship-household-shadow-plan/v1',scope=SCOPE,as_of=now.isoformat(),snapshot_id=snapshot.snapshot_id,
+    result=dict(status=status,horizon_hours=horizon_hours,planner_version='bounded_exhaustive_v1',schema='earthship-household-shadow-plan/v1',scope=SCOPE,as_of=now.isoformat(),snapshot_id=snapshot.snapshot_id,
         registry_sha256=identity(registry),coordination_sha256=identity(coordination),selected_intent_ids=selected_ids,candidate_decisions=decisions,
         constraint_catalog=[dict(rule=name,classification='HARD_CONSTRAINT') for name in ('intent_identity_and_freshness','automated_intent_scope','source_freshness','registered_capability',*GATES,'battery_reserve','owner_exclusivity','cumulative_battery_reserve')],
         objective=dict(unit='normalized_declared_preference_points',components={key:utilities[key] for key in sorted(ids)},total=best_score),
@@ -218,7 +220,7 @@ def seal_plan(*,runtime_manifest,model_refs,forecast_ref,**arguments):
         inputs['validation_snapshots']={item.snapshot.snapshot_id:item.snapshot.to_dict() for item in arguments['candidates'] if item.snapshot.snapshot_id!=arguments['snapshot'].snapshot_id}
         inputs['candidates']=[dict(intent=item.to_dict(),validation_snapshot_id=item.snapshot.snapshot_id,validated_at=item.validated_at.isoformat()) for item in sorted(arguments['candidates'],key=lambda item:item.intent_id)]
     if contexts:inputs['source_contexts']=contexts
-    receipt=loads(canonical(dict(schema='earthship-household-shadow-plan-receipt/v'+str(version),inputs=inputs,runtime_manifest=runtime,
+    receipt=loads(canonical(dict(schema='earthship-household-shadow-plan-receipt/v6',inputs=inputs,runtime_manifest=runtime,
         model_refs=model_refs,forecast_ref=forecast_ref,plan=output)))
     receipt['receipt_sha256']=identity(receipt)
     if len(canonical(receipt))>MAX_RECEIPT_BYTES:raise ValueError('bounded sealed plan receipt required')
@@ -226,13 +228,16 @@ def seal_plan(*,runtime_manifest,model_refs,forecast_ref,**arguments):
 
 
 def replay_plan(receipt,*,runtime_manifest):
-    if not isinstance(receipt,dict) or set(receipt)!=RECEIPT_FIELDS or receipt['schema'] not in ('earthship-household-shadow-plan-receipt/v1','earthship-household-shadow-plan-receipt/v2','earthship-household-shadow-plan-receipt/v3','earthship-household-shadow-plan-receipt/v4','earthship-household-shadow-plan-receipt/v5') or len(canonical(receipt))>MAX_RECEIPT_BYTES:
+    if isinstance(receipt,dict) and receipt.get('schema')!='earthship-household-shadow-plan-receipt/v6':
+        from .legacy_planning import replay_plan as replay_original
+        return replay_original(receipt,runtime_manifest=runtime_manifest)
+    if not isinstance(receipt,dict) or set(receipt)!=RECEIPT_FIELDS or receipt['schema']!='earthship-household-shadow-plan-receipt/v6' or len(canonical(receipt))>MAX_RECEIPT_BYTES:
         raise ValueError('closed bounded original plan receipt required')
     if identity({key:value for key,value in receipt.items() if key!='receipt_sha256'})!=receipt['receipt_sha256']:raise ValueError('sealed original plan differs')
     runtime=_runtime_manifest(runtime_manifest)
     if canonical(runtime)!=canonical(receipt['runtime_manifest']):raise ValueError('executing planner runtime differs')
     value=receipt['inputs']
-    expanded=receipt['schema'].endswith(('/v2','/v3','/v4','/v5'));weather_bound=receipt['schema'].endswith(('/v3','/v4','/v5'))
+    expanded='source_contexts' in value;weather_bound='validation_snapshots' in value
     fields=INPUT_FIELDS|({'source_contexts'} if expanded else set())|({'validation_snapshots'} if weather_bound else set())
     if not isinstance(value,dict) or set(value)!=fields:raise ValueError('closed original plan inputs required')
     from .model_snapshot import restore_snapshot

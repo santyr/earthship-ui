@@ -6,7 +6,7 @@ from hashlib import sha256
 import argparse,sys
 from household.codec import canonical,loads,identity
 from household.evidence import utc
-from household.control_contracts import instant
+from household.control_contracts import instant,ContractRefused
 from household.model_snapshot import restore_snapshot
 from household.capabilities import CapabilityRegistry
 from household.pipeline import replay_pipeline,_intent
@@ -16,7 +16,7 @@ from household_profiled_forecast import replay_profiled_forecast,profiled_runtim
 from household_outcomes import original_plan_runtime
 from household_snapshot import _read
 
-SCHEMA='earthship-household-trajectory-shadow-receipt/v1'
+SCHEMA='earthship-household-trajectory-shadow-receipt/v2'
 MAX_BYTES=2*1024*1024
 FIELDS={'schema','inputs','runtime_manifest','load_runtime_manifest','output','receipt_sha256'}
 INPUTS={'plan_document_sha256','plan_receipt_sha256','energy_document_sha256','energy_receipt_sha256',
@@ -88,7 +88,7 @@ def seal_trajectory_plan(*,plan_receipt,energy_receipt,profiled_receipt,now,runt
     runtime,er,fr=_runtime_parts(runtime_manifest);now=utc(now)
     plan=_original(plan_receipt,MAX_BYTES);energy=_original(energy_receipt,262144)
     profiled=None if profiled_receipt is None else _original(profiled_receipt,262144)
-    if plan.get('schema')!='earthship-household-model-plan-receipt/v6':raise ValueError('configured original rolling plan required')
+    if plan.get('schema') not in ('earthship-household-model-plan-receipt/v6','earthship-household-model-plan-receipt/v7'):raise ValueError('configured original rolling plan required')
     original_runtime=original_plan_runtime(plan,actual=runtime)
     replay_pipeline(plan,runtime_manifest=original_runtime,thermal_runtime=thermal_runtime)
     replay_energy_forecast(energy,plan_receipt=plan,runtime_manifest=er)
@@ -106,8 +106,9 @@ def seal_trajectory_plan(*,plan_receipt,energy_receipt,profiled_receipt,now,runt
     projection,load_source=_projection(energy,profiled,origin=origin,now=now,horizon=horizon)
     refs,reason=_source_refs(snapshot,now);candidates=[];utilities={}
     if reason is None and projection['status']!='projected_nominal_scenario':reason=projection['reason']
-    # These trajectories qualify no device-specific action effects. Manual
-    # greywater and coupled night overrides are outside the current scope.
+    if reason is None:
+        # Current useful-load alternatives are evaluated in household.advice.
+        pass
     candidates.sort(key=lambda item:item.intent_id)
     model_refs=[]
     if load_source is not None:
@@ -133,6 +134,9 @@ def seal_trajectory_plan(*,plan_receipt,energy_receipt,profiled_receipt,now,runt
 
 
 def replay_trajectory_plan(receipt,**context):
+    if isinstance(receipt,dict) and receipt.get('schema')=='earthship-household-trajectory-shadow-receipt/v1':
+        from household_legacy_trajectory_plan import replay_trajectory_plan as replay_original
+        return replay_original(receipt,**context)
     if (not isinstance(receipt,dict) or set(receipt)!=FIELDS or receipt['schema']!=SCHEMA or len(canonical(receipt))>MAX_BYTES or
         not isinstance(receipt['inputs'],dict) or set(receipt['inputs'])!=INPUTS or
         identity({k:v for k,v in receipt.items() if k!='receipt_sha256'})!=receipt['receipt_sha256'] or

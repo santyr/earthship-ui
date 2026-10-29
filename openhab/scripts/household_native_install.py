@@ -75,8 +75,14 @@ def _install_files(output,*,guard,_undo_log=None):
     stage_records=[stage_record(path) for path in stages]
     root=deploy._path(record['originals']['forecast_service']['path']).parent
     own=deploy._bytes(Path(__file__));changes=[]
+    history_check=lambda:None
+    if 'history_proof' in record:
+        from household_native_history import revalidate,snapshot_guard
+        from datetime import datetime,timezone
+        proof=json.loads(deploy._bytes(record['history_proof']['path'],private=True,maximum=32000000))
+        history_check=snapshot_guard(revalidate(proof,now=datetime.now(timezone.utc),guard=guard))
     def unchanged():
-        guard()
+        guard();history_check()
         if deploy._bytes(Path(__file__))!=own or family_api.verify(family,guard=guard)!=selected:
             raise ValueError('installation source or family changed')
         if any(stage_record(path)!=saved for path,saved in zip(stages,stage_records)):
@@ -101,7 +107,7 @@ def _install_files(output,*,guard,_undo_log=None):
             unchanged()
             if any(deploy._bytes(path,private=True)!=raw for _,path,_,raw in changes):
                 raise ValueError('installed unit files changed')
-    except Exception as error:
+    except BaseException as error:
         pending=_undo(changes)
         if pending:error.add_note('Concurrent changes or changed parents preserved for roles: '+','.join(pending))
         raise
@@ -224,7 +230,7 @@ def _verify_effective_family(family,*,guard):
         services_inactive=True,timers_inactive=True,automatic_actuation=False)
 
 
-def _reload_handoff(output,*,guard,_activate_preparer=False):
+def _reload_handoff(output,*,guard,_activate_preparer=False,_reservation=None):
     """Compose internal admitted installation with optional preparer activation.
 
     A source-backed admission caller must already hold the shared lock. Its
@@ -248,7 +254,10 @@ def _reload_handoff(output,*,guard,_activate_preparer=False):
             try:unchanged=_enable_link_identity(enable_link)==enabled_identity
             except (OSError,ValueError):unchanged=False
             if not unchanged:raise PreparerReconciliationRequired('existing preparer enablement changed')
-    with _quiesce_timers(root,guard=checked,include_preparer=upgrade) as restoration:
+    from contextlib import nullcontext
+    if _reservation is not None:_reservation.check()
+    timer_context=nullcontext({'safe':True}) if _reservation is not None else _quiesce_timers(root,guard=checked,include_preparer=upgrade)
+    with timer_context as restoration:
         try:
             result=_install_files(output,guard=checked,_undo_log=changes);installed=True
             checked();deploy._systemctl('daemon-reload');checked()
@@ -257,7 +266,7 @@ def _reload_handoff(output,*,guard,_activate_preparer=False):
             if _activate_preparer and not upgrade:
                 preparer_lease=_enable_preparer(root,guard=checked)
                 checked()
-        except Exception as error:
+        except BaseException as error:
             uncertain=isinstance(error,PreparerReconciliationRequired)
             if preparer_lease is not None:
                 try:_undo_preparer_enable(preparer_lease)
@@ -283,9 +292,9 @@ def _reload_handoff(output,*,guard,_activate_preparer=False):
         service_restarted=False,automatic_actuation=False)
 
 
-def _activate_handoff(output,*,guard):
+def _activate_handoff(output,*,guard,_reservation=None):
     """Internal activation only; caller must hold shared lock and qualify sources."""
-    return _reload_handoff(output,guard=guard,_activate_preparer=True)
+    return _reload_handoff(output,guard=guard,_activate_preparer=True,_reservation=_reservation)
 
 
 class PreparerReconciliationRequired(ValueError):
@@ -330,7 +339,7 @@ def _publish_enable_link(root):
         os.fsync(fd)
         if _enable_link_identity(link)!=created_identity:raise ValueError('timer enablement link changed')
         return link,created_identity
-    except Exception as error:
+    except BaseException as error:
         if created_identity is not None:
             try:
                 if fd_identity()!=created_identity:raise ValueError('concurrent timer enablement preserved')
@@ -381,7 +390,7 @@ def _enable_preparer(root,*,guard):
         if _enable_link_identity(link)!=identity or deploy._bytes(root/PREPARER_TIMER,private=True)!=definition:
             raise ValueError('started preparer enablement changed')
         return lease
-    except Exception as error:
+    except BaseException as error:
         if lease is not None:
             try:_undo_preparer_enable(lease)
             except Exception as cleanup_error:

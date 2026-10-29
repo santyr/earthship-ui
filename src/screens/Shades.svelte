@@ -1,7 +1,7 @@
 <script>
   import ShadeManualControls from '../lib/shades/ShadeManualControls.svelte';
   import { emptyShadeInstallation, hasInstallationMapping, manualShadeTargets, validateShadeInstallation } from '../lib/shades/installation.js';
-  import RecommendationPreview from '../lib/ui/RecommendationPreview.svelte';
+  import ShadeObservations from '../lib/ui/ShadeObservations.svelte';
   import { officeHallwayTemperature } from '../lib/thermal/officeHallwayTemperature.js';
   import { onMount } from 'svelte';
   import { createShadePolicyRequests } from '../lib/shades/policy.js';
@@ -245,9 +245,9 @@
   <header class="page-heading">
     <div>
       <h1>Window shades</h1>
-      <RecommendationPreview group="shades" tiny />
       <p>{SHADE_COUNT} planned · {mapped} mapped · {reporting} reporting</p>
     </div>
+    <div class="shade-guidance"><ShadeObservations /></div>
     <div class="release-state">
       <div role="status">{previewMode ? sharedPreviewConnected ? 'Shared preview only · no shade commands' : 'Local preview only · no shade commands' : !installationResolved ? 'Checking installation · movement disabled' : installationAvailable && manualShadeTargets(installation).length ? 'Manual requests available · automatic actuation disabled' : 'Observation only · manual control not released'}</div>
       <ShadeManualControls {installation} available={installationAvailable} />
@@ -294,10 +294,10 @@
       {@const cards = slots.filter((slot) => slot.room === room.id)}
       {@const groupDisplay = shadeGroupPresentation(cards, $items, $connection, nowMs, $thingStatuses)}
       {@const groupOpen = previewMode ? previewGroupOpen(cards) : groupDisplay.openPercent}
-      {@const officeTemperature = room.temperatureRole === 'office_reference' && $connection === 'live' ? officeHallwayTemperature($items.Weather_Temperature_Evidence_JSON, Math.max(nowMs, Date.now())) : null}
+      {@const bedroomTemperature = room.temperatureRole === 'bedroom_sensor' && $connection === 'live' ? officeHallwayTemperature($items.Weather_Temperature_Evidence_JSON, Math.max(nowMs, Date.now())) : null}
       <section class="zone" aria-label="{room.label} shades">
         <div class="zone-heading">
-          <div class="zone-title"><h2>{room.label}</h2><span>{cards.length} shades</span><span class="sensor-evidence">{#if room.temperatureRole === 'office_reference'}Office temperature {officeTemperature === null ? 'unavailable' : `reference · ${officeTemperature.toFixed(1)} °F`}{:else}{room.temperatureRole === 'unavailable' ? 'Zone temperature pending' : 'Hallway temperature reference'}{/if}</span></div>
+          <div class="zone-title"><h2>{room.label}</h2><span>{cards.length} shades</span><span class="sensor-evidence">{#if room.temperatureRole === 'bedroom_sensor'}Bedroom temperature {bedroomTemperature === null ? 'unavailable' : `${bedroomTemperature.toFixed(1)} °F`}{:else}{room.temperatureRole === 'unavailable' ? 'Zone temperature pending' : 'Hallway temperature reference'}{/if}</span></div>
           <div class="zone-actions" aria-label="{room.label} controls">
             <button type="button" class:pressed={pressedAction === `${room.id}-open`} disabled={!previewMode} title={previewMode ? 'Preview only; no shade command' : 'Movement remains disabled until commissioning'} onclick={() => previewButton(cards, 100, `${room.id}-open`)}>Open {room.label}</button>
             <button type="button" class:pressed={pressedAction === `${room.id}-close`} disabled={!previewMode} title={previewMode ? 'Preview only; no shade command' : 'Movement remains disabled until commissioning'} onclick={() => previewButton(cards, 0, `${room.id}-close`)}>Close {room.label}</button>
@@ -397,6 +397,7 @@
   .adjustment-dialog button:not(:disabled):active { background: #6b9baa; border-color: #d1f2f7; }
   .adjustment-dialog :focus-visible { outline: 2px solid #b6e9f0; outline-offset: 2px; }
   .shades-page { display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: .4rem; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; }
+  .shade-guidance { flex:1; min-width:0; max-width:30rem; }
   .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 54px; }
   h1 { margin: 0; font-size: 1.26rem; font-weight: 650; letter-spacing: .01em; }
   .page-heading p { margin: .18rem 0 0; color: #9aa7b8; font-size: .76rem; }

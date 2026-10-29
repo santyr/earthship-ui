@@ -2,7 +2,8 @@
 
 The original report still owns model selection, completion validation, duplicate
 job checks, arithmetic, and final verification of every observed original file.
-No value survives a report invocation; unknown implementations run unchanged.
+Pure temperatures may be shared within one bounded score job; all values clear
+at their owning scope's exit. Unknown implementations run unchanged.
 """
 from copy import deepcopy
 from functools import wraps
@@ -10,13 +11,703 @@ from hashlib import sha256
 from pathlib import Path
 from contextlib import contextmanager
 from contextvars import ContextVar
+from types import FunctionType
 
-SUPPORTED_SOURCE_SHA256='60cd7a67a914ef8d996390f60e9be398475f9a1ef08c5da011d7d279a0db0608'
+SUPPORTED_SOURCE_SHA256='ffe0a643b44d2e48d5763c4cbe9c0192f0945d1d2983f8d496389b3c40becff8'
+LEGACY_SOURCE_SHA256='60cd7a67a914ef8d996390f60e9be398475f9a1ef08c5da011d7d279a0db0608'
 PRIOR_SOURCE_SHA256='2e4abc7c8f655bcc5f7ff839b9750816f56f08b02bd516e10c8b8c2c6aaa6dab'
 INSTALLED_SOURCE_SHA256='40199b757ec35cd80c1aa8eb857fd1e272c0242f13122b30e76d9b2e9c92b9f6'
 SUPPORTED_MODEL_HELPER_SHA256='11121a94a4501c7af520b9df54ec879a3c75edadc87a0d15afd279bf83bbf58e'
 PRIOR_MODEL_HELPER_SHA256='94d85e37afc79e08cf9de93ba937b2ba845acc7111c0a23e483b186d8ff9a57e'
 _model_frame=ContextVar('household_report_model_bindings',default=None)
+_temperature_frame=ContextVar('household_report_temperature_replay',default=None)
+_job_temperature_frame=ContextVar('household_job_temperature_replay',default=None)
+_temperature_borrow_guard=ContextVar('household_report_temperature_guard',default=None)
+TEMPERATURE_SOURCE_SHA256={
+    'weather_temperature_reader':'efefeebcaf201dd4d85fe01f8fb17e509324ed913de8e996ee76fcbe911b262f',
+    'weather_temperature_sources':'c7c53d55cdeb8a4090ea7469bf3d4c6015a88235f7056aa9866f132c81cf493d',
+    'weather_temperature_evidence':'0cb88f92fd43ad64ee20880a5b381418afafeb263e80025b2bbf47db09ce6dc2',
+    'thermal_model.installed_shade_raw_score_sources':'c92d9fc1f95c54993a91b886d9f92d83b9f90ecf72248004c14c3feedeee680f',
+}
+MAX_TEMPERATURE_CACHE_ENTRIES=16384
+MAX_TEMPERATURE_CACHE_BYTES=8*1024*1024
+MAX_SNAPSHOT_CACHE_BYTES=16*1024*1024
+CAPTURE_SOURCE_SHA256='6edc4a267a2c7edd5785ac2230ad0b3387dd534bd707cb1e5361308d6ae5b7a2'
+PRIOR_CAPTURE_SOURCE_SHA256='de0d87c20c11ff15f27c6474cc558c76532c628fc6cf3aa8e981deb0aaaa0d99'
+MAX_CAPTURE_CACHE_BYTES=1024*1024
+MAX_CAPTURE_CACHE_ENTRIES=64
+MAX_CAPTURE_DEPENDENCIES=4096
+_capture_frame=ContextVar('household_report_capture_validation',default=None)
+SEGMENTED_CODEC_SHA256='86106647f7f826f70a19d5fcb7ff51979f4c8e99b913be61ad7acff821ff9215'
+CAPTURE_WEATHER_RUNTIME={
+    'production_thermal_source.py':'556163c8de6e6dd7f5378cd2d972ca676c1417fccd1aa375a2b570a3f84e3d91',
+    'household/production_weather_conditioning.py':'12d34105ad6d113bb082f1df12eb2dba6563c35d68ebe55abef39aca44c15a5a',
+    'thermal_weather_source.py':'34de6ea1385f65d97139c8d134ddf6cc710d65fb36dd7403b8be4a8349ac0478',
+    'household/thermal_weather_conditioning.py':'59b79c74f439cf7c818a397000cb27892c53e11d1bbd9f917d4f2360dd55de29',
+    'household/codec.py':'f2abc69ca6d1905fe03eb7ff3102fccc3d9616b42ba2f87a92827541b3155204',
+    'household/control_contracts.py':'28221f71b58d18dd7078d8e16456743644cf83acd14b4c25fed953384727a308',
+    'weather_learning/production_emissions.py':'94dc9a9b92ddb27c498af9e27991b387f94f787dfa1a7d10808b2a0a8e8781f7',
+    'weather_learning/production_forecast.py':'8073e91b582e3c57467a7665c4376013cc31fa9cefdd27ff8b435aacbf9f7177',
+    'weather_learning/production_scoring.py':'c6c7f56e3dd4112d22a5bc9bfe7dd611e1ca72328bf0a84e7c49e9e3350f8559',
+    'weather_learning/contracts.py':'da661a56a4d0d3d012d643d007538c54ccb2ce0511ff5f6a29ec32392eb71543',
+    'weather_learning/provider.py':'7775f285fff7f86ff0d697ec048e9dcbd6349daf51bb4a02f9ff8c248554a40f',
+    'weather_source_files.py':'e49f3785d3304df77cb8df8bee78a1372151de299d27d388b9cda473c7eac0af',
+}
+
+
+def _json_key(value):
+    """Canonical full JSON inputs; custom/tuple values use original validation."""
+    import json
+    seen=set()
+    def plain(v):
+        if type(v) in (str,int,float,bool,type(None)):return True
+        if type(v) in (list,dict):
+            if id(v) in seen:return False
+            seen.add(id(v))
+        if type(v) is list:return all(plain(item) for item in v)
+        if type(v) is dict:return all(type(k) is str and plain(x) for k,x in v.items())
+        return False
+    if not plain(value):raise TypeError('uncacheable input')
+    return json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
+
+
+_TEMPERATURE_QUERY_FIELDS={'schema','stream','policy','sensor_epoch','targets','assessed_at','history_start','native_rows','release_authority'}
+_TEMPERATURE_POLICY_FIELDS={'model','sensor_id','minimum_f','maximum_f','validity_seconds'}
+
+
+def _temperature_query_key(packet):
+    """Copy the known plain packet and fingerprint ALL original input values.
+
+    Canonical metadata includes every non-row field. Row count, order, exact
+    stored-at UTF8, null tags and exact raw UTF8 use fixed-width length frames;
+    raw JSON strings are never parsed, escaped or normalized for this key.
+    Only mutable containers are copied; their exact scalar values are immutable.
+    Alias/cycle/custom-type inputs use the original query instead of copy hooks.
+    This changes no retained key/value weight or cache budget.
+    """
+    def unsupported():raise TypeError('original query fallback required')
+    if (type(packet) is not dict or any(type(k) is not str for k in packet) or
+            set(packet)!=_TEMPERATURE_QUERY_FIELDS):unsupported()
+    policy=packet['policy'];targets=packet['targets'];rows=packet['native_rows']
+    if (type(policy) is not dict or any(type(k) is not str for k in policy) or
+            set(policy)!=_TEMPERATURE_POLICY_FIELDS or
+            any(type(v) not in (str,int,float,bool,type(None)) or type(v) is str and len(v)>64
+                for v in policy.values()) or
+            type(targets) is not list or not 1<=len(targets)<=289 or
+            any(type(v) is not str or len(v)>64 for v in targets) or
+            type(rows) is not list or len(rows)>10000):unsupported()
+    for name in ('schema','stream','assessed_at','history_start'):
+        if type(packet[name]) is not str or len(packet[name])>64:unsupported()
+    if (packet['schema']!='earthship-native-temperature-query-sources/v1' or
+            type(packet['release_authority']) is not bool or
+            packet['sensor_epoch'] is not None and
+            (type(packet['sensor_epoch']) is not str or len(packet['sensor_epoch'])>64)):unsupported()
+    seen={id(packet),id(policy),id(targets),id(rows)}
+    if len(seen)!=4:unsupported()
+    copied_rows=[]
+    for row in rows:
+        if (type(row) is not list or len(row)!=2 or id(row) in seen or
+                type(row[0]) is not str or len(row[0])>64 or
+                row[1] is not None and type(row[1]) is not str):unsupported()
+        seen.add(id(row));copied_rows.append(row.copy())
+    saved=packet.copy();saved['policy']=policy.copy();saved['targets']=targets.copy();saved['native_rows']=copied_rows
+    header=_json_key({k:v for k,v in saved.items() if k!='native_rows'})
+    digest=sha256();digest.update(b'earthship-query-full-raw-v1\0')
+    digest.update(len(header).to_bytes(8,'big'));digest.update(header)
+    digest.update(len(copied_rows).to_bytes(8,'big'));total=0
+    for at,raw in copied_rows:
+        at=at.encode();digest.update(len(at).to_bytes(8,'big'));digest.update(at)
+        if raw is None:digest.update(b'\0')
+        else:
+            raw=raw.encode();total+=len(raw)
+            if len(raw)>8192 or total>8*1024*1024:unsupported()
+            digest.update(b'\1');digest.update(len(raw).to_bytes(8,'big'));digest.update(raw)
+    return digest.digest(),saved
+
+
+@contextmanager
+def _capture_reads(guard):
+    """One captured numerical replay per exact capture/model in a report.
+
+    Source-score replay still reads each original capture and raw query on
+    every call. This only reuses the captured validation after an original full
+    success in the SAME observed inventory; the unchanged report streams and
+    verifies that entire inventory, and every selected model, before returning.
+    Keep only validation metadata, not full captured values: the pinned original
+    returns a copy of exactly its input, so a hit copies that fully keyed input.
+    """
+    from collections import OrderedDict
+    import sys,json
+    import native_thermal_forecast as forecasts
+    import native_model_serving_receipt as serving
+    from thermal_model.origin_capture import _source_bytes
+    from thermal_model.runtime_bundle import _owned_bytes
+    from thermal_model.replay_budget import _source_reads,OriginalSourceInventory
+    original=forecasts.validate_serving_capture;path=Path(forecasts.__file__).absolute()
+    weather_hooked=False;inventory_hooked=False
+    original_files=getattr(forecasts,'origin_source_files',None)
+    original_snapshot=getattr(forecasts,'origin_source_snapshot',None)
+    snapshot_hooked=False
+    frame=object();token=_capture_frame.set(frame);hooked=False;cache=OrderedDict();size=0;identities={}
+    try:
+        guard();raw=_source_bytes(path,maximum=262144);info=path.lstat()
+        identity=(info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_gid,info.st_nlink)
+        model_helper=Path(serving.__file__).absolute()
+        model_raw=_source_bytes(model_helper,maximum=262144)
+        model_info=model_helper.lstat()
+        model_identity=(model_info.st_dev,model_info.st_ino,model_info.st_mode,model_info.st_uid,model_info.st_gid,model_info.st_nlink)
+        capture_source=sha256(raw).hexdigest()
+        if (capture_source not in (CAPTURE_SOURCE_SHA256,PRIOR_CAPTURE_SOURCE_SHA256) or
+                sha256(model_raw).hexdigest() not in (SUPPORTED_MODEL_HELPER_SHA256,PRIOR_MODEL_HELPER_SHA256) or
+                Path(original.__code__.co_filename).absolute()!=path):
+            yield;return
+        # These adapters are optional to original weather-free validation.
+        # Admit their sources and exact runtime root BEFORE inspecting private
+        # implementation details; unknown layouts retain the original path.
+        try:
+            import thermal_weather_source as weather
+            import production_thermal_source as production_weather
+        except ImportError:
+            yield;return
+        weather_path=path.parent/'thermal_weather_source.py'
+        production_path=path.parent/'production_thermal_source.py'
+        def weather_roots_match():
+            return (sys.modules.get('thermal_weather_source') is weather and
+                sys.modules.get('production_thermal_source') is production_weather and
+                getattr(weather,'__file__',None)==str(weather_path) and
+                getattr(production_weather,'__file__',None)==str(production_path) and
+                getattr(weather,'SCRIPTS',None)==path.parent)
+        if not weather_roots_match():
+            yield;return
+        try:
+            supported_weather=(
+                sha256(_source_bytes(weather_path,maximum=262144)).hexdigest()==CAPTURE_WEATHER_RUNTIME['thermal_weather_source.py'] and
+                sha256(_source_bytes(production_path,maximum=262144)).hexdigest()==CAPTURE_WEATHER_RUNTIME['production_thermal_source.py'])
+        except (OSError,ValueError):supported_weather=False
+        if not supported_weather:
+            yield;return
+        weather_functions=[]
+        for module,selected,names in ((weather,weather_path,('verify_bindings','production_conditioning_runtime')),
+                (production_weather,production_path,('verify','_points'))):
+            for name in names:
+                function=getattr(module,name,None)
+                if type(function) is not FunctionType or function.__globals__ is not module.__dict__:
+                    yield;return
+                code=function.__code__
+                if Path(code.co_filename).absolute()!=selected:
+                    yield;return
+                weather_functions.append((module,name,function,code))
+        original_weather=weather.verify_bindings
+        weather_admission=ContextVar('full_capture_weather_admission',default=None)
+        source_admission=ContextVar('full_capture_inventory_admission',default=None)
+        source_functions=[(name,getattr(forecasts,name,None)) for name in ('_segmented_helpers','_source_fingerprints')]
+        files_code=getattr(original_files,'__code__',None)
+        snapshot_code=getattr(original_snapshot,'__code__',None)
+        source_codes={name:getattr(function,'__code__',None) for name,function in source_functions}
+        inventory_supported=(capture_source==CAPTURE_SOURCE_SHA256 and all(
+            type(function) is FunctionType and function.__globals__ is forecasts.__dict__ and
+            Path(function.__code__.co_filename).absolute()==path
+            for function in (original_files,*(function for _,function in source_functions))))
+        def retained_size(value):
+            seen=set()
+            def count(v):
+                if id(v) in seen:return 0
+                seen.add(id(v));total=sys.getsizeof(v)
+                if isinstance(v,dict):return total+sum(count(k)+count(x) for k,x in v.items())
+                if isinstance(v,(list,tuple)):return total+sum(map(count,v))
+                return total
+            return count(value)
+        def dependencies(value):
+            context=value.get('weather_conditioning')
+            if context is None:return []
+            if (type(context) is not dict or context.get('schema')!='earthship-thermal-weather-context/v2' or
+                    context.get('runtime_manifest')!=CAPTURE_WEATHER_RUNTIME or 'originals' not in context):return None
+            return context['originals']
+        def identity_of(selected):
+            info=selected.lstat()
+            return (info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns,info.st_ctime_ns,
+                info.st_mode,info.st_uid,info.st_gid,info.st_nlink)
+        def remember(selected):
+            actual=identity_of(selected);previous=identities.get(selected)
+            if previous is not None and actual!=previous:raise ValueError('captured dependency identity changed')
+            if previous is None:
+                if len(identities)>=MAX_CAPTURE_DEPENDENCIES:raise ValueError('bounded captured dependency inventory required')
+                identities[selected]=actual
+        def observe_weather(context,refs,check):
+            # Weather's original streaming reader does not add its reads to
+            # the numerical report inventory. Explicitly bind ALL its original
+            # files and runtime sources before retaining a validation hit.
+            for ref in refs:
+                selected=Path(ref['path']);check();remember(selected);body=_owned_bytes(selected,ref['maximum']);remember(selected)
+                if sha256(body).hexdigest()!=ref['sha256']:raise ValueError('captured weather original changed')
+            if context is not None:
+                for name,pin in CAPTURE_WEATHER_RUNTIME.items():
+                    selected=path.parent/name;check();remember(selected);body=_source_bytes(selected,maximum=262144);remember(selected)
+                    if sha256(body).hexdigest()!=pin:raise ValueError('captured weather runtime changed')
+        def observe_dependencies(value,refs,check):
+            observe_weather(value.get('weather_conditioning'),refs,check)
+            names=(forecasts.origin_source_files(value,check_budget=check) if capture_source==CAPTURE_SOURCE_SHA256 else
+                value['native_origin_binding']['query_sources'].values())
+            for name in names:
+                from weather_temperature_sources import MAX_CONTAINER_BYTES
+                selected=Path(name);check();remember(selected);_owned_bytes(selected,MAX_CONTAINER_BYTES);remember(selected)
+        def known_inventory():
+            return (inventory_supported and forecasts.origin_source_files is source_files and
+                original_files.__code__ is files_code and
+                all(getattr(forecasts,name,None) is function and function.__code__ is source_codes[name]
+                    for name,function in source_functions))
+        def source_key(value):
+            if (not known_inventory() or type(value) is not dict or
+                    value.get('schema') not in forecasts.SEGMENTED_CAPTURE_SCHEMAS):return None
+            try:
+                raw=_json_key(dict(schema=value['schema'],runtime=value['candidate']['runtime'],
+                    binding=value['native_origin_binding']))
+                return sha256(raw).digest() if len(raw)<=forecasts.MAX_CAPTURE_BYTES else None
+            except (KeyError,TypeError,ValueError,RecursionError,OverflowError):return None
+        def source_context(value):
+            # Only these fields enter the original file-inventory function.
+            # Freeze them before callbacks without cloning geometry, forecast,
+            # trajectory and other fields which this operation never reads.
+            if type(value) is not dict:return None
+            try:
+                if type(value['candidate']) is not dict:return None
+                selected=dict(schema=value['schema'],candidate=dict(runtime=value['candidate']['runtime']),
+                    native_origin_binding=value['native_origin_binding'])
+                _json_key(selected)
+                return deepcopy(selected)
+            except (KeyError,TypeError,ValueError,RecursionError,OverflowError):return None
+        def source_snapshot(value,names,check):
+            # The unchanged codec's own deadline adapter retains numeric/None
+            # semantics. Full byte reads bracket its final caller checkpoint.
+            binding,codec=forecasts._segmented_helpers(value['candidate']['runtime'])
+            budget=binding._SegmentedGuard(check)
+            names=tuple(map(Path,names))
+            actual=forecasts._source_fingerprints(names,check_budget=budget)
+            manifest_raw=_owned_bytes(names[0],codec.MAX_MANIFEST_BYTES)
+            if sha256(manifest_raw).hexdigest()!=value['native_origin_binding']['source_manifest_sha256']:
+                raise ValueError('captured source manifest changed after validation')
+            manifest=json.loads(manifest_raw)
+            expected={names[0]:value['native_origin_binding']['source_manifest_sha256']}
+            expected.update((names[0].parent/part['name'],part['stored_sha256']) for part in manifest['segments'])
+            if set(expected)!=set(names) or any(actual[name][1]!=pin for name,pin in expected.items()):
+                raise ValueError('captured source children differ from validated manifest')
+            budget.finish()
+            terminal=forecasts._source_fingerprints(names,check_budget=budget.local)
+            if terminal!=actual:raise ValueError('captured source changed across final inventory guard')
+            return tuple((str(name),terminal[name]) for name in names)
+        def source_files(value,*,check_budget=lambda:None):
+            inventory=_source_reads.get()
+            if (_capture_frame.get() is not frame or type(inventory) is not OriginalSourceInventory or
+                    not known_inventory()):return original_files(value,check_budget=check_budget)
+            selected=source_context(value)
+            if selected is None:return original_files(value,check_budget=check_budget)
+            value=selected;key=source_key(value)
+            if key is None:return original_files(value,check_budget=check_budget)
+            admitted=source_admission.get();saved=None
+            if admitted is not None and admitted[0] is inventory and admitted[1] and admitted[1][0][0]==key:
+                saved=admitted[1][0][1]
+            if saved is None:
+                saved=next((metadata['source'][1] for capture_key,(metadata,_) in cache.items()
+                    if capture_key[0] is inventory and metadata['source'] is not None and metadata['source'][0]==key),None)
+            if saved is not None:
+                names=tuple(Path(name) for name,_ in saved)
+                current=source_snapshot(value,names,check_budget)
+                if current!=saved:raise ValueError('validated captured source identity or bytes changed')
+                if known_inventory():return names
+                return original_files(value,check_budget=check_budget)
+            names=original_files(value,check_budget=check_budget)
+            if (admitted is not None and admitted[0] is inventory and known_inventory() and
+                    MAX_CAPTURE_CACHE_ENTRIES>0):
+                metadata=source_snapshot(value,names,check_budget)
+                if known_inventory() and retained_size((key,metadata))<=MAX_CAPTURE_CACHE_BYTES-size:
+                    admitted[1][:]=[(key,metadata)]
+            return names
+        def source_snapshot_once(value,*,check_budget=lambda:None):
+            # The known original immediately fingerprints source_files again.
+            # A previously admitted file inventory can produce that snapshot
+            # directly through the SAME fresh-byte/callback/custody checks.
+            # No observed snapshot or original bytes are reused across calls.
+            inventory=_source_reads.get()
+            if (_capture_frame.get() is not frame or type(inventory) is not OriginalSourceInventory or
+                    not known_inventory() or original_snapshot.__code__ is not snapshot_code):
+                return original_snapshot(value,check_budget=check_budget)
+            selected=source_context(value)
+            if selected is None:return original_snapshot(value,check_budget=check_budget)
+            value=selected;key=source_key(value)
+            saved=next((metadata['source'][1] for capture_key,(metadata,_) in cache.items()
+                if capture_key[0] is inventory and metadata['source'] is not None and metadata['source'][0]==key),None)
+            if saved is None:return original_snapshot(value,check_budget=check_budget)
+            current=source_snapshot(value,tuple(Path(name) for name,_ in saved),check_budget)
+            if current!=saved:raise ValueError('validated captured source identity or bytes changed')
+            if not known_inventory():return original_snapshot(value,check_budget=check_budget)
+            return {Path(name):fingerprint for name,fingerprint in current}
+        def weather_key(value):
+            if type(value) is not dict or dependencies({'weather_conditioning':value}) is None:return None
+            try:
+                raw=_json_key(value)
+                return sha256(raw).digest() if len(raw)<=32768 else None
+            except (ValueError,TypeError,RecursionError,OverflowError):return None
+        def known_weather():
+            # Cheap bindings bracket hit callbacks; file bytes are still read
+            # below and by the unchanged original inventories, never inferred
+            # from a path, mtime, or object identity.
+            return weather_roots_match() and all(
+                getattr(module,name,None) is (verify_weather if module is weather and name=='verify_bindings' else function) and
+                type(function) is FunctionType and function.__globals__ is module.__dict__ and function.__code__ is code
+                for module,name,function,code in weather_functions)
+        def verify_weather(value,*,guard):
+            # The known verifier has only this complete context and callback as
+            # inputs: issue/availability, policy, authority, source refs and all
+            # runtime pins are IN the context. It consults no current clock or
+            # model. Successful full captures alone admit its validation digest.
+            inventory=_source_reads.get()
+            if (_capture_frame.get() is not frame or type(inventory) is not OriginalSourceInventory or
+                    not known_weather()):
+                return original_weather(value,guard=guard)
+            key=weather_key(value)
+            if key is None:return original_weather(value,guard=guard)
+            saved=deepcopy(value)
+            if any(capture_key[0] is inventory and metadata['weather']==key for capture_key,(metadata,_) in cache.items()):
+                guard();observe_weather(saved,saved['originals'],guard);guard()
+                result=None if known_weather() else original_weather(saved,guard=guard)
+            else:result=original_weather(saved,guard=guard)
+            admitted=weather_admission.get()
+            if admitted is not None and known_weather():admitted[:]=[key]
+            return result
+        def read(value,model,*,expected_capture_sha256,check_budget=lambda:None):
+            nonlocal size
+            def full():return original(value,model,expected_capture_sha256=expected_capture_sha256,check_budget=check_budget)
+            inventory=_source_reads.get()
+            if (_capture_frame.get() is not frame or type(inventory) is not OriginalSourceInventory or
+                    type(model) is not serving.ServingModel or getattr(model,'_seal',None) is not serving._SEAL or
+                    type(expected_capture_sha256) is not str):return full()
+            try:encoded=_json_key(value)
+            except (TypeError,ValueError,RecursionError,OverflowError):return full()
+            value=json.loads(encoded)
+            check_budget();guard()
+            refs=dependencies(value) if type(value) is dict else None
+            if refs is None or value.get('weather_conditioning') is not None and not known_weather():return full()
+            try:key=(inventory,sha256(encoded).digest(),sha256(model._encoded).digest(),
+                    sha256(model._selection._encoded).digest(),expected_capture_sha256)
+            except (ValueError,TypeError,RecursionError,OverflowError):return full()
+            if key in cache:
+                metadata,weight=cache.pop(key);cache[key]=(metadata,weight)
+                # Preserve the original serving candidate's issue-time model
+                # admission/chronology check even when numerical work is reused.
+                model.verify_bindings(assessed_at=value['issued_at'],guard=check_budget)
+                observe_dependencies(value,refs,check_budget)
+                result=json.loads(encoded);check_budget();guard()
+                if value.get('weather_conditioning') is not None and not known_weather():return full()
+                return result
+            admitted=[];admission_token=weather_admission.set(admitted)
+            admitted_sources=[];source_token=source_admission.set((inventory,admitted_sources))
+            try:
+                result=full()
+                check_budget();guard()
+                if result.get('weather_conditioning') is not None and not known_weather():return result
+                observe_dependencies(result,dependencies(result),check_budget)
+                if result.get('weather_conditioning') is not None and not known_weather():return result
+                weather_metadata=weather_key(result.get('weather_conditioning')) if weather_hooked else None
+                if admitted!=[weather_metadata]:weather_metadata=None
+                source_metadata=admitted_sources[0] if admitted_sources and admitted_sources[0][0]==source_key(result) else None
+                metadata=dict(weather=weather_metadata,source=source_metadata)
+            finally:
+                weather_admission.reset(admission_token);source_admission.reset(source_token)
+                admitted_sources.clear()
+            weight=retained_size((key[1:],metadata))+512
+            if weight<=MAX_CAPTURE_CACHE_BYTES:
+                while cache and (len(cache)>=MAX_CAPTURE_CACHE_ENTRIES or size+weight>MAX_CAPTURE_CACHE_BYTES):
+                    _,(_,removed)=cache.popitem(last=False);size-=removed
+                if MAX_CAPTURE_CACHE_ENTRIES>0:cache[key]=(metadata,weight);size+=weight
+            return result
+        weather.verify_bindings=verify_weather;weather_hooked=True
+        if inventory_supported:forecasts.origin_source_files=source_files;inventory_hooked=True
+        if (inventory_supported and type(original_snapshot) is FunctionType and
+                original_snapshot.__globals__ is forecasts.__dict__ and
+                Path(original_snapshot.__code__.co_filename).absolute()==path):
+            forecasts.origin_source_snapshot=source_snapshot_once;snapshot_hooked=True
+        forecasts.validate_serving_capture=read;hooked=True
+        yield
+        for selected,expected in identities.items():
+            guard()
+            if identity_of(selected)!=expected:raise ValueError('captured dependency identity changed before return')
+        for selected,expected,metadata in ((path,raw,identity),(model_helper,model_raw,model_identity)):
+            guard();current=_source_bytes(selected,maximum=262144);info=selected.lstat()
+            if current!=expected or (info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_gid,info.st_nlink)!=metadata:
+                raise ValueError('capture replay helper changed during report')
+        guard()
+        # Check all earlier children together after the last user callback.
+        for selected,expected in identities.items():
+            if identity_of(selected)!=expected:raise ValueError('captured dependency changed after final guard')
+        for selected,expected,metadata in ((path,raw,identity),(model_helper,model_raw,model_identity)):
+            current=_source_bytes(selected,maximum=262144);info=selected.lstat()
+            if current!=expected or (info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_gid,info.st_nlink)!=metadata:
+                raise ValueError('capture replay helper changed after final guard')
+    finally:
+        if hooked:forecasts.validate_serving_capture=original
+        if inventory_hooked:forecasts.origin_source_files=original_files
+        if snapshot_hooked:forecasts.origin_source_snapshot=original_snapshot
+        if weather_hooked:weather.verify_bindings=original_weather
+        cache.clear();identities.clear();_capture_frame.reset(token)
+
+
+@contextmanager
+def _segmented_temperature_reads(guard,frame,reuse,caches,sizes):
+    """Reuse pure operations while all sealed public codec functions stay original."""
+    import re
+    from thermal_model.origin_capture import _source_bytes
+    from thermal_model.replay_budget import observe_source_bytes
+    try:
+        import weather_temperature_source_segments as codec
+        import weather_temperature_segmented_binding as binding
+    except ImportError:
+        yield;return
+    modules=((codec,SEGMENTED_CODEC_SHA256),
+        (binding,'bedde3bb5dba4587be8759a924aa95b9f096bfb5c012415253835d59c3534dc5'))
+    originals=[];functions=[]
+    for module,pin in modules:
+        path=Path(module.__file__).absolute();raw=_source_bytes(path,maximum=262144)
+        if sha256(raw).hexdigest()!=pin:
+            yield;return
+        originals.append((path,raw,path.stat()))
+        for name,function in vars(module).items():
+            if type(function) is FunctionType and function.__globals__ is vars(module):
+                if Path(function.__code__.co_filename).absolute()!=path:
+                    yield;return
+                functions.append((module,name,function,function.__code__))
+    original=binding._source_operation
+    if (type(original) is not FunctionType or original.__globals__ is not vars(binding) or
+            Path(original.__code__.co_filename).absolute()!=Path(binding.__file__).absolute()):
+        yield;return
+    source_type=codec.SharedTemperatureSource
+    read_source=codec.read_shared_temperature_source
+    replay_source=codec.replay_shared_temperature_source
+    constants={name:deepcopy(value) for name,value in vars(codec).items() if name.isupper()
+        and type(value) in (str,int,tuple,set,frozenset)}
+    def known():
+        return (codec.SharedTemperatureSource is source_type and
+            all(getattr(module,name,None) is (operation if module is binding and name=='_source_operation' else function)
+                and function.__code__ is code for module,name,function,code in functions) and
+            all(getattr(codec,name,None)==value for name,value in constants.items()))
+    def original_key(source,check):
+        files=codec.shared_temperature_source_files(source)
+        manifest=codec._parse_manifest(source.manifest_bytes)
+        body,_=codec._read_checked(files[0],codec.MAX_MANIFEST_BYTES,check,source._fingerprints[0])
+        if body!=source.manifest_bytes:raise ValueError('original segmented manifest changed')
+        observe_source_bytes(files[0],body)
+        fingerprints=[]
+        for selected,descriptor,expected in zip(files[1:],manifest['segments'],source._fingerprints[1:]):
+            stored,actual=codec._read_checked(selected,codec.MAX_STORED_SEGMENT_BYTES,check,expected)
+            if (len(stored)!=descriptor['stored_bytes'] or
+                    sha256(stored).hexdigest()!=descriptor['stored_sha256']):
+                raise ValueError('original segmented child bytes differ')
+            observe_source_bytes(selected,stored)
+            fingerprints.append([str(selected),list(actual),sha256(stored).hexdigest()])
+        metadata=_json_key(dict(manifest_sha256=sha256(body).hexdigest(),
+            manifest_path=str(files[0]),identities=[list(v) for v in source._fingerprints],children=fingerprints))
+        return ('segmented-source-v1',sha256(metadata).digest()),files
+    def retained(directory,path,check):
+        root=codec._directory(Path(directory));path=Path(path)
+        if path.parent!=root or re.fullmatch('[0-9a-f]{64}'+re.escape(codec.MANIFEST_SUFFIX),path.name) is None:
+            raise ValueError('exact original manifest content address required')
+        raw,fingerprint=codec._read_checked(path,codec.MAX_MANIFEST_BYTES,check)
+        if sha256(raw).hexdigest()+codec.MANIFEST_SUFFIX!=path.name:
+            raise ValueError('manifest digest differs')
+        manifest=codec._parse_manifest(raw)
+        files=(path,)+tuple(root/descriptor['name'] for descriptor in manifest['segments'])
+        fingerprints=(fingerprint,)+tuple(codec._fingerprint(child) for child in files[1:])
+        return source_type(raw,_files=files,_fingerprints=fingerprints)
+    def operation(selected,*args,guard,replay_source=None,**kwargs):
+        if (_temperature_frame.get() is not frame or not known() or
+                selected not in (read_source,codec.replay_shared_temperature_source)):
+            return original(selected,*args,guard=guard,replay_source=replay_source,**kwargs)
+        reading=selected is read_source
+        if kwargs or len(args)!=(2 if reading else 1):
+            return original(selected,*args,guard=guard,replay_source=replay_source,**kwargs)
+        used_keys=[]
+        def pure(*values,guard=None,**options):
+            codec._guard(guard)
+            source=retained(*values,guard) if reading else values[0]
+            if type(source) is not source_type or not source._files or source._chunks:
+                return selected(*values,guard=guard,**options)
+            key,files=original_key(source,guard)
+            used_keys.append(key)
+            def unchanged():
+                codec._verify_files(files,source._fingerprints,guard)
+                if not known():raise ValueError('segmented replay implementation changed')
+            def compute():
+                value=codec.replay_shared_temperature_source(source,guard=guard)
+                unchanged();return value
+            try:
+                # retained() performs the original reader's complete header,
+                # path and custody construction. Execute its original full
+                # decoder once and retain the grid that read_source otherwise
+                # discards. The returned handle and all final checks are the
+                # same; a later explicit replay can reuse that exact result.
+                result=reuse(1,key,compute,512+len(repr(key)))
+                if reading:result=source
+                unchanged();return result
+            except BaseException:
+                removed=caches[1].pop(key,None)
+                if removed is not None:sizes[1]-=removed[1]
+                raise
+        # Preserve the original nonrenewable numeric/None guard adapter and its
+        # complete terminal custody checks, for both reads and replay results.
+        try:return original(pure,*args,guard=guard,replay_source=replay_source,**kwargs)
+        except BaseException:
+            # A terminal deadline/custody refusal after pure() returns must
+            # discard its admission as well as failures inside the decoder.
+            for key in used_keys:
+                removed=caches[1].pop(key,None)
+                if removed is not None:sizes[1]-=removed[1]
+            raise
+    binding._source_operation=operation
+    try:
+        yield
+        guard()
+        for path,raw,info in originals:
+            current=_source_bytes(path,maximum=262144);now=path.stat()
+            attributes=('st_dev','st_ino','st_size','st_mtime_ns','st_ctime_ns','st_mode','st_uid','st_gid','st_nlink')
+            if current!=raw or any(getattr(now,key)!=getattr(info,key) for key in attributes):
+                raise ValueError('segmented replay helper changed before return')
+        if not known():raise ValueError('segmented replay implementation changed before return')
+    finally:
+        binding._source_operation=original
+
+
+@contextmanager
+def job_temperature_reads(guard):
+    """One bounded scorer job may share exact pure temperature work with its report.
+
+    Model/capture validation remains report-local. Every actual I/O operation
+    keeps its original caller guard, budget, pacing and final source checks.
+    """
+    if not callable(guard):raise ValueError('held original job guard required')
+    with _temperature_reads(guard):
+        token=_job_temperature_frame.set(_temperature_frame.get())
+        try:yield
+        finally:_job_temperature_frame.reset(token)
+
+
+@contextmanager
+def _temperature_reads(guard,*,reuse_job=False):
+    """Reuse pure work, never the original on-disk reads or final inventory.
+
+    Keys fingerprint complete inputs with SHA256, never paths/mtime/scalars.
+    Snapshot/query LRUs are limited to 16/8MiB of accounted keys/results and
+    16384 entries each; oversized values run normally.
+    A private execution frame prevents nested/foreign contexts borrowing hits.
+    Original validation exceptions are never cached. All hooks restore even on
+    cancellation, pressure refusal or final verification failure.
+    """
+    if type(reuse_job) is not bool:raise ValueError('explicit job temperature reuse option required')
+    job_frame=_job_temperature_frame.get()
+    if reuse_job and job_frame is not None and _temperature_frame.get() is job_frame:
+        token=_temperature_borrow_guard.set(guard)
+        try:
+            guard()
+            yield
+            guard()
+        finally:_temperature_borrow_guard.reset(token)
+        return
+    from collections import OrderedDict
+    from datetime import datetime
+    import weather_temperature_reader as reader
+    import weather_temperature_sources as sources
+    import weather_temperature_evidence as evidence
+    import thermal_model.installed_shade_raw_score_sources as raw_sources
+    from thermal_model.origin_capture import _source_bytes
+    frame=object();token=_temperature_frame.set(frame)
+    guard_token=_temperature_borrow_guard.set(None)
+    snapshot=reader._snapshot;query=sources.replay_temperature_source
+    hooked=False;caches=[OrderedDict(),OrderedDict()];sizes=[0,0];originals=[];alias=raw_sources.replay_temperature_source
+    try:
+        guard()
+        for module in (reader,sources,evidence,raw_sources):
+            path=Path(module.__file__).absolute()
+            raw=_source_bytes(path,maximum=262144)
+            if sha256(raw).hexdigest()!=TEMPERATURE_SOURCE_SHA256.get(module.__name__):
+                yield;return
+            info=path.lstat()
+            originals.append((path,raw,(info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_gid,info.st_nlink)))
+        if any(Path(fn.__code__.co_filename).absolute()!=Path(module.__file__).absolute()
+                for fn,module in ((snapshot,reader),(query,sources))):
+            # Reentry must start from original functions, not a parent's cache.
+            yield;return
+        def copy_result(index,value):
+            # The pinned reader returns only datetime/scalar metadata. Copy
+            # its mutable dict/list containers; immutable datetime values need
+            # no recursive reconstruction on every snapshot hit.
+            def point(pair):return pair[0],None if pair[1] is None else dict(pair[1])
+            if index==0:return point(value)
+            if type(value) is dict:return {role:[point(pair) for pair in grid] for role,grid in value.items()}
+            return [point(pair) for pair in value]
+        def reuse(index,key,compute,key_bytes):
+            # The original pure snapshot reader has no budget callback. The
+            # shared callback executes full retained guard I/O, not just a
+            # clock read; invoking it per raw row amplifies that I/O greatly.
+            # Keep query/report/capture boundaries, never add per-row guards.
+            def checkpoint():return (_temperature_borrow_guard.get() or guard)()
+            if index==1:checkpoint()
+            cache=caches[index]
+            if key in cache:
+                value,weight=cache.pop(key);cache[key]=(value,weight)
+                result=copy_result(index,value)
+                if index==1:checkpoint()
+                return result
+            value=compute()
+            if index==1:checkpoint()
+            if index==1 and type(value) is dict:
+                # Three full role grids share this SAME existing query LRU.
+                # Account for their complete retained object graph rather
+                # than estimating its size from the printed representation.
+                import sys
+                seen=set()
+                def retained_size(v):
+                    if id(v) in seen:return 0
+                    seen.add(id(v));total=sys.getsizeof(v)
+                    if type(v) is dict:return total+sum(retained_size(k)+retained_size(x) for k,x in v.items())
+                    if type(v) in (list,tuple):return total+sum(map(retained_size,v))
+                    return total
+                weight=key_bytes+retained_size(value)+512
+            else:weight=key_bytes+len(repr(value).encode())+512
+            limit=MAX_SNAPSHOT_CACHE_BYTES if index==0 else MAX_TEMPERATURE_CACHE_BYTES
+            if weight<=limit:
+                while cache and (len(cache)>=MAX_TEMPERATURE_CACHE_ENTRIES or sizes[index]+weight>limit):
+                    _,(_,removed)=cache.popitem(last=False);sizes[index]-=removed
+                if MAX_TEMPERATURE_CACHE_ENTRIES>0:
+                    cache[key]=(copy_result(index,value),weight);sizes[index]+=weight
+            return value
+        def read_snapshot(raw,stored_at,stream,policy,*,version=1,sensor_epoch=None):
+            def original():return snapshot(raw,stored_at,stream,policy,version=version,sensor_epoch=sensor_epoch)
+            if (_temperature_frame.get() is not frame or type(stored_at) is not datetime or
+                    type(policy) is not evidence.TemperaturePolicy or type(raw) is not str or
+                    type(stream) is not str or type(version) is not int or
+                    (sensor_epoch is not None and type(sensor_epoch) is not str)):return original()
+            key=(sha256(raw.encode()).digest(),stored_at.isoformat(),stream,policy,version,sensor_epoch)
+            return reuse(0,key,original,32+len(stream.encode())+len(repr(policy))+256)
+        def replay(packet):
+            if _temperature_frame.get() is not frame:return query(packet)
+            try:key,saved=_temperature_query_key(packet)
+            except (ValueError,TypeError,RecursionError,OverflowError):return query(packet)
+            return reuse(1,key,lambda:query(saved),len(key))
+        reader._snapshot=read_snapshot;sources.replay_temperature_source=replay;hooked=True
+        if alias is query:raw_sources.replay_temperature_source=replay
+        with _segmented_temperature_reads(guard,frame,reuse,caches,sizes):yield
+        # This supplements, rather than replaces, the original report's full
+        # source/model inventory. Detect same-byte replacement of our helpers.
+        for path,raw,identity in originals:
+            guard();current=_source_bytes(path,maximum=262144);info=path.lstat()
+            if current!=raw or (info.st_dev,info.st_ino,info.st_mode,info.st_uid,info.st_gid,info.st_nlink)!=identity:
+                raise ValueError('temperature replay helper changed during report')
+        guard()
+    finally:
+        if hooked:
+            reader._snapshot=snapshot;sources.replay_temperature_source=query
+            raw_sources.replay_temperature_source=alias
+        for cache in caches:cache.clear()
+        _temperature_borrow_guard.reset(guard_token)
+        _temperature_frame.reset(token)
 
 
 def _supported(scores,report,reader):
@@ -24,7 +715,7 @@ def _supported(scores,report,reader):
     if any(Path(function.__code__.co_filename).resolve()!=path for function in (report,reader)):
         return False
     with path.open('rb') as source:raw=source.read(262145)
-    return len(raw)<=262144 and sha256(raw).hexdigest() in (SUPPORTED_SOURCE_SHA256,PRIOR_SOURCE_SHA256,INSTALLED_SOURCE_SHA256)
+    return len(raw)<=262144 and sha256(raw).hexdigest() in (SUPPORTED_SOURCE_SHA256,LEGACY_SOURCE_SHA256,PRIOR_SOURCE_SHA256,INSTALLED_SOURCE_SHA256)
 
 
 
@@ -87,6 +778,13 @@ def wrap_report(scores):
     def report(*args,**kwargs):
         if not _supported(scores,original_report,original_reader):
             return original_report(*args,**kwargs)
+        from thermal_model.origin_capture import _source_bytes
+        guard=kwargs.get('check_budget',lambda:None);own=Path(__file__).absolute()
+        def identity():
+            info=own.lstat()
+            return (info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns,info.st_ctime_ns,
+                info.st_mode,info.st_uid,info.st_gid,info.st_nlink)
+        guard();own_raw=_source_bytes(own,maximum=262144);own_identity=identity()
         cached=None
         def read(path,*,model,expected_capture_sha256,expected_source_score_sha256,check_budget=lambda:None):
             nonlocal cached
@@ -112,8 +810,13 @@ def wrap_report(scores):
         previous_reader=scores.read_serving_source_score
         try:
             scores.read_serving_source_score=read
-            with _model_reads(scores,kwargs.get('assessed_at')):
-                return original_report(*args,**kwargs)
+            with _capture_reads(guard), _model_reads(scores,kwargs.get('assessed_at')), _temperature_reads(guard,reuse_job=True):
+                result=original_report(*args,**kwargs)
+                guard()
+                if _source_bytes(own,maximum=262144)!=own_raw or identity()!=own_identity:
+                    raise ValueError('operational report helper changed before return')
+                guard()
+            return result
         finally:
             cached=None
             scores.read_serving_source_score=previous_reader

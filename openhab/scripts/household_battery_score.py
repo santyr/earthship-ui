@@ -25,7 +25,7 @@ def read_plan(path):
     path=Path(path);raw,metadata=_private_file(path,2097152)
     if path.name!=sha256(raw).hexdigest()+SUFFIX:raise ValueError('original battery plan filename differs')
     plan=loads(raw)
-    if plan.get('schema')!='earthship-household-model-plan-receipt/v6':raise ValueError('original battery projection version required')
+    if plan.get('schema') not in ('earthship-household-model-plan-receipt/v6','earthship-household-model-plan-receipt/v7'):raise ValueError('original battery projection version required')
     return plan,(raw,metadata)
 
 
