@@ -17,6 +17,34 @@ MAX_COLLECTION_SECONDS=MAX_OBSERVATION_SECONDS
 ISSUE_MARGIN=timedelta(seconds=3)
 
 
+class CycleGuard:
+    """Expose one original 85-second work budget to the segmented adapter.
+
+    Full lock/resource/source checks still run at every caller checkpoint.
+    Numeric remaining time lets the unchanged adapter check local expiry
+    between its original 64-call/5-ms full checkpoints. Nothing renews the
+    absolute stop; the original 90-second service bound remains external.
+    """
+    def __init__(self,guard,*,deadline,monotonic=time.monotonic):
+        if not callable(guard) or type(deadline) not in (int,float) or not math.isfinite(deadline):
+            raise ValueError('original bounded publication guard required')
+        self.guard=guard;self.deadline=deadline;self.monotonic=monotonic;self.previous=None;self.failure=None
+
+    def __call__(self):
+        if self.failure is not None:raise self.failure
+        try:
+            self.guard()
+            now=self.monotonic()
+            if (type(now) not in (int,float) or not math.isfinite(now) or
+                    self.previous is not None and now<self.previous or now>=self.deadline):
+                raise ValueError('native publication deadline exceeded')
+            self.previous=now
+            return self.deadline-now
+        except BaseException as error:
+            self.failure=error
+            raise
+
+
 class ObservingBackend:
     def __init__(self,parent,*,collector,guard,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic,
                  sleep=time.sleep,near_issue=False):
@@ -464,6 +492,9 @@ def _run_cycle(config_path,*,code_revision,forecast_config=None,stage=None,deplo
     optional household configuration. Legacy callers may discover that original
     path from an intact household config before entering the original lock.
     """
+    # Start before configuration/import work, so later observation never gets
+    # a fresh budget after the thermal publication has completed.
+    deadline=time.monotonic()+85
     import os,re
     from pathlib import Path
     from hashlib import sha256
@@ -500,6 +531,7 @@ def _run_cycle(config_path,*,code_revision,forecast_config=None,stage=None,deplo
             lock.verify();monitor.check()
             if _private_file(forecast_path,8192)!=forecast_original:
                 raise ValueError('original forecast configuration changed')
+        forecast_guard=CycleGuard(forecast_guard,deadline=deadline,monotonic=time.monotonic)
         forecast_guard();collector=None;ready=False;configuration=None
         try:
             if not isinstance(code_revision,str) or re.fullmatch('[a-f0-9]{40}',code_revision) is None:
@@ -519,6 +551,7 @@ def _run_cycle(config_path,*,code_revision,forecast_config=None,stage=None,deplo
                 if (_private_file(config_path,8192)!=config_original or _private_file(parameter_path,262144)!=parameter_original or
                     any(_read(path,262144)!=raw for path,raw in own.items())):
                     raise ValueError('original household configuration, parameters or driver changed')
+            guard=CycleGuard(guard,deadline=deadline,monotonic=time.monotonic)
             guard()
             collector=CycleSourceCollector(token_file=settings['token_file'],openhab_base=settings['openhab_base'],code_revision=code_revision)
             ready=True

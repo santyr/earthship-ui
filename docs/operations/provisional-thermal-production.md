@@ -7,6 +7,20 @@ requirements for later graduation, rather than prerequisites for provisional use
 This mode does not claim calibrated intervals, stable identification or automation.
 Qualified publication contracts retain their existing requirements.
 
+The current native household coordinator shares one 85-second monotonic work
+budget between thermal publication and subsequent household derivation. Its
+guards return positive remaining seconds to the existing segmented-source
+adapter, which checks expiry locally between full 64-call/5-ms checkpoints.
+Each full checkpoint still verifies the original lock, resources, configuration
+and source files. All original rows, source identities, model checks and final
+verification remain mandatory. The outer service retains its 90-second limit;
+household work receives no fresh budget after a successful thermal delivery.
+
+A verified thermal delivery can precede a failure in household derivation.
+Check the persisted delivery and current OpenHAB thermal Items separately from
+the service result and household observation caches. A publication alone does
+not prove that energy/advice consumers refreshed successfully.
+
 The model is a prior-regularized fit of original native-phase development inputs.
 Finite coefficients, existing physical bounds, stable transitions, complete causal
 weather forcing, known installed shades and fresh phase-matched observations remain
