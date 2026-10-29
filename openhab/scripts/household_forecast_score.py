@@ -19,7 +19,7 @@ PUBLICATION_POLICY_SHA256 = 'e7a330a82886605ef80f418f818bf2da90a2e419aa3264d7d98
 _production_policy = None
 PUBLICATION_MONITOR_SHA256 = '43cef34e31bc9b82a9d416f97bf9e15f255ebe95b873409089478e41e40fd9f9'
 _production_monitor = None
-REPORT_REPLAY_HELPER_SHA256 = 'a664b93fd67cca99d5025d44ef1bd1e53b67296fdde91ffbbffb741e3687c775'
+REPORT_REPLAY_HELPER_SHA256 = '61030da45e76fbc4a854f55f4a3b72733d03682f57636979299890058028cf6d'
 _production_report_reuse = None
 
 
@@ -129,12 +129,15 @@ def production_retained_runner():
 
 
 @contextmanager
-def production_score_policy():
+def production_score_policy(*,temperature_guard=None):
     """Explicitly use current admission for an archived scoring invocation only."""
     import thermal_model.serial_publication_caps as serial
     import household_cycle_resources as resources
+    from contextlib import nullcontext
+    if temperature_guard is not None and not callable(temperature_guard):
+        raise ValueError('original bounded temperature job guard required')
     production_resource_preflight()
-    monitors=[]
+    monitors=[];temperature_helper=None
     def current_headroom():
         pressure=SampledScorePressure(production_pressure_monitor())
         monitors.append(pressure)
@@ -152,10 +155,13 @@ def production_score_policy():
         import native_thermal_score as scores
         if hasattr(scores,'reconcile_serving_source_report'):
             hooks.append((scores,'reconcile_serving_source_report',production_report_replay(scores)))
+            temperature_helper=_production_report_reuse
     originals=[(module,name,getattr(module,name)) for module,name,_ in hooks]
     try:
         for module,name,replacement in hooks:setattr(module,name,replacement)
-        yield
+        scope=(temperature_helper.job_temperature_reads(temperature_guard)
+            if temperature_guard is not None and temperature_helper is not None else nullcontext())
+        with scope:yield
         for pressure in monitors:pressure.check(force=True)
     finally:
         for module,name,original in reversed(originals):setattr(module,name,original)
@@ -278,7 +284,7 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
                     assessed_at=clock(),guard=guard))
             historical=tuple(historical)
             pressure.check(force=True)
-            with production_score_policy():
+            with production_score_policy(temperature_guard=guard):
                 result=score_with_report(settings,guard=guard,clock=clock,queue=True,serving_model=model,historical_selections=historical)
         else:
             if isinstance(pressure,SampledScorePressure):pressure.check(force=True)
@@ -478,7 +484,12 @@ def run_retained_worker(script,config,*,stage,deployment_sha256,retained_native,
             if deploy.verify_stage(stage,expected_deployment_sha256=deployment_sha256)!=record:
                 raise ValueError('retained worker dependency context changed')
             source_guard()
-        with production_score_policy():
+        def temperature_guard():
+            source_guard()
+            remaining=stop-monotonic()
+            if remaining<=0:raise ValueError('score lifetime elapsed')
+            return remaining
+        with production_score_policy(temperature_guard=temperature_guard):
             reader_options={} if reader_factory is None else dict(reader_factory=reader_factory)
             result=runner.run(config,stage=stage,deployment_sha256=deployment_sha256,deadline=stop,
                 resource_preflight=production_resource_preflight,

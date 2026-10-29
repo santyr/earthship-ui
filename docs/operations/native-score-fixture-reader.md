@@ -57,6 +57,11 @@ identities, complete manifest context, original codec functions, and caller
 context. All freshly read bytes are registered in the report's original source
 inventory. The first full decode remains mandatory; hits copy every role, target,
 receipt, and missing value and keep terminal file/guard checks. Unknown or
-unretained handles use the original replay. No result survives report exit,
-failure, cancellation, or a foreign/nested execution context. The report's final
-full model and source verification remains required.
+unretained handles use the original replay. Standalone reports discard their
+temperature cache on exit. Explicit coordinated scoring uses the same bounded
+cache for one complete original job, so acquisition and reporting can share
+identical decoded inputs. Reports retain their own guard at every reuse; all
+HTTP/SQL operations, pacing, 50-second acquisition budget, full model/source
+checks and original job deadline remain. Model and capture-validation caches
+stay report-local. No temperature result survives job exit or cancellation;
+separate jobs and foreign/nested scopes cannot borrow hits implicitly.

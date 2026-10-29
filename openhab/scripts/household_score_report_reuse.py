@@ -20,6 +20,8 @@ SUPPORTED_MODEL_HELPER_SHA256='11121a94a4501c7af520b9df54ec879a3c75edadc87a0d15a
 PRIOR_MODEL_HELPER_SHA256='94d85e37afc79e08cf9de93ba937b2ba845acc7111c0a23e483b186d8ff9a57e'
 _model_frame=ContextVar('household_report_model_bindings',default=None)
 _temperature_frame=ContextVar('household_report_temperature_replay',default=None)
+_job_temperature_frame=ContextVar('household_job_temperature_replay',default=None)
+_temperature_borrow_guard=ContextVar('household_report_temperature_guard',default=None)
 TEMPERATURE_SOURCE_SHA256={
     'weather_temperature_reader':'efefeebcaf201dd4d85fe01f8fb17e509324ed913de8e996ee76fcbe911b262f',
     'weather_temperature_sources':'c7c53d55cdeb8a4090ea7469bf3d4c6015a88235f7056aa9866f132c81cf493d',
@@ -526,7 +528,21 @@ def _segmented_temperature_reads(guard,frame,reuse,caches,sizes):
 
 
 @contextmanager
-def _temperature_reads(guard):
+def job_temperature_reads(guard):
+    """One bounded scorer job may share exact pure temperature work with its report.
+
+    Model/capture validation remains report-local. Every actual I/O operation
+    keeps its original caller guard, budget, pacing and final source checks.
+    """
+    if not callable(guard):raise ValueError('held original job guard required')
+    with _temperature_reads(guard):
+        token=_job_temperature_frame.set(_temperature_frame.get())
+        try:yield
+        finally:_job_temperature_frame.reset(token)
+
+
+@contextmanager
+def _temperature_reads(guard,*,reuse_job=False):
     """Reuse pure work, never the original on-disk reads or final inventory.
 
     Keys fingerprint complete inputs with SHA256, never paths/mtime/scalars.
@@ -536,6 +552,16 @@ def _temperature_reads(guard):
     Original validation exceptions are never cached. All hooks restore even on
     cancellation, pressure refusal or final verification failure.
     """
+    if type(reuse_job) is not bool:raise ValueError('explicit job temperature reuse option required')
+    job_frame=_job_temperature_frame.get()
+    if reuse_job and job_frame is not None and _temperature_frame.get() is job_frame:
+        token=_temperature_borrow_guard.set(guard)
+        try:
+            guard()
+            yield
+            guard()
+        finally:_temperature_borrow_guard.reset(token)
+        return
     from collections import OrderedDict
     from datetime import datetime
     import weather_temperature_reader as reader
@@ -544,6 +570,7 @@ def _temperature_reads(guard):
     import thermal_model.installed_shade_raw_score_sources as raw_sources
     from thermal_model.origin_capture import _source_bytes
     frame=object();token=_temperature_frame.set(frame)
+    guard_token=_temperature_borrow_guard.set(None)
     snapshot=reader._snapshot;query=sources.replay_temperature_source
     hooked=False;caches=[OrderedDict(),OrderedDict()];sizes=[0,0];originals=[];alias=raw_sources.replay_temperature_source
     try:
@@ -572,15 +599,16 @@ def _temperature_reads(guard):
             # shared callback executes full retained guard I/O, not just a
             # clock read; invoking it per raw row amplifies that I/O greatly.
             # Keep query/report/capture boundaries, never add per-row guards.
-            if index==1:guard()
+            def checkpoint():return (_temperature_borrow_guard.get() or guard)()
+            if index==1:checkpoint()
             cache=caches[index]
             if key in cache:
                 value,weight=cache.pop(key);cache[key]=(value,weight)
                 result=copy_result(index,value)
-                if index==1:guard()
+                if index==1:checkpoint()
                 return result
             value=compute()
-            if index==1:guard()
+            if index==1:checkpoint()
             if index==1 and type(value) is dict:
                 # Three full role grids share this SAME existing query LRU.
                 # Account for their complete retained object graph rather
@@ -630,6 +658,7 @@ def _temperature_reads(guard):
             reader._snapshot=snapshot;sources.replay_temperature_source=query
             raw_sources.replay_temperature_source=alias
         for cache in caches:cache.clear()
+        _temperature_borrow_guard.reset(guard_token)
         _temperature_frame.reset(token)
 
 
@@ -733,7 +762,7 @@ def wrap_report(scores):
         previous_reader=scores.read_serving_source_score
         try:
             scores.read_serving_source_score=read
-            with _capture_reads(guard), _model_reads(scores,kwargs.get('assessed_at')), _temperature_reads(guard):
+            with _capture_reads(guard), _model_reads(scores,kwargs.get('assessed_at')), _temperature_reads(guard,reuse_job=True):
                 result=original_report(*args,**kwargs)
                 guard()
                 if _source_bytes(own,maximum=262144)!=own_raw or identity()!=own_identity:
