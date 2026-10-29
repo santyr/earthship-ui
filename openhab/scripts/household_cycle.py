@@ -63,6 +63,26 @@ def publication_temperature_reads(guard):
             raise ValueError('publication temperature helper changed')
 
 
+PRODUCTION_POINT_REUSE_SHA256='f80bab39fe9b9b7443aa37cd58ce5312a7a600864547685678fde72f15362554'
+
+
+@contextmanager
+def publication_production_reads(guard):
+    """Reuse decoded points only after complete current original-file reads."""
+    from pathlib import Path
+    from hashlib import sha256
+    import household_production_point_reuse as helper
+    from household_forecast_score import _policy_source_bytes
+    path=Path(__file__).absolute().with_name('household_production_point_reuse.py')
+    if (Path(helper.__file__).absolute()!=path or
+            sha256(_policy_source_bytes(path)).hexdigest()!=PRODUCTION_POINT_REUSE_SHA256):
+        raise ValueError('publication production point helper source differs')
+    with helper.job_production_points(guard):
+        yield
+        if sha256(_policy_source_bytes(path)).hexdigest()!=PRODUCTION_POINT_REUSE_SHA256:
+            raise ValueError('publication production point helper changed')
+
+
 class ObservingBackend:
     def __init__(self,parent,*,collector,guard,clock=lambda:datetime.now(timezone.utc),monotonic=time.monotonic,
                  sleep=time.sleep,near_issue=False):
@@ -550,7 +570,7 @@ def _run_cycle(config_path,*,code_revision,forecast_config=None,stage=None,deplo
             if _private_file(forecast_path,8192)!=forecast_original:
                 raise ValueError('original forecast configuration changed')
         forecast_guard=CycleGuard(forecast_guard,deadline=deadline,monotonic=time.monotonic)
-        with publication_temperature_reads(forecast_guard):
+        with publication_temperature_reads(forecast_guard), publication_production_reads(forecast_guard):
             forecast_guard();collector=None;ready=False;configuration=None
             try:
                 if not isinstance(code_revision,str) or re.fullmatch('[a-f0-9]{40}',code_revision) is None:
