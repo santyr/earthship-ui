@@ -80,5 +80,25 @@ comparisons are verified independently of the tests. The preexisting remote-main
 component-PV cohort-identity correction is preserved alongside the separately
 deployed sensitivity reader.
 
-Final Earthship remote publication, exact remote IDs and live-selector/index
-preservation are recorded after the normal Git push succeeds.
+## Verified remote publication
+
+Normal, non-forced pushes completed successfully:
+
+- Earthship source reconciliation:
+  `16a4107b55461543dc8a0406df3b5862c42269d9`, advancing remote main from `5c41b40`.
+- Solar_PV analytics reconciliation:
+  `3213415309c9dee45597df64872a92bb100624cd`, advancing remote main from `890a0f7`.
+
+Both exact remote IDs were independently checked with `git ls-remote` after push.
+The deployed native/suggestion `0b52dc1` and sensitivity `0075a1d` commits are
+ancestors of the published Earthship source. A documentation-only follow-up
+records this completed publication and checklist; runtime source remains the
+tested `16a4107` tree.
+
+Original UI HEAD `02e3fcb` and Solar_PV HEAD `7b70117`, both original index hashes
+and both tracked dirty-status snapshots match the pre-publication records.
+Live UI still selects `ui-release-suggestions-20261029-a03`. Native forecast,
+sensitivity and energy reader service selectors remain unchanged. Scheduled
+oneshot services may be inactive between their scheduled runs; no restart or
+activation was performed by this publication. Local completion receipts retain
+the final exact remote heads and all preservation checks.
