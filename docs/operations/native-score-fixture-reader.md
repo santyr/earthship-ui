@@ -65,3 +65,10 @@ HTTP/SQL operations, pacing, 50-second acquisition budget, full model/source
 checks and original job deadline remain. Model and capture-validation caches
 stay report-local. No temperature result survives job exit or cancellation;
 separate jobs and foreign/nested scopes cannot borrow hits implicitly.
+
+For an inventory already admitted by a successful full capture validation,
+snapshot construction obtains its fingerprints directly from that inventory's
+fresh-byte verifier. This avoids separately validating the same file list and
+then immediately fingerprinting it again. Each call still reads all original
+files, compares their stored digests and identities, checks the original caller
+guard, and registers the bytes with the report's complete final inventory.

@@ -2,7 +2,8 @@
 
 The original report still owns model selection, completion validation, duplicate
 job checks, arithmetic, and final verification of every observed original file.
-No value survives a report invocation; unknown implementations run unchanged.
+Pure temperatures may be shared within one bounded score job; all values clear
+at their owning scope's exit. Unknown implementations run unchanged.
 """
 from copy import deepcopy
 from functools import wraps
@@ -141,6 +142,8 @@ def _capture_reads(guard):
     original=forecasts.validate_serving_capture;path=Path(forecasts.__file__).absolute()
     weather_hooked=False;inventory_hooked=False
     original_files=getattr(forecasts,'origin_source_files',None)
+    original_snapshot=getattr(forecasts,'origin_source_snapshot',None)
+    snapshot_hooked=False
     frame=object();token=_capture_frame.set(frame);hooked=False;cache=OrderedDict();size=0;identities={}
     try:
         guard();raw=_source_bytes(path,maximum=262144);info=path.lstat()
@@ -195,6 +198,7 @@ def _capture_reads(guard):
         source_admission=ContextVar('full_capture_inventory_admission',default=None)
         source_functions=[(name,getattr(forecasts,name,None)) for name in ('_segmented_helpers','_source_fingerprints')]
         files_code=getattr(original_files,'__code__',None)
+        snapshot_code=getattr(original_snapshot,'__code__',None)
         source_codes={name:getattr(function,'__code__',None) for name,function in source_functions}
         inventory_supported=(capture_source==CAPTURE_SOURCE_SHA256 and all(
             type(function) is FunctionType and function.__globals__ is forecasts.__dict__ and
@@ -300,6 +304,23 @@ def _capture_reads(guard):
                 if known_inventory() and retained_size((key,metadata))<=MAX_CAPTURE_CACHE_BYTES-size:
                     admitted[1][:]=[(key,metadata)]
             return names
+        def source_snapshot_once(value,*,check_budget=lambda:None):
+            # The known original immediately fingerprints source_files again.
+            # A previously admitted file inventory can produce that snapshot
+            # directly through the SAME fresh-byte/callback/custody checks.
+            # No observed snapshot or original bytes are reused across calls.
+            inventory=_source_reads.get()
+            if (_capture_frame.get() is not frame or type(inventory) is not OriginalSourceInventory or
+                    not known_inventory() or original_snapshot.__code__ is not snapshot_code):
+                return original_snapshot(value,check_budget=check_budget)
+            value=deepcopy(value);key=source_key(value)
+            saved=next((metadata['source'][1] for capture_key,(metadata,_) in cache.items()
+                if capture_key[0] is inventory and metadata['source'] is not None and metadata['source'][0]==key),None)
+            if saved is None:return original_snapshot(value,check_budget=check_budget)
+            current=source_snapshot(value,tuple(Path(name) for name,_ in saved),check_budget)
+            if current!=saved:raise ValueError('validated captured source identity or bytes changed')
+            if not known_inventory():return original_snapshot(value,check_budget=check_budget)
+            return {Path(name):fingerprint for name,fingerprint in current}
         def weather_key(value):
             if type(value) is not dict or dependencies({'weather_conditioning':value}) is None:return None
             try:
@@ -379,6 +400,10 @@ def _capture_reads(guard):
             return result
         weather.verify_bindings=verify_weather;weather_hooked=True
         if inventory_supported:forecasts.origin_source_files=source_files;inventory_hooked=True
+        if (inventory_supported and type(original_snapshot) is FunctionType and
+                original_snapshot.__globals__ is forecasts.__dict__ and
+                Path(original_snapshot.__code__.co_filename).absolute()==path):
+            forecasts.origin_source_snapshot=source_snapshot_once;snapshot_hooked=True
         forecasts.validate_serving_capture=read;hooked=True
         yield
         for selected,expected in identities.items():
@@ -399,6 +424,7 @@ def _capture_reads(guard):
     finally:
         if hooked:forecasts.validate_serving_capture=original
         if inventory_hooked:forecasts.origin_source_files=original_files
+        if snapshot_hooked:forecasts.origin_source_snapshot=original_snapshot
         if weather_hooked:weather.verify_bindings=original_weather
         cache.clear();identities.clear();_capture_frame.reset(token)
 

@@ -69,6 +69,59 @@ def test_validated_segmented_inventory_reuses_decoding_but_reads_every_file(tmp_
     assert forecasts.validate_serving_capture is original_validate
 
 
+def test_admitted_snapshot_reads_all_originals_without_duplicate_outer_fingerprinting(tmp_path,serving_model,monkeypatch):
+    import cProfile
+    import household_score_report_reuse as reuse
+    from thermal_model.replay_budget import capture_source_reads
+    forecasts,model,capture=segmented(tmp_path,serving_model,monkeypatch)
+    original=forecasts.origin_source_snapshot
+    expected=original(capture)
+    with reuse._capture_reads(lambda:None),capture_source_reads() as inventory:
+        forecasts.validate_serving_capture(capture,model,expected_capture_sha256=capture['capture_sha256'])
+        reads=[];record=inventory.record
+        def observed(path,raw):reads.append(Path(path));return record(path,raw)
+        inventory.record=observed
+        profile=cProfile.Profile();actual=profile.runcall(forecasts.origin_source_snapshot,capture)
+        assert actual==expected and set(expected)<=set(reads)
+        calls=sum(entry.callcount for entry in profile.getstats() if entry.code is forecasts._source_fingerprints.__code__)
+        assert calls==2
+        foreign=cProfile.Profile();assert foreign.runcall(Context().run,forecasts.origin_source_snapshot,capture)==expected
+        assert sum(entry.callcount for entry in foreign.getstats() if entry.code is forecasts._source_fingerprints.__code__)==1
+        inventory.verify()
+    assert forecasts.origin_source_snapshot is original
+
+
+@pytest.mark.parametrize('damage',['bytes','replacement','late_guard'])
+def test_admitted_snapshot_refuses_changed_originals(tmp_path,serving_model,monkeypatch,damage):
+    import household_score_report_reuse as reuse
+    from thermal_model.replay_budget import capture_source_reads
+    forecasts,model,capture=segmented(tmp_path,serving_model,monkeypatch)
+    target=forecasts.origin_source_files(capture)[-1]
+    with pytest.raises(ValueError),reuse._capture_reads(lambda:None),capture_source_reads():
+        forecasts.validate_serving_capture(capture,model,expected_capture_sha256=capture['capture_sha256'])
+        def change():
+            if damage=='replacement':
+                other=target.with_name('replacement');other.write_bytes(target.read_bytes());other.chmod(0o600);other.replace(target)
+            else:target.write_bytes(target.read_bytes()+b' ')
+        calls=[]
+        def guard():
+            calls.append(1)
+            if len(calls)==2:change()
+            return 30
+        if damage!='late_guard':change()
+        with pytest.raises(ValueError):forecasts.origin_source_snapshot(capture,check_budget=guard)
+
+
+@pytest.mark.parametrize('remaining',[-1.,float('nan'),False])
+def test_admitted_snapshot_keeps_original_deadline_refusals(tmp_path,serving_model,monkeypatch,remaining):
+    import household_score_report_reuse as reuse
+    from thermal_model.replay_budget import capture_source_reads
+    forecasts,model,capture=segmented(tmp_path,serving_model,monkeypatch)
+    with reuse._capture_reads(lambda:None),capture_source_reads():
+        forecasts.validate_serving_capture(capture,model,expected_capture_sha256=capture['capture_sha256'])
+        with pytest.raises(ValueError):forecasts.origin_source_snapshot(capture,check_budget=lambda:remaining)
+
+
 @pytest.mark.parametrize('damage', ['manifest', 'child', 'replacement', 'binding', 'runtime'])
 def test_segmented_inventory_refuses_changed_original_or_complete_key(tmp_path, serving_model, monkeypatch, damage):
     import household_score_report_reuse as reuse
