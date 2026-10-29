@@ -48,6 +48,38 @@ def evaluate(report, snapshot, projections, state, now):
             report['domains'][domain] = _domain('insufficient_evidence', 'provisional_temperature_unavailable', ['air_temperature'])
         return True
 
+    # Current publishers always supply forecast context, including an explicit
+    # unavailable marker. Legacy inputs retain their original replay behavior.
+    if 'thermal_evaluation_context' in projections:
+        from .anticipatory import forecast_advice
+        try:
+            forecast = forecast_advice(projections['thermal_evaluation_context'], snapshot=snapshot,
+                now=now, low=low, high=high, timezone_name=preferences['timezone'], glazing=projections.get('passive_solar_geometry'))
+        except (ValueError, TypeError, KeyError, OverflowError):
+            for domain in ('shades', 'ventilation'):
+                report['domains'][domain] = _domain('insufficient_evidence', 'provisional_forecast_unavailable', ['thermal_forecast'])
+            return True
+        sources = [air, {'until': forecast['until']}]
+        recent_deadlines = [instant(row['stop_observed_at']) + timedelta(seconds=600)
+            for row in state['shade_movements'] if 0 <= (now-instant(row['stop_observed_at'])).total_seconds() < 600]
+        action, reason = forecast['action'], forecast['reason']
+        if recent_deadlines:
+            action, reason = 'Keep the recent shade setting', 'Allow the recent setting time to settle; reassess the forecast afterwards.'
+            sources.append({'until':min(recent_deadlines)})
+        comparison('shades', action, reason, sources)
+        adverse = [row for row in state['checks'].values()
+            if instant(row['observed_at']) <= now < instant(row['valid_until']) and not row['clear']]
+        vent = 'Avoid ventilation for now' if adverse else forecast['ventilation']
+        if out is None:
+            report['domains']['ventilation'] = _domain('insufficient_evidence', 'provisional_temperature_unavailable', ['outdoor_temperature'])
+        else:
+            vent_sources = [*sources, out]
+            for row in state['checks'].values():
+                if instant(row['observed_at']) <= now < instant(row['valid_until']):
+                    vent_sources.append({'until':instant(row['valid_until'])})
+            comparison('ventilation', vent, 'Forecast-led comparison; check wind, rain, smoke and security before opening. Reassess after at most 15 minutes.', vent_sources)
+        return True
+
     if out is None:
         report['domains']['ventilation'] = _domain('insufficient_evidence', 'provisional_temperature_unavailable', ['outdoor_temperature'])
     else:

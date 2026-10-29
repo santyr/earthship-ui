@@ -1,0 +1,3 @@
+# Proactive passive-solar advice
+
+Replace current-temperature-only shade decisions with bounded comparisons of future indoor air and thermal-mass trajectories under alternative shade schedules. Reuse original weather, irradiance, native solar geometry, learned coefficients and initial states. Comfort limits remain forecast objectives, rather than the trigger for waiting until a room is already hot/cold. Include elevation, azimuth and nominal south-facing solar access in timing, with explicit geometry limitations until actual glazing/overhang dimensions are supplied. Do not refit numerical coefficients or label hypothetical action effects as observed benefits. Preserve human-only advice and existing expiry, source custody and equipment boundaries.

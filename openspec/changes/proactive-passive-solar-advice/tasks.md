@@ -1,0 +1,4 @@
+- [ ] Implement bounded forecast shade-schedule comparisons, including future risk and solar-access timing.
+- [ ] Verify proactive heating/cooling, thermal lag, shade/ventilation coordination, solar angles, missing/stale input and replay.
+- [ ] Deploy the advisory producer without changing qualified numerical model weights or equipment controls; verify actual scheduled output and UI.
+- [ ] Record window/overhang geometry limitations and validation evidence.

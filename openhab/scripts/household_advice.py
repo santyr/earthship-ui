@@ -17,7 +17,7 @@ from household.advice.contracts import validate_report
 
 def runtime_manifest():
     root=Path(__file__).resolve().parent
-    files=[Path(__file__).resolve(),*sorted((root/'household/advice').glob('*.py')),root/'household_pv_model.py',root/'household_profiled_storage.py',root/'household_ac_load_model.py']
+    files=[Path(__file__).resolve(),root/'proactive_advice.py',*sorted((root/'household/advice').glob('*.py')),root/'household_pv_model.py',root/'household_profiled_storage.py',root/'household_ac_load_model.py']
     from household_snapshot import _read
     return {str(p.relative_to(root)):sha256(_read(p,262144)).hexdigest() for p in files}
 
@@ -35,6 +35,8 @@ def publish_advice(*,snapshot,projections,directory,now,guard):
         from household.advice.provisional import validate_preferences
         provisional=validate_preferences(provisional)
         projections={**projections,'provisional_preferences':provisional}
+    glazing=_optional(directory/'advice-glazing.json',None)
+    if glazing is not None:projections={**projections,'passive_solar_geometry':glazing}
     operator=_optional(directory/'advice-operator-state.json',dict(schema='earthship-household-operator-state/v1',declarations=[],checks={}))
     if set(operator)!={'schema','declarations','checks'} or operator['schema']!='earthship-household-operator-state/v1':raise ValueError('closed operator state required')
     history=directory/'shade-observations.sqlite'
@@ -42,7 +44,7 @@ def publish_advice(*,snapshot,projections,directory,now,guard):
     state=dict(schema='earthship-household-action-state/v1',snapshot_id=snapshot.snapshot_id,declarations=operator['declarations'],shade_reports=events,shade_movements=[] if not history.exists() else ShadeHistory(history).movements()[-26:],checks=operator['checks'])
     # Transient declarations and device state are retained beside, not injected
     # into, the immutable numerical source snapshot.
-    advisory={key:value for key,value in projections.items() if key in ('solar','flexible_energy','energy_context_error','provisional_preferences')}
+    advisory={key:value for key,value in projections.items() if key in ('solar','flexible_energy','energy_context_error','provisional_preferences','thermal_evaluation_context','passive_solar_geometry')}
     report=evaluate_advice(snapshot=snapshot,projections=advisory,policy=policy,action_state=state,now=now)
     store=AdviceHistory(directory/'advice.sqlite')
     inputs=dict(snapshot=snapshot.to_dict(),projections=projections,policy=policy,action_state=state,now=now.isoformat())
@@ -51,7 +53,7 @@ def publish_advice(*,snapshot,projections,directory,now,guard):
     guard()
     if runtime_manifest()!=runtime:raise ValueError('advice evaluation runtime changed')
     # Recheck mutable private policy/state bytes before publishing the frozen result.
-    if canonical(None if policy is not None else _optional(directory/'advice-provisional-preferences.json',None))!=canonical(provisional) or canonical(_optional(directory/'advice-policy.json',None))!=canonical(policy) or canonical(_optional(directory/'advice-operator-state.json',dict(schema='earthship-household-operator-state/v1',declarations=[],checks={})))!=canonical(operator):raise ValueError('advice policy/state changed during evaluation')
+    if canonical(_optional(directory/'advice-glazing.json',None))!=canonical(glazing) or canonical(None if policy is not None else _optional(directory/'advice-provisional-preferences.json',None))!=canonical(provisional) or canonical(_optional(directory/'advice-policy.json',None))!=canonical(policy) or canonical(_optional(directory/'advice-operator-state.json',dict(schema='earthship-household-operator-state/v1',declarations=[],checks={})))!=canonical(operator):raise ValueError('advice policy/state changed during evaluation')
     target=directory/'advice.json'
     old=None if not target.exists() else _private_file(target,32768)[0]
     status='unchanged' if old==canonical(report) else 'written'
@@ -74,14 +76,14 @@ def replay_retained(path,report_id):
     from household.snapshot import HouseholdSnapshot
     body=inputs['snapshot'];snapshot=HouseholdSnapshot(canonical({k:v for k,v in body.items() if k!='snapshot_id'}))
     if snapshot.snapshot_id!=body['snapshot_id']:raise ValueError('original snapshot changed')
-    advisory={key:value for key,value in inputs['projections'].items() if key in ('solar','flexible_energy','energy_context_error','provisional_preferences')}
+    advisory={key:value for key,value in inputs['projections'].items() if key in ('solar','flexible_energy','energy_context_error','provisional_preferences','thermal_evaluation_context','passive_solar_geometry')}
     result=evaluate_advice(snapshot=snapshot,projections=advisory,policy=inputs['policy'],action_state=inputs['action_state'],now=instant(inputs['now']))
     if result!=original:raise ValueError('rederived original advice differs')
     return result
 
 
 def publish_cycle_advice(*,record,energy,profiled,directory,now,guard,thermal_capture=None):
-    now=utc(now);snapshot=restore_snapshot(record['inputs']['snapshot'],record['inputs'].get('source_contexts'));projections={}
+    now=utc(now);snapshot=restore_snapshot(record['inputs']['snapshot'],record['inputs'].get('source_contexts'));projections={'thermal_evaluation_context': None}
     if energy is not None:
         pv=energy['output']['array_pv'];windows=pv.get('direct_sun_windows',[]);steps=pv.get('steps',[])
         if steps and pv.get('status')=='projected_provisional_array_potential':
