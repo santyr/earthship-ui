@@ -1,7 +1,7 @@
 """Post-publication replay uses the same nonrenewable original cycle budget."""
 import time
 import pytest
-from household_cycle import CycleGuard
+from household_cycle import CycleGuard,publication_temperature_reads
 import weather_temperature_segmented_binding as binding
 
 
@@ -64,3 +64,38 @@ def test_full_original_replay_equal_with_bounded_cycle_callback(tmp_path,monkeyp
     guard=CycleGuard(lambda:bounded.append(1),deadline=time.monotonic()+85)
     assert binding.replay_shared_temperature_source(source,guard=guard)==expected
     assert 0<len(bounded)<len(unbatched)
+
+
+def test_publication_and_observer_share_decoding_then_discard_it(tmp_path,monkeypatch):
+    from test_household_segmented_replay_reuse import retained,profiled
+    path,source,expected=retained(tmp_path/'source',monkeypatch)
+    original=binding._source_operation
+    guard=CycleGuard(lambda:None,deadline=time.monotonic()+85)
+    with publication_temperature_reads(guard):
+        value,first=profiled(lambda:binding.read_shared_temperature_source(path.parent,path,guard=guard))
+        assert first==3 and value==source
+        result,again=profiled(lambda:binding.replay_shared_temperature_source(value,guard=guard))
+        assert result==expected and again==0
+    assert binding._source_operation is original
+    with publication_temperature_reads(guard):
+        result,cold=profiled(lambda:binding.replay_shared_temperature_source(value,guard=guard))
+        assert result==expected and cold==3
+
+
+@pytest.mark.parametrize('failure',[ValueError,KeyboardInterrupt])
+def test_publication_reuse_restores_hooks_on_original_refusal(tmp_path,monkeypatch,failure):
+    from test_household_segmented_replay_reuse import retained
+    _,source,_=retained(tmp_path/'source',monkeypatch)
+    original=binding._source_operation;error=failure('original publication refused')
+    with pytest.raises(failure) as observed:
+        with publication_temperature_reads(lambda:85):
+            binding.replay_shared_temperature_source(source,guard=lambda:50)
+            raise error
+    assert observed.value is error and binding._source_operation is original
+
+
+def test_publication_reuse_requires_its_exact_helper_pin(monkeypatch):
+    import household_forecast_score as coordinator
+    monkeypatch.setattr(coordinator,'REPORT_REPLAY_HELPER_SHA256','0'*64)
+    with pytest.raises(ValueError,match='publication temperature helper source differs'):
+        with publication_temperature_reads(lambda:85):pytest.fail('unknown helper admitted')

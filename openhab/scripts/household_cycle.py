@@ -5,6 +5,7 @@ transport and numerical outputs are delegated unchanged; no model fitting or
 device request is introduced by observation.
 """
 from datetime import datetime,timedelta,timezone
+from contextlib import contextmanager
 import math,time
 from household.codec import canonical,loads
 from household.evidence import utc
@@ -43,6 +44,23 @@ class CycleGuard:
         except BaseException as error:
             self.failure=error
             raise
+
+
+@contextmanager
+def publication_temperature_reads(guard):
+    """Share exact pure decoding within this held-lock, bounded worker only."""
+    from pathlib import Path
+    from hashlib import sha256
+    import household_score_report_reuse as helper
+    from household_forecast_score import REPORT_REPLAY_HELPER_SHA256,_policy_source_bytes
+    path=Path(__file__).absolute().with_name('household_score_report_reuse.py')
+    if (Path(helper.__file__).absolute()!=path or
+            sha256(_policy_source_bytes(path)).hexdigest()!=REPORT_REPLAY_HELPER_SHA256):
+        raise ValueError('publication temperature helper source differs')
+    with helper.job_temperature_reads(guard):
+        yield
+        if sha256(_policy_source_bytes(path)).hexdigest()!=REPORT_REPLAY_HELPER_SHA256:
+            raise ValueError('publication temperature helper changed')
 
 
 class ObservingBackend:
@@ -532,85 +550,86 @@ def _run_cycle(config_path,*,code_revision,forecast_config=None,stage=None,deplo
             if _private_file(forecast_path,8192)!=forecast_original:
                 raise ValueError('original forecast configuration changed')
         forecast_guard=CycleGuard(forecast_guard,deadline=deadline,monotonic=time.monotonic)
-        forecast_guard();collector=None;ready=False;configuration=None
-        try:
-            if not isinstance(code_revision,str) or re.fullmatch('[a-f0-9]{40}',code_revision) is None:
-                raise ValueError('original household source revision required')
-            configuration=load_cycle_settings(config_path);config_original=_private_file(config_path,8192)
-            if loads(config_original[0])!=configuration or Path(configuration['forecast_config'])!=forecast_path:
-                raise ValueError('original household configuration differs')
-            parameter_path=Path(configuration['retained_energy_parameters']);parameter_original=_private_file(parameter_path,262144)
-            if sha256(parameter_original[0]).hexdigest()!=configuration['parameters_sha256']:
-                raise ValueError('retained original parameter digest differs')
-            parameters=loads(parameter_original[0])
-            _directory(Path(configuration['evidence_directory']));_directory(Path(configuration['observation_cache']).parent)
-            root=Path(__file__).resolve().parent
-            own={root/name:_read(root/name,262144) for name in ('household_cycle.py','household_cycle_sources.py','household_cycle_deadline.py','household_cycle_pressure.py','household_cycle_resources.py','household_observation.py')}
-            def guard():
-                forecast_guard()
-                if (_private_file(config_path,8192)!=config_original or _private_file(parameter_path,262144)!=parameter_original or
-                    any(_read(path,262144)!=raw for path,raw in own.items())):
-                    raise ValueError('original household configuration, parameters or driver changed')
-            guard=CycleGuard(guard,deadline=deadline,monotonic=time.monotonic)
-            guard()
-            collector=CycleSourceCollector(token_file=settings['token_file'],openhab_base=settings['openhab_base'],code_revision=code_revision)
-            ready=True
-        except Exception:
-            # The original settings/lock/resource guard are independently valid.
-            # Preserve that forecast even if the observer cannot initialize.
-            pass
-        def collect(**request):
-            if not ready:raise ValueError('household source preparation unavailable')
-            return collector(**request)
-        observer_guard=guard if ready else forecast_guard
-        backend=ObservingBackend(LazyForecastBackend(settings,guard=forecast_guard),collector=collect,guard=observer_guard,near_issue=True)
-        serving_model=None
-        try:
-            if receipt_profile:
-                from datetime import datetime,timezone
-                from native_model_serving_receipt import load_serving_selection,read_serving_model
-                selected=load_serving_selection(stage,expected_deployment_sha256=deployment_sha256,
-                    assessed_at=datetime.now(timezone.utc),guard=forecast_guard)
-                serving_model=read_serving_model(selected,assessed_at=datetime.now(timezone.utc),guard=forecast_guard)
-                from native_thermal_live import geometry_path,_next_issue,_clock,_serving_settings
-                expected_geometry=geometry_path(settings,_next_issue(_clock()))
-                try:
-                    expected_geometry.lstat()
-                except FileNotFoundError:
-                    # A skipped local preparation slot does not invalidate the
-                    # previous issued forecast. Recheck admission/configuration;
-                    # defer without transport or renewing any original clock.
-                    _serving_settings(serving_model,settings,assessed_at=_clock(),guard=forecast_guard)
-                    forecast_guard()
-                    return dict(status='deferred',reason='native_geometry_not_prepared',
-                        delivery_verified=False,automatic_actuation=False)
-                published=publish_cycle(settings,guard=forecast_guard,backend=backend,serving_model=serving_model)
-            else:
-                published=publish_cycle(settings,guard=forecast_guard,backend=backend)
-        except Exception as error:
-            from household_forecast_score import serving_failure
-            diagnostic=serving_failure(error,phase='publication')
+        with publication_temperature_reads(forecast_guard):
+            forecast_guard();collector=None;ready=False;configuration=None
             try:
-                result=withdraw(settings,guard=forecast_guard)
-                return dict(status='withheld_and_withdrawn',delivery_verified=result.get('delivery_verified',False),automatic_actuation=False,**diagnostic)
-            except Exception as withdrawal:
-                return dict(status='withheld',delivery_verified=False,automatic_actuation=False,**diagnostic,
-                    withdrawal_failure=serving_failure(withdrawal,phase='withdrawal'))
-        result=dict(status=published['status'],delivery_verified=published.get('delivery_verified',False),automatic_actuation=False)
-        if published['status']!='published':return result
-        if not ready:
-            result['observation']=dict(status='observation_unavailable',reason='source_preparation_unavailable',automatic_actuation=False)
+                if not isinstance(code_revision,str) or re.fullmatch('[a-f0-9]{40}',code_revision) is None:
+                    raise ValueError('original household source revision required')
+                configuration=load_cycle_settings(config_path);config_original=_private_file(config_path,8192)
+                if loads(config_original[0])!=configuration or Path(configuration['forecast_config'])!=forecast_path:
+                    raise ValueError('original household configuration differs')
+                parameter_path=Path(configuration['retained_energy_parameters']);parameter_original=_private_file(parameter_path,262144)
+                if sha256(parameter_original[0]).hexdigest()!=configuration['parameters_sha256']:
+                    raise ValueError('retained original parameter digest differs')
+                parameters=loads(parameter_original[0])
+                _directory(Path(configuration['evidence_directory']));_directory(Path(configuration['observation_cache']).parent)
+                root=Path(__file__).resolve().parent
+                own={root/name:_read(root/name,262144) for name in ('household_cycle.py','household_cycle_sources.py','household_cycle_deadline.py','household_cycle_pressure.py','household_cycle_resources.py','household_observation.py')}
+                def guard():
+                    forecast_guard()
+                    if (_private_file(config_path,8192)!=config_original or _private_file(parameter_path,262144)!=parameter_original or
+                        any(_read(path,262144)!=raw for path,raw in own.items())):
+                        raise ValueError('original household configuration, parameters or driver changed')
+                guard=CycleGuard(guard,deadline=deadline,monotonic=time.monotonic)
+                guard()
+                collector=CycleSourceCollector(token_file=settings['token_file'],openhab_base=settings['openhab_base'],code_revision=code_revision)
+                ready=True
+            except Exception:
+                # The original settings/lock/resource guard are independently valid.
+                # Preserve that forecast even if the observer cannot initialize.
+                pass
+            def collect(**request):
+                if not ready:raise ValueError('household source preparation unavailable')
+                return collector(**request)
+            observer_guard=guard if ready else forecast_guard
+            backend=ObservingBackend(LazyForecastBackend(settings,guard=forecast_guard),collector=collect,guard=observer_guard,near_issue=True)
+            serving_model=None
+            try:
+                if receipt_profile:
+                    from datetime import datetime,timezone
+                    from native_model_serving_receipt import load_serving_selection,read_serving_model
+                    selected=load_serving_selection(stage,expected_deployment_sha256=deployment_sha256,
+                        assessed_at=datetime.now(timezone.utc),guard=forecast_guard)
+                    serving_model=read_serving_model(selected,assessed_at=datetime.now(timezone.utc),guard=forecast_guard)
+                    from native_thermal_live import geometry_path,_next_issue,_clock,_serving_settings
+                    expected_geometry=geometry_path(settings,_next_issue(_clock()))
+                    try:
+                        expected_geometry.lstat()
+                    except FileNotFoundError:
+                        # A skipped local preparation slot does not invalidate the
+                        # previous issued forecast. Recheck admission/configuration;
+                        # defer without transport or renewing any original clock.
+                        _serving_settings(serving_model,settings,assessed_at=_clock(),guard=forecast_guard)
+                        forecast_guard()
+                        return dict(status='deferred',reason='native_geometry_not_prepared',
+                            delivery_verified=False,automatic_actuation=False)
+                    published=publish_cycle(settings,guard=forecast_guard,backend=backend,serving_model=serving_model)
+                else:
+                    published=publish_cycle(settings,guard=forecast_guard,backend=backend)
+            except Exception as error:
+                from household_forecast_score import serving_failure
+                diagnostic=serving_failure(error,phase='publication')
+                try:
+                    result=withdraw(settings,guard=forecast_guard)
+                    return dict(status='withheld_and_withdrawn',delivery_verified=result.get('delivery_verified',False),automatic_actuation=False,**diagnostic)
+                except Exception as withdrawal:
+                    return dict(status='withheld',delivery_verified=False,automatic_actuation=False,**diagnostic,
+                        withdrawal_failure=serving_failure(withdrawal,phase='withdrawal'))
+            result=dict(status=published['status'],delivery_verified=published.get('delivery_verified',False),automatic_actuation=False)
+            if published['status']!='published':return result
+            if not ready:
+                result['observation']=dict(status='observation_unavailable',reason='source_preparation_unavailable',automatic_actuation=False)
+                return result
+            try:
+                native_pins=dict(runtime=current_runtime(guard=forecast_guard),
+                    expected_artifact_sha256=settings['artifact_sha256'],expected_capture_sha256=published['capture_sha256'])
+                if receipt_profile:native_pins['serving_model']=serving_model
+                result['observation']=complete_cycle(publication=published,collection=backend.collection,parameter_record=parameters,
+                    runtime_manifest=collector.runtime,code_revision=code_revision,evidence_directory=configuration['evidence_directory'],
+                    observation_cache=configuration['observation_cache'],guard=guard,**native_pins)
+            except Exception:
+                result['observation']=dict(status='observation_refused',reason='original_cycle_verification_failed',automatic_actuation=False)
             return result
-        try:
-            native_pins=dict(runtime=current_runtime(guard=forecast_guard),
-                expected_artifact_sha256=settings['artifact_sha256'],expected_capture_sha256=published['capture_sha256'])
-            if receipt_profile:native_pins['serving_model']=serving_model
-            result['observation']=complete_cycle(publication=published,collection=backend.collection,parameter_record=parameters,
-                runtime_manifest=collector.runtime,code_revision=code_revision,evidence_directory=configuration['evidence_directory'],
-                observation_cache=configuration['observation_cache'],guard=guard,**native_pins)
-        except Exception:
-            result['observation']=dict(status='observation_refused',reason='original_cycle_verification_failed',automatic_actuation=False)
-        return result
 
 
 def main(argv=None):

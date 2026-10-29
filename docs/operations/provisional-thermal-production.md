@@ -16,6 +16,13 @@ and source files. All original rows, source identities, model checks and final
 verification remain mandatory. The outer service retains its 90-second limit;
 household work receives no fresh budget after a successful thermal delivery.
 
+One held-lock worker also shares the existing bounded pure-temperature decoding
+cache across acquisition, publication and household derivation. The first full
+decode and fresh original-byte/identity checks remain mandatory; model and
+capture validation remain unchanged. The same 16/8 MiB caches clear on exit or
+cancellation, and no value is shared with a later worker. This reduces repeated
+decoding without extending current-input validity or the 85/90-second limits.
+
 A verified thermal delivery can precede a failure in household derivation.
 Check the persisted delivery and current OpenHAB thermal Items separately from
 the service result and household observation caches. A publication alone does
