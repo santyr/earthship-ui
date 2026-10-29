@@ -57,7 +57,10 @@ def _dependencies(context,guard):
         guard();raw,_=_read(Path(reference['path']),LIMITS[role])
         if sha256(raw).hexdigest()!=reference['sha256']:raise ValueError('original native fitted dependency changed')
     import native_thermal_forecast as native
-    native.replay_binding(capture['native_origin_binding'],capture['inputs']['origin_temperatures'],issue_at=instant(capture['issued_at']),check_budget=guard)
+    replayer=native.replay_binding
+    if capture.get('schema') in getattr(native,'SEGMENTED_CAPTURE_SCHEMAS',()):
+        replayer=native._segmented_helpers(value['runtime'])[0].replay_segmented_native_origin_binding
+    replayer(capture['native_origin_binding'],capture['inputs']['origin_temperatures'],issue_at=instant(capture['issued_at']),check_budget=guard)
     if capture.get('weather_conditioning') is not None:
         from thermal_weather_source import verify_bindings
         verify_bindings(capture['weather_conditioning'],guard=guard)
