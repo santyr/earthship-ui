@@ -1,8 +1,8 @@
 - [x] F01/F05: Filter expired/failed-read actions from the text-only header and verify time-advancing tests and live behavior without extending expiry.
 - [x] F02 source: Remove group write from the two advisory files; source_snapshot accepts470 files with unchanged bytes.
-- [ ] F02 runtime: Permission repair is installed. The service had no running process and is start-rate-limited; the user explicitly approved clearing its stale failure state and normal retraining/activation after automatic review required approval. The approved run remains to be observed. Native retry budget remains unchanged.
-- [ ] F03: Profile the precise failing scoring role and preserve original workload, inputs and120-second budget in repair/verification.
+- [x] F02 runtime: Approved normal fit and retained second activation attempt succeeded through 2026-10-31T12:00Z, with original retry budget and timers. Retired redundant external advisory postprocessing; the native family publishes forecast-led advice directly.
+- [ ] F03: Exact old backlog reproduced with unchanged inputs and 120-second limits. Normal current/historical slots recovered after the fit; maximum 256-entry old-model report remains unqualified. Experimental performance candidates were not deployed or published.
 - [x] F04: Honor confirmed existing OpenHAB energy-task owners; remove duplicate-task blocker without inventing a discretionary load or duplicating schedules.
 - [x] F06: Constrain fixture discovery and own socket cleanup; verify assertions and complete browser workload under original limits.
-- [ ] F07: Commit/publish the selectively reconciled deployed sources and verify remote main and deployed authority separately.
-- [ ] Complete full affected suites/build, live observations, preservation and final evidence reconciliation.
+- [x] F07: Published selected deployed sources and preserved unrelated remote/main and dirty-checkout changes; final documentation records authority separately.
+- [x] Complete verification/build, live observations, preservation and evidence reconciliation for published repairs; explicitly retain F03 as open and leave unqualified experiments out of production/main.
