@@ -4,6 +4,13 @@ x-logging: &logging
   options: { max-size: "5m", max-file: "3" }
 services:
   mqtt:
+    mem_limit: 64m
+    memswap_limit: 64m
+    cpus: 0.25
+    pids_limit: 8
+    restart: "no"
+    labels:
+      org.earthship.sensor.qualification: "${SENSOR_QUALIFICATION_NONCE:?owned qualification nonce required}"
     image: eclipse-mosquitto:2.0.22@sha256:199ea8ef2e35ec2b1b37e59cfd1dbae538ed4dfa4a2251a121a52215a6248a21
     user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
     volumes:
@@ -18,13 +25,19 @@ services:
     networks: [sensors, management]
     cap_drop: [ALL]
     logging: *logging
-    restart: unless-stopped
     healthcheck:
       test: [CMD-SHELL, "mosquitto_sub -E -W 3 -t earthship/sensors/v1/service >/dev/null"]
       interval: 15s
       timeout: 5s
       retries: 3
   postgres:
+    mem_limit: 256m
+    memswap_limit: 256m
+    cpus: 1
+    pids_limit: 20
+    restart: "no"
+    labels:
+      org.earthship.sensor.qualification: "${SENSOR_QUALIFICATION_NONCE:?owned qualification nonce required}"
     image: postgres:16@sha256:95206741a5b214807675e14165369d05b93a9cf692223b616d07cca227e74b0b
     environment:
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_admin
@@ -41,14 +54,20 @@ services:
       timeout: 3s
       retries: 20
   ingest:
-    build:
-      context: ../..
-      dockerfile: services/lorawan/Dockerfile
-    image: earthship-observations:test
+    mem_limit: 192m
+    memswap_limit: 192m
+    cpus: 0.5
+    pids_limit: 8
+    restart: "no"
+    labels:
+      org.earthship.sensor.qualification: "${SENSOR_QUALIFICATION_NONCE:?owned qualification nonce required}"
+    image: sha256:2a8053a90d76dcdd13696f6c21ab58ad2555f59dec266cda7ba77ec80a3dd19a
     user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    command: [python, -B, /run/qualification/supervised_ingest.py]
     volumes:
       - ../../.superpowers/lorawan-private/ingest.json:/run/private/ingest.json:ro
       - ./registry.simulation.json:/run/registry.json:ro
+      - ../../.superpowers/lorawan-private/supervised_ingest.py:/run/qualification/supervised_ingest.py:ro
     read_only: true
     tmpfs: [/tmp]
     cap_drop: [ALL]
@@ -57,14 +76,20 @@ services:
       postgres: { condition: service_healthy }
       mqtt: { condition: service_started }
     logging: *logging
-    restart: unless-stopped
     healthcheck:
       test: [CMD, python, -c, "import json,time,datetime; h=json.load(open('/tmp/sensor-health.json')); assert h['mqtt_connected'] and time.time()-datetime.datetime.fromisoformat(h['at']).timestamp()<45"]
       interval: 15s
       timeout: 5s
       retries: 4
   simulator:
-    image: earthship-observations:test
+    mem_limit: 128m
+    memswap_limit: 128m
+    cpus: 0.5
+    pids_limit: 8
+    restart: "no"
+    labels:
+      org.earthship.sensor.qualification: "${SENSOR_QUALIFICATION_NONCE:?owned qualification nonce required}"
+    image: sha256:2a8053a90d76dcdd13696f6c21ab58ad2555f59dec266cda7ba77ec80a3dd19a
     user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
     profiles: [simulation]
     volumes:
@@ -76,9 +101,16 @@ services:
     cap_drop: [ALL]
     networks: [sensors]
   openhab:
+    mem_limit: 1152m
+    memswap_limit: 1152m
+    cpus: 2
+    pids_limit: 144
+    restart: "no"
+    labels:
+      org.earthship.sensor.qualification: "${SENSOR_QUALIFICATION_NONCE:?owned qualification nonce required}"
     image: openhab/openhab:5.2.1-debian@sha256:bfd4a60e90da18cf917a9004bbc22354fc818825f3c6f0351e471a2e938d6c3c
     environment:
-      EXTRA_JAVA_OPTS: -Xms128m -Xmx768m -Duser.home=/openhab/userdata
+      EXTRA_JAVA_OPTS: -Xms128m -Xmx768m -XX:ActiveProcessorCount=1 -Duser.home=/openhab/userdata -Djava.util.concurrent.ForkJoinPool.common.parallelism=2
       USER_ID: "${LOCAL_UID:-1000}"
       GROUP_ID: "${LOCAL_GID:-1000}"
       TZ: America/Denver
@@ -89,8 +121,6 @@ services:
       - openhab_data:/openhab/userdata
     networks: [sensors, management]
     logging: *logging
-    mem_limit: 1536m
-    cpus: 2
     healthcheck:
       test: [CMD, curl, -f, http://localhost:8080/rest/]
       interval: 15s
@@ -98,6 +128,13 @@ services:
       start_period: 90s
       retries: 12
   redis:
+    mem_limit: 64m
+    memswap_limit: 64m
+    cpus: 0.25
+    pids_limit: 8
+    restart: "no"
+    labels:
+      org.earthship.sensor.qualification: "${SENSOR_QUALIFICATION_NONCE:?owned qualification nonce required}"
     image: redis:7.4.2-alpine@sha256:02419de7eddf55aa5bcf49efb74e88fa8d931b4d77c07eff8a6b2144472b6952
     profiles: [chirpstack]
     command: [redis-server, /run/private/redis.conf]
@@ -107,13 +144,20 @@ services:
     networks: [sensors]
     logging: *logging
   chirpstack:
+    mem_limit: 192m
+    memswap_limit: 192m
+    cpus: 1
+    pids_limit: 8
+    restart: "no"
+    labels:
+      org.earthship.sensor.qualification: "${SENSOR_QUALIFICATION_NONCE:?owned qualification nonce required}"
     image: chirpstack/chirpstack:4.19.2@sha256:cecb45bd2dfc9de55d32c620d6674093f859a899f4de36eb82924c7aa3bda8de
     user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
     profiles: [chirpstack]
     command: [-c, /etc/chirpstack]
     volumes:
       - ../../.superpowers/lorawan-private/chirpstack:/etc/chirpstack:ro
-    ports: ["127.0.0.1:18085:8080"]
+    ports: ["127.0.0.1:28085:8080"]
     networks: [sensors, management]
     depends_on:
       postgres: { condition: service_healthy }

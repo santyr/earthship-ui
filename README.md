@@ -23,10 +23,10 @@ screens provide live monitoring, safety-gated controls, and a shade preview.
 
 ## Screenshots
 
-Captured at the primary Lenovo Tab M9 landscape viewport (1340×800). The
-existing monitoring screens show the live household console; the shade images
-crop to the shade page in an isolated preview with unconfigured shades and no
-hardware commands.
+Refreshed October 24, 2026 at the primary Lenovo Tab M9 landscape viewport
+(1340×800). Monitoring screens, Controls and detail modals show the live
+household console. Shade images crop to an isolated synthetic preview with
+unconfigured shades. Capturing these images sends no control commands.
 
 ### Home
 
@@ -48,6 +48,11 @@ hardware commands.
 
 [![Controls page](docs/screenshots/controls.png)](docs/screenshots/controls.png)
 
+The four zone preferences live under **Controls → Shade Automation**, using the
+standard **600 ms hold** and ON/OFF/Unavailable status pills. Each card shows
+the saved choice and the backend status for commissioning, release and nighttime
+policy. Automation preferences are separate from the shade preview.
+
 ### Window shades — Kitchen and Living Room
 
 [![Kitchen and Living Room shade preview](docs/screenshots/shades-kitchen-living.png)](docs/screenshots/shades-kitchen-living.png)
@@ -65,7 +70,8 @@ until hardware is mapped and commissioned. **Set %** selects an individual,
 room, or all shades for exact percent-open entry, five-point steps, or full
 open/close. Apply changes only the shared preview; Cancel leaves it unchanged.
 Kitchen has 8 shades (1–8), Living Room 9 (9–17), Bathroom 4 (18–21),
-and Bedroom 5 (22–26).
+and Bedroom 5 (22–26). Automation switches are on Controls; the Shades page
+keeps preview, observation and commissioned manual-control views.
 Regenerate these three images with
 `node scripts/capture-shades-screenshots.mjs`.
 
@@ -89,7 +95,12 @@ tapping a forecast day opens an hourly breakdown.
 ## Service operations
 
 The household runtime is the user-level `earthship-ui.service`, which serves
-the Vite application on port 5190.
+the Vite application on port 5190 from an installed release directory. Inspect
+the selected package before changing it:
+
+```bash
+systemctl --user show earthship-ui.service -p WorkingDirectory -p ExecStart
+```
 
 Reload the installed unit definition and restart the service:
 
@@ -112,15 +123,20 @@ curl --fail --silent --show-error --output /dev/null \
   http://127.0.0.1:5190/src/App.svelte
 ```
 
-Restart and verify the service after
-branch switches, fast-forwards, or other tree-wide checkout changes. Vite hot
-reload is not a deployment substitute for those operations.
+Treat branch switches, fast-forwards, or other tree-wide checkout changes as
+source maintenance; they do not deploy the service's selected release.
+Prepare and verify a new release, preserve private runtime configuration and
+overlays, then update the service’s release path and restart only the UI.
+Restarting the existing unit reloads its selected package. Vite hot reload is
+not a deployment substitute; an OpenHAB or broker restart is not required.
 
-### Thermal model shadow operations
+### Historical thermal shadow operations
 
-The repository stages user-level daily training and two-hour shadow-publishing
-units in `deploy/thermal-model-{train,shadow}.{service,timer}`. They are not
-installed or enabled by implementation. The thermal output remains
+The original first-install workflow staged daily training and two-hour publishing
+units named `thermal-model-{train,shadow}.{service,timer}`. These historical notes
+and their linked runbook do not select the current runtime package; use the newer
+learning closures below for current implementation status. In that workflow,
+implementation alone did not install or enable the units. Its thermal output remained
 observational: it publishes only `Thermal_Model_JSON`, does not change
 `Thermal_Advisory`, and has no actuator authority.
 

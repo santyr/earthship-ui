@@ -349,3 +349,32 @@ suite passed 832 cases and 165 subtests; its four normal-profile SDK skips were
 executed separately under the pinned SDK with outbound sockets blocked, all four
 passing without skips. No service, controller, selector, fitted parameters or
 operational cache was changed by this task.
+
+## Segmented native temperature originals
+
+Sensitivity dependency replay selects the producer's sealed segmented binding
+helper for v4/v5 native captures. Earlier capture schemas retain their original
+compressed decoder. Both paths reread their original files and verify the fitted
+model dependencies before and after projection; they do not convert or relabel
+archives. The central case must match every original hourly air/wall state within
+1e-9 F, and changed or missing segmented children refuse projection.
+
+The post-upgrade correction is isolated from the serving forecast family. Its
+worker uses the existing selected producer, fit, original origin, state directory,
+publication protocol and resource limits. Changing the worker source does not
+fit or activate a thermal model and never grants equipment authority.
+
+Retained qualification is under
+`artifacts/post-upgrade-repairs-20261024.local/openspec-runtime-20261028/`:
+81 distinct focused/covering tests pass; current production originals complete
+all three stress cases in 67.590 seconds without publication. The large-report
+file requires more than 256 MiB (335,089,664-byte measured peak); its entire file
+passes within the existing 512 MiB managed worker profile and 90-second deadline.
+This test allocation does not change production or native scoring resource limits.
+
+The deployment adds one private worker EnvironmentFile through an owned
+`weather-sensitivity.service.d/zzzzzzzzzzzzzzzz-post-upgrade-sensitivity.conf`.
+For rollback, verify its exact retained bytes, remove only that override, reload
+the user manager, and run the normal service with its previous EnvironmentFiles.
+Keep the old release and original reports. Public-cache freshness and confirmed
+publication remain separate acceptance checks after source tests or installation.

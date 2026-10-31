@@ -21,6 +21,15 @@ export default defineConfig({
   },
   projects: [
     { name: 'fixtures', testIgnore: '**/sensors-layout.spec.js' },
-    { name: 'sensors', testMatch: '**/sensors-layout.spec.js' },
+    { name: 'sensors', testMatch: '**/sensors-layout.spec.js',
+      use: { launchOptions: { args: [
+        '--disable-dev-shm-usage', '--renderer-process-limit=1', '--disable-gpu',
+        '--disable-software-rasterizer', '--no-zygote', '--num-raster-threads=1',
+        '--v8-pool-size=1', '--in-process-gpu',
+        '--enable-features=NetworkServiceInProcess2',
+        '--disable-features=AudioServiceOutOfProcess',
+        '--js-flags=--single-threaded-gc',
+      ] } },
+    },
   ],
 });

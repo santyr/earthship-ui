@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-10-28
+goal: Implement all recommended post-upgrade repairs, preserving existing
+  working UI refinements and evidence.

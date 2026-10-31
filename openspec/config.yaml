@@ -1,0 +1,64 @@
+schema: spec-driven
+
+context: |
+  Earthship UI, OpenHAB, RTL-SDR weather ingestion, native thermal forecasts,
+  and Solar_PV analytics are undergoing an authorized post-OS/PostgreSQL-18 repair.
+  The main checkout is dirty and production-adjacent; preserve unrelated edits,
+  private configuration, historical sensor identities, and immutable evidence.
+  Canonical deployed runtime source: .worktrees/production-weather-reuse-20261029.
+  Qualified numerical parent: .worktrees/post-upgrade-runtime-20261024 (48eebb0).
+  Existing repair evidence: artifacts/post-upgrade-repairs-20261024.local.
+  OpenSpec is the current workflow. Superpowers is not to be used; its old files
+  are retained only as historical evidence. Do not add security-scan/hardening work.
+  Keep equipment actuation disabled. Preserve actual clocks, provenance, freshness
+  rules, original resource limits, and rollback/cleanup behavior.
+  Distinguish source changes, tests, installation, publication, and natural runtime
+  observations. Synthetic evidence cannot stand in for real sensor/DB/publication
+  qualification. UI config must retain its working relative OpenHAB connection.
+
+rules:
+  proposal:
+    - Keep the existing full repair scope; carry forward unresolved requirements.
+  design:
+    - Separate verified facts from hypotheses and proposed changes.
+    - Reference retained evidence instead of duplicating large historical artifacts.
+  tasks:
+    - Use concrete observable completion criteria and mark only proven work done.
+
+operations:
+  apply:
+    guidance:
+      - Use OpenSpec tasks as the active checklist; do not invoke Superpowers.
+      - Preserve the dirty main checkout and immutable releases while fixing code.
+      - Run checks appropriate to the change and verify the actual deployed path.
+
+# Project context (optional)
+# Add only constraints that should guide OpenSpec artifacts and workflows.
+# Include constraints an agent cannot infer by reading the code.
+# Keep general project documentation and discoverable codebase facts out.
+# Example:
+#   context: |
+#     Designs and tasks must cover Windows, macOS, and Linux
+#     Write all artifacts in Spanish
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always state what is out of scope
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing

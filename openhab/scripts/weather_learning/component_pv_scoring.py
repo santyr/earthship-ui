@@ -66,7 +66,8 @@ def inputs(envelope,source,*,assessed_at):
     confirmed(receipt,emission,before=instant(source['start']))
     if instant(source['received_at'])>assessed_at:raise ValueError('original power not yet available')
     calibration=receipt['calibration_original'];context=calibration['context'];view=receipt['view'];origin=instant(view['generatedAt'])
-    measurement=identity({k:source[k] for k in ('policy_raw','bank_start','items')})
+    # Preserve the cohort identity sealed by the original training producer.
+    measurement=identity(dict(policy=source['policy_raw'],bank_start=source['bank_start'],items=source['items']))
     if measurement!=context['measurement_cohort_sha256'] or sha256(source['policy_raw'].encode()).hexdigest()!=context['power_policy_sha256']:
         raise ValueError('original component measured-power cohort differs')
     windows=receipt['component_windows'];days=view['days'];steps=[];seen=set();found=set()

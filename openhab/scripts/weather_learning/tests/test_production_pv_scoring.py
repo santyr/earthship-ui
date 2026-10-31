@@ -39,13 +39,24 @@ def test_confirmed_component_daily_scores_actual_original_native_bins_and_distin
  assert score['physical_calibration_qualified'] is False
  for pair in score['pairs']:assert pair['candidate_w']==pytest.approx(pair['baseline_w']*.8)
 
-@pytest.mark.parametrize('damage',['late_publication','wrong_view','changed_segment','wrong_cohort','changed_model'])
+def test_component_score_accepts_the_original_fit_measurement_cohort(daily):
+ from daily_pv_monitor import score_hour
+ original=issued(daily);power=history.source()
+ # The training producer names this field policy, not the raw-source field policy_raw.
+ expected=identity(dict(policy=power['policy_raw'],bank_start=power['bank_start'],items=power['items']))
+ assert original['receipt']['calibration_original']['context']['measurement_cohort_sha256']==expected
+ score=score_hour(original,power,assessed_at=instant(power['end'])+timedelta(minutes=6))
+ assert score['measurement_cohort_sha256']==expected
+ assert score['eligible_bins']==12 and score['adjusted_bins']==12
+
+@pytest.mark.parametrize('damage',['late_publication','wrong_view','changed_segment','wrong_cohort','changed_power_policy','changed_model'])
 def test_component_scores_refuse_late_changed_or_cross_cohort_originals(daily,damage):
  from daily_pv_monitor import score_hour
  original=issued(daily);power=history.source();receipt=original['receipt'];emission=original['emission']
  if damage=='late_publication':emission['published_at']=(instant(power['start'])+timedelta(seconds=1)).isoformat();rehash(emission,'emission_sha256')
  elif damage=='wrong_view':emission['view_bytes_sha256']='f'*64;rehash(emission,'emission_sha256')
  elif damage=='wrong_cohort':power['items']['power']+=1;rehash(power,'source_sha256')
+ elif damage=='changed_power_policy':power['policy_raw']+=' ';rehash(power,'source_sha256')
  elif damage=='changed_model':receipt['calibration_original']['model']['gain']=1.3;rehash(receipt,'receipt_sha256');emission['receipt_sha256']=receipt['receipt_sha256'];rehash(emission,'emission_sha256')
  else:
   receipt['component_windows'][0]['projection']['segments'][2]['potential_dc_w']+=1
