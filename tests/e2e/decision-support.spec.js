@@ -1,4 +1,4 @@
-import {expect,test} from './fixture-test.js';import {createServer} from 'vite';import fixture from '../fixtures/household-advice-v1.json' with {type:'json'};
+import {expect,test} from './fixture-test.js';import {createServer} from './fixture-server.js';import fixture from '../fixtures/household-advice-v1.json' with {type:'json'};
 let server,baseURL;
 test.beforeAll(async()=>{server=await createServer({root:process.cwd(),logLevel:'error',server:{port:0,strictPort:false}});await server.listen();baseURL=server.resolvedUrls.local[0];});
 test.afterAll(async()=>{await server?.close();});
@@ -9,7 +9,7 @@ for(const size of [{width:1340,height:800},{width:1280,height:720}])test(`decisi
  await page.route('**/fixture-openhab/rest/items?*',r=>r.fulfill({json:[]}));await page.route('**/fixture-openhab/rest/things',r=>r.fulfill({json:[]}));
  await page.route('**/api/household-advice',r=>r.fulfill({json:fixture}));const feedback=[];await page.route('**/api/household-advice-feedback',r=>{if(r.request().method()==='POST'){feedback.push(r.request().postDataJSON());return r.fulfill({json:{status:'retained'}});}return r.fulfill({json:{events:[]}});});
  await page.route('**/api/household-advice-context',r=>r.fulfill({json:{targets:[]}}));await page.route('**/api/household-advice-state',r=>r.fulfill({json:{declarations:[],checks:{}}}));
- await page.goto(baseURL,{waitUntil:'domcontentloaded'});const summary=page.getByRole('button',{name:/^Suggestions/});await expect(summary).toBeVisible();
+ await page.goto(baseURL,{waitUntil:'domcontentloaded'});const summary=page.getByRole('button',{name:/Open living shades to 100% open/});await expect(summary).toBeVisible();
  const clock=await page.locator('header.header .clock').boundingBox(),entry=await summary.boundingBox();expect(Math.abs((entry.y+entry.height/2)-(clock.y+clock.height/2))).toBeLessThan(14);expect(await page.locator('header.header').evaluate(e=>e.getBoundingClientRect().height)).toBe(44);expect(await page.locator('main.screen .decisions').count()).toBe(0);await summary.click();const region=page.getByRole('region',{name:'Household decision support'});
  await expect(region.locator('.action').filter({hasText:'Open living shades to 100% open'})).toBeVisible();await expect(region.getByText('Manual advice')).toBeVisible();
  const box=await region.boundingBox();expect(box.width).toBeGreaterThan(500);expect(box.x+box.width).toBeLessThanOrEqual(size.width);
@@ -17,7 +17,7 @@ for(const size of [{width:1340,height:800},{width:1280,height:720}])test(`decisi
  await region.getByRole('button',{name:'Seen'}).click();expect(feedback.map(e=>e.kind)).toEqual(['acknowledge']);
  await expect(region.getByText('Baseline:',{exact:false})).toBeVisible();
  await page.screenshot({path:`/tmp/earthship-decision-${size.width}.png`});
- await page.clock.fastForward(121000);await expect(region.getByText(/Last advice expired/)).toBeVisible();await expect(region.getByRole('button',{name:'Seen'})).toHaveCount(0);
+ await page.clock.fastForward(121000);await expect(region.getByText(/Last advice expired/)).toBeVisible();await expect(region.getByRole('button',{name:'Seen'})).toHaveCount(0);await expect(summary).toHaveText('Awaiting fresh evidence');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
 for(const size of [{width:1340,height:800},{width:1280,height:720}])test(`provisional suggestions share the clock row and preserve alert space at ${size.width}`,async({page})=>{
@@ -27,11 +27,12 @@ for(const size of [{width:1340,height:800},{width:1280,height:720}])test(`provis
  await page.route('**/config.json',r=>r.fulfill({json:{openhabUrl:'/fixture-openhab',apiToken:'fixture-only',staleBannerSeconds:90}}));
  await page.route('**/fixture-openhab/rest/items?*',r=>r.fulfill({json:[]}));await page.route('**/fixture-openhab/rest/things',r=>r.fulfill({json:[]}));
  await page.route('**/api/household-advice',r=>r.fulfill({json:provisional}));await page.route('**/api/household-advice-feedback',r=>r.fulfill({json:{events:[]}}));await page.route('**/api/household-advice-context',r=>r.fulfill({json:{targets:[]}}));await page.route('**/api/household-advice-state',r=>r.fulfill({json:{declarations:[],checks:{}}}));
- await page.goto(baseURL+'#/home',{waitUntil:'domcontentloaded'});const summary=page.getByRole('button',{name:/Suggestions.*Provisional.*Ventilate briefly/});await expect(summary).toBeVisible();
+ await page.goto(baseURL+'#/home',{waitUntil:'domcontentloaded'});const summary=page.getByRole('button',{name:/^Ventilate briefly/});await expect(summary).toBeVisible();
  const clock=await page.locator('header.header .clock').boundingBox(),box=await summary.boundingBox();expect(box.y).toBeGreaterThanOrEqual(0);expect(box.y+box.height).toBeLessThanOrEqual(44);expect(Math.abs(box.y+box.height/2-clock.y-clock.height/2)).toBeLessThan(14);
  expect(await page.locator('main.screen .decisions').count()).toBe(0);await summary.click();const region=page.getByRole('region',{name:'Household decision support'});
  await expect(region.getByText(/80°F indoors and 60°F outdoors/)).toBeVisible();await expect(region.getByText(/70–76°F/).first()).toBeVisible();expect(await region.getByText(/unconfirmed|shade state|window state/i).count()).toBe(0);
  await page.getByRole('button',{name:'Close suggestions',exact:true}).click();await expect(region).not.toBeVisible();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
  await page.screenshot({path:`/tmp/earthship-provisional-header-${size.width}.png`});
+ await page.clock.fastForward(121000);await expect(summary).toHaveText('Awaiting fresh evidence');
 });

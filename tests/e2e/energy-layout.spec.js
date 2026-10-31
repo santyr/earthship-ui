@@ -185,7 +185,7 @@ test('Energy withholds a morning PV comparison before its dated issue while reta
   await expect(page.locator('.outlook-value')).toHaveText(['3.3', '5.5']);
   await expect(page.locator('.curtail-value')).toHaveText('Unavailable');
   await expect(page.locator('.hero-trough').filter({ hasText: /^Estimated trough / })).toHaveCount(0);
-  await expect(page.locator('.hero-trough').filter({ hasText: /^Predicted SoC / })).toHaveText('Predicted SoC unavailable');
+  await expect(page.locator('.hero-trough').filter({ hasText: /^Predicted low SoC / })).toHaveText('Predicted low SoC unavailable');
 });
 
 test('Energy does not revive a retired morning PV forecast', async ({ page }) => {

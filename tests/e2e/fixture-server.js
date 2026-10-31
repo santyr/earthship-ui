@@ -10,7 +10,7 @@ export const fixtureOrigins = new Set();
 export async function createServer(options = {}) {
   if (process.env.EARTHSHIP_FIXTURE_BUILD_DIR && options.configFile !== false && !options.plugins?.length) {
     const {createBuiltFixtureServer} = await import('./built-fixture-server.js');
-    return createBuiltFixtureServer(process.env.EARTHSHIP_FIXTURE_BUILD_DIR, fixtureOrigins);
+    return createBuiltFixtureServer(resolve(process.env.EARTHSHIP_FIXTURE_BUILD_DIR, process.env.RELEASE_MODE || 'maintenance'), fixtureOrigins);
   }
   const {createServer: createViteServer} = await import('vite');
   const server = await createViteServer({
