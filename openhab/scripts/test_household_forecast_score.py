@@ -148,3 +148,25 @@ def test_score_guard_rereads_private_bytes_without_redecoding(tmp_path,monkeypat
     monkeypatch.setattr(api(),'score_with_report',replay)
     assert api().run(config,clock=lambda:now)=={'status':'scored'}
     assert len(reads)>=7
+
+
+def test_private_selection_rejects_parent_replacement_and_symlink(tmp_path):
+    from household_observation import _private_file
+    parent=tmp_path/'original';parent.mkdir();path=parent/'config.json';path.write_bytes(b'{}');path.chmod(0o600)
+    original=_private_file(path,8192)
+    with api().private_selection_reads(path,original) as read:
+        assert read()==original
+        parent.rename(tmp_path/'moved');parent.symlink_to(tmp_path/'moved',target_is_directory=True)
+        with pytest.raises(ValueError,match='score source or configuration changed'):read()
+
+
+def test_private_selection_rejects_bytes_and_mode_changes(tmp_path):
+    from household_observation import _private_file
+    path=tmp_path/'config.json';path.write_bytes(b'{}');path.chmod(0o600);original=_private_file(path,8192)
+    with api().private_selection_reads(path,original) as read:
+        path.write_bytes(b'[]')
+        with pytest.raises(ValueError):read()
+    original=_private_file(path,8192)
+    with api().private_selection_reads(path,original) as read:
+        path.chmod(0o644)
+        with pytest.raises(ValueError):read()

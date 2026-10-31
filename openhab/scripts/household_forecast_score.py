@@ -131,6 +131,40 @@ class RetainedSourceGuard:
         except OSError:raise ValueError('retained worker changed during execution') from None
 
 
+@contextmanager
+def private_selection_reads(path, original):
+    """Read full private bytes every call, using one owned parent descriptor.
+
+    Recheck every canonical ancestor on each call. This preserves the original
+    no-symlink path check without repeatedly constructing/resolving Path objects.
+    The descriptor binds each relative open to the original parent directory.
+    """
+    import os,stat
+    from household_observation import _private_file
+    path=Path(path)
+    if path.resolve()!=path:raise ValueError('score source or configuration changed')
+    identity=lambda row:(row.st_dev,row.st_ino,row.st_mode,row.st_uid,row.st_gid)
+    parents=[]
+    for parent in path.parents:
+        row=parent.lstat()
+        if not stat.S_ISDIR(row.st_mode):raise ValueError('score source or configuration changed')
+        parents.append((str(parent),identity(row)))
+    fd=os.open(path.parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW|os.O_CLOEXEC)
+    try:
+        def read():
+            for parent,expected in parents:
+                if identity(os.stat(parent,follow_symlinks=False))!=expected:
+                    raise ValueError('score source or configuration changed')
+            if identity(os.fstat(fd))!=parents[0][1]:
+                raise ValueError('score source or configuration changed')
+            value=_private_file(Path(path.name),8192,directory_fd=fd)
+            if value!=original:raise ValueError('score source or configuration changed')
+            return value
+        read()
+        yield read
+    finally:os.close(fd)
+
+
 def production_pressure_monitor():
     """Use this release's pressure policy with an archived numerical runtime."""
     global _production_monitor
@@ -329,14 +363,14 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
             # Compatible owned history is re-read below and scored with its
             # original model association, without restarting the lifetime.
 
-    with SharedScoreLock(settings['shared_lock']) as lock:
+    with SharedScoreLock(settings['shared_lock']) as lock, private_selection_reads(config,original) as selection_read:
         from native_inference_pressure import NativeInferenceHeadroom
         pressure=NativeInferenceHeadroom();pressure.preflight()
         pressure=SampledScorePressure(pressure,monotonic=monotonic)
         def guard():
             lock.verify();pressure.check()
             if monotonic()>=deadline or clock()>=issue-timedelta(seconds=135):raise ValueError('score lifetime elapsed')
-            if _private_file(config,8192)!=original or settings!=original_settings or Path(__file__).read_bytes()!=own:
+            if selection_read()!=original or settings!=original_settings or Path(__file__).read_bytes()!=own:
                 raise ValueError('score source or configuration changed')
         if receipt_profile:
             from native_model_serving_receipt import load_serving_selection,read_serving_model
