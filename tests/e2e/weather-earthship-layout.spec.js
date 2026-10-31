@@ -1,5 +1,5 @@
 import { expect, test } from './fixture-test.js';
-import { createServer } from 'vite';
+import { createServer } from './fixture-server.js';
 import { readFileSync } from 'node:fs';
 
 
@@ -164,6 +164,57 @@ test('station v2 pressure shows absolute identity and withholds a cold steady tr
   await expect(page.locator('.baro-cell')).not.toContainText('23.89');
   await expect(page.locator('.baro-cell')).not.toContainText('30.12');
 });
+
+for (const target of TARGETS) {
+  for (const mode of ['legacy', 'v2', 'malformed-v2', 'stale-v2']) {
+    test(`pressure product identity ${mode} opens matching Weather and Home charts at ${target.name}`, async ({ page }) => {
+      const now = Date.now();
+      await page.clock.install({ time: new Date(now) });
+      const legacy = mode === 'legacy';
+      const item = legacy ? 'AmbientWeatherWS2902A_WeatherDataWs2902a_PressureRelative' : 'WeatherStation_PressureAbsoluteV2';
+      const title = legacy ? 'Relative pressure (legacy)' : 'Station pressure (absolute)';
+      const label = legacy ? 'Relative pressure' : 'Station pressure';
+      const report = { schema: 'earthship-station-ingestion/v2',
+        generatedAt: new Date(now - (mode === 'stale-v2' ? 91000 : 0)).toISOString(),
+        flat: { WeatherStation_PressureAbsoluteV2: 23.89 },
+        fields: { WeatherStation_PressureAbsoluteV2: { value: 23.89, receivedAt: new Date(now).toISOString(),
+          validUntil: new Date(now + 120000).toISOString(), role: 'indoor', status: 'fresh' } } };
+      const extra = legacy ? [] : [{ name: 'WeatherStation_Quality_JSON', type: 'String',
+        state: mode === 'malformed-v2' ? '{broken' : JSON.stringify(report) }];
+      const historyItems = [];
+      await page.route('**/fixture-openhab/rest/persistence/items/**', request => {
+        const name = decodeURIComponent(new URL(request.request().url()).pathname.split('/').at(-1));
+        historyItems.push(name);
+        return request.fulfill({ json: { name, data: [{ time: now - 60000, state: legacy ? '30.12' : '23.89' }], datapoints: 1 } });
+      });
+      await openFixture(page, 'weather', target, extra);
+      for (const route of ['weather', 'home']) {
+        if (route === 'home') await page.goto(`${baseURL}#/home`, { waitUntil: 'domcontentloaded' });
+        const tile = page.locator(route === 'weather' ? '.pressure-cell' : '.baro-cell');
+        if (route === 'weather') await expect(tile.locator('.tile-label')).toHaveText(label);
+        else await expect(tile.locator('.tile')).toHaveAttribute('aria-label', label);
+        await expect(tile).toHaveAttribute('title', title);
+        if (mode === 'legacy' || mode === 'v2') await expect(tile).toContainText(legacy ? '30.12' : '23.89');
+        else {
+          await expect(tile).toContainText('—');
+          await expect(tile).not.toContainText('30.12');
+          await expect(tile).not.toContainText('23.89');
+        }
+        await tile.click();
+        const dialog = page.getByRole('dialog', { name: title, exact: true });
+        await expect(dialog).toBeVisible();
+        const series = await page.evaluate(async () => {
+          const { chartStore } = await import('/src/lib/ui/chartStore.js');
+          let value; const stop = chartStore.subscribe(state => { value = state; }); stop();
+          return value.series;
+        });
+        expect(series).toMatchObject([{ name: item, label: title }]);
+        await expect.poll(() => historyItems.includes(item)).toBe(true);
+        await dialog.getByRole('button', { name: 'Close chart' }).click();
+      }
+    });
+  }
+}
 
 async function expectRouteBounded(page, route) {
   const result = await page.evaluate((routeName) => {

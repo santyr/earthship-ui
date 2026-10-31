@@ -1,0 +1,10 @@
+// PREPARED ONLY. No actuator links. Install only through a separately authorized
+// sole-provider handoff; jdbc.persist already covers everyChange + restore.
+// NULL/UNDEF stays unauthorized until the startup owner reconciles persistence.
+Switch Shade_Kitchen_RecommendationAutomation "Kitchen automate recommendations" ["Control"]
+Switch Shade_LivingRoom_RecommendationAutomation "Living Room automate recommendations" ["Control"]
+Switch Shade_Bathroom_RecommendationAutomation "Bathroom automate recommendations" ["Control"]
+Switch Shade_Bedroom_RecommendationAutomation "Bedroom automate recommendations" ["Control"]
+String Shade_RecommendationAutomationRevision "Shade recommendation policy durable revision" ["Status"]
+// Volatile proof of the CURRENT initialized owner; deliberately never restored.
+String Shade_RecommendationAutomationSession "Shade recommendation policy current owner session" ["Status"]

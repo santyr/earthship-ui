@@ -55,7 +55,7 @@ function socEvidence(now, soc, observedAt = now - 1_000) {
 }
 
 describe('console alert projection', () => {
-  it('uses a valid pre-dusk trough over the morning alert without changing thermal advice', async () => {
+  it('ignores valid retired pre-dusk and morning advice receipts', async () => {
     const { projectConsoleAlerts } = await loadSubject();
     const now = Date.parse('2026-09-24T18:00:00-06:00');
     const items = { ...healthyItems,
@@ -64,7 +64,7 @@ describe('console alert projection', () => {
     };
     const result = projectConsoleAlerts({ connection: 'live', items, now });
     expect(result.alerts.some(alert => alert.id === 'soc-trough')).toBe(false);
-    expect(result.alerts.some(alert => alert.id === 'thermal-vent')).toBe(true);
+    expect(result.alerts.some(alert => alert.id === 'thermal-vent')).toBe(false);
   });
   it('exposes the typed deterministic projection API', async () => {
     const subject = await loadSubject();
@@ -96,7 +96,6 @@ describe('console alert projection', () => {
     expect(alerts.map((alert) => alert.id)).toEqual([
       'connection-offline',
       'telemetry-stale:outdoor-temperature',
-      'soc-trough',
     ]);
     expect(alerts.every((alert) => !alert.fullText.includes('501'))).toBe(true);
   });
@@ -153,7 +152,7 @@ describe('console alert projection', () => {
     }
   });
 
-  it('maps thermal codes, predicted trough thresholds and control outcomes exactly', async () => {
+  it('keeps current control outcomes while ignoring retired forecast warnings', async () => {
     const { projectConsoleAlerts } = await loadSubject();
     const warning = projectConsoleAlerts({
       connection: 'live',
@@ -186,11 +185,9 @@ describe('console alert projection', () => {
     });
 
     expect(warning.alerts.map((alert) => alert.id)).toEqual([
-      'thermal-close',
-      'soc-trough',
       'control-outcome:living1',
     ]);
-    expect(warning.alerts.find((alert) => alert.id === 'soc-trough')?.severity).toBe('warning');
+    expect(warning.alerts.find((alert) => alert.id === 'soc-trough')).toBeUndefined();
 
     const critical = projectConsoleAlerts({
       connection: 'live',
@@ -205,11 +202,8 @@ describe('console alert projection', () => {
       now: 100_000,
     });
     expect(critical.alerts.map((alert) => alert.id)).toEqual([
-      'soc-trough',
-      'thermal-vent',
     ]);
-    expect(critical.alerts[0].severity).toBe('critical');
-    expect(critical.alerts[1].severity).toBe('advisory');
+    expect(critical.alerts).toEqual([]);
   });
 
   it('does not alert on a held low trough without a current-day receipt', async () => {
@@ -245,7 +239,7 @@ describe('console alert projection', () => {
     }
   });
 
-  it('reports unknown non-empty thermal codes without treating NULL-like values as alerts', async () => {
+  it('ignores retired thermal codes without publishing alerts or diagnostics', async () => {
     const { projectConsoleAlerts } = await loadSubject();
 
     const unknown = projectConsoleAlerts({
@@ -255,14 +249,7 @@ describe('console alert projection', () => {
           'unexpected_code|Review thermal rule') },
       now: 50_000,
     });
-    expect(unknown.alerts[0]).toMatchObject({
-      id: 'thermal-unknown:unexpected_code',
-      severity: 'warning',
-      route: 'earthship',
-    });
-    expect(unknown.diagnostics).toEqual([
-      expect.objectContaining({ code: 'unknown-thermal-code', value: 'unexpected_code' }),
-    ]);
+    expect(unknown).toEqual({ alerts: [], diagnostics: [] });
 
     for (const thermal of ['', 'none', 'NULL', 'UNDEF']) {
       const result = projectConsoleAlerts({

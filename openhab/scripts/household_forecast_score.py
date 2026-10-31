@@ -277,6 +277,14 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
     if not isinstance(declared,dict) or declared.get('schema') not in ('earthship-weathernext-thermal-live-config/v1','earthship-weathernext-thermal-live-config/v2'):
         raise ValueError('Google-only native score configuration required')
     settings=native.load_settings(config)
+    # Pin the decoded decision configuration once. Every guard still rereads
+    # the complete private file (including its identity/permissions) and the
+    # coordinator source. Re-decoding identical bytes twice per guard adds no
+    # evidence, while replay can call this boundary over100,000 times.
+    from copy import deepcopy
+    original_settings=deepcopy(settings)
+    if _private_file(config,8192)!=original:
+        raise ValueError('score source or configuration changed')
     receipt_profile=settings.get('schema') in SERVING_SCHEMAS
     if retained_native and not receipt_profile:raise ValueError('retained native execution requires explicit serving profile')
     if receipt_profile and (stage is None or deployment_sha256 is None):raise ValueError('external serving score stage pin required')
@@ -328,7 +336,7 @@ def run(config,*,stage=None,deployment_sha256=None,retained_native=False,clock=l
         def guard():
             lock.verify();pressure.check()
             if monotonic()>=deadline or clock()>=issue-timedelta(seconds=135):raise ValueError('score lifetime elapsed')
-            if _private_file(config,8192)!=original or _read_private(config)!=settings or Path(__file__).read_bytes()!=own:
+            if _private_file(config,8192)!=original or settings!=original_settings or Path(__file__).read_bytes()!=own:
                 raise ValueError('score source or configuration changed')
         if receipt_profile:
             from native_model_serving_receipt import load_serving_selection,read_serving_model

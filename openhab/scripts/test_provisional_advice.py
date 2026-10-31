@@ -44,7 +44,9 @@ def test_provisional_comparisons_expire_with_the_original_evidence():
 def test_no_invented_discretionary_load_or_night_override_advice():
  report,_=evaluate()
  assert report['domains']['energy']['comparison']==[]
- assert report['domains']['energy']['reason']=='approved_flexible_task_missing'
+ assert report['domains']['energy']['reason']=='energy_scheduling_managed_by_openhab'
+ assert report['domains']['energy']['status']=='no_change_recommended'
+ assert report['domains']['energy']['missing']==[]
 
 
 def test_malformed_optional_solar_does_not_hide_ventilation(monkeypatch):

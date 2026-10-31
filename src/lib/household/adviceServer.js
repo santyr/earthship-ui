@@ -1,5 +1,6 @@
 /** Fixed private files and same-origin human records. No OpenHAB transport. */
 import {resolve,join} from 'node:path';import {homedir} from 'node:os';
+import {watch} from 'node:fs';
 import {open,rename,unlink,stat,lstat,realpath} from 'node:fs/promises';import {randomUUID} from 'node:crypto';
 import {readObservation} from './observationServer.js';import {uniqueObjectKeys} from './observation.js';
 import {parseShadeObservations} from './shadeObservations.js';
@@ -28,9 +29,23 @@ async function context(dir,at){
  return {targets};
 }
 export function householdAdvicePlugin({directory=resolve(homedir(),'.local/state/household-intel'),now=Date.now}={}){
- let queue=Promise.resolve();const attach=server=>{server.middlewares.use(async(req,res,next)=>{
+ const subscribers=new Set();let watcher=null,heartbeat=null,notification=null;
+ const changedFiles=new Set(['advice.json','advice-feedback.json','advice-operator-state.json','advice-policy.json','advice-provisional-preferences.json','shade-observations.json']);
+ function release(){watcher?.close();watcher=null;clearInterval(heartbeat);heartbeat=null;clearTimeout(notification);notification=null;}
+ function broadcast(message){for(const response of subscribers){if(response.writableLength>4096)response.end();else response.write(message);}}
+ function observe(){
+  if(watcher)return;
+  watcher=watch(directory,{persistent:false},(event,file)=>{
+   if(file!==null&&!changedFiles.has(String(file)))return;
+   clearTimeout(notification);notification=setTimeout(()=>{notification=null;broadcast('data: update\n\n');},50);
+  });
+  watcher.on('error',()=>{release();for(const response of subscribers)response.end();subscribers.clear();});
+  heartbeat=setInterval(()=>broadcast(': keepalive\n\n'),25000);heartbeat.unref?.();
+ }
+ function close(){release();for(const response of subscribers)response.end();subscribers.clear();}
+ let queue=Promise.resolve();const attach=server=>{server.httpServer?.once('close',close);server.middlewares.use(async(req,res,next)=>{
   let url;try{url=new URL(req.url||'/','http://localhost');}catch{return next();}
-  const routes=['/api/household-advice','/api/household-advice-feedback','/api/household-advice-state','/api/household-advice-context','/api/household-shade-observations'];if(!routes.includes(url.pathname))return next();
+  const routes=['/api/household-advice','/api/household-advice-events','/api/household-advice-feedback','/api/household-advice-state','/api/household-advice-context','/api/household-shade-observations'];if(!routes.includes(url.pathname))return next();
   const send=(status,value)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(value));};
   if(url.search)return send(400,{status:'unavailable'});
   const writable=['/api/household-advice-feedback','/api/household-advice-state'].includes(url.pathname);
@@ -38,6 +53,12 @@ export function householdAdvicePlugin({directory=resolve(homedir(),'.local/state
   try{
    await directoryGuard(directory);
    if(req.method==='GET'){
+    if(url.pathname==='/api/household-advice-events'){
+     if(subscribers.size>=64)return send(503,{status:'unavailable'});
+     observe();res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-store','X-Accel-Buffering':'no'});
+     subscribers.add(res);res.on('close',()=>{subscribers.delete(res);if(!subscribers.size)release();});
+     res.write('retry: 5000\n: connected\n\n');return;
+    }
     if(url.pathname==='/api/household-shade-observations'){const raw=await readObservation(join(directory,'shade-observations.json'),now(),parseShadeObservations);return send(200,parse(raw));}
     if(url.pathname==='/api/household-advice'){const raw=await readObservation(join(directory,'advice.json'),now(),parseAdvice);return send(200,parse(raw));}
     if(url.pathname==='/api/household-advice-context')return send(200,await context(directory,now()));
@@ -81,5 +102,5 @@ export function householdAdvicePlugin({directory=resolve(homedir(),'.local/state
    const pending=queue.then(write);queue=pending.catch(()=>{});await pending;
   }catch{if(!res.headersSent)send(503,{status:'unavailable'});}
  });};
- return {name:'household-human-advice',configureServer:attach,configurePreviewServer:attach};
+ return {name:'household-human-advice',configureServer:attach,configurePreviewServer:attach,closeBundle:close};
 }

@@ -111,7 +111,7 @@ describe('Home tablet presentation contract', () => {
     expect(home).toMatch(/\.sm-row\s*\{[^}]*font-size:\s*0\.(?:8[2-9]|9)\d*rem/is);
   });
 
-  it('uses six tablet-first sub-rows with equal primary instruments and right-side pairs', () => {
+  it('preserves the installed header minimum and six tablet-first sub-rows with equal primary instruments and right-side pairs', () => {
     expect(home).toContain("'outdoor outdoor battery battery wind baro'");
     expect(home).toContain("'outdoor outdoor battery battery rain sunmoon'");
     expect(home).toContain("'indoor indoor bitcoin bitcoin rain sunmoon'");
@@ -121,7 +121,7 @@ describe('Home tablet presentation contract', () => {
     expect(home.match(/'indoor indoor bitcoin bitcoin rain sunmoon'/g)).toHaveLength(1);
     expect(home.match(/'indoor indoor bitcoin bitcoin solar zones'/g)).toHaveLength(2);
     expect(home).not.toContain("'solar solar solar zones zones zones'");
-    expect(home).toMatch(/\.home-grid\s*\{[^}]*grid-template-rows:\s*minmax\(3\.2rem,\s*0\.38fr\)\s*repeat\(6,\s*minmax\(0,\s*0\.425fr\)\)\s*minmax\(0,\s*0\.72fr\)\s*;/s);
+    expect(home).toMatch(/\.home-grid\s*\{[^}]*grid-template-rows:\s*minmax\(5\.75rem,\s*0\.38fr\)\s*repeat\(6,\s*minmax\(0,\s*0\.425fr\)\)\s*minmax\(0,\s*0\.72fr\)\s*;/s);
     expect(home).toMatch(/\.indoor-body\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/s);
   });
 

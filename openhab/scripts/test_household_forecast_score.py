@@ -121,3 +121,30 @@ def test_score_coordinator_detects_changed_original_configuration(tmp_path,monke
     monkeypatch.setattr(api(),'score_with_report',changed)
     with pytest.raises(ValueError,match='score source or configuration changed'):
         api().run(config,clock=lambda:now)
+
+
+def test_score_guard_keeps_decoded_settings_immutable(tmp_path,monkeypatch):
+    config,now=runtime_setup(tmp_path,monkeypatch)
+    def changed(settings,*,guard,**kw):
+        guard();settings['timezone']='UTC';guard();pytest.fail('changed in-memory settings accepted')
+    monkeypatch.setattr(api(),'score_with_report',changed)
+    with pytest.raises(ValueError,match='score source or configuration changed'):
+        api().run(config,clock=lambda:now)
+
+
+def test_score_guard_rereads_private_bytes_without_redecoding(tmp_path,monkeypatch):
+    config,now=runtime_setup(tmp_path,monkeypatch)
+    from household_observation import _private_file
+    reads=[]
+    import household_observation
+    def read(path,maximum,**kw):
+        reads.append(path);return _private_file(path,maximum,**kw)
+    monkeypatch.setattr(household_observation,'_private_file',read)
+    import thermal_model.policy_registration as policy
+    monkeypatch.setattr(policy,'_read_private',lambda path:pytest.fail('identical private bytes decoded again'))
+    def replay(settings,*,guard,**kw):
+        for _ in range(5):guard()
+        return {'status':'scored'}
+    monkeypatch.setattr(api(),'score_with_report',replay)
+    assert api().run(config,clock=lambda:now)=={'status':'scored'}
+    assert len(reads)>=7

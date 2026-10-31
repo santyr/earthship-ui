@@ -12,18 +12,38 @@ export const QUALIFICATION_FAMILIES = [
   ['RUN_GREYWATER_CYCLE','greywater-request-v1','Greywater cycle'],['RUN_FEEDER_CYCLE','feeder-request-v1','Feeder cycle'],
   ['SET_NIGHT_LOAD_OVERRIDE','night-load-owner-v1','Night-load override'],['SET_NIGHT_LOAD_DEVICE','night-load-owner-v1','Night-load device'],
 ];
-// Feeder remains available only through manual and Lightning-payment owners.
-export const AUTOMATED_QUALIFICATION_FAMILIES = QUALIFICATION_FAMILIES.filter(([kind])=>kind!=='RUN_FEEDER_CYCLE');
+// Retained v2 reports preserve their original catalog. Current v3 reports
+// exclude manual greywater, feeder flows, and coupled override proposals.
+const RETAINED_V2_FAMILIES = QUALIFICATION_FAMILIES.filter(([kind])=>kind!=='RUN_FEEDER_CYCLE');
+export const AUTOMATED_QUALIFICATION_FAMILIES = QUALIFICATION_FAMILIES.filter(([kind])=>kind==='SET_NIGHT_LOAD_DEVICE');
 const MISSING = ['intent_windows_not_qualified','input_sensitivity_not_qualified','action_model_error_not_qualified',
   'policy_performance_not_qualified','operator_interpretation_not_qualified','separate_release_rollback_not_qualified',
   'protected_write_audit_not_bound','owner_physical_safety_not_qualified'];
 const shape=(v,fields)=>v!==null&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).length===fields.length&&fields.every(k=>Object.hasOwn(v,k));
+// This producer emits diagnostics while human advice travels separately. It
+// cannot carry command proposals or reuse a retained command-family report.
+export function isSeparateAdviceObservation(view){
+ const generation=view?.candidate_generation;
+ return view?.schema==='earthship-household-observation/v4'
+  &&view.planner_version==='bounded_exhaustive_v1'
+  &&shape(generation,['status','reason','input_qualification'])
+  &&generation.status==='human_advice_separate'&&generation.reason===null
+  &&generation.input_qualification==='not_assessed'
+  &&Array.isArray(view.proposals)&&view.proposals.length===0;
+}
 export function parseQualification(report,view){
  if(!shape(report,['schema','scope','status','receipt_sha256','snapshot_id','decision_at','release_authorized','automatic_actuation','families'])
   ||!['earthship-household-intent-qualification/v1','earthship-household-intent-qualification/v2','earthship-household-intent-qualification/v3'].includes(report.schema)||report.scope!=='original_plan_evidence'||report.status!=='not_qualified'
   ||report.release_authorized!==false||report.automatic_actuation!==false||report.receipt_sha256!==view.receipt_sha256
   ||report.snapshot_id!==view.snapshot_id||report.decision_at!==view.decision_at||!Array.isArray(report.families))return null;
- const families=report.schema==='earthship-household-intent-qualification/v3'?[]:report.schema==='earthship-household-intent-qualification/v1'?QUALIFICATION_FAMILIES:AUTOMATED_QUALIFICATION_FAMILIES;
+ if(view.candidate_generation?.status==='human_advice_separate'){
+  return isSeparateAdviceObservation(view)&&report.schema==='earthship-household-intent-qualification/v3'
+   &&report.families.length===0?report:null;
+ }
+
+ const current=report.schema==='earthship-household-intent-qualification/v3';
+ if(current&&(view.planner_version!=='bounded_exhaustive_v2'||view.proposals.some(p=>!['NO_ACTION','SET_NIGHT_LOAD_DEVICE'].includes(p.type))))return null;
+ const families=report.schema==='earthship-household-intent-qualification/v1'?QUALIFICATION_FAMILIES:current?AUTOMATED_QUALIFICATION_FAMILIES:RETAINED_V2_FAMILIES;
  if(report.families.length!==families.length)return null;
  for(let i=0;i<families.length;i++){
   const f=report.families[i],[type,capability]=families[i];

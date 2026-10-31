@@ -28,10 +28,13 @@ describe('Earthship household observation panels', () => {
     const signal = fetcher.mock.calls[0][1].signal;
     unmount(); expect(signal.aborted).toBe(true);
   });
-  it('keeps old night-load device proposals outside current ML advice', async () => {
-    const row=observation(),item=proposal();item.type='SET_NIGHT_LOAD_DEVICE';row.proposals=[item];serve(row);
-    const {container,getByText}=render(HouseholdObservation);await waitFor(()=>expect(getByText('Shadow')).toBeTruthy());
-    expect(container.textContent).not.toContain('SET_NIGHT_LOAD_DEVICE');
+  it('keeps original plan identity without resurfacing retired automated proposals', async () => {
+    const row = observation();const item=proposal();item.type='RUN_GREYWATER_CYCLE';row.proposals=[item];serve(row);
+    const { container, getByText } = render(HouseholdObservation);
+    await waitFor(() => expect(getByText('Shadow')).toBeTruthy());
+    expect(container.textContent).toContain(row.snapshot_id);
+    expect(container.textContent).not.toContain('RUN_GREYWATER_CYCLE');
+    expect(container.textContent).toContain('No automated proposals to display.');
   });
   it('withholds current planning for an expired artifact while keeping identities inspectable', async () => {
     const row = observation(); serve(row); vi.spyOn(Date, 'now').mockReturnValue(AT + 60_000);
@@ -132,11 +135,14 @@ it('expires the displayed owner observation at its original clock independently 
   expect(container.textContent).toContain('Owner policy observation is stale');
 });
 
-it.each(['v1','v2'])('does not impose old night-load actuator qualification on current human advice (%s)',async version=>{
+it.each(['v1','v2'])('does not revive automated qualification surfaces from retained %s originals',async version=>{
  const {qualificationObservation}=await import('../fixtures/household-qualification.js');const view=qualificationObservation();
  if(version==='v2'){view.qualification_report.schema='earthship-household-intent-qualification/v2';view.qualification_report.families=view.qualification_report.families.filter(f=>f.intent_type!=='RUN_FEEDER_CYCLE');}
- serve(view);const {container,getByText}=render(HouseholdObservation);await waitFor(()=>expect(getByText('Shadow')).toBeTruthy());
+ serve(view);const {container,getByText}=render(HouseholdObservation);
+ await waitFor(()=>expect(getByText('Shadow')).toBeTruthy());
  expect(container.querySelector('section[aria-label="Intent qualification"]')).toBeNull();
+ expect(container.textContent).not.toContain('Selected shadow proposals:');
+ expect(container.textContent).toContain(view.snapshot_id);
 });
 
 it('shows chronological counts without claiming independent evidence or actuator permission',async()=>{

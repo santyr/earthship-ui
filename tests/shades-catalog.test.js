@@ -36,12 +36,12 @@ describe('shade inventory and report presentation', () => {
     expect(SHADE_SLOTS.every((slot) => slot.positionItem === null && slot.availabilityItem === null && slot.stateItem === null)).toBe(true);
   });
 
-  it('uses the approved Office reference for Living Room while Bedroom remains unavailable', () => {
+  it('uses sensor223 only for actual Bedroom after relocation, leaving Living Room unavailable', () => {
     expect(SHADE_GROUPS.map((group) => [group.temperatureItem, group.temperatureRole])).toEqual([
       [HALLWAY_TEMPERATURE_ITEM, 'hallway_kitchen_reference'],
-      ['Bedroom_Temperature', 'office_reference'],
       [null, 'unavailable'],
       [null, 'unavailable'],
+      ['Bedroom_Temperature', 'bedroom_sensor'],
     ]);
   });
 
@@ -51,7 +51,12 @@ describe('shade inventory and report presentation', () => {
     },
   );
 
-  const mapped = { label: 'Example', positionItem: 'Shade_Example', availabilityItem: 'Shade_Example_Available', stateItem: 'Shade_Example_Diagnostics' };
+  const mapped = {sourceIdentity:'a'.repeat(64),commissionedEpoch:'11111111-1111-4111-8111-111111111111', label: 'Example', positionItem: 'Shade_Example', availabilityItem: 'Shade_Example_Available', stateItem: 'Shade_Example_Diagnostics', serviceAvailabilityItem:'Service',bridgeAvailabilityItem:'Bridge',serviceStateItem:'ServiceState',bridgeStateItem:'BridgeState',serviceThingUID:'mqtt:topic:fixture:shade' };
+  const providers = {'mqtt:topic:fixture:shade':{status:'ONLINE'}};
+  const identity = {adapter_session_id:'fixture-session',source_generation:1};
+  const currentState = p => JSON.stringify({schema_version:2,...identity,source:'motor_report',stale:false,usable:true,action_qualified:false,reported_position:p,current_position:p,report_received_at:NOW/1000,movement_state:'stationary_reported',observation:{...identity,source_identity_sha256:mapped.sourceIdentity,commissioned_epoch:mapped.commissionedEpoch,id:'fixture-report',received_at:NOW/1000,validated_at:NOW/1000,bridge_id:'BRIDGE',device_id:'DEVICE',device_type:'10000000',origin:'unknown',measurement_time_known:false,hardware_boot_known:false}});
+  const health = {Service:'ON',Bridge:'ON',ServiceState:JSON.stringify({schema_version:2,...identity,ready:true,emitted_at:NOW/1000}),BridgeState:JSON.stringify({schema_version:2,...identity,bridge_id:'BRIDGE',reachable:true,emitted_at:NOW/1000})};
+  const active = p => ({...health,Shade_Example:String(p),Shade_Example_Available:'ON',Shade_Example_Diagnostics:currentState(p)});
 
   it('accepts only recent, explicit motor reports with their original reception time', () => {
     expect(parseShadeReport(state(0), NOW)).toEqual({ position: 0, observedAtMs: NOW, ageMs: 0 });
@@ -63,38 +68,29 @@ describe('shade inventory and report presentation', () => {
   });
 
   it('never promotes an unmapped or offline slot to a reported position', () => {
-    const valid = { Shade_Example: '0', Shade_Example_Available: 'ON', Shade_Example_Diagnostics: state(0) };
-    expect(shadePresentation(SHADE_SLOTS[0], valid, 'live', NOW)).toMatchObject({ state: 'unmapped', position: null });
-    expect(shadePresentation(mapped, { ...valid, Shade_Example_Available: 'OFF' }, 'live', NOW)).toMatchObject({ state: 'unavailable', position: null });
-    expect(shadePresentation(mapped, valid, 'offline', NOW)).toMatchObject({ state: 'unavailable', position: null });
-    expect(shadePresentation(mapped, { ...valid, Shade_Example: 'UNDEF' }, 'live', NOW)).toMatchObject({ state: 'unavailable', position: null });
-    expect(shadePresentation(mapped, { ...valid, Shade_Example: '20' }, 'live', NOW)).toMatchObject({ state: 'unavailable', position: null });
+    const valid = active(0);
+    expect(shadePresentation(SHADE_SLOTS[0],valid,'live',NOW,providers)).toMatchObject({state:'unmapped',position:null});
+    for(const [states,connection] of [[{...valid,Shade_Example_Available:'OFF'},'live'],[valid,'offline'],[{...valid,Shade_Example:'UNDEF'},'live'],[{...valid,Shade_Example:'20'},'live']]) {
+      expect(shadePresentation(mapped,states,connection,NOW,providers)).toMatchObject({state:'last_known',position:null,lastKnownPosition:0});
+    }
   });
 
   it('uses the adapter openHAB convention only for live, available reports', () => {
-    expect(shadePresentation(mapped, { Shade_Example: '0', Shade_Example_Available: 'ON', Shade_Example_Diagnostics: state(0) }, 'live', NOW))
-      .toEqual({ state: 'reported', label: 'Open', position: 0, openPercent: 100, observedAtMs: NOW });
-    expect(shadePresentation(mapped, { Shade_Example: '100', Shade_Example_Available: 'ON', Shade_Example_Diagnostics: state(100) }, 'live', NOW))
-      .toEqual({ state: 'reported', label: 'Closed', position: 100, openPercent: 0, observedAtMs: NOW });
-    expect(shadePresentation(mapped, { Shade_Example: '25', Shade_Example_Available: 'ON', Shade_Example_Diagnostics: state(25) }, 'live', NOW))
-      .toEqual({ state: 'reported', label: '75% open', position: 25, openPercent: 75, observedAtMs: NOW });
+    for(const [position,label] of [[0,'Open'],[100,'Closed'],[25,'75% open']]) {
+      expect(shadePresentation(mapped,active(position),'live',NOW,providers)).toMatchObject({state:'reported',label,position,openPercent:100-position,observedAtMs:NOW});
+    }
   });
 
   it('shows a group position only when every shade has the same qualified report', () => {
     const slots = [
-      { ...mapped, positionItem: 'Shade_1', availabilityItem: 'Available_1', stateItem: 'State_1' },
-      { ...mapped, positionItem: 'Shade_2', availabilityItem: 'Available_2', stateItem: 'State_2' },
+      {...mapped,positionItem:'Shade_1',availabilityItem:'Available_1',stateItem:'State_1'},
+      {...mapped,positionItem:'Shade_2',availabilityItem:'Available_2',stateItem:'State_2'},
     ];
-    const states = { Shade_1: '25', Available_1: 'ON', State_1: state(25),
-      Shade_2: '25', Available_2: 'ON', State_2: state(25) };
-    expect(shadeGroupPresentation(slots, states, 'live', NOW)).toEqual({
-      state: 'reported', openPercent: 75, label: '75% open',
-    });
-    expect(shadeGroupPresentation(slots, { ...states, Shade_2: '50', State_2: state(50) }, 'live', NOW))
-      .toEqual({ state: 'mixed', openPercent: null, label: 'Mixed positions' });
-    expect(shadeGroupPresentation(slots, { ...states, Available_2: 'OFF' }, 'live', NOW))
-      .toEqual({ state: 'unavailable', openPercent: null, label: 'Position unavailable' });
-    expect(shadeGroupPresentation(slots, states, 'offline', NOW).openPercent).toBeNull();
-    expect(shadeGroupPresentation([], states, 'live', NOW).openPercent).toBeNull();
+    const states = {...health,Shade_1:'25',Available_1:'ON',State_1:currentState(25),Shade_2:'25',Available_2:'ON',State_2:currentState(25)};
+    expect(shadeGroupPresentation(slots,states,'live',NOW,providers)).toEqual({state:'reported',openPercent:75,label:'75% open'});
+    expect(shadeGroupPresentation(slots,{...states,Shade_2:'50',State_2:currentState(50)},'live',NOW,providers)).toEqual({state:'mixed',openPercent:null,label:'Mixed positions'});
+    expect(shadeGroupPresentation(slots,{...states,Available_2:'OFF'},'live',NOW,providers)).toEqual({state:'unavailable',openPercent:null,label:'Position unavailable'});
+    expect(shadeGroupPresentation(slots,states,'offline',NOW,providers).openPercent).toBeNull();
+    expect(shadeGroupPresentation([],states,'live',NOW,providers).openPercent).toBeNull();
   });
 });

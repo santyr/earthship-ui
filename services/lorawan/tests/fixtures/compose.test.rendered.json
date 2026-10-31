@@ -1,0 +1,478 @@
+{
+  "name": "earthship-sensors-test",
+  "networks": {
+    "management": {
+      "name": "earthship-sensors-test_management",
+      "ipam": {}
+    },
+    "sensors": {
+      "name": "earthship-sensors-test_sensors",
+      "ipam": {},
+      "internal": true
+    }
+  },
+  "services": {
+    "chirpstack": {
+      "profiles": [
+        "chirpstack"
+      ],
+      "command": [
+        "-c",
+        "/etc/chirpstack"
+      ],
+      "depends_on": {
+        "mqtt": {
+          "condition": "service_started",
+          "required": true
+        },
+        "postgres": {
+          "condition": "service_healthy",
+          "required": true
+        },
+        "redis": {
+          "condition": "service_started",
+          "required": true
+        }
+      },
+      "entrypoint": null,
+      "image": "chirpstack/chirpstack:4.19.2@sha256:cecb45bd2dfc9de55d32c620d6674093f859a899f4de36eb82924c7aa3bda8de",
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-file": "3",
+          "max-size": "5m"
+        }
+      },
+      "networks": {
+        "management": null,
+        "sensors": null
+      },
+      "ports": [
+        {
+          "mode": "ingress",
+          "host_ip": "127.0.0.1",
+          "target": 8080,
+          "published": "28085",
+          "protocol": "tcp"
+        }
+      ],
+      "user": "1000:1000",
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "@WORKTREE@/.superpowers/lorawan-private/chirpstack",
+          "target": "/etc/chirpstack",
+          "read_only": true,
+          "bind": {}
+        }
+      ],
+      "mem_limit": "201326592",
+      "memswap_limit": "201326592",
+      "cpus": 1,
+      "pids_limit": 8,
+      "restart": "no",
+      "labels": {
+        "org.earthship.sensor.qualification": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    "ingest": {
+      "cap_drop": [
+        "ALL"
+      ],
+      "command": null,
+      "depends_on": {
+        "mqtt": {
+          "condition": "service_started",
+          "required": true
+        },
+        "postgres": {
+          "condition": "service_healthy",
+          "required": true
+        }
+      },
+      "entrypoint": null,
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "python",
+          "-c",
+          "import json,time,datetime; h=json.load(open('/tmp/sensor-health.json')); assert h['mqtt_connected'] and time.time()-datetime.datetime.fromisoformat(h['at']).timestamp()<45"
+        ],
+        "timeout": "5s",
+        "interval": "15s",
+        "retries": 4
+      },
+      "image": "sha256:2a8053a90d76dcdd13696f6c21ab58ad2555f59dec266cda7ba77ec80a3dd19a",
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-file": "3",
+          "max-size": "5m"
+        }
+      },
+      "networks": {
+        "sensors": null
+      },
+      "read_only": true,
+      "restart": "no",
+      "tmpfs": [
+        "/tmp"
+      ],
+      "user": "1000:1000",
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "@WORKTREE@/.superpowers/lorawan-private/ingest.json",
+          "target": "/run/private/ingest.json",
+          "read_only": true,
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "@WORKTREE@/deploy/lorawan/registry.simulation.json",
+          "target": "/run/registry.json",
+          "read_only": true,
+          "bind": {}
+        }
+      ],
+      "mem_limit": "201326592",
+      "memswap_limit": "201326592",
+      "cpus": 0.5,
+      "pids_limit": 8,
+      "labels": {
+        "org.earthship.sensor.qualification": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    "mqtt": {
+      "cap_drop": [
+        "ALL"
+      ],
+      "command": null,
+      "entrypoint": null,
+      "environment": {
+        "XDG_CONFIG_HOME": "/mosquitto/config"
+      },
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "mosquitto_sub -E -W 3 -t earthship/sensors/v1/service >/dev/null"
+        ],
+        "timeout": "5s",
+        "interval": "15s",
+        "retries": 3
+      },
+      "image": "eclipse-mosquitto:2.0.22@sha256:199ea8ef2e35ec2b1b37e59cfd1dbae538ed4dfa4a2251a121a52215a6248a21",
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-file": "3",
+          "max-size": "5m"
+        }
+      },
+      "networks": {
+        "management": null,
+        "sensors": null
+      },
+      "ports": [
+        {
+          "mode": "ingress",
+          "host_ip": "127.0.0.1",
+          "target": 1883,
+          "published": "18884",
+          "protocol": "tcp"
+        }
+      ],
+      "restart": "no",
+      "tmpfs": [
+        "/mosquitto/log"
+      ],
+      "user": "1000:1000",
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "@WORKTREE@/.superpowers/lorawan-private/mosquitto.conf",
+          "target": "/mosquitto/config/mosquitto.conf",
+          "read_only": true,
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "@WORKTREE@/.superpowers/lorawan-private/mqtt.passwords",
+          "target": "/mosquitto/config/passwords",
+          "read_only": true,
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "@WORKTREE@/.superpowers/lorawan-private/mqtt.acl",
+          "target": "/mosquitto/config/acl",
+          "read_only": true,
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "@WORKTREE@/.superpowers/lorawan-private/mosquitto_sub",
+          "target": "/mosquitto/config/mosquitto_sub",
+          "read_only": true,
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "@WORKTREE@/.superpowers/lorawan-private/mqtt_data",
+          "target": "/mosquitto/data",
+          "bind": {}
+        }
+      ],
+      "mem_limit": "67108864",
+      "memswap_limit": "67108864",
+      "cpus": 0.25,
+      "pids_limit": 8,
+      "labels": {
+        "org.earthship.sensor.qualification": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    "openhab": {
+      "cpus": 2,
+      "command": null,
+      "entrypoint": null,
+      "environment": {
+        "EXTRA_JAVA_OPTS": "-Xms128m -Xmx768m -XX:ActiveProcessorCount=1 -Duser.home=/openhab/userdata -Djava.util.concurrent.ForkJoinPool.common.parallelism=2",
+        "GROUP_ID": "1000",
+        "TZ": "America/Denver",
+        "USER_ID": "1000"
+      },
+      "healthcheck": {
+        "test": [
+          "CMD",
+          "curl",
+          "-f",
+          "http://localhost:8080/rest/"
+        ],
+        "timeout": "5s",
+        "interval": "15s",
+        "retries": 12,
+        "start_period": "1m30s"
+      },
+      "image": "openhab/openhab:5.2.1-debian@sha256:bfd4a60e90da18cf917a9004bbc22354fc818825f3c6f0351e471a2e938d6c3c",
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-file": "3",
+          "max-size": "5m"
+        }
+      },
+      "mem_limit": "1207959552",
+      "networks": {
+        "management": null,
+        "sensors": null
+      },
+      "ports": [
+        {
+          "mode": "ingress",
+          "host_ip": "127.0.0.1",
+          "target": 8080,
+          "published": "18084",
+          "protocol": "tcp"
+        }
+      ],
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "@WORKTREE@/.superpowers/lorawan-private/openhab",
+          "target": "/openhab/conf",
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "@WORKTREE@/.superpowers/lorawan-private/addons",
+          "target": "/openhab/addons",
+          "bind": {}
+        },
+        {
+          "type": "volume",
+          "source": "openhab_data",
+          "target": "/openhab/userdata",
+          "volume": {}
+        }
+      ],
+      "memswap_limit": "1207959552",
+      "pids_limit": 128,
+      "restart": "no",
+      "labels": {
+        "org.earthship.sensor.qualification": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    "postgres": {
+      "command": null,
+      "entrypoint": null,
+      "environment": {
+        "POSTGRES_DB": "sensors_test",
+        "POSTGRES_PASSWORD_FILE": "/run/secrets/postgres_admin"
+      },
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "pg_isready -U postgres -d sensors_test"
+        ],
+        "timeout": "3s",
+        "interval": "5s",
+        "retries": 20
+      },
+      "image": "postgres:16@sha256:95206741a5b214807675e14165369d05b93a9cf692223b616d07cca227e74b0b",
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-file": "3",
+          "max-size": "5m"
+        }
+      },
+      "networks": {
+        "sensors": null
+      },
+      "volumes": [
+        {
+          "type": "volume",
+          "source": "database",
+          "target": "/var/lib/postgresql/data",
+          "volume": {}
+        },
+        {
+          "type": "bind",
+          "source": "@WORKTREE@/.superpowers/lorawan-private/postgres_admin",
+          "target": "/run/secrets/postgres_admin",
+          "read_only": true,
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "@WORKTREE@/.superpowers/lorawan-private/init.sql",
+          "target": "/docker-entrypoint-initdb.d/10-sensors.sql",
+          "read_only": true,
+          "bind": {}
+        }
+      ],
+      "mem_limit": "268435456",
+      "memswap_limit": "268435456",
+      "cpus": 1,
+      "pids_limit": 24,
+      "restart": "no",
+      "labels": {
+        "org.earthship.sensor.qualification": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    "redis": {
+      "profiles": [
+        "chirpstack"
+      ],
+      "command": [
+        "redis-server",
+        "/run/private/redis.conf"
+      ],
+      "entrypoint": null,
+      "image": "redis:7.4.2-alpine@sha256:02419de7eddf55aa5bcf49efb74e88fa8d931b4d77c07eff8a6b2144472b6952",
+      "logging": {
+        "driver": "json-file",
+        "options": {
+          "max-file": "3",
+          "max-size": "5m"
+        }
+      },
+      "networks": {
+        "sensors": null
+      },
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "@WORKTREE@/.superpowers/lorawan-private/redis.conf",
+          "target": "/run/private/redis.conf",
+          "read_only": true,
+          "bind": {}
+        },
+        {
+          "type": "volume",
+          "source": "redis_data",
+          "target": "/data",
+          "volume": {}
+        }
+      ],
+      "mem_limit": "67108864",
+      "memswap_limit": "67108864",
+      "cpus": 0.25,
+      "pids_limit": 8,
+      "restart": "no",
+      "labels": {
+        "org.earthship.sensor.qualification": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    "simulator": {
+      "profiles": [
+        "simulation"
+      ],
+      "cap_drop": [
+        "ALL"
+      ],
+      "command": [
+        "python",
+        "-m",
+        "services.lorawan.simulate",
+        "--config",
+        "/run/private/simulator.json",
+        "--registry",
+        "/run/registry.json",
+        "--faults"
+      ],
+      "entrypoint": null,
+      "image": "sha256:2a8053a90d76dcdd13696f6c21ab58ad2555f59dec266cda7ba77ec80a3dd19a",
+      "networks": {
+        "sensors": null
+      },
+      "read_only": true,
+      "tmpfs": [
+        "/tmp"
+      ],
+      "user": "1000:1000",
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "@WORKTREE@/.superpowers/lorawan-private/simulator.json",
+          "target": "/run/private/simulator.json",
+          "read_only": true,
+          "bind": {}
+        },
+        {
+          "type": "bind",
+          "source": "@WORKTREE@/deploy/lorawan/registry.simulation.json",
+          "target": "/run/registry.json",
+          "read_only": true,
+          "bind": {}
+        }
+      ],
+      "mem_limit": "134217728",
+      "memswap_limit": "134217728",
+      "cpus": 0.5,
+      "pids_limit": 8,
+      "restart": "no",
+      "labels": {
+        "org.earthship.sensor.qualification": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  },
+  "volumes": {
+    "database": {
+      "name": "earthship-sensors-test_database"
+    },
+    "openhab_data": {
+      "name": "earthship-sensors-test_openhab_data"
+    },
+    "redis_data": {
+      "name": "earthship-sensors-test_redis_data"
+    }
+  },
+  "x-logging": {
+    "driver": "json-file",
+    "options": {
+      "max-file": "3",
+      "max-size": "5m"
+    }
+  }
+}

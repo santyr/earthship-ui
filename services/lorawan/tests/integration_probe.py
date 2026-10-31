@@ -6,15 +6,16 @@ import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
-from services.lorawan.runtime import private_config,mqtt_client
+from services.lorawan.runtime import private_config
 from services.lorawan.simulate import uplink,registry
 from services.observations.registry import Registry
+from services.lorawan.tests.stack_ownership import assert_owned_stack, owned_urlopen, guarded_mqtt_client
 
 OPENHAB='http://127.0.0.1:18084'
 
 
 def item(name):
-    return urllib.request.urlopen(OPENHAB+'/rest/items/'+name+'/state',timeout=5).read().decode()
+    return owned_urlopen(OPENHAB+'/rest/items/'+name+'/state',timeout=5).read().decode()
 
 
 def wait_for(predicate,seconds=20):
@@ -29,10 +30,11 @@ def wait_for(predicate,seconds=20):
 
 
 def publisher():
+    assert_owned_stack()
     config=private_config('.superpowers/lorawan-private/simulator.json')
     if config['environment']!='simulation':raise ValueError('integration probe refuses production')
     config.update(mqtt_host='127.0.0.1',mqtt_port=18884)
-    client=mqtt_client(config,'probe-'+uuid4().hex[:8]);client.connect(config['mqtt_host'],config['mqtt_port'],30);client.loop_start()
+    client=guarded_mqtt_client(config,'probe-'+uuid4().hex[:8]);client.connect(config['mqtt_host'],config['mqtt_port'],30);client.loop_start()
     return client
 
 

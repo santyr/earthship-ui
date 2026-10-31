@@ -165,3 +165,38 @@ describe('EnergyAnalyticsDetail observational presentation', () => {
     expect(screen.queryByRole('button')).toBeNull();
   });
 });
+
+it('labels separate v5 potentials and suppresses expired legacy values', async () => {
+  const { analyticsV5Fixture } = await import('../fixtures/analyticsV5.js');
+  const parsed = parseEnergyAnalyticsResult(JSON.stringify(analyticsV5Fixture()), GENERATED_AT_MS);
+  const { container, unmount } = render(EnergyAnalyticsDetail, { result: parsed });
+  await fireEvent.click(screen.getByRole('button', { name: 'Open energy analytics details' }));
+  expect(container.textContent).toContain('PV potential remaining today');
+  expect(container.textContent).toContain('PV potential tomorrow (full day)');
+  expect(container.textContent).toContain('PV potential next 24 hours');
+  expect(container.textContent).toContain('Modeled captured PV next 24 hours');
+  expect(container.textContent).toContain('Experimental component estimate — physical calibration unqualified');
+  expect(container.textContent).toContain('Potential estimate — uncalibrated');
+  expect(container.textContent).not.toContain("Today's PV forecast");
+  expect(container.textContent).not.toContain('Next morning SoC');
+  unmount();
+  const stale = energyAnalyticsFixture(); Object.assign(stale.forecast, { status:'stale', pv24hKwh:777, nextMorningSocPct:99, fullToday:true });
+  const view = render(EnergyAnalyticsDetail, { result: result(stale) });
+  await fireEvent.click(screen.getByRole('button', { name: 'Open energy analytics details' }));
+  expect(view.container.textContent).not.toContain('777');
+  expect(view.container.textContent).not.toContain('Next morning SoC');
+  expect(view.container.textContent).toContain('Issued');
+});
+
+it('withholds old relative PV day numbers when the retained Item crosses midnight', async () => {
+  const { analyticsV5MidnightFixture } = await import('../fixtures/analyticsV5.js');
+  const payload=analyticsV5MidnightFixture('2026-10-25T05:46:00Z','2026-10-25T06:00:00Z','2026-10-26T06:00:00Z');
+  const parsed=parseEnergyAnalyticsResult(JSON.stringify(payload),Date.parse('2026-10-25T06:01:00Z'));
+  render(EnergyAnalyticsDetail,{result:parsed});
+  await fireEvent.click(screen.getByRole('button',{name:'Open energy analytics details'}));
+  for (const label of ['PV potential remaining today','PV potential tomorrow (full day)']) {
+    expect(screen.getByText(label).parentElement.querySelector('dd').textContent).toBe('Unavailable');
+  }
+  expect(screen.getByText('15.0 kWh')).toBeTruthy();
+  expect(screen.getByText('12.5 kWh')).toBeTruthy();
+});

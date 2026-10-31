@@ -10,6 +10,7 @@
     FORECAST_DETAIL_HOURS,
     parseForecast10Day,
     selectForecastWindow,
+    forecastHourLabels,
   } from '../weather/forecastDetail.js';
   import {
     closeWeatherDetail,
@@ -42,26 +43,39 @@
   let bodyLocked = false;
   let priorBodyOverflow = '';
   let latestWidthPx = 0;
+  let wallClock = $state(Date.now());
+
+  $effect(() => {
+    if (!$weatherDetailStore.open) return;
+    wallClock = Date.now();
+    const timer = setInterval(() => { wallClock = Date.now(); }, 1000);
+    return () => clearInterval(timer);
+  });
+
+  // Item updates may arrive between ticks; validate against their actual receipt
+  // time while the timer also ages unchanged forecasts and rolling windows.
+  const forecastNowMs = () => Math.max(wallClock, Date.now());
 
   const forecast = $derived(parseForecast10Day(
     $items.Forecast_10Day_JSON,
-    { nowMs: $weatherDetailStore.openedAtMs || Date.now() },
+    { nowMs: forecastNowMs() },
   ));
   const selectedDay = $derived(
     (() => { const day = forecast.days.find(({ date }) => date === $weatherDetailStore.date);
-      return day ? forecastDisplayDay(day, { nowMs: $weatherDetailStore.openedAtMs || Date.now(), timezone: forecast.timezone }) : null; })(),
+      return day ? forecastDisplayDay(day, { nowMs: forecastNowMs(), timezone: forecast.timezone }) : null; })(),
   );
   const selectedCondition = $derived(forecastCondition({ ...selectedDay?.summary, isDay: true, hours: selectedDay?.hours ?? [] }));
   const capabilities = $derived(parseWeatherCapabilities($weatherCapabilityRaw, { nowMs: $weatherCapabilityClock }));
   const selectedWindow = $derived(
     selectedDay
       ? selectForecastWindow(forecast, selectedDay.date, {
-        nowMs: $weatherDetailStore.openedAtMs || Date.now(),
+        nowMs: forecastNowMs(),
       })
-      : { mode: 'unavailable', hours: [], expectedHours: FORECAST_DETAIL_HOURS, missingHours: FORECAST_DETAIL_HOURS },
+      : { mode: 'unavailable', hours: [], slots: [], expectedHours: FORECAST_DETAIL_HOURS, missingHours: FORECAST_DETAIL_HOURS },
   );
+  const slotLabels = $derived(forecastHourLabels(selectedWindow.slots));
   const hourSignature = $derived(
-    selectedWindow.hours.map((hour) => [
+    selectedWindow.slots.map((hour) => [
       hour.at,
       hour.tempF,
       hour.precipPct,
@@ -105,14 +119,6 @@
       : 'unavailable';
   }
 
-  function hourLabel(at) {
-    const hour = Number(String(at ?? '').slice(11, 13));
-    if (!Number.isInteger(hour) || hour < 0 || hour > 23) return '—';
-    if (hour === 0) return '12 AM';
-    if (hour === 12) return '12 PM';
-    return `${hour % 12} ${hour < 12 ? 'AM' : 'PM'}`;
-  }
-
   function disposeChart() {
     stopObserving();
     stopObserving = () => {};
@@ -138,7 +144,7 @@
     if (!chart || widthPx <= 0) return;
     latestWidthPx = widthPx;
     chart.setOption(buildWeatherDetailOption({
-      hours: selectedWindow.hours,
+      hours: selectedWindow.slots,
       widthPx,
       capabilities,
     }), true);
@@ -320,15 +326,16 @@
       {:else}
         <div class="weather-detail-content">
           <div class="weather-detail-hours">
-            {#each selectedWindow.hours as hour (hour.at)}
+            {#each selectedWindow.slots as hour, index (hour.at)}
               {@const condition = forecastCondition(hour)}
               {@const native = temperatureCapabilityAt(capabilities, hour.at)}
               <div
                 class="weather-detail-hour"
-                data-testid="weather-detail-hour"
-                aria-label={`${hourLabel(hour.at)}, ${condition.label}`}
+                data-testid={hour.missing ? "weather-detail-gap" : "weather-detail-hour"}
+                aria-label={`${slotLabels[index]}, ${hour.missing ? 'Forecast unavailable' : condition.label}`}
               >
-                <span class="hour-time">{hourLabel(hour.at)}</span>
+                <span class="hour-time">{slotLabels[index]}</span>
+                {#if hour.missing}<span>Unavailable</span>{:else}
                 <OhIcon
                   icon={condition.icon}
                   size="1.2rem"
@@ -348,6 +355,7 @@
                 {/if}
                 <span class="hour-radiation">{metric(hour.radiationWm2, ' W/m²')}</span>
                 <span class="hour-wind" title={hour.windStatistic === 'local_hour_mean' ? `Local station hourly mean; native instantaneous wind ${metric(hour.nativeWindMph, ' mph')}` : hour.windStatistic === 'native_instantaneous' ? 'Native instantaneous wind; local hourly mean unavailable' : undefined}>{metric(hour.windMph, ' mph')}</span>
+                {/if}
               </div>
             {/each}
           </div>

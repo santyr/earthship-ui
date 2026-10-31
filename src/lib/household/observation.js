@@ -1,4 +1,4 @@
-import { parseQualification } from './qualification.js';
+import { parseQualification, isSeparateAdviceObservation } from './qualification.js';
 import { parsePolicyComparison } from './policyComparison.js';
 import { parseSourceTimestamp } from '../openhab/timestamp.js';
 
@@ -67,9 +67,14 @@ export function parseHouseholdObservation(raw, { nowMs = Date.now() } = {}) {
     if (!shape(row, ['earthship-household-observation/v3','earthship-household-observation/v4'].includes(row?.schema)?[...FIELDS,'qualification_report']:FIELDS) || !['earthship-household-observation/v1','earthship-household-observation/v2','earthship-household-observation/v3','earthship-household-observation/v4'].includes(row.schema)
       || !digest(row.receipt_sha256) || !digest(row.snapshot_id)
       || row.authority !== 'none' || row.automatic_actuation !== false || row.effects_qualified !== false
-      || row.confidence !== 'unavailable' || row.planner_version !== 'bounded_exhaustive_v1'
+      || row.confidence !== 'unavailable' || !['bounded_exhaustive_v1','bounded_exhaustive_v2'].includes(row.planner_version)
       || !['shadow', 'unavailable'].includes(row.planner_mode)
       || !['selected_shadow_candidates', 'input_incomplete', 'baseline_outside_reserve', 'no_optional_action_preferred'].includes(row.plan_status)) return null;
+    // A changed planning scope must travel with its current qualification
+    // contract; retained historical versions keep their original meaning.
+    const currentPlanner = row.planner_version === 'bounded_exhaustive_v2';
+    if (currentPlanner && ['earthship-household-observation/v3','earthship-household-observation/v4'].includes(row.schema)
+      && row.qualification_report?.schema !== 'earthship-household-intent-qualification/v3') return null;
     const snapshot = time(row.snapshot_as_of), decision = time(row.decision_at), verified = time(row.verified_at), until = time(row.valid_until);
     if ([snapshot, decision, verified, until].includes(null) || snapshot > decision || decision > verified || verified > nowMs) return null;
     if (!list(row.model_identities, 2) || new Set(row.model_identities.map(model => model?.domain)).size !== row.model_identities.length) return null;
@@ -84,11 +89,14 @@ export function parseHouseholdObservation(raw, { nowMs = Date.now() } = {}) {
     const originalMode = verified < until && row.model_identities.length ? 'shadow' : 'unavailable';
     if (row.planner_mode !== originalMode) return null;
     const generation = row.candidate_generation;
+    const separateAdvice = generation?.status === 'human_advice_separate';
+    if (separateAdvice && !isSeparateAdviceObservation(row)) return null;
     if (!shape(generation, ['status', 'reason', 'input_qualification'])
-      || !['generated_shadow_only', 'unavailable'].includes(generation.status)
+      || !(separateAdvice || ['generated_shadow_only', 'unavailable'].includes(generation.status))
       || !reason(generation.reason) || generation.input_qualification !== 'not_assessed') return null;
     if (row.schema==='earthship-household-observation/v1' && (!shape(row.policy_comparison, ['status', 'reason']) || row.policy_comparison.status !== 'unavailable' || !reason(row.policy_comparison.reason))) return null;
     if (!list(row.proposals, 8) || new Set(row.proposals.map(item => item?.intent_id)).size !== row.proposals.length) return null;
+    if (currentPlanner && row.proposals.some(item => !['NO_ACTION','SET_NIGHT_LOAD_DEVICE'].includes(item?.type))) return null;
     for (const item of row.proposals) {
       const actionFields=row.schema==='earthship-household-observation/v4'?['parameters','created_at','expires_at']:[];
       if (!shape(item, [...actionFields,'intent_id', 'type', 'selected', 'confidence', 'reasons', 'expected_effects', 'effect_units', 'decision_status', 'decision_reason', 'hard_checks'])

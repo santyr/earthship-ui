@@ -1,15 +1,8 @@
 import { precipitationMetric } from './presentation.js';
 import { temperatureCapabilityAt } from './capabilityForecast.js';
+import { forecastHourLabels } from './forecastDetail.js';
 const AXIS_COLOR = '#8b93a1';
 const GRID_COLOR = '#242b38';
-
-function hourLabel(at) {
-  const hour = Number(String(at ?? '').slice(11, 13));
-  if (!Number.isInteger(hour) || hour < 0 || hour > 23) return '—';
-  if (hour === 0) return '12 AM';
-  if (hour === 12) return '12 PM';
-  return `${hour % 12} ${hour < 12 ? 'AM' : 'PM'}`;
-}
 
 function display(value, suffix) {
   return typeof value === 'number' && Number.isFinite(value)
@@ -43,7 +36,7 @@ export function buildWeatherDetailOption({ hours = [], widthPx = 900, capabiliti
   const wide = Number(widthPx) >= 760;
   const scopedWind = hours.some(hour => hour.windStatistic != null);
   const precipitation = precipitationMetric(hours);
-  const nativeHours=hours.map(hour=>temperatureCapabilityAt(capabilities,hour.at));
+  const nativeHours=hours.map(hour=>hour.missing ? null : temperatureCapabilityAt(capabilities,hour.at));
   const nativeSeries=nativeHours.some(Boolean)?[
     {
       name:'WeatherNext p10–p90',type:'custom',yAxisIndex:0,silent:true,
@@ -76,7 +69,7 @@ export function buildWeatherDetailOption({ hours = [], widthPx = 900, capabiliti
     xAxis: {
       type: 'category',
       boundaryGap: true,
-      data: hours.map(({ at }) => hourLabel(at)),
+      data: forecastHourLabels(hours),
       axisLine: { lineStyle: { color: GRID_COLOR } },
       axisTick: { show: false },
       axisLabel: {
@@ -144,6 +137,7 @@ export function buildWeatherDetailOption({ hours = [], widthPx = 900, capabiliti
         type: 'line',
         yAxisIndex: 0,
         data: hours.map(({ tempF }) => tempF),
+        connectNulls: false,
         smooth: false,
         showSymbol: true,
         symbolSize: 6,

@@ -208,7 +208,6 @@ export function buildHistoryOption({
     yAxis: {
       type: 'value',
       scale: true,
-      ...(showSocForecast ? { min: 0, max: 100 } : {}),
       axisLine: echartsTheme.valueAxis.axisLine,
       axisLabel: echartsTheme.valueAxis.axisLabel,
       splitLine: echartsTheme.valueAxis.splitLine,

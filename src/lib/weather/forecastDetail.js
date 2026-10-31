@@ -278,54 +278,91 @@ export function forecastDaysFromToday(result, { nowMs = Date.now() } = {}) {
   }));
 }
 
+const HOUR_MS = 3_600_000;
+
+function localTimestamp(atMs, timezone) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23', timeZoneName: 'longOffset',
+  }).formatToParts(atMs).map(({ type, value }) => [type, value]));
+  const offset = parts.timeZoneName.replace('GMT', '') || 'Z';
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}${offset}`;
+}
+
+function daytimeStartMs(date, timezone) {
+  const wanted = Date.parse(`${date}T${String(FUTURE_DAY_START_HOUR).padStart(2, '0')}:00:00Z`);
+  let atMs = wanted;
+  // Resolve the local daytime boundary, including a DST change earlier that day.
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const localAsUtc = Date.parse(`${localTimestamp(atMs, timezone).slice(0, 19)}Z`);
+    atMs += wanted - localAsUtc;
+  }
+  return atMs;
+}
+
+function forecastSlots(hours, startMs, count, timezone) {
+  const byTime = new Map(hours.map(hour => [hour.atMs, hour]));
+  return Array.from({ length: count }, (_, index) => {
+    const atMs = startMs + index * HOUR_MS;
+    return byTime.get(atMs) ?? Object.freeze({
+      at: localTimestamp(atMs, timezone), atMs, missing: true,
+      isDay: null, tempF: null, precipPct: null, precipIn: null,
+      radiationWm2: null, windMph: null, weatherCode: null, cloudPct: null,
+    });
+  });
+}
+
+/** Repeated fall-back hours retain separate positions and distinct offset labels. */
+export function forecastHourLabels(hours, { compact = false } = {}) {
+  const labels = hours.map(({ at }) => {
+    const hour = Number(at.slice(11, 13));
+    return compact ? `${hour % 12 || 12}${hour < 12 ? 'a' : 'p'}`
+      : `${hour % 12 || 12} ${hour < 12 ? 'AM' : 'PM'}`;
+  });
+  const counts = new Map();
+  for (const label of labels) counts.set(label, (counts.get(label) ?? 0) + 1);
+  return labels.map((label, index) => counts.get(label) > 1
+    ? `${label} UTC${hours[index].at.endsWith('Z') ? '+00:00' : hours[index].at.slice(-6)}` : label);
+}
+
 export function hourlyForecastFromDetail(result, { nowMs = Date.now() } = {}) {
   if (result?.status !== 'ready' || !Number.isFinite(nowMs)
       || !Number.isFinite(result.generatedAtMs)
       || nowMs - result.generatedAtMs > FORECAST_DETAIL_STALE_MS) return [];
-  const currentHourMs = Math.floor(nowMs / 3_600_000) * 3_600_000;
-  return result.days.flatMap(({ hours }) => hours)
-    .filter(({ atMs }) => atMs >= currentHourMs)
-    .sort((left, right) => left.atMs - right.atMs)
-    .slice(0, 14)
-    .map((hour) => {
-      const localHour = Number(hour.at.slice(11, 13));
-      return {
-        at: hour.at,
-        isDay: hour.isDay,
-        h: `${localHour % 12 || 12}${localHour < 12 ? 'a' : 'p'}`,
-        t: hour.tempF,
-        p: hour.precipPct,
-        a: hour.precipIn,
-        r: hour.radiationWm2,
-        w: hour.weatherCode,
-        c: hour.cloudPct,
-      };
-    });
+  // The strip includes the current hour; absent targets keep null-valued slots.
+  const currentHourMs = Math.floor(nowMs / HOUR_MS) * HOUR_MS;
+  const slots = forecastSlots(result.days.flatMap(({ hours }) => hours), currentHourMs, 14, result.timezone);
+  const labels = forecastHourLabels(slots, { compact: true });
+  return slots.map((hour, index) => ({
+    at: hour.at,
+    isDay: hour.isDay,
+    h: labels[index],
+    t: hour.tempF,
+    p: hour.precipPct,
+    a: hour.precipIn,
+    r: hour.radiationWm2,
+    w: hour.weatherCode,
+    c: hour.cloudPct,
+    ...(hour.missing ? { missing: true } : {}),
+  }));
 }
 
 export function selectForecastWindow(result, selectedDate, { nowMs = Date.now() } = {}) {
-  const allHours = result.days
-    .flatMap(({ hours }) => hours)
-    .sort((a, b) => a.atMs - b.atMs);
+  const allHours = result.days.flatMap(({ hours }) => hours);
   const today = localDateAt(nowMs, result.timezone);
-  let hours;
-  let mode;
-  if (selectedDate === today) {
-    mode = 'rolling';
-    const nextHourMs = Math.ceil(nowMs / 3_600_000) * 3_600_000;
-    hours = allHours.filter(({ atMs }) => atMs >= nextHourMs).slice(0, FORECAST_DETAIL_HOURS);
-  } else {
-    mode = 'daytime';
-    hours = allHours.filter(({ at }) => (
-      at.slice(0, 10) === selectedDate
-      && Number(at.slice(11, 13)) >= FUTURE_DAY_START_HOUR
-      && Number(at.slice(11, 13)) <= FUTURE_DAY_END_HOUR
-    ));
-  }
+  const mode = selectedDate === today ? 'rolling' : 'daytime';
+  // Preserve the existing inclusive exact-boundary convention. Select elapsed
+  // time slots, never the next twelve available rows beyond a missing target.
+  const startMs = mode === 'rolling' ? Math.ceil(nowMs / HOUR_MS) * HOUR_MS
+    : daytimeStartMs(selectedDate, result.timezone);
+  const count = mode === 'rolling' ? FORECAST_DETAIL_HOURS : FUTURE_DAY_END_HOUR - FUTURE_DAY_START_HOUR + 1;
+  const slots = forecastSlots(allHours, startMs, count, result.timezone);
+  const hours = slots.filter(hour => !hour.missing);
   return Object.freeze({
     mode,
     hours: Object.freeze(hours),
-    expectedHours: FORECAST_DETAIL_HOURS,
-    missingHours: Math.max(0, FORECAST_DETAIL_HOURS - hours.length),
+    slots: Object.freeze(slots),
+    expectedHours: count,
+    missingHours: count - hours.length,
   });
 }

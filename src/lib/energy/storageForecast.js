@@ -21,3 +21,13 @@ export function storageForecastPresentation(raw, { fallbackRaw = null, nowMs = D
     ],
   };
 }
+
+// Use the earliest occurrence of the lowest upcoming value, excluding elapsed
+// targets and the issue-time starting SoC.
+export function predictedLowSoc(forecast, nowMs = Date.now()) {
+  if (!forecast || forecast.validUntilMs <= nowMs) return null;
+  return forecast.points.reduce((low, point) => {
+    if (point[0] <= nowMs) return low;
+    return !low || point[1] < low[1] ? point : low;
+  }, null);
+}

@@ -1,20 +1,66 @@
 {
   "version": 1,
   "zones": {
-    "kitchen": {"item": "AmbientWeatherWS2902A_IndoorSensor_Temperature", "stream": "indoor", "role": "hallway_kitchen_reference"},
-    "living": {"item": "Bedroom_Temperature", "stream": "bedroom", "role": "office_reference", "coverage": ["Living Room", "Office"], "coverage_evidence": "operator_report_2026-10-20"},
-    "bathroom": {"item": null, "stream": null, "role": "unavailable"},
-    "bedroom": {"item": null, "stream": null, "role": "unavailable"},
+    "kitchen": {
+      "item": "AmbientWeatherWS2902A_IndoorSensor_Temperature",
+      "stream": "indoor",
+      "role": "hallway_kitchen_reference"
+    },
+    "living": {
+      "item": null,
+      "stream": null,
+      "role": "unavailable",
+      "historical_association": {
+        "item": "Bedroom_Temperature",
+        "stream": "bedroom",
+        "role": "office_reference",
+        "coverage": [
+          "Living Room",
+          "Office"
+        ],
+        "coverage_evidence": "operator_report_2026-10-20",
+        "observations_valid_until": "2026-10-24T23:14:52Z"
+      },
+      "history_note": "Sensor223 is now in Bedroom; its former Office/Living Room association is retired prospectively. No replacement proxy is inferred."
+    },
+    "bathroom": {
+      "item": null,
+      "stream": null,
+      "role": "unavailable"
+    },
+    "bedroom": {
+      "label": "Bedroom",
+      "item": "Bedroom_Temperature",
+      "stream": "bedroom",
+      "role": "zone_sensor",
+      "model": "AmbientWeather-WH31E",
+      "sensor_id": 223,
+      "location_verified": true,
+      "location_evidence": "operator_report_2026-10-24",
+      "location_report_recorded_at": "2026-10-24T23:14:52Z",
+      "observations_valid_from": "2026-10-24T23:14:52Z",
+      "learning_enabled": false,
+      "history_note": "Operator reports the sensor is physically in Bedroom. This prospective operational boundary is not the exact move time. Earlier Office Hallway observations retain their original location meaning; no training or control activation."
+    },
     "office_hallway": {
-      "label": "Office Hallway", "item": "Bedroom_Temperature", "stream": "bedroom",
-      "role": "zone_sensor", "model": "AmbientWeather-WH31E", "sensor_id": 223,
-      "location_verified": true, "location_evidence": "operator_report",
+      "label": "Office Hallway",
+      "item": null,
+      "stream": null,
+      "role": "historical_location",
+      "model": "AmbientWeather-WH31E",
+      "sensor_id": 223,
+      "location_verified": false,
+      "location_evidence": "operator_report",
       "location_report_recorded_at": "2026-09-30T23:12:55Z",
       "observations_valid_from": "2026-09-30T23:15:00Z",
       "learning_enabled": false,
-      "history_note": "Legacy identifiers preserve the archive. Earlier commissioning/Bedroom-attempt readings are not Office Hallway labels; physical move time is not known precisely. No Bedroom proxy is authorized."
+      "history_note": "Legacy identifiers preserve the archive. Earlier commissioning/Bedroom-attempt readings are not Office Hallway labels; physical move time is not known precisely. No Bedroom proxy is authorized. The October24 operational Bedroom boundary closes this historical Office Hallway association; it does not establish the exact move time.",
+      "historical_item": "Bedroom_Temperature",
+      "historical_stream": "bedroom",
+      "observations_valid_until": "2026-10-24T23:14:52Z",
+      "historical_location_verified": true
     }
   },
   "evidence_item": "Weather_Temperature_Evidence_JSON",
-  "learning_status": "raw observations only; Office Hallway location is operator-confirmed with a conservative prospective boundary; Bedroom remains unavailable; no room model, shade-state inference or control activation"
+  "learning_status": "Raw observations only; Bedroom placement is operator-confirmed with a prospective operational boundary; Office Hallway and Office/Living Room association are historical. No room model, shade-state inference or control activation."
 }

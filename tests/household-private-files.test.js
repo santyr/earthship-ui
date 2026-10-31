@@ -10,7 +10,9 @@ it('withholds private staging through Vite filesystem aliases while serving publ
   await mkdir(join(root, '.superpowers'), { mode: 0o700 });
   await writeFile(join(root, '.superpowers', 'receipt.json'), '{"private":"operator-only-data"}', { mode: 0o600 });
   await writeFile(join(root, 'public.txt'), 'public-page-data');
-  const server = await createServer({ configFile: resolve('vite.config.js'), root, server: { port: 0, host: '127.0.0.1', watch: null } });
+  const server = await createServer({ configFile: resolve('vite.config.js'), configLoader: 'runner',
+    cacheDir: resolve('.superpowers/test-cache/private-files'), root,
+    server: { port: 0, host: '127.0.0.1', watch: null } });
   cleanup.push(() => server.close()); await server.listen();
   const base = server.resolvedUrls.local[0];
   expect(await (await fetch(`${base}public.txt`)).text()).toBe('public-page-data');

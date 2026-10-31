@@ -1,5 +1,5 @@
 import {test,expect} from './fixture-test.js';
-import {createServer} from 'vite';
+import {createServer} from './fixture-server.js';
 import {readFileSync} from 'node:fs';
 const atmosphericOriginals=JSON.parse(readFileSync(new URL('../fixtures/weather-atmosphere.json',import.meta.url),'utf8'));
 import {capabilityFixture,CAPABILITY_NOW} from '../fixtures/weather-capabilities.js';
@@ -69,7 +69,8 @@ for(const [width,height] of [[1340,800],[1280,720]]){
   await page.clock.fastForward(3600001);
   await expect(dialog.getByText('32°–50°',{exact:true})).toHaveCount(0);
   await expect(dialog.locator('.weather-detail-chart svg [fill="#a78bfa"]')).toHaveCount(0);
-  await expect(dialog.locator('.hour-temp').first()).toHaveText('70°');
+  // The core rolling window advances while the independent range expires.
+  await expect(dialog.locator('.hour-temp').first()).toHaveText('71°');
   expect(errors).toEqual([]);
  });
  for(const mode of ['mean-only','zero','missing','stale','crossing']){

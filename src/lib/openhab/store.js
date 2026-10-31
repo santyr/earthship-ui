@@ -91,33 +91,46 @@ export function applyState(name, value) {
   items.update((m) => { m[name] = value; return { ...m }; });
 }
 
-function normalizeThingStatus(statusInfo = {}) {
+// An absent optional field is unavailable, never an implied ONLINE state.
+// Explicit non-object status data or non-string fields invalidate the read.
+function normalizeThingStatus(statusInfo) {
+  if (!statusInfo || typeof statusInfo !== 'object' || Array.isArray(statusInfo)) return null;
+  for (const key of ['status', 'statusDetail', 'description']) {
+    if (statusInfo[key] !== undefined && typeof statusInfo[key] !== 'string') return null;
+  }
   return {
-    status: typeof statusInfo.status === 'string' ? statusInfo.status.trim().toUpperCase() : '',
-    statusDetail: typeof statusInfo.statusDetail === 'string'
-      ? statusInfo.statusDetail.trim().toUpperCase()
-      : '',
-    description: typeof statusInfo.description === 'string'
-      ? statusInfo.description.trim()
-      : '',
+    status: (statusInfo.status ?? '').trim().toUpperCase(),
+    statusDetail: (statusInfo.statusDetail ?? '').trim().toUpperCase(),
+    description: (statusInfo.description ?? '').trim(),
   };
 }
 
-export function applyThingSnapshot(things = [], { preserve = new Set() } = {}) {
+export function applyThingSnapshot(things, { preserve = new Set() } = {}) {
+  if (!Array.isArray(things)) return false;
+  const accepted = new Map();
+  for (const thing of things) {
+    if (!thing || typeof thing !== 'object' || Array.isArray(thing)
+        || typeof thing.UID !== 'string' || !thing.UID || thing.UID.trim() !== thing.UID
+        || accepted.has(thing.UID)) return false;
+    const status = normalizeThingStatus(thing.statusInfo);
+    if (!status) return false;
+    accepted.set(thing.UID, status);
+  }
+  // Publish only after the entire inventory is valid, including preserved rows.
   thingStatuses.update(current => {
-    const next = {};
-    for (const thing of things) {
-      if (typeof thing?.UID !== 'string' || !thing.UID || preserve.has(thing.UID)) continue;
-      next[thing.UID] = normalizeThingStatus(thing.statusInfo);
-    }
-    for (const uid of preserve) if (uid in current) next[uid] = current[uid];
-    return next;
+    const next = new Map([...accepted].filter(([uid]) => !preserve.has(uid)));
+    for (const uid of preserve) if (Object.hasOwn(current, uid)) next.set(uid, current[uid]);
+    return Object.fromEntries(next);
   });
+  return true;
 }
 
 export function applyThingStatus(uid, statusInfo) {
-  if (typeof uid !== 'string' || !uid) return;
-  thingStatuses.update((current) => ({ ...current, [uid]: normalizeThingStatus(statusInfo) }));
+  if (typeof uid !== 'string' || !uid || uid.trim() !== uid) return false;
+  const status = normalizeThingStatus(statusInfo);
+  if (!status) return false;
+  thingStatuses.update((current) => ({ ...current, [uid]: status }));
+  return true;
 }
 
 // Initial-snapshot retry: this display reboots together with openHAB, so the
@@ -185,31 +198,53 @@ export async function initOpenhab(config, {
     ]);
     if (!active || version !== epoch) return null;
     let itemOk = itemResult.status === 'fulfilled' && Array.isArray(itemResult.value);
-    const thingOk = thingResult.status === 'fulfilled' && Array.isArray(thingResult.value);
-    if (itemOk) {
-      itemOk = applySnapshot(itemResult.value, { preserve: after(itemDeltas, start), preserveEvidence: after(evidenceDeltas, start) });
-      if (itemOk) { ++inventoryGeneration; pendingTemperatureReads.clear(); }
+    let thingOk = thingResult.status === 'fulfilled' && Array.isArray(thingResult.value);
+    try {
+      if (itemOk) {
+        itemOk = applySnapshot(itemResult.value, { preserve: after(itemDeltas, start), preserveEvidence: after(evidenceDeltas, start) });
+        if (itemOk) { ++inventoryGeneration; pendingTemperatureReads.clear(); }
+      }
+      // Failed or malformed Thing reads retain prior observations. Controls
+      // stay gated until the complete current inventory has reconciled.
+      if (thingOk) thingOk = applyThingSnapshot(thingResult.value, { preserve: after(thingDeltas, start) });
+    } catch {
+      // Processing happens after HTTP settlement and can also fail. Recover
+      // through the same bounded read retry, without replaying commands.
+      itemOk = false; thingOk = false;
     }
-    // A failed optional Thing read is not an authoritative empty inventory.
-    // Retain the last observation but gate controls until reconciliation succeeds.
-    if (thingOk) applyThingSnapshot(thingResult.value, { preserve: after(thingDeltas, start) });
     reconciled = itemOk && thingOk;
     reconciliation.set(reconciled ? 'ready' : 'retrying'); publishStatus();
     return { itemOk, complete: reconciled };
   }
+  async function reconcile(increaseDelay) {
+    const requestEpoch = epoch + 1;
+    try {
+      const result = await fetchSnapshots();
+      if (!active || !result || requestEpoch !== epoch) return;
+      if (result.complete) delay = retryBaseMs;
+      else {
+        if (increaseDelay) delay = Math.min(delay * 2, retryMaxMs);
+        scheduleRetry();
+      }
+    } catch {
+      // Guard both asynchronous entry points as well as snapshot validation.
+      if (!active || requestEpoch !== epoch) return;
+      reconciled = false; reconciliation.set('retrying'); publishStatus();
+      if (increaseDelay) delay = Math.min(delay * 2, retryMaxMs);
+      scheduleRetry();
+    }
+  }
   function scheduleRetry() {
     if (!active) return;
     clearTimeout(retryTimer);
-    retryTimer = setTimeout(async () => {
-      const result = await fetchSnapshots();
-      if (!result) return;
-      if (!result.complete) { delay = Math.min(delay * 2, retryMaxMs); scheduleRetry(); }
-      else delay = retryBaseMs;
+    retryTimer = setTimeout(() => {
+      retryTimer = null;
+      void reconcile(true);
     }, delay);
   }
   function resync() {
     delay = retryBaseMs;
-    void fetchSnapshots().then(result => { if (result && !result.complete) scheduleRetry(); });
+    void reconcile(false);
   }
 
   const pendingTemperatureReads = new Set(), activeTemperatureReads = new Set(), temperatureNotifications = new Map();
@@ -267,7 +302,7 @@ export async function initOpenhab(config, {
             applyUpdateEvidence(name, timestamp, state);
           }
         },
-        onThingStatus: (uid, status) => { if (active) { thingDeltas.set(uid, ++sequence); applyThingStatus(uid, status); } },
+        onThingStatus: (uid, status) => { if (active && applyThingStatus(uid, status)) thingDeltas.set(uid, ++sequence); },
         onStatus: status => { if (active) { transport = status; publishStatus(); } },
         onReconnect: () => { if (active) resync(); },
       });

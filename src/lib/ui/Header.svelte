@@ -1,27 +1,11 @@
 <script>
-  // Compact top strip: live clock/date, deterministic alert summary, and
+  // Fixed top strip: Home date / compact clock elsewhere, alert summary, and
   // connection lamp. The alert region never changes the header height.
-  import { onMount, onDestroy } from 'svelte';
+  import { currentRoute } from '../../routes.js';
+  import Clock from './Clock.svelte';
   import { connection } from '../openhab/index.js';
   import HeaderAlerts from './HeaderAlerts.svelte';
   import DecisionRecommendations from './DecisionRecommendations.svelte';
-
-  let now = $state(new Date());
-  let timer;
-
-  onMount(() => {
-    timer = setInterval(() => {
-      now = new Date();
-    }, 1000);
-  });
-  onDestroy(() => {
-    if (timer) clearInterval(timer);
-  });
-
-  const timeText = $derived(
-    now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-  );
-  const dateText = $derived(now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }));
 
   const badge = $derived.by(() => {
     const c = $connection;
@@ -31,11 +15,12 @@
   });
 </script>
 
-<header class="header" style="height: 44px; min-height: 44px; max-height: 44px;">
-  <div class="clock">
-    <span class="time">{timeText}</span>
-    <span class="date">{dateText}</span>
-  </div>
+<header class="header" class:home={$currentRoute === 'home'} style="height: 44px; min-height: 44px; max-height: 44px;">
+  {#if $currentRoute === 'home'}
+    <Clock showTime={false} />
+  {:else}
+    <Clock />
+  {/if}
   <div class="suggestion-slot"><DecisionRecommendations header /></div>
   <HeaderAlerts />
   <div class="badge" role="img" aria-label="openHAB connection: {badge.text}" title="openHAB connection: {badge.text}">
@@ -59,27 +44,6 @@
     overflow: visible;
   }
   .suggestion-slot { flex: 1 1 auto; min-width: 0; align-self: stretch; display: flex; }
-  .clock {
-    flex: 0 0 auto;
-    white-space: nowrap;
-    display: flex;
-    align-items: baseline;
-    gap: 0.5rem;
-    font-variant-numeric: tabular-nums;
-  }
-  .time {
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: #e6edf3;
-    line-height: 1;
-  }
-  .date {
-    font-size: 0.7rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    font-variant-caps: small-caps;
-    color: #8b93a1;
-  }
   .badge {
     display: flex;
     align-items: center;
@@ -95,5 +59,19 @@
     height: 0.5rem;
     border-radius: 50%;
     flex-shrink: 0;
+  }
+  @media (max-width: 600px) {
+    .header.home :global(.suggestion-slot) { min-width: 4rem; }
+    .header.home :global(.header-summary) { overflow: hidden; }
+    .header.home :global(.header-label) {
+      flex: 0 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .header.home :global(.header-summary .summary-action),
+    .header.home :global(.header-summary .provisional-label),
+    .header.home :global(.header-summary .expired-label) { display: none; }
+    .header.home :global(.header-summary > span:last-child) { flex-shrink: 0; }
   }
 </style>

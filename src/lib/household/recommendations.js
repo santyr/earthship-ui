@@ -1,8 +1,8 @@
 /** Human-readable previews of validated original output; never a request builder. */
 import {parseThermalModelResult} from '../thermal/modelResult.js';
-const TYPES={'night-policy':[],devices:['SET_NIGHT_LOAD_DEVICE'],greywater:[],feeding:[],loads:['SET_NIGHT_LOAD_DEVICE']};
+const TYPES={'night-policy':['SET_NIGHT_LOAD_OVERRIDE'],devices:['SET_NIGHT_LOAD_DEVICE'],greywater:['RUN_GREYWATER_CYCLE'],feeding:[],loads:['SET_NIGHT_LOAD_OVERRIDE','SET_NIGHT_LOAD_DEVICE']};
 // Feeder triggering belongs exclusively to manual and Lightning-payment flows.
-export const isAutomatedIntent=()=>false; // Existing owners schedule these devices; no ML planning scope.
+export const isAutomatedIntent=()=>false; // Device schedules belong to their existing owners.
 const DEVICES={dishwasher:'Dishwasher',shureflo:'Shureflo pump','goat-cam':'Goat camera'};
 const REASONS={low_soc:'Low forecast battery SoC',unqualified_effect:'Action effects are unqualified',source_unavailable:'Source evidence is unavailable',
  source_stale:'Source evidence is stale',after_dark:'Outside daylight hours',cooldown:'Cooldown has not elapsed',no_optional_action:'No optional action preferred'};
@@ -16,7 +16,7 @@ function action(p){
  return p.parameters?`${DEVICES[p.parameters.device]}: ${p.parameters.command}`:'Household load · action details unavailable';
 }
 export function recommendationPreview(){return empty('none');}
-/** Explicit inspection only; no current route requests historical proposals. */
+/** Explicit historical inspection only; current routes do not revive old proposals. */
 export function historicalRecommendationPreview(view,scope,nowMs=Date.now()){
  if(!view||!TYPES[scope])return empty('unavailable');
  const proposals=view.proposals.filter(p=>TYPES[scope].includes(p.type));

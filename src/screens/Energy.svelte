@@ -1,9 +1,9 @@
 <script>
   import { energyForecastRaw, energyForecastClock } from '../lib/energy/forecastState.js';
   import { calibratedForecastRaw } from '../lib/energy/calibratedForecastState.js';
-  import { storageForecastPresentation } from '../lib/energy/storageForecast.js';
+  import { storageForecastPresentation, predictedLowSoc } from '../lib/energy/storageForecast.js';
   const socForecast = $derived(storageForecastPresentation($calibratedForecastRaw, { fallbackRaw: $energyForecastRaw, nowMs: $energyForecastClock }));
-  const socTarget = $derived(socForecast?.points.at(-1));
+  const socTarget = $derived(predictedLowSoc(socForecast, $energyForecastClock));
   const socTargetLabel = $derived(socTarget ? new Intl.DateTimeFormat('en-US', { timeZone: 'America/Denver', weekday: 'short', hour: 'numeric', minute: '2-digit' }).format(socTarget[0]) : '');
   import { energyForecastPresentation } from '../lib/energy/forecastPresentation.js';
   const liveEnergyForecast = $derived(energyForecastPresentation($energyForecastRaw, { nowMs: $energyForecastClock }));
@@ -12,14 +12,13 @@
   // history charts. Reuses Home's dark instrument-panel aesthetic (Tile /
   // StatTile chrome, tokens.colors) but favors inline HistoryChart panels
   // over Home's click-to-modal pattern, since this screen IS the charts.
+  import RecommendationPreview from '../lib/ui/RecommendationPreview.svelte';
   import Tile from '../lib/ui/Tile.svelte';
   import StatTile from '../lib/ui/StatTile.svelte';
   import HistoryChart from '../lib/ui/HistoryChart.svelte';
   import EnergyAnalyticsDetail from '../lib/ui/EnergyAnalyticsDetail.svelte';
   import { ENERGY_ANALYTICS_REFRESH_MS, parseEnergyAnalyticsResult } from '../lib/energy/analyticsResult.js';
-  import { pvForecastComparison } from '../lib/energy/pvForecastComparison.js';
   import { parseForecast10Day, pvForecastDaysFromToday } from '../lib/weather/forecastDetail.js';
-  import { parsePredictionReceipt, parsePreDuskTroughReceipt } from '../lib/forecast/predictionReceipt.js';
   import { colors } from '../lib/ui/tokens.js';
   import { items, num, fmt, socBands, runtimeText } from '../lib/openhab';
   import { freshCurrentSoc } from '../lib/battery/currentSoc.js';
@@ -27,18 +26,6 @@
   import { bmsHealthPresentation } from '../lib/alerts/batteryHealth.js';
 
   let analyticsNowMs = $state(Date.now());
-  const predictionReceipt = $derived(parsePredictionReceipt($items.Forecast_Prediction_Receipt_JSON, { nowMs: analyticsNowMs }));
-  // Display the latest qualified issue until replaced. Completed windows are
-  // explicitly dated; alerts still use the parser's strict expiry default.
-  const preDuskEstimate = $derived(parsePreDuskTroughReceipt(
-    $items.Forecast_PreDusk_Trough_Receipt_JSON,
-    { nowMs: analyticsNowMs, allowCompletedForDisplay: true }));
-  const troughNight = $derived(preDuskEstimate ? new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Denver', month: 'short', day: 'numeric',
-  }).format(preDuskEstimate.issuedAtMs) : '');
-  const troughCompleted = $derived(preDuskEstimate
-    && analyticsNowMs >= preDuskEstimate.targetEndAtMs);
-
   // ---- Battery / SoC -------------------------------------------------------
   const soc = $derived(freshCurrentSoc($items, Math.max(analyticsNowMs, Date.now())));
   const socColor = $derived(socBands(soc));
@@ -63,15 +50,13 @@
   // ---- PV production --------------------------------------------------------
   const pvToday = $derived(num($items.MPPT60_EnergyFromPV_Today));
   const forecastDetail = $derived(parseForecast10Day($items.Forecast_10Day_JSON, { nowMs: analyticsNowMs }));
-  const pvPredicted = $derived(predictionReceipt?.pvTodayKwh ?? null);
-  const pvPredictionText = $derived(liveEnergyForecast ? `${liveEnergyForecast.potentialRemainingTodayKwh.toFixed(1)} kWh potential remaining today` : pvForecastComparison(pvToday, pvPredicted));
-  const pvError = $derived(num($items.Forecast_PV_Error_7d));
-  const pvAccuracyBadge = $derived(liveEnergyForecast ? 'Potential estimate · uncalibrated' : pvError === null ? 'Forecast error unavailable' : `Forecast error ${Math.round(Math.abs(pvError))}%`);
+  const pvPredictionText = $derived(liveEnergyForecast ? `${liveEnergyForecast.potentialRemainingTodayKwh.toFixed(1)} kWh potential remaining today` : 'PV forecast unavailable');
+  const pvAccuracyBadge = $derived(liveEnergyForecast ? 'Potential estimate · uncalibrated' : 'Potential estimate unavailable');
 
   // ---- Curtailment ------------------------------------------------------
-  const curtailHours = $derived(predictionReceipt?.curtailmentHoursToday ?? null);
-  const curtailPct = $derived(curtailHours === null ? 0 : Math.max(0, Math.min(100, (curtailHours / 24) * 100)));
-  const curtailText = $derived(curtailHours === null ? 'Unavailable' : `${curtailHours.toFixed(1)} h`);
+  const curtailKwh = $derived(liveEnergyForecast?.curtailment24hKwh ?? null);
+  const curtailPct = $derived(liveEnergyForecast?.curtailmentPct ?? 0);
+  const curtailText = $derived(curtailKwh === null ? 'Unavailable' : `${curtailKwh.toFixed(1)} kWh`);
 
   // ---- 7-day PV outlook -------------------------------------------------
   const pvOutlook = $derived.by(() => {
@@ -108,16 +93,12 @@
         <div class="hero-footer">
           <span class="hero-soc" style="color: {socColor}">SoC {soc === null ? '—' : Math.round(soc) + '%'}</span>
           {#if socTarget}
-            <span class="hero-trough" title={`${socForecast.basis}. Provisional estimate; dashed line shows the next 24 hours.`}>Predicted SoC {socTarget[1].toFixed(1)}% · {socTargetLabel} · dashed</span>
+            <span class="hero-trough" title={`${socForecast.basis}. Lowest upcoming SoC in the next 24-hour forecast. Provisional estimate; dashed line shows the forecast.`}>Predicted low SoC {socTarget[1].toFixed(1)}% · {socTargetLabel} · dashed</span>
           {:else}
-            <span class="hero-trough">Predicted SoC unavailable</span>
-          {/if}
-          {#if preDuskEstimate}
-            <span class="hero-trough" title={`Pre-dusk estimate for ${troughNight} night; not a measured minimum.`}>
-              Estimated trough {preDuskEstimate.overnightTroughSocPct}%{troughCompleted ? ` · ${troughNight} night` : ''}
-            </span>
+            <span class="hero-trough">Predicted low SoC unavailable</span>
           {/if}
         </div>
+        <RecommendationPreview group="loads" />
       </div>
     </Tile>
   </div>
@@ -131,7 +112,7 @@
             <span class="pv-unit">kWh today</span>
           </div>
           <div class="pv-sub">{pvPredictionText}</div>
-          <span class="pv-badge" title={liveEnergyForecast ? 'Uncalibrated array potential; battery charging and household demand can limit captured energy.' : 'Mean absolute percentage error of recent scored PV forecasts; not a prediction interval.'}>{pvAccuracyBadge}</span>
+          <span class="pv-badge" title={liveEnergyForecast ? 'Uncalibrated array potential; battery charging and household demand can limit captured energy.' : 'Waiting for a current PV potential forecast.'}>{pvAccuracyBadge}</span>
         </div>
         <div class="pv-chart">
           <HistoryChart
@@ -154,9 +135,10 @@
   </div>
 
   <div class="cell curtail-cell">
-    <Tile label="Predicted Curtailment (today)" accent={colors.advisory}>
+    <Tile label="Predicted Curtailment · Next 24 Hours" accent={colors.advisory}>
       <div class="curtail-body">
         <div class="curtail-value">{curtailText}</div>
+        <div class="curtail-note">Current-load estimate · uncalibrated</div>
         <div class="curtail-bar-track">
           <div class="curtail-bar-fill" style="width: {curtailPct}%; background: {colors.advisory}"></div>
         </div>
@@ -377,6 +359,7 @@
     background: #1c2230;
     overflow: hidden;
   }
+  .curtail-note { color: #94a3b8; font-size: .6rem; line-height: 1.2; }
   .curtail-bar-fill {
     height: 100%;
     border-radius: 999px;

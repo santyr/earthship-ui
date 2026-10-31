@@ -3,236 +3,419 @@
   "policy": "git_owned_file_first",
   "resources": [
     {
-      "kind": "item", "id": "BatteryIcon", "provider": "file", "migration": "verified",
-      "source": "items/battery-icon.items", "destination": "/etc/openhab/items/battery-icon.items",
+      "kind": "item",
+      "id": "BatteryIcon",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/battery-icon.items",
+      "destination": "/etc/openhab/items/battery-icon.items",
       "state_writer": "UpdateBatteryIcon"
     },
     {
-      "kind": "item", "id": "SkyConditionIcon", "provider": "file", "migration": "verified",
-      "source": "items/sky-condition-icon.items", "destination": "/etc/openhab/items/sky-condition-icon.items",
+      "kind": "item",
+      "id": "SkyConditionIcon",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/sky-condition-icon.items",
+      "destination": "/etc/openhab/items/sky-condition-icon.items",
       "state_writer": "sky-condition-calculator"
     },
     {
-      "kind": "item", "id": "SunPhaseIcon", "provider": "file", "migration": "verified",
-      "source": "items/astro-icons.items", "destination": "/etc/openhab/items/astro-icons.items",
+      "kind": "item",
+      "id": "SunPhaseIcon",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/astro-icons.items",
+      "destination": "/etc/openhab/items/astro-icons.items",
       "state_writer": "astro:sun:local:phase#name"
     },
     {
-      "kind": "item", "id": "MoonPhaseicon", "provider": "file", "migration": "verified",
-      "source": "items/astro-icons.items", "destination": "/etc/openhab/items/astro-icons.items",
+      "kind": "item",
+      "id": "MoonPhaseicon",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/astro-icons.items",
+      "destination": "/etc/openhab/items/astro-icons.items",
       "state_writer": "astro:moon:local:phase#name"
     },
     {
-      "kind": "link", "id": "SunPhaseIcon -> astro:sun:local:phase#name",
-      "provider": "file", "migration": "verified",
-      "source": "items/astro-icons.items", "destination": "/etc/openhab/items/astro-icons.items"
+      "kind": "link",
+      "id": "SunPhaseIcon -> astro:sun:local:phase#name",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/astro-icons.items",
+      "destination": "/etc/openhab/items/astro-icons.items"
     },
     {
-      "kind": "link", "id": "MoonPhaseicon -> astro:moon:local:phase#name",
-      "provider": "file", "migration": "verified",
-      "source": "items/astro-icons.items", "destination": "/etc/openhab/items/astro-icons.items"
+      "kind": "link",
+      "id": "MoonPhaseicon -> astro:moon:local:phase#name",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/astro-icons.items",
+      "destination": "/etc/openhab/items/astro-icons.items"
     },
     {
-      "kind": "item", "id": "Moon_MoonPhaseName", "provider": "file", "migration": "verified",
-      "source": "items/moon-phase-readings.items", "destination": "/etc/openhab/items/moon-phase-readings.items",
+      "kind": "item",
+      "id": "Moon_MoonPhaseName",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/moon-phase-readings.items",
+      "destination": "/etc/openhab/items/moon-phase-readings.items",
       "state_writer": "astro:moon:local:phase#name"
     },
     {
-      "kind": "item", "id": "Moon_MoonIllumination", "provider": "file", "migration": "verified",
-      "source": "items/moon-phase-readings.items", "destination": "/etc/openhab/items/moon-phase-readings.items",
+      "kind": "item",
+      "id": "Moon_MoonIllumination",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/moon-phase-readings.items",
+      "destination": "/etc/openhab/items/moon-phase-readings.items",
       "state_writer": "astro:moon:local:phase#illumination"
     },
     {
-      "kind": "link", "id": "Moon_MoonPhaseName -> astro:moon:local:phase#name",
-      "provider": "file", "migration": "verified",
-      "source": "items/moon-phase-readings.items", "destination": "/etc/openhab/items/moon-phase-readings.items"
+      "kind": "link",
+      "id": "Moon_MoonPhaseName -> astro:moon:local:phase#name",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/moon-phase-readings.items",
+      "destination": "/etc/openhab/items/moon-phase-readings.items"
     },
     {
-      "kind": "link", "id": "Moon_MoonIllumination -> astro:moon:local:phase#illumination",
-      "provider": "file", "migration": "verified",
-      "source": "items/moon-phase-readings.items", "destination": "/etc/openhab/items/moon-phase-readings.items"
+      "kind": "link",
+      "id": "Moon_MoonIllumination -> astro:moon:local:phase#illumination",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/moon-phase-readings.items",
+      "destination": "/etc/openhab/items/moon-phase-readings.items"
     },
     {
-      "kind": "thing", "id": "exec:command:BTC_Price", "provider": "file", "migration": "verified",
-      "source": "things/bitcoin-price.things", "destination": "/etc/openhab/things/bitcoin-price.things"
+      "kind": "thing",
+      "id": "exec:command:BTC_Price",
+      "provider": "file",
+      "migration": "verified",
+      "source": "things/bitcoin-price.things",
+      "destination": "/etc/openhab/things/bitcoin-price.things"
     },
     {
-      "kind": "thing", "id": "astro:moon:local", "provider": "file", "migration": "verified",
-      "source": "things/astro-moon.things", "destination": "/etc/openhab/things/astro-moon.things"
+      "kind": "thing",
+      "id": "astro:moon:local",
+      "provider": "file",
+      "migration": "verified",
+      "source": "things/astro-moon.things",
+      "destination": "/etc/openhab/things/astro-moon.things"
     },
     {
-      "kind": "item", "id": "Forecast_Temp", "provider": "file", "migration": "prepared",
-      "source": "items/forecast-weather.items", "destination": "/etc/openhab/items/forecast-weather.items",
+      "kind": "item",
+      "id": "Forecast_Temp",
+      "provider": "file",
+      "migration": "prepared",
+      "source": "items/forecast-weather.items",
+      "destination": "/etc/openhab/items/forecast-weather.items",
       "state_writer": "weathernext-publish.service"
     },
     {
-      "kind": "item", "id": "Forecast_Daily_High", "provider": "file", "migration": "prepared",
-      "source": "items/forecast-weather.items", "destination": "/etc/openhab/items/forecast-weather.items",
+      "kind": "item",
+      "id": "Forecast_Daily_High",
+      "provider": "file",
+      "migration": "prepared",
+      "source": "items/forecast-weather.items",
+      "destination": "/etc/openhab/items/forecast-weather.items",
       "state_writer": "weathernext-publish.service"
     },
     {
-      "kind": "item", "id": "Forecast_Daily_Low", "provider": "file", "migration": "prepared",
-      "source": "items/forecast-weather.items", "destination": "/etc/openhab/items/forecast-weather.items",
+      "kind": "item",
+      "id": "Forecast_Daily_Low",
+      "provider": "file",
+      "migration": "prepared",
+      "source": "items/forecast-weather.items",
+      "destination": "/etc/openhab/items/forecast-weather.items",
       "state_writer": "weathernext-publish.service"
     },
     {
-      "kind": "item", "id": "Forecast_Cloudiness", "provider": "file", "migration": "prepared",
-      "source": "items/forecast-weather.items", "destination": "/etc/openhab/items/forecast-weather.items",
+      "kind": "item",
+      "id": "Forecast_Cloudiness",
+      "provider": "file",
+      "migration": "prepared",
+      "source": "items/forecast-weather.items",
+      "destination": "/etc/openhab/items/forecast-weather.items",
       "state_writer": "weathernext-publish.service"
     },
     {
-      "kind": "item", "id": "Forecast_Radiation", "provider": "file", "migration": "prepared",
-      "source": "items/forecast-weather.items", "destination": "/etc/openhab/items/forecast-weather.items",
+      "kind": "item",
+      "id": "Forecast_Radiation",
+      "provider": "file",
+      "migration": "prepared",
+      "source": "items/forecast-weather.items",
+      "destination": "/etc/openhab/items/forecast-weather.items",
       "state_writer": "weathernext-publish.service"
     },
     {
-      "kind": "item", "id": "Forecast_Daily_PrecipSum", "provider": "file", "migration": "prepared",
-      "source": "items/forecast-weather.items", "destination": "/etc/openhab/items/forecast-weather.items",
+      "kind": "item",
+      "id": "Forecast_Daily_PrecipSum",
+      "provider": "file",
+      "migration": "prepared",
+      "source": "items/forecast-weather.items",
+      "destination": "/etc/openhab/items/forecast-weather.items",
       "state_writer": "weathernext-publish.service"
     },
     {
-      "kind": "item", "id": "Forecast_Hourly_JSON", "provider": "file", "migration": "prepared",
-      "source": "items/forecast-json.items", "destination": "/etc/openhab/items/forecast-json.items",
+      "kind": "item",
+      "id": "Forecast_Hourly_JSON",
+      "provider": "file",
+      "migration": "prepared",
+      "source": "items/forecast-json.items",
+      "destination": "/etc/openhab/items/forecast-json.items",
       "state_writer": "weathernext-publish.service"
     },
     {
-      "kind": "item", "id": "Forecast_Daily_JSON", "provider": "file", "migration": "prepared",
-      "source": "items/forecast-json.items", "destination": "/etc/openhab/items/forecast-json.items",
+      "kind": "item",
+      "id": "Forecast_Daily_JSON",
+      "provider": "file",
+      "migration": "prepared",
+      "source": "items/forecast-json.items",
+      "destination": "/etc/openhab/items/forecast-json.items",
       "state_writer": "weathernext-publish.service"
     },
     {
-      "kind": "item", "id": "Forecast_10Day_JSON", "provider": "file", "migration": "prepared",
-      "source": "items/forecast-json.items", "destination": "/etc/openhab/items/forecast-json.items",
+      "kind": "item",
+      "id": "Forecast_10Day_JSON",
+      "provider": "file",
+      "migration": "prepared",
+      "source": "items/forecast-json.items",
+      "destination": "/etc/openhab/items/forecast-json.items",
       "state_writer": "weathernext-publish.service"
     },
     {
-      "kind": "item", "id": "Forecast_Prediction_Receipt_JSON", "provider": "file", "migration": "observational",
-      "source": "items/forecast-prediction-receipt.items", "destination": "/etc/openhab/items/forecast-prediction-receipt.items",
+      "kind": "item",
+      "id": "Forecast_Prediction_Receipt_JSON",
+      "provider": "file",
+      "migration": "observational",
+      "source": "items/forecast-prediction-receipt.items",
+      "destination": "/etc/openhab/items/forecast-prediction-receipt.items",
       "state_writer": "forecast-intel.service"
     },
     {
-      "kind": "item", "id": "Predicted_Curtailment_Hours", "provider": "file", "migration": "verified",
-      "source": "items/predicted-curtailment.items", "destination": "/etc/openhab/items/predicted-curtailment.items",
+      "kind": "item",
+      "id": "Predicted_Curtailment_Hours",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/predicted-curtailment.items",
+      "destination": "/etc/openhab/items/predicted-curtailment.items",
       "state_writer": "forecast-intel.service"
     },
     {
-      "kind": "item", "id": "Predicted_PV_Today_kWh", "provider": "file", "migration": "verified",
-      "source": "items/forecast-energy.items", "destination": "/etc/openhab/items/forecast-energy.items",
+      "kind": "item",
+      "id": "Predicted_PV_Today_kWh",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/forecast-energy.items",
+      "destination": "/etc/openhab/items/forecast-energy.items",
       "state_writer": "forecast-intel.service"
     },
     {
-      "kind": "item", "id": "Predicted_SoC_Trough_Tomorrow", "provider": "file", "migration": "verified",
-      "source": "items/forecast-energy.items", "destination": "/etc/openhab/items/forecast-energy.items",
+      "kind": "item",
+      "id": "Predicted_SoC_Trough_Tomorrow",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/forecast-energy.items",
+      "destination": "/etc/openhab/items/forecast-energy.items",
       "state_writer": "forecast-intel.service"
     },
     {
-      "kind": "item", "id": "Predicted_SoC_Trough_PreDusk", "provider": "file", "migration": "observational",
-      "source": "items/forecast-pre-dusk.items", "destination": "/etc/openhab/items/forecast-pre-dusk.items",
+      "kind": "item",
+      "id": "Predicted_SoC_Trough_PreDusk",
+      "provider": "file",
+      "migration": "observational",
+      "source": "items/forecast-pre-dusk.items",
+      "destination": "/etc/openhab/items/forecast-pre-dusk.items",
       "state_writer": "forecast-pre-dusk.service"
     },
     {
-      "kind": "item", "id": "Forecast_PreDusk_Trough_Receipt_JSON", "provider": "file", "migration": "observational",
-      "source": "items/forecast-pre-dusk.items", "destination": "/etc/openhab/items/forecast-pre-dusk.items",
+      "kind": "item",
+      "id": "Forecast_PreDusk_Trough_Receipt_JSON",
+      "provider": "file",
+      "migration": "observational",
+      "source": "items/forecast-pre-dusk.items",
+      "destination": "/etc/openhab/items/forecast-pre-dusk.items",
       "state_writer": "forecast-pre-dusk.service"
     },
     {
-      "kind": "item", "id": "Forecast_Trough_Error_7d", "provider": "file", "migration": "verified",
-      "source": "items/forecast-trough-error.items", "destination": "/etc/openhab/items/forecast-trough-error.items",
+      "kind": "item",
+      "id": "Forecast_Trough_Error_7d",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/forecast-trough-error.items",
+      "destination": "/etc/openhab/items/forecast-trough-error.items",
       "state_writer": "forecast-intel.service"
     },
     {
-      "kind": "item", "id": "Forecast_PV_Error_7d", "provider": "file", "migration": "verified",
-      "source": "items/forecast-quality.items", "destination": "/etc/openhab/items/forecast-quality.items",
+      "kind": "item",
+      "id": "Forecast_PV_Error_7d",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/forecast-quality.items",
+      "destination": "/etc/openhab/items/forecast-quality.items",
       "state_writer": "forecast-intel.service"
     },
     {
-      "kind": "item", "id": "Forecast_Precip_Error_7d", "provider": "file", "migration": "verified",
-      "source": "items/forecast-quality.items", "destination": "/etc/openhab/items/forecast-quality.items",
+      "kind": "item",
+      "id": "Forecast_Precip_Error_7d",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/forecast-quality.items",
+      "destination": "/etc/openhab/items/forecast-quality.items",
       "state_writer": "forecast-intel.service"
     },
     {
-      "kind": "item", "id": "Forecast_TempHigh_Error_7d", "provider": "file", "migration": "verified",
-      "source": "items/forecast-quality.items", "destination": "/etc/openhab/items/forecast-quality.items",
+      "kind": "item",
+      "id": "Forecast_TempHigh_Error_7d",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/forecast-quality.items",
+      "destination": "/etc/openhab/items/forecast-quality.items",
       "state_writer": "forecast-intel.service"
     },
     {
-      "kind": "item", "id": "Forecast_TempHigh_Bias_7d", "provider": "file", "migration": "verified",
-      "source": "items/forecast-quality.items", "destination": "/etc/openhab/items/forecast-quality.items",
+      "kind": "item",
+      "id": "Forecast_TempHigh_Bias_7d",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/forecast-quality.items",
+      "destination": "/etc/openhab/items/forecast-quality.items",
       "state_writer": "forecast-intel.service"
     },
     {
-      "kind": "item", "id": "Forecast_TempLow_Error_7d", "provider": "file", "migration": "verified",
-      "source": "items/forecast-quality.items", "destination": "/etc/openhab/items/forecast-quality.items",
+      "kind": "item",
+      "id": "Forecast_TempLow_Error_7d",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/forecast-quality.items",
+      "destination": "/etc/openhab/items/forecast-quality.items",
       "state_writer": "forecast-intel.service"
     },
     {
-      "kind": "item", "id": "Forecast_Day3_High_Error_7d", "provider": "file", "migration": "verified",
-      "source": "items/forecast-quality.items", "destination": "/etc/openhab/items/forecast-quality.items",
+      "kind": "item",
+      "id": "Forecast_Day3_High_Error_7d",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/forecast-quality.items",
+      "destination": "/etc/openhab/items/forecast-quality.items",
       "state_writer": "forecast-intel.service"
     },
     {
-      "kind": "item", "id": "Forecast_Day3_Precip_Error_7d", "provider": "file", "migration": "verified",
-      "source": "items/forecast-quality.items", "destination": "/etc/openhab/items/forecast-quality.items",
+      "kind": "item",
+      "id": "Forecast_Day3_Precip_Error_7d",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/forecast-quality.items",
+      "destination": "/etc/openhab/items/forecast-quality.items",
       "state_writer": "forecast-intel.service"
     },
     {
-      "kind": "item", "id": "Forecast_HighCorrection_F", "provider": "file", "migration": "verified",
-      "source": "items/forecast-corrections.items", "destination": "/etc/openhab/items/forecast-corrections.items",
+      "kind": "item",
+      "id": "Forecast_HighCorrection_F",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/forecast-corrections.items",
+      "destination": "/etc/openhab/items/forecast-corrections.items",
       "state_writer": "forecast-intel.service"
     },
     {
-      "kind": "item", "id": "Forecast_LowCorrection_F", "provider": "file", "migration": "verified",
-      "source": "items/forecast-corrections.items", "destination": "/etc/openhab/items/forecast-corrections.items",
+      "kind": "item",
+      "id": "Forecast_LowCorrection_F",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/forecast-corrections.items",
+      "destination": "/etc/openhab/items/forecast-corrections.items",
       "state_writer": "forecast-intel.service"
     },
     {
-      "kind": "item", "id": "Forecast_Tomorrow_High", "provider": "file", "migration": "prepared",
-      "source": "items/forecast-tomorrow.items", "destination": "/etc/openhab/items/forecast-tomorrow.items",
+      "kind": "item",
+      "id": "Forecast_Tomorrow_High",
+      "provider": "file",
+      "migration": "prepared",
+      "source": "items/forecast-tomorrow.items",
+      "destination": "/etc/openhab/items/forecast-tomorrow.items",
       "state_writer": "weathernext-publish.service"
     },
     {
-      "kind": "item", "id": "Forecast_Tomorrow_Low", "provider": "file", "migration": "prepared",
-      "source": "items/forecast-tomorrow.items", "destination": "/etc/openhab/items/forecast-tomorrow.items",
+      "kind": "item",
+      "id": "Forecast_Tomorrow_Low",
+      "provider": "file",
+      "migration": "prepared",
+      "source": "items/forecast-tomorrow.items",
+      "destination": "/etc/openhab/items/forecast-tomorrow.items",
       "state_writer": "weathernext-publish.service"
     },
     {
-      "kind": "item", "id": "Thermal_Advisory", "provider": "file", "migration": "verified",
-      "source": "items/thermal-advisory.items", "destination": "/etc/openhab/items/thermal-advisory.items",
+      "kind": "item",
+      "id": "Thermal_Advisory",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/thermal-advisory.items",
+      "destination": "/etc/openhab/items/thermal-advisory.items",
       "state_writer": "forecast-intel.service"
     },
     {
-      "kind": "persistence", "id": "jdbc", "provider": "file", "migration": "verified",
-      "source": "persistence/jdbc.persist", "destination": "/etc/openhab/persistence/jdbc.persist"
+      "kind": "persistence",
+      "id": "jdbc",
+      "provider": "file",
+      "migration": "verified",
+      "source": "persistence/jdbc.persist",
+      "destination": "/etc/openhab/persistence/jdbc.persist"
     },
     {
-      "kind": "item", "id": "IndoorTemp_24h_High", "provider": "file", "migration": "verified",
-      "source": "items/temperature-extrema.items", "destination": "/etc/openhab/items/temperature-extrema.items",
+      "kind": "item",
+      "id": "IndoorTemp_24h_High",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/temperature-extrema.items",
+      "destination": "/etc/openhab/items/temperature-extrema.items",
       "state_writer": "temp-highlow-24h"
     },
     {
-      "kind": "item", "id": "IndoorTemp_24h_Low", "provider": "file", "migration": "verified",
-      "source": "items/temperature-extrema.items", "destination": "/etc/openhab/items/temperature-extrema.items",
+      "kind": "item",
+      "id": "IndoorTemp_24h_Low",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/temperature-extrema.items",
+      "destination": "/etc/openhab/items/temperature-extrema.items",
       "state_writer": "temp-highlow-24h"
     },
     {
-      "kind": "item", "id": "OutdoorTemp_24h_High", "provider": "file", "migration": "verified",
-      "source": "items/temperature-extrema.items", "destination": "/etc/openhab/items/temperature-extrema.items",
+      "kind": "item",
+      "id": "OutdoorTemp_24h_High",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/temperature-extrema.items",
+      "destination": "/etc/openhab/items/temperature-extrema.items",
       "state_writer": "temp-highlow-24h"
     },
     {
-      "kind": "item", "id": "OutdoorTemp_24h_Low", "provider": "file", "migration": "verified",
-      "source": "items/temperature-extrema.items", "destination": "/etc/openhab/items/temperature-extrema.items",
+      "kind": "item",
+      "id": "OutdoorTemp_24h_Low",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/temperature-extrema.items",
+      "destination": "/etc/openhab/items/temperature-extrema.items",
       "state_writer": "temp-highlow-24h"
     },
     {
-      "kind": "item", "id": "BTC_USD_Price", "provider": "file", "migration": "verified",
-      "source": "items/bitcoin-price.items", "destination": "/etc/openhab/items/bitcoin-price.items",
+      "kind": "item",
+      "id": "BTC_USD_Price",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/bitcoin-price.items",
+      "destination": "/etc/openhab/items/bitcoin-price.items",
       "state_writer": "exec:command:BTC_Price:output"
     },
     {
-      "kind": "link", "id": "BTC_USD_Price -> exec:command:BTC_Price:output",
-      "provider": "file", "migration": "verified",
-      "source": "items/bitcoin-price.items", "destination": "/etc/openhab/items/bitcoin-price.items"
+      "kind": "link",
+      "id": "BTC_USD_Price -> exec:command:BTC_Price:output",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/bitcoin-price.items",
+      "destination": "/etc/openhab/items/bitcoin-price.items"
     },
     {
       "kind": "item",
@@ -459,31 +642,45 @@
       "destination": "/etc/openhab/items/weather-rain-evidence.items"
     },
     {
-      "kind": "thing", "id": "http:url:weatherRadiationEvidence", "provider": "file",
-      "migration": "observational", "source": "things/weather-radiation-evidence.things",
+      "kind": "thing",
+      "id": "http:url:weatherRadiationEvidence",
+      "provider": "file",
+      "migration": "observational",
+      "source": "things/weather-radiation-evidence.things",
       "destination": "/etc/openhab/things/weather-radiation-evidence.things"
     },
     {
-      "kind": "item", "id": "Weather_Radiation_Evidence_JSON", "provider": "file",
-      "migration": "observational", "source": "items/weather-radiation-evidence.items",
+      "kind": "item",
+      "id": "Weather_Radiation_Evidence_JSON",
+      "provider": "file",
+      "migration": "observational",
+      "source": "items/weather-radiation-evidence.items",
       "destination": "/etc/openhab/items/weather-radiation-evidence.items",
       "state_writer": "http:url:weatherRadiationEvidence:snapshot"
     },
     {
-      "kind": "link", "id": "Weather_Radiation_Evidence_JSON -> http:url:weatherRadiationEvidence:snapshot",
-      "provider": "file", "migration": "observational",
+      "kind": "link",
+      "id": "Weather_Radiation_Evidence_JSON -> http:url:weatherRadiationEvidence:snapshot",
+      "provider": "file",
+      "migration": "observational",
       "source": "items/weather-radiation-evidence.items",
       "destination": "/etc/openhab/items/weather-radiation-evidence.items"
     },
     {
-      "kind": "item", "id": "Astro_Forecast_Context_JSON", "provider": "file",
-      "migration": "observational", "source": "items/astro-forecast-context.items",
+      "kind": "item",
+      "id": "Astro_Forecast_Context_JSON",
+      "provider": "file",
+      "migration": "observational",
+      "source": "items/astro-forecast-context.items",
       "destination": "/etc/openhab/items/astro-forecast-context.items",
       "state_writer": "hex_astro_forecast_context calculated geometry, not sensor evidence"
     },
     {
-      "kind": "rule", "id": "hex_astro_forecast_context", "provider": "file",
-      "migration": "observational", "source": "automation/js/astro-forecast-context.js",
+      "kind": "rule",
+      "id": "hex_astro_forecast_context",
+      "provider": "file",
+      "migration": "observational",
+      "source": "automation/js/astro-forecast-context.js",
       "destination": "/etc/openhab/automation/js/astro-forecast-context.js",
       "state_writer": "Astro_Forecast_Context_JSON"
     },
@@ -542,13 +739,21 @@
       "state_writer": "BTC_Price_24h_PercentChange"
     },
     {
-      "kind": "item", "id": "Bedroom_Temperature", "provider": "file", "migration": "verified",
-      "source": "items/bedroom-temperature.items", "destination": "/etc/openhab/items/bedroom-temperature.items",
+      "kind": "item",
+      "id": "Bedroom_Temperature",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/bedroom-temperature.items",
+      "destination": "/etc/openhab/items/bedroom-temperature.items",
       "state_writer": "hex_bedroom_temperature"
     },
     {
-      "kind": "rule", "id": "hex_bedroom_temperature", "provider": "file", "migration": "verified",
-      "source": "automation/js/bedroom-temperature.js", "destination": "/etc/openhab/automation/js/bedroom-temperature.js",
+      "kind": "rule",
+      "id": "hex_bedroom_temperature",
+      "provider": "file",
+      "migration": "verified",
+      "source": "automation/js/bedroom-temperature.js",
+      "destination": "/etc/openhab/automation/js/bedroom-temperature.js",
       "state_writer": "Bedroom_Temperature"
     },
     {
@@ -1181,22 +1386,142 @@
       "receipt": "docs/operations/2026-10-05-sky-diagnostic-items.md",
       "production_restart_qualified": false
     },
-    {"kind": "item", "id": "Sun_Autumn", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items", "state_writer": "astro:sun:local:season#autumn"},
-    {"kind": "link", "id": "Sun_Autumn -> astro:sun:local:season#autumn", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items"},
-    {"kind": "item", "id": "Sun_Eclipse_PartialElevation", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items", "state_writer": "astro:sun:local:eclipse#partialElevation"},
-    {"kind": "link", "id": "Sun_Eclipse_PartialElevation -> astro:sun:local:eclipse#partialElevation", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items"},
-    {"kind": "item", "id": "Sun_PartialEclipse", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items", "state_writer": "astro:sun:local:eclipse#partial"},
-    {"kind": "link", "id": "Sun_PartialEclipse -> astro:sun:local:eclipse#partial", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items"},
-    {"kind": "item", "id": "Sun_RingEclipse", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items", "state_writer": "astro:sun:local:eclipse#ring"},
-    {"kind": "link", "id": "Sun_RingEclipse -> astro:sun:local:eclipse#ring", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items"},
-    {"kind": "item", "id": "Sun_Spring", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items", "state_writer": "astro:sun:local:season#spring"},
-    {"kind": "link", "id": "Sun_Spring -> astro:sun:local:season#spring", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items"},
-    {"kind": "item", "id": "Sun_Summer", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items", "state_writer": "astro:sun:local:season#summer"},
-    {"kind": "link", "id": "Sun_Summer -> astro:sun:local:season#summer", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items"},
-    {"kind": "item", "id": "Sun_TotalEclipse", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items", "state_writer": "astro:sun:local:eclipse#total"},
-    {"kind": "link", "id": "Sun_TotalEclipse -> astro:sun:local:eclipse#total", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items"},
-    {"kind": "item", "id": "Sun_Winter", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items", "state_writer": "astro:sun:local:season#winter"},
-    {"kind": "link", "id": "Sun_Winter -> astro:sun:local:season#winter", "provider": "file", "migration": "verified", "source": "items/sun-calendar.items", "destination": "/etc/openhab/items/sun-calendar.items"},
+    {
+      "kind": "item",
+      "id": "Sun_Autumn",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/sun-calendar.items",
+      "destination": "/etc/openhab/items/sun-calendar.items",
+      "state_writer": "astro:sun:local:season#autumn"
+    },
+    {
+      "kind": "link",
+      "id": "Sun_Autumn -> astro:sun:local:season#autumn",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/sun-calendar.items",
+      "destination": "/etc/openhab/items/sun-calendar.items"
+    },
+    {
+      "kind": "item",
+      "id": "Sun_Eclipse_PartialElevation",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/sun-calendar.items",
+      "destination": "/etc/openhab/items/sun-calendar.items",
+      "state_writer": "astro:sun:local:eclipse#partialElevation"
+    },
+    {
+      "kind": "link",
+      "id": "Sun_Eclipse_PartialElevation -> astro:sun:local:eclipse#partialElevation",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/sun-calendar.items",
+      "destination": "/etc/openhab/items/sun-calendar.items"
+    },
+    {
+      "kind": "item",
+      "id": "Sun_PartialEclipse",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/sun-calendar.items",
+      "destination": "/etc/openhab/items/sun-calendar.items",
+      "state_writer": "astro:sun:local:eclipse#partial"
+    },
+    {
+      "kind": "link",
+      "id": "Sun_PartialEclipse -> astro:sun:local:eclipse#partial",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/sun-calendar.items",
+      "destination": "/etc/openhab/items/sun-calendar.items"
+    },
+    {
+      "kind": "item",
+      "id": "Sun_RingEclipse",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/sun-calendar.items",
+      "destination": "/etc/openhab/items/sun-calendar.items",
+      "state_writer": "astro:sun:local:eclipse#ring"
+    },
+    {
+      "kind": "link",
+      "id": "Sun_RingEclipse -> astro:sun:local:eclipse#ring",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/sun-calendar.items",
+      "destination": "/etc/openhab/items/sun-calendar.items"
+    },
+    {
+      "kind": "item",
+      "id": "Sun_Spring",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/sun-calendar.items",
+      "destination": "/etc/openhab/items/sun-calendar.items",
+      "state_writer": "astro:sun:local:season#spring"
+    },
+    {
+      "kind": "link",
+      "id": "Sun_Spring -> astro:sun:local:season#spring",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/sun-calendar.items",
+      "destination": "/etc/openhab/items/sun-calendar.items"
+    },
+    {
+      "kind": "item",
+      "id": "Sun_Summer",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/sun-calendar.items",
+      "destination": "/etc/openhab/items/sun-calendar.items",
+      "state_writer": "astro:sun:local:season#summer"
+    },
+    {
+      "kind": "link",
+      "id": "Sun_Summer -> astro:sun:local:season#summer",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/sun-calendar.items",
+      "destination": "/etc/openhab/items/sun-calendar.items"
+    },
+    {
+      "kind": "item",
+      "id": "Sun_TotalEclipse",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/sun-calendar.items",
+      "destination": "/etc/openhab/items/sun-calendar.items",
+      "state_writer": "astro:sun:local:eclipse#total"
+    },
+    {
+      "kind": "link",
+      "id": "Sun_TotalEclipse -> astro:sun:local:eclipse#total",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/sun-calendar.items",
+      "destination": "/etc/openhab/items/sun-calendar.items"
+    },
+    {
+      "kind": "item",
+      "id": "Sun_Winter",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/sun-calendar.items",
+      "destination": "/etc/openhab/items/sun-calendar.items",
+      "state_writer": "astro:sun:local:season#winter"
+    },
+    {
+      "kind": "link",
+      "id": "Sun_Winter -> astro:sun:local:season#winter",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/sun-calendar.items",
+      "destination": "/etc/openhab/items/sun-calendar.items"
+    },
     {
       "kind": "rule",
       "id": "hex_living_room_circadian",
@@ -1207,14 +1532,19 @@
       "rest_path": "/rules/hex_living_room_circadian"
     },
     {
-      "kind": "item", "id": "Sun_Circadian_Temperature", "provider": "file",
-      "migration": "observational", "source": "items/astro-circadian-temperature.items",
+      "kind": "item",
+      "id": "Sun_Circadian_Temperature",
+      "provider": "file",
+      "migration": "observational",
+      "source": "items/astro-circadian-temperature.items",
       "destination": "/etc/openhab/items/astro-circadian-temperature.items",
       "state_writer": "astro:sun:local:circadian#temperature native Kelvin target"
     },
     {
-      "kind": "link", "id": "Sun_Circadian_Temperature -> astro:sun:local:circadian#temperature",
-      "provider": "file", "migration": "observational",
+      "kind": "link",
+      "id": "Sun_Circadian_Temperature -> astro:sun:local:circadian#temperature",
+      "provider": "file",
+      "migration": "observational",
       "source": "items/astro-circadian-temperature.items",
       "destination": "/etc/openhab/items/astro-circadian-temperature.items"
     },
@@ -1244,6 +1574,66 @@
       "source": "items/forecast-provider-shadow.items",
       "destination": "/etc/openhab/items/forecast-provider-shadow.items",
       "state_writer": "local-forecast-shadow.service"
+    },
+    {
+      "kind": "item",
+      "id": "Shade_Kitchen_RecommendationAutomation",
+      "provider": "file",
+      "migration": "prepared",
+      "source": "items/shade-recommendation-policy.items",
+      "destination": "/etc/openhab/items/shade-recommendation-policy.items",
+      "state_writer": "hex_shade_recommendation_policy",
+      "notes": "Source only; not installed or commissioned. Existing wildcard JDBC restores explicit choices."
+    },
+    {
+      "kind": "item",
+      "id": "Shade_LivingRoom_RecommendationAutomation",
+      "provider": "file",
+      "migration": "prepared",
+      "source": "items/shade-recommendation-policy.items",
+      "destination": "/etc/openhab/items/shade-recommendation-policy.items",
+      "state_writer": "hex_shade_recommendation_policy",
+      "notes": "Source only; not installed or commissioned. Existing wildcard JDBC restores explicit choices."
+    },
+    {
+      "kind": "item",
+      "id": "Shade_Bathroom_RecommendationAutomation",
+      "provider": "file",
+      "migration": "prepared",
+      "source": "items/shade-recommendation-policy.items",
+      "destination": "/etc/openhab/items/shade-recommendation-policy.items",
+      "state_writer": "hex_shade_recommendation_policy",
+      "notes": "Source only; not installed or commissioned. Existing wildcard JDBC restores explicit choices."
+    },
+    {
+      "kind": "item",
+      "id": "Shade_Bedroom_RecommendationAutomation",
+      "provider": "file",
+      "migration": "prepared",
+      "source": "items/shade-recommendation-policy.items",
+      "destination": "/etc/openhab/items/shade-recommendation-policy.items",
+      "state_writer": "hex_shade_recommendation_policy",
+      "notes": "Source only; not installed or commissioned. Existing wildcard JDBC restores explicit choices."
+    },
+    {
+      "kind": "item",
+      "id": "Shade_RecommendationAutomationRevision",
+      "provider": "file",
+      "migration": "prepared",
+      "source": "items/shade-recommendation-policy.items",
+      "destination": "/etc/openhab/items/shade-recommendation-policy.items",
+      "state_writer": "hex_shade_recommendation_policy",
+      "notes": "Source only; not installed or commissioned. Existing wildcard JDBC restores explicit choices."
+    },
+    {
+      "kind": "item",
+      "id": "Shade_RecommendationAutomationSession",
+      "provider": "file",
+      "migration": "prepared",
+      "source": "items/shade-recommendation-policy.items",
+      "destination": "/etc/openhab/items/shade-recommendation-policy.items",
+      "state_writer": "hex_shade_recommendation_policy",
+      "notes": "Source only. Volatile owner readiness excluded from JDBC; never restore this Item."
     }
   ]
 }

@@ -1,7 +1,8 @@
+import { validateAnalyticsForecast, currentAnalyticsForecast, currentLegacyForecast } from './analyticsForecast.js';
 export const ENERGY_ANALYTICS_MAX_BYTES = 16 * 1024;
 export const ENERGY_ANALYTICS_STALE_MS = 15 * 60_000;
 export const ENERGY_ANALYTICS_REFRESH_MS = 30_000;
-const SCHEMAS = new Set(['earthship-energy-ui/v1', 'earthship-energy-ui/v2', 'earthship-energy-ui/v3', 'earthship-energy-ui/v4']);
+const SCHEMAS = new Set(['earthship-energy-ui/v1', 'earthship-energy-ui/v2', 'earthship-energy-ui/v3', 'earthship-energy-ui/v4', 'earthship-energy-ui/v5']);
 const STATUS = new Set(['ok', 'degraded', 'unavailable', 'stale', 'fault']);
 const FORECAST_STATUS = new Set(['current', 'stale', 'unavailable', 'degraded']);
 
@@ -122,8 +123,8 @@ function boundedText(value, path, optional = true) {
 }
 
 function validatePayload(payload) {
-  const qualified = ['earthship-energy-ui/v3', 'earthship-energy-ui/v4'].includes(payload?.schema);
-  exact(payload, payload?.schema === 'earthship-energy-ui/v4'
+  const qualified = ['earthship-energy-ui/v3', 'earthship-energy-ui/v4', 'earthship-energy-ui/v5'].includes(payload?.schema);
+  exact(payload, ['earthship-energy-ui/v4', 'earthship-energy-ui/v5'].includes(payload?.schema)
     ? ['acLoad', 'accounting', ...TOP] : qualified ? ['accounting', ...TOP] : TOP, 'payload');
   if (!SCHEMAS.has(payload.schema)) throw new Error('schema');
   const generatedAtMs = timestamp(payload.generatedAt, 'generatedAt');
@@ -211,6 +212,9 @@ function validatePayload(payload) {
   number(moduleHealth.latestCurrentSharingRangeA, 'moduleHealth_currentRange');
   number(moduleHealth.maximumCellSpreadMv, 'moduleHealth_cellSpread');
 
+  if (payload.schema === 'earthship-energy-ui/v5') {
+    validateAnalyticsForecast(payload.forecast, generatedAtMs);
+  } else {
   const forecast = exact(payload.forecast, FORECAST, 'forecast');
   if (!FORECAST_STATUS.has(forecast.status)) throw new Error('forecast_status');
   timestamp(forecast.issuedAt, 'forecast_issuedAt', true);
@@ -221,13 +225,14 @@ function validatePayload(payload) {
   bool(forecast.fullTomorrow, 'forecast_fullTomorrow');
   boundedText(forecast.reason, 'forecast_reason');
 
+  }
   const health = exact(payload.health, HEALTH, 'health');
   for (const field of ['status', 'analytics', 'bms', 'collector', 'forecast', 'publisher',
     'schneider', 'weather']) status(health[field], `health_${field}`);
   if (!Array.isArray(health.reasons) || health.reasons.length > 16) throw new Error('health_reasons');
   health.reasons.forEach((reason, index) => boundedText(reason, `health_reason_${index}`, false));
   if (qualified) validateAccounting(payload, generatedAtMs);
-  if (payload.schema === 'earthship-energy-ui/v4') validateAcLoad(payload, generatedAtMs);
+  if (['earthship-energy-ui/v4', 'earthship-energy-ui/v5'].includes(payload.schema)) validateAcLoad(payload, generatedAtMs);
   return generatedAtMs;
 }
 
@@ -356,6 +361,16 @@ export function parseEnergyAnalyticsResult(raw, nowMs = Date.now()) {
     const stale = nowMs - generatedAtMs > ENERGY_ANALYTICS_STALE_MS;
     const reasons = [...payload.health.reasons];
     if (stale) reasons.push('analytics_payload_stale');
+    const forecast = payload.schema === 'earthship-energy-ui/v5'
+      ? currentAnalyticsForecast(payload.forecast, { nowMs, parentStale: stale })
+      : currentLegacyForecast(payload.forecast, { nowMs, parentStale: stale });
+    const health = structuredClone(payload.health);
+    health.forecast = forecast.status === 'current' ? 'ok' : forecast.status;
+    if (health.forecast !== 'ok') {
+      health.status = 'degraded';
+      if (forecast.reason) reasons.push(forecast.reason);
+    }
+
     return deepFreeze({
       state: stale ? 'stale' : payload.status === 'ok' ? 'ready' : payload.status,
       generatedAtMs,
@@ -371,8 +386,8 @@ export function parseEnergyAnalyticsResult(raw, nowMs = Date.now()) {
       energy: structuredClone(payload.energy),
       winter: structuredClone(payload.winter),
       lifecycle: structuredClone(payload.lifecycle),
-      forecast: structuredClone(payload.forecast),
-      health: structuredClone(payload.health),
+      forecast,
+      health,
       reasons,
     });
   } catch {

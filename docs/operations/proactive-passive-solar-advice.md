@@ -111,3 +111,16 @@ samples, nightly summaries and fit metrics are retained under
 `artifacts/nighttime-thermal-history-20261029.local/`. Future shade-position
 history can distinguish open/closed thermal-loss regimes while controlling for
 outdoor temperature, stored heat, wind, ventilation and other observed changes.
+
+
+## Existing OpenHAB energy schedules (operator clarification, 2026-10-31)
+
+The operator requires no new discretionary task: existing tasks are already
+configured in OpenHAB. Read-only live registry inspection confirms the existing
+`hex_southoutlet_cycle` and `hex_night_load_override` owners and their schedules.
+Provisional household advice therefore reports energy scheduling managed by
+OpenHAB, with no missing approval blocker or duplicate scheduler. It does not
+reschedule those owners, convert essential/protected demand into optional work,
+or require the user to enter another appliance profile. The separate optional
+explicit-policy energy evaluator retains its approval/attribution requirements
+for any future deliberately introduced standalone task.

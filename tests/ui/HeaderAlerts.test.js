@@ -35,6 +35,9 @@ vi.mock('../../src/lib/openhab/index.js', async () => {
 
 import { connection, items } from '../../src/lib/openhab/index.js';
 import Header from '../../src/lib/ui/Header.svelte';
+import Clock from '../../src/lib/ui/Clock.svelte';
+import { currentRoute } from '../../src/routes.js';
+import { tick } from 'svelte';
 
 function thermalWarningReceipt(now = Date.now()) {
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Denver',
@@ -50,6 +53,7 @@ function thermalWarningReceipt(now = Date.now()) {
 describe('Header alerts UI', () => {
   beforeEach(() => {
     mocks.navigate.mockReset();
+    currentRoute.set('home');
     connection.set('live');
     items.set({
       BMS_Comms_Status: 'OK',
@@ -76,7 +80,7 @@ describe('Header alerts UI', () => {
     connection.set('offline');
     items.update((value) => ({
       ...value,
-      Forecast_Prediction_Receipt_JSON: thermalWarningReceipt(),
+      BMS_DevicePresent: '0',
     }));
     render(Header);
 
@@ -87,7 +91,7 @@ describe('Header alerts UI', () => {
 
     const list = screen.getByRole('dialog', { name: 'Active alerts' });
     expect(list).toHaveTextContent('openHAB offline');
-    expect(list).toHaveTextContent('Close up for thermal storage');
+    expect(list).toHaveTextContent('The battery-management device is not present.');
     expect(list.querySelectorAll('[data-alert-list-item]')).toHaveLength(2);
   });
 
@@ -119,7 +123,7 @@ describe('Header alerts UI', () => {
 
     items.update((value) => ({ ...value, Forecast_Prediction_Receipt_JSON: thermalWarningReceipt() }));
     await vi.waitFor(() => {
-      expect(container.querySelector('[aria-live="polite"]')).toHaveTextContent('Close up for thermal storage');
+      expect(container.querySelector('[aria-live="polite"]')).toHaveTextContent('No active alerts');
     });
     expect(assertive).toHaveTextContent('');
 
@@ -133,4 +137,47 @@ describe('Header alerts UI', () => {
       expect(assertive).toHaveTextContent('openHAB offline');
     });
   });
+  it('keeps only the date in Home header and restores compact time on another route', async () => {
+    const { container } = render(Header);
+    const date = new Date().toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+    expect(container.querySelector('.clock')).toHaveTextContent(date);
+    expect(container.querySelector('.time')).toBeNull();
+
+    currentRoute.set('energy');
+    await tick();
+    expect(container.querySelector('.time')).toHaveTextContent(/\d{1,2}:\d{2} [AP]M/);
+    expect(container.querySelector('.date')).toHaveTextContent(date);
+
+    currentRoute.set('home');
+    await tick();
+    expect(container.querySelector('.time')).toBeNull();
+    expect(container.querySelectorAll('.date')).toHaveLength(1);
+  });
+
+  it('ticks conditional Clock content across midnight and clears its interval on teardown', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-10-26T23:59:59-06:00'));
+      const baseline = vi.getTimerCount();
+      const view = render(Clock, { showTime: false });
+      expect(view.container.querySelector('.time')).toBeNull();
+      const oldDate = view.container.textContent;
+      await vi.advanceTimersByTimeAsync(1000);
+      await tick();
+      expect(view.container.textContent).not.toBe(oldDate);
+      await view.rerender({ showTime: true, showDate: false });
+      expect(view.container.querySelector('.date')).toBeNull();
+      expect(view.container.querySelector('.time')).toHaveTextContent('12:00 AM');
+      await vi.advanceTimersByTimeAsync(60_000);
+      await tick();
+      expect(view.container.querySelector('.time')).toHaveTextContent('12:01 AM');
+      expect(vi.getTimerCount()).toBe(baseline + 1);
+      view.unmount();
+      expect(vi.getTimerCount()).toBe(baseline);
+    } finally {
+      cleanup();
+      vi.useRealTimers();
+    }
+  });
+
 });

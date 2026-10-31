@@ -30,7 +30,10 @@ def evaluate(report, snapshot, projections, state, now):
     band = f'Provisional comfort band {low:g}–{high:g}°F.'
     report['policy_sha256'] = identity(preferences)
     report['timezone'] = preferences['timezone']
-    report['domains']['energy'] = _domain('insufficient_evidence', 'approved_flexible_task_missing', ['approved_flexible_task'])
+    # Standalone flexible-task advice is optional. Existing household energy
+    # schedules belong to OpenHAB; their absence here is not missing approval.
+    # Never duplicate those schedules or infer discretionary load permission.
+    report['domains']['energy'] = _domain('no_change_recommended', 'energy_scheduling_managed_by_openhab')
     air = _reading(snapshot, 'thermal', 'air_temperature', now)
     out = _reading(snapshot, 'weather', 'outdoor_temperature', now)
 

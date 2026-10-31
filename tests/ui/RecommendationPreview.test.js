@@ -1,31 +1,21 @@
 // @vitest-environment jsdom
 import {afterEach,expect,it,vi} from 'vitest';
-import {cleanup,render,waitFor} from '@testing-library/svelte';
+import {cleanup,render} from '@testing-library/svelte';
 vi.mock('svelte',async()=>import('../../node_modules/svelte/src/index-client.js'));
 import RecommendationPreview from '../../src/lib/ui/RecommendationPreview.svelte';
-import {currentDeviceObservation} from '../fixtures/household-recommendations.js';
+import {recommendationObservation} from '../fixtures/household-recommendations.js';
 import {AT} from '../fixtures/household-observation.js';
 afterEach(()=>{cleanup();vi.useRealTimers();vi.restoreAllMocks();vi.unstubAllGlobals();});
-function serve(){vi.spyOn(Date,'now').mockReturnValue(AT);const fetcher=vi.fn(async()=>new Response(JSON.stringify(currentDeviceObservation())));vi.stubGlobal('fetch',fetcher);return fetcher;}
-it('shows exact action, source clocks, confidence and blockers using only the fixed GET',async()=>{
- const fetcher=serve();const {container,getAllByText,getByText}=render(RecommendationPreview,{group:'loads',historical:true});
- await waitFor(()=>expect(getAllByText('Dishwasher: ON').length).toBeGreaterThan(0));
- expect(getByText('Low forecast battery SoC')).toBeTruthy();expect(container.textContent).toContain('Blocked');
- expect(container.textContent).toContain('Confidence: unavailable');expect(container.textContent).toContain('Original decision');
- expect(container.textContent).toContain('Automatic actuation disabled');expect(container.querySelector('form,input,select')).toBeNull();
- expect([...container.querySelectorAll('button')].every(b=>b.hasAttribute('popovertarget'))).toBe(true);
- expect(fetcher.mock.calls.every(([url,options])=>url==='/api/household-observation'&&!options.method)).toBe(true);
+it.each(['loads','night-policy','greywater','devices','feeding'])('retires %s previews without polling the old proposal source',group=>{
+ vi.spyOn(Date,'now').mockReturnValue(AT);
+ const fetcher=vi.fn(async()=>new Response(JSON.stringify(recommendationObservation())));vi.stubGlobal('fetch',fetcher);
+ const {container}=render(RecommendationPreview,{group});
+ expect(container.querySelector('[data-recommendation-group]')).toBeNull();
+ expect(container.textContent).not.toContain('Night-load override');
+ expect(fetcher).not.toHaveBeenCalled();
 });
-it('expires from the display clock without waiting for another fetch',async()=>{
- serve();vi.useFakeTimers();const {container}=render(RecommendationPreview,{group:'loads',historical:true});await vi.advanceTimersByTimeAsync(1);
- expect(container.textContent).toContain('Blocked');vi.spyOn(Date,'now').mockReturnValue(AT+60000);await vi.advanceTimersByTimeAsync(1000);
- expect(container.textContent).toContain('Expired');
-});
-it('does not fabricate feeding or shade advice when it is absent',async()=>{
- serve();const a=render(RecommendationPreview,{group:'feeding'});expect(a.container.querySelector('[data-recommendation-group]')).toBeNull();
- const b=render(RecommendationPreview,{group:'shades'});expect(b.container.textContent).toContain('Model shade advice unavailable');
-});
-
-it('does not display a greywater recommendation from any current cache',()=>{
- serve();const r=render(RecommendationPreview,{group:'greywater'});expect(r.container.querySelector('[data-recommendation-group]')).toBeNull();
+it('keeps current thermal advice explicitly unavailable when no qualified model candidate exists',()=>{
+ const {container}=render(RecommendationPreview,{group:'shades'});
+ expect(container.textContent).toContain('Model shade advice unavailable');
+ expect(container.textContent).toContain('Automatic actuation disabled');
 });

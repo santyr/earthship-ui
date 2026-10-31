@@ -1,5 +1,6 @@
 import { expect, test } from './fixture-test.js';
-import { createServer } from 'vite';
+import { energyForecastFixture } from '../fixtures/energyForecast.js';
+import { createServer } from './fixture-server.js';
 import { readFile } from 'node:fs/promises';
 
 const TARGETS = [
@@ -257,8 +258,11 @@ test('ordinary overcast and stale sky icons render without full offline collecti
   expect(runtime.pageErrors).toEqual([]);
 });
 
-test('Home curtailment follows the dated daily prediction receipt', async ({ page }) => {
+test('Home curtailment uses the current energy forecast instead of the retired receipt', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-09-24T07:00:00-06:00') });
+  await page.route('**/api/household-energy-observation', route => route.fulfill({
+    json: energyForecastFixture('2026-09-24T06:59:00-06:00'),
+  }));
   const receipt = JSON.stringify({ version: 1, predictionDay: '2026-09-24',
     issuedAt: '2026-09-24T06:40:29-06:00', pvTodayKwh: 3.3,
     curtailmentHoursToday: 1.5, overnightTroughSocPct: 59,
@@ -266,7 +270,11 @@ test('Home curtailment follows the dated daily prediction receipt', async ({ pag
   await openHomeFixture(page, TARGETS[0], {
     states: { Predicted_Curtailment_Hours: '0', Forecast_Prediction_Receipt_JSON: receipt },
   });
-  await expect(page.locator('.curtail-lamp')).toContainText('curtail 1.5 h');
+  await expect(page.locator('.curtail-lamp')).toContainText('curtail 3.0 kWh · 24h');
+  await expect(page.locator('.curtail-lamp .lamp-dot')).toHaveClass(/active/);
+  await page.clock.fastForward('15:00');
+  await expect(page.locator('.curtail-lamp')).toContainText('curtail — · 24h');
+  await expect(page.locator('.curtail-lamp .lamp-dot')).not.toHaveClass(/active/);
 });
 
 test('Solar comparison follows the dated forecast across local midnight', async ({ page }) => {
@@ -409,8 +417,8 @@ test.describe('Home daily load estimate', () => {
       historyRows: ({ name, startMs, endMs }) => name === LOAD
         ? [{ time: startMs, state: '1000' }, { time: endMs, state: '999999' }] : undefined,
     });
-    await expect(page.locator('.pf-line2')).toContainText('~2.0 kWh used');
-    await expect(page.locator('.pf-line2')).toContainText('~+3.2 kWh net');
+    await expect(page.locator('.pf-line2')).toHaveAccessibleName(/~2\.0 kWh used/);
+    await expect(page.locator('.pf-line2')).toHaveAccessibleName(/~\+3\.2 kWh net/);
     expect(runtime.pageErrors).toEqual([]);
     expect(runtime.attemptedNonGetRequests).toEqual([]);
   });
@@ -421,8 +429,8 @@ test.describe('Home daily load estimate', () => {
         historyRows: ({ name, startMs }) => name === LOAD ? [{ time: startMs + 60_000, state: '1000' }] : undefined,
         historyFailure: ({ name }) => failure === 'request failure' && name === LOAD,
       });
-      await expect(page.locator('.pf-line2')).toContainText('— used');
-      await expect(page.locator('.pf-line2')).toContainText('— net');
+      await expect(page.locator('.pf-line2')).toHaveAccessibleName(/— used/);
+      await expect(page.locator('.pf-line2')).toHaveAccessibleName(/— net/);
     });
   }
   test('clears yesterday total while new-day history is pending', async ({ page }) => {
@@ -437,11 +445,11 @@ test.describe('Home daily load estimate', () => {
       },
     });
     try {
-      await expect(page.locator('.pf-line2')).toContainText('~24.0 kWh used');
+      await expect(page.locator('.pf-line2')).toHaveAccessibleName(/~24\.0 kWh used/);
       await page.clock.runFor(60_000);
-      await expect(page.locator('.pf-line2')).toContainText('— used');
+      await expect(page.locator('.pf-line2')).toHaveAccessibleName(/— used/);
       release();
-      await expect(page.locator('.pf-line2')).toContainText('~0.0 kWh used');
+      await expect(page.locator('.pf-line2')).toHaveAccessibleName(/~0\.0 kWh used/);
       expect(runtime.pageErrors).toEqual([]);
       expect(runtime.attemptedNonGetRequests).toEqual([]);
     } finally { release(); }
@@ -459,10 +467,10 @@ test.describe('Home daily load estimate', () => {
     });
     try {
       await page.clock.runFor(60_000);
-      await expect(page.locator('.pf-line2')).toContainText('~0.0 kWh used');
+      await expect(page.locator('.pf-line2')).toHaveAccessibleName(/~0\.0 kWh used/);
       release();
       await page.clock.runFor(1000);
-      await expect(page.locator('.pf-line2')).toContainText('~0.0 kWh used');
+      await expect(page.locator('.pf-line2')).toHaveAccessibleName(/~0\.0 kWh used/);
       expect(runtime.pageErrors).toEqual([]);
     } finally { release(); }
   });
@@ -1405,7 +1413,9 @@ for (const target of TARGETS) {
     await expect(page.locator('.baro-trend')).toHaveCSS('color', 'rgb(255, 87, 34)');
     await expect(page.locator('.solar-icon')).toHaveCSS('color', 'rgb(255, 152, 0)');
     await expect(page.locator('.solar-current')).toHaveCSS('color', 'rgb(255, 152, 0)');
-    await expect(page.locator('.curtail-lamp')).toHaveCSS('color', 'rgb(234, 179, 8)');
+    // A retained legacy prediction must not color a missing current forecast.
+    await expect(page.locator('.curtail-lamp')).toContainText('curtail — · 24h');
+    await expect(page.locator('.curtail-lamp')).toHaveCSS('color', 'rgb(139, 147, 161)');
 
     await expect(page.locator('.sm-moon')).toHaveAttribute(
       'title',

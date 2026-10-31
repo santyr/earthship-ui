@@ -11,6 +11,8 @@ import {
 } from './src/lib/openhab/proxyPolicy.js'
 import { validateControlCatalog } from './src/lib/controls/catalog.js'
 import { shadePreviewPlugin } from './src/lib/shades/previewServer.js'
+import { shadePolicyPlugin } from './src/lib/shades/policyServer.js'
+import { shadeExecutionPlugin } from './src/lib/shades/executionServer.js'
 import { householdObservationPlugin, HOUSEHOLD_FS_DENY } from './src/lib/household/observationServer.js'
 
 // https://vite.dev/config/
@@ -73,7 +75,7 @@ function openhabProxyGuard(releaseMode, upstream, authorization) {
   }
 }
 
-export default defineConfig(() => {
+export default defineConfig(({ mode }) => {
   const releaseMode = process.env.RELEASE_MODE || 'maintenance'
   const proxyToken = process.env.OPENHAB_TOKEN?.trim()
   const proxyAuthorization = proxyToken ? openhabProxyAuthorization(proxyToken) : null
@@ -82,12 +84,14 @@ export default defineConfig(() => {
     throw new Error(`Control catalog invalid: ${catalogErrors.join('; ')}`)
   }
   return {
-    plugins: [openhabProxyGuard(releaseMode, OPENHAB, proxyAuthorization), shadePreviewPlugin(), householdObservationPlugin(), householdAdvicePlugin(), terrainDaylightPlugin(), svelte()],
+    cacheDir: mode === 'test' ? '.superpowers/test-cache/vitest' : undefined,
+    plugins: [openhabProxyGuard(releaseMode, OPENHAB, proxyAuthorization), shadePreviewPlugin(), shadePolicyPlugin({ upstream: OPENHAB, authorization: proxyAuthorization }), shadeExecutionPlugin({ profilePath: process.env.EARTHSHIP_SHADE_OWNER_PROFILE, upstream: OPENHAB, authorization: proxyAuthorization }), householdObservationPlugin(), householdAdvicePlugin(), terrainDaylightPlugin(), svelte()],
     define: {
       __EARTHSHIP_RELEASE_MODE__: JSON.stringify(releaseMode),
     },
     test: {
-      exclude: [...configDefaults.exclude, 'tests/e2e/**', '**/.worktrees/**'],
+      include: ['tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+      exclude: [...configDefaults.exclude, 'tests/e2e/**', '**/.worktrees/**', '**/artifacts/**'],
       // The console renders local-calendar semantics (season countdown, local
       // day history ranges, wall-clock rule tests), so assertions are written
       // against the household timezone. Pin it: CI runners are UTC, and the

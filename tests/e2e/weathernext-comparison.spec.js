@@ -5,7 +5,7 @@ const fixture=JSON.parse(readFileSync(new URL('../fixtures/weathernext-shadow-v2
 const targets=[{name:'tablet',width:1340,height:800},{name:'laptop',width:1280,height:720}];
 let server,baseURL;
 test.beforeAll(async()=>{
-  const {createServer}=await import('vite');
+  const {createServer}=await import('./fixture-server.js');
   server=await createServer({root:process.cwd(),logLevel:'error',server:{host:'127.0.0.1',port:0,strictPort:false}});
   await server.listen();baseURL=server.resolvedUrls.local[0];
 });

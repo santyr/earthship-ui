@@ -35,7 +35,9 @@ describe('WeatherNext presentation', () => {
     const result=parseForecast10Day(raw.replaceAll('18:00Z','18:00:00Z'),{nowMs});
     expect(result.status).toBe('ready');
     expect(result.days[0].summary.cloudPct).toBe(40);
-    expect(hourlyForecastFromDetail(result,{nowMs})[0]).toMatchObject({c:40,w:null});
+    const strip = hourlyForecastFromDetail(result, { nowMs });
+    expect(strip[0]).toMatchObject({ at: '2026-10-19T12:00:00-06:00', missing: true, c: null });
+    expect(strip[1]).toMatchObject({ at: '2026-10-19T13:00:00-06:00', c: 40, w: null });
   });
 });
 

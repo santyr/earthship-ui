@@ -1,5 +1,5 @@
 import { expect, test } from './fixture-test.js';
-import { createServer } from 'vite';
+import { createServer } from './fixture-server.js';
 
 const TARGETS = [
   { name: 'm9-1340x800', width: 1340, height: 800 },
@@ -113,7 +113,7 @@ async function openFixture(page, route, target, detail = null) {
     // The common fixture deliberately returns 503 for these optional reports.
     // Keep unexpected asset failures and JavaScript console errors observable.
     const pathname = new URL(message.location().url || '/', baseURL).pathname;
-    const unavailableReport = ['/api/daily-pv-potential', '/api/household-energy-observation', '/api/terrain-daylight', '/api/weather-capabilities','/api/household-advice','/api/household-advice-feedback','/api/household-advice-context','/api/household-advice-state'].includes(pathname);
+    const unavailableReport = ['/api/daily-pv-potential', '/api/household-energy-observation', '/api/terrain-daylight', '/api/weather-capabilities'].includes(pathname);
     if (unavailableReport && message.text() === 'Failed to load resource: the server responded with a status of 503 (Service Unavailable)') return;
     consoleErrors.push({ message: message.text(), url: message.location().url });
   });
@@ -256,5 +256,52 @@ for (const target of TARGETS) {
     await expect(page.locator('.sm-times')).toHaveText('↑— ↓—');
     expect(errors.pageErrors).toEqual([]);expect(errors.consoleErrors).toEqual([]);
     expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+2&&document.documentElement.scrollWidth<=innerWidth+2)).toBe(true);
+  });
+}
+
+for (const target of TARGETS) {
+  test(`keeps a missing forecast hour as a labeled chart gap at ${target.name}`, async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-07-19T06:30:00-06:00') });
+    const detail = JSON.parse(forecastDetail());
+    detail.generatedAt = '2026-07-19T06:30:00-06:00';
+    const day = detail.days[1];
+    day.hours.push({ ...day.hours[0], at: '2026-07-19T19:00:00-06:00', tempF: 99 });
+    day.hours.splice(3, 1); // Missing 10 AM must not pull 7 PM into the window.
+    const errors = await openFixture(page, 'weather', target, JSON.stringify(detail));
+    await page.locator('[data-forecast-day="2026-07-19"]').click();
+    const dialog = page.getByRole('dialog', { name: /Today forecast/i });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('status')).toContainText('11 of 12 hours available');
+    await expect(page.locator('#weather-detail-modal-description')).toContainText('11 of 12 hourly periods shown');
+    await expect(dialog.getByTestId('weather-detail-hour')).toHaveCount(11);
+    await expect(dialog.getByTestId('weather-detail-gap')).toHaveAttribute('aria-label', '10 AM, Forecast unavailable');
+    await expect(dialog.getByTestId('weather-detail-gap')).toContainText('10 AM');
+    expect(await dialog.locator('.hour-time').allTextContents()).toEqual([
+      '7 AM','8 AM','9 AM','10 AM','11 AM','12 PM','1 PM','2 PM','3 PM','4 PM','5 PM','6 PM',
+    ]);
+    await expect(dialog.locator('.weather-detail-chart svg')).toBeVisible();
+    const chart = await page.evaluate(async () => {
+      const { getEcharts } = await import('/src/lib/charts/loadEcharts.js');
+      const echarts = await getEcharts();
+      const option = echarts.getInstanceByDom(document.querySelector('.weather-detail-chart')).getOption();
+      const temperature = option.series.find(series => series.name === 'Temperature');
+      const strip = echarts.getInstanceByDom(document.querySelector('.hs-chart')).getOption();
+      const stripTemperature = strip.series.find(series => series.name === 'Temp');
+      return { labels: option.xAxis[0].data, values: temperature.data, connectNulls: temperature.connectNulls,
+        stripLabels: strip.xAxis[0].data, stripValues: stripTemperature.data, stripConnectNulls: stripTemperature.connectNulls };
+    });
+    expect(chart.labels).toHaveLength(12);
+    expect(chart.values).toEqual([58,59,60,null,62,63,64,65,66,67,68,69]);
+    expect(chart.connectNulls).toBe(false);
+    expect(chart.stripLabels).toHaveLength(14);
+    expect(chart.stripValues).toEqual([null,58,59,60,null,62,63,64,65,66,67,68,69,99]);
+    expect(chart.stripConnectNulls).toBe(false);
+    const bounds = await dialog.boundingBox();
+    expect(bounds.x).toBeGreaterThanOrEqual(0);
+    expect(bounds.y).toBeGreaterThanOrEqual(0);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(target.width);
+    expect(bounds.y + bounds.height).toBeLessThanOrEqual(target.height);
+    expect(errors.pageErrors).toEqual([]);
+    expect(errors.consoleErrors).toEqual([]);
   });
 }
