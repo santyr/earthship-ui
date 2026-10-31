@@ -19,8 +19,9 @@ describe('Playwright repository fixture isolation', () => {
 describe('supported browser entrypoints', () => {
   it('separates fixtures and sensors and blocks service workers', async () => {
     const { default: config } = await import('../playwright.config.js');
+    expect(config.projects.find(project=>project.name==='sensors').use.launchOptions.args).toContain('--v8-pool-size=1');
     expect(config.use.serviceWorkers).toBe('block');
-    expect(config.projects).toEqual([
+    expect(config.projects.map(({use,...project})=>project)).toEqual([
       { name: 'fixtures', testIgnore: '**/sensors-layout.spec.js' },
       { name: 'sensors', testMatch: '**/sensors-layout.spec.js' },
     ]);
