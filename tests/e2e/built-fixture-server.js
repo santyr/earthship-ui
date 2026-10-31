@@ -55,7 +55,7 @@ export async function createBuiltFixtureServer(directory, origins) {
     server.httpServer.once('error',reject);
     server.httpServer.listen(0,'127.0.0.1',()=>{
       origin='http://127.0.0.1:'+server.httpServer.address().port;
-      server.resolvedUrls.local=[origin];origins.add(origin);resolve(server);
+      server.resolvedUrls.local=[origin+'/'];origins.add(origin);resolve(server);
     });
   });
   server.close = () => {

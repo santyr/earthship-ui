@@ -17,7 +17,7 @@ for(const size of [{width:1340,height:800},{width:1280,height:720}])test(`decisi
  await region.getByRole('button',{name:'Seen'}).click();expect(feedback.map(e=>e.kind)).toEqual(['acknowledge']);
  await expect(region.getByText('Baseline:',{exact:false})).toBeVisible();
  await page.screenshot({path:`/tmp/earthship-decision-${size.width}.png`});
- await page.clock.fastForward(121000);await expect(region.getByText(/Last advice expired/)).toBeVisible();await expect(region.getByRole('button',{name:'Seen'})).toHaveCount(0);await expect(summary).toHaveText('Awaiting fresh evidence');
+ await page.clock.fastForward(121000);await expect(region.getByText(/Last advice expired/)).toBeVisible();await expect(region.getByRole('button',{name:'Seen'})).toHaveCount(0);await expect(page.locator('button.header-summary')).toHaveText('Awaiting fresh evidence');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
 for(const size of [{width:1340,height:800},{width:1280,height:720}])test(`provisional suggestions share the clock row and preserve alert space at ${size.width}`,async({page})=>{
@@ -34,5 +34,5 @@ for(const size of [{width:1340,height:800},{width:1280,height:720}])test(`provis
  await page.getByRole('button',{name:'Close suggestions',exact:true}).click();await expect(region).not.toBeVisible();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
  await page.screenshot({path:`/tmp/earthship-provisional-header-${size.width}.png`});
- await page.clock.fastForward(121000);await expect(summary).toHaveText('Awaiting fresh evidence');
+ await page.clock.fastForward(121000);await expect(page.locator('button.header-summary')).toHaveText('Awaiting fresh evidence');
 });

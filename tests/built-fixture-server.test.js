@@ -11,7 +11,7 @@ test('built fixture serves complete assets while isolating backends and owning o
  await writeFile(join(directory,'app.js'),'globalThis.fixtureLoaded=true;');
  const origins=new Set();const server=await createBuiltFixtureServer(directory,origins);
  try {
-  await server.listen();const origin=server.resolvedUrls.local[0];expect(origins.has(origin)).toBe(true);
+  await server.listen();const origin=new URL(server.resolvedUrls.local[0]).origin;expect(origins.has(origin)).toBe(true);
   expect(await fetch(origin).then(r=>r.text())).toContain('complete fixture application');
   const asset=await fetch(origin+'/app.js');expect(asset.headers.get('content-type')).toBe('text/javascript');expect(await asset.text()).toContain('fixtureLoaded');
   for(const path of ['/rest/items','/fixture-openhab/rest/items','/api/household-advice']){

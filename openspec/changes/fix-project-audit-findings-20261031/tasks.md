@@ -1,8 +1,8 @@
-- [ ] F01/F05: Filter expired/failed-read actions from the text-only header and verify time-advancing tests and live behavior without extending expiry.
+- [x] F01/F05: Filter expired/failed-read actions from the text-only header and verify time-advancing tests and live behavior without extending expiry.
 - [x] F02 source: Remove group write from the two advisory files; source_snapshot accepts470 files with unchanged bytes.
-- [ ] F02 runtime: Observe the already-running scheduled fit/activation/cleanup; do not restart the live attempt.
+- [ ] F02 runtime: Permission repair is installed. The service had no running process and is start-rate-limited; the user explicitly approved clearing its stale failure state and normal retraining/activation after automatic review required approval. The approved run remains to be observed. Native retry budget remains unchanged.
 - [ ] F03: Profile the precise failing scoring role and preserve original workload, inputs and120-second budget in repair/verification.
-- [ ] F04: Honor confirmed existing OpenHAB energy-task owners; remove duplicate-task blocker without inventing a discretionary load or duplicating schedules.
-- [ ] F06: Constrain fixture discovery and own socket cleanup; verify assertions and complete browser workload under original limits.
+- [x] F04: Honor confirmed existing OpenHAB energy-task owners; remove duplicate-task blocker without inventing a discretionary load or duplicating schedules.
+- [x] F06: Constrain fixture discovery and own socket cleanup; verify assertions and complete browser workload under original limits.
 - [ ] F07: Commit/publish the selectively reconciled deployed sources and verify remote main and deployed authority separately.
 - [ ] Complete full affected suites/build, live observations, preservation and final evidence reconciliation.

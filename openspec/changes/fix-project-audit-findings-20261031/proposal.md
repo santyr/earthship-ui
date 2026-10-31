@@ -16,8 +16,8 @@ unrelated dirty sources.
 
 ## Capabilities
 
-### Modified Capabilities
-None.
+### New Capabilities
+- household-advice-freshness: Current action text and OpenHAB scheduling ownership.
 
 ## Impact
 
