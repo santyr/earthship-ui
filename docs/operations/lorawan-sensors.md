@@ -367,3 +367,33 @@ use the new physical identity and a new nonzero hardware UUID, reset commissioni
 flags, remove old network access and requalify. Old-epoch state/history does not
 become the replacement's evidence. Disabling a device leaves originals available
 but removes it from current projections. Never reuse join keys across devices.
+
+### ThinkCentre RAK5146 deployment, November 20, 2026
+
+The installed Earthship RAK5146 has factory EUI `0016c001f13c1808`.
+Its USB mapping uses
+`/dev/serial/by-id/usb-STMicroelectronics_STM32_Virtual_ComPort_335C378C3035-if00`.
+The operator confirmed 915 MHz hardware and an attached antenna. Basics Station
+started the concentrator and loaded US915 FSB2 channels 8–15 and 65.
+The Docker containers `earthship-basicstation` and `earthship-gateway-bridge`
+use the project's pinned images, host networking and the unless-stopped restart
+policy. The bridge accepts mutual TLS on loopback port 3001. Certificates,
+MQTT credentials and deployed settings remain in the private Docker snap tree.
+ChirpStack registered the EUI in the Earthship production tenant and reported
+successive 30-second statistics. End-device joining, field coverage, and
+host reboot recovery still require testing.
+
+The production ingestion registry lists this gateway with a 120-second
+offline threshold. Preserve the commissioned application ID and devices when
+applying gateway entries from the repository template. Ingestion reads the
+registry at startup. A newly enrolled gateway should yield `gateway_activity`
+in the ingest log and an advancing `last_stats_received_at` in the openHAB view.
+
+The MainUI sidebar page at `/page/lorawan` uses the existing MQTT observation
+Things. Restore its managed layout from
+`openhab/file-config/managed-exceptions/lorawan.json` and the file-owned
+Items and rule from `items/lorawan-health.items` and
+`automation/js/lorawan-health.js` under `openhab/file-config`.
+An expired observation or offline publisher sets gateway status to UNKNOWN.
+Last statistics retains the last observed receipt time. The inventory shows
+battery and link metrics when reported, grouped by project or registry zone.

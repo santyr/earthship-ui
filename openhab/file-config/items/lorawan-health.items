@@ -1,0 +1,4 @@
+String LoRaWAN_Gateway_Status "RAK5146 status" (gEarthship_Sensors)
+DateTime LoRaWAN_Last_Statistics "Last gateway statistics" (gEarthship_Sensors)
+String LoRaWAN_Pipeline "Observation pipeline" (gEarthship_Sensors)
+String LoRaWAN_Sensors "Enrolled sensors" (gEarthship_Sensors)

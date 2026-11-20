@@ -1,0 +1,112 @@
+{
+  "uid": "lorawan",
+  "component": "oh-layout-page",
+  "config": {
+    "label": "LoRaWAN",
+    "sidebar": true
+  },
+  "slots": {
+    "default": [
+      {
+        "component": "oh-block",
+        "config": {
+          "title": "Gateway"
+        },
+        "slots": {
+          "default": [
+            {
+              "component": "oh-list-card",
+              "config": {},
+              "slots": {
+                "default": [
+                  {
+                    "component": "oh-list-item",
+                    "config": {
+                      "title": "Earthship RAK5146",
+                      "after": "=items.LoRaWAN_Gateway_Status.state",
+                      "footer": "0016c001f13c1808 · US915 FSB2"
+                    }
+                  },
+                  {
+                    "component": "oh-list-item",
+                    "config": {
+                      "title": "Last statistics",
+                      "after": "=items.LoRaWAN_Last_Statistics.state !== 'NULL' && items.LoRaWAN_Last_Statistics.state !== 'UNDEF' ? dayjs(items.LoRaWAN_Last_Statistics.state).format('YYYY-MM-DD HH:mm:ss') : 'Awaiting report'"
+                    }
+                  },
+                  {
+                    "component": "oh-list-item",
+                    "config": {
+                      "title": "Report age",
+                      "after": "=items.Earthship_Sensor_View_JSON.state && dayjs(items.LoRaWAN_Last_Statistics.state).isValid() ? dayjs().diff(dayjs(items.LoRaWAN_Last_Statistics.state), 'second') + ' s' : 'Unknown'"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "component": "oh-block",
+        "config": {
+          "title": "Ingestion"
+        },
+        "slots": {
+          "default": [
+            {
+              "component": "oh-list-card",
+              "config": {},
+              "slots": {
+                "default": [
+                  {
+                    "component": "oh-list-item",
+                    "config": {
+                      "title": "Observation service",
+                      "after": "=items.Earthship_Sensor_Service.state"
+                    }
+                  },
+                  {
+                    "component": "oh-list-item",
+                    "config": {
+                      "title": "Pipeline",
+                      "footer": "=items.LoRaWAN_Pipeline.state"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "component": "oh-block",
+        "config": {
+          "title": "Project sensors"
+        },
+        "slots": {
+          "default": [
+            {
+              "component": "oh-list-card",
+              "config": {},
+              "slots": {
+                "default": [
+                  {
+                    "component": "oh-list-item",
+                    "config": {
+                      "title": "Device inventory",
+                      "footer": "=items.LoRaWAN_Sensors.state",
+                      "style": {
+                        "white-space": "pre-line"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

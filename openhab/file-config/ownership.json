@@ -1643,6 +1643,46 @@
       "destination": "/etc/openhab/items/shade-recommendation-policy.items",
       "state_writer": "hex_shade_recommendation_policy",
       "notes": "Source only. Volatile owner readiness excluded from JDBC; never restore this Item."
+    },
+    {
+      "kind": "rule",
+      "id": "lorawan_gateway_health",
+      "provider": "file",
+      "migration": "verified",
+      "source": "automation/js/lorawan-health.js",
+      "destination": "/etc/openhab/automation/js/lorawan-health.js"
+    },
+    {
+      "kind": "item",
+      "id": "LoRaWAN_Gateway_Status",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/lorawan-health.items",
+      "destination": "/etc/openhab/items/lorawan-health.items"
+    },
+    {
+      "kind": "item",
+      "id": "LoRaWAN_Last_Statistics",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/lorawan-health.items",
+      "destination": "/etc/openhab/items/lorawan-health.items"
+    },
+    {
+      "kind": "item",
+      "id": "LoRaWAN_Pipeline",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/lorawan-health.items",
+      "destination": "/etc/openhab/items/lorawan-health.items"
+    },
+    {
+      "kind": "item",
+      "id": "LoRaWAN_Sensors",
+      "provider": "file",
+      "migration": "verified",
+      "source": "items/lorawan-health.items",
+      "destination": "/etc/openhab/items/lorawan-health.items"
     }
   ]
 }
